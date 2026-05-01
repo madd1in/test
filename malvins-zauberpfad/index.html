@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <title>Malvins Zauberpfad</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="game-wrap" aria-label="Malvins Zauberpfad">
+      <div class="topbar">
+        <div>
+          <strong id="sceneName">Waldlichtung</strong>
+          <span id="objective">Finde den Runenstein und aktiviere das Turmsiegel.</span>
+        </div>
+        <div class="top-actions">
+          <button id="hotspotToggle" class="tiny-button" type="button" aria-pressed="true">Hotspots</button>
+          <button id="pathToggle" class="tiny-button" type="button" aria-pressed="true">Pfad</button>
+          <button id="journalToggle" class="tiny-button" type="button" aria-expanded="false">Tagebuch</button>
+          <button id="mapToggle" class="tiny-button" type="button" aria-expanded="false">Karte</button>
+          <button id="saveButton" class="tiny-button" type="button">Speichern</button>
+          <button id="loadButton" class="tiny-button" type="button">Laden</button>
+          <button id="fullscreenToggle" class="tiny-button" type="button" aria-pressed="false">Vollbild</button>
+          <button id="musicToggle" class="tiny-button" type="button" aria-pressed="true">Musik</button>
+          <button id="soundToggle" class="tiny-button" type="button" aria-pressed="true">SFX</button>
+          <button id="speechToggle" class="tiny-button" type="button" aria-pressed="true">Vorlesen</button>
+        </div>
+      </div>
+
+      <canvas id="game" width="640" height="360" aria-label="Spielszene"></canvas>
+
+      <div id="dialog" class="dialog hidden" role="status" aria-live="polite">
+        <div id="portrait" class="portrait" aria-hidden="true"></div>
+        <p id="dialogText"></p>
+      </div>
+
+      <aside id="journal" class="journal hidden" aria-label="Malvins Tagebuch">
+        <header>
+          <strong>Malvins Tagebuch</strong>
+          <button id="journalClose" class="tiny-button" type="button" aria-label="Tagebuch schliessen">Schliessen</button>
+        </header>
+        <div id="journalProgress" class="journal-progress" aria-label="Fortschritt"></div>
+        <p id="journalNext"></p>
+        <ol id="journalEntries"></ol>
+      </aside>
+
+      <aside id="mapPanel" class="map-panel hidden" aria-label="Magische Karte">
+        <header>
+          <strong>Magische Karte</strong>
+          <button id="mapClose" class="tiny-button" type="button" aria-label="Karte schliessen">Schliessen</button>
+        </header>
+        <p id="mapNote"></p>
+        <div id="mapGrid" class="map-grid"></div>
+      </aside>
+
+      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+      <div class="command-panel">
+        <nav class="verbs" aria-label="Aktionen">
+          <button class="verb active" data-verb="walk" type="button"><span class="verb-icon" data-sprite="walk"></span>Gehen</button>
+          <button class="verb" data-verb="look" type="button"><span class="verb-icon" data-sprite="look"></span>Ansehen</button>
+          <button class="verb" data-verb="talk" type="button"><span class="verb-icon" data-sprite="talk"></span>Reden</button>
+          <button class="verb" data-verb="take" type="button"><span class="verb-icon" data-sprite="take"></span>Nehmen</button>
+          <button class="verb" data-verb="use" type="button"><span class="verb-icon" data-sprite="use"></span>Benutzen</button>
+        </nav>
+
+        <section class="inventory" aria-label="Inventar">
+          <div id="inventorySlots" class="slots"></div>
+        </section>
+      </div>
+
+      <div id="touchControls" class="touch-controls" aria-label="Touch-Steuerung">
+        <div class="touch-pad" aria-label="Bewegen">
+          <button class="touch-button touch-up" type="button" data-move="up" aria-label="Nach oben"></button>
+          <button class="touch-button touch-left" type="button" data-move="left" aria-label="Nach links"></button>
+          <button class="touch-button touch-down" type="button" data-move="down" aria-label="Nach unten"></button>
+          <button class="touch-button touch-right" type="button" data-move="right" aria-label="Nach rechts"></button>
+        </div>
+        <div class="touch-actions" aria-label="Aktionen">
+          <button id="touchVerbPrev" class="touch-chip" type="button" aria-label="Vorherige Aktion">&lt;</button>
+          <button id="touchAction" class="touch-action" type="button">Gehen</button>
+          <button id="touchVerbNext" class="touch-chip" type="button" aria-label="Naechste Aktion">&gt;</button>
+          <button id="touchFullscreen" class="touch-chip wide" type="button">Vollbild</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <audio id="bgmTrack" src="assets/audio/clockwork-farewell.mp3" loop preload="auto"></audio>
+  <script src="assets/sprite-map.js?v=20260501-playerfix"></script>
+  <script src="game.js?v=20260501-playerfix"></script>
+</body>
+</html>
