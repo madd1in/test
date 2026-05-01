@@ -104,6 +104,8 @@ const overlayStartBtn = $("overlayStartBtn");
 const audioBtn = $("audioBtn");
 const restartBtn = $("restartBtn");
 const mapBtn = $("mapBtn");
+const fullscreenBtn = $("fullscreenBtn");
+const swipePad = $("swipePad");
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -164,6 +166,9 @@ let bossTexture = null;
 let music = null;
 let audioEnabled = false;
 let musicIndex = 0;
+let touchStart = null;
+let longPressTimer = null;
+let mobileQuery = null;
 
 init();
 
@@ -537,10 +542,16 @@ function bindInput() {
   overlayStartBtn.addEventListener("click", startGame);
   restartBtn.addEventListener("click", restartGame);
   audioBtn.addEventListener("click", toggleAudio);
+  fullscreenBtn.addEventListener("click", toggleFullscreen);
+  document.addEventListener("fullscreenchange", updateFullscreenButton);
   mapBtn.addEventListener("click", () => {
     state.mapVisible = !state.mapVisible;
     miniMap.style.display = state.mapVisible ? "grid" : "none";
   });
+
+  mobileQuery = window.matchMedia("(pointer: coarse), (max-width: 760px)");
+  mobileQuery.addEventListener?.("change", updateMobileMode);
+  updateMobileMode();
 
   document.addEventListener("keydown", (event) => {
     const action = keyToAction(event.key);
@@ -556,6 +567,8 @@ function bindInput() {
       handleAction(button.dataset.action);
     });
   });
+
+  bindSwipeInput();
 }
 
 function keyToAction(key) {
@@ -592,7 +605,91 @@ function startGame() {
   state.active = true;
   state.paused = false;
   startOverlay.classList.add("is-hidden");
-  setMessage("Die Luft riecht nach kaltem Stein. Drei Runen halten das Siegel.");
+  setMessage(isMobileMode() ? "Swipe: hoch/runter gehen, links/rechts drehen. Tippen greift an." : "Die Luft riecht nach kaltem Stein. Drei Runen halten das Siegel.");
+}
+
+function updateMobileMode() {
+  document.body.classList.toggle("mobile-mode", isMobileMode());
+  if (state.active && !state.dead && !state.won && isMobileMode()) {
+    setMessage("Swipe: hoch/runter gehen, links/rechts drehen. Tippen greift an.");
+  }
+}
+
+function isMobileMode() {
+  return Boolean(mobileQuery?.matches);
+}
+
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    }
+  } catch {
+    setMessage("Vollbild ist in diesem Browser gerade blockiert.");
+  } finally {
+    updateFullscreenButton();
+  }
+}
+
+function updateFullscreenButton() {
+  const full = Boolean(document.fullscreenElement);
+  document.body.classList.toggle("is-fullscreen", full);
+  fullscreenBtn.setAttribute("aria-pressed", String(full));
+}
+
+function bindSwipeInput() {
+  canvas.addEventListener("pointerdown", (event) => {
+    if (!isMobileMode() && event.pointerType !== "touch") return;
+    touchStart = {
+      x: event.clientX,
+      y: event.clientY,
+      time: performance.now(),
+      pointerId: event.pointerId
+    };
+    swipePad.classList.add("is-active");
+    canvas.setPointerCapture?.(event.pointerId);
+    clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(() => {
+      if (!touchStart) return;
+      handleTouchAction("interact");
+      touchStart = null;
+      swipePad.classList.remove("is-active");
+    }, 540);
+  });
+
+  canvas.addEventListener("pointerup", (event) => {
+    if (!touchStart || touchStart.pointerId !== event.pointerId) return;
+    clearTimeout(longPressTimer);
+    const dx = event.clientX - touchStart.x;
+    const dy = event.clientY - touchStart.y;
+    const elapsed = performance.now() - touchStart.time;
+    touchStart = null;
+    swipePad.classList.remove("is-active");
+
+    const distance = Math.hypot(dx, dy);
+    if (distance < 24 && elapsed < 420) {
+      handleTouchAction("attack");
+      return;
+    }
+    if (Math.abs(dx) > Math.abs(dy)) {
+      handleTouchAction(dx > 0 ? "turn-right" : "turn-left");
+    } else {
+      handleTouchAction(dy > 0 ? "back" : "forward");
+    }
+  });
+
+  canvas.addEventListener("pointercancel", () => {
+    clearTimeout(longPressTimer);
+    touchStart = null;
+    swipePad.classList.remove("is-active");
+  });
+}
+
+function handleTouchAction(action) {
+  if (!state.active) startGame();
+  handleAction(action);
 }
 
 function restartGame() {

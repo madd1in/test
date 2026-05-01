@@ -27,6 +27,8 @@ body,
 
 body {
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
   color: var(--text);
   background:
     linear-gradient(145deg, rgba(36, 17, 23, 0.8), transparent 42%),
@@ -66,6 +68,8 @@ button:active {
   width: 100%;
   height: 100%;
   outline: none;
+  touch-action: none;
+  user-select: none;
 }
 
 .game-shell::after {
@@ -84,6 +88,80 @@ button:active {
   position: absolute;
   z-index: 3;
   pointer-events: none;
+}
+
+.fullscreen-toggle {
+  position: absolute;
+  z-index: 5;
+  right: 18px;
+  top: 88px;
+  width: 46px;
+  min-height: 46px;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.fullscreen-toggle span,
+.fullscreen-toggle span::before,
+.fullscreen-toggle span::after {
+  position: absolute;
+  display: block;
+  width: 18px;
+  height: 18px;
+  content: "";
+}
+
+.fullscreen-toggle span {
+  inset: 13px;
+  border-top: 3px solid var(--text);
+  border-left: 3px solid var(--text);
+}
+
+.fullscreen-toggle span::before {
+  right: -2px;
+  top: -3px;
+  border-top: 3px solid var(--text);
+  border-right: 3px solid var(--text);
+}
+
+.fullscreen-toggle span::after {
+  right: -2px;
+  bottom: -2px;
+  border-right: 3px solid var(--text);
+  border-bottom: 3px solid var(--text);
+}
+
+.is-fullscreen .fullscreen-toggle span {
+  transform: rotate(180deg) scale(0.82);
+}
+
+.swipe-pad {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 112px;
+  width: 128px;
+  height: 128px;
+  border: 1px solid rgba(119, 189, 158, 0.2);
+  border-radius: 50%;
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(119, 189, 158, 0.15) 48% 52%, transparent 52%),
+    linear-gradient(180deg, transparent 48%, rgba(119, 189, 158, 0.15) 48% 52%, transparent 52%),
+    rgba(6, 8, 6, 0.14);
+  box-shadow: inset 0 0 24px rgba(109, 209, 158, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.mobile-mode .swipe-pad {
+  opacity: 0.42;
+}
+
+.mobile-mode .swipe-pad.is-active {
+  opacity: 0.82;
+  transform: translateX(-50%) scale(1.08);
 }
 
 .hud-top {
@@ -326,22 +404,54 @@ button:active {
   }
 
   .brand-block h1 {
-    font-size: 2.2rem;
+    font-size: 1.9rem;
+  }
+
+  .brand-block .eyebrow {
+    font-size: 0.64rem;
   }
 
   .status-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .status-strip article {
+    padding: 7px 8px;
+  }
+
+  .status-strip span {
+    font-size: 0.58rem;
+  }
+
+  .status-strip strong {
+    font-size: 0.92rem;
   }
 
   .hud-side {
     left: 10px;
     right: 10px;
-    bottom: 164px;
+    bottom: 128px;
     padding: 10px;
   }
 
+  .objective {
+    padding-bottom: 8px;
+  }
+
+  .objective strong {
+    font-size: 0.95rem;
+  }
+
   .button-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .button-row button {
+    min-height: 36px;
+    padding: 0 6px;
+    font-size: 0.9rem;
   }
 
   .hud-bottom {
@@ -350,18 +460,79 @@ button:active {
     bottom: 10px;
     align-items: stretch;
     flex-direction: column;
+    gap: 8px;
+    padding: 9px;
+  }
+
+  #messageText {
+    font-size: 0.92rem;
   }
 
   .control-cluster {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .control-cluster button {
     width: auto;
+    min-height: 38px;
   }
 
   .control-cluster button:nth-child(7),
   .control-cluster button:nth-child(8) {
     grid-column: auto;
+  }
+
+  .fullscreen-toggle {
+    right: 10px;
+    bottom: auto;
+    top: 10px;
+    width: 42px;
+    min-height: 42px;
+  }
+
+  .swipe-pad {
+    bottom: 236px;
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hud-top {
+    right: 60px;
+  }
+
+  .brand-block h1 {
+    font-size: 1.55rem;
+  }
+
+  .status-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-side {
+    bottom: 126px;
+  }
+
+  .hud-bottom {
+    max-height: 122px;
+  }
+
+  .control-cluster {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .hud-bottom {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: 640px) {
+    .fullscreen-toggle {
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+    }
   }
 }

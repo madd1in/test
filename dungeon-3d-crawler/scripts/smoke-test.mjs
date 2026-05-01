@@ -43,7 +43,8 @@ const browser = await chromium.launch({ headless: true, executablePath });
 const results = [];
 
 async function runViewport(name, viewport) {
-  const page = await browser.newPage({ viewport });
+  const mobile = name === "mobile";
+  const page = await browser.newPage({ viewport, hasTouch: mobile, isMobile: mobile });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (msg) => {
@@ -58,6 +59,15 @@ async function runViewport(name, viewport) {
   await page.waitForTimeout(260);
   await page.keyboard.press("Space");
   await page.waitForTimeout(500);
+  if (name === "mobile") {
+    const box = await page.locator("#game").boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 110, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(320);
+  }
 
   const sample = await page.evaluate(async () => {
     const canvas = document.querySelector("#game");
@@ -91,7 +101,9 @@ async function runViewport(name, viewport) {
       varied,
       message: document.querySelector("#messageText").textContent,
       scrollOk: document.documentElement.scrollWidth <= window.innerWidth + 1,
-      overlayHidden: document.querySelector("#startOverlay").classList.contains("is-hidden")
+      overlayHidden: document.querySelector("#startOverlay").classList.contains("is-hidden"),
+      fullscreenButton: Boolean(document.querySelector("#fullscreenBtn")),
+      mobileMode: document.body.classList.contains("mobile-mode")
     };
   });
 
@@ -102,6 +114,8 @@ async function runViewport(name, viewport) {
   if (errors.length) throw new Error(`${name} browser errors: ${errors.join(" | ")}`);
   if (!sample.overlayHidden) throw new Error(`${name} start overlay did not hide`);
   if (!sample.scrollOk) throw new Error(`${name} horizontal overflow detected`);
+  if (!sample.fullscreenButton) throw new Error(`${name} fullscreen button missing`);
+  if (name === "mobile" && !sample.mobileMode) throw new Error("mobile mode did not activate");
   if (sample.lit < 700 || sample.varied < 1000) {
     throw new Error(`${name} canvas looks blank: ${JSON.stringify(sample)}`);
   }
