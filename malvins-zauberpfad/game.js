@@ -24,6 +24,7 @@ const loadButton = document.querySelector("#loadButton");
 const fullscreenToggle = document.querySelector("#fullscreenToggle");
 const journalEl = document.querySelector("#journal");
 const journalProgressEl = document.querySelector("#journalProgress");
+const journalBadgesEl = document.querySelector("#journalBadges");
 const journalNextEl = document.querySelector("#journalNext");
 const journalEntriesEl = document.querySelector("#journalEntries");
 const mapPanelEl = document.querySelector("#mapPanel");
@@ -161,6 +162,14 @@ const journalSteps = [
   { flag: "archiveSolved", text: "Im Mondarchiv die Sternenmechanik beruhigen." },
 ];
 
+const achievementDefs = [
+  { flag: "achievementFirstFind", label: "Erster Fund", test: () => state.inventory.length > 0 || state.flags.wandTaken },
+  { flag: "achievementHalfPath", label: "Halber Pfad", test: () => journalSteps.filter((entry) => state.flags[entry.flag]).length >= 5 },
+  { flag: "achievementFirstSecret", label: "Sternenblick", test: () => secretCount() > 0 },
+  { flag: "achievementArchive", label: "Archivruh", test: () => state.flags.archiveSolved },
+  { flag: "achievementStarMaster", label: "Sternenmeister", test: () => state.flags.finalReward },
+];
+
 const state = {
   scene: "forest",
   verb: "walk",
@@ -182,6 +191,11 @@ const state = {
     archiveSolved: false,
     finalReward: false,
     finaleSeen: false,
+    achievementFirstFind: false,
+    achievementHalfPath: false,
+    achievementFirstSecret: false,
+    achievementArchive: false,
+    achievementStarMaster: false,
     secretForestTaken: false,
     secretTavernTaken: false,
     secretTowerTaken: false,
@@ -891,6 +905,7 @@ const scenes = {
           showDialog("Die Mondperle rastet ein. Das Archiv klappt seine Sternenbahnen zurecht und Malvins Pruefung bekommt ein echtes Nachwort.", "spell", 7000);
           sfx("success");
           maybeUnlockFinalReward();
+          maybeUnlockAchievements();
           refreshUi();
           saveGame("Mondarchiv gespeichert.");
         },
@@ -1197,6 +1212,20 @@ function secretForScene(sceneId) {
   return secretLocations.find((secret) => secret.scene === sceneId && !state.flags[secretFlag(secret)]);
 }
 
+function secretByScene(sceneId) {
+  return secretLocations.find((secret) => secret.scene === sceneId) || null;
+}
+
+function mapFocusScene() {
+  const step = getNextStep();
+  if (!step.done) return step.scene;
+  if (state.flags.archiveSolved && secretCount() < secretLocations.length) {
+    const secret = missingSecretTrace();
+    return secret ? secret.scene : null;
+  }
+  return null;
+}
+
 function missingSecretTrace() {
   const current = secretForScene(state.scene);
   if (current) return current;
@@ -1232,6 +1261,7 @@ function takeSecret(secret) {
     sfx("spell");
   }
   maybeUnlockFinalReward();
+  maybeUnlockAchievements();
   refreshUi();
   saveGame("Sternsplitter gespeichert.");
 }
@@ -1253,6 +1283,22 @@ function maybeUnlockFinalReward({ quiet = false } = {}) {
   return true;
 }
 
+function maybeUnlockAchievements({ quiet = false } = {}) {
+  const unlocked = [];
+  achievementDefs.forEach((achievement) => {
+    if (!state.flags[achievement.flag] && achievement.test()) {
+      state.flags[achievement.flag] = true;
+      unlocked.push(achievement.label);
+    }
+  });
+  if (!quiet && unlocked.length) {
+    const suffix = unlocked.length > 1 ? ` +${unlocked.length - 1}` : "";
+    showToast(`Erfolg: ${unlocked[0]}${suffix}`);
+    sfx("success");
+  }
+  return unlocked.length > 0;
+}
+
 function removeInventory(item) {
   state.inventory = state.inventory.filter((entry) => entry !== item);
   if (state.selectedItem === item) {
@@ -1266,6 +1312,7 @@ function takeItem(item, message) {
   setPose("pickup", 700);
   showDialog(message, "neutral");
   sfx("pickup");
+  maybeUnlockAchievements();
   refreshUi();
   saveGame("Fortschritt gespeichert.");
   updateCanvasCursor();
@@ -1371,6 +1418,16 @@ function refreshJournal() {
     journalProgressEl.append(dot);
   });
 
+  journalBadgesEl.innerHTML = "";
+  achievementDefs.forEach((achievement) => {
+    const badge = document.createElement("span");
+    const unlocked = Boolean(state.flags[achievement.flag]);
+    badge.className = `journal-badge${unlocked ? " unlocked" : ""}`;
+    badge.textContent = unlocked ? achievement.label : "???";
+    badge.title = unlocked ? `Erfolg: ${achievement.label}` : "Noch nicht freigeschaltet";
+    journalBadgesEl.append(badge);
+  });
+
   const next = getNextStep();
   if (state.flags.finalReward) {
     journalNextEl.textContent = `Meisterstueck vollendet. Sternsplitter: ${secretsFound}/${secretLocations.length}.`;
@@ -1401,20 +1458,42 @@ function toggleJournal(forceOpen) {
 }
 
 function refreshMap() {
-  mapNoteEl.textContent = "Bereits besuchte Orte lassen sich direkt anspringen. Sehr unmagisch waere laufen.";
+  const focusScene = mapFocusScene();
+  mapNoteEl.textContent = focusScene
+    ? `Kartenfokus: ${locationLabel(focusScene)}. Besuchte Orte lassen sich direkt anspringen.`
+    : "Kartenfokus: Alles erledigt. Sehr unmagisch waere laufen.";
   mapGridEl.innerHTML = "";
   mapLocations.forEach((location) => {
     const button = document.createElement("button");
     const discovered = Boolean(state.discovered[location.scene]);
+    const secret = secretByScene(location.scene);
+    const secretFound = Boolean(secret && state.flags[secretFlag(secret)]);
+    const isFocus = focusScene === location.scene;
     button.type = "button";
-    button.className = `map-node${state.scene === location.scene ? " current" : ""}`;
+    button.className = `map-node${state.scene === location.scene ? " current" : ""}${isFocus ? " focus" : ""}${secretFound ? " star-done" : ""}`;
     button.disabled = !discovered || state.scene === location.scene;
-    button.textContent = discovered ? location.label : "Unentdeckt";
+    const label = document.createElement("strong");
+    label.textContent = discovered ? location.label : "Unentdeckt";
     const hint = document.createElement("span");
+    hint.className = "map-hint";
     hint.textContent = discovered
       ? (state.scene === location.scene ? "Aktueller Ort" : location.hint)
       : "Noch nicht besucht";
-    button.append(hint);
+    const badges = document.createElement("div");
+    badges.className = "map-badges";
+    if (discovered && secret) {
+      const starBadge = document.createElement("span");
+      starBadge.className = `map-badge${secretFound ? " done" : " open"}`;
+      starBadge.textContent = secretFound ? "Stern gefunden" : "Stern offen";
+      badges.append(starBadge);
+    }
+    if (discovered && isFocus) {
+      const focusBadge = document.createElement("span");
+      focusBadge.className = "map-badge focus";
+      focusBadge.textContent = "Ziel";
+      badges.append(focusBadge);
+    }
+    button.append(label, hint, badges);
     if (discovered && state.scene !== location.scene) {
       button.addEventListener("click", () => {
         markUserActivated();
@@ -1494,6 +1573,7 @@ function showSmartHint() {
   }
 
   if (maybeUnlockFinalReward()) {
+    maybeUnlockAchievements();
     refreshUi();
     saveGame("Meisterstueck gespeichert.");
     return;
@@ -1587,10 +1667,11 @@ function loadSavedGame({ quiet = false } = {}) {
     state.selectedItem = null;
   state.hover = null;
   state.pathProbe = null;
-  state.pathBlockedUntil = 0;
-  state.effectAt = null;
-  state.sceneFadeUntil = performance.now() + 420;
-  maybeUnlockFinalReward({ quiet: true });
+    state.pathBlockedUntil = 0;
+    state.effectAt = null;
+    state.sceneFadeUntil = performance.now() + 420;
+    maybeUnlockFinalReward({ quiet: true });
+    maybeUnlockAchievements({ quiet: true });
     stopSpeech();
     setVerb("walk");
     refreshUi();
