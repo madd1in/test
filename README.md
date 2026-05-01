@@ -23,6 +23,7 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - `C`: Continue (Title/Game Over)
 
 ## Features
+- V53 Performance/Stability: Initial-Preload ist gestaffelt, Auto-Quality schaltet mit Hysterese, und lange Garten-Tilemaps rendern nur noch den sichtbaren Ausschnitt.
 - V52 Bush/Fence Tilemap: Hecken, Rosenbuesche, Eisenzaun und Garten-Gitter nutzen jetzt transparente Imagegen-Tiles statt Canvas-Rechtecken.
 - V51 Tile-Stabilitaet: Scrollende Boden-/Wall-/Super7-Tiles sind an Weltkoordinaten verankert, damit Kacheln beim Scrollen nicht mehr flackern.
 - V50 Performance/Fog: Auto-Modus reduziert Super7-Bodenbaender, schaltet Canvas-Filter im Boost ab und rastet Nebel/Glints pixelstabil ein.
@@ -335,3 +336,12 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - `hedge`, `roseBush`, `ironFence`, `gardenGate` und `gardenArch` nutzen jetzt das neue Sheet statt Canvas-Rechteck-Fallbacks, sobald der Atlas geladen ist
 - Garten-Gates bekommen zusaetzliche transparente Gitter-Inlays aus der vierten Tile-Reihe
 - Neuer Smoke `asset_tools/smoke_bush_fence_tilemap_v52.js` prueft Atlas-Ladezustand, Tile-Draws fuer Buesche/Zaun/Gitter und Screenshot-Rendering
+
+## Performance / Flicker Stability Pass (V53)
+- `preloadAllArt()` laedt jetzt zuerst nur Stage-1-kritische Bilder, Sheets und Tiles und streamt den Rest in kleinen Idle-Batches nach
+- Auto-Quality startet im stabileren Medium-Budget und wechselt erst nach laengerer Erholung wieder hoch, damit Nebel/Super7-Layer nicht staendig ein- und ausblinken
+- Enter/Start wartet nun kurz auf Stage-kritische Kernassets, damit der erste Run nicht mit halbgeladenen Sprites/Fallbacks losstottert
+- Super7-Scroll, Parallax-Offsets und dekorative Wall-Tiles sind pixelgesnapped und nutzen stabile modulo-basierte Offsets
+- Lange Garten-Hecken und Eisenzaeune werden auf den sichtbaren Viewport begrenzt; im Smoke sinken Bush/Fence-Draws von 108/39 auf maximal 72/25
+- Der Canvas-CSS-Filter ist entfernt, CRT-Scanlines sind im Auto-Medium-Budget deaktiviert, und HUD-Text schreibt nur noch bei echten Wertwechseln in den DOM
+- Neuer Smoke `asset_tools/smoke_perf_stability_v53.js` prueft Preload-Status, Quality-Hysterese, Auto-Budget und gekappte Garten-Tile-Draws

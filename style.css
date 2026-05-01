@@ -51,7 +51,7 @@ canvas#game {
   touch-action: none;
 }
 canvas.crt {
-  filter: contrast(1.10) saturate(1.18) brightness(1.04);
+  filter: none;
 }
 .hud {
   position: absolute;
