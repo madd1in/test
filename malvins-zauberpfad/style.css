@@ -112,6 +112,7 @@ button {
   gap: 5px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  max-width: min(660px, 62%);
   opacity: 0.18;
   transform: translateY(-5px);
   transition: opacity 160ms ease, transform 160ms ease;
@@ -215,7 +216,8 @@ button {
 }
 
 .journal,
-.map-panel {
+.map-panel,
+.finale {
   position: absolute;
   z-index: 7;
   top: 54px;
@@ -233,6 +235,7 @@ button {
 
 .journal.hidden,
 .map-panel.hidden,
+.finale.hidden,
 .toast.hidden {
   display: none;
 }
@@ -254,7 +257,7 @@ button {
 
 .journal-progress {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(16px, 1fr));
   gap: 4px;
   margin-bottom: 10px;
 }
@@ -327,6 +330,34 @@ button {
   color: var(--muted);
   font-size: 11px;
   margin-top: 2px;
+}
+
+.finale {
+  left: 50%;
+  right: auto;
+  top: 50%;
+  width: min(420px, calc(100% - 24px));
+  max-height: calc(100% - 60px);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  border-color: rgba(230, 179, 65, 0.86);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.52),
+    0 0 34px rgba(76, 218, 201, 0.12);
+}
+
+.finale strong {
+  display: block;
+  color: var(--gold);
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.finale p {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.42;
 }
 
 .toast {

@@ -18,6 +18,8 @@ Finde den Runenstein im Pilzhain, besorge das Mondabzeichen im Observatorium, ak
 - `1` bis `5` waehlen die Verben per Tastatur.
 - `Hotspots` zeigt anklickbare Bereiche, Exit-Ziele und Objektmarker direkt in der Szene; `H` schaltet die Anzeige ebenfalls um.
 - `Pfad` zeigt in der Waldlichtung, was begehbar ist. Gruen bedeutet erreichbar, rot bedeutet blockiert; `P` schaltet die Anzeige ebenfalls um.
+- `Kompass` blendet das naechste Quest-Ziel in der Szene ein oder aus; `K` schaltet ihn ebenfalls um.
+- `Tipp` gibt einen kurzen situationsabhaengigen Hinweis; `?` ruft ihn per Tastatur auf.
 - `Tagebuch` zeigt Fortschritt, naechstes Ziel und gefundene Sternsplitter; `J` schaltet es um.
 - `Karte` erlaubt Schnellreise zu bereits besuchten Orten; `M` schaltet sie um.
 - `Vollbild` streckt die Spielflaeche optimal auf den Bildschirm; `F` schaltet ebenfalls um.
@@ -35,7 +37,7 @@ Die Sprachausgabe nutzt die Web-Speech-API des Browsers. Dialoge werden satzweis
 Die Hintergrundmusik startet browserbedingt erst nach der ersten Nutzeraktion. Sie ist bewusst etwas staerker gemischt als Stimme und SFX; falls ein Browser MP3 nicht abspielen kann, nutzt das Spiel die alte prozedurale Web-Audio-Musik als Fallback.
 Die Szenen nutzen jetzt mehrere Tracks aus `assets/audio`: `Clockwork Farewell`, `Clockwork Farewell II`, `Heraldic Teacups`, `Marzipan Compass` und `Marzipan Compass II`.
 In der Waldlichtung skaliert Malvins Sprite mit der Tiefe. Vordergrundobjekte wie Baumstumpf und Wegweiser decken ihn ab, wenn er dahinter entlanggeht.
-In jeder Szene ist ein optionaler Sternsplitter versteckt. Wer alle neun findet, bekommt einen kleinen Bonusabschluss im Tagebuch.
+In jeder Szene ist ein optionaler Sternsplitter versteckt. Wer alle neun findet und das Mondarchiv beruhigt, schaltet einen eigenen Abschlussbildschirm frei.
 
 ## Assets
 

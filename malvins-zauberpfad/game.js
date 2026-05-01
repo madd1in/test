@@ -13,6 +13,8 @@ const inventorySlotsEl = document.querySelector("#inventorySlots");
 const gameWrapEl = document.querySelector(".game-wrap");
 const hotspotToggle = document.querySelector("#hotspotToggle");
 const pathToggle = document.querySelector("#pathToggle");
+const compassToggle = document.querySelector("#compassToggle");
+const hintButton = document.querySelector("#hintButton");
 const journalToggle = document.querySelector("#journalToggle");
 const journalClose = document.querySelector("#journalClose");
 const mapToggle = document.querySelector("#mapToggle");
@@ -28,6 +30,8 @@ const mapPanelEl = document.querySelector("#mapPanel");
 const mapGridEl = document.querySelector("#mapGrid");
 const mapNoteEl = document.querySelector("#mapNote");
 const toastEl = document.querySelector("#toast");
+const finalePanelEl = document.querySelector("#finalePanel");
+const finaleContinue = document.querySelector("#finaleContinue");
 const touchControlsEl = document.querySelector("#touchControls");
 const touchVerbPrev = document.querySelector("#touchVerbPrev");
 const touchVerbNext = document.querySelector("#touchVerbNext");
@@ -176,6 +180,8 @@ const state = {
     observatorySolved: false,
     archivePearlTaken: false,
     archiveSolved: false,
+    finalReward: false,
+    finaleSeen: false,
     secretForestTaken: false,
     secretTavernTaken: false,
     secretTowerTaken: false,
@@ -219,6 +225,7 @@ const state = {
   pathBlockedUntil: 0,
   showHotspots: false,
   showPathTrace: false,
+  showCompass: true,
   music: true,
   sound: true,
   speech: "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
@@ -882,6 +889,7 @@ const scenes = {
           setPose("cast", 1400);
           showDialog("Die Mondperle rastet ein. Das Archiv klappt seine Sternenbahnen zurecht und Malvins Pruefung bekommt ein echtes Nachwort.", "spell", 7000);
           sfx("success");
+          maybeUnlockFinalReward();
           refreshUi();
           saveGame("Mondarchiv gespeichert.");
         },
@@ -1188,6 +1196,12 @@ function secretForScene(sceneId) {
   return secretLocations.find((secret) => secret.scene === sceneId && !state.flags[secretFlag(secret)]);
 }
 
+function missingSecretTrace() {
+  const current = secretForScene(state.scene);
+  if (current) return current;
+  return secretLocations.find((secret) => !state.flags[secretFlag(secret)]) || null;
+}
+
 function makeSecretHotspot(secret) {
   return {
     id: `secret-${secret.id}`,
@@ -1216,8 +1230,26 @@ function takeSecret(secret) {
     showDialog(`${secret.clue} Sternsplitter ${found}/${secretLocations.length} gefunden.`, "spell", 5200);
     sfx("spell");
   }
+  maybeUnlockFinalReward();
   refreshUi();
   saveGame("Sternsplitter gespeichert.");
+}
+
+function completionReady() {
+  return state.flags.archiveSolved && secretCount() === secretLocations.length;
+}
+
+function maybeUnlockFinalReward({ quiet = false } = {}) {
+  if (!completionReady() || state.flags.finalReward) return false;
+  state.flags.finalReward = true;
+  state.flags.finaleSeen = false;
+  state.effectUntil = performance.now() + 2600;
+  state.effectAt = { x: state.actor.x, y: state.actor.y - 28 };
+  if (!quiet) {
+    showToast("Meisterstueck freigeschaltet.");
+    sfx("success");
+  }
+  return true;
 }
 
 function removeInventory(item) {
@@ -1243,12 +1275,14 @@ function refreshUi() {
   objectiveEl.textContent = getObjective();
   refreshHotspotToggle();
   refreshPathToggle();
+  refreshCompassToggle();
   refreshAudioToggles();
   refreshInventory();
   refreshJournal();
   refreshMap();
   refreshTouchControls();
   refreshFullscreenToggle();
+  refreshFinalePanel();
   refreshContextUi();
 }
 
@@ -1259,6 +1293,12 @@ function refreshContextUi() {
   gameWrapEl.classList.toggle("dialog-open", !dialogEl.classList.contains("hidden"));
   gameWrapEl.classList.toggle("journal-open", !journalEl.classList.contains("hidden"));
   gameWrapEl.classList.toggle("map-open", !mapPanelEl.classList.contains("hidden"));
+  gameWrapEl.classList.toggle("finale-open", !finalePanelEl.classList.contains("hidden"));
+}
+
+function refreshFinalePanel() {
+  const open = state.flags.finalReward && !state.flags.finaleSeen;
+  finalePanelEl.classList.toggle("hidden", !open);
 }
 
 function refreshHotspotToggle() {
@@ -1269,6 +1309,11 @@ function refreshHotspotToggle() {
 function refreshPathToggle() {
   pathToggle.setAttribute("aria-pressed", String(state.showPathTrace));
   pathToggle.textContent = state.showPathTrace ? "Pfad" : "Pfad aus";
+}
+
+function refreshCompassToggle() {
+  compassToggle.setAttribute("aria-pressed", String(state.showCompass));
+  compassToggle.textContent = state.showCompass ? "Kompass" : "Kompass aus";
 }
 
 function refreshInventory() {
@@ -1300,6 +1345,9 @@ function refreshInventory() {
 }
 
 function getObjective() {
+  if (state.flags.finalReward) {
+    return "Meisterstueck: Malvins Pruefung ist vollendet.";
+  }
   if (state.flags.archiveSolved && secretCount() < secretLocations.length) {
     return `Bonus: ${secretCount()}/${secretLocations.length} Sternsplitter gefunden.`;
   }
@@ -1323,9 +1371,15 @@ function refreshJournal() {
   });
 
   const next = getNextStep();
-  journalNextEl.textContent = next.done
-    ? `Pruefung bestanden. Sternsplitter: ${secretsFound}/${secretLocations.length}.`
-    : `${completed}/${journalSteps.length} erledigt. Naechstes Ziel: ${next.action} Sternsplitter: ${secretsFound}/${secretLocations.length}.`;
+  if (state.flags.finalReward) {
+    journalNextEl.textContent = `Meisterstueck vollendet. Sternsplitter: ${secretsFound}/${secretLocations.length}.`;
+  } else if (next.done && secretsFound < secretLocations.length) {
+    journalNextEl.textContent = `Pruefung bestanden. Bonus offen: ${secretsFound}/${secretLocations.length} Sternsplitter.`;
+  } else if (next.done) {
+    journalNextEl.textContent = `Pruefung bestanden. Alle Sternsplitter sind bereit.`;
+  } else {
+    journalNextEl.textContent = `${completed}/${journalSteps.length} erledigt. Naechstes Ziel: ${next.action} Sternsplitter: ${secretsFound}/${secretLocations.length}.`;
+  }
 
   journalEntriesEl.innerHTML = "";
   journalSteps.forEach((entry) => {
@@ -1389,6 +1443,65 @@ function fastTravel(sceneId) {
   goScene(sceneId, location.at);
 }
 
+function locationLabel(sceneId) {
+  const location = mapLocations.find((entry) => entry.scene === sceneId);
+  return location ? location.label : (scenes[sceneId] ? scenes[sceneId].name : sceneId);
+}
+
+function focusHintSpot(spot) {
+  if (!spot) return;
+  state.hover = {
+    spot,
+    x: spot.rect[0] + spot.rect[2] / 2,
+    y: spot.rect[1] + spot.rect[3] / 2,
+  };
+}
+
+function showSmartHint() {
+  state.showCompass = true;
+  refreshCompassToggle();
+  const step = getNextStep();
+  if (!step.done) {
+    if (state.scene === step.scene) {
+      const spot = findSpotById(scenes[state.scene], step.spot);
+      focusHintSpot(spot);
+      showDialog(`Tagebuch-Tipp: ${step.action}`, "neutral", 5200);
+    } else {
+      const route = nextExitToward(step.scene);
+      const routeText = route
+        ? `Geh zuerst nach ${exitDestination(route, true)}.`
+        : `Oeffne die Karte und reise nach ${locationLabel(step.scene)}.`;
+      showDialog(`Kompass-Tipp: ${routeText} Danach: ${step.action}`, "neutral", 5600);
+    }
+    sfx("ui");
+    refreshUi();
+    return;
+  }
+
+  if (state.flags.archiveSolved && secretCount() < secretLocations.length) {
+    const secret = missingSecretTrace();
+    if (secret && secret.scene === state.scene) {
+      const spot = findSpotById(scenes[state.scene], `secret-${secret.id}`);
+      focusHintSpot(spot);
+      showDialog(`Sternsplitter-Tipp: In diesem Ort fehlt noch etwas. Such bei: ${secret.label}.`, "spell", 5600);
+    } else if (secret) {
+      showDialog(`Sternsplitter-Tipp: Die naechste Spur zeigt nach ${locationLabel(secret.scene)}.`, "spell", 5200);
+    }
+    sfx("spell");
+    refreshUi();
+    return;
+  }
+
+  if (maybeUnlockFinalReward()) {
+    refreshUi();
+    saveGame("Meisterstueck gespeichert.");
+    return;
+  }
+
+  showDialog("Tagebuch-Tipp: Alles Wichtige ist geschafft. Jetzt bleibt nur noch sehr professionell herumstolzieren.", "spell", 5200);
+  sfx("ui");
+}
+
 function snapshotGame() {
   return {
     version: 2,
@@ -1405,6 +1518,7 @@ function snapshotGame() {
     settings: {
       showHotspots: state.showHotspots,
       showPathTrace: state.showPathTrace,
+      showCompass: state.showCompass,
       music: state.music,
       sound: state.sound,
       speech: state.speech,
@@ -1464,6 +1578,7 @@ function loadSavedGame({ quiet = false } = {}) {
     if (saved.settings) {
       state.showHotspots = Boolean(saved.settings.showHotspots);
       state.showPathTrace = Boolean(saved.settings.showPathTrace);
+      state.showCompass = saved.settings.showCompass !== false;
       state.music = saved.settings.music !== false;
       state.sound = saved.settings.sound !== false;
       state.speech = speechSupported() && saved.settings.speech !== false;
@@ -1473,6 +1588,7 @@ function loadSavedGame({ quiet = false } = {}) {
     state.pathProbe = null;
     state.pathBlockedUntil = 0;
     state.effectAt = null;
+    maybeUnlockFinalReward({ quiet: true });
     stopSpeech();
     setVerb("walk");
     refreshUi();
@@ -2696,6 +2812,7 @@ function drawFloatingText(text, anchorX, anchorY, color, fontSize = 7) {
 }
 
 function drawNextStepHint(scene, now) {
+  if (!state.showCompass) return;
   const step = getNextStep();
   if (step.done) return;
   let spot = null;
@@ -3016,6 +3133,18 @@ pathToggle.addEventListener("click", () => {
   sfx("ui");
 });
 
+compassToggle.addEventListener("click", () => {
+  markUserActivated();
+  state.showCompass = !state.showCompass;
+  refreshCompassToggle();
+  sfx("ui");
+});
+
+hintButton.addEventListener("click", () => {
+  markUserActivated();
+  showSmartHint();
+});
+
 journalToggle.addEventListener("click", () => {
   markUserActivated();
   sfx("ui");
@@ -3060,6 +3189,14 @@ fullscreenToggle.addEventListener("click", () => {
 touchFullscreen.addEventListener("click", () => {
   sfx("ui");
   toggleFullscreen();
+});
+
+finaleContinue.addEventListener("click", () => {
+  markUserActivated();
+  state.flags.finaleSeen = true;
+  sfx("ui");
+  refreshUi();
+  saveGame("");
 });
 
 touchVerbPrev.addEventListener("click", () => {
@@ -3158,6 +3295,12 @@ window.addEventListener("keydown", (event) => {
     setVerb(verbs[index]);
   }
   if (event.key.toLowerCase() === "escape") {
+    if (!finalePanelEl.classList.contains("hidden")) {
+      state.flags.finaleSeen = true;
+      refreshUi();
+      saveGame("");
+      return;
+    }
     dialogEl.classList.add("hidden");
     state.dialogUntil = 0;
     state.dialogSpeechToken = 0;
@@ -3175,6 +3318,14 @@ window.addEventListener("keydown", (event) => {
     state.showPathTrace = !state.showPathTrace;
     refreshPathToggle();
     sfx("ui");
+  }
+  if (event.key.toLowerCase() === "k") {
+    state.showCompass = !state.showCompass;
+    refreshCompassToggle();
+    sfx("ui");
+  }
+  if (event.key === "?") {
+    showSmartHint();
   }
   if (event.key.toLowerCase() === "j") {
     toggleJournal();

@@ -17,6 +17,8 @@
         <div class="top-actions">
           <button id="hotspotToggle" class="tiny-button" type="button" aria-pressed="true">Hotspots</button>
           <button id="pathToggle" class="tiny-button" type="button" aria-pressed="true">Pfad</button>
+          <button id="compassToggle" class="tiny-button" type="button" aria-pressed="true">Kompass</button>
+          <button id="hintButton" class="tiny-button" type="button">Tipp</button>
           <button id="journalToggle" class="tiny-button" type="button" aria-expanded="false">Tagebuch</button>
           <button id="mapToggle" class="tiny-button" type="button" aria-expanded="false">Karte</button>
           <button id="saveButton" class="tiny-button" type="button">Speichern</button>
@@ -56,6 +58,12 @@
 
       <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+      <aside id="finalePanel" class="finale hidden" aria-label="Pruefungsabschluss">
+        <strong>Pruefung bestanden</strong>
+        <p>Malvins Sternenpfad ist vollendet. Das Mondarchiv schnurrt, alle Splitter sind wach, und irgendwo unterschreibt ein sehr strenger Zauberhut widerwillig mit Glitzer.</p>
+        <button id="finaleContinue" class="tiny-button" type="button">Weiterspielen</button>
+      </aside>
+
       <div class="command-panel">
         <nav class="verbs" aria-label="Aktionen">
           <button class="verb active" data-verb="walk" type="button"><span class="verb-icon" data-sprite="walk"></span>Gehen</button>
@@ -89,6 +97,6 @@
 
   <audio id="bgmTrack" src="assets/audio/clockwork-farewell.mp3" loop preload="auto"></audio>
   <script src="assets/sprite-map.js?v=20260501-archive"></script>
-  <script src="game.js?v=20260501-archive"></script>
+  <script src="game.js?v=20260501-compass"></script>
 </body>
 </html>
