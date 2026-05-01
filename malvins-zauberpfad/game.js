@@ -223,6 +223,7 @@ const state = {
   hover: null,
   pathProbe: null,
   pathBlockedUntil: 0,
+  sceneFadeUntil: 0,
   showHotspots: false,
   showPathTrace: false,
   showCompass: true,
@@ -1584,11 +1585,12 @@ function loadSavedGame({ quiet = false } = {}) {
       state.speech = speechSupported() && saved.settings.speech !== false;
     }
     state.selectedItem = null;
-    state.hover = null;
-    state.pathProbe = null;
-    state.pathBlockedUntil = 0;
-    state.effectAt = null;
-    maybeUnlockFinalReward({ quiet: true });
+  state.hover = null;
+  state.pathProbe = null;
+  state.pathBlockedUntil = 0;
+  state.effectAt = null;
+  state.sceneFadeUntil = performance.now() + 420;
+  maybeUnlockFinalReward({ quiet: true });
     stopSpeech();
     setVerb("walk");
     refreshUi();
@@ -2260,6 +2262,7 @@ function goScene(sceneId, at) {
   state.hover = null;
   state.pathProbe = null;
   state.pathBlockedUntil = 0;
+  state.sceneFadeUntil = performance.now() + 420;
   setVerb("walk");
   refreshUi();
   audioState.musicStep = 0;
@@ -2407,6 +2410,7 @@ function draw() {
   ctx.drawImage(images.backgrounds[scene.bg], 0, 0, DISPLAY_W, DISPLAY_H);
   ctx.save();
   ctx.scale(SCALE, SCALE);
+  drawAmbientScene(scene, now);
   drawSceneDetails(scene);
   drawSecretGlints(scene, now);
   drawPathTrace(scene, now);
@@ -2419,6 +2423,7 @@ function draw() {
   drawInteractionHighlights(scene, now);
   drawNextStepHint(scene, now);
   ctx.restore();
+  drawSceneFade(now);
 }
 
 function drawSceneDetails(scene) {
@@ -2428,6 +2433,121 @@ function drawSceneDetails(scene) {
   if (state.scene === "archive" && state.flags.archiveSolved) {
     drawArchiveHarmony();
   }
+}
+
+function drawAmbientScene(scene, now) {
+  const t = now / 1000;
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  if (state.scene === "forest") {
+    drawAmbientDots([[44, 102], [82, 72], [212, 88], [260, 126], [146, 116]], t, "120,255,180", 7);
+  } else if (state.scene === "tavern") {
+    drawAmbientGlow(128, 104, 22, "255,188,92", t * 2.1);
+    drawAmbientGlow(246, 82, 18, "255,221,150", t * 2.7);
+    drawAmbientDots([[92, 70], [172, 84], [220, 112], [275, 62]], t, "255,236,170", 5);
+  } else if (state.scene === "tower") {
+    drawAmbientDots([[46, 48], [86, 76], [152, 34], [226, 94], [282, 62]], t, "159,132,214", 6);
+  } else if (state.scene === "glade") {
+    drawAmbientDots([[58, 118], [104, 126], [156, 132], [226, 120], [276, 132]], t, "120,255,180", 8);
+  } else if (state.scene === "garden") {
+    drawAmbientPetals(t);
+    drawAmbientGlow(246, 90, 20, "255,236,125", t * 1.8);
+  } else if (state.scene === "market") {
+    drawAmbientGlow(52, 76, 18, "255,188,92", t * 2.3);
+    drawAmbientGlow(252, 80, 16, "255,221,150", t * 2.9);
+  } else if (state.scene === "cellar") {
+    drawAmbientBubbles(t);
+    drawAmbientGlow(205, 112, 25, "98,255,145", t * 2.2);
+  } else if (state.scene === "observatory") {
+    drawAmbientDots([[176, 48], [205, 38], [242, 62], [275, 44], [224, 92]], t, "170,224,255", 5);
+  } else if (state.scene === "archive") {
+    drawArchiveOrbit(t);
+    drawAmbientDots([[44, 142], [74, 88], [147, 48], [258, 72], [296, 118]], t, "76,218,201", 6);
+  }
+  ctx.restore();
+}
+
+function drawAmbientGlow(x, y, radius, rgb, phase) {
+  const pulse = 0.78 + Math.sin(phase) * 0.18;
+  const glow = ctx.createRadialGradient(x, y, 1, x, y, radius);
+  glow.addColorStop(0, `rgba(${rgb},${0.24 * pulse})`);
+  glow.addColorStop(0.48, `rgba(${rgb},${0.11 * pulse})`);
+  glow.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.ellipse(x, y, radius, radius * 0.72, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAmbientDots(points, t, rgb, drift = 5) {
+  points.forEach(([baseX, baseY], index) => {
+    const phase = t * (0.8 + index * 0.11) + index * 1.73;
+    const x = baseX + Math.sin(phase) * drift;
+    const y = baseY + Math.cos(phase * 0.72) * (drift * 0.62);
+    const r = 1.4 + Math.sin(phase * 1.8) * 0.45;
+    ctx.fillStyle = `rgba(${rgb},${0.18 + Math.sin(phase) * 0.08})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r + 4, r + 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(${rgb},${0.72 + Math.sin(phase) * 0.2})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y, Math.max(0.8, r), Math.max(0.8, r * 0.72), 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawAmbientPetals(t) {
+  [[38, 118], [92, 72], [172, 96], [238, 118], [286, 82]].forEach(([baseX, baseY], index) => {
+    const phase = t * (0.9 + index * 0.08) + index;
+    const x = (baseX + phase * 13) % 340 - 10;
+    const y = baseY + Math.sin(phase * 1.6) * 7;
+    ctx.fillStyle = "rgba(255,196,176,0.42)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 3, 1.3, phase, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawAmbientBubbles(t) {
+  [[196, 110], [205, 106], [214, 113], [188, 120]].forEach(([baseX, baseY], index) => {
+    const phase = (t * (0.7 + index * 0.18) + index * 0.31) % 1;
+    const y = baseY - phase * 26;
+    const x = baseX + Math.sin(t * 3 + index) * 2;
+    ctx.strokeStyle = `rgba(165,255,188,${0.5 - phase * 0.3})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 2 + index * 0.25, 2 + index * 0.18, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+}
+
+function drawArchiveOrbit(t) {
+  const cx = 218;
+  const cy = 118;
+  ctx.strokeStyle = "rgba(76,218,201,0.18)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 30, 11, Math.sin(t) * 0.08, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let i = 0; i < 4; i += 1) {
+    const phase = t * 1.4 + i * Math.PI * 0.5;
+    const x = cx + Math.cos(phase) * 30;
+    const y = cy + Math.sin(phase) * 11;
+    ctx.fillStyle = "rgba(255,236,125,0.72)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 1.8, 1.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawSceneFade(now) {
+  if (!state.sceneFadeUntil || now >= state.sceneFadeUntil) return;
+  const alpha = clamp((state.sceneFadeUntil - now) / 420, 0, 1) * 0.58;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = `rgba(5,7,10,${alpha})`;
+  ctx.fillRect(0, 0, DISPLAY_W, DISPLAY_H);
+  ctx.restore();
 }
 
 function drawSealGlow() {
@@ -2814,24 +2934,38 @@ function drawFloatingText(text, anchorX, anchorY, color, fontSize = 7) {
 function drawNextStepHint(scene, now) {
   if (!state.showCompass) return;
   const step = getNextStep();
-  if (step.done) return;
   let spot = null;
   let text = "Hier weiter";
-  if (state.scene === step.scene) {
+  let color = "#78ffb4";
+
+  if (!step.done && state.scene === step.scene) {
     spot = findSpotById(scene, step.spot);
-  } else {
+  } else if (!step.done) {
     spot = nextExitToward(step.scene);
     if (spot) text = `Weiter nach ${exitDestination(spot, true)}`;
+  } else if (state.flags.archiveSolved && secretCount() < secretLocations.length) {
+    const secret = missingSecretTrace();
+    if (!secret) return;
+    color = "#ffec7d";
+    if (secret.scene === state.scene) {
+      spot = findSpotById(scene, `secret-${secret.id}`);
+      text = "Sternsplitter";
+    } else {
+      spot = nextExitToward(secret.scene);
+      if (spot) text = `Splitter: ${exitDestination(spot, true)}`;
+    }
+  } else {
+    return;
   }
   if (!spot) return;
   const [x, y, w, h] = spot.rect;
   if (spot.to) {
     drawExitHighlight(spot, true, now, interactionMeta.exit);
-    drawFloatingText(text, x + w / 2, y - 12, "#78ffb4", 7);
+    drawFloatingText(text, x + w / 2, y - 12, color, 7);
     return;
   }
   drawQuestTargetHighlight(spot, now);
-  drawFloatingText(text, x + w / 2, y - 12, "#78ffb4", 7);
+  drawFloatingText(text, x + w / 2, y - 12, color, 7);
 }
 
 function drawQuestTargetHighlight(spot, now) {
