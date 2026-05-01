@@ -1,0 +1,367 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", Arial, sans-serif;
+  --text: #fff3df;
+  --muted: #c7b9a2;
+  --panel: rgba(12, 15, 13, 0.78);
+  --panel-strong: rgba(8, 10, 9, 0.9);
+  --line: rgba(119, 189, 158, 0.34);
+  --line-strong: rgba(232, 195, 130, 0.68);
+  --gold: #e9bd69;
+  --red: #d85a52;
+  --green: #6dd19e;
+  --blue: #67b6ce;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  color: var(--text);
+  background:
+    linear-gradient(145deg, rgba(36, 17, 23, 0.8), transparent 42%),
+    linear-gradient(180deg, #10140f 0%, #060806 62%, #020202 100%),
+    #060806;
+}
+
+button {
+  min-height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(58, 91, 73, 0.9), rgba(49, 24, 28, 0.95));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.28);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: rgba(255, 235, 190, 0.86);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+.game-shell {
+  position: relative;
+  isolation: isolate;
+  background: #050403;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+.game-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 52%, transparent 58%, rgba(0, 0, 0, 0.52) 100%);
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+
+.hud {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hud-top {
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.brand-block h1 {
+  margin: 3px 0 0;
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: clamp(2.1rem, 5vw, 4.4rem);
+  line-height: 0.9;
+  letter-spacing: 0;
+  text-shadow: 0 7px 24px rgba(0, 0, 0, 0.6);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(86px, 1fr));
+  gap: 10px;
+  max-width: 540px;
+}
+
+.status-strip article,
+.hud-side,
+.hud-bottom,
+.start-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.status-strip article {
+  min-width: 0;
+  padding: 11px 12px;
+}
+
+.status-strip span,
+.objective span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status-strip strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.hud-side {
+  right: 18px;
+  top: 142px;
+  width: min(310px, calc(100vw - 36px));
+  padding: 14px;
+  pointer-events: auto;
+}
+
+.objective {
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.objective strong {
+  display: block;
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
+.mini-map {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0;
+  justify-content: start;
+}
+
+.mini-cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mini-wall {
+  background: rgba(68, 59, 50, 0.92);
+}
+
+.mini-floor {
+  background: rgba(222, 195, 147, 0.18);
+}
+
+.mini-door {
+  background: var(--red);
+}
+
+.mini-rune {
+  background: var(--blue);
+}
+
+.mini-enemy {
+  background: var(--red);
+}
+
+.mini-player {
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.hud-bottom {
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  pointer-events: auto;
+}
+
+#messageText {
+  max-width: min(780px, 100%);
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.control-cluster {
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  gap: 8px;
+}
+
+.control-cluster button {
+  width: 54px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.control-cluster button:nth-child(7) {
+  grid-column: 2;
+}
+
+.control-cluster button:nth-child(8) {
+  grid-column: 3;
+}
+
+.start-overlay {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(5, 4, 3, 0.25), rgba(5, 4, 3, 0.72));
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.start-overlay.is-hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.start-panel {
+  width: min(560px, 100%);
+  padding: clamp(20px, 4vw, 34px);
+  pointer-events: auto;
+}
+
+.start-panel h2 {
+  margin: 6px 0 10px;
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+.start-panel p:not(.eyebrow) {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .hud-top {
+    flex-direction: column;
+  }
+
+  .status-strip {
+    width: 100%;
+    max-width: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .hud-side {
+    top: auto;
+    bottom: 138px;
+    left: 18px;
+    width: auto;
+  }
+
+  .mini-map {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hud-top {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    gap: 10px;
+  }
+
+  .brand-block h1 {
+    font-size: 2.2rem;
+  }
+
+  .status-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-side {
+    left: 10px;
+    right: 10px;
+    bottom: 164px;
+    padding: 10px;
+  }
+
+  .button-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hud-bottom {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .control-cluster {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .control-cluster button {
+    width: auto;
+  }
+
+  .control-cluster button:nth-child(7),
+  .control-cluster button:nth-child(8) {
+    grid-column: auto;
+  }
+}
