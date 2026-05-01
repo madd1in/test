@@ -8,7 +8,7 @@ Oeffne `index.html` in einem Browser.
 
 ## Spielziel
 
-Finde den Runenstein im Pilzhain, besorge das Mondabzeichen im Observatorium und aktiviere damit das Turmsiegel in der Bibliothek.
+Finde den Runenstein im Pilzhain, besorge das Mondabzeichen im Observatorium, aktiviere das Turmsiegel in der Bibliothek und beruhige danach die Sternenmechanik im geheimen Mondarchiv.
 
 ## Steuerung
 
@@ -35,11 +35,11 @@ Die Sprachausgabe nutzt die Web-Speech-API des Browsers. Dialoge werden satzweis
 Die Hintergrundmusik startet browserbedingt erst nach der ersten Nutzeraktion. Sie ist bewusst etwas staerker gemischt als Stimme und SFX; falls ein Browser MP3 nicht abspielen kann, nutzt das Spiel die alte prozedurale Web-Audio-Musik als Fallback.
 Die Szenen nutzen jetzt mehrere Tracks aus `assets/audio`: `Clockwork Farewell`, `Clockwork Farewell II`, `Heraldic Teacups`, `Marzipan Compass` und `Marzipan Compass II`.
 In der Waldlichtung skaliert Malvins Sprite mit der Tiefe. Vordergrundobjekte wie Baumstumpf und Wegweiser decken ihn ab, wenn er dahinter entlanggeht.
-In jeder Szene ist ein optionaler Sternsplitter versteckt. Wer alle acht findet, bekommt einen kleinen Bonusabschluss im Tagebuch.
+In jeder Szene ist ein optionaler Sternsplitter versteckt. Wer alle neun findet, bekommt einen kleinen Bonusabschluss im Tagebuch.
 
 ## Assets
 
-- `assets/backgrounds`: acht KI-generierte Adventure-Hintergruende plus zwei Atlasbilder
+- `assets/backgrounds`: neun KI-generierte Adventure-Hintergruende plus zwei Atlasbilder
 - `assets/backgrounds/pixel-originals`: Sicherung der ersten prozeduralen Pixel-Hintergruende
 - `assets/audio`: MP3-Musikbibliothek fuer die szenenbasierte Hintergrundmusik
 - `assets/sprite-map.png`: veredelte Runtime-Sprite-Map fuer Charakter, Effekte, Items, Cursors, Hotspot-Marker, Portraits, NPC-Sprites, NPC-Portraits und Props

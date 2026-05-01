@@ -87,6 +87,7 @@ const sceneMusic = {
   market: "heraldic",
   cellar: "marzipanAlt",
   observatory: "clockworkAlt",
+  archive: "clockworkAlt",
 };
 
 const sceneShortLabels = {
@@ -98,6 +99,7 @@ const sceneShortLabels = {
   market: "Markt",
   cellar: "Keller",
   observatory: "Observatorium",
+  archive: "Archiv",
 };
 
 const mapLocations = [
@@ -109,6 +111,7 @@ const mapLocations = [
   { scene: "market", label: "Marktgasse", hint: "Tauschhandel", at: [80, 150, "right"] },
   { scene: "cellar", label: "Alchemiekeller", hint: "Silberschloss", at: [148, 151, "front"] },
   { scene: "observatory", label: "Observatorium", hint: "Fernrohr", at: [100, 150, "front"] },
+  { scene: "archive", label: "Mondarchiv", hint: "Sternenmechanik", at: [158, 150, "front"] },
 ];
 
 const secretLocations = [
@@ -120,6 +123,7 @@ const secretLocations = [
   { id: "market", scene: "market", label: "Sternsplitter in der Kiste", rect: [119, 115, 29, 24], stand: [150, 151], x: 134, y: 117, clue: "In der Kiste liegt ein Sternsplitter zwischen Rechnungen und einem sehr beleidigten Lappen." },
   { id: "cellar", scene: "cellar", label: "Sternsplitter am Kessel", rect: [190, 98, 32, 33], stand: [178, 151], x: 205, y: 106, clue: "Am Kesselrand klebt ein Sternsplitter. Er riecht nach Zauber und einer Suppe, die Fragen stellt." },
   { id: "observatory", scene: "observatory", label: "Sternsplitter auf der Karte", rect: [146, 116, 36, 27], stand: [166, 151], x: 164, y: 119, clue: "Auf der Sternenkarte liegt ein Splitter exakt dort, wo der Himmel 'bitte nicht anfassen' sagt." },
+  { id: "archive", scene: "archive", label: "Sternsplitter im Archiv", rect: [30, 139, 24, 22], stand: [72, 150], x: 42, y: 142, clue: "Zwischen kaltem Mondstein und viel zu ehrgeizigem Staub steckt ein Sternsplitter. Er tut so, als sei er ein Fussnoten-Stern." },
 ];
 
 const images = {
@@ -137,6 +141,7 @@ const itemInfo = {
   star_lens: { label: "Sternenlinse", icon: "star_lens" },
   silver_key: { label: "Silberschluessel", icon: "silver_key" },
   moon_badge: { label: "Mondabzeichen", icon: "moon_badge" },
+  moon_pearl: { label: "Mondperle", icon: "moon_pearl" },
 };
 
 const journalSteps = [
@@ -149,6 +154,7 @@ const journalSteps = [
   { flag: "observatorySolved", text: "Im Observatorium das Mondabzeichen finden." },
   { flag: "runeTaken", text: "Den Runenstein im Pilzhain bergen." },
   { flag: "sealOpened", text: "Runenstein und Mondabzeichen am Turmsiegel einsetzen." },
+  { flag: "archiveSolved", text: "Im Mondarchiv die Sternenmechanik beruhigen." },
 ];
 
 const state = {
@@ -168,6 +174,8 @@ const state = {
     marketKeyGiven: false,
     lensTaken: false,
     observatorySolved: false,
+    archivePearlTaken: false,
+    archiveSolved: false,
     secretForestTaken: false,
     secretTavernTaken: false,
     secretTowerTaken: false,
@@ -176,6 +184,7 @@ const state = {
     secretMarketTaken: false,
     secretCellarTaken: false,
     secretObservatoryTaken: false,
+    secretArchiveTaken: false,
     secretReward: false,
   },
   discovered: {
@@ -187,6 +196,7 @@ const state = {
     market: false,
     cellar: false,
     observatory: false,
+    archive: false,
   },
   actor: {
     x: 154,
@@ -436,6 +446,7 @@ const scenes = {
       { id: "toForest", label: "Steintreppe", rect: [0, 132, 58, 48], stand: [42, 148], to: "forest", at: [169, 143, "front"] },
       { id: "toCellar", label: "Kellertreppe", rect: [105, 132, 44, 31], stand: [121, 150], to: "cellar", at: [148, 151, "front"] },
       { id: "toObservatory", label: "Observatorium", rect: [132, 13, 56, 59], stand: [158, 143], to: "observatory", at: [100, 150, "front"] },
+      { id: "toArchive", label: "Mondarchiv", rect: [218, 96, 58, 58], stand: [229, 150], to: "archive", at: [158, 150, "front"], active: () => state.flags.sealOpened },
     ],
     hotspots: [
       {
@@ -480,6 +491,11 @@ const scenes = {
           ? "Das Siegel leuchtet freundlich. Fuer ein Siegel ist das fast schon unanstaendig sympathisch."
           : "Ein kalter Runenkreis wartet auf den passenden Stein. Oder auf Applaus. Schwer zu sagen bei Runen.",
         use: (item) => {
+          if (state.flags.sealOpened) {
+            sfx("spell");
+            showDialog("Das Siegel ist offen. Dahinter wartet ein Mondarchiv, das definitiv zu lange allein mit seinen Sternen war.", "spell", 5200);
+            return;
+          }
           if (item !== "rune_stone") {
             sfx("error");
             showDialog("Das Siegel reagiert nur auf echte Runenlaune. Dieser Gegenstand hat eher Brotdosenenergie.", "neutral");
@@ -804,6 +820,91 @@ const scenes = {
     ],
     worldItems: [],
   },
+  archive: {
+    name: "Mondarchiv",
+    bg: "moon-archive",
+    start: { x: 158, y: 150, dir: "front" },
+    walk: {
+      yMin: 114,
+      yMax: 168,
+      polygons: [
+        [[0, 145], [70, 130], [145, 116], [230, 126], [320, 142], [320, 168], [0, 168]],
+        [[64, 128], [150, 112], [220, 122], [186, 152], [94, 152]],
+      ],
+    },
+    exits: [
+      { id: "toTower", label: "Rueckweg zur Bibliothek", rect: [130, 47, 60, 74], stand: [158, 146], to: "tower", at: [229, 150, "front"] },
+    ],
+    hotspots: [
+      {
+        id: "archiveDoor",
+        label: "Mondpforte",
+        rect: [132, 47, 57, 75],
+        stand: [158, 146],
+        look: () => state.flags.archiveSolved
+          ? "Die Mondpforte summt ruhig. Das ist bei Tueren ungewoehnlich, aber Malvin ist heute grosszuegig mit Definitionen."
+          : "Die Pforte haelt ihre Sternenmechanik fest wie ein Buch, das sein Ende nicht verraten will.",
+      },
+      {
+        id: "pearlCasket",
+        label: "Perlenkaestchen",
+        rect: [54, 107, 55, 30],
+        stand: [92, 151],
+        look: () => state.flags.archivePearlTaken
+          ? "Das Kaestchen ist leer und wirkt erleichtert, als haette es gerade ein sehr rundes Geheimnis losgeworden."
+          : "Im Kaestchen liegt eine Mondperle. Sie glimmt so konzentriert, dass sogar der Staub leiser wird.",
+        take: () => takeItem("moon_pearl", "Malvin nimmt die Mondperle. Sie ist kuehl, schwer und wahrscheinlich sehr stolz auf ihre Rundheit."),
+        active: () => !state.flags.archivePearlTaken,
+      },
+      {
+        id: "starDesk",
+        label: "Sternenmechanik",
+        rect: [172, 103, 91, 54],
+        stand: [190, 151],
+        look: () => state.flags.archiveSolved
+          ? "Die Sternenmechanik laeuft im Takt. Ausnahmsweise ist das kein Zeichen fuer nahende Pruefungsfragen."
+          : "Ein Astrolabium dreht sich ruckelnd ueber einem Pult. In der Mitte fehlt eine runde Fassung.",
+        use: (item) => {
+          if (state.flags.archiveSolved) {
+            sfx("spell");
+            showDialog("Die Mechanik ist schon beruhigt. Noch mehr Ordnung waere fast schon unmagisch.", "spell", 3600);
+            return;
+          }
+          if (item !== "moon_pearl") {
+            sfx("error");
+            showDialog("Die Fassung will etwas Mondrundes. Alles andere fuehlt sich fuer sie offenbar wie Besteck in einer Harfe an.", "worried", 4600);
+            return;
+          }
+          removeInventory("moon_pearl");
+          state.flags.archiveSolved = true;
+          state.effectUntil = performance.now() + 3200;
+          state.effectAt = { x: 218, y: 118 };
+          setPose("cast", 1400);
+          showDialog("Die Mondperle rastet ein. Das Archiv klappt seine Sternenbahnen zurecht und Malvins Pruefung bekommt ein echtes Nachwort.", "spell", 7000);
+          sfx("success");
+          refreshUi();
+          saveGame("Mondarchiv gespeichert.");
+        },
+      },
+      {
+        id: "moonMap",
+        label: "Himmelskarte",
+        rect: [238, 44, 55, 70],
+        stand: [228, 151],
+        look: "Die Karte zeigt neun Sternsplitter und einen winzigen Pfeil mit der Beschriftung: Hier nicht panisch werden. Hilfreich, aber spaet.",
+      },
+      {
+        id: "crystalShelf",
+        label: "Kristallregal",
+        rect: [64, 50, 47, 80],
+        stand: [92, 151],
+        look: "Die Kristalle flackern wie eingefrorene Gedanken. Einige davon wirken klueger als Malvins letzte drei Plaene zusammen.",
+      },
+    ],
+    worldItems: [
+      { item: "moon_pearl", x: 83, y: 116, active: () => !state.flags.archivePearlTaken },
+    ],
+  },
 };
 
 const assetList = [
@@ -1071,6 +1172,7 @@ function addInventory(item) {
   if (item === "rune_stone") state.flags.runeTaken = true;
   if (item === "herb_bundle") state.flags.herbsTaken = true;
   if (item === "star_lens") state.flags.lensTaken = true;
+  if (item === "moon_pearl") state.flags.archivePearlTaken = true;
 }
 
 function secretFlag(secretOrId) {
@@ -1106,7 +1208,7 @@ function takeSecret(secret) {
   state.effectAt = { x: secret.x, y: secret.y };
   setPose("pickup", 700);
   const found = secretCount();
-  if (found === secretLocations.length && !state.flags.secretReward) {
+  if (found === secretLocations.length && (!state.flags.secretReward || secret.id === "archive")) {
     state.flags.secretReward = true;
     showDialog(`${secret.clue} Alle Sternsplitter sind gesammelt. Malvins Tagebuch summt zufrieden und fuehlt sich kurz wie ein sehr kleines Planetarium.`, "spell", 7200);
     sfx("success");
@@ -1198,11 +1300,11 @@ function refreshInventory() {
 }
 
 function getObjective() {
-  if (state.flags.sealOpened && secretCount() < secretLocations.length) {
+  if (state.flags.archiveSolved && secretCount() < secretLocations.length) {
     return `Bonus: ${secretCount()}/${secretLocations.length} Sternsplitter gefunden.`;
   }
   const step = getNextStep();
-  if (step.done) return "Geschafft: Das Turmsiegel ist wach.";
+  if (step.done) return "Geschafft: Das Mondarchiv summt ruhig.";
   const route = nextExitToward(step.scene);
   if (state.scene === step.scene) return `Jetzt: ${step.action}`;
   if (route) return `Jetzt: Nach ${exitDestination(route, true)} gehen. Danach: ${step.action}`;
@@ -1503,7 +1605,6 @@ function touchPrimaryAction() {
 }
 
 function getNextStep() {
-  if (state.flags.sealOpened) return { done: true };
   if (!state.flags.wandTaken) return { scene: "forest", spot: "stump", action: "Zauberstab am Baumstumpf nehmen." };
   if (!state.flags.coinGiven) return { scene: "tavern", spot: "keeper", action: "Mit dem Wirt reden." };
   if (!state.flags.spellbookTaken) return { scene: "tower", spot: "desk", action: "Zauberbuch vom Pult holen." };
@@ -1513,7 +1614,10 @@ function getNextStep() {
   if (!state.flags.observatorySolved) return { scene: "observatory", spot: "telescope", action: "Sternenlinse am Fernrohr benutzen." };
   if (!state.flags.runeRevealed) return { scene: "glade", spot: "pond", action: "Stab oder Buch am Mondteich benutzen." };
   if (!state.flags.runeTaken) return { scene: "glade", spot: "rune", action: "Runenstein nehmen." };
-  return { scene: "tower", spot: "pedestal", action: "Runenstein am Turmsiegel benutzen." };
+  if (!state.flags.sealOpened) return { scene: "tower", spot: "pedestal", action: "Runenstein am Turmsiegel benutzen." };
+  if (!state.flags.archivePearlTaken) return { scene: "archive", spot: "pearlCasket", action: "Mondperle aus dem Archiv nehmen." };
+  if (!state.flags.archiveSolved) return { scene: "archive", spot: "starDesk", action: "Mondperle an der Sternenmechanik benutzen." };
+  return { done: true };
 }
 
 function showDialog(text, portrait = "neutral", duration = 3600, speaker = portrait) {
@@ -2205,6 +2309,9 @@ function drawSceneDetails(scene) {
   if (state.scene === "tower" && state.flags.sealOpened) {
     drawSealGlow();
   }
+  if (state.scene === "archive" && state.flags.archiveSolved) {
+    drawArchiveHarmony();
+  }
 }
 
 function drawSealGlow() {
@@ -2216,6 +2323,21 @@ function drawSealGlow() {
   ctx.stroke();
   ctx.fillStyle = "rgba(255,236,125,0.32)";
   ctx.fillRect(234, 126, 12, 12);
+}
+
+function drawArchiveHarmony() {
+  const pulse = Math.sin(performance.now() / 210);
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,236,125,0.72)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(218, 118, 33 + pulse * 2, 13 + pulse, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(76,218,201,0.24)";
+  ctx.beginPath();
+  ctx.ellipse(218, 118, 12, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawSecretGlints(scene, now) {
