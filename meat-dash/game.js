@@ -258,10 +258,9 @@ function artSource(asset) {
   return asset.fallback;
 }
 
-// CC0 audio sources from OpenGameArt.
 const AUDIO_ASSETS = {
-  bgmMain: "https://opengameart.org/sites/default/files/relax_background1_0.ogg",
-  bgmLayer: "https://opengameart.org/sites/default/files/Trouble%20in%20Toyland_0.ogg",
+  bgmMain: "assets/music/gargoyle-chapel-run.mp3",
+  bgmLayer: null,
   jump: "https://opengameart.org/sites/default/files/beep.ogg",
   wallJump: "https://opengameart.org/sites/default/files/beep.ogg",
   doubleJump: "https://opengameart.org/sites/default/files/pleasing-bell.wav",
@@ -439,13 +438,13 @@ const THEMES = {
 
 const THEME_AUDIO_PROFILES = {
   abattoir: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 0.9, layerRate: 0.86, beat: 0.235, root: 88, scale: [0, 3, 5, 7, 10], mainBase: 0.62, layerBase: 0.18, synthBase: 0.34, bassWave: "triangle", arpWave: "sine", arpDiv: 3, arpChance: 0.56, pulseDiv: 4, pulseFreq: 190 },
-  steelworks: { mainUrl: AUDIO_ASSETS.bgmLayer, layerUrl: AUDIO_ASSETS.bgmMain, mainRate: 1.01, layerRate: 0.97, beat: 0.205, root: 102, scale: [0, 2, 5, 7, 9], mainBase: 0.58, layerBase: 0.2, synthBase: 0.36, bassWave: "square", arpWave: "triangle", arpDiv: 2, arpChance: 0.72, pulseDiv: 2, pulseFreq: 260 },
+  steelworks: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 1.01, layerRate: 0.97, beat: 0.205, root: 102, scale: [0, 2, 5, 7, 9], mainBase: 0.58, layerBase: 0.2, synthBase: 0.36, bassWave: "square", arpWave: "triangle", arpDiv: 2, arpChance: 0.72, pulseDiv: 2, pulseFreq: 260 },
   metro: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 1.05, layerRate: 1.08, beat: 0.19, root: 112, scale: [0, 3, 7, 8, 10], mainBase: 0.57, layerBase: 0.24, synthBase: 0.4, bassWave: "sawtooth", arpWave: "triangle", arpDiv: 2, arpChance: 0.82, pulseDiv: 3, pulseFreq: 420 },
-  bioforge: { mainUrl: AUDIO_ASSETS.bgmLayer, layerUrl: AUDIO_ASSETS.bgmMain, mainRate: 0.95, layerRate: 0.93, beat: 0.215, root: 96, scale: [0, 2, 3, 7, 9], mainBase: 0.56, layerBase: 0.18, synthBase: 0.33, bassWave: "sine", arpWave: "sine", arpDiv: 4, arpChance: 0.46, pulseDiv: 5, pulseFreq: 170 },
+  bioforge: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 0.95, layerRate: 0.93, beat: 0.215, root: 96, scale: [0, 2, 3, 7, 9], mainBase: 0.56, layerBase: 0.18, synthBase: 0.33, bassWave: "sine", arpWave: "sine", arpDiv: 4, arpChance: 0.46, pulseDiv: 5, pulseFreq: 170 },
   neonfort: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 1.1, layerRate: 1.12, beat: 0.178, root: 118, scale: [0, 3, 5, 7, 10], mainBase: 0.55, layerBase: 0.28, synthBase: 0.44, bassWave: "triangle", arpWave: "square", arpDiv: 1, arpChance: 0.92, pulseDiv: 2, pulseFreq: 520 },
-  ashplain: { mainUrl: AUDIO_ASSETS.bgmLayer, layerUrl: AUDIO_ASSETS.bgmMain, mainRate: 0.9, layerRate: 0.87, beat: 0.24, root: 90, scale: [0, 3, 5, 6, 10], mainBase: 0.6, layerBase: 0.16, synthBase: 0.32, bassWave: "triangle", arpWave: "sine", arpDiv: 3, arpChance: 0.5, pulseDiv: 6, pulseFreq: 150 },
+  ashplain: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 0.9, layerRate: 0.87, beat: 0.24, root: 90, scale: [0, 3, 5, 6, 10], mainBase: 0.6, layerBase: 0.16, synthBase: 0.32, bassWave: "triangle", arpWave: "sine", arpDiv: 3, arpChance: 0.5, pulseDiv: 6, pulseFreq: 150 },
   reactor: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 1.14, layerRate: 1.1, beat: 0.172, root: 124, scale: [0, 2, 4, 7, 9], mainBase: 0.55, layerBase: 0.29, synthBase: 0.45, bassWave: "square", arpWave: "sawtooth", arpDiv: 1, arpChance: 0.95, pulseDiv: 1, pulseFreq: 640 },
-  heaven: { mainUrl: AUDIO_ASSETS.bgmLayer, layerUrl: AUDIO_ASSETS.bgmMain, mainRate: 0.99, layerRate: 1.03, beat: 0.198, root: 116, scale: [0, 3, 5, 7, 11], mainBase: 0.56, layerBase: 0.27, synthBase: 0.42, bassWave: "sine", arpWave: "triangle", arpDiv: 2, arpChance: 0.8, pulseDiv: 3, pulseFreq: 480 }
+  heaven: { mainUrl: AUDIO_ASSETS.bgmMain, layerUrl: AUDIO_ASSETS.bgmLayer, mainRate: 0.99, layerRate: 1.03, beat: 0.198, root: 116, scale: [0, 3, 5, 7, 11], mainBase: 0.56, layerBase: 0.27, synthBase: 0.42, bassWave: "sine", arpWave: "triangle", arpDiv: 2, arpChance: 0.8, pulseDiv: 3, pulseFreq: 480 }
 };
 
 const LEVELS = [
@@ -1465,15 +1464,18 @@ function rebuildThemeAudio(force = false) {
   bgmMain.playbackRate = profile.mainRate;
   audioState.bgmMain = bgmMain;
 
-  const bgmLayer = new Audio(profile.layerUrl);
-  bgmLayer.loop = true;
-  bgmLayer.preload = "auto";
-  bgmLayer.volume = profile.layerBase * 0.2;
-  bgmLayer.playbackRate = profile.layerRate;
-  audioState.bgmLayer = bgmLayer;
-  audioState.bgmLayer.addEventListener("error", () => {
-    audioState.bgmLayer = null;
-  }, { once: true });
+  audioState.bgmLayer = null;
+  if (profile.layerUrl) {
+    const bgmLayer = new Audio(profile.layerUrl);
+    bgmLayer.loop = true;
+    bgmLayer.preload = "auto";
+    bgmLayer.volume = profile.layerBase * 0.2;
+    bgmLayer.playbackRate = profile.layerRate;
+    audioState.bgmLayer = bgmLayer;
+    audioState.bgmLayer.addEventListener("error", () => {
+      audioState.bgmLayer = null;
+    }, { once: true });
+  }
 
   audioState.activeThemeKey = key;
   audioState.mainUrl = profile.mainUrl;
