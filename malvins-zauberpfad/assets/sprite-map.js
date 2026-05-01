@@ -1,5 +1,5 @@
 window.SPRITE_MAP = {
-  "image": "assets/sprite-map.png?v=20260501-playerfix",
+  "image": "assets/sprite-map.png?v=20260501-npc-v2",
   "size": [
     1024,
     2112
@@ -500,7 +500,7 @@ window.SPRITE_MAP = {
   },
   "portraits": {
     "neutral": {
-      "x": 4,
+      "x": 148,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -508,7 +508,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "talk": {
-      "x": 72,
+      "x": 216,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -516,7 +516,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "worried": {
-      "x": 140,
+      "x": 284,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -524,7 +524,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "spell": {
-      "x": 208,
+      "x": 352,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -532,7 +532,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "keeper": {
-      "x": 276,
+      "x": 420,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -540,7 +540,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "herbalist": {
-      "x": 344,
+      "x": 488,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -548,7 +548,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "merchant": {
-      "x": 412,
+      "x": 556,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -556,7 +556,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "alchemist": {
-      "x": 480,
+      "x": 624,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -564,7 +564,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "astronomer": {
-      "x": 548,
+      "x": 692,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -572,7 +572,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "statue": {
-      "x": 616,
+      "x": 760,
       "y": 2044,
       "w": 64,
       "h": 64,
@@ -584,10 +584,10 @@ window.SPRITE_MAP = {
     "keeper_idle": {
       "x": 328,
       "y": 1228,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 7,
+      "frames": 10,
+      "fps": 8,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -598,10 +598,10 @@ window.SPRITE_MAP = {
     "keeper_talk": {
       "x": 4,
       "y": 1296,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 9,
+      "frames": 10,
+      "fps": 10,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -612,10 +612,10 @@ window.SPRITE_MAP = {
     "herbalist_idle": {
       "x": 4,
       "y": 1364,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 7,
+      "frames": 10,
+      "fps": 8,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -626,10 +626,10 @@ window.SPRITE_MAP = {
     "herbalist_talk": {
       "x": 4,
       "y": 1432,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 9,
+      "frames": 10,
+      "fps": 10,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -640,10 +640,10 @@ window.SPRITE_MAP = {
     "merchant_idle": {
       "x": 4,
       "y": 1500,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 7,
+      "frames": 10,
+      "fps": 8,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -654,10 +654,10 @@ window.SPRITE_MAP = {
     "merchant_talk": {
       "x": 4,
       "y": 1568,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 9,
+      "frames": 10,
+      "fps": 10,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -668,10 +668,10 @@ window.SPRITE_MAP = {
     "alchemist_idle": {
       "x": 4,
       "y": 1636,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 7,
+      "frames": 10,
+      "fps": 8,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -682,10 +682,10 @@ window.SPRITE_MAP = {
     "alchemist_talk": {
       "x": 4,
       "y": 1704,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 9,
+      "frames": 10,
+      "fps": 10,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -696,10 +696,10 @@ window.SPRITE_MAP = {
     "astronomer_idle": {
       "x": 4,
       "y": 1772,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 7,
+      "frames": 10,
+      "fps": 8,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -710,10 +710,10 @@ window.SPRITE_MAP = {
     "astronomer_talk": {
       "x": 4,
       "y": 1840,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 9,
+      "frames": 10,
+      "fps": 10,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -724,10 +724,10 @@ window.SPRITE_MAP = {
     "statue_idle": {
       "x": 4,
       "y": 1908,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 7,
+      "frames": 10,
+      "fps": 8,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -738,10 +738,10 @@ window.SPRITE_MAP = {
     "statue_talk": {
       "x": 4,
       "y": 1976,
-      "w": 512,
+      "w": 640,
       "h": 64,
-      "frames": 8,
-      "fps": 9,
+      "frames": 10,
+      "fps": 10,
       "frameW": 64,
       "frameH": 64,
       "anchor": [
@@ -752,7 +752,7 @@ window.SPRITE_MAP = {
   },
   "props": {
     "garden_arch_icon": {
-      "x": 520,
+      "x": 648,
       "y": 1976,
       "w": 64,
       "h": 64,
@@ -760,7 +760,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "market_stall_icon": {
-      "x": 588,
+      "x": 716,
       "y": 1976,
       "w": 64,
       "h": 64,
@@ -768,7 +768,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "cellar_cabinet_icon": {
-      "x": 656,
+      "x": 784,
       "y": 1976,
       "w": 64,
       "h": 64,
@@ -776,7 +776,7 @@ window.SPRITE_MAP = {
       "frameH": 64
     },
     "telescope_icon": {
-      "x": 724,
+      "x": 852,
       "y": 1976,
       "w": 64,
       "h": 64,
@@ -786,7 +786,7 @@ window.SPRITE_MAP = {
   },
   "markers": {
     "exit_arrow": {
-      "x": 792,
+      "x": 920,
       "y": 1976,
       "w": 32,
       "h": 32,
@@ -798,7 +798,7 @@ window.SPRITE_MAP = {
       ]
     },
     "item_spark": {
-      "x": 828,
+      "x": 956,
       "y": 1976,
       "w": 32,
       "h": 32,
@@ -810,8 +810,8 @@ window.SPRITE_MAP = {
       ]
     },
     "talk_bubble": {
-      "x": 864,
-      "y": 1976,
+      "x": 4,
+      "y": 2044,
       "w": 32,
       "h": 32,
       "frameW": 32,
@@ -822,8 +822,8 @@ window.SPRITE_MAP = {
       ]
     },
     "use_rune": {
-      "x": 900,
-      "y": 1976,
+      "x": 40,
+      "y": 2044,
       "w": 32,
       "h": 32,
       "frameW": 32,
@@ -834,8 +834,8 @@ window.SPRITE_MAP = {
       ]
     },
     "look_eye": {
-      "x": 936,
-      "y": 1976,
+      "x": 76,
+      "y": 2044,
       "w": 32,
       "h": 32,
       "frameW": 32,
@@ -846,8 +846,8 @@ window.SPRITE_MAP = {
       ]
     },
     "hotspot_pin": {
-      "x": 972,
-      "y": 1976,
+      "x": 112,
+      "y": 2044,
       "w": 32,
       "h": 32,
       "frameW": 32,

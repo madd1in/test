@@ -27,7 +27,7 @@ Finde den Runenstein im Pilzhain, besorge das Mondabzeichen im Observatorium und
 - `Esc` schliesst Dialoge und wechselt zurueck zu Gehen.
 - `Vorlesen` schaltet die browserbasierte Sprachausgabe fuer Dialoge ein oder aus.
 - Malvin nutzt ein neues KI-generiertes Sprite-Set mit mehr Idle-, Lauf-, Zauber- und Emote-Frames.
-- NPCs besitzen jetzt eigene Idle- und Talk-Sprite-Maps; beim Dialog wechseln sie sichtbar in die Sprech-Animation.
+- NPCs besitzen jetzt eigene Imagen-Sprite-Maps mit 10 Idle- und 10 Talk-Frames; beim Dialog wechseln sie sichtbar in die Sprech-Animation.
 - `Musik` schaltet die szenenbasierte MP3-Hintergrundmusik ein oder aus.
 - `SFX` schaltet kurze Effekt-Toene fuer Klicks, Items, Szenenwechsel, Fehler und Zauber ein oder aus.
 
