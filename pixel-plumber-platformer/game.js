@@ -47,6 +47,7 @@ const AIR_JUMPS = 1;
 const STARTING_LIVES = 5;
 const SPRITE_FRAME = 32;
 const SPRITE_SHEET = loadPixelAsset("assets/plumber_sprites.png");
+const PLAYER_SHEET = loadPixelAsset("assets/plumber_player_sprites.png");
 const TILE_SHEET = loadPixelAsset("assets/plumber_tiles.png");
 const BACKGROUND_MAP = loadPixelAsset("assets/plumber_background_map.png");
 const BG_DISTANT_SILHOUETTES = loadPixelAsset("assets/bg_distant_silhouettes.png");
@@ -65,12 +66,18 @@ const LEVEL_TRACKS = [
 ];
 
 const PLAYER_ANIMS = {
-  idle: { row: 0, frames: 16, fps: 8 },
-  run: { row: 1, frames: 16, fps: 18 },
-  jump: { row: 2, frames: 10, fps: 14 },
-  fall: { row: 3, frames: 10, fps: 12 },
-  dash: { row: 4, frames: 8, fps: 22 },
-  hurt: { row: 5, frames: 8, fps: 14 },
+  idle: { row: 0, frames: 24, fps: 10 },
+  run: { row: 1, frames: 24, fps: 24 },
+  jump: { row: 2, frames: 24, fps: 14 },
+  fall: { row: 3, frames: 24, fps: 12 },
+  dash: { row: 4, frames: 24, fps: 30 },
+  skid: { row: 5, frames: 24, fps: 20 },
+  doubleJump: { row: 6, frames: 24, fps: 22 },
+  hurt: { row: 7, frames: 24, fps: 14 },
+  victory: { row: 8, frames: 24, fps: 12 },
+  crouch: { row: 9, frames: 24, fps: 8 },
+  climb: { row: 10, frames: 24, fps: 12 },
+  swim: { row: 11, frames: 24, fps: 12 },
 };
 
 const ENEMY_ANIM = { row: 6, frames: 12, fps: 10 };
@@ -489,6 +496,7 @@ const keys = new Set();
 const input = {
   left: false,
   right: false,
+  down: false,
   jump: false,
   jumpPressed: false,
   dashPressed: false,
@@ -496,6 +504,7 @@ const input = {
 
 const touchActions = new Map();
 const particles = [];
+const playerTrail = [];
 const clouds = [];
 const coins = [];
 const jumpCrystals = [];
@@ -548,6 +557,10 @@ const player = {
   lives: 3,
   shield: false,
   time: 300,
+  doubleJumpTimer: 0,
+  skidTimer: 0,
+  landTimer: 0,
+  trailClock: 0,
 };
 
 const solidTiles = new Set(["X", "B", "Q", "O", "U"]);
@@ -1044,7 +1057,12 @@ function resetPlayerPosition(useCheckpoint = false) {
   player.deadTimer = 0;
   player.invulnerable = useCheckpoint ? 1.2 : 0;
   player.starTimer = 0;
+  player.doubleJumpTimer = 0;
+  player.skidTimer = 0;
+  player.landTimer = 0;
+  player.trailClock = 0;
   player.runT = 0;
+  playerTrail.length = 0;
 }
 
 function resetGame(fullReset = true, resetLevel = true) {
@@ -1124,7 +1142,7 @@ function updateMiniGui() {
 
   if (guiFullscreen) {
     const fullscreenActive = document.fullscreenElement === gameCard;
-    guiFullscreen.textContent = fullscreenActive ? "X" : "FS";
+    guiFullscreen.textContent = fullscreenActive ? "X" : "F";
     guiFullscreen.classList.toggle("active", fullscreenActive);
     guiFullscreen.setAttribute("aria-pressed", String(fullscreenActive));
     guiFullscreen.disabled = !document.fullscreenEnabled || !gameCard || !gameCard.requestFullscreen;
@@ -1184,6 +1202,15 @@ function addParticle(x, y, color, count = 8, power = 180, glow = false) {
       size: 2 + Math.random() * 4,
       glow,
     });
+  }
+}
+
+function updatePlayerTrail(dt) {
+  for (let i = playerTrail.length - 1; i >= 0; i -= 1) {
+    playerTrail[i].life -= dt;
+    if (playerTrail[i].life <= 0) {
+      playerTrail.splice(i, 1);
+    }
   }
 }
 
@@ -1374,6 +1401,7 @@ function resolveTileCollision(entity, dx, dy, isPlayer = false) {
 function updateInput() {
   input.left = keys.has("ArrowLeft") || keys.has("KeyA") || touchActions.get("left") === true;
   input.right = keys.has("ArrowRight") || keys.has("KeyD") || touchActions.get("right") === true;
+  input.down = keys.has("ArrowDown") || keys.has("KeyS");
   input.jump = keys.has("Space") || keys.has("ArrowUp") || keys.has("KeyW") || touchActions.get("jump") === true;
 
   if (input.jumpPressed) {
@@ -1401,6 +1429,7 @@ function triggerJump(isDoubleJump) {
 
   if (isDoubleJump) {
     player.airJumpsLeft -= 1;
+    player.doubleJumpTimer = 0.35;
     audio.sfx("doubleJump");
     addParticle(player.x + player.w / 2, player.y + player.h / 2, "#9eeaff", 18, 250, true);
   } else {
@@ -1423,11 +1452,16 @@ function updatePlayer(dt) {
 
   const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   const isAirTurning = !player.onGround && dir !== 0 && Math.sign(player.vx) !== dir && Math.abs(player.vx) > 35;
+  const isGroundSkidding = player.onGround && dir !== 0 && Math.sign(player.vx) !== dir && Math.abs(player.vx) > 95;
   const accel = player.onGround ? MOVE_ACCEL : isAirTurning ? AIR_TURN_ACCEL : AIR_ACCEL;
 
   player.dashCooldown = Math.max(0, player.dashCooldown - dt);
   player.dashTimer = Math.max(0, player.dashTimer - dt);
   player.starTimer = Math.max(0, player.starTimer - dt);
+  player.doubleJumpTimer = Math.max(0, player.doubleJumpTimer - dt);
+  player.skidTimer = Math.max(0, player.skidTimer - dt);
+  player.landTimer = Math.max(0, player.landTimer - dt);
+  player.trailClock = Math.max(0, player.trailClock - dt);
 
   if (player.onGround) {
     player.airJumpsLeft = AIR_JUMPS;
@@ -1439,6 +1473,12 @@ function updatePlayer(dt) {
   input.dashPressed = false;
 
   if (dir !== 0) {
+    if (isGroundSkidding) {
+      player.skidTimer = 0.18;
+      if (worldClock % 0.06 < dt) {
+        addParticle(player.x + player.w / 2 - dir * 8, player.y + player.h, "#dff5ff", 4, 85);
+      }
+    }
     if (isAirTurning) {
       const brake = Math.min(Math.abs(player.vx), AIR_TURN_BRAKE * dt);
       player.vx -= Math.sign(player.vx) * brake;
@@ -1480,10 +1520,26 @@ function updatePlayer(dt) {
     player.vy += GRAVITY * 0.58 * dt;
   }
 
+  if (input.down && !player.onGround && player.vy > -80) {
+    player.vy += GRAVITY * 0.45 * dt;
+  }
+
+  const wasGrounded = player.onGround;
+  const landingSpeed = player.vy;
   resolveTileCollision(player, player.vx * dt, player.vy * dt, true);
 
   if (player.onGround) {
     player.airJumpsLeft = AIR_JUMPS;
+  }
+
+  if (!wasGrounded && player.onGround && landingSpeed > 330) {
+    player.landTimer = 0.16;
+    addParticle(player.x + player.w / 2, player.y + player.h, "#f0f7ff", 8, Math.min(180, landingSpeed * 0.24));
+  }
+
+  if ((player.dashTimer > 0 || player.starTimer > 0 || player.doubleJumpTimer > 0) && player.trailClock <= 0) {
+    pushPlayerTrail(player.dashTimer > 0 ? 0.52 : 0.36);
+    player.trailClock = player.dashTimer > 0 ? 0.032 : 0.058;
   }
 
   player.x = clamp(player.x, 0, worldW - player.w);
@@ -1771,6 +1827,7 @@ function tick(now) {
   }
 
   updatePlayer(dt);
+  updatePlayerTrail(dt);
   updateEnemies(dt);
   updateFlyers(dt);
   updateCoins(dt);
@@ -2092,31 +2149,75 @@ function drawCollectibleSprite(kind, x, y, w, h, t, pulse = 1) {
   return true;
 }
 
-function drawPlayerSprite(x, y) {
-  if (!assetReady(SPRITE_SHEET)) return false;
+function getPlayerAnimState() {
   let anim = PLAYER_ANIMS.idle;
   let timeSeed = worldClock;
+  const skidInput = player.onGround && ((input.left && player.vx > 70) || (input.right && player.vx < -70));
 
-  if (player.deadTimer > 0) {
+  if (levelComplete || gameComplete) {
+    anim = PLAYER_ANIMS.victory;
+  } else if (player.deadTimer > 0) {
     anim = PLAYER_ANIMS.hurt;
   } else if (player.dashTimer > 0) {
     anim = PLAYER_ANIMS.dash;
+  } else if (player.doubleJumpTimer > 0) {
+    anim = PLAYER_ANIMS.doubleJump;
+  } else if (player.skidTimer > 0 || skidInput) {
+    anim = PLAYER_ANIMS.skid;
   } else if (!player.onGround && player.vy < 40) {
     anim = PLAYER_ANIMS.jump;
   } else if (!player.onGround) {
     anim = PLAYER_ANIMS.fall;
+  } else if (input.down && Math.abs(player.vx) < 35) {
+    anim = PLAYER_ANIMS.crouch;
   } else if (Math.abs(player.vx) > 20) {
     anim = PLAYER_ANIMS.run;
     timeSeed = player.runT * 0.18;
   }
 
+  return {
+    anim,
+    frame: spriteFrame(anim, timeSeed),
+  };
+}
+
+function pushPlayerTrail(alpha = 0.46) {
+  if (!assetReady(PLAYER_SHEET)) return;
+  const state = getPlayerAnimState();
+  playerTrail.push({
+    x: player.x,
+    y: player.y,
+    face: player.face,
+    row: state.anim.row,
+    frame: state.frame,
+    life: 0.2,
+    maxLife: 0.2,
+    alpha,
+  });
+  if (playerTrail.length > 14) {
+    playerTrail.shift();
+  }
+}
+
+function drawPlayerSprite(x, y) {
+  if (!assetReady(PLAYER_SHEET)) return false;
+  const state = getPlayerAnimState();
+  const squash = player.landTimer > 0 ? player.landTimer / 0.16 : 0;
+
   ctx.save();
   ctx.translate(x + player.w / 2, y + player.h);
-  ctx.scale(player.face, 1);
-  drawSpriteFrame(SPRITE_SHEET, anim.row, spriteFrame(anim, timeSeed), -18, -34, 36, 36);
+  ctx.scale(player.face * (1 + squash * 0.08), 1 - squash * 0.08);
+  drawSpriteFrame(PLAYER_SHEET, state.anim.row, state.frame, -19, -35, 38, 38);
   if (!player.onGround && player.airJumpsLeft === 0) {
     ctx.fillStyle = "rgba(158, 234, 255, 0.55)";
     ctx.fillRect(-13, 2, 26, 3);
+  }
+  if (player.dashCooldown > 0 && player.dashCooldown < DASH_COOLDOWN && player.dashTimer <= 0) {
+    const ready = 1 - player.dashCooldown / DASH_COOLDOWN;
+    ctx.fillStyle = "rgba(9, 22, 28, 0.45)";
+    ctx.fillRect(-13, 5, 26, 2);
+    ctx.fillStyle = "rgba(142, 238, 255, 0.82)";
+    ctx.fillRect(-13, 5, 26 * ready, 2);
   }
   ctx.restore();
   return true;
@@ -2626,6 +2727,27 @@ function drawFlyers() {
   }
 }
 
+function drawPlayerTrail() {
+  if (!assetReady(PLAYER_SHEET)) return;
+
+  for (const ghost of playerTrail) {
+    const alpha = clamp(ghost.life / ghost.maxLife, 0, 1) * ghost.alpha;
+    const x = ghost.x - cameraX;
+    const y = ghost.y - cameraY + worldOffsetY;
+    if (x < -60 || x > VIEW_W + 60 || y < -70 || y > VIEW_H + 70) continue;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x + player.w / 2, y + player.h);
+    ctx.scale(ghost.face, 1);
+    ctx.filter = "saturate(145%) brightness(1.22)";
+    drawSpriteFrame(PLAYER_SHEET, ghost.row, ghost.frame, -19, -35, 38, 38);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.filter = "none";
+}
+
 function drawPlayer() {
   const x = player.x - cameraX;
   const y = player.y - cameraY + worldOffsetY;
@@ -2637,7 +2759,8 @@ function drawPlayer() {
 
   ctx.fillStyle = "rgba(38, 17, 8, 0.28)";
   ctx.beginPath();
-  ctx.ellipse(x + player.w / 2, y + player.h + 5, 16, 5, 0, 0, Math.PI * 2);
+  const squash = player.landTimer > 0 ? player.landTimer / 0.16 : 0;
+  ctx.ellipse(x + player.w / 2, y + player.h + 5, 16 + squash * 5, 5 + squash * 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (player.shield) {
@@ -2788,6 +2911,26 @@ function drawOverlayFX() {
   }
 }
 
+function drawLevelProgress() {
+  if (!running || gameOver || gameComplete) return;
+  const usableWorld = Math.max(TILE, worldW - VIEW_W * 0.25);
+  const progress = clamp((player.x + player.w / 2) / usableWorld, 0, 1);
+  const w = 182;
+  const h = 4;
+  const x = Math.round((VIEW_W - w) / 2);
+  const y = 10;
+
+  ctx.save();
+  ctx.globalAlpha = 0.82;
+  ctx.fillStyle = "rgba(8, 18, 22, 0.48)";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = player.starTimer > 0 ? "rgba(255, 236, 112, 0.9)" : "rgba(142, 238, 255, 0.86)";
+  ctx.fillRect(x, y, Math.max(4, w * progress), h);
+  ctx.fillStyle = "rgba(255, 245, 210, 0.92)";
+  ctx.fillRect(x + w - 4, y - 2, 4, h + 4);
+  ctx.restore();
+}
+
 function render() {
   drawSky();
   drawAtmosphereFX();
@@ -2799,10 +2942,12 @@ function render() {
   drawStars();
   drawEnemies();
   drawFlyers();
+  drawPlayerTrail();
   drawPlayer();
   drawParticles();
   drawForegroundDecor();
   drawOverlayFX();
+  drawLevelProgress();
 
   if (paused && running) {
     ctx.fillStyle = "rgba(21, 10, 5, 0.55)";
@@ -2877,7 +3022,7 @@ async function toggleFullscreen() {
 }
 
 window.addEventListener("keydown", (event) => {
-  if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space", "Enter"].includes(event.code)) {
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", "Enter"].includes(event.code)) {
     event.preventDefault();
   }
 
