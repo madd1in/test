@@ -23,6 +23,7 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - `C`: Continue (Title/Game Over)
 
 ## Features
+- V55 Solid Spatial Index: Player-, Projectile-, Pickup- und Draw-Kollisionen fragen nur noch nahe Solid-Buckets ab statt jede Plattform zu scannen.
 - V54 Viewport-Culling: Boden-/Plattform-Tiles und Trim-Ziselierung zeichnen nur noch sichtbare Weltbereiche; Stage-BGM und Bild-Decoding werden frueher vorgewaermt.
 - V53 Performance/Stability: Initial-Preload ist gestaffelt, Auto-Quality schaltet mit Hysterese, und lange Garten-Tilemaps rendern nur noch den sichtbaren Ausschnitt.
 - V52 Bush/Fence Tilemap: Hecken, Rosenbuesche, Eisenzaun und Garten-Gitter nutzen jetzt transparente Imagegen-Tiles statt Canvas-Rechtecken.
@@ -354,3 +355,10 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - Bild-Assets werden nach dem Anlegen per `decode()` vorgewaermt, wodurch spaete Decode-Ruckler beim ersten Auftauchen reduziert werden
 - Stage- und Boss-BGM-Gruppen werden beim Start und Stagewechsel vorgeladen, damit Musikwechsel nicht erst beim Bosskontakt nachladen muessen
 - Neuer Smoke `asset_tools/smoke_viewport_cull_v54.js` prueft Stage 1/3/6, Solid-Culling, BGM-Warmup, Garten-Tile-Caps und Screenshot-Rendering
+
+## Solid Spatial Index Pass (V55)
+- Solids werden nach dem Stage-Build in 512px-Welt-Buckets indiziert; breite Bodenplatten liegen in allen betroffenen Buckets
+- Player-X/Y-Kollision, Pickup-Bodenberuehrung, Subweapon-/EnemyProjectile-Wandtreffer, Enemy-Ground-Snapping und `drawLevel()` nutzen jetzt `solidsNear()`
+- Seals und Stage-4-Gates bauen den Index nach dem Oeffnen neu auf, damit entfernte Barrieren sofort aus Kollision und Rendering verschwinden
+- Der Smoke zeigt fuer Stage 1 maximal 48 nahe Solid-Kandidaten statt 185 Gesamt-Solids, ohne sichtbare Solids zu verpassen
+- Neuer Smoke `asset_tools/smoke_solid_index_v55.js` prueft Stage 1/4/6, Index-Coverage, Gate-Rebuild und Solid-Draw-Caps
