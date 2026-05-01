@@ -505,6 +505,7 @@ const input = {
 const touchActions = new Map();
 const particles = [];
 const playerTrail = [];
+const scorePopups = [];
 const clouds = [];
 const coins = [];
 const jumpCrystals = [];
@@ -532,6 +533,8 @@ let gameComplete = false;
 let levelIndex = 0;
 let selectedLevelIndex = 0;
 let worldClock = 0;
+const combo = { count: 0, timer: 0 };
+const screenShake = { time: 0, duration: 0, power: 0 };
 
 const player = {
   x: 0,
@@ -1063,6 +1066,7 @@ function resetPlayerPosition(useCheckpoint = false) {
   player.trailClock = 0;
   player.runT = 0;
   playerTrail.length = 0;
+  resetCombo();
 }
 
 function resetGame(fullReset = true, resetLevel = true) {
@@ -1083,6 +1087,10 @@ function resetGame(fullReset = true, resetLevel = true) {
   resetPlayerPosition();
   player.time = currentLevel().time;
   particles.length = 0;
+  scorePopups.length = 0;
+  screenShake.time = 0;
+  screenShake.duration = 0;
+  screenShake.power = 0;
   cameraX = 0;
   cameraY = 0;
   paused = false;
@@ -1214,6 +1222,91 @@ function updatePlayerTrail(dt) {
   }
 }
 
+function addScreenShake(power, duration = 0.16) {
+  screenShake.time = Math.max(screenShake.time, duration);
+  screenShake.duration = Math.max(screenShake.duration, duration);
+  screenShake.power = Math.max(screenShake.power, power);
+}
+
+function updateScreenShake(dt) {
+  screenShake.time = Math.max(0, screenShake.time - dt);
+  if (screenShake.time <= 0) {
+    screenShake.duration = 0;
+    screenShake.power = 0;
+  }
+}
+
+function getScreenShakeOffset() {
+  if (screenShake.time <= 0 || screenShake.duration <= 0) {
+    return { x: 0, y: 0 };
+  }
+
+  const fade = screenShake.time / screenShake.duration;
+  const power = screenShake.power * fade * fade;
+  return {
+    x: (pseudoRandom(worldClock * 930 + 3.1) - 0.5) * power * 2,
+    y: (pseudoRandom(worldClock * 860 + 8.7) - 0.5) * power * 2,
+  };
+}
+
+function addScorePopup(text, x, y, color = "#fff4c8") {
+  scorePopups.push({
+    text,
+    x,
+    y,
+    vy: -32,
+    life: 0.78,
+    maxLife: 0.78,
+    color,
+  });
+
+  if (scorePopups.length > 28) {
+    scorePopups.shift();
+  }
+}
+
+function updateScorePopups(dt) {
+  for (let i = scorePopups.length - 1; i >= 0; i -= 1) {
+    const popup = scorePopups[i];
+    popup.life -= dt;
+    popup.vy -= 8 * dt;
+    popup.y += popup.vy * dt;
+
+    if (popup.life <= 0) {
+      scorePopups.splice(i, 1);
+    }
+  }
+}
+
+function resetCombo() {
+  combo.count = 0;
+  combo.timer = 0;
+}
+
+function updateCombo(dt) {
+  if (combo.timer <= 0) return;
+  combo.timer = Math.max(0, combo.timer - dt);
+  if (combo.timer <= 0) {
+    combo.count = 0;
+  }
+}
+
+function awardEnemyCombo(x, y, baseScore) {
+  combo.count += 1;
+  combo.timer = 2.1;
+  const bonus = Math.max(0, (combo.count - 1) * 125);
+  const total = baseScore + bonus;
+  player.score += total;
+
+  if (combo.count > 1) {
+    addScorePopup(`+${total} x${combo.count}`, x, y - 8, "#fff67a");
+    addScreenShake(4 + combo.count * 0.8, 0.16);
+  } else {
+    addScorePopup(`+${total}`, x, y - 8);
+    addScreenShake(3.2, 0.13);
+  }
+}
+
 function bumpBlock(tx, ty) {
   const tile = getTile(tx, ty);
   const x = tx * TILE;
@@ -1225,6 +1318,7 @@ function bumpBlock(tx, ty) {
     player.score += 200;
     audio.sfx("coin");
     addParticle(x + TILE / 2, y, "#ffd24a", 15, 220, true);
+    addScorePopup("+200", x + TILE / 2, y, "#ffd24a");
     updateHud();
     return;
   }
@@ -1233,6 +1327,8 @@ function bumpBlock(tx, ty) {
     player.score += 50;
     audio.sfx("block");
     addParticle(x + TILE / 2, y + TILE / 2, "#c95d35", 12, 170);
+    addScorePopup("+50", x + TILE / 2, y, "#ffbd80");
+    addScreenShake(2.4, 0.1);
     updateHud();
   }
 }
@@ -1250,6 +1346,7 @@ function collectCoin(coin) {
     addParticle(coin.x + 8, coin.y + 8, "#ffd24a", 10, 180, true);
   }
 
+  addScorePopup("+100", coin.x + 8, coin.y, "#ffd24a");
   updateHud();
 }
 
@@ -1260,6 +1357,8 @@ function collectJumpCrystal(crystal) {
   audio.sfx("crystal");
   addParticle(crystal.x + crystal.w / 2, crystal.y + crystal.h / 2, "#88f7ff", 18, 250, true);
   addParticle(player.x + player.w / 2, player.y + player.h / 2, "#b4f7ff", 10, 180, true);
+  addScorePopup("+250 jump", crystal.x + crystal.w / 2, crystal.y, "#9eeaff");
+  addScreenShake(2.8, 0.12);
   updateHud();
 }
 
@@ -1269,6 +1368,7 @@ function collectHeart(heart) {
   player.score += 350;
   audio.sfx("heart");
   addParticle(heart.x + heart.w / 2, heart.y + heart.h / 2, "#ff7fa8", 18, 230, true);
+  addScorePopup("+350 life", heart.x + heart.w / 2, heart.y, "#ff9bb6");
   updateHud();
 }
 
@@ -1278,6 +1378,8 @@ function collectShield(shield) {
   player.score += 300;
   audio.sfx("shield");
   addParticle(shield.x + shield.w / 2, shield.y + shield.h / 2, "#7df6ff", 20, 250, true);
+  addScorePopup("+300 shield", shield.x + shield.w / 2, shield.y, "#8ff8ff");
+  addScreenShake(2.6, 0.12);
   updateHud();
 }
 
@@ -1288,6 +1390,8 @@ function collectStar(star) {
   player.score += 600;
   audio.sfx("star");
   addParticle(star.x + star.w / 2, star.y + star.h / 2, "#fff67a", 28, 330, true);
+  addScorePopup("+600 star", star.x + star.w / 2, star.y, "#fff67a");
+  addScreenShake(6, 0.22);
   updateHud();
 }
 
@@ -1300,6 +1404,7 @@ function hurtPlayer() {
     player.invulnerable = 0.2;
     audio.sfx("star");
     addParticle(player.x + player.w / 2, player.y + player.h / 2, "#fff67a", 16, 250, true);
+    addScreenShake(3.5, 0.12);
     return;
   }
 
@@ -1310,6 +1415,9 @@ function hurtPlayer() {
     player.vy = -330;
     audio.sfx("shield");
     addParticle(player.x + player.w / 2, player.y + player.h / 2, "#7df6ff", 24, 310, true);
+    addScorePopup("shield", player.x + player.w / 2, player.y, "#8ff8ff");
+    addScreenShake(6, 0.2);
+    resetCombo();
     updateHud();
     return;
   }
@@ -1319,6 +1427,8 @@ function hurtPlayer() {
   player.vy = -470;
   audio.sfx("hurt");
   addParticle(player.x + player.w / 2, player.y + player.h / 2, "#ff6347", 18, 270, true);
+  addScreenShake(8.5, 0.24);
+  resetCombo();
 }
 
 function stompEnemy(enemy) {
@@ -1326,7 +1436,7 @@ function stompEnemy(enemy) {
   enemy.squish = 0.25;
   player.vy = -STOMP_BOUNCE;
   player.airJumpsLeft = AIR_JUMPS;
-  player.score += 300;
+  awardEnemyCombo(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, 300);
   audio.sfx("stomp");
   addParticle(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#f2b24d", 14, 200);
   updateHud();
@@ -1339,7 +1449,7 @@ function defeatFlyer(flyer, bounce = true) {
     player.vy = -STOMP_BOUNCE;
   }
   player.airJumpsLeft = AIR_JUMPS;
-  player.score += 350;
+  awardEnemyCombo(flyer.x + flyer.w / 2, flyer.y + flyer.h / 2, 350);
   audio.sfx("stomp");
   addParticle(flyer.x + flyer.w / 2, flyer.y + flyer.h / 2, "#b7f0ff", 16, 220, true);
   updateHud();
@@ -1419,6 +1529,7 @@ function triggerDash(dir) {
   player.vy = Math.min(player.vy, -90);
   audio.sfx("dash");
   addParticle(player.x + player.w / 2 - player.dashDir * 10, player.y + player.h / 2, "#d4f8ff", 18, 260, true);
+  addScreenShake(4.2, 0.14);
 }
 
 function triggerJump(isDoubleJump) {
@@ -1732,6 +1843,8 @@ function finishLevel() {
   levelComplete = true;
   running = false;
   player.score += Math.ceil(player.time) * 10 + player.lives * 500;
+  addScorePopup("clear", player.x + player.w / 2, player.y - 16, "#fff4a6");
+  addScreenShake(7, 0.28);
   updateHud();
 
   if (levelIndex < LEVELS.length - 1) {
@@ -1773,12 +1886,15 @@ function checkHazardsAndGoal() {
         player.jumpBuffer = 0;
         audio.sfx("spring");
         addParticle(player.x + player.w / 2, player.y + player.h, "#8af7ff", 22, 280, true);
+        addScreenShake(3.4, 0.12);
       }
 
       if (tile === "T" && (checkpoint.tx !== x || checkpoint.ty !== y)) {
         checkpoint = { x: x * TILE + 4, y: y * TILE - 2, active: true, tx: x, ty: y };
         audio.sfx("checkpoint");
         addParticle(x * TILE + TILE / 2, y * TILE + TILE / 2, "#fff4a6", 24, 260, true);
+        addScorePopup("checkpoint", x * TILE + TILE / 2, y * TILE, "#fff4a6");
+        addScreenShake(4.8, 0.18);
       }
 
       if (tile === "F" && !levelComplete) {
@@ -1828,6 +1944,9 @@ function tick(now) {
 
   updatePlayer(dt);
   updatePlayerTrail(dt);
+  updateScreenShake(dt);
+  updateScorePopups(dt);
+  updateCombo(dt);
   updateEnemies(dt);
   updateFlyers(dt);
   updateCoins(dt);
@@ -2853,6 +2972,30 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
+function drawScorePopups() {
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "900 14px Trebuchet MS";
+
+  for (const popup of scorePopups) {
+    const alpha = clamp(popup.life / popup.maxLife, 0, 1);
+    const lift = 1 - alpha;
+    const x = Math.round(popup.x - cameraX);
+    const y = Math.round(popup.y - cameraY + worldOffsetY);
+    if (x < -90 || x > VIEW_W + 90 || y < -60 || y > VIEW_H + 60) continue;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(22, 10, 5, 0.68)";
+    ctx.fillText(popup.text, x + 1, y + 2 + lift * 4);
+    ctx.fillStyle = popup.color;
+    ctx.fillText(popup.text, x, y + lift * 4);
+  }
+
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
 function drawForegroundDecor() {
   ctx.save();
   ctx.translate(-cameraX * 0.72, 0);
@@ -2931,9 +3074,37 @@ function drawLevelProgress() {
   ctx.restore();
 }
 
+function drawComboMeter() {
+  if (!running || combo.count <= 1 || combo.timer <= 0) return;
+
+  const w = 86;
+  const h = 4;
+  const x = Math.round((VIEW_W - w) / 2);
+  const y = 20;
+  const progress = clamp(combo.timer / 2.1, 0, 1);
+
+  ctx.save();
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = "rgba(8, 18, 22, 0.48)";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = "rgba(255, 246, 122, 0.9)";
+  ctx.fillRect(x, y, w * progress, h);
+  ctx.font = "900 13px Trebuchet MS";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(20, 8, 4, 0.55)";
+  ctx.fillText(`x${combo.count}`, VIEW_W / 2 + 1, y + 14);
+  ctx.fillStyle = "#fff4a6";
+  ctx.fillText(`x${combo.count}`, VIEW_W / 2, y + 13);
+  ctx.restore();
+}
+
 function render() {
   drawSky();
   drawAtmosphereFX();
+  const shake = getScreenShakeOffset();
+  ctx.save();
+  ctx.translate(shake.x, shake.y);
   drawWorld();
   drawCoins();
   drawJumpCrystals();
@@ -2945,9 +3116,12 @@ function render() {
   drawPlayerTrail();
   drawPlayer();
   drawParticles();
+  drawScorePopups();
   drawForegroundDecor();
+  ctx.restore();
   drawOverlayFX();
   drawLevelProgress();
+  drawComboMeter();
 
   if (paused && running) {
     ctx.fillStyle = "rgba(21, 10, 5, 0.55)";
