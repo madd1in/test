@@ -23,6 +23,7 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - `C`: Continue (Title/Game Over)
 
 ## Features
+- V52 Bush/Fence Tilemap: Hecken, Rosenbuesche, Eisenzaun und Garten-Gitter nutzen jetzt transparente Imagegen-Tiles statt Canvas-Rechtecken.
 - V51 Tile-Stabilitaet: Scrollende Boden-/Wall-/Super7-Tiles sind an Weltkoordinaten verankert, damit Kacheln beim Scrollen nicht mehr flackern.
 - V50 Performance/Fog: Auto-Modus reduziert Super7-Bodenbaender, schaltet Canvas-Filter im Boost ab und rastet Nebel/Glints pixelstabil ein.
 - 6 Stages (Stage 2-6 mit eigenen Bossen)
@@ -328,3 +329,9 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - Alte Shape-Renderings bleiben als Fallback erhalten, falls der Atlas noch nicht geladen ist
 - Neuer Smoke `asset_tools/smoke_tree_arch_tilemap_v49.js` prueft Atlas-Ladezustand, Tile-Draws fuer Baeume/Torbogen und Screenshot-Rendering
 
+## Bush / Garden Grille Tilemap Pass (V52)
+- Neue Imagegen-basierte 8x4-Tilemap `bush_fence_tilemap_imagegen_v52.png` fuer Hecken, Rosenbuesche, Schmiedeeisen-Zaun und Garten-Gitter
+- Das Normalizer-Script schneidet die Imagegen-Quelle aus, entfernt die dunkle Matte per Flood-Fill und schreibt transparente 32px-Tiles plus JSON-Metadaten
+- `hedge`, `roseBush`, `ironFence`, `gardenGate` und `gardenArch` nutzen jetzt das neue Sheet statt Canvas-Rechteck-Fallbacks, sobald der Atlas geladen ist
+- Garten-Gates bekommen zusaetzliche transparente Gitter-Inlays aus der vierten Tile-Reihe
+- Neuer Smoke `asset_tools/smoke_bush_fence_tilemap_v52.js` prueft Atlas-Ladezustand, Tile-Draws fuer Buesche/Zaun/Gitter und Screenshot-Rendering
