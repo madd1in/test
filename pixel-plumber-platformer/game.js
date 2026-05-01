@@ -134,6 +134,7 @@ const LEVELS = [
       g.put(31, 9, "BBBBB");
       g.put(45, 9, "C C C");
       g.put(47, 8, "C");
+      g.put(55, 8, "D");
       g.put(60, 8, "J");
       g.put(62, 10, "T");
       g.fill(52, 10, 4, "X");
@@ -143,6 +144,7 @@ const LEVELS = [
       g.fill(72, 12, 6, "X");
       g.put(90, 8, "C C C C");
       g.put(91, 10, "BBBB");
+      g.put(96, 8, "D");
       g.put(98, 12, "S");
       g.put(102, 9, "R");
       g.put(105, 8, "M");
@@ -186,6 +188,7 @@ const LEVELS = [
       g.put(42, 11, "G");
       g.put(56, 8, "C C C C");
       g.put(57, 10, "BBBBB");
+      g.put(63, 8, "D");
       g.put(69, 10, "LLL");
       g.fill(68, 12, 6, "X");
       g.put(79, 8, "C C C");
@@ -195,6 +198,7 @@ const LEVELS = [
       g.put(93, 9, "T");
       g.put(96, 7, "QQQQ");
       g.put(102, 8, "J");
+      g.put(105, 7, "D");
       g.put(107, 10, "C C C C");
       g.put(116, 8, "R");
       g.put(112, 9, "G");
@@ -239,6 +243,7 @@ const LEVELS = [
       g.fill(45, 12, 7, "X");
       g.put(57, 8, "BBBB");
       g.put(58, 7, "C C C");
+      g.put(63, 7, "D");
       g.put(66, 10, "G");
       g.put(75, 9, "QQQQ");
       g.put(77, 8, "J");
@@ -248,6 +253,7 @@ const LEVELS = [
       g.fill(83, 12, 7, "X");
       g.put(98, 8, "C C C C");
       g.fill(99, 10, 5, "X");
+      g.put(106, 8, "D");
       g.put(112, 10, "G");
       g.put(121, 8, "BBBBBB");
       g.put(133, 8, "C C C");
@@ -284,6 +290,7 @@ const LEVELS = [
       g.fill(31, 9, 4, "X");
       g.put(39, 8, "S");
       g.put(47, 7, "C C J C");
+      g.put(59, 7, "D");
       g.fill(52, 9, 5, "X");
       g.put(61, 7, "J");
       g.put(64, 9, "T");
@@ -293,6 +300,7 @@ const LEVELS = [
       g.put(91, 8, "S");
       g.put(97, 6, "J");
       g.put(100, 8, "R");
+      g.put(107, 7, "D");
       g.fill(103, 9, 5, "X");
       g.put(106, 7, "QQQ");
       g.put(113, 7, "A");
@@ -336,10 +344,12 @@ const LEVELS = [
       g.fill(58, 12, 7, "X");
       g.put(67, 9, "QQQ");
       g.put(76, 8, "C J C");
+      g.put(80, 7, "D");
       g.fill(82, 10, 5, "X");
       g.put(88, 9, "G");
       g.put(99, 8, "S");
       g.put(105, 7, "C C C J");
+      g.put(112, 7, "D");
       g.put(116, 8, "R");
       g.put(118, 7, "M");
       g.fill(110, 10, 5, "X");
@@ -384,6 +394,7 @@ const LEVELS = [
       g.put(55, 9, "S");
       g.put(58, 8, "T");
       g.put(63, 8, "C J C");
+      g.put(76, 8, "D");
       g.put(72, 10, "G");
       g.put(82, 7, "J");
       g.fill(88, 9, 4, "X");
@@ -391,6 +402,7 @@ const LEVELS = [
       g.put(104, 9, "S");
       g.put(115, 8, "BBBBB");
       g.put(117, 7, "J");
+      g.put(121, 7, "D");
       g.put(124, 8, "R");
       g.put(128, 7, "M");
       g.put(126, 11, "LLL");
@@ -429,6 +441,7 @@ const LEVELS = [
       g.put(28, 7, "A");
       g.put(37, 9, "C C C");
       g.put(45, 8, "M");
+      g.put(49, 8, "D");
       g.fill(52, 10, 4, "X");
       g.put(58, 9, "T");
       g.put(64, 8, "A");
@@ -437,6 +450,7 @@ const LEVELS = [
       g.fill(79, 12, 7, "X");
       g.put(91, 8, "R");
       g.put(99, 7, "J C J");
+      g.put(105, 7, "D");
       g.put(108, 9, "S");
       g.put(116, 8, "A");
       g.put(130, 9, "QQQ");
@@ -474,6 +488,7 @@ const LEVELS = [
       g.put(30, 7, "J");
       g.put(36, 9, "C C C");
       g.put(43, 8, "M");
+      g.put(47, 8, "D");
       g.put(50, 9, "G");
       g.put(58, 11, "LLL");
       g.fill(57, 12, 7, "X");
@@ -481,6 +496,7 @@ const LEVELS = [
       g.put(73, 7, "A");
       g.put(82, 9, "S");
       g.put(89, 7, "J C J");
+      g.put(96, 7, "D");
       g.put(99, 8, "R");
       g.put(109, 7, "A");
       g.put(120, 8, "QQQQ");
@@ -509,6 +525,7 @@ const scorePopups = [];
 const clouds = [];
 const coins = [];
 const jumpCrystals = [];
+const dashOrbs = [];
 const hearts = [];
 const shields = [];
 const stars = [];
@@ -918,6 +935,7 @@ function isSolidAt(tx, ty) {
 function parseLevel() {
   coins.length = 0;
   jumpCrystals.length = 0;
+  dashOrbs.length = 0;
   hearts.length = 0;
   shields.length = 0;
   stars.length = 0;
@@ -958,6 +976,19 @@ function parseLevel() {
           w: 20,
           h: 24,
           baseY: py + 3,
+          t: Math.random() * Math.PI * 2,
+          taken: false,
+        });
+        return " ";
+      }
+
+      if (cell === "D") {
+        dashOrbs.push({
+          x: px + 4,
+          y: py + 4,
+          w: 24,
+          h: 24,
+          baseY: py + 4,
           t: Math.random() * Math.PI * 2,
           taken: false,
         });
@@ -1359,6 +1390,24 @@ function collectJumpCrystal(crystal) {
   addParticle(player.x + player.w / 2, player.y + player.h / 2, "#b4f7ff", 10, 180, true);
   addScorePopup("+250 jump", crystal.x + crystal.w / 2, crystal.y, "#9eeaff");
   addScreenShake(2.8, 0.12);
+  updateHud();
+}
+
+function collectDashOrb(orb) {
+  orb.taken = true;
+  const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0) || player.face || 1;
+  player.face = dir;
+  player.dashDir = dir;
+  player.dashCooldown = 0;
+  player.dashTimer = Math.max(player.dashTimer, DASH_TIME * 0.85);
+  player.vx = dir * DASH_SPEED * 1.08;
+  player.vy = Math.min(player.vy, -150);
+  player.airJumpsLeft = Math.max(player.airJumpsLeft, AIR_JUMPS);
+  player.score += 450;
+  audio.sfx("dash");
+  addParticle(orb.x + orb.w / 2, orb.y + orb.h / 2, "#9ff5ff", 30, 340, true);
+  addScorePopup("+450 dash", orb.x + orb.w / 2, orb.y, "#9ff5ff");
+  addScreenShake(5.5, 0.18);
   updateHud();
 }
 
@@ -1785,6 +1834,19 @@ function updateJumpCrystals(dt) {
   }
 }
 
+function updateDashOrbs(dt) {
+  for (const orb of dashOrbs) {
+    if (orb.taken) continue;
+
+    orb.t += dt * 5.4;
+    orb.y = orb.baseY + Math.sin(orb.t) * 5;
+
+    if (rectsOverlap(player, orb)) {
+      collectDashOrb(orb);
+    }
+  }
+}
+
 function updateHearts(dt) {
   for (const heart of hearts) {
     if (heart.taken) continue;
@@ -1951,6 +2013,7 @@ function tick(now) {
   updateFlyers(dt);
   updateCoins(dt);
   updateJumpCrystals(dt);
+  updateDashOrbs(dt);
   updateHearts(dt);
   updateShields(dt);
   updateStars(dt);
@@ -2603,6 +2666,62 @@ function drawJumpCrystals() {
   }
 }
 
+function drawDashOrbs() {
+  for (const orb of dashOrbs) {
+    if (orb.taken) continue;
+
+    const x = orb.x - cameraX;
+    const y = orb.y - cameraY + worldOffsetY;
+    if (x < -60 || x > VIEW_W + 60 || y < -60 || y > VIEW_H + 60) {
+      continue;
+    }
+
+    const cx = x + orb.w / 2;
+    const cy = y + orb.h / 2;
+    const pulse = 1 + Math.sin(orb.t * 2.4) * 0.08;
+    const spin = orb.t * 1.8;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(pulse, pulse);
+    ctx.rotate(spin);
+
+    const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 34);
+    glow.addColorStop(0, "rgba(160, 255, 255, 0.42)");
+    glow.addColorStop(0.55, "rgba(70, 210, 255, 0.2)");
+    glow.addColorStop(1, "rgba(70, 210, 255, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(-38, -38, 76, 76);
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(160, 245, 255, 0.95)";
+    ctx.beginPath();
+    ctx.arc(0, 0, 13, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, -0.7, 0.9);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.moveTo(2, -5);
+    ctx.lineTo(10, 0);
+    ctx.lineTo(2, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.rotate(-spin * 1.8);
+    ctx.fillStyle = "rgba(142, 238, 255, 0.8)";
+    ctx.fillRect(-2, -22, 4, 4);
+    ctx.fillRect(18, -1, 3, 3);
+    ctx.fillRect(-20, 4, 3, 3);
+    ctx.restore();
+  }
+}
+
 function drawHearts() {
   for (const heart of hearts) {
     if (heart.taken) continue;
@@ -3108,6 +3227,7 @@ function render() {
   drawWorld();
   drawCoins();
   drawJumpCrystals();
+  drawDashOrbs();
   drawHearts();
   drawShields();
   drawStars();
