@@ -23,6 +23,7 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - `C`: Continue (Title/Game Over)
 
 ## Features
+- V54 Viewport-Culling: Boden-/Plattform-Tiles und Trim-Ziselierung zeichnen nur noch sichtbare Weltbereiche; Stage-BGM und Bild-Decoding werden frueher vorgewaermt.
 - V53 Performance/Stability: Initial-Preload ist gestaffelt, Auto-Quality schaltet mit Hysterese, und lange Garten-Tilemaps rendern nur noch den sichtbaren Ausschnitt.
 - V52 Bush/Fence Tilemap: Hecken, Rosenbuesche, Eisenzaun und Garten-Gitter nutzen jetzt transparente Imagegen-Tiles statt Canvas-Rechtecken.
 - V51 Tile-Stabilitaet: Scrollende Boden-/Wall-/Super7-Tiles sind an Weltkoordinaten verankert, damit Kacheln beim Scrollen nicht mehr flackern.
@@ -345,3 +346,11 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - Lange Garten-Hecken und Eisenzaeune werden auf den sichtbaren Viewport begrenzt; im Smoke sinken Bush/Fence-Draws von 108/39 auf maximal 72/25
 - Der Canvas-CSS-Filter ist entfernt, CRT-Scanlines sind im Auto-Medium-Budget deaktiviert, und HUD-Text schreibt nur noch bei echten Wertwechseln in den DOM
 - Neuer Smoke `asset_tools/smoke_perf_stability_v53.js` prueft Preload-Status, Quality-Hysterese, Auto-Budget und gekappte Garten-Tile-Draws
+
+## Viewport Solid Culling Pass (V54)
+- Breite Boden- und Plattform-Solids werden nicht mehr ueber ihre komplette Weltbreite getiled, sondern auf den sichtbaren Kamerabereich plus kleinen Rand begrenzt
+- Die vertikale Tile-Fuellung zeichnet nur noch die wirklich angeschnittenen Tile-Reihen; im Smoke sinkt der Solid-Tile-Spitzenwert von 129 auf 43 Draws
+- Trim-Tiles, Zisel-Linien und Plattform-Arches nutzen denselben sichtbaren Weltbereich, damit Stage-Scroll weniger CPU/GPU-Overdraw erzeugt
+- Bild-Assets werden nach dem Anlegen per `decode()` vorgewaermt, wodurch spaete Decode-Ruckler beim ersten Auftauchen reduziert werden
+- Stage- und Boss-BGM-Gruppen werden beim Start und Stagewechsel vorgeladen, damit Musikwechsel nicht erst beim Bosskontakt nachladen muessen
+- Neuer Smoke `asset_tools/smoke_viewport_cull_v54.js` prueft Stage 1/3/6, Solid-Culling, BGM-Warmup, Garten-Tile-Caps und Screenshot-Rendering
