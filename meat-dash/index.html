@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meat Dash</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="hud">
+      <p><span class="label">Level</span> <span id="levelText">1 / 8</span></p>
+      <p><span class="label">Zeit</span> <span id="timerText">00:00.00</span></p>
+      <p><span class="label">Split</span> <span id="splitText">00:00.00</span></p>
+      <p><span class="label">Best Split</span> <span id="bestSplitText">--:--.--</span></p>
+      <p><span class="label">Bestzeit</span> <span id="bestText">--:--.--</span></p>
+      <p><span class="label">Tode</span> <span id="deathsText">0</span></p>
+      <p><span class="label">Relics</span> <span id="relicText">0 / 0</span></p>
+      <button id="assistToggle" class="assist-toggle" type="button">Assist: Off</button>
+    </header>
+
+    <div class="canvas-wrap">
+      <canvas id="game" width="960" height="540" aria-label="Hartes Praezisionsplatformer-Spiel"></canvas>
+      <div class="crt-overlay" aria-hidden="true"></div>
+      <p id="message" class="message hidden"></p>
+    </div>
+
+    <p class="help">A/D oder Pfeile: laufen | Leertaste/W/Pfeil hoch: springen | Doppelsprung: nochmal in der Luft | R: Neustart | H: Assist an/aus | Relics sammeln | Boost-Pads geben Schub | Touch-Tap puffert Sprung</p>
+
+    <div class="touch-controls" aria-label="Touch Steuerung">
+      <button class="touch-btn" data-touch="left" type="button">&lt;</button>
+      <button class="touch-btn" data-touch="right" type="button">&gt;</button>
+      <button class="touch-btn touch-btn-wide" data-touch="jump" type="button">JUMP</button>
+      <button class="touch-btn" data-touch="restart" type="button">R</button>
+    </div>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
