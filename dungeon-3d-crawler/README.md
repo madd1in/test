@@ -1,17 +1,25 @@
 # Kryptenlaeufer 3D
 
 Ein statischer Three.js Dungeon Crawler fuer GitHub Pages mit drei Ebenen, Runen,
-skalierenden Gegnern, Bosskaempfen und finalem Endportal.
+skalierenden Gegnern, Bosskaempfen, Relikten, Altaren, Geheimwaenden,
+Fokuszauber und finalem Endportal.
 
 ## Spielen
 
 - `WASD` oder Pfeiltasten bewegen.
 - `Q/E` oder Pfeiltasten links/rechts drehen.
 - `Leertaste` oder `Enter` greift das Feld vor dir an.
+- `Z` oder `Shift` loest einen Fokuszauber gegen nahe sichtbare Gegner aus.
 - `F` interagiert mit Runen, Truhen, Tor und Ausgang.
+- Rissige Waende koennen mit Angriffen aufgebrochen werden.
+- Truhen enthalten Heilung, Angriffskraft, Fokus und manchmal Relikte.
+- Altare geben pro Ebene einmalige Boons.
 - Pro Ebene oeffnen drei Runen das Siegel vor dem Boss.
 - Nach dem Portal steigt der Held tiefer hinab, heilt etwas und wird staerker.
 - Nach Ebene 3 endet der Run mit dem Ur-Glockenfuerst.
+
+Jede Ebene besitzt ein eigenes Licht-/Nebel-Theme, animierte Partikel,
+leuchtende Runen, Portaleffekte, Dungeon-Props und haengende Reliktlichter.
 
 ## Verwendete Download-Assets
 

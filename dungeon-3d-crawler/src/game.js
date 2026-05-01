@@ -61,6 +61,71 @@ const ASSETS = {
   }
 };
 
+const DEPTH_THEMES = [
+  {
+    name: "Mondkrypta",
+    background: 0x050403,
+    fog: 0x070906,
+    fogDensity: 0.055,
+    ambientSky: 0x748c8f,
+    ambientGround: 0x1a0f0b,
+    ambientIntensity: 0.55,
+    moon: 0xbfd7ff,
+    moonIntensity: 1.05,
+    torch: 0xff9d4d,
+    accent: 0x69dfc0,
+    portal: 0x69dfc0,
+    rune: 0x90f8ff,
+    wall: ["#4a5148", "#1f241f", "#a5ad95"],
+    floor: ["#3d4236", "#1e211b", "#817b61"],
+    ceiling: 0x151a16
+  },
+  {
+    name: "Blutarchiv",
+    background: 0x090409,
+    fog: 0x10050b,
+    fogDensity: 0.064,
+    ambientSky: 0x93727d,
+    ambientGround: 0x21100b,
+    ambientIntensity: 0.5,
+    moon: 0xffd1a0,
+    moonIntensity: 0.92,
+    torch: 0xff725c,
+    accent: 0xe9bd69,
+    portal: 0xe87861,
+    rune: 0xffd47e,
+    wall: ["#514044", "#24191d", "#a88877"],
+    floor: ["#463735", "#201818", "#8f7464"],
+    ceiling: 0x171116
+  },
+  {
+    name: "Glockenabgrund",
+    background: 0x03060b,
+    fog: 0x050911,
+    fogDensity: 0.072,
+    ambientSky: 0x7287b8,
+    ambientGround: 0x0b1715,
+    ambientIntensity: 0.48,
+    moon: 0x9bdcff,
+    moonIntensity: 1.18,
+    torch: 0x7ee7ff,
+    accent: 0xa992ff,
+    portal: 0xa992ff,
+    rune: 0xaef6ff,
+    wall: ["#384552", "#161e25", "#7d92a3"],
+    floor: ["#303b42", "#151b1f", "#718391"],
+    ceiling: 0x0d141d
+  }
+];
+
+const RELIC_DEFS = [
+  { id: "ember", name: "Brandklinge", atk: 2, note: "Hiebe brennen nach." },
+  { id: "aegis", name: "Aegis-Splitter", guard: 1, maxHp: 5, note: "Schlaege prallen haerter ab." },
+  { id: "lens", name: "Sternenlinse", maxFocus: 3, focus: 3, note: "Mehr Fokus fuer Zauber." },
+  { id: "boots", name: "Nebelstiefel", dodge: 0.12, note: "Manche Treffer verfehlen dich." },
+  { id: "bell", name: "Glockenscherbe", crit: 0.1, note: "Kritische Treffer werden wahrscheinlicher." }
+];
+
 const ENEMY_DEFS = {
   skeleton: { name: "Knochendiener", hp: 14, atk: 4, sprite: "skeleton", size: 1.55 },
   knight: { name: "Hohlritter", hp: 22, atk: 6, sprite: "knight", size: 1.75 },
@@ -83,10 +148,29 @@ const PROP_POINTS = [
   { key: "candle", x: 10, y: 13, size: 1.0, light: true }
 ];
 
+const HANGING_POINTS = [
+  { x: 5, y: 1 },
+  { x: 7, y: 7 },
+  { x: 8, y: 9 },
+  { x: 9, y: 13 }
+];
+
 const TRAPS = [
   { x: 8, y: 3, armed: true },
   { x: 2, y: 9, armed: true },
   { x: 11, y: 12, armed: true }
+];
+
+const SHRINE_POINTS = [
+  { x: 7, y: 3, kind: "focus" },
+  { x: 9, y: 9, kind: "blood" },
+  { x: 12, y: 11, kind: "ward" }
+];
+
+const SECRET_WALL_POINTS = [
+  { x: 4, y: 4, hp: 2 },
+  { x: 6, y: 8, hp: 2 },
+  { x: 10, y: 12, hp: 3 }
 ];
 
 const EXTRA_DEPTH_ENEMIES = {
@@ -105,9 +189,13 @@ const $ = (id) => document.getElementById(id);
 
 const canvas = $("game");
 const hpText = $("hpText");
+const hpFill = $("hpFill");
 const runeText = $("runeText");
 const atkText = $("atkText");
+const focusText = $("focusText");
+const focusFill = $("focusFill");
 const depthText = $("depthText");
+const relicText = $("relicText");
 const objectiveText = $("objectiveText");
 const messageText = $("messageText");
 const miniMap = $("miniMap");
@@ -119,6 +207,7 @@ const restartBtn = $("restartBtn");
 const mapBtn = $("mapBtn");
 const fullscreenBtn = $("fullscreenBtn");
 const swipePad = $("swipePad");
+const damageFlash = $("damageFlash");
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -132,8 +221,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050403);
-scene.fog = new THREE.FogExp2(0x070906, 0.055);
+scene.background = new THREE.Color(DEPTH_THEMES[0].background);
+scene.fog = new THREE.FogExp2(DEPTH_THEMES[0].fog, DEPTH_THEMES[0].fogDensity);
 
 const camera = new THREE.PerspectiveCamera(66, 1, 0.08, 90);
 const clock = new THREE.Clock();
@@ -145,13 +234,20 @@ const propGroup = new THREE.Group();
 const entityGroup = new THREE.Group();
 scene.add(worldGroup, propGroup, entityGroup);
 
+let ambientLight = null;
+let moonLight = null;
+let playerLight = null;
+let dustField = null;
+
 const state = {
   width: MAP_LINES[0].length,
   height: MAP_LINES.length,
   map: [],
-  player: { x: 1, y: 1, dir: 1, hp: 36, maxHp: 36, atk: 7, guard: 1 },
+  player: { x: 1, y: 1, dir: 1, hp: 36, maxHp: 36, atk: 7, guard: 1, focus: 5, maxFocus: 9, crit: 0.08, dodge: 0 },
   runes: [],
   chests: [],
+  shrines: [],
+  secrets: [],
   enemies: [],
   boss: null,
   exit: null,
@@ -164,7 +260,8 @@ const state = {
   dead: false,
   won: false,
   mapVisible: true,
-  depth: 1
+  depth: 1,
+  relics: []
 };
 
 const cameraTarget = {
@@ -246,7 +343,8 @@ function parseMap() {
           maxHp: 74 + (state.depth - 1) * 34,
           atk: 9 + (state.depth - 1) * 3,
           alive: true,
-          name: state.depth === MAX_DEPTH ? "Ur-Glockenfuerst" : "Glockenfuerst"
+          name: state.depth === MAX_DEPTH ? "Ur-Glockenfuerst" : "Glockenfuerst",
+          summons: []
         };
         return ".";
       }
@@ -290,12 +388,24 @@ function loadDepth(depth, carryPlayer = true) {
   state.won = false;
   for (const trap of TRAPS) trap.armed = true;
   parseMap();
+  state.shrines = SHRINE_POINTS.map((shrine, index) => ({
+    ...shrine,
+    used: false,
+    kind: ["focus", "blood", "ward"][(index + depth - 1) % 3]
+  }));
+  state.secrets = SECRET_WALL_POINTS.map((secret) => ({
+    ...secret,
+    hp: secret.hp + Math.max(0, depth - 2),
+    broken: false
+  }));
   if (carryPlayer) {
     state.player.dir = 1;
     state.player.maxHp += 4;
     state.player.hp = Math.min(state.player.maxHp, state.player.hp + 14);
     state.player.atk += 1;
+    state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 4);
   }
+  applyTheme();
   resetRenderScene();
   buildDungeon();
   decorateDungeon();
@@ -312,47 +422,73 @@ function resetRenderScene() {
   exitMesh = null;
   bossSprite = null;
   bossTexture = null;
+  dustField = null;
 }
 
 function setupLighting() {
-  const ambient = new THREE.HemisphereLight(0x748c8f, 0x1a0f0b, 0.55);
-  scene.add(ambient);
+  ambientLight = new THREE.HemisphereLight(0x748c8f, 0x1a0f0b, 0.55);
+  scene.add(ambientLight);
 
-  const moon = new THREE.DirectionalLight(0xbfd7ff, 1.05);
-  moon.position.set(-12, 16, -8);
-  moon.castShadow = true;
-  moon.shadow.camera.left = -36;
-  moon.shadow.camera.right = 36;
-  moon.shadow.camera.top = 36;
-  moon.shadow.camera.bottom = -36;
-  scene.add(moon);
+  moonLight = new THREE.DirectionalLight(0xbfd7ff, 1.05);
+  moonLight.position.set(-12, 16, -8);
+  moonLight.castShadow = true;
+  moonLight.shadow.camera.left = -36;
+  moonLight.shadow.camera.right = 36;
+  moonLight.shadow.camera.top = 36;
+  moonLight.shadow.camera.bottom = -36;
+  scene.add(moonLight);
 
-  const playerLight = new THREE.PointLight(0xffb05a, 1.65, 13, 2);
+  playerLight = new THREE.PointLight(0xffb05a, 1.65, 13, 2);
   camera.add(playerLight);
   scene.add(camera);
 }
 
+function currentTheme() {
+  return DEPTH_THEMES[state.depth - 1] || DEPTH_THEMES[0];
+}
+
+function applyTheme() {
+  const theme = currentTheme();
+  scene.background.set(theme.background);
+  scene.fog.color.set(theme.fog);
+  scene.fog.density = theme.fogDensity;
+  if (ambientLight) {
+    ambientLight.color.set(theme.ambientSky);
+    ambientLight.groundColor.set(theme.ambientGround);
+    ambientLight.intensity = theme.ambientIntensity;
+  }
+  if (moonLight) {
+    moonLight.color.set(theme.moon);
+    moonLight.intensity = theme.moonIntensity;
+  }
+  if (playerLight) {
+    playerLight.color.set(theme.torch);
+    playerLight.intensity = 1.45 + state.depth * 0.18;
+  }
+}
+
 function buildDungeon() {
+  const theme = currentTheme();
   const wallMaterial = new THREE.MeshStandardMaterial({
-    map: makeStoneTexture("#4a5148", "#1f241f", "#a5ad95"),
+    map: makeStoneTexture(...theme.wall),
     roughness: 0.96,
     metalness: 0.02
   });
   const floorMaterial = new THREE.MeshStandardMaterial({
-    map: makeFloorTexture(),
+    map: makeFloorTexture(theme.floor),
     roughness: 1,
     metalness: 0
   });
   const ceilingMaterial = new THREE.MeshStandardMaterial({
-    color: 0x151a16,
+    color: theme.ceiling,
     roughness: 1
   });
   const doorMaterial = new THREE.MeshStandardMaterial({
     color: 0x4a2d22,
     roughness: 0.74,
     metalness: 0.38,
-    emissive: 0x2b0505,
-    emissiveIntensity: 0.18
+    emissive: theme.accent,
+    emissiveIntensity: 0.14
   });
 
   const wallGeo = new THREE.BoxGeometry(CELL, WALL_HEIGHT, CELL);
@@ -370,6 +506,10 @@ function buildDungeon() {
         wall.castShadow = true;
         wall.receiveShadow = true;
         worldGroup.add(wall);
+        const secret = secretAt(x, y);
+        if (secret && !secret.broken) {
+          worldGroup.add(createSecretMark(pos, secret, theme));
+        }
         continue;
       }
 
@@ -378,6 +518,7 @@ function buildDungeon() {
       floor.position.set(pos.x, 0, pos.z);
       floor.receiveShadow = true;
       worldGroup.add(floor);
+      addFloorDetail(pos, x, y, theme);
 
       const ceiling = new THREE.Mesh(floorGeo, ceilingMaterial);
       ceiling.rotation.x = Math.PI / 2;
@@ -400,25 +541,173 @@ function buildDungeon() {
   }
 
   placeBackdrop();
+  addHangingRelics(theme);
+  addAtmosphere(theme);
 }
 
 function createExitMesh(pos) {
+  const theme = currentTheme();
   const group = new THREE.Group();
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(1.15, 0.08, 12, 40),
     new THREE.MeshStandardMaterial({
-      color: 0x7dd6c6,
-      emissive: 0x2a9f93,
+      color: theme.portal,
+      emissive: theme.portal,
       emissiveIntensity: 1.2,
       roughness: 0.4
     })
   );
   ring.position.set(pos.x, 1.6, pos.z);
   ring.rotation.y = Math.PI / 2;
-  const glow = new THREE.PointLight(0x69dfc0, 1.8, 9, 2);
+  const innerRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.76, 0.035, 10, 32),
+    new THREE.MeshBasicMaterial({ color: theme.rune, transparent: true, opacity: 0.76 })
+  );
+  innerRing.position.set(pos.x, 1.6, pos.z);
+  innerRing.rotation.y = Math.PI / 2;
+  const glow = new THREE.PointLight(theme.portal, 1.8, 9, 2);
   glow.position.set(pos.x, 1.7, pos.z);
-  group.add(ring, glow);
+  group.add(ring, innerRing, glow);
   group.visible = false;
+  return group;
+}
+
+function createSecretMark(pos, secret, theme) {
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: makeCrackTexture(),
+      color: theme.accent,
+      transparent: true,
+      opacity: 0.74,
+      depthWrite: false
+    })
+  );
+  const facing = secretFacing(secret);
+  sprite.position.set(pos.x + facing.x * CELL * 0.48, 1.65, pos.z + facing.y * CELL * 0.48);
+  sprite.scale.set(1.25, 1.25, 1);
+  return sprite;
+}
+
+function makeCrackTexture() {
+  const key = "__crack";
+  if (textureCache.has(key)) return textureCache.get(key);
+  const canvasTex = document.createElement("canvas");
+  canvasTex.width = 128;
+  canvasTex.height = 128;
+  const ctx = canvasTex.getContext("2d");
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 7;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(64, 8);
+  ctx.lineTo(54, 34);
+  ctx.lineTo(72, 54);
+  ctx.lineTo(58, 82);
+  ctx.lineTo(68, 118);
+  ctx.stroke();
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(58, 46);
+  ctx.lineTo(30, 58);
+  ctx.lineTo(18, 82);
+  ctx.moveTo(66, 72);
+  ctx.lineTo(96, 92);
+  ctx.lineTo(108, 116);
+  ctx.stroke();
+  const texture = new THREE.CanvasTexture(canvasTex);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  textureCache.set(key, texture);
+  return texture;
+}
+
+function addFloorDetail(pos, x, y, theme) {
+  const seed = x * 83 + y * 191 + state.depth * 37;
+  if (random01(seed) < 0.84) return;
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.12, 0.42 + random01(seed + 1) * 0.26, 18),
+    new THREE.MeshBasicMaterial({
+      color: random01(seed + 2) > 0.5 ? theme.accent : 0x0b0b0a,
+      transparent: true,
+      opacity: 0.14,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.rotation.z = random01(seed + 3) * Math.PI;
+  ring.position.set(pos.x + random01(seed + 4) * 1.6 - 0.8, 0.012, pos.z + random01(seed + 5) * 1.6 - 0.8);
+  worldGroup.add(ring);
+}
+
+function addHangingRelics(theme) {
+  const chainMat = new THREE.MeshStandardMaterial({ color: 0x1b1d1b, roughness: 0.62, metalness: 0.55 });
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: theme.accent,
+    emissive: theme.accent,
+    emissiveIntensity: 0.45,
+    roughness: 0.2,
+    metalness: 0.1,
+    transparent: true,
+    opacity: 0.72
+  });
+  for (const point of HANGING_POINTS) {
+    if (!isInside(point.x, point.y) || state.map[point.y][point.x] === "#") continue;
+    const pos = cellToWorld(point.x, point.y);
+    const group = new THREE.Group();
+    const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.1, 8), chainMat);
+    chain.position.set(pos.x, WALL_HEIGHT - 0.55, pos.z);
+    const cage = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.025, 8, 18), chainMat);
+    cage.position.set(pos.x, WALL_HEIGHT - 1.15, pos.z);
+    cage.rotation.x = Math.PI / 2;
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.18), glassMat);
+    gem.position.set(pos.x, WALL_HEIGHT - 1.15, pos.z);
+    const light = new THREE.PointLight(theme.accent, 0.7, 5, 2);
+    light.position.set(pos.x, WALL_HEIGHT - 1.16, pos.z);
+    group.add(chain, cage, gem, light);
+    worldGroup.add(group);
+  }
+}
+
+function addAtmosphere(theme) {
+  const count = 260;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i += 1) {
+    const seed = i * 19 + state.depth * 101;
+    positions[i * 3] = (random01(seed) - 0.5) * state.width * CELL;
+    positions[i * 3 + 1] = 0.45 + random01(seed + 1) * (WALL_HEIGHT - 0.8);
+    positions[i * 3 + 2] = (random01(seed + 2) - 0.5) * state.height * CELL;
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  dustField = new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      color: theme.accent,
+      size: 0.045,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false
+    })
+  );
+  worldGroup.add(dustField);
+}
+
+function createShrineMarker(shrine, theme) {
+  const group = new THREE.Group();
+  const asset = shrine.kind === "ward" ? ASSETS.props.statue : shrine.kind === "blood" ? ASSETS.props.book : ASSETS.props.candle;
+  const sprite = makeSprite(asset, shrine.kind === "ward" ? 1.55 : 1.1);
+  const pos = cellToWorld(shrine.x, shrine.y);
+  sprite.position.set(pos.x, shrine.kind === "ward" ? 0.9 : 0.62, pos.z);
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.72, 0.025, 10, 36),
+    new THREE.MeshBasicMaterial({ color: shrine.kind === "blood" ? 0xd85a52 : theme.accent, transparent: true, opacity: 0.62 })
+  );
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(pos.x, 0.06, pos.z);
+  const light = new THREE.PointLight(shrine.kind === "blood" ? 0xd85a52 : theme.accent, 1.05, 6, 2);
+  light.position.set(pos.x, 1.3, pos.z);
+  group.add(sprite, ring, light);
   return group;
 }
 
@@ -438,6 +727,7 @@ function placeBackdrop() {
 }
 
 function decorateDungeon() {
+  const theme = currentTheme();
   for (const point of PROP_POINTS) {
     if (!isInside(point.x, point.y) || state.map[point.y][point.x] === "#") continue;
     const sprite = makeSprite(ASSETS.props[point.key], point.size);
@@ -445,10 +735,14 @@ function decorateDungeon() {
     sprite.position.set(pos.x, point.size * 0.48, pos.z);
     propGroup.add(sprite);
     if (point.light) {
-      const light = new THREE.PointLight(0xff9d4d, 1.2, 7, 2);
+      const light = new THREE.PointLight(theme.torch, 1.2, 7, 2);
       light.position.set(pos.x, 1.7, pos.z);
       propGroup.add(light);
     }
+  }
+
+  for (const shrine of state.shrines) {
+    if (!shrine.used) propGroup.add(createShrineMarker(shrine, theme));
   }
 
   for (const trap of TRAPS) {
@@ -461,21 +755,25 @@ function decorateDungeon() {
 }
 
 function syncEntitySprites() {
+  const theme = currentTheme();
   entityGroup.clear();
 
   for (const chest of state.chests) {
     if (chest.opened) continue;
     const sprite = makeSprite(ASSETS.props.chest, 1.5);
     placeSpriteAtCell(sprite, chest.x, chest.y, 0.68);
-    entityGroup.add(sprite);
+    entityGroup.add(createCellGlow(chest.x, chest.y, 0xe9bd69, 0.14, 0.72), sprite);
   }
 
   for (const rune of state.runes) {
     if (rune.collected) continue;
     const sprite = makeSprite(ASSETS.props.ruby, 1.15);
-    sprite.material.color.set(0x90f8ff);
+    sprite.material.color.set(theme.rune);
     placeSpriteAtCell(sprite, rune.x, rune.y, 0.7);
-    entityGroup.add(sprite);
+    const light = new THREE.PointLight(theme.rune, 0.9, 5, 2);
+    const pos = cellToWorld(rune.x, rune.y);
+    light.position.set(pos.x, 1.2, pos.z);
+    entityGroup.add(createCellGlow(rune.x, rune.y, theme.rune, 0.25, 0.55), sprite, light);
   }
 
   for (const enemy of state.enemies) {
@@ -484,7 +782,7 @@ function syncEntitySprites() {
     const sprite = makeSprite(ASSETS.sprites[def.sprite], def.size);
     sprite.userData.entityId = enemy.id;
     placeSpriteAtCell(sprite, enemy.x, enemy.y, def.size * 0.48);
-    entityGroup.add(sprite);
+    entityGroup.add(createCellGlow(enemy.x, enemy.y, 0xd85a52, 0.16, 0.6), sprite);
   }
 
   if (state.boss?.alive) {
@@ -503,7 +801,10 @@ function syncEntitySprites() {
     );
     bossSprite.scale.set(3.2, 4.3, 1);
     placeSpriteAtCell(bossSprite, state.boss.x, state.boss.y, 1.85);
-    entityGroup.add(bossSprite);
+    const pos = cellToWorld(state.boss.x, state.boss.y);
+    const bossLight = new THREE.PointLight(theme.portal, 1.6, 9, 2);
+    bossLight.position.set(pos.x, 2.3, pos.z);
+    entityGroup.add(createCellGlow(state.boss.x, state.boss.y, theme.portal, 0.2, 1.15), bossSprite, bossLight);
   } else {
     bossSprite = null;
     bossTexture = null;
@@ -513,6 +814,23 @@ function syncEntitySprites() {
 function placeSpriteAtCell(sprite, x, y, baseY) {
   const pos = cellToWorld(x, y);
   sprite.position.set(pos.x, baseY, pos.z);
+}
+
+function createCellGlow(x, y, color, opacity, radius) {
+  const pos = cellToWorld(x, y);
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 28),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.set(pos.x, 0.018, pos.z);
+  return disc;
 }
 
 function makeSprite(path, size) {
@@ -580,8 +898,8 @@ function makeStoneTexture(base, dark, light) {
   return texture;
 }
 
-function makeFloorTexture() {
-  const texture = makeStoneTexture("#3d4236", "#1e211b", "#817b61");
+function makeFloorTexture(colors = DEPTH_THEMES[0].floor) {
+  const texture = makeStoneTexture(...colors);
   texture.repeat.set(2.2, 2.2);
   return texture;
 }
@@ -646,6 +964,9 @@ function keyToAction(key) {
     E: "turn-right",
     " ": "attack",
     Enter: "attack",
+    Shift: "spell",
+    z: "spell",
+    Z: "spell",
     f: "interact",
     F: "interact",
     r: "restart",
@@ -660,13 +981,13 @@ function startGame() {
   state.active = true;
   state.paused = false;
   startOverlay.classList.add("is-hidden");
-  setMessage(isMobileMode() ? "Swipe: hoch/runter gehen, links/rechts drehen. Tippen greift an." : "Drei Ebenen. Drei Siegel. Unten wartet der Ur-Glockenfuerst.");
+  setMessage(isMobileMode() ? "Swipe: gehen/drehen. Tippen greift an, Z loest Fokus aus." : "Drei Ebenen, Relikte und Geheimwaende. Z oder Shift loest Fokus aus.");
 }
 
 function updateMobileMode() {
   document.body.classList.toggle("mobile-mode", isMobileMode());
   if (state.active && !state.dead && !state.won && isMobileMode()) {
-    setMessage("Swipe: hoch/runter gehen, links/rechts drehen. Tippen greift an.");
+    setMessage("Swipe: gehen/drehen. Tippen greift an, Z loest Fokus aus.");
   }
 }
 
@@ -779,6 +1100,11 @@ function handleAction(action) {
     return;
   }
 
+  if (action === "spell") {
+    castFocusSpell();
+    return;
+  }
+
   if (action === "interact") {
     interact();
   }
@@ -828,6 +1154,12 @@ function movementVector(action) {
 
 function attackFront() {
   const front = frontCell();
+  const secret = secretAt(front.x, front.y);
+  if (secret && !secret.broken) {
+    strikeSecretWall(secret);
+    return;
+  }
+
   const enemy = enemyAt(front.x, front.y);
   const boss = state.boss?.alive && state.boss.x === front.x && state.boss.y === front.y ? state.boss : null;
   const target = enemy || boss;
@@ -838,27 +1170,59 @@ function attackFront() {
     return;
   }
 
-  const damage = rand(5, 9) + state.player.atk + collectedRunes();
+  let damage = rand(5, 9) + state.player.atk + collectedRunes();
+  const crit = Math.random() < state.player.crit;
+  if (crit) damage = Math.round(damage * 1.7);
+  if (hasRelic("ember")) damage += 2 + state.depth;
+  if (target.kind === "gargoyle" || target.kind === "knight") damage = Math.max(3, damage - 2);
   target.hp = Math.max(0, target.hp - damage);
   playSfx("slash", 0.7);
 
   if (target.hp <= 0) {
-    target.alive = false;
-    if (target.id === "boss") {
-      setMessage(state.depth === MAX_DEPTH ? "Der Ur-Glockenfuerst zerfaellt. Das Endportal leuchtet." : "Der Glockenfuerst zerfaellt. Das Portal in die Tiefe leuchtet.");
-      if (exitMesh) exitMesh.visible = true;
-      playSfx("thunder", 0.8);
-    } else {
-      setMessage(`${target.name} zerbricht. +1 ATK, +3 HP.`);
-      state.player.atk += 1;
-      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 3);
-      playSfx(target.kind === "knight" ? "armor" : "bones", 0.68);
-    }
+    setMessage(defeatTarget(target));
   } else {
-    setMessage(`${target.name} verliert ${damage} HP.`);
+    const summon = target.id === "boss" ? maybeBossSummon() : null;
+    setMessage(`${crit ? "Kritischer Treffer. " : ""}${target.name} verliert ${damage} HP.${summon ? " Ein Diener steigt aus dem Boden." : ""}`);
   }
 
   syncEntitySprites();
+  spendTurn(null);
+}
+
+function castFocusSpell() {
+  const cost = 4;
+  if (state.player.focus < cost) {
+    setMessage(`Der Lichtstoss braucht ${cost} Fokus.`);
+    return;
+  }
+
+  state.player.focus -= cost;
+  const hits = [];
+  for (const enemy of state.enemies) {
+    if (!enemy.alive) continue;
+    const dist = manhattan(enemy.x, enemy.y, state.player.x, state.player.y);
+    if (dist <= 3 && (dist <= 1 || lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y))) {
+      const damage = rand(7, 11) + state.depth + collectedRunes();
+      enemy.hp = Math.max(0, enemy.hp - damage);
+      hits.push(enemy.name);
+      if (enemy.hp <= 0) defeatTarget(enemy);
+    }
+  }
+
+  if (state.boss?.alive) {
+    const dist = manhattan(state.boss.x, state.boss.y, state.player.x, state.player.y);
+    if (dist <= 4 && lineOfSight(state.boss.x, state.boss.y, state.player.x, state.player.y)) {
+      const damage = rand(9, 14) + state.depth * 2;
+      state.boss.hp = Math.max(0, state.boss.hp - damage);
+      hits.push(state.boss.name);
+      if (state.boss.hp <= 0) defeatTarget(state.boss);
+      else maybeBossSummon();
+    }
+  }
+
+  playSfx("thunder", 0.55);
+  syncEntitySprites();
+  setMessage(hits.length ? `Fokuslicht trifft ${hits.length} Ziel${hits.length === 1 ? "" : "e"}.` : "Fokuslicht knistert durch leere Gaenge.");
   spendTurn(null);
 }
 
@@ -867,6 +1231,14 @@ function interact() {
   const front = frontCell();
   const handled = collectAt(here.x, here.y) || collectAt(front.x, front.y);
   if (handled) {
+    spendTurn(null);
+    return;
+  }
+
+  if (activateShrineAt(here.x, here.y) || activateShrineAt(front.x, front.y)) {
+    propGroup.clear();
+    decorateDungeon();
+    syncEntitySprites();
     spendTurn(null);
     return;
   }
@@ -899,6 +1271,7 @@ function collectAt(x, y) {
   if (rune) {
     rune.collected = true;
     setMessage(`Rune ${collectedRunes()} von 3 gefunden. Das Siegel wird schwaecher.`);
+    state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 2);
     playSfx("thunder", 0.45);
     syncEntitySprites();
     return true;
@@ -911,13 +1284,96 @@ function collectAt(x, y) {
     const atk = rand(1, 2);
     state.player.hp = Math.min(state.player.maxHp, state.player.hp + heal);
     state.player.atk += atk;
-    setMessage(`Truhe geoeffnet: +${heal} HP, +${atk} ATK.`);
+    state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 2);
+    const relic = grantRelic();
+    setMessage(relic ? `Truhe: +${heal} HP, +${atk} ATK, ${relic.name}. ${relic.note}` : `Truhe geoeffnet: +${heal} HP, +${atk} ATK, +2 Fokus.`);
     playSfx("armor", 0.55);
     syncEntitySprites();
     return true;
   }
 
   return false;
+}
+
+function activateShrineAt(x, y) {
+  const shrine = state.shrines.find((item) => !item.used && item.x === x && item.y === y);
+  if (!shrine) return false;
+  shrine.used = true;
+  if (shrine.kind === "focus") {
+    state.player.maxFocus += 1;
+    state.player.focus = state.player.maxFocus;
+    setMessage("Der Kerzenaltar fuellt deinen Fokus und erweitert die Linse.");
+  } else if (shrine.kind === "blood") {
+    state.player.hp = Math.max(1, state.player.hp - 3);
+    state.player.atk += 2;
+    state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 3);
+    setMessage("Das Blutarchiv fordert 3 HP und schenkt +2 ATK, +3 Fokus.");
+  } else {
+    state.player.guard += 1;
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + 7);
+    setMessage("Ein Schutzkreis haertet deine Ruestung. +1 Guard, +7 HP.");
+  }
+  playSfx("thunder", 0.4);
+  return true;
+}
+
+function grantRelic() {
+  const available = RELIC_DEFS.filter((relic) => !state.relics.includes(relic.id));
+  if (!available.length) return null;
+  const relic = available[(state.depth + state.turn + state.relics.length) % available.length];
+  state.relics.push(relic.id);
+  state.player.atk += relic.atk || 0;
+  state.player.guard += relic.guard || 0;
+  state.player.maxHp += relic.maxHp || 0;
+  state.player.maxFocus += relic.maxFocus || 0;
+  state.player.focus = Math.min(state.player.maxFocus, state.player.focus + (relic.focus || 0));
+  state.player.crit += relic.crit || 0;
+  state.player.dodge += relic.dodge || 0;
+  return relic;
+}
+
+function hasRelic(id) {
+  return state.relics.includes(id);
+}
+
+function defeatTarget(target) {
+  target.alive = false;
+  if (target.id === "boss") {
+    if (exitMesh) exitMesh.visible = true;
+    playSfx("thunder", 0.8);
+    return state.depth === MAX_DEPTH
+      ? "Der Ur-Glockenfuerst zerfaellt. Das Endportal leuchtet."
+      : "Der Glockenfuerst zerfaellt. Das Portal in die Tiefe leuchtet.";
+  }
+
+  const heal = hasRelic("aegis") ? 5 : 3;
+  state.player.atk += 1;
+  state.player.hp = Math.min(state.player.maxHp, state.player.hp + heal);
+  state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 1);
+  playSfx(target.kind === "knight" ? "armor" : "bones", 0.68);
+  return `${target.name} zerbricht. +1 ATK, +${heal} HP, +1 Fokus.`;
+}
+
+function strikeSecretWall(secret) {
+  const force = hasRelic("ember") ? 2 : 1;
+  secret.hp -= force;
+  playSfx("slash", 0.55);
+  if (secret.hp > 0) {
+    setMessage(`Die rissige Wand splittert. Noch ${secret.hp} Treffer.`);
+    spendTurn(null);
+    return;
+  }
+
+  secret.broken = true;
+  state.map[secret.y][secret.x] = ".";
+  state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 2);
+  resetRenderScene();
+  buildDungeon();
+  decorateDungeon();
+  syncEntitySprites();
+  setMessage("Eine Geheimwand bricht auf. Ein kalter Luftzug schenkt +2 Fokus.");
+  playSfx("thunder", 0.35);
+  spendTurn(null);
 }
 
 function resolveCurrentCell() {
@@ -971,17 +1427,39 @@ function enemyAct(enemy) {
     harmPlayer(rand(1, 3) + enemy.atk - state.player.guard, `${enemy.name} trifft dich.`);
     return;
   }
+
+  if (enemy.kind === "witch" && dist <= 4 && lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) {
+    harmPlayer(rand(2, 4) + state.depth, `${enemy.name} wirft Kerzenfeuer.`);
+    return;
+  }
+
+  if (enemy.kind === "reaper" && dist <= 3 && lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) {
+    const drain = Math.min(state.player.focus, 2);
+    state.player.focus -= drain;
+    harmPlayer(rand(1, 3) + state.depth, `${enemy.name} reisst ${drain} Fokus aus dir.`);
+    return;
+  }
+
   if (dist > 7 && !lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) return;
 
   const step = nextStepToward(enemy.x, enemy.y, state.player.x, state.player.y, enemy.id);
   if (!step) return;
   enemy.x = step.x;
   enemy.y = step.y;
+
+  if (enemy.kind === "phantom" && state.turn % 3 === 0) {
+    const secondStep = nextStepToward(enemy.x, enemy.y, state.player.x, state.player.y, enemy.id);
+    if (secondStep) {
+      enemy.x = secondStep.x;
+      enemy.y = secondStep.y;
+    }
+  }
 }
 
 function bossAct() {
   const boss = state.boss;
   if (!boss?.alive || !state.doorOpen) return;
+  maybeBossSummon();
   const dist = manhattan(boss.x, boss.y, state.player.x, state.player.y);
   if (dist === 1) {
     harmPlayer(rand(6, 10), "Der Glockenfuerst schlaegt mit brennender Klinge.");
@@ -991,6 +1469,41 @@ function bossAct() {
     harmPlayer(rand(3, 6), "Eine blaue Glockenwelle trifft dich.");
     playSfx("thunder", 0.38);
   }
+}
+
+function maybeBossSummon() {
+  const boss = state.boss;
+  if (!boss?.alive) return null;
+  const thresholds = [0.66, 0.33];
+  const nextThreshold = thresholds.find((threshold) => boss.hp / boss.maxHp <= threshold && !boss.summons.includes(threshold));
+  if (!nextThreshold) return null;
+  const spot = findFreeNear(boss.x, boss.y);
+  if (!spot) return null;
+  boss.summons.push(nextThreshold);
+  const kind = state.depth >= 3 ? "phantom" : "skeleton";
+  const enemy = createEnemy(kind, spot.x, spot.y, state.enemies.length + boss.summons.length);
+  enemy.name = state.depth >= 3 ? "Glockenecho" : "Kryptenecho";
+  state.enemies.push(enemy);
+  return enemy;
+}
+
+function findFreeNear(x, y) {
+  const offsets = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+    { x: 2, y: 0 },
+    { x: -2, y: 0 },
+    { x: 0, y: 2 },
+    { x: 0, y: -2 }
+  ];
+  for (const offset of offsets) {
+    const sx = x + offset.x;
+    const sy = y + offset.y;
+    if (canEnemyEnter(sx, sy, "summon")) return { x: sx, y: sy };
+  }
+  return null;
 }
 
 function nextStepToward(x, y, tx, ty, selfId) {
@@ -1010,17 +1523,28 @@ function nextStepToward(x, y, tx, ty, selfId) {
 function canEnemyEnter(x, y, selfId) {
   if (!isWalkable(x, y)) return false;
   if (state.player.x === x && state.player.y === y) return false;
+  if (state.boss?.alive && state.boss.x === x && state.boss.y === y) return false;
   return !state.enemies.some((enemy) => enemy.alive && enemy.id !== selfId && enemy.x === x && enemy.y === y);
 }
 
 function harmPlayer(amount, text) {
+  if (state.player.dodge > 0 && Math.random() < state.player.dodge) {
+    setMessage(`${text} Du weichst im letzten Moment aus.`);
+    return;
+  }
   const damage = Math.max(1, amount);
   state.player.hp = Math.max(0, state.player.hp - damage);
   setMessage(`${text} -${damage} HP.`);
+  flashDamage();
   if (state.player.hp <= 0) {
     state.dead = true;
     setMessage("Die Krypta wird schwarz. R startet neu.");
   }
+}
+
+function flashDamage() {
+  damageFlash.classList.add("is-active");
+  window.setTimeout(() => damageFlash.classList.remove("is-active"), 90);
 }
 
 function openDoor() {
@@ -1044,6 +1568,19 @@ function collectedRunes() {
 
 function enemyAt(x, y) {
   return state.enemies.find((enemy) => enemy.alive && enemy.x === x && enemy.y === y) || null;
+}
+
+function secretAt(x, y) {
+  return state.secrets.find((secret) => secret.x === x && secret.y === y) || null;
+}
+
+function secretFacing(secret) {
+  for (const dir of DIRS) {
+    const nx = secret.x + dir.x;
+    const ny = secret.y + dir.y;
+    if (isInside(nx, ny) && state.map[ny][nx] !== "#") return dir;
+  }
+  return DIRS[0];
 }
 
 function isDoor(x, y) {
@@ -1112,9 +1649,16 @@ function animate(time, dt) {
   camera.position.lerp(cameraTarget.pos, 1 - Math.pow(0.0004, dt));
   camera.rotation.y = lerpAngle(camera.rotation.y, cameraTarget.yaw, 1 - Math.pow(0.0003, dt));
 
+  if (dustField) {
+    dustField.rotation.y += dt * 0.012;
+    dustField.material.opacity = 0.34 + Math.sin(time * 0.0012) * 0.08;
+  }
+
   entityGroup.children.forEach((child, index) => {
     if (child.isSprite) {
       child.position.y += Math.sin(time * 0.003 + index) * 0.0018;
+    } else if (child.isMesh && child.geometry?.type?.includes("Circle")) {
+      child.rotation.z += dt * 0.25;
     }
   });
 
@@ -1126,6 +1670,7 @@ function animate(time, dt) {
 
   if (exitMesh?.visible) {
     exitMesh.rotation.y += dt * 0.9;
+    if (exitMesh.children[1]) exitMesh.children[1].rotation.z -= dt * 1.4;
   }
 }
 
@@ -1151,9 +1696,15 @@ function resize() {
 
 function updateHud() {
   hpText.textContent = `${state.player.hp} / ${state.player.maxHp}`;
+  hpFill.style.width = `${Math.max(0, Math.min(1, state.player.hp / state.player.maxHp)) * 100}%`;
   runeText.textContent = `${collectedRunes()} / 3`;
   atkText.textContent = `${state.player.atk}`;
+  focusText.textContent = `${state.player.focus} / ${state.player.maxFocus}`;
+  focusFill.style.width = `${Math.max(0, Math.min(1, state.player.focus / state.player.maxFocus)) * 100}%`;
   depthText.textContent = `${state.depth}/${MAX_DEPTH}`;
+  relicText.textContent = state.relics.length
+    ? RELIC_DEFS.filter((relic) => state.relics.includes(relic.id)).map((relic) => relic.name).slice(-1)[0]
+    : "Keins";
 
   if (state.dead) {
     objectiveText.textContent = "R startet einen neuen Abstieg.";
@@ -1166,7 +1717,7 @@ function updateHud() {
   } else if (state.boss && !state.boss.alive) {
     objectiveText.textContent = state.depth === MAX_DEPTH ? "Tritt in das Endportal." : "Tritt in das Portal zur naechsten Ebene.";
   } else {
-    objectiveText.textContent = `Ebene ${state.depth}/${MAX_DEPTH}: Finde drei Runen und oeffne das Siegel.`;
+    objectiveText.textContent = `${currentTheme().name}: Runen, Altare und Geheimwaende suchen.`;
   }
 
   messageText.textContent = state.message;
@@ -1184,7 +1735,9 @@ function renderMiniMap() {
       if (tile === "#") classes.push("mini-wall");
       else classes.push("mini-floor");
       if (tile === "D" && !state.doorOpen) classes.push("mini-door");
+      if (state.secrets.some((secret) => !secret.broken && secret.x === x && secret.y === y)) classes.push("mini-secret");
       if (state.runes.some((rune) => !rune.collected && rune.x === x && rune.y === y)) classes.push("mini-rune");
+      if (state.shrines.some((shrine) => !shrine.used && shrine.x === x && shrine.y === y)) classes.push("mini-shrine");
       if (enemyAt(x, y) || (state.boss?.alive && state.boss.x === x && state.boss.y === y)) classes.push("mini-enemy");
       if (state.player.x === x && state.player.y === y) classes.push("mini-player");
       cells.push(`<span class="${classes.join(" ")}"></span>`);

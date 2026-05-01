@@ -11,6 +11,8 @@
   --red: #d85a52;
   --green: #6dd19e;
   --blue: #67b6ce;
+  --violet: #a992ff;
+  --amber: #ffcf7a;
 }
 
 * {
@@ -82,6 +84,23 @@ button:active {
     radial-gradient(circle at 50% 52%, transparent 58%, rgba(0, 0, 0, 0.52) 100%);
   mix-blend-mode: screen;
   opacity: 0.45;
+}
+
+.damage-flash {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 54%, transparent 38%, rgba(216, 90, 82, 0.34) 100%),
+    rgba(216, 90, 82, 0.18);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.damage-flash.is-active {
+  opacity: 1;
+  transition-duration: 60ms;
 }
 
 .hud {
@@ -194,9 +213,9 @@ button:active {
 
 .status-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(86px, 1fr));
+  grid-template-columns: repeat(6, minmax(82px, 1fr));
   gap: 10px;
-  max-width: 540px;
+  max-width: 760px;
 }
 
 .status-strip article,
@@ -229,6 +248,34 @@ button:active {
   margin-top: 3px;
   font-size: 1.15rem;
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meter {
+  display: block;
+  height: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.meter b {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.meter-hp b {
+  background: linear-gradient(90deg, var(--red), var(--amber));
+}
+
+.meter-focus b {
+  background: linear-gradient(90deg, var(--blue), var(--violet));
 }
 
 .hud-side {
@@ -284,6 +331,15 @@ button:active {
   background: var(--red);
 }
 
+.mini-shrine {
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(233, 189, 105, 0.8);
+}
+
+.mini-secret {
+  background: rgba(169, 146, 255, 0.72);
+}
+
 .mini-player {
   background: var(--green);
   box-shadow: 0 0 10px var(--green);
@@ -325,14 +381,6 @@ button:active {
   width: 54px;
   min-height: 44px;
   padding: 0;
-}
-
-.control-cluster button:nth-child(7) {
-  grid-column: 2;
-}
-
-.control-cluster button:nth-child(8) {
-  grid-column: 3;
 }
 
 .start-overlay {
@@ -380,7 +428,7 @@ button:active {
   .status-strip {
     width: 100%;
     max-width: none;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .hud-side {
@@ -412,7 +460,7 @@ button:active {
   }
 
   .status-strip {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
   }
 
@@ -469,18 +517,13 @@ button:active {
   }
 
   .control-cluster {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
   }
 
   .control-cluster button {
     width: auto;
     min-height: 38px;
-  }
-
-  .control-cluster button:nth-child(7),
-  .control-cluster button:nth-child(8) {
-    grid-column: auto;
   }
 
   .fullscreen-toggle {
@@ -508,7 +551,7 @@ button:active {
   }
 
   .status-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .hud-side {
@@ -516,11 +559,11 @@ button:active {
   }
 
   .hud-bottom {
-    max-height: 122px;
+    max-height: 140px;
   }
 
   .control-cluster {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 

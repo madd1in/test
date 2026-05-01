@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kryptenlaeufer 3D</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./styles.css?v=full-run" />
+    <link rel="stylesheet" href="./styles.css?v=complex-polish" />
     <script type="importmap">
       {
         "imports": {
@@ -21,6 +21,7 @@
         <span aria-hidden="true"></span>
       </button>
       <div id="swipePad" class="swipe-pad" aria-hidden="true"></div>
+      <div id="damageFlash" class="damage-flash" aria-hidden="true"></div>
 
       <section class="hud hud-top" aria-label="Status">
         <div class="brand-block">
@@ -28,9 +29,10 @@
           <h1>Kryptenlaeufer</h1>
         </div>
         <div class="status-strip">
-          <article>
+          <article class="meter-card">
             <span>HP</span>
             <strong id="hpText">36 / 36</strong>
+            <i class="meter meter-hp"><b id="hpFill"></b></i>
           </article>
           <article>
             <span>Runen</span>
@@ -40,9 +42,18 @@
             <span>ATK</span>
             <strong id="atkText">7</strong>
           </article>
+          <article class="meter-card">
+            <span>Fokus</span>
+            <strong id="focusText">5 / 9</strong>
+            <i class="meter meter-focus"><b id="focusFill"></b></i>
+          </article>
           <article>
             <span>Ebene</span>
             <strong id="depthText">01</strong>
+          </article>
+          <article>
+            <span>Relikt</span>
+            <strong id="relicText">Keins</strong>
           </article>
         </div>
       </section>
@@ -72,6 +83,7 @@
           <button type="button" data-action="strafe-right" aria-label="Rechts seitwaerts">D</button>
           <button type="button" data-action="back" aria-label="Rueckwaerts">S</button>
           <button type="button" data-action="interact" aria-label="Interagieren">F</button>
+          <button type="button" data-action="spell" aria-label="Fokuszauber">Z</button>
         </div>
       </section>
 
@@ -81,13 +93,14 @@
           <h2>Kryptenlaeufer 3D</h2>
           <p>
             Ein kompletter Drei-Ebenen-Run aus deinen Downloads: Gothic-Props,
-            Pixelgegner, Bosskaempfe, Dungeon-Musik und kurze Kampf-Sounds.
+            Pixelgegner, Bosskaempfe, Relikte, Fokuszauber, Geheimwaende,
+            Dungeon-Musik und kurze Kampf-Sounds.
           </p>
           <button id="overlayStartBtn" type="button">Abstieg starten</button>
         </div>
       </section>
     </main>
 
-    <script type="module" src="./src/game.js?v=full-run"></script>
+    <script type="module" src="./src/game.js?v=complex-polish"></script>
   </body>
 </html>
