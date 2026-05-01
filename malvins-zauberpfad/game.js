@@ -15,6 +15,7 @@ const hotspotToggle = document.querySelector("#hotspotToggle");
 const pathToggle = document.querySelector("#pathToggle");
 const compassToggle = document.querySelector("#compassToggle");
 const hintButton = document.querySelector("#hintButton");
+const goalButton = document.querySelector("#goalButton");
 const journalToggle = document.querySelector("#journalToggle");
 const journalClose = document.querySelector("#journalClose");
 const mapToggle = document.querySelector("#mapToggle");
@@ -37,6 +38,7 @@ const touchControlsEl = document.querySelector("#touchControls");
 const touchVerbPrev = document.querySelector("#touchVerbPrev");
 const touchVerbNext = document.querySelector("#touchVerbNext");
 const touchAction = document.querySelector("#touchAction");
+const touchGoal = document.querySelector("#touchGoal");
 const touchFullscreen = document.querySelector("#touchFullscreen");
 const musicToggle = document.querySelector("#musicToggle");
 const soundToggle = document.querySelector("#soundToggle");
@@ -1324,6 +1326,7 @@ function refreshUi() {
   refreshHotspotToggle();
   refreshPathToggle();
   refreshCompassToggle();
+  refreshGoalButton();
   refreshAudioToggles();
   refreshInventory();
   refreshJournal();
@@ -1362,6 +1365,28 @@ function refreshPathToggle() {
 function refreshCompassToggle() {
   compassToggle.setAttribute("aria-pressed", String(state.showCompass));
   compassToggle.textContent = state.showCompass ? "Kompass" : "Kompass aus";
+}
+
+function refreshGoalButton() {
+  const focusScene = mapFocusScene();
+  let text = "Ziel";
+  let title = "Aktuelles Ziel markieren";
+  if (!focusScene) {
+    text = "Fertig";
+    title = "Alles Wichtige ist erledigt";
+  } else if (focusScene !== state.scene && state.discovered[focusScene]) {
+    text = "Zum Ziel";
+    title = `Direkt nach ${locationLabel(focusScene)} reisen`;
+  } else if (focusScene !== state.scene) {
+    text = "Route";
+    title = `Route nach ${locationLabel(focusScene)} zeigen`;
+  }
+  goalButton.textContent = text;
+  goalButton.title = title;
+  if (touchGoal) {
+    touchGoal.textContent = text;
+    touchGoal.title = title;
+  }
 }
 
 function refreshInventory() {
@@ -1514,13 +1539,44 @@ function toggleMap(forceOpen) {
   refreshContextUi();
 }
 
-function fastTravel(sceneId) {
+function fastTravel(sceneId, message = null) {
   const location = mapLocations.find((entry) => entry.scene === sceneId);
   if (!location || !state.discovered[sceneId] || sceneId === state.scene) return;
   toggleMap(false);
   state.effectAt = null;
-  showToast(`Karte: ${location.label}`);
+  showToast(message || `Karte: ${location.label}`);
   goScene(sceneId, location.at);
+}
+
+function travelToFocus() {
+  state.showCompass = true;
+  refreshCompassToggle();
+  const focusScene = mapFocusScene();
+  if (!focusScene) {
+    showSmartHint();
+    return;
+  }
+  if (focusScene === state.scene) {
+    showSmartHint();
+    return;
+  }
+  if (state.discovered[focusScene]) {
+    toggleJournal(false);
+    toggleMap(false);
+    fastTravel(focusScene, `Zielreise: ${locationLabel(focusScene)}`);
+    return;
+  }
+  const route = nextExitToward(focusScene);
+  if (route) {
+    focusHintSpot(route);
+    showDialog(`Zielroute: Geh zuerst nach ${exitDestination(route, true)}. Danach fuehrt der Kompass weiter.`, "neutral", 5200);
+    sfx("ui");
+    refreshUi();
+    return;
+  }
+  showDialog(`Zielroute: ${locationLabel(focusScene)} ist noch nicht entdeckt. Oeffne die Karte spaeter wieder, sobald Malvin naeher dran ist.`, "worried", 5200);
+  sfx("error");
+  refreshUi();
 }
 
 function locationLabel(sceneId) {
@@ -3360,6 +3416,11 @@ hintButton.addEventListener("click", () => {
   showSmartHint();
 });
 
+goalButton.addEventListener("click", () => {
+  markUserActivated();
+  travelToFocus();
+});
+
 journalToggle.addEventListener("click", () => {
   markUserActivated();
   sfx("ui");
@@ -3426,6 +3487,11 @@ touchVerbNext.addEventListener("click", () => {
 
 touchAction.addEventListener("click", () => {
   touchPrimaryAction();
+});
+
+touchGoal.addEventListener("click", () => {
+  markUserActivated();
+  travelToFocus();
 });
 
 touchControlsEl.querySelectorAll("[data-move]").forEach((button) => {
@@ -3541,6 +3607,9 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.key === "?") {
     showSmartHint();
+  }
+  if (event.key.toLowerCase() === "g") {
+    travelToFocus();
   }
   if (event.key.toLowerCase() === "j") {
     toggleJournal();

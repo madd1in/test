@@ -20,12 +20,13 @@ Finde den Runenstein im Pilzhain, besorge das Mondabzeichen im Observatorium, ak
 - `Pfad` zeigt in der Waldlichtung, was begehbar ist. Gruen bedeutet erreichbar, rot bedeutet blockiert; `P` schaltet die Anzeige ebenfalls um.
 - `Kompass` blendet das naechste Quest-Ziel in der Szene ein oder aus; nach der Hauptquest fuehrt er zu fehlenden Sternsplittern. `K` schaltet ihn ebenfalls um.
 - `Tipp` gibt einen kurzen situationsabhaengigen Hinweis; `?` ruft ihn per Tastatur auf.
+- `Ziel` reist direkt zum aktuellen Zielort, falls er bereits entdeckt ist; sonst zeigt es die naechste Route. `G` nutzt dieselbe Funktion.
 - `Tagebuch` zeigt Fortschritt, naechstes Ziel und gefundene Sternsplitter; `J` schaltet es um.
 - `Tagebuch` zeigt jetzt auch freigeschaltete Erfolge.
 - `Karte` erlaubt Schnellreise zu bereits besuchten Orten, markiert das aktuelle Ziel und zeigt pro Ort den Sternsplitter-Status; `M` schaltet sie um.
 - `Vollbild` streckt die Spielflaeche optimal auf den Bildschirm; `F` schaltet ebenfalls um.
 - `Speichern` und `Laden` sichern den Spielstand im Browser. `Strg+S` speichert, `Strg+L` laedt.
-- Auf Touch-Geraeten erscheinen Steuerkreis, Verbwechsel, Aktionstaste und ein eigener Vollbildknopf.
+- Auf Touch-Geraeten erscheinen Steuerkreis, Verbwechsel, Aktionstaste, Zielreise und ein eigener Vollbildknopf.
 - Im Pilzhain ist der Mondteich gesperrte Wasserflaeche; Malvin laeuft nur am Ufer entlang.
 - `Esc` schliesst Dialoge und wechselt zurueck zu Gehen.
 - `Vorlesen` schaltet die browserbasierte Sprachausgabe fuer Dialoge ein oder aus.

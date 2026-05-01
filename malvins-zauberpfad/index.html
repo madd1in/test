@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <title>Malvins Zauberpfad</title>
-  <link rel="stylesheet" href="style.css?v=20260501-progress">
+  <link rel="stylesheet" href="style.css?v=20260501-goal">
 </head>
 <body>
   <main class="shell">
@@ -19,6 +19,7 @@
           <button id="pathToggle" class="tiny-button" type="button" aria-pressed="true">Pfad</button>
           <button id="compassToggle" class="tiny-button" type="button" aria-pressed="true">Kompass</button>
           <button id="hintButton" class="tiny-button" type="button">Tipp</button>
+          <button id="goalButton" class="tiny-button" type="button">Ziel</button>
           <button id="journalToggle" class="tiny-button" type="button" aria-expanded="false">Tagebuch</button>
           <button id="mapToggle" class="tiny-button" type="button" aria-expanded="false">Karte</button>
           <button id="saveButton" class="tiny-button" type="button">Speichern</button>
@@ -90,6 +91,7 @@
           <button id="touchVerbPrev" class="touch-chip" type="button" aria-label="Vorherige Aktion">&lt;</button>
           <button id="touchAction" class="touch-action" type="button">Gehen</button>
           <button id="touchVerbNext" class="touch-chip" type="button" aria-label="Naechste Aktion">&gt;</button>
+          <button id="touchGoal" class="touch-chip wide" type="button">Ziel</button>
           <button id="touchFullscreen" class="touch-chip wide" type="button">Vollbild</button>
         </div>
       </div>
@@ -98,6 +100,6 @@
 
   <audio id="bgmTrack" src="assets/audio/clockwork-farewell.mp3" loop preload="auto"></audio>
   <script src="assets/sprite-map.js?v=20260501-archive"></script>
-  <script src="game.js?v=20260501-progress"></script>
+  <script src="game.js?v=20260501-goal"></script>
 </body>
 </html>
