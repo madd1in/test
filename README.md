@@ -23,6 +23,7 @@ Eigenes Gothic-Action-Spiel in HTML/CSS/JS, fusioniert mit Moonwalker-artigen Da
 - `C`: Continue (Title/Game Over)
 
 ## Features
+- V51 Tile-Stabilitaet: Scrollende Boden-/Wall-/Super7-Tiles sind an Weltkoordinaten verankert, damit Kacheln beim Scrollen nicht mehr flackern.
 - V50 Performance/Fog: Auto-Modus reduziert Super7-Bodenbaender, schaltet Canvas-Filter im Boost ab und rastet Nebel/Glints pixelstabil ein.
 - 6 Stages (Stage 2-6 mit eigenen Bossen)
 - Save/Continue + Best Score (LocalStorage)
