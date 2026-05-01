@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kryptenlaeufer 3D</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./styles.css?v=complex-polish" />
+    <link rel="stylesheet" href="./styles.css?v=guide-assets" />
     <script type="importmap">
       {
         "imports": {
@@ -22,6 +22,11 @@
       </button>
       <div id="swipePad" class="swipe-pad" aria-hidden="true"></div>
       <div id="damageFlash" class="damage-flash" aria-hidden="true"></div>
+      <button id="routeChip" class="route-chip" type="button" aria-label="Naechstes Ziel und Karte">
+        <span id="routeArrow" aria-hidden="true">^</span>
+        <strong id="routeText">Rune suchen</strong>
+        <small id="routeDetail">folge dem Pfeil</small>
+      </button>
 
       <section class="hud hud-top" aria-label="Status">
         <div class="brand-block">
@@ -68,7 +73,7 @@
           <button id="startBtn" type="button">Start</button>
           <button id="audioBtn" type="button">Audio</button>
           <button id="restartBtn" type="button">Neu</button>
-          <button id="mapBtn" type="button">Karte</button>
+          <button id="mapBtn" type="button" aria-pressed="true">Karte</button>
         </div>
       </section>
 
@@ -101,6 +106,6 @@
       </section>
     </main>
 
-    <script type="module" src="./src/game.js?v=complex-polish"></script>
+    <script type="module" src="./src/game.js?v=guide-assets"></script>
   </body>
 </html>

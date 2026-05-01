@@ -37,6 +37,10 @@ const ASSETS = {
     reaper: "./assets/sprites/enemy-reaper.png",
     phantom: "./assets/sprites/enemy-phantom.png",
     witch: "./assets/sprites/enemy-witch.png",
+    acolyte: "./assets/sprites/enemy-acolyte.svg",
+    sentinel: "./assets/sprites/enemy-sentinel.svg",
+    lantern: "./assets/sprites/enemy-lantern.svg",
+    oracle: "./assets/sprites/npc-oracle.svg",
     boss: "./assets/sprites/boss-sheet.png"
   },
   props: {
@@ -48,7 +52,9 @@ const ASSETS = {
     ruby: "./assets/props/ruby.png",
     axe: "./assets/props/axe.png",
     spikes: "./assets/props/spikes.png",
-    chapel: "./assets/props/chapel-backdrop.png"
+    chapel: "./assets/props/chapel-backdrop.png",
+    wallRune: "./assets/props/wall-rune.svg",
+    wallBones: "./assets/props/wall-bones.svg"
   },
   audio: {
     music: ["./assets/audio/music/moonveil-keep.mp3", "./assets/audio/music/catacomb-bell-vault.mp3"],
@@ -132,7 +138,10 @@ const ENEMY_DEFS = {
   gargoyle: { name: "Firstwache", hp: 18, atk: 5, sprite: "gargoyle", size: 1.85 },
   reaper: { name: "Sichelgeist", hp: 20, atk: 7, sprite: "reaper", size: 1.75 },
   phantom: { name: "Phantom", hp: 16, atk: 6, sprite: "phantom", size: 1.6 },
-  witch: { name: "Kerzenhexe", hp: 17, atk: 5, sprite: "witch", size: 1.6 }
+  witch: { name: "Kerzenhexe", hp: 17, atk: 5, sprite: "witch", size: 1.6 },
+  acolyte: { name: "Blutakolyth", hp: 19, atk: 6, sprite: "acolyte", size: 1.72 },
+  sentinel: { name: "Runensentinel", hp: 28, atk: 7, sprite: "sentinel", size: 1.9 },
+  lantern: { name: "Laternenrufer", hp: 18, atk: 6, sprite: "lantern", size: 1.68 }
 };
 
 const PROP_POINTS = [
@@ -153,6 +162,19 @@ const HANGING_POINTS = [
   { x: 7, y: 7 },
   { x: 8, y: 9 },
   { x: 9, y: 13 }
+];
+
+const WALL_DECAL_POINTS = [
+  { key: "wallRune", x: 2, y: 2 },
+  { key: "wallBones", x: 10, y: 2 },
+  { key: "wallRune", x: 4, y: 6 },
+  { key: "wallBones", x: 8, y: 8 },
+  { key: "wallRune", x: 6, y: 12 },
+  { key: "wallBones", x: 12, y: 12 }
+];
+
+const NPC_POINTS = [
+  { x: 3, y: 1, name: "Orakel am Einstieg" }
 ];
 
 const TRAPS = [
@@ -176,12 +198,15 @@ const SECRET_WALL_POINTS = [
 const EXTRA_DEPTH_ENEMIES = {
   2: [
     { x: 9, y: 3, kind: "phantom" },
-    { x: 5, y: 9, kind: "witch" }
+    { x: 5, y: 9, kind: "witch" },
+    { x: 12, y: 3, kind: "acolyte" }
   ],
   3: [
     { x: 3, y: 5, kind: "reaper" },
     { x: 11, y: 5, kind: "gargoyle" },
-    { x: 5, y: 11, kind: "knight" }
+    { x: 5, y: 11, kind: "knight" },
+    { x: 9, y: 9, kind: "sentinel" },
+    { x: 12, y: 12, kind: "lantern" }
   ]
 };
 
@@ -208,6 +233,10 @@ const mapBtn = $("mapBtn");
 const fullscreenBtn = $("fullscreenBtn");
 const swipePad = $("swipePad");
 const damageFlash = $("damageFlash");
+const routeChip = $("routeChip");
+const routeArrow = $("routeArrow");
+const routeText = $("routeText");
+const routeDetail = $("routeDetail");
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -248,6 +277,7 @@ const state = {
   chests: [],
   shrines: [],
   secrets: [],
+  npcs: [],
   enemies: [],
   boss: null,
   exit: null,
@@ -300,11 +330,12 @@ function validateMap() {
 }
 
 function parseMap() {
-  const kinds = ["skeleton", "knight", "gargoyle", "reaper", "phantom", "witch"];
+  const kinds = ["skeleton", "knight", "gargoyle", "reaper", "phantom", "witch", "acolyte", "sentinel", "lantern"];
   let enemyCount = 0;
   state.runes = [];
   state.chests = [];
   state.enemies = [];
+  state.npcs = [];
   state.boss = null;
   state.exit = null;
   state.door = null;
@@ -397,6 +428,11 @@ function loadDepth(depth, carryPlayer = true) {
     ...secret,
     hp: secret.hp + Math.max(0, depth - 2),
     broken: false
+  }));
+  state.npcs = NPC_POINTS.map((npc) => ({
+    ...npc,
+    spoken: false,
+    name: state.depth === 1 ? npc.name : state.depth === 2 ? "Archiv-Orakel" : "Abgrund-Orakel"
   }));
   if (carryPlayer) {
     state.player.dir = 1;
@@ -540,6 +576,7 @@ function buildDungeon() {
     }
   }
 
+  addWallDecals(theme);
   placeBackdrop();
   addHangingRelics(theme);
   addAtmosphere(theme);
@@ -669,6 +706,38 @@ function addHangingRelics(theme) {
   }
 }
 
+function addWallDecals(theme) {
+  for (const decal of WALL_DECAL_POINTS) {
+    if (!isInside(decal.x, decal.y) || state.map[decal.y][decal.x] !== "#") continue;
+    const facing = wallFacing(decal.x, decal.y);
+    if (!facing) continue;
+    const texture = getTexture(ASSETS.props[decal.key]);
+    const mat = new THREE.MeshBasicMaterial({
+      map: texture,
+      color: decal.key === "wallRune" ? theme.rune : 0xffffff,
+      transparent: true,
+      opacity: decal.key === "wallRune" ? 0.58 : 0.42,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 1.55), mat);
+    const pos = cellToWorld(decal.x, decal.y);
+    mesh.position.set(pos.x + facing.x * CELL * 0.505, 1.85, pos.z + facing.y * CELL * 0.505);
+    if (facing.x === 1) mesh.rotation.y = Math.PI / 2;
+    else if (facing.x === -1) mesh.rotation.y = -Math.PI / 2;
+    else if (facing.y === -1) mesh.rotation.y = Math.PI;
+    worldGroup.add(mesh);
+  }
+}
+
+function wallFacing(x, y) {
+  for (const dir of DIRS) {
+    const nx = x + dir.x;
+    const ny = y + dir.y;
+    if (isInside(nx, ny) && state.map[ny][nx] !== "#") return dir;
+  }
+  return null;
+}
+
 function addAtmosphere(theme) {
   const count = 260;
   const positions = new Float32Array(count * 3);
@@ -774,6 +843,16 @@ function syncEntitySprites() {
     const pos = cellToWorld(rune.x, rune.y);
     light.position.set(pos.x, 1.2, pos.z);
     entityGroup.add(createCellGlow(rune.x, rune.y, theme.rune, 0.25, 0.55), sprite, light);
+  }
+
+  for (const npc of state.npcs) {
+    const sprite = makeSprite(ASSETS.sprites.oracle, npc.spoken ? 1.55 : 1.7);
+    sprite.material.opacity = npc.spoken ? 0.7 : 1;
+    placeSpriteAtCell(sprite, npc.x, npc.y, 0.82);
+    const pos = cellToWorld(npc.x, npc.y);
+    const light = new THREE.PointLight(theme.rune, npc.spoken ? 0.45 : 1.05, 5, 2);
+    light.position.set(pos.x, 1.4, pos.z);
+    entityGroup.add(createCellGlow(npc.x, npc.y, theme.rune, npc.spoken ? 0.1 : 0.22, 0.68), sprite, light);
   }
 
   for (const enemy of state.enemies) {
@@ -890,6 +969,32 @@ function makeStoneTexture(base, dark, light) {
     ctx.stroke();
   }
 
+  for (let i = 0; i < 70; i += 1) {
+    const x = random01(seed++) * 512;
+    const y = random01(seed++) * 512;
+    const r = 2 + random01(seed++) * 9;
+    ctx.fillStyle = random01(seed++) > 0.55 ? "rgba(0,0,0,0.18)" : "rgba(255,235,190,0.08)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * (0.35 + random01(seed++) * 0.55), random01(seed++) * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = light;
+  ctx.lineWidth = 6;
+  for (let i = 0; i < 8; i += 1) {
+    const x = 44 + random01(seed++) * 420;
+    const y = 52 + random01(seed++) * 410;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 18);
+    ctx.lineTo(x - 14, y + 18);
+    ctx.lineTo(x + 16, y + 10);
+    ctx.moveTo(x - 9, y);
+    ctx.lineTo(x + 13, y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
   const texture = new THREE.CanvasTexture(canvasTex);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
@@ -917,10 +1022,8 @@ function bindInput() {
   audioBtn.addEventListener("click", toggleAudio);
   fullscreenBtn.addEventListener("click", toggleFullscreen);
   document.addEventListener("fullscreenchange", updateFullscreenButton);
-  mapBtn.addEventListener("click", () => {
-    state.mapVisible = !state.mapVisible;
-    miniMap.style.display = state.mapVisible ? "grid" : "none";
-  });
+  mapBtn.addEventListener("click", () => toggleMap());
+  routeChip.addEventListener("click", () => toggleMap());
 
   mobileQuery = window.matchMedia("(pointer: coarse), (max-width: 760px)");
   mobileQuery.addEventListener?.("change", updateMobileMode);
@@ -986,6 +1089,7 @@ function startGame() {
 
 function updateMobileMode() {
   document.body.classList.toggle("mobile-mode", isMobileMode());
+  if (isMobileMode() && !state.active) toggleMap(false);
   if (state.active && !state.dead && !state.won && isMobileMode()) {
     setMessage("Swipe: gehen/drehen. Tippen greift an, Z loest Fokus aus.");
   }
@@ -1013,6 +1117,14 @@ function updateFullscreenButton() {
   const full = Boolean(document.fullscreenElement);
   document.body.classList.toggle("is-fullscreen", full);
   fullscreenBtn.setAttribute("aria-pressed", String(full));
+}
+
+function toggleMap(force) {
+  state.mapVisible = typeof force === "boolean" ? force : !state.mapVisible;
+  miniMap.style.display = state.mapVisible ? "grid" : "none";
+  document.body.classList.toggle("map-open", state.mapVisible);
+  mapBtn.setAttribute("aria-pressed", String(state.mapVisible));
+  updateHud();
 }
 
 function bindSwipeInput() {
@@ -1174,7 +1286,7 @@ function attackFront() {
   const crit = Math.random() < state.player.crit;
   if (crit) damage = Math.round(damage * 1.7);
   if (hasRelic("ember")) damage += 2 + state.depth;
-  if (target.kind === "gargoyle" || target.kind === "knight") damage = Math.max(3, damage - 2);
+  if (target.kind === "gargoyle" || target.kind === "knight" || target.kind === "sentinel") damage = Math.max(3, damage - 2);
   target.hp = Math.max(0, target.hp - damage);
   playSfx("slash", 0.7);
 
@@ -1229,6 +1341,12 @@ function castFocusSpell() {
 function interact() {
   const here = { x: state.player.x, y: state.player.y };
   const front = frontCell();
+  if (talkToNpcAt(here.x, here.y) || talkToNpcAt(front.x, front.y)) {
+    syncEntitySprites();
+    updateHud();
+    return;
+  }
+
   const handled = collectAt(here.x, here.y) || collectAt(front.x, front.y);
   if (handled) {
     spendTurn(null);
@@ -1295,6 +1413,17 @@ function collectAt(x, y) {
   return false;
 }
 
+function talkToNpcAt(x, y) {
+  const npc = state.npcs.find((item) => item.x === x && item.y === y);
+  if (!npc) return false;
+  const route = currentRoute(npc);
+  npc.spoken = true;
+  state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 2);
+  setMessage(`${npc.name}: ${route.detail} Der gruene Pfeil zeigt immer den naechsten sicheren Schritt. +2 Fokus.`);
+  playSfx("thunder", 0.22);
+  return true;
+}
+
 function activateShrineAt(x, y) {
   const shrine = state.shrines.find((item) => !item.used && item.x === x && item.y === y);
   if (!shrine) return false;
@@ -1350,7 +1479,7 @@ function defeatTarget(target) {
   state.player.atk += 1;
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + heal);
   state.player.focus = Math.min(state.player.maxFocus, state.player.focus + 1);
-  playSfx(target.kind === "knight" ? "armor" : "bones", 0.68);
+      playSfx(target.kind === "knight" || target.kind === "sentinel" ? "armor" : "bones", 0.68);
   return `${target.name} zerbricht. +1 ATK, +${heal} HP, +1 Fokus.`;
 }
 
@@ -1430,6 +1559,34 @@ function enemyAct(enemy) {
 
   if (enemy.kind === "witch" && dist <= 4 && lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) {
     harmPlayer(rand(2, 4) + state.depth, `${enemy.name} wirft Kerzenfeuer.`);
+    return;
+  }
+
+  if (enemy.kind === "acolyte" && dist <= 5 && lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) {
+    const ally = state.enemies.find((item) => item.alive && item.id !== enemy.id && item.hp < item.maxHp && manhattan(item.x, item.y, enemy.x, enemy.y) <= 3);
+    if (ally) {
+      ally.hp = Math.min(ally.maxHp, ally.hp + 4 + state.depth);
+      setMessage(`${enemy.name} heilt ${ally.name}.`);
+      return;
+    }
+    harmPlayer(rand(2, 4) + state.depth, `${enemy.name} ritzt ein Blutsiegel in die Luft.`);
+    return;
+  }
+
+  if (enemy.kind === "lantern" && dist <= 5 && lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) {
+    const drain = Math.min(state.player.focus, 1 + state.depth);
+    state.player.focus -= drain;
+    harmPlayer(rand(1, 3) + state.depth, `${enemy.name} blendet dich und raubt ${drain} Fokus.`);
+    return;
+  }
+
+  if (enemy.kind === "sentinel" && dist === 2 && lineOfSight(enemy.x, enemy.y, state.player.x, state.player.y)) {
+    const step = nextStepToward(enemy.x, enemy.y, state.player.x, state.player.y, enemy.id);
+    if (step) {
+      enemy.x = step.x;
+      enemy.y = step.y;
+      harmPlayer(rand(2, 5) + enemy.atk - state.player.guard, `${enemy.name} stuermt vor.`);
+    }
     return;
   }
 
@@ -1694,7 +1851,131 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 
+function currentRoute(ignoreNpc = null) {
+  const target = currentObjectiveTarget(ignoreNpc);
+  const path = target ? findPathTo(target.goalX, target.goalY) : null;
+  const distance = path ? Math.max(0, path.length - 1) : 0;
+  const step = path && path.length > 1 ? path[1] : null;
+  const cue = step ? routeCue(step.x - state.player.x, step.y - state.player.y) : { arrow: "o", label: "hier" };
+  const detail = target
+    ? `${distance} Schritt${distance === 1 ? "" : "e"} ${cue.label}: ${target.hint}`
+    : "Kein aktives Ziel";
+  return { target, path, distance, cue, detail };
+}
+
+function currentObjectiveTarget(ignoreNpc = null) {
+  if (state.dead) return { label: "Neu starten", hint: "R oder Neu druecken", x: state.player.x, y: state.player.y, goalX: state.player.x, goalY: state.player.y };
+  if (state.won) return { label: "Run geschafft", hint: "Sieg", x: state.player.x, y: state.player.y, goalX: state.player.x, goalY: state.player.y };
+
+  const npc = state.npcs.find((item) => item !== ignoreNpc && !item.spoken);
+  if (npc) {
+    return { label: "Orakel sprechen", hint: "stelle dich davor und druecke F", x: npc.x, y: npc.y, goalX: npc.x, goalY: npc.y };
+  }
+
+  const rune = nearestTarget(state.runes.filter((item) => !item.collected));
+  if (rune) {
+    return { label: `Rune ${collectedRunes() + 1}/3`, hint: "draufgehen oder F druecken", x: rune.x, y: rune.y, goalX: rune.x, goalY: rune.y };
+  }
+
+  if (state.door && !state.doorOpen) {
+    const goal = nearestAdjacentGoal(state.door.x, state.door.y) || state.door;
+    return { label: "Siegel-Tor", hint: "davor stehen und F druecken", x: state.door.x, y: state.door.y, goalX: goal.x, goalY: goal.y };
+  }
+
+  if (state.boss?.alive) {
+    const goal = nearestAdjacentGoal(state.boss.x, state.boss.y) || state.boss;
+    return { label: state.boss.name, hint: "angrenzend stehen und Hit/Z nutzen", x: state.boss.x, y: state.boss.y, goalX: goal.x, goalY: goal.y };
+  }
+
+  if (state.exit) {
+    return { label: state.depth === MAX_DEPTH ? "Endportal" : "Portal runter", hint: "hineingehen und F druecken", x: state.exit.x, y: state.exit.y, goalX: state.exit.x, goalY: state.exit.y };
+  }
+
+  return null;
+}
+
+function nearestTarget(items) {
+  let best = null;
+  for (const item of items) {
+    const path = findPathTo(item.x, item.y);
+    if (!path) continue;
+    if (!best || path.length < best.path.length) best = { item, path };
+  }
+  return best?.item || null;
+}
+
+function nearestAdjacentGoal(x, y) {
+  let best = null;
+  for (const dir of DIRS) {
+    const gx = x + dir.x;
+    const gy = y + dir.y;
+    if (!isWalkable(gx, gy)) continue;
+    const path = findPathTo(gx, gy);
+    if (!path) continue;
+    if (!best || path.length < best.path.length) best = { x: gx, y: gy, path };
+  }
+  return best;
+}
+
+function findPathTo(tx, ty) {
+  if (!isInside(tx, ty)) return null;
+  const start = { x: state.player.x, y: state.player.y };
+  const queue = [start];
+  const seen = new Set([`${start.x},${start.y}`]);
+  const previous = new Map();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (current.x === tx && current.y === ty) return rebuildPath(previous, current);
+    for (const dir of DIRS) {
+      const nx = current.x + dir.x;
+      const ny = current.y + dir.y;
+      const key = `${nx},${ny}`;
+      if (seen.has(key) || !routeWalkable(nx, ny, tx, ty)) continue;
+      seen.add(key);
+      previous.set(key, current);
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return null;
+}
+
+function rebuildPath(previous, end) {
+  const path = [end];
+  let key = `${end.x},${end.y}`;
+  while (previous.has(key)) {
+    const step = previous.get(key);
+    path.unshift(step);
+    key = `${step.x},${step.y}`;
+  }
+  return path;
+}
+
+function routeWalkable(x, y, tx, ty) {
+  if (!isInside(x, y)) return false;
+  if (x === tx && y === ty && state.map[y][x] !== "#") return true;
+  return isWalkable(x, y);
+}
+
+function routeCue(dx, dy) {
+  const absolute = DIRS.findIndex((dir) => dir.x === dx && dir.y === dy);
+  if (absolute < 0) return { arrow: "o", label: "hier" };
+  const relative = wrapDir(absolute - state.player.dir);
+  if (relative === 0) return { arrow: "^", label: "geradeaus" };
+  if (relative === 1) return { arrow: ">", label: "rechts" };
+  if (relative === 3) return { arrow: "<", label: "links" };
+  return { arrow: "v", label: "zurueck" };
+}
+
+function updateRouteChip(route) {
+  if (!route?.target) return;
+  routeArrow.textContent = route.cue.arrow;
+  routeText.textContent = route.target.label;
+  routeDetail.textContent = route.detail;
+}
+
 function updateHud() {
+  const route = currentRoute();
   hpText.textContent = `${state.player.hp} / ${state.player.maxHp}`;
   hpFill.style.width = `${Math.max(0, Math.min(1, state.player.hp / state.player.maxHp)) * 100}%`;
   runeText.textContent = `${collectedRunes()} / 3`;
@@ -1717,16 +1998,21 @@ function updateHud() {
   } else if (state.boss && !state.boss.alive) {
     objectiveText.textContent = state.depth === MAX_DEPTH ? "Tritt in das Endportal." : "Tritt in das Portal zur naechsten Ebene.";
   } else {
-    objectiveText.textContent = `${currentTheme().name}: Runen, Altare und Geheimwaende suchen.`;
+    objectiveText.textContent = route.target
+      ? `${route.target.label}: ${route.detail}.`
+      : `${currentTheme().name}: Runen, Altare und Geheimwaende suchen.`;
   }
 
   messageText.textContent = state.message;
-  renderMiniMap();
+  updateRouteChip(route);
+  renderMiniMap(route);
 }
 
-function renderMiniMap() {
+function renderMiniMap(route = currentRoute()) {
   if (!state.mapVisible) return;
   miniMap.style.gridTemplateColumns = `repeat(${state.width}, 10px)`;
+  const pathKeys = new Set((route.path || []).map((step) => `${step.x},${step.y}`));
+  const targetKey = route.target ? `${route.target.x},${route.target.y}` : "";
   const cells = [];
   for (let y = 0; y < state.height; y += 1) {
     for (let x = 0; x < state.width; x += 1) {
@@ -1734,11 +2020,13 @@ function renderMiniMap() {
       const tile = state.map[y][x];
       if (tile === "#") classes.push("mini-wall");
       else classes.push("mini-floor");
+      if (pathKeys.has(`${x},${y}`)) classes.push("mini-path");
       if (tile === "D" && !state.doorOpen) classes.push("mini-door");
       if (state.secrets.some((secret) => !secret.broken && secret.x === x && secret.y === y)) classes.push("mini-secret");
       if (state.runes.some((rune) => !rune.collected && rune.x === x && rune.y === y)) classes.push("mini-rune");
       if (state.shrines.some((shrine) => !shrine.used && shrine.x === x && shrine.y === y)) classes.push("mini-shrine");
       if (enemyAt(x, y) || (state.boss?.alive && state.boss.x === x && state.boss.y === y)) classes.push("mini-enemy");
+      if (`${x},${y}` === targetKey) classes.push("mini-target");
       if (state.player.x === x && state.player.y === y) classes.push("mini-player");
       cells.push(`<span class="${classes.join(" ")}"></span>`);
     }

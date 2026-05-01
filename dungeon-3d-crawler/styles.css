@@ -109,6 +109,56 @@ button:active {
   pointer-events: none;
 }
 
+.route-chip {
+  position: absolute;
+  z-index: 5;
+  left: 18px;
+  top: 118px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  width: min(330px, calc(100vw - 36px));
+  min-height: 58px;
+  padding: 8px 12px;
+  text-align: left;
+  pointer-events: auto;
+  background: rgba(8, 10, 9, 0.72);
+  backdrop-filter: blur(12px);
+}
+
+.route-chip span {
+  grid-row: 1 / 3;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  color: #07100d;
+  background: var(--green);
+  box-shadow: 0 0 18px rgba(109, 209, 158, 0.55);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.route-chip strong,
+.route-chip small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-chip strong {
+  font-size: 0.98rem;
+}
+
+.route-chip small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .fullscreen-toggle {
   position: absolute;
   z-index: 5;
@@ -331,6 +381,16 @@ button:active {
   background: var(--red);
 }
 
+.mini-path {
+  background: rgba(109, 209, 158, 0.38);
+}
+
+.mini-target {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+  box-shadow: 0 0 10px rgba(233, 189, 105, 0.9);
+}
+
 .mini-shrine {
   background: var(--gold);
   box-shadow: 0 0 8px rgba(233, 189, 105, 0.8);
@@ -447,8 +507,12 @@ button:active {
   .hud-top {
     top: 10px;
     left: 10px;
-    right: 10px;
+    right: 58px;
     gap: 10px;
+  }
+
+  .brand-block {
+    display: none;
   }
 
   .brand-block h1 {
@@ -462,10 +526,17 @@ button:active {
   .status-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+    width: 100%;
+  }
+
+  .status-strip article:nth-child(2),
+  .status-strip article:nth-child(3),
+  .status-strip article:nth-child(6) {
+    display: none;
   }
 
   .status-strip article {
-    padding: 7px 8px;
+    padding: 6px 8px;
   }
 
   .status-strip span {
@@ -473,14 +544,56 @@ button:active {
   }
 
   .status-strip strong {
-    font-size: 0.92rem;
+    font-size: 0.86rem;
+  }
+
+  .meter {
+    height: 4px;
+    margin-top: 5px;
+  }
+
+  .route-chip {
+    top: 78px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    min-height: 46px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    column-gap: 8px;
+    padding: 6px 9px;
+  }
+
+  .route-chip span {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+  }
+
+  .route-chip strong {
+    font-size: 0.9rem;
+  }
+
+  .route-chip small {
+    font-size: 0.72rem;
   }
 
   .hud-side {
+    display: none;
     left: 10px;
     right: 10px;
-    bottom: 128px;
+    top: 132px;
+    bottom: auto;
+    max-height: calc(100vh - 238px);
+    overflow: auto;
     padding: 10px;
+  }
+
+  .map-open .hud-side {
+    display: block;
+  }
+
+  .map-open .mini-map {
+    display: grid;
   }
 
   .objective {
@@ -508,22 +621,35 @@ button:active {
     bottom: 10px;
     align-items: stretch;
     flex-direction: column;
-    gap: 8px;
-    padding: 9px;
+    gap: 6px;
+    padding: 7px;
   }
 
   #messageText {
-    font-size: 0.92rem;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .control-cluster {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+  }
+
+  .control-cluster button[data-action="turn-left"],
+  .control-cluster button[data-action="forward"],
+  .control-cluster button[data-action="turn-right"],
+  .control-cluster button[data-action="strafe-left"],
+  .control-cluster button[data-action="strafe-right"],
+  .control-cluster button[data-action="back"] {
+    display: none;
   }
 
   .control-cluster button {
     width: auto;
-    min-height: 38px;
+    min-height: 36px;
   }
 
   .fullscreen-toggle {
@@ -535,9 +661,9 @@ button:active {
   }
 
   .swipe-pad {
-    bottom: 236px;
-    width: 112px;
-    height: 112px;
+    bottom: 104px;
+    width: 96px;
+    height: 96px;
   }
 }
 
@@ -555,15 +681,15 @@ button:active {
   }
 
   .hud-side {
-    bottom: 126px;
+    top: 130px;
   }
 
   .hud-bottom {
-    max-height: 140px;
+    max-height: 86px;
   }
 
   .control-cluster {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
