@@ -3,6 +3,7 @@ import * as THREE from "three";
 const CELL = 4;
 const WALL_HEIGHT = 3.9;
 const CAMERA_HEIGHT = 1.72;
+const MAX_DEPTH = 3;
 const MAP_LINES = [
   "###############",
   "#S...M....C..R#",
@@ -87,6 +88,18 @@ const TRAPS = [
   { x: 2, y: 9, armed: true },
   { x: 11, y: 12, armed: true }
 ];
+
+const EXTRA_DEPTH_ENEMIES = {
+  2: [
+    { x: 9, y: 3, kind: "phantom" },
+    { x: 5, y: 9, kind: "witch" }
+  ],
+  3: [
+    { x: 3, y: 5, kind: "reaper" },
+    { x: 11, y: 5, kind: "gargoyle" },
+    { x: 5, y: 11, kind: "knight" }
+  ]
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -174,13 +187,8 @@ init();
 
 function init() {
   validateMap();
-  parseMap();
   setupLighting();
-  buildDungeon();
-  decorateDungeon();
-  syncEntitySprites();
-  updateCameraTarget(true);
-  updateHud();
+  loadDepth(1, false);
   resize();
   bindInput();
   requestAnimationFrame(loop);
@@ -197,6 +205,13 @@ function validateMap() {
 function parseMap() {
   const kinds = ["skeleton", "knight", "gargoyle", "reaper", "phantom", "witch"];
   let enemyCount = 0;
+  state.runes = [];
+  state.chests = [];
+  state.enemies = [];
+  state.boss = null;
+  state.exit = null;
+  state.door = null;
+  state.doorOpen = false;
   state.map = MAP_LINES.map((row, y) =>
     [...row].map((tile, x) => {
       if (tile === "S") {
@@ -205,7 +220,7 @@ function parseMap() {
         return ".";
       }
       if (tile === "M") {
-        const kind = kinds[enemyCount % kinds.length];
+        const kind = kinds[(enemyCount + state.depth - 1) % kinds.length];
         state.enemies.push(createEnemy(kind, x, y, enemyCount));
         enemyCount += 1;
         return ".";
@@ -227,11 +242,11 @@ function parseMap() {
           id: "boss",
           x,
           y,
-          hp: 74,
-          maxHp: 74,
-          atk: 9,
+          hp: 74 + (state.depth - 1) * 34,
+          maxHp: 74 + (state.depth - 1) * 34,
+          atk: 9 + (state.depth - 1) * 3,
           alive: true,
-          name: "Glockenfuerst"
+          name: state.depth === MAX_DEPTH ? "Ur-Glockenfuerst" : "Glockenfuerst"
         };
         return ".";
       }
@@ -242,21 +257,61 @@ function parseMap() {
       return tile;
     })
   );
+
+  const extras = EXTRA_DEPTH_ENEMIES[state.depth] || [];
+  for (const extra of extras) {
+    if (isWalkable(extra.x, extra.y) && !enemyAt(extra.x, extra.y)) {
+      state.enemies.push(createEnemy(extra.kind, extra.x, extra.y, enemyCount));
+      enemyCount += 1;
+    }
+  }
 }
 
 function createEnemy(kind, x, y, index) {
   const def = ENEMY_DEFS[kind];
+  const hpScale = 1 + (state.depth - 1) * 0.42;
   return {
     id: `${kind}-${index}`,
     kind,
     name: def.name,
     x,
     y,
-    hp: def.hp,
-    maxHp: def.hp,
-    atk: def.atk,
+    hp: Math.round(def.hp * hpScale),
+    maxHp: Math.round(def.hp * hpScale),
+    atk: def.atk + state.depth - 1,
     alive: true
   };
+}
+
+function loadDepth(depth, carryPlayer = true) {
+  state.depth = depth;
+  state.turn = 1;
+  state.dead = false;
+  state.won = false;
+  for (const trap of TRAPS) trap.armed = true;
+  parseMap();
+  if (carryPlayer) {
+    state.player.dir = 1;
+    state.player.maxHp += 4;
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + 14);
+    state.player.atk += 1;
+  }
+  resetRenderScene();
+  buildDungeon();
+  decorateDungeon();
+  syncEntitySprites();
+  updateCameraTarget(true);
+  updateHud();
+}
+
+function resetRenderScene() {
+  worldGroup.clear();
+  propGroup.clear();
+  entityGroup.clear();
+  doorMesh = null;
+  exitMesh = null;
+  bossSprite = null;
+  bossTexture = null;
 }
 
 function setupLighting() {
@@ -605,7 +660,7 @@ function startGame() {
   state.active = true;
   state.paused = false;
   startOverlay.classList.add("is-hidden");
-  setMessage(isMobileMode() ? "Swipe: hoch/runter gehen, links/rechts drehen. Tippen greift an." : "Die Luft riecht nach kaltem Stein. Drei Runen halten das Siegel.");
+  setMessage(isMobileMode() ? "Swipe: hoch/runter gehen, links/rechts drehen. Tippen greift an." : "Drei Ebenen. Drei Siegel. Unten wartet der Ur-Glockenfuerst.");
 }
 
 function updateMobileMode() {
@@ -757,8 +812,9 @@ function tryMove(action) {
 
   state.player.x = nx;
   state.player.y = ny;
-  resolveCurrentCell();
-  spendTurn(null);
+  const transitioned = resolveCurrentCell();
+  if (!transitioned) spendTurn(null);
+  else updateHud();
 }
 
 function movementVector(action) {
@@ -789,7 +845,7 @@ function attackFront() {
   if (target.hp <= 0) {
     target.alive = false;
     if (target.id === "boss") {
-      setMessage("Der Glockenfuerst zerfaellt. Der Ausgang leuchtet auf.");
+      setMessage(state.depth === MAX_DEPTH ? "Der Ur-Glockenfuerst zerfaellt. Das Endportal leuchtet." : "Der Glockenfuerst zerfaellt. Das Portal in die Tiefe leuchtet.");
       if (exitMesh) exitMesh.visible = true;
       playSfx("thunder", 0.8);
     } else {
@@ -826,11 +882,10 @@ function interact() {
   }
 
   if (state.exit && state.player.x === state.exit.x && state.player.y === state.exit.y) {
-    if (!state.boss?.alive) {
-      state.won = true;
-      setMessage("Du steigst aus der Krypta. Sieg.");
-    } else {
+    if (state.boss?.alive) {
       setMessage("Der Ausgang schlaeft, solange der Glockenfuerst atmet.");
+    } else {
+      handleExit();
     }
     updateHud();
     return;
@@ -870,14 +925,27 @@ function resolveCurrentCell() {
     if (trap.armed && trap.x === state.player.x && trap.y === state.player.y) {
       trap.armed = false;
       harmPlayer(rand(4, 8), "Eine verborgene Stachelfalle schnappt zu.");
-      return;
+      return false;
     }
   }
   collectAt(state.player.x, state.player.y);
   if (state.exit && state.player.x === state.exit.x && state.player.y === state.exit.y && !state.boss?.alive) {
-    state.won = true;
-    setMessage("Das Portal zieht dich an die Oberflaeche. Sieg.");
+    handleExit();
+    return true;
   }
+  return false;
+}
+
+function handleExit() {
+  if (state.depth >= MAX_DEPTH) {
+    state.won = true;
+    setMessage("Das Endportal reisst auf. Du entkommst mit dem Glockenkern. Sieg.");
+    return;
+  }
+
+  const nextDepth = state.depth + 1;
+  loadDepth(nextDepth, true);
+  setMessage(`Ebene ${nextDepth}/${MAX_DEPTH}: Dein Mut waechst. +4 Max HP, +1 ATK, +14 HP.`);
 }
 
 function spendTurn(fallbackMessage) {
@@ -1085,7 +1153,7 @@ function updateHud() {
   hpText.textContent = `${state.player.hp} / ${state.player.maxHp}`;
   runeText.textContent = `${collectedRunes()} / 3`;
   atkText.textContent = `${state.player.atk}`;
-  depthText.textContent = String(state.depth).padStart(2, "0");
+  depthText.textContent = `${state.depth}/${MAX_DEPTH}`;
 
   if (state.dead) {
     objectiveText.textContent = "R startet einen neuen Abstieg.";
@@ -1095,10 +1163,10 @@ function updateHud() {
     objectiveText.textContent = `Besiege den Glockenfuerst (${state.boss.hp}/${state.boss.maxHp}).`;
   } else if (collectedRunes() >= 3 && !state.doorOpen) {
     objectiveText.textContent = "Oeffne das rote Siegel im Osten.";
-  } else if (!state.boss?.alive) {
-    objectiveText.textContent = "Tritt in das gruene Portal.";
+  } else if (state.boss && !state.boss.alive) {
+    objectiveText.textContent = state.depth === MAX_DEPTH ? "Tritt in das Endportal." : "Tritt in das Portal zur naechsten Ebene.";
   } else {
-    objectiveText.textContent = "Finde drei Runen und oeffne das Siegel.";
+    objectiveText.textContent = `Ebene ${state.depth}/${MAX_DEPTH}: Finde drei Runen und oeffne das Siegel.`;
   }
 
   messageText.textContent = state.message;
