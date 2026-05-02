@@ -15,6 +15,10 @@
   const MAX_PULL = 112;
   const MIN_LAUNCH_PULL = 8;
   const LAUNCH_POWER = 0.205;
+  const PHYSICS_STEP = 1000 / 60;
+  const MAX_PHYSICS_STEPS = 4;
+  const TRAJECTORY_STEPS = 128;
+  const TRAJECTORY_SAMPLE_EVERY = 4;
 
   const FRAMES = {
     "relic-crimson": { x: 0, y: 0, w: 64, h: 64 },
@@ -168,6 +172,8 @@
   let launched = false;
   let launchStarted = 0;
   let settleStarted = 0;
+  let physicsAccumulator = 0;
+  let physicsStepCount = 0;
   let drag = null;
   let particles = [];
   let messageTimer = 0;
@@ -190,6 +196,7 @@
     Composite,
     Bodies,
     Body,
+    Pairs,
     Sleeping,
     Vector
   } = M;
@@ -292,8 +299,88 @@
           isStatic: currentShot.isStatic,
           launched,
           dragging: Boolean(drag),
-          sprite: currentShot.plugin ? currentShot.plugin.sprite : currentShotSprite
+          sprite: currentShot.plugin ? currentShot.plugin.sprite : currentShotSprite,
+          physicsStep: physicsStepCount,
+          launchedStep: currentShot.plugin ? currentShot.plugin.launchedStep || 0 : 0,
+          flightStep: currentShot.plugin && currentShot.plugin.launchedStep !== undefined
+            ? physicsStepCount - currentShot.plugin.launchedStep
+            : 0
         };
+      },
+      getAimPath(sampleEvery) {
+        if (!currentShot || !drag) return [];
+        const pull = Vector.sub(SLING, currentShot.position);
+        return buildTrajectoryPoints(
+          currentShot.position,
+          launchVelocityFromPull(pull),
+          currentShot.plugin && currentShot.plugin.radius,
+          sampleEvery
+        );
+      },
+      getTargets() {
+        return Composite.allBodies(world)
+          .filter((body) => body.plugin && body.plugin.kind === "target")
+          .map((body) => ({
+            x: body.position.x,
+            y: body.position.y,
+            minY: body.bounds.min.y,
+            maxY: body.bounds.max.y,
+            vx: body.velocity.x,
+            vy: body.velocity.y,
+            isSleeping: body.isSleeping,
+            supported: hasSupportBelow(body),
+            dropFrames: body.plugin.dropFrames || 0,
+            dead: Boolean(body.plugin.dead),
+            enemy: body.plugin.enemy
+          }));
+      },
+      getBlocks() {
+        return Composite.allBodies(world)
+          .filter((body) => body.plugin && body.plugin.kind === "block")
+          .map((body) => ({
+            x: body.position.x,
+            y: body.position.y,
+            minX: body.bounds.min.x,
+            maxX: body.bounds.max.x,
+            minY: body.bounds.min.y,
+            maxY: body.bounds.max.y,
+            dead: Boolean(body.plugin.dead),
+            sprite: body.plugin.sprite
+          }));
+      },
+      removeSupportUnderFirstTarget() {
+        const targetBody = Composite.allBodies(world).find((body) => body.plugin && body.plugin.kind === "target" && !body.plugin.dead);
+        if (!targetBody) return null;
+        const support = findSupportUnderTarget(targetBody);
+        if (!support) return null;
+        const before = {
+          targetY: targetBody.position.y,
+          supportX: support.position.x,
+          supportY: support.position.y,
+          sprite: support.plugin.sprite
+        };
+        removeBodyFromWorld(support);
+        wakeDynamicBodies(support.position, 280);
+        return before;
+      },
+      removeSupportsBelowFirstTarget() {
+        const targetBody = Composite.allBodies(world).find((body) => body.plugin && body.plugin.kind === "target" && !body.plugin.dead);
+        if (!targetBody) return null;
+        const supports = Composite.allBodies(world).filter((body) => {
+          const data = body.plugin;
+          if (!data || data.kind !== "block" || data.dead) return false;
+          const horizontallyAligned =
+            body.bounds.min.x <= targetBody.position.x + 30 &&
+            body.bounds.max.x >= targetBody.position.x - 30;
+          return horizontallyAligned && body.bounds.min.y > targetBody.bounds.max.y - 8;
+        });
+        for (const support of supports) removeBodyFromWorld(support);
+        wakeDynamicBodies(targetBody.position, 320);
+        Body.setVelocity(targetBody, {
+          x: targetBody.velocity.x,
+          y: Math.max(targetBody.velocity.y, 2.2)
+        });
+        return { count: supports.length, targetY: targetBody.position.y };
       }
     };
   }
@@ -344,10 +431,13 @@
   }
 
   function resetLevel(showIntro) {
-    engine = Engine.create({ enableSleeping: true });
+    engine = Engine.create({ enableSleeping: false });
     world = engine.world;
     engine.gravity.y = 1.05;
     engine.timing.timeScale = 1;
+    physicsAccumulator = 0;
+    physicsStepCount = 0;
+    lastTime = performance.now();
     Composite.clear(world, false, true);
 
     levelWon = false;
@@ -508,6 +598,7 @@
 
     if (data.health <= 0) {
       data.dead = true;
+      wakeDynamicBodies(body.position, 240);
     }
   }
 
@@ -620,15 +711,15 @@
       x: shot.position.x,
       y: shot.position.y
     });
-    Body.setVelocity(shot, {
-      x: pull.x * LAUNCH_POWER,
-      y: pull.y * LAUNCH_POWER
-    });
+    Body.setVelocity(shot, launchVelocityFromPull(pull));
     Body.setAngularVelocity(shot, -pull.x * 0.008);
     launched = true;
     launchStarted = performance.now();
     settleStarted = 0;
-    if (shot.plugin) shot.plugin.launchedAt = launchStarted;
+    if (shot.plugin) {
+      shot.plugin.launchedAt = launchStarted;
+      shot.plugin.launchedStep = physicsStepCount;
+    }
     puff(shot.position.x, shot.position.y, 10, "#f0d79a");
     updateHud();
   }
@@ -674,14 +765,22 @@
   }
 
   function loop(now) {
-    const delta = Math.min(32, now - lastTime);
+    const delta = Math.min(80, now - lastTime);
     lastTime = now;
 
     if (!drag) {
-      Engine.update(engine, delta);
+      physicsAccumulator = Math.min(physicsAccumulator + delta, PHYSICS_STEP * MAX_PHYSICS_STEPS);
+      while (physicsAccumulator >= PHYSICS_STEP) {
+        Engine.update(engine, PHYSICS_STEP);
+        physicsStepCount += 1;
+        physicsAccumulator -= PHYSICS_STEP;
+      }
+    } else {
+      physicsAccumulator = 0;
     }
 
     cleanupBodies();
+    enforceTargetDrops();
     updateShotState(now);
     updateParticles(delta);
     draw();
@@ -693,7 +792,9 @@
     for (const body of bodies) {
       const data = body.plugin;
       if (!data || !data.dead) continue;
-      Composite.remove(world, body);
+      const removedAt = { x: body.position.x, y: body.position.y };
+      removeBodyFromWorld(body);
+      wakeDynamicBodies(removedAt, 260);
       score += data.score || 0;
       puff(body.position.x, body.position.y, data.kind === "target" ? 20 : 12, data.kind === "target" ? "#ffd760" : "#ffffff");
       updateHud();
@@ -733,6 +834,122 @@
 
   function targetsLeft() {
     return Composite.allBodies(world).filter((body) => body.plugin && body.plugin.kind === "target" && !body.plugin.dead).length;
+  }
+
+  function findSupportUnderTarget(targetBody) {
+    const targetBottom = targetBody.bounds.max.y;
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const body of Composite.allBodies(world)) {
+      const data = body.plugin;
+      if (!data || data.kind !== "block" || data.dead) continue;
+      const horizontallyAligned =
+        body.bounds.min.x <= targetBody.position.x + 28 &&
+        body.bounds.max.x >= targetBody.position.x - 28;
+      if (!horizontallyAligned) continue;
+      const distance = body.bounds.min.y - targetBottom;
+      if (distance < -8 || distance > 150 || distance >= bestDistance) continue;
+      best = body;
+      bestDistance = distance;
+    }
+
+    return best;
+  }
+
+  function removeBodyFromWorld(body) {
+    Composite.remove(world, body);
+    if (Pairs && typeof Pairs.clear === "function" && engine && engine.pairs) {
+      Pairs.clear(engine.pairs);
+    }
+  }
+
+  function wakeDynamicBodies(origin, radius) {
+    if (!world) return;
+    for (const body of Composite.allBodies(world)) {
+      const data = body.plugin;
+      if (!data || data.dead || body.isStatic || data.kind === "terrain" || data.kind === "shot") continue;
+      const distance = origin ? Vector.magnitude(Vector.sub(body.position, origin)) : 0;
+      if (origin && distance > radius) continue;
+      Sleeping.set(body, false);
+      if (data.kind === "target") {
+        Body.setVelocity(body, {
+          x: body.velocity.x,
+          y: Math.max(body.velocity.y, 0.55)
+        });
+        Body.setAngularVelocity(body, body.angularVelocity + (!origin || body.position.x >= origin.x ? 0.012 : -0.012));
+      }
+    }
+  }
+
+  function enforceTargetDrops() {
+    for (const body of Composite.allBodies(world)) {
+      const data = body.plugin;
+      if (!data || data.kind !== "target" || data.dead || body.position.y > GROUND_Y - 18) continue;
+      if (hasSupportBelow(body)) {
+        data.dropFrames = 0;
+        continue;
+      }
+      data.dropFrames = (data.dropFrames || 0) + 1;
+      Sleeping.set(body, false);
+      Body.setVelocity(body, {
+        x: body.velocity.x,
+        y: Math.max(body.velocity.y + 0.42, 1.15)
+      });
+      Body.translate(body, {
+        x: 0,
+        y: Math.min(2.8, 0.45 + data.dropFrames * 0.08)
+      });
+    }
+  }
+
+  function hasSupportBelow(body) {
+    const footY = body.bounds.max.y;
+    for (const other of Composite.allBodies(world)) {
+      if (other === body || !other.bounds) continue;
+      const data = other.plugin;
+      if (!data || data.dead || (data.kind !== "block" && data.kind !== "terrain")) continue;
+      const horizontalOverlap =
+        other.bounds.max.x > body.bounds.min.x + 5 &&
+        other.bounds.min.x < body.bounds.max.x - 5;
+      if (!horizontalOverlap) continue;
+      const gap = other.bounds.min.y - footY;
+      if (gap >= -3 && gap <= 12) return true;
+    }
+    return false;
+  }
+
+  function launchVelocityFromPull(pull) {
+    return {
+      x: pull.x * LAUNCH_POWER,
+      y: pull.y * LAUNCH_POWER
+    };
+  }
+
+  function buildTrajectoryPoints(start, velocity, radius, sampleEvery = TRAJECTORY_SAMPLE_EVERY) {
+    const points = [];
+    let x = start.x;
+    let y = start.y;
+    let vx = velocity.x;
+    let vy = velocity.y;
+    const frictionAir = currentShot && Number.isFinite(currentShot.frictionAir) ? currentShot.frictionAir : 0.01;
+    const air = Math.max(0, 1 - frictionAir * (PHYSICS_STEP / (1000 / 60)));
+    const gravityScale = engine && engine.gravity && Number.isFinite(engine.gravity.scale) ? engine.gravity.scale : 0.001;
+    const gravityStep = (engine && engine.gravity ? engine.gravity.y : 1) * gravityScale * PHYSICS_STEP * PHYSICS_STEP;
+    const groundLimit = GROUND_Y - (radius || 20);
+
+    for (let step = 1; step <= TRAJECTORY_STEPS; step++) {
+      vx *= air;
+      vy = vy * air + gravityStep;
+      x += vx;
+      y += vy;
+      if (step % sampleEvery === 0) {
+        points.push({ x, y, pct: step / TRAJECTORY_STEPS, step });
+      }
+      if (y > groundLimit || x > BASE_W + 160 || x < -160) break;
+    }
+
+    return points;
   }
 
   function updateParticles(delta) {
@@ -1141,17 +1358,11 @@
     if (!currentShot || !drag) return;
     const pull = Vector.sub(SLING, currentShot.position);
     if (Vector.magnitude(pull) < MIN_LAUNCH_PULL) return;
-    const vx = pull.x * LAUNCH_POWER;
-    const vy = pull.y * LAUNCH_POWER;
-    const points = [];
-
-    for (let i = 1; i < 28; i++) {
-      const t = i * 4.4;
-      const x = currentShot.position.x + vx * t;
-      const y = currentShot.position.y + vy * t + 0.5 * engine.gravity.y * 0.18 * t * t;
-      if (y > GROUND_Y - 4) break;
-      points.push({ x, y, pct: i / 28 });
-    }
+    const points = buildTrajectoryPoints(
+      currentShot.position,
+      launchVelocityFromPull(pull),
+      currentShot.plugin && currentShot.plugin.radius
+    );
 
     if (points.length < 2) return;
 

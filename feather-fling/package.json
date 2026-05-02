@@ -6,6 +6,7 @@
   "scripts": {
     "assets": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_sprites.ps1",
     "bgm": "python tools/build_gothic_bgm.py",
+    "physics": "node tools/physics_smoke.js",
     "serve": "npx http-server . -p 8127 -c-1"
   },
   "dependencies": {

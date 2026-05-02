@@ -5,8 +5,6 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
-const out = path.join(root, "smoke-drag-release.png");
-const aimOut = path.join(root, "smoke-aim.png");
 const edgeCandidates = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
@@ -61,9 +59,9 @@ async function waitFor(check, timeout = 8000) {
   while (Date.now() - started < timeout) {
     const result = await check();
     if (result) return result;
-    await wait(100);
+    await wait(50);
   }
-  throw new Error("Timed out waiting for browser state.");
+  throw new Error("Timed out waiting for browser physics state.");
 }
 
 function httpJson(url) {
@@ -128,7 +126,7 @@ async function run() {
   const browser = edgeCandidates.find((candidate) => fs.existsSync(candidate));
   if (!browser) throw new Error("No Edge or Chrome executable found.");
 
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "castle-fling-drag-"));
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "castle-fling-physics-"));
   const child = spawn(browser, [
     "--headless=new",
     "--disable-gpu",
@@ -158,9 +156,9 @@ async function run() {
     await cdp.open();
     await cdp.send("Page.enable");
     await cdp.send("Runtime.enable");
-    await wait(1200);
+    await wait(1000);
 
-    const aimStateResult = await cdp.send("Runtime.evaluate", {
+    const result = await cdp.send("Runtime.evaluate", {
       expression: `(async () => {
         const canvas = document.getElementById("gameCanvas");
         const rect = canvas.getBoundingClientRect();
@@ -172,7 +170,7 @@ async function run() {
           target.dispatchEvent(new PointerEvent(type, {
             bubbles: true,
             cancelable: true,
-            pointerId: 77,
+            pointerId: 91,
             pointerType: "mouse",
             clientX: point.x,
             clientY: point.y,
@@ -196,6 +194,7 @@ async function run() {
           };
           tick();
         });
+
         const start = toClient(176, 405);
         const pull = toClient(78, 470);
         fire(canvas, "pointerdown", start, 1);
@@ -204,79 +203,74 @@ async function run() {
             x: start.x + (pull.x - start.x) * i / 8,
             y: start.y + (pull.y - start.y) * i / 8
           }, 1);
-          await pause(35);
+          await pause(20);
         }
-        return debug.getShotState();
-      })()`,
-      awaitPromise: true,
-      returnByValue: true
-    });
-    const aimShot = aimStateResult.result.value;
-    if (!aimShot || !aimShot.dragging || aimShot.isStatic !== true) {
-      throw new Error(`Shot was not held during drag aim: ${JSON.stringify(aimShot)}`);
-    }
 
-    const aimScreenshot = await cdp.send("Page.captureScreenshot", { format: "png" });
-    fs.writeFileSync(aimOut, Buffer.from(aimScreenshot.data, "base64"));
-
-    const stateResult = await cdp.send("Runtime.evaluate", {
-      expression: `(async () => {
-        const canvas = document.getElementById("gameCanvas");
-        const rect = canvas.getBoundingClientRect();
-        const toClient = (x, y) => ({
-          x: rect.left + x / 1024 * rect.width,
-          y: rect.top + y / 576 * rect.height
-        });
-        const fire = (target, type, point, buttons) => {
-          target.dispatchEvent(new PointerEvent(type, {
-            bubbles: true,
-            cancelable: true,
-            pointerId: 77,
-            pointerType: "mouse",
-            clientX: point.x,
-            clientY: point.y,
-            button: 0,
-            buttons
-          }));
-        };
-        const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-        const debug = await new Promise((resolve, reject) => {
+        const aimPath = debug.getAimPath(1);
+        fire(window, "pointerup", pull, 0);
+        const flight = await new Promise((resolve, reject) => {
           const started = performance.now();
           const tick = () => {
-            if (window.__castleFlingDebug) {
-              resolve(window.__castleFlingDebug);
+            const state = debug.getShotState();
+            if (state && state.launched && state.flightStep >= 20) {
+              resolve(state);
               return;
             }
             if (performance.now() - started > 4000) {
-              reject(new Error("debug state not ready"));
+              reject(new Error("flight did not advance"));
               return;
             }
             requestAnimationFrame(tick);
           };
           tick();
         });
-        const pull = toClient(78, 470);
-        fire(window, "pointerup", pull, 0);
-        await pause(850);
-        return {
-          rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-          state: debug.getShotState()
-        };
+        const predicted = aimPath.find((point) => point.step === flight.flightStep);
+        const distance = predicted
+          ? Math.hypot(predicted.x - flight.x, predicted.y - flight.y)
+          : Infinity;
+
+        document.getElementById("resetButton").click();
+        await pause(120);
+        const beforeTarget = debug.getTargets()[0];
+        const support = debug.removeSupportsBelowFirstTarget();
+        const blocksAfterSupportRemoval = debug.getBlocks();
+        const dropped = await new Promise((resolve, reject) => {
+          const started = performance.now();
+          const tick = () => {
+            const target = debug.getTargets()[0];
+            if (target && target.y > beforeTarget.y + 36 && target.vy > 0) {
+              resolve(target);
+              return;
+            }
+            if (performance.now() - started > 2200) {
+              resolve({ timeout: true, ...(target || {}) });
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+          tick();
+        });
+
+        return { flight, predicted, distance, beforeTarget, support, blocksAfterSupportRemoval, dropped };
       })()`,
       awaitPromise: true,
       returnByValue: true
     });
-    const result = stateResult.result.value;
-    const state = result.state;
-    if (!state || !state.launched || state.isStatic || state.dragging || Math.abs(state.vx) < 0.5) {
-      throw new Error(`Shot did not launch after drag release: ${JSON.stringify(result)}`);
+    if (result.exceptionDetails) {
+      const text = result.exceptionDetails.text || "Runtime.evaluate failed";
+      const detail = result.exceptionDetails.exception && result.exceptionDetails.exception.description;
+      throw new Error(detail || text);
     }
 
-    const screenshot = await cdp.send("Page.captureScreenshot", { format: "png" });
-    fs.writeFileSync(out, Buffer.from(screenshot.data, "base64"));
-    console.log(`Drag release OK: ${JSON.stringify(state)}`);
-    console.log(`Wrote ${aimOut} (${fs.statSync(aimOut).size} bytes)`);
-    console.log(`Wrote ${out} (${fs.statSync(out).size} bytes)`);
+    const value = result.result.value;
+    if (!value.predicted || value.distance > 2.5) {
+      throw new Error(`Trajectory mismatch: ${JSON.stringify(value)}`);
+    }
+    if (!value.support || value.support.count < 1 || !value.dropped || value.dropped.y <= value.beforeTarget.y + 36) {
+      throw new Error(`Target drop mismatch: ${JSON.stringify(value)}`);
+    }
+
+    console.log(`Physics OK: trajectory distance ${value.distance.toFixed(2)}px, target drop ${(value.dropped.y - value.beforeTarget.y).toFixed(1)}px`);
     cdp.close();
   } finally {
     child.kill();
