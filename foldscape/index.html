@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1420">
+  <title>Foldscape</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="gameShell" class="game-shell">
+    <canvas id="gameCanvas" width="960" height="540" aria-label="Foldscape"></canvas>
+
+    <header class="hud" aria-live="polite">
+      <div class="brand">Foldscape</div>
+      <div id="statusLine" class="status-line">Laedt...</div>
+      <div class="hud-buttons">
+        <button id="musicButton" class="icon-button" type="button" aria-label="Musik">M</button>
+        <button id="fullscreenButton" class="icon-button" type="button" aria-label="Vollbild" aria-pressed="false">[]</button>
+      </div>
+    </header>
+
+    <div id="message" class="message" aria-live="polite"></div>
+
+    <nav id="touchControls" class="touch-controls" aria-label="Touch Steuerung">
+      <div class="touch-pad" aria-label="Bewegung">
+        <button class="touch-button touch-up" type="button" data-hold="up" aria-label="Hoch">^</button>
+        <button class="touch-button touch-left" type="button" data-hold="left" aria-label="Links">&lt;</button>
+        <button class="touch-button touch-right" type="button" data-hold="right" aria-label="Rechts">&gt;</button>
+        <button class="touch-button touch-down" type="button" data-hold="down" aria-label="Runter">v</button>
+      </div>
+
+      <div class="touch-actions" aria-label="Aktionen">
+        <button class="touch-chip" type="button" data-press="rotateLeft" aria-label="Links drehen">Q</button>
+        <button class="touch-action" type="button" data-press="jump" aria-label="Springen">A</button>
+        <button class="touch-chip" type="button" data-press="rotateRight" aria-label="Rechts drehen">E</button>
+        <button class="touch-chip wide" type="button" data-press="music" aria-label="Musik">M</button>
+        <button class="touch-chip wide" type="button" data-press="fullscreen" aria-label="Vollbild">Full</button>
+      </div>
+    </nav>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
