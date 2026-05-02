@@ -1058,14 +1058,14 @@
       drawGothicSilhouettes();
     }
 
-    ctx.fillStyle = "rgba(16, 11, 18, 0.35)";
-    ctx.fillRect(0, GROUND_Y - 12, BASE_W, 18);
+    drawBackgroundDepthWash();
 
     if (!drawAiGround()) {
       for (let x = -12; x < BASE_W + 96; x += 96) {
-        drawArt(artImages.floor, x + 48, GROUND_Y + 34, 96, 96, 0, 0.98);
+        drawArt(artImages.floor, x + 48, GROUND_Y + 34, 96, 96, 0, 1);
       }
     }
+    drawForegroundSeparation();
   }
 
   function imageReady(image) {
@@ -1086,6 +1086,25 @@
     ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
     ctx.restore();
     return true;
+  }
+
+  function drawBackgroundDepthWash() {
+    ctx.save();
+    const upperMist = ctx.createLinearGradient(0, 190, 0, GROUND_Y + 18);
+    upperMist.addColorStop(0, "rgba(210, 202, 232, 0.02)");
+    upperMist.addColorStop(0.46, "rgba(174, 159, 205, 0.075)");
+    upperMist.addColorStop(0.82, "rgba(24, 18, 34, 0.22)");
+    upperMist.addColorStop(1, "rgba(5, 4, 8, 0.42)");
+    ctx.fillStyle = upperMist;
+    ctx.fillRect(0, 190, BASE_W, GROUND_Y - 190 + 18);
+
+    const footShadow = ctx.createLinearGradient(0, GROUND_Y - 42, 0, GROUND_Y + 16);
+    footShadow.addColorStop(0, "rgba(1, 1, 3, 0)");
+    footShadow.addColorStop(0.58, "rgba(1, 1, 4, 0.38)");
+    footShadow.addColorStop(1, "rgba(0, 0, 0, 0.68)");
+    ctx.fillStyle = footShadow;
+    ctx.fillRect(0, GROUND_Y - 42, BASE_W, 58);
+    ctx.restore();
   }
 
   function drawAiBackgroundLayers() {
@@ -1169,21 +1188,35 @@
     ];
 
     ctx.save();
-    ctx.fillStyle = "rgba(2, 2, 5, 0.46)";
-    ctx.fillRect(0, GROUND_Y - 8, BASE_W, 18);
+    ctx.fillStyle = "rgba(1, 1, 4, 0.72)";
+    ctx.fillRect(0, GROUND_Y - 14, BASE_W, 25);
     ctx.restore();
 
     for (let x = -22; x < BASE_W + 76; x += 64) {
       const cell = topCells[Math.abs(Math.floor((x + 22) / 64)) % topCells.length];
-      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 32, GROUND_Y + 12, 72, 72, 0, 1, 0.12);
+      drawAiCell(
+        artImages.aiTiles,
+        cell.col,
+        cell.row,
+        8,
+        4,
+        x + 32,
+        GROUND_Y + 12,
+        72,
+        72,
+        0,
+        1,
+        0.12,
+        { color: "rgba(0, 0, 0, 0.86)", blur: 9, y: 5 }
+      );
     }
 
     ctx.save();
-    ctx.globalAlpha = 0.92;
-    ctx.fillStyle = "rgba(5, 3, 8, 0.64)";
+    ctx.globalAlpha = 0.98;
+    ctx.fillStyle = "rgba(3, 2, 6, 0.82)";
     ctx.fillRect(0, GROUND_Y + 22, BASE_W, BASE_H - GROUND_Y);
-    ctx.strokeStyle = "rgba(245, 220, 170, 0.32)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 234, 183, 0.48)";
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y + 2);
     ctx.lineTo(BASE_W, GROUND_Y + 2);
@@ -1192,9 +1225,53 @@
 
     for (let x = -36; x < BASE_W + 96; x += 96) {
       const cell = frontCells[Math.abs(Math.floor((x + 36) / 96)) % frontCells.length];
-      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 48, GROUND_Y + 58, 102, 76, 0, 1, 0.12);
+      drawAiCell(
+        artImages.aiTiles,
+        cell.col,
+        cell.row,
+        8,
+        4,
+        x + 48,
+        GROUND_Y + 58,
+        102,
+        76,
+        0,
+        1,
+        0.12,
+        { color: "rgba(0, 0, 0, 0.9)", blur: 10, y: 7 }
+      );
     }
     return true;
+  }
+
+  function drawForegroundSeparation() {
+    ctx.save();
+    const upperRim = ctx.createLinearGradient(0, GROUND_Y - 18, 0, GROUND_Y + 16);
+    upperRim.addColorStop(0, "rgba(0, 0, 0, 0)");
+    upperRim.addColorStop(0.42, "rgba(0, 0, 0, 0.48)");
+    upperRim.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = upperRim;
+    ctx.fillRect(0, GROUND_Y - 18, BASE_W, 34);
+
+    ctx.lineCap = "round";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.86)";
+    ctx.shadowBlur = 9;
+    ctx.shadowOffsetY = 4;
+    ctx.strokeStyle = "rgba(255, 232, 176, 0.56)";
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y + 1.5);
+    ctx.lineTo(BASE_W, GROUND_Y + 1.5);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(8, 5, 10, 0.78)";
+    ctx.lineWidth = 3.4;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y + 18);
+    ctx.lineTo(BASE_W, GROUND_Y + 18);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawAiCell(image, col, row, cols, rows, x, y, w, h, rotation = 0, alpha = 1, inset = 0.06, shadow = null) {
@@ -1430,14 +1507,19 @@
     const p = body.position;
 
     if (data.kind === "shot") {
+      drawContactShadow(body, 30, 0.24);
       drawBirdShot(body, data.sprite || currentShotSprite);
       return;
     }
 
     if (data.kind === "target") {
       const scale = data.enemy === "knight" ? 68 : data.enemy === "bat" ? 58 : 62;
+      drawContactShadow(body, scale * 0.44, data.enemy === "bat" ? 0.14 : 0.32);
       if (
-        !drawSprite(data.enemy, p.x, p.y, scale, scale, body.angle, { fallback: false }) &&
+        !drawSprite(data.enemy, p.x, p.y, scale, scale, body.angle, {
+          fallback: false,
+          shadow: { color: "rgba(0, 0, 0, 0.9)", blur: 12, y: 5 }
+        }) &&
         !drawArt(artImages[data.enemy], p.x, p.y, scale, scale, body.angle, 1)
       ) {
         drawSprite("skull", p.x, p.y, 56, 56, body.angle);
@@ -1448,9 +1530,27 @@
 
     if (data.kind === "block") {
       const alpha = Math.max(0.35, Math.min(1, data.health / data.maxHealth));
-      drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle, { alpha });
+      drawContactShadow(body, Math.max(data.width, data.height) * 0.42, 0.3);
+      drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle, {
+        alpha,
+        shadow: { color: "rgba(0, 0, 0, 0.88)", blur: 10, y: 5 }
+      });
       if (alpha < 0.7) drawCracks(p.x, p.y, data.width, data.height, body.angle);
     }
+  }
+
+  function drawContactShadow(body, width, alpha) {
+    if (!body || body.position.y > GROUND_Y + 32) return;
+    const drop = Math.max(0, Math.min(1, 1 - Math.max(0, GROUND_Y - body.bounds.max.y) / 150));
+    if (drop <= 0.02) return;
+    ctx.save();
+    ctx.globalAlpha = alpha * drop;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
+    ctx.filter = "blur(1.5px)";
+    ctx.beginPath();
+    ctx.ellipse(body.position.x, Math.min(GROUND_Y + 7, body.bounds.max.y + 7), width, Math.max(5, width * 0.18), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawBirdShot(body, spriteKey) {

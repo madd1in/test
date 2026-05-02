@@ -3,6 +3,7 @@
 Ein lokales Gothic-Schleuder-Physics-Spiel mit ChatGPT-Image-Maps, eigener Spritemap, lokaler BGM und Touch-Swipe-Steuerung.
 Die Spielflaeche wird per CSS auf die volle verfuegbare Displayflaeche gestreckt, waehrend die interne Physikwelt stabil bei 1024x576 bleibt.
 Die Zielkurve nutzt denselben festen Matter.js-Zeitschritt wie der echte Flug, und Gegner werden beim Wegbrechen von Plattformen aktiv geweckt.
+Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wash fuer klarere Tiefentrennung.
 
 ## Dateien
 
