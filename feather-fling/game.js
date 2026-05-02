@@ -127,19 +127,19 @@
       name: "Clocktower Ruin",
       shots: ["relic-crimson", "relic-violet", "relic-gold", "relic-azure"],
       build() {
-        block(810, 514, 264, 22, "stone-long");
-        block(704, 493, 42, 58, "stone-block");
-        block(764, 493, 38, 62, "wood-block");
-        block(856, 493, 38, 62, "wood-block");
-        block(916, 493, 42, 58, "stone-block");
-        block(810, 450, 250, 24, "glass-long");
-        block(742, 407, 32, 78, "wood-block", -0.08);
-        block(878, 407, 32, 78, "wood-block", 0.08);
-        block(810, 366, 188, 24, "stone-long");
-        block(810, 326, 126, 22, "wood-long");
-        target(810, 285, "knight");
-        target(742, 365, "skeleton");
-        target(878, 365, "phantom");
+        block(810, 510, 264, 22, "stone-long");
+        block(704, 472, 42, 58, "stone-block");
+        block(764, 470, 38, 62, "wood-block");
+        block(856, 470, 38, 62, "wood-block");
+        block(916, 472, 42, 58, "stone-block");
+        block(810, 431, 250, 24, "glass-long");
+        block(742, 380, 32, 78, "wood-block", -0.025);
+        block(878, 380, 32, 78, "wood-block", 0.025);
+        block(810, 329, 188, 24, "stone-long");
+        block(810, 306, 126, 22, "wood-long");
+        target(810, 273, "knight");
+        target(704, 397, "skeleton");
+        target(916, 397, "phantom");
       }
     }
   ];
@@ -259,6 +259,7 @@
 
   detectTouchMode();
   resizeCanvas();
+  levelIndex = initialLevelIndex();
   resetLevel(true);
   exposeDebugState();
   if (query.has("autolaunch")) {
@@ -274,6 +275,12 @@
   function detectTouchMode() {
     touchMode = Boolean(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
     document.body.classList.toggle("touch-mode", touchMode);
+  }
+
+  function initialLevelIndex() {
+    const requestedLevel = Number(query.get("level"));
+    if (!Number.isFinite(requestedLevel)) return 0;
+    return Math.max(0, Math.min(LEVELS.length - 1, Math.floor(requestedLevel) - 1));
   }
 
   function playMusic() {

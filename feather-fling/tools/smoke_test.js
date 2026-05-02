@@ -6,7 +6,19 @@ const { spawn } = require("child_process");
 const root = path.resolve(__dirname, "..");
 const isMobile = process.argv.includes("--mobile");
 const isLaunch = process.argv.includes("--launch");
-const out = path.join(root, isLaunch ? "smoke-launch.png" : isMobile ? "smoke-mobile.png" : "smoke.png");
+const levelArg = process.argv.find((arg) => arg.startsWith("--level="));
+const requestedLevel = levelArg ? Number(levelArg.split("=")[1]) : null;
+const levelQuery = Number.isFinite(requestedLevel) && requestedLevel > 0 ? `?level=${Math.floor(requestedLevel)}` : "";
+const out = path.join(
+  root,
+  isLaunch
+    ? "smoke-launch.png"
+    : levelQuery
+      ? `smoke-level-${Math.floor(requestedLevel)}${isMobile ? "-mobile" : ""}.png`
+      : isMobile
+        ? "smoke-mobile.png"
+        : "smoke.png"
+);
 const edgeCandidates = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
@@ -55,7 +67,7 @@ function runBrowser(browserPath, port) {
       "--no-first-run",
       isMobile ? "--window-size=390,844" : "--window-size=1280,720",
       `--screenshot=${out}`,
-      `http://127.0.0.1:${port}/${isLaunch ? "?autolaunch=1&instant=1" : ""}`
+      `http://127.0.0.1:${port}/${isLaunch ? "?autolaunch=1&instant=1" : levelQuery}`
     ];
     const child = spawn(browserPath, args, { stdio: "pipe" });
     let stderr = "";

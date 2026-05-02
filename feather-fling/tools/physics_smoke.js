@@ -270,7 +270,74 @@ async function run() {
       throw new Error(`Target drop mismatch: ${JSON.stringify(value)}`);
     }
 
-    console.log(`Physics OK: trajectory distance ${value.distance.toFixed(2)}px, target drop ${(value.dropped.y - value.beforeTarget.y).toFixed(1)}px`);
+    await cdp.send("Page.navigate", { url: `http://127.0.0.1:${port}/?level=3&stability=1` });
+    await wait(1000);
+    const stabilityResult = await cdp.send("Runtime.evaluate", {
+      expression: `(async () => {
+        const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const debug = await new Promise((resolve, reject) => {
+          const started = performance.now();
+          const tick = () => {
+            if (window.__castleFlingDebug) {
+              resolve(window.__castleFlingDebug);
+              return;
+            }
+            if (performance.now() - started > 4000) {
+              reject(new Error("debug state not ready"));
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+          tick();
+        });
+        await pause(300);
+        const beforeTargets = debug.getTargets();
+        const beforeBlocks = debug.getBlocks();
+        await pause(2600);
+        const afterTargets = debug.getTargets();
+        const afterBlocks = debug.getBlocks();
+        const maxTargetDrop = Math.max(0, ...afterTargets.map((target, index) => {
+          const before = beforeTargets[index];
+          return before ? target.y - before.y : 999;
+        }));
+        const maxBlockMove = Math.max(0, ...afterBlocks.map((block, index) => {
+          const before = beforeBlocks[index];
+          return before ? Math.hypot(block.x - before.x, block.y - before.y) : 999;
+        }));
+        return {
+          beforeTargets,
+          afterTargets,
+          beforeBlocks,
+          afterBlocks,
+          maxTargetDrop,
+          maxBlockMove,
+          targetCount: afterTargets.length,
+          blockCount: afterBlocks.length,
+          deadTargets: afterTargets.filter((target) => target.dead).length
+        };
+      })()`,
+      awaitPromise: true,
+      returnByValue: true
+    });
+    if (stabilityResult.exceptionDetails) {
+      const text = stabilityResult.exceptionDetails.text || "Runtime.evaluate failed";
+      const detail = stabilityResult.exceptionDetails.exception && stabilityResult.exceptionDetails.exception.description;
+      throw new Error(detail || text);
+    }
+
+    const stability = stabilityResult.result.value;
+    if (
+      stability.targetCount !== 3 ||
+      stability.deadTargets > 0 ||
+      stability.maxTargetDrop > 24 ||
+      stability.maxBlockMove > 26
+    ) {
+      throw new Error(`Level 3 stability mismatch: ${JSON.stringify(stability)}`);
+    }
+
+    console.log(
+      `Physics OK: trajectory distance ${value.distance.toFixed(2)}px, target drop ${(value.dropped.y - value.beforeTarget.y).toFixed(1)}px, level 3 max drift ${stability.maxBlockMove.toFixed(1)}px`
+    );
     cdp.close();
   } finally {
     child.kill();
