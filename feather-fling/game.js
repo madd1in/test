@@ -29,7 +29,36 @@
     "relic-emerald": { x: 64, y: 128, w: 64, h: 64 }
   };
 
+  const AI_SPRITE_GRID = { cols: 8, rows: 4 };
+  const AI_SPRITES = {
+    "relic-crimson": { col: 0, row: 0 },
+    "relic-violet": { col: 1, row: 0 },
+    "relic-azure": { col: 2, row: 0 },
+    "relic-emerald": { col: 3, row: 0 },
+    "relic-gold": { col: 4, row: 0 },
+    sling: { col: 6, row: 0 },
+    skull: { col: 7, row: 0 },
+    skeleton: { col: 0, row: 1 },
+    bat: { col: 1, row: 1 },
+    knight: { col: 2, row: 1 },
+    phantom: { col: 3, row: 1 },
+    puff: { col: 4, row: 1 },
+    star: { col: 5, row: 1 },
+    "wood-block": { col: 6, row: 1 },
+    crate: { col: 6, row: 1 },
+    "stone-block": { col: 7, row: 1 },
+    "stone-long": { col: 0, row: 2 },
+    "wood-long": { col: 3, row: 3 },
+    "glass-block": { col: 6, row: 3 },
+    "glass-long": { col: 6, row: 3 },
+    ground: { col: 0, row: 3 },
+    leaf: { col: 5, row: 3 }
+  };
+
   const ART_SOURCES = {
+    aiBackground: "assets/ai/ai-background-map.png",
+    aiTiles: "assets/ai/ai-tile-map.png",
+    aiSprites: "assets/ai/ai-sprite-map.png",
     bgFar: "assets/gothic/bg_stage1_far.png",
     bgMid: "assets/gothic/bg_stage1_mid.png",
     floor: "assets/gothic/ig_floor_00.png",
@@ -144,6 +173,11 @@
   spriteImage.src = "assets/sprite-map.png";
   for (const [key, src] of Object.entries(ART_SOURCES)) {
     const img = new Image();
+    if (key === "aiSprites") {
+      img.addEventListener("load", () => {
+        artImages.aiSpritesKeyed = createTransparentSpriteSheet(img);
+      });
+    }
     img.src = src;
     artImages[key] = img;
   }
@@ -649,46 +683,60 @@
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    drawImageCover(artImages.bgFar, 0, 0, BASE_W, BASE_H, 0.82);
+    const aiBackdrop = drawImageCover(artImages.aiBackground, 0, 0, BASE_W, BASE_H, 1);
 
-    ctx.save();
-    ctx.globalCompositeOperation = "screen";
-    const moon = ctx.createRadialGradient(778, 118, 8, 778, 118, 82);
-    moon.addColorStop(0, "rgba(255, 233, 180, 0.62)");
-    moon.addColorStop(0.42, "rgba(199, 133, 120, 0.18)");
-    moon.addColorStop(1, "rgba(199, 133, 120, 0)");
-    ctx.fillStyle = moon;
-    ctx.beginPath();
-    ctx.arc(778, 118, 82, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    if (!aiBackdrop) {
+      drawImageCover(artImages.bgFar, 0, 0, BASE_W, BASE_H, 0.82);
 
-    drawImageCover(artImages.bgMid, 0, 0, BASE_W, BASE_H, 0.9);
-    drawGothicSilhouettes();
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      const moon = ctx.createRadialGradient(778, 118, 8, 778, 118, 82);
+      moon.addColorStop(0, "rgba(255, 233, 180, 0.62)");
+      moon.addColorStop(0.42, "rgba(199, 133, 120, 0.18)");
+      moon.addColorStop(1, "rgba(199, 133, 120, 0)");
+      ctx.fillStyle = moon;
+      ctx.beginPath();
+      ctx.arc(778, 118, 82, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      drawImageCover(artImages.bgMid, 0, 0, BASE_W, BASE_H, 0.9);
+      drawGothicSilhouettes();
+    } else {
+      ctx.save();
+      ctx.fillStyle = "rgba(7, 4, 10, 0.15)";
+      ctx.fillRect(0, 0, BASE_W, BASE_H);
+      ctx.restore();
+    }
 
     ctx.fillStyle = "rgba(16, 11, 18, 0.35)";
     ctx.fillRect(0, GROUND_Y - 12, BASE_W, 18);
 
-    for (let x = -12; x < BASE_W + 96; x += 96) {
-      drawArt(artImages.floor, x + 48, GROUND_Y + 34, 96, 96, 0, 0.98);
+    if (!drawAiGround()) {
+      for (let x = -12; x < BASE_W + 96; x += 96) {
+        drawArt(artImages.floor, x + 48, GROUND_Y + 34, 96, 96, 0, 0.98);
+      }
     }
   }
 
   function imageReady(image) {
-    return image && image.complete && image.naturalWidth > 0;
+    const w = image ? image.naturalWidth || image.width || 0 : 0;
+    const h = image ? image.naturalHeight || image.height || 0 : 0;
+    return Boolean(image && w > 0 && h > 0 && (image.complete !== false));
   }
 
   function drawImageCover(image, x, y, w, h, alpha = 1) {
-    if (!imageReady(image)) return;
+    if (!imageReady(image)) return false;
     const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
     const sw = w / scale;
     const sh = h / scale;
     const sx = (image.naturalWidth - sw) / 2;
     const sy = (image.naturalHeight - sh) / 2;
     ctx.save();
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha *= alpha;
     ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
     ctx.restore();
+    return true;
   }
 
   function drawArt(image, x, y, w, h, rotation = 0, alpha = 1) {
@@ -700,6 +748,88 @@
     ctx.drawImage(image, -w / 2, -h / 2, w, h);
     ctx.restore();
     return true;
+  }
+
+  function drawAiGround() {
+    if (!imageReady(artImages.aiTiles)) return false;
+    const topCells = [
+      { col: 0, row: 0 },
+      { col: 1, row: 0 },
+      { col: 2, row: 0 },
+      { col: 3, row: 1 }
+    ];
+    const frontCells = [
+      { col: 0, row: 0 },
+      { col: 1, row: 0 },
+      { col: 2, row: 0 }
+    ];
+
+    for (let x = -22; x < BASE_W + 76; x += 64) {
+      const cell = topCells[Math.abs(Math.floor((x + 22) / 64)) % topCells.length];
+      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 32, GROUND_Y + 12, 72, 72, 0, 0.98, 0.12);
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.84;
+    ctx.fillStyle = "rgba(8, 5, 10, 0.48)";
+    ctx.fillRect(0, GROUND_Y + 22, BASE_W, BASE_H - GROUND_Y);
+    ctx.restore();
+
+    for (let x = -36; x < BASE_W + 96; x += 96) {
+      const cell = frontCells[Math.abs(Math.floor((x + 36) / 96)) % frontCells.length];
+      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 48, GROUND_Y + 58, 102, 76, 0, 0.9, 0.12);
+    }
+    return true;
+  }
+
+  function drawAiCell(image, col, row, cols, rows, x, y, w, h, rotation = 0, alpha = 1, inset = 0.06) {
+    if (!imageReady(image)) return false;
+    const sourceW = image.naturalWidth || image.width;
+    const sourceH = image.naturalHeight || image.height;
+    const cellW = sourceW / cols;
+    const cellH = sourceH / rows;
+    const sx = col * cellW + cellW * inset;
+    const sy = row * cellH + cellH * inset;
+    const sw = cellW * (1 - inset * 2);
+    const sh = cellH * (1 - inset * 2);
+
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rotation || 0);
+    ctx.drawImage(image, sx, sy, sw, sh, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    return true;
+  }
+
+  function createTransparentSpriteSheet(image) {
+    const sheet = document.createElement("canvas");
+    sheet.width = image.naturalWidth;
+    sheet.height = image.naturalHeight;
+    const sheetCtx = sheet.getContext("2d", { willReadFrequently: true });
+    sheetCtx.drawImage(image, 0, 0);
+    const pixels = sheetCtx.getImageData(0, 0, sheet.width, sheet.height);
+    const data = pixels.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const chroma = max - min;
+      const veryDark = max < 30;
+      const darkSheetBackdrop = max < 48 && b >= r && b >= g && chroma < 30;
+
+      if (veryDark || darkSheetBackdrop) {
+        data[i + 3] = 0;
+      } else if (max < 58 && chroma < 34) {
+        data[i + 3] = Math.min(data[i + 3], 120);
+      }
+    }
+
+    sheetCtx.putImageData(pixels, 0, 0);
+    return sheet;
   }
 
   function drawGothicSilhouettes() {
@@ -801,7 +931,10 @@
 
     if (data.kind === "target") {
       const scale = data.enemy === "knight" ? 68 : data.enemy === "bat" ? 58 : 62;
-      if (!drawArt(artImages[data.enemy], p.x, p.y, scale, scale, body.angle, 1)) {
+      if (
+        !drawSprite(data.enemy, p.x, p.y, scale, scale, body.angle, { fallback: false }) &&
+        !drawArt(artImages[data.enemy], p.x, p.y, scale, scale, body.angle, 1)
+      ) {
         drawSprite("skull", p.x, p.y, 56, 56, body.angle);
       }
       drawHealthRing(body, 31);
@@ -810,28 +943,58 @@
 
     if (data.kind === "block") {
       const alpha = Math.max(0.35, Math.min(1, data.health / data.maxHealth));
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle);
-      ctx.restore();
+      drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle, { alpha });
       if (alpha < 0.7) drawCracks(p.x, p.y, data.width, data.height, body.angle);
     }
   }
 
-  function drawSprite(key, x, y, w, h, rotation) {
-    const frame = FRAMES[key];
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rotation || 0);
-
-    if (spriteReady && frame) {
-      ctx.drawImage(spriteImage, frame.x, frame.y, frame.w, frame.h, -w / 2, -h / 2, w, h);
-    } else {
-      ctx.fillStyle = fallbackColor(key);
-      ctx.fillRect(-w / 2, -h / 2, w, h);
+  function drawSprite(key, x, y, w, h, rotation, options = {}) {
+    const safeKey = key || "";
+    const alpha = options.alpha === undefined ? 1 : options.alpha;
+    const aiCell = AI_SPRITES[safeKey];
+    const aiSpriteSheet = artImages.aiSpritesKeyed || artImages.aiSprites;
+    if (
+      aiCell &&
+      drawAiCell(
+        aiSpriteSheet,
+        aiCell.col,
+        aiCell.row,
+        AI_SPRITE_GRID.cols,
+        AI_SPRITE_GRID.rows,
+        x,
+        y,
+        w,
+        h,
+        rotation,
+        alpha,
+        0.055
+      )
+    ) {
+      return true;
     }
 
+    const frame = FRAMES[key];
+
+    if (spriteReady && frame) {
+      ctx.save();
+      ctx.globalAlpha *= alpha;
+      ctx.translate(x, y);
+      ctx.rotate(rotation || 0);
+      ctx.drawImage(spriteImage, frame.x, frame.y, frame.w, frame.h, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      return true;
+    }
+
+    if (options.fallback === false) return false;
+
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rotation || 0);
+    ctx.fillStyle = fallbackColor(safeKey);
+    ctx.fillRect(-w / 2, -h / 2, w, h);
     ctx.restore();
+    return false;
   }
 
   function fallbackColor(key) {
@@ -883,7 +1046,7 @@
       const alpha = Math.max(0, particle.life / 800);
       ctx.save();
       ctx.globalAlpha = Math.min(1, alpha);
-      if (spriteReady) {
+      if (spriteReady || imageReady(artImages.aiSprites)) {
         drawSprite(particle.color === "#ffd760" ? "star" : "puff", particle.x, particle.y, particle.size, particle.size, 0);
       } else {
         ctx.fillStyle = particle.color;
