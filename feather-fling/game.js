@@ -6,7 +6,8 @@
   const GROUND_Y = 522;
   const SLING = { x: 176, y: 405 };
   const MAX_PULL = 112;
-  const LAUNCH_POWER = 0.175;
+  const MIN_LAUNCH_PULL = 8;
+  const LAUNCH_POWER = 0.205;
 
   const FRAMES = {
     "relic-crimson": { x: 0, y: 0, w: 64, h: 64 },
@@ -30,6 +31,14 @@
   };
 
   const AI_SPRITE_GRID = { cols: 8, rows: 4 };
+  const BIRD_GRID = { cols: 6, rows: 5 };
+  const BIRD_ROWS = {
+    "relic-crimson": 0,
+    "relic-azure": 1,
+    "relic-gold": 2,
+    "relic-violet": 3,
+    "relic-emerald": 4
+  };
   const AI_SPRITES = {
     "relic-crimson": { col: 0, row: 0 },
     "relic-violet": { col: 1, row: 0 },
@@ -59,6 +68,7 @@
     aiBackground: "assets/ai/ai-background-map.png",
     aiTiles: "assets/ai/ai-tile-map.png",
     aiSprites: "assets/ai/ai-sprite-map.png",
+    aiBirds: "assets/ai/ai-bird-animation-map.png",
     bgFar: "assets/gothic/bg_stage1_far.png",
     bgMid: "assets/gothic/bg_stage1_mid.png",
     floor: "assets/gothic/ig_floor_00.png",
@@ -164,6 +174,7 @@
     Composite,
     Bodies,
     Body,
+    Sleeping,
     Vector
   } = M;
 
@@ -208,10 +219,17 @@
   canvas.addEventListener("pointermove", pointerMove);
   canvas.addEventListener("pointerup", pointerUp);
   canvas.addEventListener("pointercancel", pointerUp);
-  canvas.addEventListener("lostpointercapture", pointerUp);
+  canvas.addEventListener("lostpointercapture", pointerLostCapture);
   window.addEventListener("pointermove", pointerMove, { passive: false });
   window.addEventListener("pointerup", pointerUp, { passive: false });
   window.addEventListener("pointercancel", pointerUp, { passive: false });
+  document.addEventListener("mouseup", finishDragFromDocument, true);
+  document.addEventListener("touchend", finishDragFromDocument, true);
+  document.addEventListener("touchcancel", finishDragFromDocument, true);
+  window.addEventListener("blur", finishDragFromDocument);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) finishDragFromDocument();
+  });
   window.addEventListener("resize", resizeCanvas);
   document.addEventListener("fullscreenchange", updateFullscreenButton);
   document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
@@ -219,6 +237,7 @@
   detectTouchMode();
   resizeCanvas();
   resetLevel(true);
+  exposeDebugState();
   if (query.has("autolaunch")) {
     setTimeout(() => {
       if (currentShot && !launched) {
@@ -243,6 +262,24 @@
         updateAudioButton();
       });
     }
+  }
+
+  function exposeDebugState() {
+    window.__castleFlingDebug = {
+      getShotState() {
+        if (!currentShot) return null;
+        return {
+          x: currentShot.position.x,
+          y: currentShot.position.y,
+          vx: currentShot.velocity.x,
+          vy: currentShot.velocity.y,
+          isStatic: currentShot.isStatic,
+          launched,
+          dragging: Boolean(drag),
+          sprite: currentShot.plugin ? currentShot.plugin.sprite : currentShotSprite
+        };
+      }
+    };
   }
 
   function updateAudioButton() {
@@ -335,10 +372,17 @@
         const rel = Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
         const speed = Vector.magnitude(rel);
         if (speed < 1.3) continue;
+        markShotImpact(pair.bodyA, speed);
+        markShotImpact(pair.bodyB, speed);
         damage(pair.bodyA, pair.bodyB, speed);
         damage(pair.bodyB, pair.bodyA, speed);
       }
     });
+  }
+
+  function markShotImpact(body, speed) {
+    if (!body.plugin || body.plugin.kind !== "shot" || speed < 2.1) return;
+    body.plugin.impactUntil = performance.now() + 240;
   }
 
   function block(x, y, w, h, sprite, angle = 0) {
@@ -405,7 +449,6 @@
     }
 
     const body = Bodies.circle(SLING.x, SLING.y, 20, {
-      isStatic: true,
       friction: 0.4,
       restitution: 0.34,
       density: 0.005,
@@ -416,6 +459,7 @@
         radius: 20
       }
     });
+    Body.setStatic(body, true);
     currentShot = body;
     launched = false;
     launchStarted = 0;
@@ -452,6 +496,7 @@
       updateAudioButton();
     }
     const point = pointerPoint(event);
+    if (!point) return;
     const distance = Vector.magnitude(Vector.sub(point, currentShot.position));
     const mobileSwipeStart = touchMode && point.x < 360 && point.y > 180;
     if (distance > 46 && !mobileSwipeStart) return;
@@ -462,7 +507,15 @@
         // Window-level listeners still complete the release path if capture is unavailable.
       }
     }
-    drag = { id: event.pointerId, mobileSwipe: mobileSwipeStart, start: point };
+    drag = {
+      id: event.pointerId,
+      pointerType: event.pointerType || "mouse",
+      mobileSwipe: mobileSwipeStart,
+      start: point,
+      last: point,
+      maxPull: 0,
+      startedAt: performance.now()
+    };
     Body.setStatic(currentShot, true);
     Body.setVelocity(currentShot, { x: 0, y: 0 });
     Body.setAngularVelocity(currentShot, 0);
@@ -473,10 +526,11 @@
     if (!drag || drag.id !== event.pointerId || !currentShot) return;
     event.preventDefault();
     if (event.buttons === 0 && event.pointerType !== "touch") {
-      pointerUp(event);
+      finishDrag(event);
       return;
     }
     const point = pointerPoint(event);
+    if (!point) return;
     if (drag.mobileSwipe) {
       moveShotToPull({
         x: SLING.x + point.x - drag.start.x,
@@ -488,37 +542,78 @@
   }
 
   function pointerUp(event) {
-    if (!drag || drag.id !== event.pointerId || !currentShot) return;
+    if (!drag || !currentShot) return;
+    if (event.pointerId !== undefined && drag.id !== event.pointerId) return;
     event.preventDefault();
-    releasePointer(event.pointerId);
+    finishDrag(event);
+  }
+
+  function pointerLostCapture(event) {
+    if (!drag || !currentShot) return;
+    if (event.pointerId !== undefined && drag.id !== event.pointerId) return;
+    if (performance.now() - drag.startedAt < 40) return;
+    finishDrag(event);
+  }
+
+  function finishDragFromDocument(event) {
+    if (!drag || !currentShot) return;
+    if (event && event.pointerId !== undefined && drag.id !== event.pointerId) return;
+    finishDrag(event);
+  }
+
+  function finishDrag(event) {
+    if (!drag || !currentShot) return;
+    if (event && event.preventDefault) event.preventDefault();
+    const pointerId = event && event.pointerId !== undefined ? event.pointerId : drag.id;
+    releasePointer(pointerId);
     launchCurrentShot();
   }
 
   function launchCurrentShot() {
-    const pull = Vector.sub(SLING, currentShot.position);
-    const distance = Vector.magnitude(pull);
+    const shot = currentShot;
+    let pull = Vector.sub(SLING, shot.position);
+    let distance = Vector.magnitude(pull);
+    const rememberedPull = drag && drag.launchPull;
+    if (distance < MIN_LAUNCH_PULL && rememberedPull && Vector.magnitude(rememberedPull) >= MIN_LAUNCH_PULL) {
+      pull = rememberedPull;
+      distance = Vector.magnitude(pull);
+      Body.setPosition(shot, {
+        x: SLING.x - pull.x,
+        y: SLING.y - pull.y
+      });
+    }
+    const hadIntent = drag && drag.maxPull >= MIN_LAUNCH_PULL;
     drag = null;
 
-    if (distance < 12) {
-      Body.setPosition(currentShot, SLING);
+    if (distance < MIN_LAUNCH_PULL && !hadIntent) {
+      Body.setPosition(shot, SLING);
       return;
     }
 
-    Body.setStatic(currentShot, false);
-    Body.setVelocity(currentShot, {
+    Body.setStatic(shot, false);
+    Sleeping.set(shot, false);
+    Body.setPosition(shot, {
+      x: shot.position.x,
+      y: shot.position.y
+    });
+    Body.setVelocity(shot, {
       x: pull.x * LAUNCH_POWER,
       y: pull.y * LAUNCH_POWER
     });
-    Body.setAngularVelocity(currentShot, -pull.x * 0.006);
+    Body.setAngularVelocity(shot, -pull.x * 0.008);
     launched = true;
     launchStarted = performance.now();
     settleStarted = 0;
-    puff(currentShot.position.x, currentShot.position.y, 10, "#f0d79a");
+    if (shot.plugin) shot.plugin.launchedAt = launchStarted;
+    puff(shot.position.x, shot.position.y, 10, "#f0d79a");
     updateHud();
   }
 
   function pointerPoint(event) {
     const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) {
+      return null;
+    }
     return {
       x: (event.clientX - rect.left) * BASE_W / rect.width,
       y: (event.clientY - rect.top) * BASE_H / rect.height
@@ -536,9 +631,18 @@
   }
 
   function moveShotToPull(point) {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
     const delta = Vector.sub(point, SLING);
     const dist = Vector.magnitude(delta);
     const clamped = dist > MAX_PULL ? Vector.mult(Vector.normalise(delta), MAX_PULL) : delta;
+    if (drag) {
+      drag.last = point;
+      drag.maxPull = Math.max(drag.maxPull, Vector.magnitude(clamped));
+      drag.launchPull = {
+        x: -clamped.x,
+        y: -clamped.y
+      };
+    }
     Body.setPosition(currentShot, {
       x: SLING.x + clamped.x,
       y: SLING.y + clamped.y
@@ -683,10 +787,10 @@
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    const aiBackdrop = drawImageCover(artImages.aiBackground, 0, 0, BASE_W, BASE_H, 1);
+    const aiBackdrop = drawAiBackgroundLayers();
 
     if (!aiBackdrop) {
-      drawImageCover(artImages.bgFar, 0, 0, BASE_W, BASE_H, 0.82);
+      drawImageCover(artImages.bgFar, 0, 0, BASE_W, BASE_H, 0.38);
 
       ctx.save();
       ctx.globalCompositeOperation = "screen";
@@ -700,13 +804,17 @@
       ctx.fill();
       ctx.restore();
 
-      drawImageCover(artImages.bgMid, 0, 0, BASE_W, BASE_H, 0.9);
-      drawGothicSilhouettes();
-    } else {
       ctx.save();
-      ctx.fillStyle = "rgba(7, 4, 10, 0.15)";
-      ctx.fillRect(0, 0, BASE_W, BASE_H);
+      const farMist = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      farMist.addColorStop(0, "rgba(222, 213, 238, 0.26)");
+      farMist.addColorStop(0.48, "rgba(160, 137, 190, 0.13)");
+      farMist.addColorStop(1, "rgba(45, 31, 57, 0)");
+      ctx.fillStyle = farMist;
+      ctx.fillRect(0, 0, BASE_W, GROUND_Y);
       ctx.restore();
+
+      drawImageCover(artImages.bgMid, 0, 0, BASE_W, BASE_H, 0.62);
+      drawGothicSilhouettes();
     }
 
     ctx.fillStyle = "rgba(16, 11, 18, 0.35)";
@@ -735,6 +843,50 @@
     ctx.save();
     ctx.globalAlpha *= alpha;
     ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
+    ctx.restore();
+    return true;
+  }
+
+  function drawAiBackgroundLayers() {
+    if (!imageReady(artImages.aiBackground)) return false;
+    drawImageCover(artImages.aiBackground, 0, 0, BASE_W, BASE_H, 0.48);
+
+    ctx.save();
+    const farWash = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    farWash.addColorStop(0, "rgba(235, 226, 255, 0.34)");
+    farWash.addColorStop(0.34, "rgba(185, 163, 221, 0.22)");
+    farWash.addColorStop(0.66, "rgba(84, 62, 105, 0.08)");
+    farWash.addColorStop(1, "rgba(8, 5, 12, 0)");
+    ctx.fillStyle = farWash;
+    ctx.fillRect(0, 0, BASE_W, GROUND_Y);
+    ctx.restore();
+
+    drawImageCoverSlice(artImages.aiBackground, 218, 210, 0.32);
+    drawImageCoverSlice(artImages.aiBackground, 354, 168, 0.56);
+
+    ctx.save();
+    const nearShade = ctx.createLinearGradient(0, 318, 0, GROUND_Y + 10);
+    nearShade.addColorStop(0, "rgba(10, 7, 14, 0)");
+    nearShade.addColorStop(1, "rgba(5, 4, 8, 0.26)");
+    ctx.fillStyle = nearShade;
+    ctx.fillRect(0, 300, BASE_W, GROUND_Y - 300 + 10);
+    ctx.restore();
+
+    return true;
+  }
+
+  function drawImageCoverSlice(image, destY, destH, alpha = 1) {
+    if (!imageReady(image)) return false;
+    const imageW = image.naturalWidth || image.width;
+    const imageH = image.naturalHeight || image.height;
+    const scale = Math.max(BASE_W / imageW, BASE_H / imageH);
+    const sw = BASE_W / scale;
+    const sh = destH / scale;
+    const sx = (imageW - sw) / 2;
+    const sy = (imageH - BASE_H / scale) / 2 + destY / scale;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(image, sx, sy, sw, sh, 0, destY, BASE_W, destH);
     ctx.restore();
     return true;
   }
@@ -925,7 +1077,7 @@
     const p = body.position;
 
     if (data.kind === "shot") {
-      drawSprite(data.sprite || currentShotSprite, p.x, p.y, 54, 54, body.angle);
+      drawBirdShot(body, data.sprite || currentShotSprite);
       return;
     }
 
@@ -946,6 +1098,35 @@
       drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle, { alpha });
       if (alpha < 0.7) drawCracks(p.x, p.y, data.width, data.height, body.angle);
     }
+  }
+
+  function drawBirdShot(body, spriteKey) {
+    const row = BIRD_ROWS[spriteKey];
+    const p = body.position;
+    const speed = Vector.magnitude(body.velocity);
+    const now = performance.now();
+    const pulled = body === currentShot && !launched && drag;
+    let frame = pulled ? 1 : 0;
+
+    if (launched && body === currentShot) {
+      if (body.plugin && body.plugin.impactUntil && now < body.plugin.impactUntil) {
+        frame = 5;
+      } else if (speed > 7.5) {
+        frame = 4;
+      } else {
+        frame = 2 + (Math.floor(now / 95) % 2);
+      }
+    }
+
+    const rotation = launched && speed > 0.8
+      ? Math.max(-0.65, Math.min(0.55, Math.atan2(body.velocity.y, body.velocity.x) * 0.22))
+      : body.angle * 0.25;
+
+    if (row !== undefined && drawAiCell(artImages.aiBirds, frame, row, BIRD_GRID.cols, BIRD_GRID.rows, p.x, p.y, 76, 66, rotation, 1, 0.035)) {
+      return;
+    }
+
+    drawSprite(spriteKey, p.x, p.y, 54, 54, body.angle);
   }
 
   function drawSprite(key, x, y, w, h, rotation, options = {}) {
