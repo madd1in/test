@@ -110,17 +110,17 @@
       name: "Glass Chapel",
       shots: ["relic-crimson", "relic-gold", "relic-azure"],
       build() {
-        block(784, 514, 238, 22, "stone-long");
-        block(704, 492, 34, 62, "glass-block");
-        block(762, 492, 38, 68, "wood-block");
-        block(822, 492, 38, 68, "wood-block");
-        block(880, 492, 34, 62, "glass-block");
-        block(792, 445, 214, 24, "stone-long");
-        block(735, 405, 30, 72, "glass-block", -0.04);
-        block(849, 405, 30, 72, "glass-block", 0.04);
-        block(792, 362, 150, 22, "wood-long");
-        target(735, 365, "bat");
-        target(849, 365, "phantom");
+        block(784, 510, 238, 22, "stone-long");
+        block(704, 470, 34, 58, "glass-block");
+        block(762, 466, 38, 66, "wood-block");
+        block(822, 466, 38, 66, "wood-block");
+        block(880, 470, 34, 58, "glass-block");
+        block(792, 421, 214, 24, "stone-long");
+        block(735, 376, 30, 66, "glass-block", -0.012);
+        block(849, 376, 30, 66, "glass-block", 0.012);
+        block(792, 332, 150, 22, "wood-long");
+        target(735, 299, "bat");
+        target(849, 299, "phantom");
       }
     },
     {
@@ -1271,7 +1271,18 @@
     ctx.lineTo(BASE_W, GROUND_Y + 1.5);
     ctx.stroke();
 
+    ctx.globalAlpha = 0.46;
+    ctx.strokeStyle = "rgba(255, 237, 191, 0.32)";
+    ctx.lineWidth = 1.2;
+    for (let x = -36; x < BASE_W + 80; x += 92) {
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y + 4);
+      ctx.lineTo(x + 18, GROUND_Y + 23);
+      ctx.stroke();
+    }
+
     ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = "rgba(8, 5, 10, 0.78)";
     ctx.lineWidth = 3.4;
     ctx.beginPath();
@@ -1538,12 +1549,84 @@
     if (data.kind === "block") {
       const alpha = Math.max(0.35, Math.min(1, data.health / data.maxHealth));
       drawContactShadow(body, Math.max(data.width, data.height) * 0.42, 0.3);
+      drawBlockDepth(body, data, alpha);
       drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle, {
         alpha,
         shadow: { color: "rgba(0, 0, 0, 0.88)", blur: 10, y: 5 }
       });
       if (alpha < 0.7) drawCracks(p.x, p.y, data.width, data.height, body.angle);
     }
+  }
+
+  function drawBlockDepth(body, data, alpha) {
+    const w = data.width || 44;
+    const h = data.height || 44;
+    const depth = Math.max(7, Math.min(18, Math.max(w, h) * 0.13));
+    const material = blockDepthPalette(data.sprite || "");
+    const skewX = depth * 0.46;
+    const skewY = depth;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.34, alpha * 0.92);
+    ctx.translate(body.position.x, body.position.y);
+    ctx.rotate(body.angle || 0);
+
+    ctx.fillStyle = material.side;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, -h / 2);
+    ctx.lineTo(w / 2 + skewX, -h / 2 + skewY);
+    ctx.lineTo(w / 2 + skewX, h / 2 + skewY);
+    ctx.lineTo(w / 2, h / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = material.bottom;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2, h / 2);
+    ctx.lineTo(w / 2, h / 2);
+    ctx.lineTo(w / 2 + skewX, h / 2 + skewY);
+    ctx.lineTo(-w / 2 + skewX, h / 2 + skewY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = material.rim;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 2, -h / 2 + 2);
+    ctx.lineTo(w / 2 - 2, -h / 2 + 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.42)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, -h / 2);
+    ctx.lineTo(w / 2 + skewX, -h / 2 + skewY);
+    ctx.moveTo(w / 2, h / 2);
+    ctx.lineTo(w / 2 + skewX, h / 2 + skewY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function blockDepthPalette(sprite) {
+    if (sprite.includes("glass")) {
+      return {
+        side: "rgba(24, 54, 82, 0.5)",
+        bottom: "rgba(8, 20, 38, 0.66)",
+        rim: "rgba(165, 224, 255, 0.5)"
+      };
+    }
+    if (sprite.includes("wood") || sprite.includes("crate")) {
+      return {
+        side: "rgba(72, 39, 21, 0.72)",
+        bottom: "rgba(28, 15, 9, 0.82)",
+        rim: "rgba(223, 150, 76, 0.5)"
+      };
+    }
+    return {
+      side: "rgba(50, 48, 58, 0.78)",
+      bottom: "rgba(16, 15, 21, 0.9)",
+      rim: "rgba(211, 204, 190, 0.42)"
+    };
   }
 
   function drawContactShadow(body, width, alpha) {

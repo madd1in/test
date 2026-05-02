@@ -5,6 +5,7 @@ Die Spielflaeche wird per CSS auf die volle verfuegbare Displayflaeche gestreckt
 Die Zielkurve nutzt denselben festen Matter.js-Zeitschritt wie der echte Flug, und Gegner werden beim Wegbrechen von Plattformen aktiv geweckt.
 Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wash fuer klarere Tiefentrennung.
 Level 3 startet mit entkoppelten Gegnern und stabileren Kontaktpunkten, damit der Turm erst durch Treffer kollabiert.
+Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer Bloecke und Boden.
 
 ## Dateien
 
