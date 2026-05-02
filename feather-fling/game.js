@@ -122,17 +122,20 @@
 
   const LEVELS = [
     {
-      name: "Moon Gate",
+      name: "Moon Gate Trial",
       shots: ["relic-crimson", "relic-azure", "relic-gold"],
       build() {
-        block(792, 512, 196, 22, "stone-long");
-        block(728, 486, 42, 54, "stone-block");
-        block(856, 486, 42, 54, "stone-block");
-        block(742, 437, 34, 86, "wood-block", -0.05);
-        block(842, 437, 34, 86, "wood-block", 0.05);
-        block(792, 404, 156, 24, "wood-long");
-        block(792, 365, 124, 22, "stone-long");
-        target(792, 326, "skeleton");
+        block(800, 510, 260, 22, "stone-long");
+        block(690, 472, 42, 58, "stone-block");
+        block(748, 470, 34, 62, "wood-block", -0.006);
+        block(852, 470, 34, 62, "wood-block", 0.006);
+        block(910, 472, 42, 58, "stone-block");
+        block(800, 431, 236, 24, "stone-long");
+        block(736, 384, 30, 70, "glass-block", -0.006);
+        block(864, 384, 30, 70, "glass-block", 0.006);
+        block(800, 338, 170, 22, "wood-long");
+        target(690, 397, "skeleton");
+        target(864, 305, "bat");
       }
     },
     {
@@ -331,6 +334,60 @@
         target(936, 301, "raven");
         target(990, 397, "knight");
         target(820, 189, "gargoyle");
+      }
+    },
+    {
+      name: "Rose Arsenal",
+      shots: ["relic-azure", "relic-crimson", "relic-violet", "relic-gold", "relic-emerald"],
+      build() {
+        block(820, 510, 388, 22, "stone-long");
+        block(652, 472, 40, 58, "stone-block");
+        block(724, 470, 34, 62, "wood-block", -0.01);
+        block(788, 470, 34, 62, "glass-block");
+        block(852, 470, 34, 62, "glass-block");
+        block(916, 470, 34, 62, "wood-block", 0.01);
+        block(988, 472, 40, 58, "stone-block");
+        block(820, 431, 382, 24, "wood-long");
+        block(696, 382, 32, 74, "stone-block", -0.01);
+        block(772, 382, 32, 74, "glass-block");
+        block(868, 382, 32, 74, "glass-block");
+        block(944, 382, 32, 74, "stone-block", 0.01);
+        block(820, 334, 320, 22, "glass-long");
+        block(742, 291, 30, 64, "wood-block", -0.008);
+        block(898, 291, 30, 64, "wood-block", 0.008);
+        block(820, 248, 224, 22, "stone-long");
+        target(652, 397, "raven");
+        target(742, 215, "wisp");
+        target(820, 301, "phantom");
+        target(898, 215, "seraph");
+        target(988, 397, "knight");
+      }
+    },
+    {
+      name: "Obsidian Bell",
+      shots: ["relic-crimson", "relic-gold", "relic-azure", "relic-violet", "relic-emerald"],
+      build() {
+        block(820, 510, 406, 22, "stone-long");
+        block(644, 472, 42, 58, "stone-block");
+        block(714, 470, 34, 62, "wood-block", -0.01);
+        block(774, 470, 34, 62, "stone-block");
+        block(866, 470, 34, 62, "stone-block");
+        block(926, 470, 34, 62, "wood-block", 0.01);
+        block(996, 472, 42, 58, "stone-block");
+        block(820, 431, 398, 24, "stone-long");
+        block(704, 382, 32, 74, "glass-block", -0.012);
+        block(820, 382, 32, 74, "wood-block");
+        block(936, 382, 32, 74, "glass-block", 0.012);
+        block(820, 334, 322, 22, "wood-long");
+        block(748, 291, 30, 64, "stone-block", -0.01);
+        block(892, 291, 30, 64, "stone-block", 0.01);
+        block(820, 248, 236, 22, "glass-long");
+        block(820, 222, 160, 20, "stone-long");
+        target(644, 397, "skeleton");
+        target(704, 301, "wisp");
+        target(820, 189, "gargoyle");
+        target(936, 301, "raven");
+        target(996, 397, "phantom");
       }
     }
   ];

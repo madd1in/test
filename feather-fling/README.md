@@ -6,7 +6,8 @@ Die Zielkurve nutzt denselben festen Matter.js-Zeitschritt wie der echte Flug, u
 Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wash fuer klarere Tiefentrennung.
 Level 3 startet mit entkoppelten Gegnern und stabileren Kontaktpunkten, damit der Turm erst durch Treffer kollabiert.
 Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer Bloecke und Boden.
-Das Spiel hat jetzt zehn Level-Ideen: Moon Gate, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge, Nocturne Keep, Iron Mausoleum, Storm Organ, Mirror Crypt und Eclipse Throne.
+Das Spiel hat jetzt zwoelf Level-Ideen: Moon Gate Trial, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge, Nocturne Keep, Iron Mausoleum, Storm Organ, Mirror Crypt, Eclipse Throne, Rose Arsenal und Obsidian Bell.
+Level 1 ist als stabilerer Einstieg neu gebaut: zwei Ziele, sauber gestuetzte Plattformen und keine selbstkollabierenden Schraegkontakte.
 Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
 Der Hintergrund animiert mit Drift-Parallax, Nebel, Regen, Fensterflackern und gelegentlichen Blitzimpulsen.
 
