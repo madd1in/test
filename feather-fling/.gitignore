@@ -1,0 +1,4 @@
+node_modules/
+server.*.log
+smoke.png
+smoke-mobile.png

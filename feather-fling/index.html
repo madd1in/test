@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Feather Fling</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="game-shell" id="gameShell">
+      <div class="hud" aria-label="Spielstatus">
+        <div class="hud-group">
+          <span class="label">Level</span>
+          <strong id="levelText">1</strong>
+        </div>
+        <div class="hud-group">
+          <span class="label">Voegel</span>
+          <strong id="birdText">3</strong>
+        </div>
+        <div class="hud-group">
+          <span class="label">Score</span>
+          <strong id="scoreText">0</strong>
+        </div>
+        <button id="musicButton" type="button" title="Musik an/aus" aria-label="Musik an/aus" aria-pressed="false">♪</button>
+        <button id="fullscreenButton" type="button" title="Vollbild" aria-label="Vollbild" aria-pressed="false">⛶</button>
+        <button id="resetButton" type="button" title="Level neu starten" aria-label="Level neu starten">↻</button>
+        <button id="nextButton" type="button" title="Naechstes Level" aria-label="Naechstes Level">›</button>
+      </div>
+      <canvas id="gameCanvas" width="1024" height="576" aria-label="Feather Fling Spielfeld"></canvas>
+      <div id="toast" class="toast" aria-live="polite"></div>
+      <audio id="bgm" src="assets/audio/pixel-quest-parade.mp3" preload="auto" loop></audio>
+    </main>
+
+    <script src="vendor/matter.min.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>

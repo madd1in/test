@@ -1,0 +1,86 @@
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const { spawn } = require("child_process");
+
+const root = path.resolve(__dirname, "..");
+const isMobile = process.argv.includes("--mobile");
+const out = path.join(root, isMobile ? "smoke-mobile.png" : "smoke.png");
+const port = 8127;
+const edgeCandidates = [
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+];
+
+const mime = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".mp3": "audio/mpeg"
+};
+
+function send(res, status, body, type = "text/plain; charset=utf-8") {
+  res.writeHead(status, { "content-type": type, "cache-control": "no-store" });
+  res.end(body);
+}
+
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://127.0.0.1:${port}`);
+  const safePath = path
+    .normalize(url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname))
+    .replace(/^(\.\.[/\\])+/, "");
+  const file = path.join(root, safePath);
+  if (!file.startsWith(root)) {
+    send(res, 403, "Forbidden");
+    return;
+  }
+  fs.readFile(file, (error, data) => {
+    if (error) {
+      send(res, 404, "Not found");
+      return;
+    }
+    send(res, 200, data, mime[path.extname(file).toLowerCase()] || "application/octet-stream");
+  });
+});
+
+function runBrowser(browserPath) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "--headless=new",
+      "--disable-gpu",
+      "--hide-scrollbars",
+      "--no-first-run",
+      isMobile ? "--window-size=390,844" : "--window-size=1280,720",
+      `--screenshot=${out}`,
+      `http://127.0.0.1:${port}/`
+    ];
+    const child = spawn(browserPath, args, { stdio: "pipe" });
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0 && fs.existsSync(out)) resolve();
+      else reject(new Error(stderr || `Browser exited with ${code}`));
+    });
+  });
+}
+
+server.listen(port, "127.0.0.1", async () => {
+  try {
+    const browser = edgeCandidates.find((candidate) => fs.existsSync(candidate));
+    if (!browser) throw new Error("No Edge or Chrome executable found.");
+    if (fs.existsSync(out)) fs.unlinkSync(out);
+    await runBrowser(browser);
+    const size = fs.statSync(out).size;
+    console.log(`Wrote ${out} (${size} bytes)`);
+  } catch (error) {
+    console.error(error.stack || error.message || error);
+    process.exitCode = 1;
+  } finally {
+    server.close();
+  }
+});
