@@ -6,6 +6,8 @@ Die Zielkurve nutzt denselben festen Matter.js-Zeitschritt wie der echte Flug, u
 Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wash fuer klarere Tiefentrennung.
 Level 3 startet mit entkoppelten Gegnern und stabileren Kontaktpunkten, damit der Turm erst durch Treffer kollabiert.
 Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer Bloecke und Boden.
+Das Spiel hat jetzt sechs Level-Ideen: Moon Gate, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge und Nocturne Keep.
+Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
 
 ## Dateien
 
@@ -13,6 +15,7 @@ Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer
 - `assets/ai/ai-tile-map.png`: ChatGPT-Image-Tilemap fuer Boden und Gothic-Bauteile
 - `assets/ai/ai-sprite-map.png`: ChatGPT-Image-Spritemap fuer Relikte, Gegner, Sling, Bloecke und Effekte
 - `assets/ai/ai-bird-animation-map.png`: ChatGPT-Image-Animationssheet mit fuenf Bird-Projektilen und sechs Frames pro Bird
+- `assets/ai/ai-expansion-atlas.png`: ChatGPT-Image-Erweiterungsatlas mit drei Backgrounds, neuen Tile-Zellen und Gegner-/Effekt-Sprites
 - `assets/sprite-map.png`: lokaler Fallback mit Relikten, Gothic-Bloecken, Skull-Fallback und Boden-Tiles
 - `assets/gothic/`: lokale Fallback-Castle-Hintergruende, Floor-Tiles und Monster-Sprites
 - `assets/audio/nocturne-hunter-loop.wav`: originaler lokaler Gothic-Action-Chiptune-Loop

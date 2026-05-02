@@ -338,11 +338,23 @@ async function run() {
       throw new Error(`Target drop mismatch: ${JSON.stringify(value)}`);
     }
 
-    const level2Stability = await measureLevelStability(cdp, port, 2, 2);
-    const level3Stability = await measureLevelStability(cdp, port, 3, 3);
+    const stabilitySpecs = [
+      { level: 2, targets: 2 },
+      { level: 3, targets: 3 },
+      { level: 4, targets: 3 },
+      { level: 5, targets: 3 },
+      { level: 6, targets: 4 }
+    ];
+    const stabilityResults = [];
+    for (const spec of stabilitySpecs) {
+      stabilityResults.push({
+        level: spec.level,
+        stability: await measureLevelStability(cdp, port, spec.level, spec.targets)
+      });
+    }
 
     console.log(
-      `Physics OK: trajectory distance ${value.distance.toFixed(2)}px, target drop ${(value.dropped.y - value.beforeTarget.y).toFixed(1)}px, level 2 max drift ${level2Stability.maxBlockMove.toFixed(1)}px, level 3 max drift ${level3Stability.maxBlockMove.toFixed(1)}px`
+      `Physics OK: trajectory distance ${value.distance.toFixed(2)}px, target drop ${(value.dropped.y - value.beforeTarget.y).toFixed(1)}px, ${stabilityResults.map(({ level, stability }) => `level ${level} max drift ${stability.maxBlockMove.toFixed(1)}px`).join(", ")}`
     );
     cdp.close();
   } finally {

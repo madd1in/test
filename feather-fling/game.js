@@ -50,6 +50,30 @@
     "relic-violet": 3,
     "relic-emerald": 4
   };
+  const EXPANSION_ATLAS_BASE = { w: 1536, h: 1024 };
+  const EXPANSION_BACKDROPS = [
+    { x: 8, y: 8, w: 496, h: 336 },
+    { x: 512, y: 8, w: 448, h: 336 },
+    { x: 968, y: 8, w: 560, h: 336 }
+  ];
+  const EXPANSION_SPRITES = {
+    gargoyle: { x: 680, y: 628, w: 204, h: 170 },
+    wisp: { x: 884, y: 628, w: 108, h: 170 },
+    raven: { x: 994, y: 628, w: 178, h: 170 },
+    seraph: { x: 1182, y: 628, w: 146, h: 170 },
+    ember: { x: 1404, y: 628, w: 122, h: 170 }
+  };
+  const TARGET_SCALE = {
+    bat: 58,
+    knight: 68,
+    phantom: 62,
+    skeleton: 62,
+    gargoyle: 118,
+    wisp: 64,
+    raven: 66,
+    seraph: 66,
+    ember: 64
+  };
   const AI_SPRITES = {
     "relic-crimson": { col: 0, row: 0 },
     "relic-violet": { col: 1, row: 0 },
@@ -80,6 +104,7 @@
     aiTiles: "assets/ai/ai-tile-map.png",
     aiSprites: "assets/ai/ai-sprite-map.png",
     aiBirds: "assets/ai/ai-bird-animation-map.png",
+    aiExpansion: "assets/ai/ai-expansion-atlas.png",
     bgFar: "assets/gothic/bg_stage1_far.png",
     bgMid: "assets/gothic/bg_stage1_mid.png",
     floor: "assets/gothic/ig_floor_00.png",
@@ -140,6 +165,68 @@
         target(810, 273, "knight");
         target(704, 397, "skeleton");
         target(916, 397, "phantom");
+      }
+    },
+    {
+      name: "Gargoyle Belfry",
+      shots: ["relic-crimson", "relic-azure", "relic-violet", "relic-gold"],
+      build() {
+        block(812, 510, 300, 22, "stone-long");
+        block(684, 470, 38, 62, "stone-block");
+        block(754, 470, 34, 62, "wood-block", -0.012);
+        block(870, 470, 34, 62, "wood-block", 0.012);
+        block(940, 470, 38, 62, "stone-block");
+        block(812, 428, 300, 24, "stone-long");
+        block(748, 379, 32, 74, "glass-block", -0.01);
+        block(876, 379, 32, 74, "glass-block", 0.01);
+        block(812, 333, 196, 22, "wood-long");
+        target(684, 394, "bat");
+        target(812, 300, "gargoyle");
+        target(940, 394, "wisp");
+      }
+    },
+    {
+      name: "Reliquary Bridge",
+      shots: ["relic-gold", "relic-crimson", "relic-emerald", "relic-azure"],
+      build() {
+        block(812, 510, 330, 22, "stone-long");
+        block(672, 472, 40, 58, "stone-block");
+        block(742, 470, 34, 62, "wood-block", -0.015);
+        block(812, 470, 34, 62, "glass-block");
+        block(882, 470, 34, 62, "wood-block", 0.015);
+        block(952, 472, 40, 58, "stone-block");
+        block(812, 431, 326, 24, "glass-long");
+        block(734, 382, 32, 74, "wood-block", -0.018);
+        block(890, 382, 32, 74, "wood-block", 0.018);
+        block(812, 334, 238, 22, "stone-long");
+        block(812, 308, 164, 20, "glass-long");
+        target(704, 397, "phantom");
+        target(812, 275, "raven");
+        target(920, 397, "knight");
+      }
+    },
+    {
+      name: "Nocturne Keep",
+      shots: ["relic-crimson", "relic-violet", "relic-emerald", "relic-gold", "relic-azure"],
+      build() {
+        block(820, 510, 346, 22, "stone-long");
+        block(676, 472, 40, 58, "stone-block");
+        block(748, 470, 34, 62, "wood-block", -0.01);
+        block(820, 470, 34, 62, "glass-block");
+        block(892, 470, 34, 62, "wood-block", 0.01);
+        block(964, 472, 40, 58, "stone-block");
+        block(820, 431, 340, 24, "stone-long");
+        block(720, 382, 32, 74, "glass-block", -0.014);
+        block(820, 382, 32, 74, "wood-block");
+        block(920, 382, 32, 74, "glass-block", 0.014);
+        block(820, 334, 276, 22, "wood-long");
+        block(776, 291, 30, 64, "stone-block", -0.012);
+        block(864, 291, 30, 64, "stone-block", 0.012);
+        block(820, 248, 188, 22, "glass-long");
+        target(676, 397, "skeleton");
+        target(720, 301, "wisp");
+        target(920, 301, "phantom");
+        target(820, 215, "gargoyle");
       }
     }
   ];
@@ -210,6 +297,11 @@
     if (key === "aiSprites") {
       img.addEventListener("load", () => {
         artImages.aiSpritesKeyed = createTransparentSpriteSheet(img);
+      });
+    }
+    if (key === "aiExpansion") {
+      img.addEventListener("load", () => {
+        artImages.aiExpansionKeyed = createSoftTransparentSpriteSheet(img);
       });
     }
     img.src = src;
@@ -1035,7 +1127,7 @@
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    const aiBackdrop = drawAiBackgroundLayers();
+    const aiBackdrop = drawExpansionBackdrop() || drawAiBackgroundLayers();
 
     if (!aiBackdrop) {
       drawImageCover(artImages.bgFar, 0, 0, BASE_W, BASE_H, 0.38);
@@ -1143,6 +1235,35 @@
     return true;
   }
 
+  function drawExpansionBackdrop() {
+    if (!imageReady(artImages.aiExpansion)) return false;
+    const panel = EXPANSION_BACKDROPS[levelIndex % EXPANSION_BACKDROPS.length];
+    drawExpansionRegion(panel, 0, 0, BASE_W, BASE_H, 0.36, "blur(1.6px) saturate(0.62) brightness(1.18)");
+
+    ctx.save();
+    const farWash = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    farWash.addColorStop(0, "rgba(236, 229, 255, 0.52)");
+    farWash.addColorStop(0.38, "rgba(185, 166, 216, 0.31)");
+    farWash.addColorStop(0.7, "rgba(76, 52, 98, 0.12)");
+    farWash.addColorStop(1, "rgba(5, 4, 9, 0)");
+    ctx.fillStyle = farWash;
+    ctx.fillRect(0, 0, BASE_W, GROUND_Y);
+    ctx.restore();
+
+    drawExpansionRegion(panel, 0, 16, BASE_W, BASE_H - 18, 0.29, "blur(0.4px) saturate(0.74) brightness(0.98)");
+
+    ctx.save();
+    const groundFade = ctx.createLinearGradient(0, 280, 0, GROUND_Y + 10);
+    groundFade.addColorStop(0, "rgba(7, 5, 12, 0)");
+    groundFade.addColorStop(0.55, "rgba(6, 4, 10, 0.22)");
+    groundFade.addColorStop(1, "rgba(0, 0, 0, 0.62)");
+    ctx.fillStyle = groundFade;
+    ctx.fillRect(0, 260, BASE_W, GROUND_Y - 250);
+    ctx.restore();
+
+    return true;
+  }
+
   function drawImageCoverFiltered(image, x, y, w, h, alpha = 1, filter = "none") {
     if (!imageReady(image)) return false;
     ctx.save();
@@ -1165,6 +1286,25 @@
     ctx.filter = filter;
     ctx.globalAlpha *= alpha;
     ctx.drawImage(image, sx, sy, sw, sh, 0, destY, BASE_W, destH);
+    ctx.restore();
+    return true;
+  }
+
+  function drawExpansionRegion(region, x, y, w, h, alpha = 1, filter = "none", rotation = 0, imageOverride = null) {
+    const image = imageOverride || artImages.aiExpansion;
+    if (!imageReady(image)) return false;
+    const imageW = image.naturalWidth || image.width;
+    const imageH = image.naturalHeight || image.height;
+    const sx = region.x / EXPANSION_ATLAS_BASE.w * imageW;
+    const sy = region.y / EXPANSION_ATLAS_BASE.h * imageH;
+    const sw = region.w / EXPANSION_ATLAS_BASE.w * imageW;
+    const sh = region.h / EXPANSION_ATLAS_BASE.h * imageH;
+    ctx.save();
+    ctx.filter = filter;
+    ctx.globalAlpha *= alpha;
+    ctx.translate(x + w / 2, y + h / 2);
+    ctx.rotate(rotation || 0);
+    ctx.drawImage(image, sx, sy, sw, sh, -w / 2, -h / 2, w, h);
     ctx.restore();
     return true;
   }
@@ -1248,6 +1388,79 @@
         { color: "rgba(0, 0, 0, 0.9)", blur: 10, y: 7 }
       );
     }
+    drawExpansionGroundAccents();
+    return true;
+  }
+
+  function drawExpansionGroundAccents() {
+    if (!imageReady(artImages.aiExpansion)) return false;
+    const topCycle = levelIndex % 3;
+
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
+    ctx.fillRect(0, GROUND_Y - 10, BASE_W, 16);
+    ctx.restore();
+
+    for (let x = -20; x < BASE_W + 70; x += 72) {
+      const col = (Math.abs(Math.floor((x + 20) / 72)) + topCycle * 2) % 10;
+      drawExpansionTileCell(
+        col,
+        topCycle === 1 ? 1 : 0,
+        x + 36,
+        GROUND_Y + 7,
+        74,
+        58,
+        0.78,
+        0,
+        { color: "rgba(0, 0, 0, 0.9)", blur: 8, y: 5 }
+      );
+    }
+
+    for (let x = -44; x < BASE_W + 112; x += 112) {
+      const col = 10 + Math.abs(Math.floor((x + 44) / 112) + levelIndex) % 4;
+      drawExpansionTileCell(
+        col,
+        2,
+        x + 56,
+        GROUND_Y + 61,
+        116,
+        76,
+        0.42,
+        0,
+        { color: "rgba(0, 0, 0, 0.95)", blur: 10, y: 7 }
+      );
+    }
+
+    if (levelIndex >= 3) {
+      drawExpansionTileCell(13, 0, 70, GROUND_Y + 14, 120, 82, 0.52, 0);
+      drawExpansionTileCell(14, 1, BASE_W - 70, GROUND_Y + 14, 120, 82, 0.52, 0);
+    }
+
+    return true;
+  }
+
+  function drawExpansionTileCell(col, row, x, y, w, h, alpha = 1, rotation = 0, shadow = null) {
+    if (!imageReady(artImages.aiExpansion)) return false;
+    const tileW = 94;
+    const tileH = 88;
+    const gap = 2;
+    const region = {
+      x: 10 + col * (tileW + gap),
+      y: 356 + row * (tileH + gap),
+      w: tileW,
+      h: tileH
+    };
+    if (region.x + region.w > EXPANSION_ATLAS_BASE.w || region.y + region.h > EXPANSION_ATLAS_BASE.h) return false;
+    ctx.save();
+    if (shadow) {
+      ctx.shadowColor = shadow.color || "rgba(0, 0, 0, 0.72)";
+      ctx.shadowBlur = shadow.blur || 0;
+      ctx.shadowOffsetX = shadow.x || 0;
+      ctx.shadowOffsetY = shadow.y || 0;
+    }
+    drawExpansionRegion(region, x - w / 2, y - h / 2, w, h, alpha, "none", rotation);
+    ctx.restore();
     return true;
   }
 
@@ -1255,24 +1468,24 @@
     ctx.save();
     const upperRim = ctx.createLinearGradient(0, GROUND_Y - 18, 0, GROUND_Y + 16);
     upperRim.addColorStop(0, "rgba(0, 0, 0, 0)");
-    upperRim.addColorStop(0.42, "rgba(0, 0, 0, 0.48)");
-    upperRim.addColorStop(1, "rgba(0, 0, 0, 0)");
+    upperRim.addColorStop(0.44, "rgba(0, 0, 0, 0.62)");
+    upperRim.addColorStop(1, "rgba(0, 0, 0, 0.18)");
     ctx.fillStyle = upperRim;
     ctx.fillRect(0, GROUND_Y - 18, BASE_W, 34);
 
     ctx.lineCap = "round";
     ctx.shadowColor = "rgba(0, 0, 0, 0.86)";
-    ctx.shadowBlur = 9;
+    ctx.shadowBlur = 12;
     ctx.shadowOffsetY = 4;
-    ctx.strokeStyle = "rgba(255, 232, 176, 0.56)";
-    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = "rgba(255, 237, 184, 0.78)";
+    ctx.lineWidth = 3.2;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y + 1.5);
     ctx.lineTo(BASE_W, GROUND_Y + 1.5);
     ctx.stroke();
 
-    ctx.globalAlpha = 0.46;
-    ctx.strokeStyle = "rgba(255, 237, 191, 0.32)";
+    ctx.globalAlpha = 0.58;
+    ctx.strokeStyle = "rgba(255, 237, 191, 0.46)";
     ctx.lineWidth = 1.2;
     for (let x = -36; x < BASE_W + 80; x += 92) {
       ctx.beginPath();
@@ -1283,8 +1496,10 @@
 
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = "rgba(8, 5, 10, 0.78)";
-    ctx.lineWidth = 3.4;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+    ctx.fillRect(0, GROUND_Y + 19, BASE_W, 42);
+    ctx.strokeStyle = "rgba(5, 3, 8, 0.92)";
+    ctx.lineWidth = 4.2;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y + 18);
     ctx.lineTo(BASE_W, GROUND_Y + 18);
@@ -1341,6 +1556,34 @@
         data[i + 3] = 0;
       } else if (max < 58 && chroma < 34) {
         data[i + 3] = Math.min(data[i + 3], 120);
+      }
+    }
+
+    sheetCtx.putImageData(pixels, 0, 0);
+    return sheet;
+  }
+
+  function createSoftTransparentSpriteSheet(image) {
+    const sheet = document.createElement("canvas");
+    sheet.width = image.naturalWidth;
+    sheet.height = image.naturalHeight;
+    const sheetCtx = sheet.getContext("2d", { willReadFrequently: true });
+    sheetCtx.drawImage(image, 0, 0);
+    const pixels = sheetCtx.getImageData(0, 0, sheet.width, sheet.height);
+    const data = pixels.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const chroma = max - min;
+
+      if (max < 24 || (max < 52 && chroma < 24)) {
+        data[i + 3] = 0;
+      } else if (max < 68 && chroma < 26) {
+        data[i + 3] = Math.min(data[i + 3], 96);
       }
     }
 
@@ -1531,13 +1774,15 @@
     }
 
     if (data.kind === "target") {
-      const scale = data.enemy === "knight" ? 68 : data.enemy === "bat" ? 58 : 62;
+      const scale = TARGET_SCALE[data.enemy] || 62;
       drawContactShadow(body, scale * 0.44, data.enemy === "bat" ? 0.14 : 0.32);
+      drawExpansionEnemyBacklight(data.enemy, p.x, p.y, scale, body.angle);
       if (
         !drawSprite(data.enemy, p.x, p.y, scale, scale, body.angle, {
           fallback: false,
           shadow: { color: "rgba(0, 0, 0, 0.9)", blur: 12, y: 5 }
         }) &&
+        !drawExpansionSprite(data.enemy, p.x, p.y, scale, scale, body.angle, 1) &&
         !drawArt(artImages[data.enemy], p.x, p.y, scale, scale, body.angle, 1)
       ) {
         drawSprite("skull", p.x, p.y, 56, 56, body.angle);
@@ -1687,6 +1932,64 @@
     }
 
     drawSprite(spriteKey, p.x, p.y, 54, 54, body.angle);
+  }
+
+  function drawExpansionSprite(key, x, y, w, h, rotation = 0, alpha = 1) {
+    const region = EXPANSION_SPRITES[key];
+    if (!region || !imageReady(artImages.aiExpansion)) return false;
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(x, y, w * 0.48, h * 0.5, rotation || 0, 0, Math.PI * 2);
+    ctx.clip();
+    drawExpansionRegion(
+      region,
+      x - w / 2,
+      y - h / 2,
+      w,
+      h,
+      alpha * 0.24,
+      "brightness(1.28) contrast(1.12) saturate(1.08)",
+      rotation,
+      artImages.aiExpansion
+    );
+    ctx.restore();
+    drawExpansionRegion(
+      region,
+      x - w / 2,
+      y - h / 2,
+      w,
+      h,
+      alpha,
+      "drop-shadow(0 8px 9px rgba(0, 0, 0, 0.85))",
+      rotation,
+      artImages.aiExpansionKeyed || artImages.aiExpansion
+    );
+    return true;
+  }
+
+  function drawExpansionEnemyBacklight(key, x, y, scale, rotation = 0) {
+    if (!EXPANSION_SPRITES[key]) return;
+    const hot = key === "gargoyle" ? "rgba(255, 210, 142, 0.42)" : "rgba(183, 102, 255, 0.48)";
+    const cool = key === "raven" ? "rgba(255, 68, 77, 0.34)" : "rgba(93, 178, 255, 0.26)";
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation || 0);
+    ctx.globalCompositeOperation = "screen";
+    const glow = ctx.createRadialGradient(0, 0, scale * 0.12, 0, 0, scale * 0.62);
+    glow.addColorStop(0, hot);
+    glow.addColorStop(0.55, cool);
+    glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.ellipse(0, 2, scale * 0.48, scale * 0.54, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = "rgba(255, 235, 184, 0.42)";
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.ellipse(0, 3, scale * 0.38, scale * 0.45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawSprite(key, x, y, w, h, rotation, options = {}) {
