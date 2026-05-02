@@ -74,6 +74,10 @@
     seraph: 66,
     ember: 64
   };
+  const MP3_BGM_TRACKS = [
+    "assets/audio/moonlit-castle-ruins.mp3",
+    "assets/audio/pixel-quest-parade.mp3"
+  ];
   const AI_SPRITES = {
     "relic-crimson": { col: 0, row: 0 },
     "relic-violet": { col: 1, row: 0 },
@@ -228,6 +232,106 @@
         target(920, 301, "phantom");
         target(820, 215, "gargoyle");
       }
+    },
+    {
+      name: "Iron Mausoleum",
+      shots: ["relic-azure", "relic-crimson", "relic-gold", "relic-violet"],
+      build() {
+        block(820, 510, 374, 22, "stone-long");
+        block(654, 472, 40, 58, "stone-block");
+        block(724, 470, 34, 62, "wood-block", -0.01);
+        block(790, 470, 34, 62, "stone-block");
+        block(856, 470, 34, 62, "stone-block");
+        block(916, 470, 34, 62, "wood-block", 0.01);
+        block(986, 472, 40, 58, "stone-block");
+        block(820, 431, 368, 24, "stone-long");
+        block(740, 382, 32, 74, "wood-block", -0.012);
+        block(900, 382, 32, 74, "wood-block", 0.012);
+        block(820, 334, 268, 22, "glass-long");
+        block(820, 307, 186, 20, "stone-long");
+        target(654, 397, "knight");
+        target(820, 274, "gargoyle");
+        target(986, 397, "skeleton");
+        target(900, 301, "wisp");
+      }
+    },
+    {
+      name: "Storm Organ",
+      shots: ["relic-crimson", "relic-emerald", "relic-azure", "relic-gold", "relic-violet"],
+      build() {
+        block(816, 510, 352, 22, "stone-long");
+        block(666, 472, 40, 58, "stone-block");
+        block(738, 470, 34, 62, "glass-block", -0.008);
+        block(816, 470, 34, 62, "wood-block");
+        block(894, 470, 34, 62, "glass-block", 0.008);
+        block(966, 472, 40, 58, "stone-block");
+        block(816, 431, 344, 24, "wood-long");
+        block(704, 382, 32, 74, "stone-block", -0.01);
+        block(816, 382, 32, 74, "glass-block");
+        block(928, 382, 32, 74, "stone-block", 0.01);
+        block(816, 334, 292, 22, "glass-long");
+        block(760, 291, 30, 64, "wood-block", -0.01);
+        block(872, 291, 30, 64, "wood-block", 0.01);
+        block(816, 248, 208, 22, "stone-long");
+        target(666, 397, "bat");
+        target(816, 301, "phantom");
+        target(966, 397, "raven");
+        target(816, 215, "wisp");
+      }
+    },
+    {
+      name: "Mirror Crypt",
+      shots: ["relic-gold", "relic-violet", "relic-crimson", "relic-emerald", "relic-azure"],
+      build() {
+        block(728, 510, 188, 22, "stone-long");
+        block(912, 510, 188, 22, "stone-long");
+        block(666, 470, 34, 62, "glass-block");
+        block(728, 470, 34, 62, "wood-block", -0.01);
+        block(790, 470, 34, 62, "glass-block");
+        block(850, 470, 34, 62, "glass-block");
+        block(912, 470, 34, 62, "wood-block", 0.01);
+        block(974, 470, 34, 62, "glass-block");
+        block(728, 431, 184, 24, "glass-long");
+        block(912, 431, 184, 24, "glass-long");
+        block(697, 382, 30, 74, "stone-block", -0.01);
+        block(759, 382, 30, 74, "stone-block", 0.01);
+        block(881, 382, 30, 74, "stone-block", -0.01);
+        block(943, 382, 30, 74, "stone-block", 0.01);
+        block(728, 334, 146, 22, "wood-long");
+        block(912, 334, 146, 22, "wood-long");
+        target(666, 397, "wisp");
+        target(728, 301, "seraph");
+        target(912, 301, "phantom");
+        target(974, 397, "raven");
+      }
+    },
+    {
+      name: "Eclipse Throne",
+      shots: ["relic-crimson", "relic-violet", "relic-gold", "relic-emerald", "relic-azure"],
+      build() {
+        block(820, 510, 390, 22, "stone-long");
+        block(650, 472, 40, 58, "stone-block");
+        block(720, 470, 34, 62, "wood-block", -0.012);
+        block(784, 470, 34, 62, "glass-block");
+        block(856, 470, 34, 62, "glass-block");
+        block(920, 470, 34, 62, "wood-block", 0.012);
+        block(990, 472, 40, 58, "stone-block");
+        block(820, 431, 382, 24, "stone-long");
+        block(704, 382, 32, 74, "wood-block", -0.012);
+        block(788, 382, 32, 74, "stone-block");
+        block(852, 382, 32, 74, "stone-block");
+        block(936, 382, 32, 74, "wood-block", 0.012);
+        block(820, 334, 312, 22, "wood-long");
+        block(760, 291, 30, 64, "glass-block", -0.012);
+        block(880, 291, 30, 64, "glass-block", 0.012);
+        block(820, 248, 232, 22, "stone-long");
+        block(820, 222, 156, 20, "glass-long");
+        target(650, 397, "skeleton");
+        target(704, 301, "wisp");
+        target(936, 301, "raven");
+        target(990, 397, "knight");
+        target(820, 189, "gargoyle");
+      }
     }
   ];
 
@@ -265,6 +369,7 @@
   let particles = [];
   let messageTimer = 0;
   let lastTime = performance.now();
+  let animationTime = lastTime;
   let levelWon = false;
   let musicEnabled = false;
   let pseudoFullscreen = false;
@@ -377,6 +482,7 @@
 
   function playMusic() {
     if (!musicEnabled) return;
+    syncMusicForLevel(false);
     const playPromise = bgm.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(() => {
@@ -384,6 +490,22 @@
         updateAudioButton();
       });
     }
+  }
+
+  function syncMusicForLevel(keepPlaying = true) {
+    const track = musicTrackForLevel();
+    const current = bgm.getAttribute("src") || "";
+    if (current === track) return;
+    const shouldResume = keepPlaying && musicEnabled && !bgm.paused;
+    bgm.setAttribute("src", track);
+    bgm.load();
+    if (shouldResume) playMusic();
+  }
+
+  function musicTrackForLevel() {
+    return levelIndex >= 6 && levelIndex % 3 === 1
+      ? MP3_BGM_TRACKS[1]
+      : MP3_BGM_TRACKS[0];
   }
 
   function exposeDebugState() {
@@ -544,6 +666,7 @@
     drag = null;
     particles = [];
     shotQueue = [...LEVELS[levelIndex].shots];
+    syncMusicForLevel();
 
     addTerrain();
     LEVELS[levelIndex].build();
@@ -866,6 +989,7 @@
   function loop(now) {
     const delta = Math.min(80, now - lastTime);
     lastTime = now;
+    animationTime = now;
 
     if (!drag) {
       physicsAccumulator = Math.min(physicsAccumulator + delta, PHYSICS_STEP * MAX_PHYSICS_STEPS);
@@ -1158,6 +1282,7 @@
     }
 
     drawBackgroundDepthWash();
+    drawAnimatedBackgroundAtmosphere();
 
     if (!drawAiGround()) {
       for (let x = -12; x < BASE_W + 96; x += 96) {
@@ -1238,7 +1363,10 @@
   function drawExpansionBackdrop() {
     if (!imageReady(artImages.aiExpansion)) return false;
     const panel = EXPANSION_BACKDROPS[levelIndex % EXPANSION_BACKDROPS.length];
-    drawExpansionRegion(panel, 0, 0, BASE_W, BASE_H, 0.36, "blur(1.6px) saturate(0.62) brightness(1.18)");
+    const t = animationTime * 0.001;
+    const farDrift = Math.sin(t * 0.12 + levelIndex * 0.8) * 14;
+    const nearDrift = Math.sin(t * 0.18 + levelIndex * 1.7) * 7;
+    drawExpansionRegion(panel, -22 + farDrift, -8, BASE_W + 44, BASE_H + 18, 0.34, "blur(1.8px) saturate(0.6) brightness(1.2)");
 
     ctx.save();
     const farWash = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -1250,7 +1378,7 @@
     ctx.fillRect(0, 0, BASE_W, GROUND_Y);
     ctx.restore();
 
-    drawExpansionRegion(panel, 0, 16, BASE_W, BASE_H - 18, 0.29, "blur(0.4px) saturate(0.74) brightness(0.98)");
+    drawExpansionRegion(panel, -10 - nearDrift, 16, BASE_W + 20, BASE_H - 18, 0.3, "blur(0.35px) saturate(0.76) brightness(1)");
 
     ctx.save();
     const groundFade = ctx.createLinearGradient(0, 280, 0, GROUND_Y + 10);
@@ -1262,6 +1390,92 @@
     ctx.restore();
 
     return true;
+  }
+
+  function drawAnimatedBackgroundAtmosphere() {
+    const t = animationTime * 0.001;
+    drawAnimatedFog(t);
+    drawAnimatedRain(t);
+    drawAnimatedLightning(t);
+    drawWindowFlicker(t);
+  }
+
+  function drawAnimatedFog(t) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 5; i++) {
+      const y = 122 + i * 58 + Math.sin(t * 0.2 + i) * 10;
+      const x = ((t * (8 + i * 3) + i * 210 + levelIndex * 31) % (BASE_W + 320)) - 180;
+      const fog = ctx.createLinearGradient(x - 160, y, x + 380, y + 36);
+      fog.addColorStop(0, "rgba(146, 128, 186, 0)");
+      fog.addColorStop(0.45, `rgba(202, 188, 235, ${0.05 + i * 0.012})`);
+      fog.addColorStop(1, "rgba(146, 128, 186, 0)");
+      ctx.fillStyle = fog;
+      ctx.beginPath();
+      ctx.ellipse(x + 130, y, 270, 22 + i * 3, Math.sin(t * 0.08 + i) * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawAnimatedRain(t) {
+    const stormLevel = levelIndex % 3 === 2 || levelIndex >= 7;
+    const alpha = stormLevel ? 0.16 : 0.07;
+    ctx.save();
+    ctx.strokeStyle = `rgba(206, 218, 255, ${alpha})`;
+    ctx.lineWidth = stormLevel ? 1.25 : 0.8;
+    ctx.beginPath();
+    for (let i = 0; i < 46; i++) {
+      const x = (i * 47 + t * (88 + levelIndex * 5)) % (BASE_W + 160) - 80;
+      const y = (i * 83 + t * 185) % (GROUND_Y - 40);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 18, y + 48);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawAnimatedLightning(t) {
+    const stormLevel = levelIndex % 3 === 2 || levelIndex >= 7;
+    if (!stormLevel) return;
+    const pulse = Math.max(0, Math.sin(t * 0.72 + levelIndex * 1.9) - 0.94) * 4.4;
+    if (pulse <= 0.01) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = `rgba(218, 222, 255, ${Math.min(0.18, pulse * 0.08)})`;
+    ctx.fillRect(0, 0, BASE_W, GROUND_Y);
+    ctx.strokeStyle = `rgba(235, 231, 255, ${Math.min(0.72, pulse * 0.55)})`;
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = "rgba(180, 150, 255, 0.7)";
+    ctx.shadowBlur = 18;
+    const startX = 640 + Math.sin(levelIndex) * 130;
+    ctx.beginPath();
+    ctx.moveTo(startX, 26);
+    for (let y = 56; y < 280; y += 38) {
+      const jag = Math.sin(t * 12 + y * 0.17 + levelIndex) * 32;
+      ctx.lineTo(startX + jag, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawWindowFlicker(t) {
+    const glow = 0.12 + Math.max(0, Math.sin(t * 2.4 + levelIndex)) * 0.14;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = `rgba(255, 169, 75, ${glow})`;
+    const windows = [
+      { x: 660, y: 118, w: 18, h: 46 },
+      { x: 704, y: 146, w: 14, h: 36 },
+      { x: 916, y: 130, w: 16, h: 42 },
+      { x: 954, y: 168, w: 12, h: 30 }
+    ];
+    for (const windowLight of windows) {
+      ctx.beginPath();
+      ctx.ellipse(windowLight.x, windowLight.y, windowLight.w, windowLight.h, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawImageCoverFiltered(image, x, y, w, h, alpha = 1, filter = "none") {

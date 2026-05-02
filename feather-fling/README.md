@@ -6,8 +6,9 @@ Die Zielkurve nutzt denselben festen Matter.js-Zeitschritt wie der echte Flug, u
 Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wash fuer klarere Tiefentrennung.
 Level 3 startet mit entkoppelten Gegnern und stabileren Kontaktpunkten, damit der Turm erst durch Treffer kollabiert.
 Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer Bloecke und Boden.
-Das Spiel hat jetzt sechs Level-Ideen: Moon Gate, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge und Nocturne Keep.
+Das Spiel hat jetzt zehn Level-Ideen: Moon Gate, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge, Nocturne Keep, Iron Mausoleum, Storm Organ, Mirror Crypt und Eclipse Throne.
 Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
+Der Hintergrund animiert mit Drift-Parallax, Nebel, Regen, Fensterflackern und gelegentlichen Blitzimpulsen.
 
 ## Dateien
 
@@ -18,7 +19,7 @@ Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzen
 - `assets/ai/ai-expansion-atlas.png`: ChatGPT-Image-Erweiterungsatlas mit drei Backgrounds, neuen Tile-Zellen und Gegner-/Effekt-Sprites
 - `assets/sprite-map.png`: lokaler Fallback mit Relikten, Gothic-Bloecken, Skull-Fallback und Boden-Tiles
 - `assets/gothic/`: lokale Fallback-Castle-Hintergruende, Floor-Tiles und Monster-Sprites
-- `assets/audio/nocturne-hunter-loop.wav`: originaler lokaler Gothic-Action-Chiptune-Loop
+- `assets/audio/moonlit-castle-ruins.mp3` und `assets/audio/pixel-quest-parade.mp3`: lokale MP3-BGM-Assets fuer Levelmusik
 - `tools/build_sprites.ps1`: lokaler Sprite-Builder
 - `tools/build_gothic_bgm.py`: lokaler BGM-Synth-Builder
 - `game.js`: Canvas-Spiel mit Matter.js-Physik

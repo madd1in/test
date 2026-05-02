@@ -343,7 +343,11 @@ async function run() {
       { level: 3, targets: 3 },
       { level: 4, targets: 3 },
       { level: 5, targets: 3 },
-      { level: 6, targets: 4 }
+      { level: 6, targets: 4 },
+      { level: 7, targets: 4 },
+      { level: 8, targets: 4 },
+      { level: 9, targets: 4 },
+      { level: 10, targets: 5 }
     ];
     const stabilityResults = [];
     for (const spec of stabilitySpecs) {
