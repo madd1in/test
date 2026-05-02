@@ -6,6 +6,7 @@ const { spawn } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const out = path.join(root, "smoke-drag-release.png");
+const aimOut = path.join(root, "smoke-aim.png");
 const edgeCandidates = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
@@ -17,7 +18,8 @@ const mime = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
-  ".mp3": "audio/mpeg"
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav"
 };
 
 function send(res, status, body, type = "text/plain; charset=utf-8") {
@@ -158,7 +160,7 @@ async function run() {
     await cdp.send("Runtime.enable");
     await wait(1200);
 
-    const stateResult = await cdp.send("Runtime.evaluate", {
+    const aimStateResult = await cdp.send("Runtime.evaluate", {
       expression: `(async () => {
         const canvas = document.getElementById("gameCanvas");
         const rect = canvas.getBoundingClientRect();
@@ -189,6 +191,41 @@ async function run() {
           }, 1);
           await pause(35);
         }
+        return window.__castleFlingDebug && window.__castleFlingDebug.getShotState();
+      })()`,
+      awaitPromise: true,
+      returnByValue: true
+    });
+    const aimShot = aimStateResult.result.value;
+    if (!aimShot || !aimShot.dragging || aimShot.isStatic !== true) {
+      throw new Error(`Shot was not held during drag aim: ${JSON.stringify(aimShot)}`);
+    }
+
+    const aimScreenshot = await cdp.send("Page.captureScreenshot", { format: "png" });
+    fs.writeFileSync(aimOut, Buffer.from(aimScreenshot.data, "base64"));
+
+    const stateResult = await cdp.send("Runtime.evaluate", {
+      expression: `(async () => {
+        const canvas = document.getElementById("gameCanvas");
+        const rect = canvas.getBoundingClientRect();
+        const toClient = (x, y) => ({
+          x: rect.left + x / 1024 * rect.width,
+          y: rect.top + y / 576 * rect.height
+        });
+        const fire = (target, type, point, buttons) => {
+          target.dispatchEvent(new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            pointerId: 77,
+            pointerType: "mouse",
+            clientX: point.x,
+            clientY: point.y,
+            button: 0,
+            buttons
+          }));
+        };
+        const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const pull = toClient(78, 470);
         fire(window, "pointerup", pull, 0);
         await pause(850);
         return {
@@ -208,6 +245,7 @@ async function run() {
     const screenshot = await cdp.send("Page.captureScreenshot", { format: "png" });
     fs.writeFileSync(out, Buffer.from(screenshot.data, "base64"));
     console.log(`Drag release OK: ${JSON.stringify(state)}`);
+    console.log(`Wrote ${aimOut} (${fs.statSync(aimOut).size} bytes)`);
     console.log(`Wrote ${out} (${fs.statSync(out).size} bytes)`);
     cdp.close();
   } finally {

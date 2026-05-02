@@ -18,7 +18,8 @@ const mime = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
-  ".mp3": "audio/mpeg"
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav"
 };
 
 function send(res, status, body, type = "text/plain; charset=utf-8") {

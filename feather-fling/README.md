@@ -10,8 +10,9 @@ Ein lokales Gothic-Schleuder-Physics-Spiel mit ChatGPT-Image-Maps, eigener Sprit
 - `assets/ai/ai-bird-animation-map.png`: ChatGPT-Image-Animationssheet mit fuenf Bird-Projektilen und sechs Frames pro Bird
 - `assets/sprite-map.png`: lokaler Fallback mit Relikten, Gothic-Bloecken, Skull-Fallback und Boden-Tiles
 - `assets/gothic/`: lokale Fallback-Castle-Hintergruende, Floor-Tiles und Monster-Sprites
-- `assets/audio/moonlit-castle-ruins.mp3`: lokaler Gothic-BGM-Track
+- `assets/audio/nocturne-hunter-loop.wav`: originaler lokaler Gothic-Action-Chiptune-Loop
 - `tools/build_sprites.ps1`: lokaler Sprite-Builder
+- `tools/build_gothic_bgm.py`: lokaler BGM-Synth-Builder
 - `game.js`: Canvas-Spiel mit Matter.js-Physik
 
 ## Lokal starten

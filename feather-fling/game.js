@@ -5,6 +5,13 @@
   const BASE_H = 576;
   const GROUND_Y = 522;
   const SLING = { x: 176, y: 405 };
+  const SLING_ART = { x: SLING.x - 2, y: SLING.y + 40, w: 112, h: 112 };
+  const SLING_ANCHORS = {
+    backLeft: { x: SLING.x - 31, y: SLING.y + 4 },
+    backRight: { x: SLING.x + 29, y: SLING.y + 3 },
+    frontLeft: { x: SLING.x - 26, y: SLING.y + 13 },
+    frontRight: { x: SLING.x + 23, y: SLING.y + 12 }
+  };
   const MAX_PULL = 112;
   const MIN_LAUNCH_PULL = 8;
   const LAUNCH_POWER = 0.205;
@@ -85,41 +92,50 @@
       name: "Moon Gate",
       shots: ["relic-crimson", "relic-azure", "relic-gold"],
       build() {
-        block(742, 486, 36, 74, "wood-block");
-        block(842, 486, 36, 74, "wood-block");
-        block(792, 436, 132, 28, "wood-long");
-        target(792, 394, "skeleton");
-        block(792, 512, 176, 22, "stone-long");
+        block(792, 512, 196, 22, "stone-long");
+        block(728, 486, 42, 54, "stone-block");
+        block(856, 486, 42, 54, "stone-block");
+        block(742, 437, 34, 86, "wood-block", -0.05);
+        block(842, 437, 34, 86, "wood-block", 0.05);
+        block(792, 404, 156, 24, "wood-long");
+        block(792, 365, 124, 22, "stone-long");
+        target(792, 326, "skeleton");
       }
     },
     {
       name: "Glass Chapel",
       shots: ["relic-crimson", "relic-gold", "relic-azure"],
       build() {
-        block(724, 492, 34, 70, "glass-block");
-        block(794, 492, 34, 70, "wood-block");
-        block(864, 492, 34, 70, "glass-block");
-        block(794, 435, 164, 26, "wood-long");
-        block(794, 388, 34, 70, "stone-block");
-        target(724, 405, "bat");
-        target(864, 405, "phantom");
+        block(784, 514, 238, 22, "stone-long");
+        block(704, 492, 34, 62, "glass-block");
+        block(762, 492, 38, 68, "wood-block");
+        block(822, 492, 38, 68, "wood-block");
+        block(880, 492, 34, 62, "glass-block");
+        block(792, 445, 214, 24, "stone-long");
+        block(735, 405, 30, 72, "glass-block", -0.04);
+        block(849, 405, 30, 72, "glass-block", 0.04);
+        block(792, 362, 150, 22, "wood-long");
+        target(735, 365, "bat");
+        target(849, 365, "phantom");
       }
     },
     {
       name: "Clocktower Ruin",
       shots: ["relic-crimson", "relic-violet", "relic-gold", "relic-azure"],
       build() {
-        block(720, 498, 40, 60, "stone-block");
-        block(780, 498, 40, 60, "wood-block");
-        block(840, 498, 40, 60, "stone-block");
-        block(900, 498, 40, 60, "wood-block");
-        block(810, 452, 220, 24, "glass-long");
-        block(748, 410, 34, 70, "wood-block");
-        block(872, 410, 34, 70, "wood-block");
-        block(810, 358, 160, 26, "stone-long");
-        target(810, 315, "knight");
-        target(748, 366, "skeleton");
-        target(872, 366, "phantom");
+        block(810, 514, 264, 22, "stone-long");
+        block(704, 493, 42, 58, "stone-block");
+        block(764, 493, 38, 62, "wood-block");
+        block(856, 493, 38, 62, "wood-block");
+        block(916, 493, 42, 58, "stone-block");
+        block(810, 450, 250, 24, "glass-long");
+        block(742, 407, 32, 78, "wood-block", -0.08);
+        block(878, 407, 32, 78, "wood-block", 0.08);
+        block(810, 366, 188, 24, "stone-long");
+        block(810, 326, 126, 22, "wood-long");
+        target(810, 285, "knight");
+        target(742, 365, "skeleton");
+        target(878, 365, "phantom");
       }
     }
   ];
@@ -387,16 +403,20 @@
 
   function block(x, y, w, h, sprite, angle = 0) {
     const material = sprite.includes("stone")
-      ? { density: 0.0065, health: 13, restitution: 0.04 }
+      ? { density: 0.0088, health: 16, restitution: 0.025, friction: 0.92, frictionStatic: 1.08 }
       : sprite.includes("glass")
-        ? { density: 0.003, health: 6, restitution: 0.08 }
-        : { density: 0.0042, health: 9, restitution: 0.06 };
+        ? { density: 0.0027, health: 5.4, restitution: 0.12, friction: 0.58, frictionStatic: 0.72 }
+        : { density: 0.0049, health: 8.2, restitution: 0.045, friction: 0.82, frictionStatic: 0.98 };
 
     const body = Bodies.rectangle(x, y, w, h, {
-      friction: 0.78,
-      frictionStatic: 0.9,
+      friction: material.friction,
+      frictionStatic: material.frictionStatic,
+      frictionAir: 0.006,
       restitution: material.restitution,
       density: material.density,
+      sleepThreshold: 42,
+      slop: 0.025,
+      chamfer: { radius: Math.min(5, Math.max(2, Math.min(w, h) * 0.12)) },
       label: "block",
       plugin: {
         kind: "block",
@@ -415,9 +435,12 @@
 
   function target(x, y, enemy = "skeleton") {
     const body = Bodies.circle(x, y, 22, {
-      friction: 0.75,
-      restitution: 0.2,
-      density: 0.0027,
+      friction: 0.88,
+      frictionStatic: 0.95,
+      frictionAir: 0.004,
+      restitution: 0.12,
+      density: 0.0035,
+      sleepThreshold: 34,
       label: "target",
       plugin: {
         kind: "target",
@@ -473,13 +496,14 @@
     if (!data || data.dead || data.kind === "terrain" || data.kind === "shot") return;
 
     const otherKind = other.plugin ? other.plugin.kind : "";
-    const shotBonus = otherKind === "shot" ? 1.5 : 1;
-    const massBonus = Math.min(2.4, Math.max(0.75, other.mass * 0.12));
-    const amount = Math.max(0, (speed - 1.1) * shotBonus * massBonus);
+    const shotBonus = otherKind === "shot" ? 1.85 : 1;
+    const massBonus = Math.min(2.7, Math.max(0.8, other.mass * 0.13));
+    const materialBonus = data.sprite && data.sprite.includes("glass") ? 1.25 : data.sprite && data.sprite.includes("stone") ? 0.82 : 1;
+    const amount = Math.max(0, (speed - 0.95) * shotBonus * massBonus * materialBonus);
 
     data.health -= amount;
     if (data.kind === "target" && otherKind === "shot" && speed > 2.4) {
-      data.health -= 2.2;
+      data.health -= 2.8;
     }
 
     if (data.health <= 0) {
@@ -761,7 +785,7 @@
       drawElastic(true);
     }
 
-    drawSprite("sling", SLING.x - 10, SLING.y + 34, 96, 96, 0);
+    drawSlingFrame();
 
     const bodies = Composite.allBodies(world).filter((body) => body.plugin && body.plugin.kind !== "terrain");
     bodies.sort((a, b) => {
@@ -849,25 +873,26 @@
 
   function drawAiBackgroundLayers() {
     if (!imageReady(artImages.aiBackground)) return false;
-    drawImageCover(artImages.aiBackground, 0, 0, BASE_W, BASE_H, 0.48);
+    drawImageCoverFiltered(artImages.aiBackground, 0, 0, BASE_W, BASE_H, 0.29, "blur(1.4px) saturate(0.58) brightness(1.12)");
 
     ctx.save();
     const farWash = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    farWash.addColorStop(0, "rgba(235, 226, 255, 0.34)");
-    farWash.addColorStop(0.34, "rgba(185, 163, 221, 0.22)");
-    farWash.addColorStop(0.66, "rgba(84, 62, 105, 0.08)");
+    farWash.addColorStop(0, "rgba(238, 229, 255, 0.48)");
+    farWash.addColorStop(0.34, "rgba(194, 174, 226, 0.34)");
+    farWash.addColorStop(0.66, "rgba(118, 91, 141, 0.14)");
     farWash.addColorStop(1, "rgba(8, 5, 12, 0)");
     ctx.fillStyle = farWash;
     ctx.fillRect(0, 0, BASE_W, GROUND_Y);
     ctx.restore();
 
-    drawImageCoverSlice(artImages.aiBackground, 218, 210, 0.32);
-    drawImageCoverSlice(artImages.aiBackground, 354, 168, 0.56);
+    drawImageCoverSlice(artImages.aiBackground, 218, 210, 0.2, "blur(0.8px) saturate(0.72) brightness(1.05)");
+    drawImageCoverSlice(artImages.aiBackground, 354, 168, 0.38, "saturate(0.85) brightness(0.95)");
 
     ctx.save();
     const nearShade = ctx.createLinearGradient(0, 318, 0, GROUND_Y + 10);
     nearShade.addColorStop(0, "rgba(10, 7, 14, 0)");
-    nearShade.addColorStop(1, "rgba(5, 4, 8, 0.26)");
+    nearShade.addColorStop(0.54, "rgba(5, 4, 8, 0.18)");
+    nearShade.addColorStop(1, "rgba(5, 4, 8, 0.44)");
     ctx.fillStyle = nearShade;
     ctx.fillRect(0, 300, BASE_W, GROUND_Y - 300 + 10);
     ctx.restore();
@@ -875,7 +900,16 @@
     return true;
   }
 
-  function drawImageCoverSlice(image, destY, destH, alpha = 1) {
+  function drawImageCoverFiltered(image, x, y, w, h, alpha = 1, filter = "none") {
+    if (!imageReady(image)) return false;
+    ctx.save();
+    ctx.filter = filter;
+    drawImageCover(image, x, y, w, h, alpha);
+    ctx.restore();
+    return true;
+  }
+
+  function drawImageCoverSlice(image, destY, destH, alpha = 1, filter = "none") {
     if (!imageReady(image)) return false;
     const imageW = image.naturalWidth || image.width;
     const imageH = image.naturalHeight || image.height;
@@ -885,6 +919,7 @@
     const sx = (imageW - sw) / 2;
     const sy = (imageH - BASE_H / scale) / 2 + destY / scale;
     ctx.save();
+    ctx.filter = filter;
     ctx.globalAlpha *= alpha;
     ctx.drawImage(image, sx, sy, sw, sh, 0, destY, BASE_W, destH);
     ctx.restore();
@@ -916,25 +951,36 @@
       { col: 2, row: 0 }
     ];
 
+    ctx.save();
+    ctx.fillStyle = "rgba(2, 2, 5, 0.46)";
+    ctx.fillRect(0, GROUND_Y - 8, BASE_W, 18);
+    ctx.restore();
+
     for (let x = -22; x < BASE_W + 76; x += 64) {
       const cell = topCells[Math.abs(Math.floor((x + 22) / 64)) % topCells.length];
-      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 32, GROUND_Y + 12, 72, 72, 0, 0.98, 0.12);
+      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 32, GROUND_Y + 12, 72, 72, 0, 1, 0.12);
     }
 
     ctx.save();
-    ctx.globalAlpha = 0.84;
-    ctx.fillStyle = "rgba(8, 5, 10, 0.48)";
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "rgba(5, 3, 8, 0.64)";
     ctx.fillRect(0, GROUND_Y + 22, BASE_W, BASE_H - GROUND_Y);
+    ctx.strokeStyle = "rgba(245, 220, 170, 0.32)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y + 2);
+    ctx.lineTo(BASE_W, GROUND_Y + 2);
+    ctx.stroke();
     ctx.restore();
 
     for (let x = -36; x < BASE_W + 96; x += 96) {
       const cell = frontCells[Math.abs(Math.floor((x + 36) / 96)) % frontCells.length];
-      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 48, GROUND_Y + 58, 102, 76, 0, 0.9, 0.12);
+      drawAiCell(artImages.aiTiles, cell.col, cell.row, 8, 4, x + 48, GROUND_Y + 58, 102, 76, 0, 1, 0.12);
     }
     return true;
   }
 
-  function drawAiCell(image, col, row, cols, rows, x, y, w, h, rotation = 0, alpha = 1, inset = 0.06) {
+  function drawAiCell(image, col, row, cols, rows, x, y, w, h, rotation = 0, alpha = 1, inset = 0.06, shadow = null) {
     if (!imageReady(image)) return false;
     const sourceW = image.naturalWidth || image.width;
     const sourceH = image.naturalHeight || image.height;
@@ -947,6 +993,12 @@
 
     ctx.save();
     ctx.globalAlpha *= alpha;
+    if (shadow) {
+      ctx.shadowColor = shadow.color || "rgba(0, 0, 0, 0.72)";
+      ctx.shadowBlur = shadow.blur || 0;
+      ctx.shadowOffsetX = shadow.x || 0;
+      ctx.shadowOffsetY = shadow.y || 0;
+    }
     ctx.translate(x, y);
     ctx.rotate(rotation || 0);
     ctx.drawImage(image, sx, sy, sw, sh, -w / 2, -h / 2, w, h);
@@ -1033,42 +1085,132 @@
   function drawElastic(behind) {
     if (!currentShot) return;
     const p = currentShot.position;
-    const leftFork = { x: SLING.x - 25, y: SLING.y - 58 };
-    const rightFork = { x: SLING.x + 20, y: SLING.y - 59 };
-    const bandColor = behind ? "rgba(78, 45, 28, 0.82)" : "rgba(55, 29, 18, 0.92)";
+    const stretch = Math.min(1, Vector.magnitude(Vector.sub(p, SLING)) / MAX_PULL);
+    const wobble = Math.sin(performance.now() / 70) * (1 + stretch * 1.6);
+    const anchors = behind
+      ? [SLING_ANCHORS.backLeft, SLING_ANCHORS.backRight]
+      : [SLING_ANCHORS.frontLeft, SLING_ANCHORS.frontRight];
+    const pouch = {
+      x: p.x - 1,
+      y: p.y + 7 + wobble * 0.35
+    };
+    const bandColor = behind ? "rgba(53, 31, 22, 0.9)" : "rgba(88, 52, 31, 0.98)";
+    const highlight = behind ? "rgba(151, 91, 54, 0.58)" : "rgba(220, 144, 75, 0.74)";
 
     ctx.save();
     ctx.lineCap = "round";
-    ctx.lineWidth = behind ? 7 : 5;
-    ctx.strokeStyle = bandColor;
-    ctx.beginPath();
-    ctx.moveTo(leftFork.x, leftFork.y);
-    ctx.lineTo(p.x - 2, p.y + 3);
-    ctx.lineTo(rightFork.x, rightFork.y);
-    ctx.stroke();
+    ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+    ctx.shadowBlur = behind ? 5 : 8;
+    ctx.shadowOffsetY = 2;
+
+    for (const anchor of anchors) {
+      const control = {
+        x: (anchor.x + pouch.x) / 2 + (anchor.x < pouch.x ? -5 : 5),
+        y: (anchor.y + pouch.y) / 2 + 7 + stretch * 7 + wobble
+      };
+      ctx.lineWidth = behind ? 8 : 6;
+      ctx.strokeStyle = bandColor;
+      ctx.beginPath();
+      ctx.moveTo(anchor.x, anchor.y);
+      ctx.quadraticCurveTo(control.x, control.y, pouch.x, pouch.y);
+      ctx.stroke();
+
+      ctx.lineWidth = behind ? 2.2 : 1.8;
+      ctx.strokeStyle = highlight;
+      ctx.beginPath();
+      ctx.moveTo(anchor.x + 0.5, anchor.y - 1);
+      ctx.quadraticCurveTo(control.x, control.y - 1.5, pouch.x, pouch.y - 1.2);
+      ctx.stroke();
+    }
+
+    if (!behind) {
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = "rgba(58, 32, 21, 0.96)";
+      ctx.strokeStyle = "rgba(226, 159, 84, 0.68)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(pouch.x, pouch.y + 2, 15 + stretch * 3, 7, -0.06, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
   function drawAim() {
     if (!currentShot || !drag) return;
     const pull = Vector.sub(SLING, currentShot.position);
+    if (Vector.magnitude(pull) < MIN_LAUNCH_PULL) return;
     const vx = pull.x * LAUNCH_POWER;
     const vy = pull.y * LAUNCH_POWER;
-    let x = currentShot.position.x;
-    let y = currentShot.position.y;
+    const points = [];
+
+    for (let i = 1; i < 28; i++) {
+      const t = i * 4.4;
+      const x = currentShot.position.x + vx * t;
+      const y = currentShot.position.y + vy * t + 0.5 * engine.gravity.y * 0.18 * t * t;
+      if (y > GROUND_Y - 4) break;
+      points.push({ x, y, pct: i / 28 });
+    }
+
+    if (points.length < 2) return;
 
     ctx.save();
-    ctx.fillStyle = "rgba(31, 44, 53, 0.32)";
-    for (let i = 1; i < 18; i++) {
-      const t = i * 5.2;
-      x = currentShot.position.x + vx * t;
-      y = currentShot.position.y + vy * t + 0.5 * engine.gravity.y * 0.18 * t * t;
-      if (y > GROUND_Y) break;
-      ctx.globalAlpha = 1 - i / 21;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(255, 214, 112, 0.95)";
+    ctx.shadowBlur = 10;
+    ctx.setLineDash([9, 7]);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(23, 12, 5, 0.72)";
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255, 218, 118, 0.98)";
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    for (let i = 0; i < points.length; i += 2) {
+      const point = points[i];
+      const fade = 1 - point.pct * 0.72;
+      const radius = Math.max(2.8, 6.2 - point.pct * 4);
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = "rgba(20, 9, 4, 0.85)";
       ctx.beginPath();
-      ctx.arc(x, y, Math.max(2, 5 - i * 0.12), 0, Math.PI * 2);
+      ctx.arc(point.x, point.y, radius + 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = i % 4 === 0 ? "#fff2ba" : "#ffca59";
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  function drawSlingFrame() {
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.78)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 4;
+    drawSprite("sling", SLING_ART.x, SLING_ART.y, SLING_ART.w, SLING_ART.h, 0, { shadow: false });
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = "rgba(242, 185, 98, 0.55)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(SLING_ANCHORS.frontLeft.x - 2, SLING_ANCHORS.frontLeft.y + 2);
+    ctx.lineTo(SLING_ANCHORS.backLeft.x + 3, SLING_ANCHORS.backLeft.y - 2);
+    ctx.moveTo(SLING_ANCHORS.frontRight.x + 2, SLING_ANCHORS.frontRight.y + 2);
+    ctx.lineTo(SLING_ANCHORS.backRight.x - 3, SLING_ANCHORS.backRight.y - 2);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -1122,7 +1264,24 @@
       ? Math.max(-0.65, Math.min(0.55, Math.atan2(body.velocity.y, body.velocity.x) * 0.22))
       : body.angle * 0.25;
 
-    if (row !== undefined && drawAiCell(artImages.aiBirds, frame, row, BIRD_GRID.cols, BIRD_GRID.rows, p.x, p.y, 76, 66, rotation, 1, 0.035)) {
+    if (
+      row !== undefined &&
+      drawAiCell(
+        artImages.aiBirds,
+        frame,
+        row,
+        BIRD_GRID.cols,
+        BIRD_GRID.rows,
+        p.x,
+        p.y,
+        76,
+        66,
+        rotation,
+        1,
+        0.035,
+        { color: "rgba(0, 0, 0, 0.82)", blur: 9, y: 4 }
+      )
+    ) {
       return;
     }
 
@@ -1134,6 +1293,9 @@
     const alpha = options.alpha === undefined ? 1 : options.alpha;
     const aiCell = AI_SPRITES[safeKey];
     const aiSpriteSheet = artImages.aiSpritesKeyed || artImages.aiSprites;
+    const shadow = options.shadow === false
+      ? null
+      : options.shadow || { color: "rgba(0, 0, 0, 0.78)", blur: 7, y: 3 };
     if (
       aiCell &&
       drawAiCell(
@@ -1148,7 +1310,8 @@
         h,
         rotation,
         alpha,
-        0.055
+        0.055,
+        shadow
       )
     ) {
       return true;
@@ -1159,6 +1322,12 @@
     if (spriteReady && frame) {
       ctx.save();
       ctx.globalAlpha *= alpha;
+      if (shadow) {
+        ctx.shadowColor = shadow.color || "rgba(0, 0, 0, 0.72)";
+        ctx.shadowBlur = shadow.blur || 0;
+        ctx.shadowOffsetX = shadow.x || 0;
+        ctx.shadowOffsetY = shadow.y || 0;
+      }
       ctx.translate(x, y);
       ctx.rotate(rotation || 0);
       ctx.drawImage(spriteImage, frame.x, frame.y, frame.w, frame.h, -w / 2, -h / 2, w, h);
@@ -1170,6 +1339,12 @@
 
     ctx.save();
     ctx.globalAlpha *= alpha;
+    if (shadow) {
+      ctx.shadowColor = shadow.color || "rgba(0, 0, 0, 0.72)";
+      ctx.shadowBlur = shadow.blur || 0;
+      ctx.shadowOffsetX = shadow.x || 0;
+      ctx.shadowOffsetY = shadow.y || 0;
+    }
     ctx.translate(x, y);
     ctx.rotate(rotation || 0);
     ctx.fillStyle = fallbackColor(safeKey);

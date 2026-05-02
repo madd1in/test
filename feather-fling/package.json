@@ -5,6 +5,7 @@
   "description": "Gothic castle-flinging physics game with generated and reused local assets.",
   "scripts": {
     "assets": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_sprites.ps1",
+    "bgm": "python tools/build_gothic_bgm.py",
     "serve": "npx http-server . -p 8127 -c-1"
   },
   "dependencies": {
