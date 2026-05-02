@@ -2,33 +2,33 @@
     "meta":  {
                  "image":  "sprite-map.png",
                  "cell":  64,
-                 "note":  "Generated local original sprite map for Feather Fling."
+                 "note":  "Generated local original sprite map for Castle Fling: Nocturne."
              },
     "frames":  {
-                   "bird-red":  {
-                                    "x":  0,
-                                    "y":  0,
-                                    "w":  64,
-                                    "h":  64
-                                },
-                   "bird-blue":  {
-                                     "x":  64,
-                                     "y":  0,
-                                     "w":  64,
-                                     "h":  64
-                                 },
-                   "bird-yellow":  {
-                                       "x":  128,
+                   "relic-crimson":  {
+                                         "x":  0,
+                                         "y":  0,
+                                         "w":  64,
+                                         "h":  64
+                                     },
+                   "relic-azure":  {
+                                       "x":  64,
                                        "y":  0,
                                        "w":  64,
                                        "h":  64
                                    },
-                   "target":  {
-                                  "x":  384,
-                                  "y":  128,
-                                  "w":  64,
-                                  "h":  64
-                              },
+                   "relic-gold":  {
+                                      "x":  128,
+                                      "y":  0,
+                                      "w":  64,
+                                      "h":  64
+                                  },
+                   "skull":  {
+                                 "x":  384,
+                                 "y":  128,
+                                 "w":  64,
+                                 "h":  64
+                             },
                    "wood-block":  {
                                       "x":  256,
                                       "y":  0,
@@ -101,17 +101,17 @@
                                  "w":  64,
                                  "h":  64
                              },
-                   "bird-purple":  {
-                                       "x":  0,
-                                       "y":  128,
-                                       "w":  64,
-                                       "h":  64
-                                   },
-                   "bird-green":  {
-                                      "x":  64,
-                                      "y":  128,
-                                      "w":  64,
-                                      "h":  64
-                                  }
+                   "relic-violet":  {
+                                        "x":  0,
+                                        "y":  128,
+                                        "w":  64,
+                                        "h":  64
+                                    },
+                   "relic-emerald":  {
+                                         "x":  64,
+                                         "y":  128,
+                                         "w":  64,
+                                         "h":  64
+                                     }
                }
 }

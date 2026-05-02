@@ -21,7 +21,7 @@ $atlas = [ordered]@{
   meta = [ordered]@{
     image = "sprite-map.png"
     cell = $cell
-    note = "Generated local original sprite map for Feather Fling."
+    note = "Generated local original sprite map for Castle Fling: Nocturne."
   }
   frames = [ordered]@{}
 }
@@ -62,29 +62,30 @@ function CellOrigin([int]$col, [int]$row) {
   return @(($col * $script:cell), ($row * $script:cell))
 }
 
-function Draw-Bird([int]$col, [int]$row, [string]$name, [string]$body, [string]$wing, [string]$beak) {
+function Draw-Relic([int]$col, [int]$row, [string]$name, [string]$body, [string]$accent, [string]$glow) {
   $o = CellOrigin $col $row
   $x = $o[0]
   $y = $o[1]
   $g.FillEllipse((Brush "#00000022"), $x + 15, $y + 47, 36, 8)
-  $g.FillEllipse((Brush $body), $x + 10, $y + 10, 44, 42)
-  $g.FillEllipse((Brush "#ffffff55"), $x + 17, $y + 15, 18, 14)
-  $g.FillEllipse((Brush $wing), $x + 11, $y + 25, 18, 19)
-  $g.FillEllipse((Brush "#ffffff"), $x + 31, $y + 20, 8, 10)
-  $g.FillEllipse((Brush "#ffffff"), $x + 42, $y + 20, 8, 10)
-  $g.FillEllipse((Brush "#18212a"), $x + 34, $y + 24, 3, 4)
-  $g.FillEllipse((Brush "#18212a"), $x + 45, $y + 24, 3, 4)
-  $beakPath = New-Object System.Drawing.Drawing2D.GraphicsPath
-  $beakPath.AddPolygon(@(
-    [System.Drawing.PointF]::new($x + 48, $y + 30),
-    [System.Drawing.PointF]::new($x + 61, $y + 35),
-    [System.Drawing.PointF]::new($x + 48, $y + 40)
+  $halo = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $halo.AddEllipse($x + 7, $y + 7, 50, 50)
+  $g.FillPath((Brush "#553a44aa"), $halo)
+  $g.FillEllipse((Brush $body), $x + 14, $y + 12, 36, 36)
+  $g.DrawEllipse((Pen "#f0d79a" 2), $x + 14, $y + 12, 36, 36)
+  $g.FillEllipse((Brush "#fff2c966"), $x + 21, $y + 17, 13, 9)
+  $g.DrawLine((Pen $accent 5), $x + 32, $y + 17, $x + 32, $y + 43)
+  $g.DrawLine((Pen $accent 4), $x + 23, $y + 29, $x + 41, $y + 29)
+  $g.DrawLine((Pen "#22131c" 2), $x + 32, $y + 18, $x + 32, $y + 42)
+  $g.DrawLine((Pen "#22131c" 1.5), $x + 24, $y + 29, $x + 40, $y + 29)
+  $tip = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $tip.AddPolygon(@(
+    [System.Drawing.PointF]::new($x + 48, $y + 27),
+    [System.Drawing.PointF]::new($x + 60, $y + 32),
+    [System.Drawing.PointF]::new($x + 48, $y + 37)
   ))
-  $g.FillPath((Brush $beak), $beakPath)
-  $g.DrawPath((Pen "#724910" 1.2), $beakPath)
-  $g.DrawArc((Pen "#17212a" 2), $x + 27, $y + 18, 14, 9, 190, 70)
-  $g.DrawArc((Pen "#17212a" 2), $x + 40, $y + 18, 14, 9, 210, 70)
-  $g.DrawEllipse((Pen "#00000044" 1.4), $x + 10, $y + 10, 44, 42)
+  $g.FillPath((Brush "#e6d6b3"), $tip)
+  $g.DrawPath((Pen "#6f4a2e" 1.2), $tip)
+  $g.DrawEllipse((Pen "#00000055" 1.4), $x + 14, $y + 12, 36, 36)
   Frame $name $col $row
 }
 
@@ -93,18 +94,20 @@ function Draw-Target([int]$col, [int]$row) {
   $x = $o[0]
   $y = $o[1]
   $g.FillEllipse((Brush "#00000022"), $x + 16, $y + 49, 34, 7)
-  $g.FillEllipse((Brush "#75c85f"), $x + 13, $y + 12, 40, 39)
-  $g.FillEllipse((Brush "#a6e189"), $x + 19, $y + 16, 16, 13)
-  $g.FillEllipse((Brush "#2b742e"), $x + 22, $y + 25, 7, 7)
-  $g.FillEllipse((Brush "#2b742e"), $x + 39, $y + 25, 7, 7)
-  $g.FillEllipse((Brush "#eaf6c9"), $x + 24, $y + 26, 2, 2)
-  $g.FillEllipse((Brush "#eaf6c9"), $x + 41, $y + 26, 2, 2)
-  $nose = RoundedRect ($x + 30) ($y + 31) 12 9 4
-  $g.FillPath((Brush "#4d993e"), $nose)
-  $g.DrawPath((Pen "#2e672c" 1), $nose)
-  $g.DrawArc((Pen "#245322" 2), $x + 28, $y + 37, 17, 8, 10, 160)
-  $g.DrawEllipse((Pen "#286a2c" 1.4), $x + 13, $y + 12, 40, 39)
-  Frame "target" $col $row
+  $g.FillEllipse((Brush "#d9caa7"), $x + 15, $y + 11, 35, 38)
+  $g.FillRectangle((Brush "#d9caa7"), $x + 25, $y + 38, 16, 11)
+  $g.FillEllipse((Brush "#17111a"), $x + 22, $y + 24, 9, 11)
+  $g.FillEllipse((Brush "#17111a"), $x + 37, $y + 24, 9, 11)
+  $g.FillPolygon((Brush "#17111a"), @(
+    [System.Drawing.Point]::new($x + 32, $y + 33),
+    [System.Drawing.Point]::new($x + 29, $y + 40),
+    [System.Drawing.Point]::new($x + 35, $y + 40)
+  ))
+  for ($i = 0; $i -lt 4; $i++) {
+    $g.FillRectangle((Brush "#17111a"), $x + 25 + $i * 5, $y + 43, 3, 6)
+  }
+  $g.DrawEllipse((Pen "#6f5d46" 1.6), $x + 15, $y + 11, 35, 38)
+  Frame "skull" $col $row
 }
 
 function Draw-Block([int]$col, [int]$row, [string]$name, [string]$fill, [string]$edge, [string]$line) {
@@ -194,9 +197,9 @@ function Draw-Leaf([int]$col, [int]$row) {
   Frame "leaf" $col $row
 }
 
-Draw-Bird 0 0 "bird-red" "#e64b3c" "#b9272e" "#f8b13d"
-Draw-Bird 1 0 "bird-blue" "#3c9be6" "#2367b0" "#ffd66b"
-Draw-Bird 2 0 "bird-yellow" "#f4d340" "#d4912d" "#f08a27"
+Draw-Relic 0 0 "relic-crimson" "#8e2f3e" "#f0d79a" "#d94b55"
+Draw-Relic 1 0 "relic-azure" "#274f86" "#d7efff" "#5ab3e5"
+Draw-Relic 2 0 "relic-gold" "#9b6a23" "#fff0a8" "#f4d05f"
 Draw-Target 3 0
 Draw-Block 4 0 "wood-block" "#c78343" "#7a4624" "#9e6436"
 Draw-Block 5 0 "stone-block" "#9ca9b4" "#5d6a73" "#cdd6dd"
@@ -210,8 +213,8 @@ Draw-Block 4 1 "wood-long" "#bd7637" "#6f3f23" "#96582e"
 Draw-Block 5 1 "stone-long" "#87949f" "#53606a" "#bdc7cf"
 Draw-Block 6 1 "glass-long" "#7bcfdc" "#358898" "#cdf8ff"
 Draw-Block 7 1 "crate" "#d09248" "#784b25" "#a66731"
-Draw-Bird 0 2 "bird-purple" "#9562d8" "#60379c" "#f6c95a"
-Draw-Bird 1 2 "bird-green" "#56b75d" "#2e8038" "#ffd36b"
+Draw-Relic 0 2 "relic-violet" "#5c3f7f" "#ead8ff" "#9e75cc"
+Draw-Relic 1 2 "relic-emerald" "#2f6d51" "#dcffd8" "#62bf7a"
 Draw-Puff 2 2
 Draw-Star 3 2
 Draw-Leaf 4 2

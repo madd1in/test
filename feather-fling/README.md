@@ -1,12 +1,12 @@
-# Feather Fling
+# Castle Fling: Nocturne
 
-Ein lokales Schleuder-Physics-Spiel mit eigener Spritemap, lokalem BGM und Touch-Swipe-Steuerung.
+Ein lokales Gothic-Schleuder-Physics-Spiel mit eigener Spritemap, wiederverwendeten Castle-Assets und Touch-Swipe-Steuerung.
 
 ## Dateien
 
-- `assets/sprite-map.png`: generierte Spritemap mit Projektilen, Bloecken, Ziel und Boden-Tiles
-- `assets/sprite-map.json`: Atlas-Koordinaten fuer die einzelnen Sprites
-- `assets/audio/pixel-quest-parade.mp3`: lokal uebernommener BGM-Track
+- `assets/sprite-map.png`: generierte Spritemap mit Relikten, Gothic-Bloecken, Skull-Fallback und Boden-Tiles
+- `assets/gothic/`: wiederverwendete lokale Castle-Hintergruende, Floor-Tiles und Monster-Sprites
+- `assets/audio/moonlit-castle-ruins.mp3`: lokaler Gothic-BGM-Track
 - `tools/build_sprites.ps1`: lokaler Sprite-Builder
 - `game.js`: Canvas-Spiel mit Matter.js-Physik
 
