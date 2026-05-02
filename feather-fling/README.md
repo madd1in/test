@@ -1,6 +1,7 @@
 # Castle Fling: Nocturne
 
 Ein lokales Gothic-Schleuder-Physics-Spiel mit ChatGPT-Image-Maps, eigener Spritemap, lokaler BGM und Touch-Swipe-Steuerung.
+Die Spielflaeche wird per CSS auf die volle verfuegbare Displayflaeche gestreckt, waehrend die interne Physikwelt stabil bei 1024x576 bleibt.
 
 ## Dateien
 
