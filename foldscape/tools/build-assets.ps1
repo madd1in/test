@@ -311,7 +311,7 @@ $manifest = [ordered]@{
   imported = @{
     conceptSheet = "assets/imported/imagegen-concept-sheet.png"
     backdrop = "assets/imported/observatory.png"
-    bgm = "assets/audio/mossy-warp-zone.mp3"
+    bgm = "assets/audio/moonlit-maple-trail.mp3"
   }
   tiles = [ordered]@{
     grass = 0

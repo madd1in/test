@@ -2,6 +2,7 @@
   "use strict";
 
   const canvas = document.querySelector("#gameCanvas");
+  const webglCanvas = document.querySelector("#webglCanvas");
   const ctx = canvas.getContext("2d");
   const shell = document.querySelector("#gameShell");
   const statusLine = document.querySelector("#statusLine");
@@ -42,16 +43,16 @@
   };
 
   const images = {};
-  const bgm = new Audio("assets/audio/mossy-warp-zone.mp3");
+  const bgm = new Audio("assets/audio/moonlit-maple-trail.mp3");
   bgm.loop = true;
-  bgm.volume = 0.34;
+  bgm.volume = 0.24;
 
   const input = {
     left: false,
     right: false,
     up: false,
     down: false,
-    jumpQueued: false,
+    jumpBuffer: 0,
   };
 
   let maps = [];
@@ -60,6 +61,7 @@
   let running = false;
   let messageTimer = 0;
   let dpr = 1;
+  let renderer3D = null;
 
   const state = {
     face: 0,
@@ -81,7 +83,11 @@
       dir: 1,
       onGround: false,
       onLadder: false,
+      airJumps: 1,
+      coyote: 0,
       anim: 0,
+      renderX: 86,
+      renderY: 290,
     },
     particles: [],
   };
@@ -184,7 +190,11 @@
       dir: 1,
       onGround: false,
       onLadder: false,
+      airJumps: 1,
+      coyote: 0,
       anim: 0,
+      renderX: 86,
+      renderY: 292,
     });
     state.face = 0;
     state.nextFace = 0;
@@ -192,6 +202,7 @@
     state.shards = 0;
     state.won = false;
     state.particles.length = 0;
+    if (renderer3D) renderer3D.rebuildWorld();
     flash("Start");
     updateHud();
   }
@@ -218,8 +229,13 @@
     canvas.height = Math.max(1, Math.floor(rect.height * dpr));
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
+    webglCanvas.width = canvas.width;
+    webglCanvas.height = canvas.height;
+    webglCanvas.style.width = `${rect.width}px`;
+    webglCanvas.style.height = `${rect.height}px`;
     ctx.setTransform(canvas.width / VIEW_W, 0, 0, canvas.height / VIEW_H, 0, 0);
     ctx.imageSmoothingEnabled = false;
+    if (renderer3D) renderer3D.resize();
   }
 
   function tileAt(face, col, row) {
@@ -289,9 +305,10 @@
       const col = Math.floor((p.x + p.w * 0.5) / TILE);
       const row = Math.floor(beforeBottom / TILE);
       if (tileAt(state.face, col, row) === "B") {
-        p.vy = -14.6;
+        p.vy = -560;
         p.onGround = false;
-        state.shake = 4;
+        p.airJumps = 1;
+        state.shake = 1.2;
         spawnBurst(p.x + p.w * 0.5, p.y + p.h, "#ffcf65", 9);
       } else {
         p.vy = 0;
@@ -321,6 +338,7 @@
           state.shards += 1;
           state.shake = 2;
           spawnBurst(col * TILE + TILE / 2, row * TILE + TILE / 2, "#76ecff", 12);
+          if (renderer3D) renderer3D.rebuildWorld();
           if (state.shards >= totalShards) flash("Portal offen");
           else flash(`Scherbe ${state.shards}/${totalShards}`);
         }
@@ -352,8 +370,9 @@
     state.rotationDir = dir;
     state.face = (state.face + dir + maps.length) % maps.length;
     state.rotationPulse = 1;
-    state.shake = 3;
+    state.shake = 1.4;
     nudgeOutOfSolids();
+    if (renderer3D) renderer3D.rebuildWorld();
     flash(FACE_NAMES[state.face]);
     updateHud();
   }
@@ -361,8 +380,10 @@
   function update(dt) {
     state.time += dt;
     const p = state.player;
-    const accel = p.onGround ? 42 : 30;
-    const friction = p.onGround ? 30 : 8;
+    input.jumpBuffer = Math.max(0, input.jumpBuffer - dt);
+    const accel = p.onGround ? 1180 : 820;
+    const friction = p.onGround ? 1450 : 330;
+    const maxSpeed = p.onGround ? 176 : 188;
     const desired = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     p.onLadder = currentLadderOverlap();
 
@@ -374,42 +395,62 @@
       if (Math.abs(p.vx) <= slow) p.vx = 0;
       else p.vx -= Math.sign(p.vx) * slow;
     }
-    p.vx = Math.max(-5.1, Math.min(5.1, p.vx));
+    p.vx = Math.max(-maxSpeed, Math.min(maxSpeed, p.vx));
 
     const wantsClimb = p.onLadder && (input.up || input.down);
     if (wantsClimb) {
-      p.vy = (input.down ? 1 : -1) * 3.0;
+      p.vy = (input.down ? 1 : -1) * 118;
+      p.airJumps = 1;
     } else {
-      p.vy += 34 * dt;
-      p.vy = Math.min(13, p.vy);
+      p.vy += 1480 * dt;
+      p.vy = Math.min(650, p.vy);
     }
 
-    if (input.jumpQueued) {
-      if (p.onGround || p.onLadder) {
-        p.vy = -11.8;
+    if (input.jumpBuffer > 0) {
+      if (p.onGround || p.onLadder || p.coyote > 0) {
+        p.vy = -470;
         p.onGround = false;
+        p.coyote = 0;
+        p.airJumps = 1;
         spawnBurst(p.x + p.w * 0.5, p.y + p.h, "#ffffff", 5);
+        input.jumpBuffer = 0;
+      } else if (p.airJumps > 0) {
+        p.vy = -430;
+        p.airJumps -= 1;
+        state.shake = 0.8;
+        spawnBurst(p.x + p.w * 0.5, p.y + p.h * 0.55, "#76ecff", 9);
+        input.jumpBuffer = 0;
       }
-      input.jumpQueued = false;
     }
 
-    p.x += p.vx;
+    p.x += p.vx * dt;
     p.x = Math.max(0, Math.min(WORLD_W - p.w, p.x));
     collideX();
 
-    p.y += p.vy;
+    p.y += p.vy * dt;
     p.y = Math.max(-16, Math.min(WORLD_H - p.h, p.y));
     collideY();
+    if (p.onGround) {
+      p.airJumps = 1;
+      p.coyote = 0.105;
+    } else {
+      p.coyote = Math.max(0, p.coyote - dt);
+    }
 
     if (p.y > WORLD_H - p.h - 2) {
       p.y = 292;
       p.x = 86;
+      p.renderX = p.x;
+      p.renderY = p.y;
       p.vx = 0;
       p.vy = 0;
       flash("Zurueck");
     }
 
-    if (Math.abs(p.vx) > 0.1 && p.onGround) p.anim += dt * 9;
+    p.renderX += (p.x - p.renderX) * Math.min(1, dt * 18);
+    p.renderY += (p.y - p.renderY) * Math.min(1, dt * 18);
+
+    if (Math.abs(p.vx) > 4 && p.onGround) p.anim += dt * 9;
     else p.anim = 0;
 
     collectShards();
@@ -453,6 +494,11 @@
   }
 
   function draw() {
+    if (renderer3D && renderer3D.ready) {
+      renderer3D.render();
+      return;
+    }
+
     ctx.save();
     ctx.setTransform(canvas.width / VIEW_W, 0, 0, canvas.height / VIEW_H, 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -605,9 +651,9 @@
     const p = state.player;
     let frame = 0;
     if (!p.onGround && !p.onLadder) frame = 5;
-    else if (Math.abs(p.vx) > 0.25) frame = 1 + (Math.floor(p.anim) % 4);
+    else if (Math.abs(p.vx) > 4) frame = 1 + (Math.floor(p.anim) % 4);
     const squash = p.onGround && Math.abs(p.vy) < 0.1 ? 0 : Math.min(4, Math.abs(p.vy) * 0.08);
-    drawSpriteFrame(frame, p.x - 14, TOP + p.y - 18 + squash, 48, 64 - squash, p.dir < 0);
+    drawSpriteFrame(frame, p.renderX - 14, TOP + p.renderY - 18 + squash, 48, 64 - squash, p.dir < 0);
   }
 
   function drawParticles() {
@@ -633,10 +679,436 @@
     ctx.restore();
   }
 
+  class Foldscape3DRenderer {
+    constructor(THREE) {
+      this.THREE = THREE;
+      this.ready = false;
+      this.tileTextures = new Map();
+      this.spriteTextures = new Map();
+      this.materials = new Map();
+      this.dynamicMeshes = [];
+    }
+
+    init() {
+      const THREE = this.THREE;
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: webglCanvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance",
+      });
+      this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color("#82d7f0");
+      this.scene.fog = new THREE.Fog("#82d7f0", 24, 48);
+
+      this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 90);
+      this.camera.position.set(0, 5.6, 24.2);
+      this.camera.lookAt(0, -0.8, 0);
+      this.cameraBaseZ = 24.2;
+      this.cameraTargetX = 0;
+
+      const hemi = new THREE.HemisphereLight("#eafcff", "#304a54", 2.4);
+      this.scene.add(hemi);
+
+      const ambient = new THREE.AmbientLight("#ffffff", 1.35);
+      this.scene.add(ambient);
+
+      const key = new THREE.DirectionalLight("#fff3c4", 3.8);
+      key.position.set(-6, 12, 10);
+      key.castShadow = true;
+      key.shadow.mapSize.set(1024, 1024);
+      key.shadow.camera.left = -20;
+      key.shadow.camera.right = 20;
+      key.shadow.camera.top = 14;
+      key.shadow.camera.bottom = -12;
+      this.scene.add(key);
+
+      const rim = new THREE.DirectionalLight("#75edff", 1.2);
+      rim.position.set(9, 4, 12);
+      this.scene.add(rim);
+
+      this.worldGroup = new THREE.Group();
+      this.scene.add(this.worldGroup);
+      this.terrainGroup = new THREE.Group();
+      this.dynamicGroup = new THREE.Group();
+      this.playerGroup = new THREE.Group();
+      this.particleGroup = new THREE.Group();
+      this.worldGroup.add(this.terrainGroup, this.dynamicGroup, this.playerGroup, this.particleGroup);
+
+      this.createBackdrop();
+      this.createPlayer();
+      this.rebuildWorld();
+      this.resize();
+      this.ready = true;
+      shell.classList.add("has-webgl");
+      window.__foldscapeRenderMode = "three";
+    }
+
+    resize() {
+      if (!this.renderer) return;
+      const rect = shell.getBoundingClientRect();
+      const pixelRatio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      this.renderer.setPixelRatio(pixelRatio);
+      this.renderer.setSize(rect.width, rect.height, false);
+      this.camera.aspect = Math.max(0.1, rect.width / Math.max(1, rect.height));
+      this.cameraBaseZ = this.camera.aspect < 0.72 ? 36 : this.camera.aspect < 1.05 ? 30 : 24.2;
+      this.cameraTargetX = this.camera.aspect < 0.72 ? -4.8 : 0;
+      this.camera.position.z = this.cameraBaseZ;
+      this.camera.updateProjectionMatrix();
+    }
+
+    clearGroup(group) {
+      while (group.children.length) {
+        const child = group.children[0];
+        group.remove(child);
+        child.traverse((obj) => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.userData && obj.userData.transientMaterial && obj.material) obj.material.dispose();
+        });
+      }
+    }
+
+    atlasTexture(image, sx, sy, sw, sh, cache, key) {
+      if (cache.has(key)) return cache.get(key);
+      const THREE = this.THREE;
+      const tileCanvas = document.createElement("canvas");
+      tileCanvas.width = sw;
+      tileCanvas.height = sh;
+      const tileCtx = tileCanvas.getContext("2d");
+      tileCtx.imageSmoothingEnabled = false;
+      tileCtx.clearRect(0, 0, sw, sh);
+      tileCtx.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+      const texture = new THREE.CanvasTexture(tileCanvas);
+      texture.needsUpdate = true;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      cache.set(key, texture);
+      return texture;
+    }
+
+    tileTexture(id) {
+      const key = `painted-tile-${id}`;
+      if (this.tileTextures.has(key)) return this.tileTextures.get(key);
+      const THREE = this.THREE;
+      const tileCanvas = document.createElement("canvas");
+      tileCanvas.width = TILE;
+      tileCanvas.height = TILE;
+      const g = tileCanvas.getContext("2d");
+      g.imageSmoothingEnabled = false;
+      const rect = (color, x, y, w, h) => {
+        g.fillStyle = color;
+        g.fillRect(x, y, w, h);
+      };
+      const line = (color, x1, y1, x2, y2) => {
+        g.strokeStyle = color;
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo(x2, y2);
+        g.stroke();
+      };
+      if (id === 0) {
+        rect("#566660", 0, 8, 32, 24);
+        rect("#3d4847", 0, 24, 32, 8);
+        rect("#74b85a", 0, 0, 32, 8);
+        rect("#a8df72", 0, 0, 32, 3);
+        rect("#46783e", 3, 7, 5, 7);
+        rect("#767f78", 4, 12, 8, 3);
+        rect("#5b625f", 7, 18, 11, 3);
+        line("#2a2f2e", 0, 31, 31, 31);
+      } else if (id === 1) {
+        rect("#69706e", 0, 0, 32, 32);
+        rect("#474d4d", 0, 24, 32, 8);
+        rect("#969d94", 2, 2, 28, 3);
+        line("#3b4141", 2, 12, 30, 10);
+        line("#3b4141", 9, 2, 8, 26);
+        line("#3b4141", 20, 11, 21, 31);
+      } else if (id === 2) {
+        rect("#a88857", 0, 0, 32, 32);
+        rect("#765c3b", 0, 24, 32, 8);
+        rect("#d4b36f", 2, 2, 28, 3);
+        line("#6c5133", 2, 12, 30, 10);
+        line("#6c5133", 9, 2, 8, 26);
+        line("#6c5133", 20, 11, 21, 31);
+      } else if (id === 3) {
+        rect("#8e6138", 0, 9, 32, 15);
+        rect("#b47b45", 0, 9, 32, 4);
+        line("#583923", 0, 15, 31, 15);
+        line("#583923", 10, 10, 10, 23);
+        line("#583923", 22, 10, 22, 23);
+        rect("#ffd072", 6, 13, 2, 2);
+        rect("#ffd072", 25, 20, 2, 2);
+      } else if (id === 4) {
+        rect("#44404e", 0, 6, 32, 26);
+        rect("#ffcc66", 2, 5, 28, 7);
+        rect("#ff8c4a", 5, 12, 22, 4);
+        rect("#2b2a34", 4, 23, 24, 7);
+      } else if (id === 7) {
+        rect("#00000000", 0, 0, 32, 32);
+        rect("#8a5937", 8, 0, 4, 32);
+        rect("#8a5937", 20, 0, 4, 32);
+        for (const y of [4, 12, 20, 28]) rect("#c88b4a", 8, y, 16, 3);
+      } else {
+        rect("#77d7f3", 0, 0, 32, 32);
+        rect("#ffffff", 8, 13, 18, 7);
+        rect("#b6dbe7", 7, 21, 22, 3);
+      }
+      const texture = new THREE.CanvasTexture(tileCanvas);
+      texture.needsUpdate = true;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
+      this.tileTextures.set(key, texture);
+      return texture;
+    }
+
+    spriteTexture(index) {
+      const fw = 48;
+      const fh = 64;
+      const sx = (index % 8) * fw;
+      const sy = Math.floor(index / 8) * fh;
+      return this.atlasTexture(images.sprites, sx, sy, fw, fh, this.spriteTextures, `sprite-${index}`);
+    }
+
+    tileMaterial(id, tone = "#ffffff") {
+      const key = `tile-${id}-${tone}`;
+      if (this.materials.has(key)) return this.materials.get(key);
+      const THREE = this.THREE;
+      const mat = new THREE.MeshBasicMaterial({
+        map: this.tileTexture(id),
+        color: tone,
+      });
+      this.materials.set(key, mat);
+      return mat;
+    }
+
+    colorMaterial(key, color, roughness = 0.75) {
+      if (this.materials.has(key)) return this.materials.get(key);
+      const THREE = this.THREE;
+      const mat = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0.04 });
+      this.materials.set(key, mat);
+      return mat;
+    }
+
+    spriteMaterial(index, opacity = 1) {
+      const key = `sprite-${index}-${opacity}`;
+      if (this.materials.has(key)) return this.materials.get(key);
+      const THREE = this.THREE;
+      const mat = new THREE.MeshBasicMaterial({
+        map: this.spriteTexture(index),
+        transparent: true,
+        opacity,
+        side: THREE.DoubleSide,
+        depthWrite: opacity >= 1,
+      });
+      this.materials.set(key, mat);
+      return mat;
+    }
+
+    createBackdrop() {
+      const THREE = this.THREE;
+      if (!images.backdrop) return;
+      const texture = new THREE.Texture(images.backdrop);
+      texture.needsUpdate = true;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.magFilter = THREE.LinearFilter;
+      texture.minFilter = THREE.LinearFilter;
+      const mat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.36,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(35, 20), mat);
+      mesh.position.set(0, 0.8, -7.5);
+      this.scene.add(mesh);
+    }
+
+    createPlayer() {
+      const THREE = this.THREE;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.52, 1.05, 0.34),
+        this.colorMaterial("player-body", "#59a9aa", 0.64),
+      );
+      body.position.z = -0.03;
+      body.castShadow = true;
+      this.playerGroup.add(body);
+
+      const hat = new THREE.Mesh(
+        new THREE.BoxGeometry(0.48, 0.18, 0.38),
+        this.colorMaterial("player-hat", "#e95143", 0.72),
+      );
+      hat.position.set(0, 0.64, 0.03);
+      hat.castShadow = true;
+      this.playerGroup.add(hat);
+
+      this.playerPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.9, 1.2),
+        this.spriteMaterial(0),
+      );
+      this.playerPlane.position.set(0, 0.03, 0.22);
+      this.playerGroup.add(this.playerPlane);
+
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.42, 20),
+        new THREE.MeshBasicMaterial({ color: "#111924", transparent: true, opacity: 0.28 }),
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.set(0, -0.64, 0.01);
+      this.playerGroup.add(shadow);
+    }
+
+    cellPosition(col, row, z = 0) {
+      return {
+        x: col - COLS / 2 + 0.5,
+        y: ROWS - row - 8.5,
+        z,
+      };
+    }
+
+    playerPosition() {
+      const p = state.player;
+      return {
+        x: (p.renderX + p.w * 0.5) / TILE - COLS / 2,
+        y: ROWS - (p.renderY + p.h * 0.5) / TILE - 8,
+        z: 0.82,
+      };
+    }
+
+    rebuildWorld() {
+      if (!this.terrainGroup || !images.tiles || !images.sprites) return;
+      const THREE = this.THREE;
+      this.clearGroup(this.terrainGroup);
+      this.clearGroup(this.dynamicGroup);
+      this.dynamicMeshes = [];
+
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const cell = tileAt(state.face, col, row);
+          const pos = this.cellPosition(col, row);
+
+          if (TILE_IDS[cell] !== undefined && SOLID.has(cell)) {
+            const depth = cell === "P" ? 0.45 : cell === "B" ? 0.7 : 0.86;
+            const height = cell === "P" ? 0.45 : 0.92;
+            const mesh = new THREE.Mesh(
+              new THREE.BoxGeometry(1, height, depth),
+              this.tileMaterial(TILE_IDS[cell]),
+            );
+            mesh.position.set(pos.x, pos.y - (1 - height) * 0.5, 0);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.terrainGroup.add(mesh);
+          } else if (cell === "L") {
+            const ladder = new THREE.Mesh(
+              new THREE.PlaneGeometry(0.9, 1.08),
+              this.tileMaterial(7),
+            );
+            ladder.position.set(pos.x, pos.y, 0.48);
+            this.dynamicGroup.add(ladder);
+          } else if (cell === "*") {
+            const shard = new THREE.Mesh(
+              new THREE.PlaneGeometry(0.9, 1.2),
+              this.spriteMaterial(8),
+            );
+            shard.position.set(pos.x, pos.y + 0.1, 0.62);
+            shard.userData.kind = "shard";
+            shard.userData.baseY = shard.position.y;
+            this.dynamicMeshes.push(shard);
+            this.dynamicGroup.add(shard);
+          } else if (cell === "D") {
+            const door = new THREE.Mesh(
+              new THREE.PlaneGeometry(0.9, 1.24),
+              this.spriteMaterial(12, state.shards >= totalShards ? 1 : 0.46),
+            );
+            door.position.set(pos.x, pos.y + 0.02, 0.55);
+            door.userData.kind = "door";
+            this.dynamicMeshes.push(door);
+            this.dynamicGroup.add(door);
+          }
+        }
+      }
+    }
+
+    updatePlayer() {
+      const p = state.player;
+      const pos = this.playerPosition();
+      this.playerGroup.position.set(pos.x, pos.y, pos.z);
+      this.playerGroup.rotation.z = -p.vx / 680;
+      this.playerGroup.rotation.y = p.dir < 0 ? Math.PI : 0;
+      const airborne = !p.onGround && !p.onLadder;
+      const frame = airborne ? 5 : Math.abs(p.vx) > 4 ? 1 + (Math.floor(p.anim) % 4) : 0;
+      this.playerPlane.material = this.spriteMaterial(frame);
+      const stretch = airborne ? 1.08 : 1;
+      this.playerGroup.scale.set(1, stretch, 1);
+    }
+
+    updateDynamicMeshes() {
+      for (const mesh of this.dynamicMeshes) {
+        if (mesh.userData.kind === "shard") {
+          const frame = 8 + Math.floor(state.time * 7) % 4;
+          mesh.material = this.spriteMaterial(frame);
+          mesh.position.y = mesh.userData.baseY + Math.sin(state.time * 4 + mesh.position.x) * 0.12;
+          mesh.rotation.y += 0.045;
+        } else if (mesh.userData.kind === "door") {
+          const frame = 12 + Math.floor(state.time * 5) % 4;
+          mesh.material = this.spriteMaterial(frame, state.shards >= totalShards ? 1 : 0.46);
+          mesh.scale.setScalar(state.shards >= totalShards ? 1 + Math.sin(state.time * 4) * 0.04 : 1);
+        }
+      }
+    }
+
+    updateParticles() {
+      const THREE = this.THREE;
+      this.clearGroup(this.particleGroup);
+      for (const part of state.particles.slice(0, 42)) {
+        const mat = new THREE.MeshBasicMaterial({
+          color: part.color,
+          transparent: true,
+          opacity: Math.max(0, part.life / part.max),
+        });
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), mat);
+        mesh.userData.transientMaterial = true;
+        mesh.position.set(part.x / TILE - COLS / 2, ROWS - part.y / TILE - 8, 0.9);
+        this.particleGroup.add(mesh);
+      }
+    }
+
+    render() {
+      const pulse = state.rotationPulse;
+      const ease = pulse * pulse * (3 - 2 * pulse);
+      const tilt = Math.sin(pulse * Math.PI);
+      this.worldGroup.rotation.y = -state.rotationDir * ease * Math.PI * 0.52;
+      this.worldGroup.rotation.z = state.rotationDir * tilt * 0.035;
+      this.worldGroup.position.y = tilt * 0.1;
+      this.worldGroup.scale.set(1 - tilt * 0.035, 1 + tilt * 0.02, 1);
+
+      this.camera.position.x = this.cameraTargetX + state.rotationDir * tilt * 1.45;
+      this.camera.position.y = 5.6 + tilt * 0.42;
+      this.camera.position.z = this.cameraBaseZ - tilt * 0.8;
+      this.camera.lookAt(this.cameraTargetX, -0.8, 0);
+
+      this.updatePlayer();
+      this.updateDynamicMeshes();
+      this.updateParticles();
+      this.renderer.render(this.scene, this.camera);
+    }
+  }
+
   function flash(text) {
     messageEl.textContent = text;
     messageEl.classList.add("is-visible");
     messageTimer = 1.25;
+  }
+
+  function queueJump() {
+    input.jumpBuffer = 0.16;
   }
 
   function updateHud() {
@@ -691,7 +1163,7 @@
   }
 
   function handlePress(action) {
-    if (action === "jump") input.jumpQueued = true;
+    if (action === "jump") queueJump();
     if (action === "rotateLeft") rotateWorld(-1);
     if (action === "rotateRight") rotateWorld(1);
     if (action === "music") toggleMusic();
@@ -700,7 +1172,7 @@
 
   function setHold(action, held) {
     if (action in input) input[action] = held;
-    if (action === "up" && held) input.jumpQueued = true;
+    if (action === "up" && held) queueJump();
   }
 
   function bindControls() {
@@ -712,8 +1184,8 @@
       else if (code === "ArrowDown" || code === "KeyS") input.down = true;
       else if (code === "ArrowUp" || code === "KeyW") {
         input.up = true;
-        input.jumpQueued = true;
-      } else if (code === "Space") input.jumpQueued = true;
+        queueJump();
+      } else if (code === "Space") queueJump();
       else if (code === "KeyQ") rotateWorld(-1);
       else if (code === "KeyE") rotateWorld(1);
       else if (code === "KeyR") resetGame();
@@ -794,11 +1266,26 @@
     requestAnimationFrame(loop);
   }
 
+  async function init3DRenderer() {
+    if (!webglCanvas || !images.tiles || !images.sprites) return;
+    try {
+      const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js");
+      renderer3D = new Foldscape3DRenderer(THREE);
+      renderer3D.init();
+    } catch (error) {
+      renderer3D = null;
+      shell.classList.remove("has-webgl");
+      window.__foldscapeRenderMode = "canvas";
+      console.warn("Three.js renderer unavailable, using canvas fallback.", error);
+    }
+  }
+
   async function boot() {
     resize();
     resetGame();
     bindControls();
     await Promise.all(Object.entries(imageSources).map(([name, src]) => loadImage(name, src)));
+    await init3DRenderer();
     running = true;
     last = performance.now();
     updateHud();

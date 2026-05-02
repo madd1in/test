@@ -56,6 +56,7 @@ button {
   height: 100vh;
 }
 
+#webglCanvas,
 #gameCanvas {
   position: absolute;
   inset: 0;
@@ -64,6 +65,15 @@ button {
   display: block;
   image-rendering: pixelated;
   background: #0b1420;
+}
+
+.game-shell.has-webgl #gameCanvas {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.game-shell:not(.has-webgl) #webglCanvas {
+  display: none;
 }
 
 .hud {
