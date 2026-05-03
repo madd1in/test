@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Castle Fling: Nocturne</title>
-    <link rel="stylesheet" href="style.css?v=gothic-polish-20260503">
+    <link rel="stylesheet" href="style.css?v=sigil-expansion-20260503">
   </head>
   <body>
     <main class="game-shell" id="gameShell">
@@ -30,12 +30,13 @@
         <button id="resetButton" type="button" title="Level neu starten" aria-label="Level neu starten">↻</button>
         <button id="nextButton" type="button" title="Naechstes Level" aria-label="Naechstes Level">›</button>
       </div>
+      <div id="objectiveBanner" class="objective-banner" aria-live="polite"></div>
       <canvas id="gameCanvas" width="1024" height="576" aria-label="Castle Fling Nocturne Spielfeld"></canvas>
       <div id="toast" class="toast" aria-live="polite"></div>
       <audio id="bgm" src="assets/audio/nocturne-hunter-loop.wav" preload="auto" loop></audio>
     </main>
 
     <script src="vendor/matter.min.js"></script>
-    <script src="game.js?v=gothic-polish-20260503"></script>
+    <script src="game.js?v=sigil-expansion-20260503"></script>
   </body>
 </html>

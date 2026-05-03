@@ -150,6 +150,65 @@
       }
     }
   };
+  const ENEMY_TRAITS = {
+    bat: { radius: 18, health: 4.2, density: 0.0024, score: 850, restitution: 0.22, frictionAir: 0.008 },
+    skeleton: { radius: 22, health: 7, density: 0.0035, score: 1000, restitution: 0.12, frictionAir: 0.004 },
+    phantom: { radius: 21, health: 6.2, density: 0.0029, score: 1100, restitution: 0.2, frictionAir: 0.006 },
+    knight: { radius: 24, health: 10.5, density: 0.0049, score: 1250, restitution: 0.08, frictionAir: 0.004 },
+    gargoyle: { radius: 29, health: 14, density: 0.0062, score: 1550, restitution: 0.06, frictionAir: 0.004 },
+    wisp: { radius: 18, health: 5, density: 0.0026, score: 1050, restitution: 0.26, frictionAir: 0.007 },
+    raven: { radius: 20, health: 5.8, density: 0.0028, score: 1100, restitution: 0.22, frictionAir: 0.007 },
+    seraph: { radius: 21, health: 8.4, density: 0.0036, score: 1350, restitution: 0.16, frictionAir: 0.005 },
+    ember: { radius: 20, health: 6.8, density: 0.0032, score: 1180, restitution: 0.18, frictionAir: 0.006 }
+  };
+  const SIGIL_TYPES = {
+    blood: {
+      label: "Blood",
+      color: "#e34f5a",
+      core: "#ffd08c",
+      score: 450,
+      radius: 19,
+      effectRadius: 118,
+      blockDamage: 2.2,
+      targetDamage: 2.7,
+      impulse: 0.0021
+    },
+    chain: {
+      label: "Chain",
+      color: "#86b9ff",
+      core: "#f7fbff",
+      score: 500,
+      radius: 18,
+      effectRadius: 142,
+      blockDamage: 0.85,
+      targetDamage: 1.1,
+      impulse: 0.0044
+    },
+    moon: {
+      label: "Moon",
+      color: "#f0d982",
+      core: "#fff8c6",
+      score: 550,
+      radius: 18,
+      effectRadius: 96,
+      blockDamage: 1,
+      targetDamage: 1.6,
+      impulse: 0.0012,
+      grant: "relic-violet"
+    },
+    glass: {
+      label: "Glass",
+      color: "#87eaff",
+      core: "#e9ffff",
+      score: 500,
+      radius: 18,
+      effectRadius: 128,
+      blockDamage: 3.6,
+      targetDamage: 0.8,
+      impulse: 0.0018,
+      material: "glass"
+    }
+  };
   const AI_SPRITES = {
     "relic-crimson": { col: 0, row: 0 },
     "relic-violet": { col: 1, row: 0 },
@@ -195,6 +254,7 @@
   const LEVELS = [
     {
       name: "Moon Gate Trial",
+      omen: "Entry rite",
       shots: ["relic-crimson", "relic-azure", "relic-gold"],
       build() {
         block(800, 510, 260, 22, "stone-long");
@@ -212,6 +272,7 @@
     },
     {
       name: "Glass Chapel",
+      omen: "Shatter the blue ribs",
       shots: ["relic-crimson", "relic-gold", "relic-azure"],
       build() {
         block(784, 510, 238, 22, "stone-long");
@@ -229,6 +290,7 @@
     },
     {
       name: "Clocktower Ruin",
+      omen: "Topple the clock crown",
       shots: ["relic-crimson", "relic-violet", "relic-gold", "relic-azure"],
       build() {
         block(810, 510, 264, 22, "stone-long");
@@ -248,6 +310,7 @@
     },
     {
       name: "Gargoyle Belfry",
+      omen: "Wake the bell tower",
       shots: ["relic-crimson", "relic-azure", "relic-violet", "relic-gold"],
       build() {
         block(812, 510, 300, 22, "stone-long");
@@ -266,6 +329,7 @@
     },
     {
       name: "Reliquary Bridge",
+      omen: "Break the bridge heart",
       shots: ["relic-gold", "relic-crimson", "relic-emerald", "relic-azure"],
       build() {
         block(812, 510, 330, 22, "stone-long");
@@ -286,6 +350,7 @@
     },
     {
       name: "Nocturne Keep",
+      omen: "Crack the upper vault",
       shots: ["relic-crimson", "relic-violet", "relic-emerald", "relic-gold", "relic-azure"],
       build() {
         block(820, 510, 346, 22, "stone-long");
@@ -310,6 +375,7 @@
     },
     {
       name: "Iron Mausoleum",
+      omen: "Heavy stones, heavy relics",
       shots: ["relic-azure", "relic-crimson", "relic-gold", "relic-violet"],
       build() {
         block(820, 510, 374, 22, "stone-long");
@@ -332,6 +398,7 @@
     },
     {
       name: "Storm Organ",
+      omen: "Glass pipes sing first",
       shots: ["relic-crimson", "relic-emerald", "relic-azure", "relic-gold", "relic-violet"],
       build() {
         block(816, 510, 352, 22, "stone-long");
@@ -356,6 +423,7 @@
     },
     {
       name: "Mirror Crypt",
+      omen: "Split the twin halls",
       shots: ["relic-gold", "relic-violet", "relic-crimson", "relic-emerald", "relic-azure"],
       build() {
         block(728, 510, 188, 22, "stone-long");
@@ -382,6 +450,7 @@
     },
     {
       name: "Eclipse Throne",
+      omen: "Bring down the eclipse",
       shots: ["relic-crimson", "relic-violet", "relic-gold", "relic-emerald", "relic-azure"],
       build() {
         block(820, 510, 390, 22, "stone-long");
@@ -410,6 +479,7 @@
     },
     {
       name: "Rose Arsenal",
+      omen: "Pierce the rose shelves",
       shots: ["relic-azure", "relic-crimson", "relic-violet", "relic-gold", "relic-emerald"],
       build() {
         block(820, 510, 388, 22, "stone-long");
@@ -437,6 +507,7 @@
     },
     {
       name: "Obsidian Bell",
+      omen: "Ring the black bell",
       shots: ["relic-crimson", "relic-gold", "relic-azure", "relic-violet", "relic-emerald"],
       build() {
         block(820, 510, 406, 22, "stone-long");
@@ -461,6 +532,98 @@
         target(936, 301, "raven");
         target(996, 397, "phantom");
       }
+    },
+    {
+      name: "Blood Sigil Gallery",
+      omen: "Chain reactions wake the shrine",
+      shots: ["relic-azure", "relic-crimson", "relic-violet", "relic-gold", "relic-emerald"],
+      build() {
+        block(820, 510, 396, 22, "stone-long");
+        block(650, 472, 42, 58, "stone-block");
+        block(724, 470, 34, 62, "wood-block", -0.006);
+        block(796, 470, 34, 62, "glass-block");
+        block(868, 470, 34, 62, "glass-block");
+        block(940, 470, 34, 62, "wood-block", 0.006);
+        block(1010, 472, 42, 58, "stone-block");
+        block(830, 431, 382, 24, "stone-long");
+        block(720, 382, 32, 74, "wood-block", -0.008);
+        block(830, 382, 32, 74, "glass-block");
+        block(940, 382, 32, 74, "wood-block", 0.008);
+        block(830, 334, 288, 22, "wood-long");
+        block(770, 291, 30, 64, "stone-block", -0.006);
+        block(890, 291, 30, 64, "stone-block", 0.006);
+        block(830, 248, 208, 22, "glass-long");
+        sigil(830, 363, "blood");
+        sigil(905, 224, "chain");
+        target(650, 397, "skeleton");
+        target(770, 215, "wisp");
+        target(940, 301, "phantom");
+        target(986, 397, "knight");
+      }
+    },
+    {
+      name: "Chain Coffin Lift",
+      omen: "Hit the locks, drop the guards",
+      shots: ["relic-gold", "relic-emerald", "relic-azure", "relic-violet", "relic-crimson"],
+      build() {
+        block(816, 510, 410, 22, "stone-long");
+        block(642, 472, 42, 58, "stone-block");
+        block(714, 470, 34, 62, "stone-block");
+        block(786, 470, 34, 62, "wood-block", -0.006);
+        block(846, 470, 34, 62, "wood-block", 0.006);
+        block(918, 470, 34, 62, "stone-block");
+        block(990, 472, 42, 58, "stone-block");
+        block(816, 431, 402, 24, "stone-long");
+        block(690, 382, 32, 74, "glass-block", -0.008);
+        block(770, 382, 32, 74, "wood-block");
+        block(862, 382, 32, 74, "wood-block");
+        block(942, 382, 32, 74, "glass-block", 0.008);
+        block(816, 334, 346, 22, "glass-long");
+        block(722, 291, 30, 64, "stone-block", -0.006);
+        block(910, 291, 30, 64, "stone-block", 0.006);
+        block(816, 248, 274, 22, "wood-long");
+        sigil(690, 340, "chain");
+        sigil(942, 340, "chain");
+        sigil(816, 217, "moon");
+        target(642, 397, "bat");
+        target(722, 215, "raven");
+        target(816, 301, "gargoyle");
+        target(910, 215, "wisp");
+        target(990, 397, "phantom");
+      }
+    },
+    {
+      name: "Glass Moon Finale",
+      omen: "Moon sigils turn one shot into two",
+      shots: ["relic-azure", "relic-violet", "relic-gold", "relic-emerald", "relic-crimson"],
+      build() {
+        block(820, 510, 422, 22, "stone-long");
+        block(636, 472, 42, 58, "stone-block");
+        block(704, 470, 34, 62, "glass-block");
+        block(772, 470, 34, 62, "wood-block", -0.006);
+        block(820, 470, 34, 62, "glass-block");
+        block(868, 470, 34, 62, "wood-block", 0.006);
+        block(936, 470, 34, 62, "glass-block");
+        block(1004, 472, 42, 58, "stone-block");
+        block(820, 431, 416, 24, "glass-long");
+        block(694, 382, 32, 74, "stone-block", -0.006);
+        block(772, 382, 32, 74, "glass-block");
+        block(868, 382, 32, 74, "glass-block");
+        block(946, 382, 32, 74, "stone-block", 0.006);
+        block(820, 334, 342, 22, "stone-long");
+        block(748, 291, 30, 64, "wood-block", -0.006);
+        block(892, 291, 30, 64, "wood-block", 0.006);
+        block(820, 248, 246, 22, "glass-long");
+        block(820, 222, 162, 20, "wood-long");
+        sigil(772, 340, "glass");
+        sigil(868, 340, "glass");
+        sigil(820, 189, "moon");
+        target(636, 397, "knight");
+        target(748, 215, "seraph");
+        target(820, 301, "ember");
+        target(892, 215, "raven");
+        target(958, 397, "gargoyle");
+      }
     }
   ];
 
@@ -471,6 +634,7 @@
   const shotText = document.getElementById("shotText");
   const runeText = document.getElementById("runeText");
   const scoreText = document.getElementById("scoreText");
+  const objectiveBanner = document.getElementById("objectiveBanner");
   const toast = document.getElementById("toast");
   const bgm = document.getElementById("bgm");
   const musicButton = document.getElementById("musicButton");
@@ -723,6 +887,16 @@
             sprite: body.plugin.sprite
           }));
       },
+      getSigils() {
+        return Composite.allBodies(world)
+          .filter((body) => body.plugin && body.plugin.kind === "sigil")
+          .map((body) => ({
+            x: body.position.x,
+            y: body.position.y,
+            type: body.plugin.type,
+            dead: Boolean(body.plugin.dead)
+          }));
+      },
       removeSupportUnderFirstTarget() {
         const targetBody = Composite.allBodies(world).find((body) => body.plugin && body.plugin.kind === "target" && !body.plugin.dead);
         if (!targetBody) return null;
@@ -869,6 +1043,8 @@
         damage(pair.bodyB, pair.bodyA, speed);
         triggerShotSpecial(pair.bodyA, pair.bodyB, speed);
         triggerShotSpecial(pair.bodyB, pair.bodyA, speed);
+        handleSigilHit(pair.bodyA, pair.bodyB, speed);
+        handleSigilHit(pair.bodyB, pair.bodyA, speed);
       }
     });
   }
@@ -911,22 +1087,43 @@
   }
 
   function target(x, y, enemy = "skeleton") {
-    const body = Bodies.circle(x, y, 22, {
+    const trait = ENEMY_TRAITS[enemy] || ENEMY_TRAITS.skeleton;
+    const body = Bodies.circle(x, y, trait.radius, {
       friction: 0.88,
       frictionStatic: 0.95,
-      frictionAir: 0.004,
-      restitution: 0.12,
-      density: 0.0035,
+      frictionAir: trait.frictionAir,
+      restitution: trait.restitution,
+      density: trait.density,
       sleepThreshold: 34,
       label: "target",
       plugin: {
         kind: "target",
         sprite: "skull",
         enemy,
-        radius: 22,
-        health: 7,
-        maxHealth: 7,
-        score: 1000
+        radius: trait.radius,
+        health: trait.health,
+        maxHealth: trait.health,
+        score: trait.score
+      }
+    });
+    Composite.add(world, body);
+    return body;
+  }
+
+  function sigil(x, y, type = "blood") {
+    const sigilType = SIGIL_TYPES[type] || SIGIL_TYPES.blood;
+    const body = Bodies.circle(x, y, sigilType.radius, {
+      isStatic: true,
+      isSensor: true,
+      frictionAir: 0,
+      label: "sigil",
+      plugin: {
+        kind: "sigil",
+        type,
+        radius: sigilType.radius,
+        health: 1,
+        maxHealth: 1,
+        score: sigilType.score
       }
     });
     Composite.add(world, body);
@@ -973,7 +1170,7 @@
 
   function damage(body, other, speed) {
     const data = body.plugin;
-    if (!data || data.dead || data.kind === "terrain" || data.kind === "shot") return;
+    if (!data || data.dead || data.kind === "terrain" || data.kind === "shot" || data.kind === "sigil") return;
 
     const otherKind = other.plugin ? other.plugin.kind : "";
     const otherTrait = otherKind === "shot" ? shotTrait(other.plugin.sprite) : null;
@@ -996,6 +1193,60 @@
       data.dead = true;
       wakeDynamicBodies(body.position, 240);
     }
+  }
+
+  function handleSigilHit(sigilBody, other, speed) {
+    const data = sigilBody.plugin;
+    const otherData = other.plugin;
+    if (!data || data.kind !== "sigil" || data.dead) return;
+    if (!otherData || otherData.kind !== "shot" || speed < 1.55) return;
+    activateSigil(sigilBody, other);
+  }
+
+  function activateSigil(sigilBody, shot) {
+    const data = sigilBody.plugin;
+    const sigilType = SIGIL_TYPES[data.type] || SIGIL_TYPES.blood;
+    if (data.dead) return;
+    data.dead = true;
+
+    if (sigilType.grant) {
+      shotQueue.unshift(sigilType.grant);
+      updateHud();
+      showToast(`${sigilType.label} Sigil: extra Rune.`);
+    }
+
+    let hits = 0;
+    for (const body of Composite.allBodies(world)) {
+      const targetData = body.plugin;
+      if (!targetData || targetData.dead || body === sigilBody || body === shot || body.isStatic || targetData.kind === "terrain" || targetData.kind === "shot" || targetData.kind === "sigil") continue;
+      const distance = Vector.magnitude(Vector.sub(body.position, sigilBody.position));
+      if (distance > sigilType.effectRadius) continue;
+      const falloff = Math.max(0.16, 1 - distance / sigilType.effectRadius);
+      const material = materialType(targetData.sprite);
+      const materialFactor = !sigilType.material || sigilType.material === material ? 1 : 0.25;
+
+      if (targetData.kind === "block") {
+        targetData.health -= sigilType.blockDamage * falloff * materialFactor;
+      } else if (targetData.kind === "target") {
+        targetData.health -= sigilType.targetDamage * falloff;
+      }
+
+      if (sigilType.impulse) {
+        const delta = Vector.sub(body.position, sigilBody.position);
+        const direction = Vector.magnitude(delta) > 0.01 ? Vector.normalise(delta) : { x: 0, y: -1 };
+        Body.applyForce(body, body.position, {
+          x: direction.x * sigilType.impulse * falloff * body.mass,
+          y: (direction.y - 0.18) * sigilType.impulse * falloff * body.mass
+        });
+      }
+
+      Sleeping.set(body, false);
+      if (targetData.health <= 0) targetData.dead = true;
+      hits += 1;
+    }
+
+    puff(sigilBody.position.x, sigilBody.position.y, 18 + hits * 2, sigilType.color);
+    wakeDynamicBodies(sigilBody.position, sigilType.effectRadius + 80);
   }
 
   function triggerShotSpecial(shot, other, speed) {
@@ -1036,7 +1287,8 @@
       }
 
       if (special.impulse) {
-        const direction = Vector.normalise(Vector.sub(body.position, origin));
+        const delta = Vector.sub(body.position, origin);
+        const direction = Vector.magnitude(delta) > 0.01 ? Vector.normalise(delta) : { x: 0, y: -1 };
         Body.applyForce(body, body.position, {
           x: direction.x * special.impulse * falloff * body.mass,
           y: (direction.y - 0.15) * special.impulse * falloff * body.mass
@@ -1357,7 +1609,8 @@
   function enforceTargetDrops() {
     for (const body of Composite.allBodies(world)) {
       const data = body.plugin;
-      if (!data || data.kind !== "target" || data.dead || body.position.y > GROUND_Y - 18) continue;
+      const radius = data && data.radius ? data.radius : 18;
+      if (!data || data.kind !== "target" || data.dead || body.position.y > GROUND_Y - radius) continue;
       if (hasSupportBelow(body)) {
         data.dropFrames = 0;
         continue;
@@ -1458,6 +1711,15 @@
     shotText.textContent = `${shotQueue.length + (currentShot ? 1 : 0)}`;
     if (runeText) runeText.textContent = currentShot ? shotTrait(currentShotSprite).name : "--";
     scoreText.textContent = `${score}`;
+    updateObjectiveBanner();
+  }
+
+  function updateObjectiveBanner() {
+    if (!objectiveBanner || !world) return;
+    const level = LEVELS[levelIndex];
+    const sigilCount = Composite.allBodies(world).filter((body) => body.plugin && body.plugin.kind === "sigil" && !body.plugin.dead).length;
+    const sigilText = sigilCount > 0 ? ` | ${sigilCount} Sigil${sigilCount === 1 ? "" : "s"}` : "";
+    objectiveBanner.textContent = `${level.name} | ${level.omen || "Cull the keep"}${sigilText}`;
   }
 
   function showToast(text) {
@@ -1481,8 +1743,9 @@
 
     const bodies = Composite.allBodies(world).filter((body) => body.plugin && body.plugin.kind !== "terrain");
     bodies.sort((a, b) => {
-      const ak = a.plugin.kind === "shot" ? 2 : a.plugin.kind === "target" ? 1 : 0;
-      const bk = b.plugin.kind === "shot" ? 2 : b.plugin.kind === "target" ? 1 : 0;
+      const order = { block: 0, sigil: 1, target: 2, shot: 3 };
+      const ak = order[a.plugin.kind] || 0;
+      const bk = order[b.plugin.kind] || 0;
       return ak - bk;
     });
 
@@ -2257,7 +2520,12 @@
       ) {
         drawSprite("skull", p.x, p.y, 56, 56, body.angle);
       }
-      drawHealthRing(body, 31);
+      drawHealthRing(body, Math.min(36, Math.max(27, scale * 0.36)));
+      return;
+    }
+
+    if (data.kind === "sigil") {
+      drawSigil(body);
       return;
     }
 
@@ -2267,6 +2535,39 @@
       drawFlatBlock(body, data, alpha);
       if (alpha < 0.7) drawCracks(p.x, p.y, data.width, data.height, body.angle);
     }
+  }
+
+  function drawSigil(body) {
+    const data = body.plugin || {};
+    const sigilType = SIGIL_TYPES[data.type] || SIGIL_TYPES.blood;
+    const p = body.position;
+    const pulse = 0.5 + Math.sin(animationTime / 170 + p.x * 0.03) * 0.5;
+    const r = data.radius || 18;
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.shadowColor = sigilType.color;
+    ctx.shadowBlur = 10 + pulse * 8;
+    ctx.fillStyle = "rgba(8, 5, 13, 0.92)";
+    ctx.fillRect(-r - 5, -r - 5, (r + 5) * 2, (r + 5) * 2);
+    ctx.strokeStyle = sigilType.color;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-r - 3.5, -r - 3.5, (r + 3.5) * 2, (r + 3.5) * 2);
+
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = sigilType.color;
+    ctx.fillRect(-3, -r + 3, 6, r * 2 - 6);
+    ctx.fillRect(-r + 3, -3, r * 2 - 6, 6);
+    ctx.fillStyle = sigilType.core;
+    ctx.fillRect(-5, -5, 10, 10);
+
+    ctx.globalAlpha = 0.3 + pulse * 0.3;
+    ctx.strokeStyle = sigilType.core;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 7 + pulse * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawFlatBlock(body, data, alpha) {

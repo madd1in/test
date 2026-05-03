@@ -6,12 +6,14 @@ Die Zielkurve nutzt denselben festen Matter.js-Zeitschritt wie der echte Flug, u
 Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wash fuer klarere Tiefentrennung.
 Level 3 startet mit entkoppelten Gegnern und stabileren Kontaktpunkten, damit der Turm erst durch Treffer kollabiert.
 Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer Bloecke und Boden.
-Das Spiel hat jetzt zwoelf Level-Ideen: Moon Gate Trial, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge, Nocturne Keep, Iron Mausoleum, Storm Organ, Mirror Crypt, Eclipse Throne, Rose Arsenal und Obsidian Bell.
+Das Spiel hat jetzt fuenfzehn Level-Ideen: Moon Gate Trial, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge, Nocturne Keep, Iron Mausoleum, Storm Organ, Mirror Crypt, Eclipse Throne, Rose Arsenal, Obsidian Bell, Blood Sigil Gallery, Chain Coffin Lift und Glass Moon Finale.
 Level 1 setzt den ersten Gegner jetzt weiter von der Kante weg und nutzt Sleeping-Physik, damit vor dem ersten Strike nichts losbricht.
 Die fuenf Relikte haben eigene Rollen: schwerer Bell-Schuss, Glass-Breaker, Hex-Puls, Root-Schock und balancierter Blood-Schuss.
+Neue Blood-, Chain-, Moon- und Glass-Sigils sitzen in spaeteren Leveln als optionale Chain-Reaction-Ziele.
+Gegner haben nun eigene Koerperwerte: Bats/Wisps sind leichter, Knights/Gargoyles halten mehr aus, Phantom/Raven/Seraph/Ember liegen dazwischen.
 Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
 Der Hintergrund animiert mit Drift-Parallax, Nebel, Regen, Fensterflackern und gelegentlichen Blitzimpulsen.
-Die Blockdarstellung ist wieder flach 2D ohne 2,5D-Rahmenreste, der Bird rendert beim Zielen vor der Schleuder, und das HUD nutzt grobere Gothic-Pixel-Plaketten.
+Die Blockdarstellung ist wieder flach 2D ohne 2,5D-Rahmenreste, der Bird rendert beim Zielen vor der Schleuder, und das HUD nutzt grobere Gothic-Pixel-Plaketten mit Omen-Banner.
 Nach dem Abraeumen aller Gegner startet automatisch das naechste Level.
 
 ## Dateien
