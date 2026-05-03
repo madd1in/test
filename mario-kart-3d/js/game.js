@@ -459,9 +459,12 @@
     if (options.flipX) ctx.scale(-1, 1);
     ctx.globalAlpha = alpha;
     if (options.shadow !== false) {
+      const shadowY = options.shadowY ?? (drawH * (1 - anchorY) - drawH * 0.015);
+      const shadowW = drawW * (options.shadowWidth ?? 0.36);
+      const shadowH = drawH * (options.shadowHeight ?? 0.09);
       ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
       ctx.beginPath();
-      ctx.ellipse(0, drawH * 0.34, drawW * 0.36, drawH * 0.1, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, shadowY, shadowW, shadowH, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.drawImage(frame, -drawW / 2, -drawH * anchorY, drawW, drawH);
@@ -474,7 +477,9 @@
     const frame = getKartFrame(sprite, frameIndex);
     return drawSprite(frame, x, y, w * 1.28, h * 1.58, {
       rotation,
-      anchorY: 0.78
+      anchorY: 0.78,
+      shadowWidth: 0.38,
+      shadowHeight: 0.075
     });
   }
 
@@ -2391,8 +2396,11 @@
     })) {
       return;
     }
-    if (prop.type === "palm" && drawWorldSprite(WORLD_SPRITES.palm, screen.x, baseY + size * 0.06, size * 1.05, size * 1.55, {
-      anchorY: 0.94
+    if (prop.type === "palm" && drawWorldSprite(WORLD_SPRITES.palm, screen.x, baseY, size * 1.05, size * 1.55, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.32,
+      shadowHeight: 0.065
     })) {
       return;
     }
@@ -2579,7 +2587,7 @@
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
     ctx.beginPath();
-    ctx.ellipse(0, h * 0.38, w * 0.48, h * 0.17, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, h * 0.22, w * 0.48, h * 0.14, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = "#161616";
