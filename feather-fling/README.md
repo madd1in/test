@@ -7,10 +7,11 @@ Der Vordergrund hat staerkere Rim-Lichter, Bodenschatten und eine Hintergrund-Wa
 Level 3 startet mit entkoppelten Gegnern und stabileren Kontaktpunkten, damit der Turm erst durch Treffer kollabiert.
 Level 2 ist ebenfalls entkoppelt und der Renderer nutzt 2,5D-Seitenflaechen fuer Bloecke und Boden.
 Das Spiel hat jetzt zwoelf Level-Ideen: Moon Gate Trial, Glass Chapel, Clocktower Ruin, Gargoyle Belfry, Reliquary Bridge, Nocturne Keep, Iron Mausoleum, Storm Organ, Mirror Crypt, Eclipse Throne, Rose Arsenal und Obsidian Bell.
-Level 1 ist als stabilerer Einstieg neu gebaut: zwei Ziele, sauber gestuetzte Plattformen und keine selbstkollabierenden Schraegkontakte.
+Level 1 setzt den ersten Gegner jetzt weiter von der Kante weg und nutzt Sleeping-Physik, damit vor dem ersten Strike nichts losbricht.
+Die fuenf Relikte haben eigene Rollen: schwerer Bell-Schuss, Glass-Breaker, Hex-Puls, Root-Schock und balancierter Blood-Schuss.
 Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
 Der Hintergrund animiert mit Drift-Parallax, Nebel, Regen, Fensterflackern und gelegentlichen Blitzimpulsen.
-Die Blockdarstellung ist wieder flach 2D ohne 2,5D-Rahmenreste, der Bird rendert beim Zielen vor der Schleuder, und das HUD nutzt harte Pixel-Art-Rahmen.
+Die Blockdarstellung ist wieder flach 2D ohne 2,5D-Rahmenreste, der Bird rendert beim Zielen vor der Schleuder, und das HUD nutzt grobere Gothic-Pixel-Plaketten.
 Nach dem Abraeumen aller Gegner startet automatisch das naechste Level.
 
 ## Dateien
@@ -22,7 +23,8 @@ Nach dem Abraeumen aller Gegner startet automatisch das naechste Level.
 - `assets/ai/ai-expansion-atlas.png`: ChatGPT-Image-Erweiterungsatlas mit drei Backgrounds, neuen Tile-Zellen und Gegner-/Effekt-Sprites
 - `assets/sprite-map.png`: lokaler Fallback mit Relikten, Gothic-Bloecken, Skull-Fallback und Boden-Tiles
 - `assets/gothic/`: lokale Fallback-Castle-Hintergruende, Floor-Tiles und Monster-Sprites
-- `assets/audio/moonlit-castle-ruins.mp3` und `assets/audio/pixel-quest-parade.mp3`: lokale MP3-BGM-Assets fuer Levelmusik
+- `assets/audio/nocturne-hunter-loop.wav`: dunkler lokaler Haupt-BGM-Loop
+- `assets/audio/moonlit-castle-ruins.mp3` und `assets/audio/pixel-quest-parade.mp3`: lokale MP3-BGM-Alternativen
 - `tools/build_sprites.ps1`: lokaler Sprite-Builder
 - `tools/build_gothic_bgm.py`: lokaler BGM-Synth-Builder
 - `game.js`: Canvas-Spiel mit Matter.js-Physik

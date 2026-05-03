@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Castle Fling: Nocturne</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=gothic-polish-20260503">
   </head>
   <body>
     <main class="game-shell" id="gameShell">
@@ -17,6 +17,10 @@
           <span class="label">Relikte</span>
           <strong id="shotText">3</strong>
         </div>
+        <div class="hud-group rune-group">
+          <span class="label">Rune</span>
+          <strong id="runeText">Blood</strong>
+        </div>
         <div class="hud-group">
           <span class="label">Score</span>
           <strong id="scoreText">0</strong>
@@ -28,10 +32,10 @@
       </div>
       <canvas id="gameCanvas" width="1024" height="576" aria-label="Castle Fling Nocturne Spielfeld"></canvas>
       <div id="toast" class="toast" aria-live="polite"></div>
-      <audio id="bgm" src="assets/audio/moonlit-castle-ruins.mp3" preload="auto" loop></audio>
+      <audio id="bgm" src="assets/audio/nocturne-hunter-loop.wav" preload="auto" loop></audio>
     </main>
 
     <script src="vendor/matter.min.js"></script>
-    <script src="game.js?v=auto-level-progression-20260503"></script>
+    <script src="game.js?v=gothic-polish-20260503"></script>
   </body>
 </html>

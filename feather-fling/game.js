@@ -75,10 +75,81 @@
     seraph: 66,
     ember: 64
   };
-  const MP3_BGM_TRACKS = [
-    "assets/audio/moonlit-castle-ruins.mp3",
-    "assets/audio/pixel-quest-parade.mp3"
+  const BGM_TRACKS = [
+    "assets/audio/nocturne-hunter-loop.wav",
+    "assets/audio/moonlit-castle-ruins.mp3"
   ];
+  const SHOT_TRAITS = {
+    "relic-crimson": {
+      name: "Blood",
+      radius: 20,
+      density: 0.0054,
+      restitution: 0.32,
+      launch: 1,
+      damage: 1.12
+    },
+    "relic-azure": {
+      name: "Glass",
+      radius: 19,
+      density: 0.0045,
+      restitution: 0.38,
+      launch: 1.04,
+      damage: 0.92,
+      material: { glass: 2.35 },
+      special: {
+        speed: 2.15,
+        radius: 82,
+        blockDamage: 2.4,
+        targetDamage: 0.7,
+        material: "glass",
+        color: "#baf6ff",
+        impulse: 0.0012
+      }
+    },
+    "relic-gold": {
+      name: "Bell",
+      radius: 22,
+      density: 0.0072,
+      restitution: 0.24,
+      launch: 0.92,
+      damage: 1.32,
+      material: { stone: 1.45, wood: 1.12 }
+    },
+    "relic-violet": {
+      name: "Hex",
+      radius: 20,
+      density: 0.0048,
+      restitution: 0.43,
+      launch: 1.02,
+      damage: 0.98,
+      special: {
+        speed: 2.35,
+        radius: 96,
+        blockDamage: 1.35,
+        targetDamage: 2.2,
+        color: "#c27cff",
+        impulse: 0.0022
+      }
+    },
+    "relic-emerald": {
+      name: "Root",
+      radius: 21,
+      density: 0.0058,
+      restitution: 0.28,
+      launch: 0.98,
+      damage: 1.04,
+      material: { wood: 1.7 },
+      special: {
+        speed: 2,
+        radius: 110,
+        blockDamage: 1.1,
+        targetDamage: 1.2,
+        color: "#8ff0a6",
+        impulse: 0.0014,
+        drop: 1.25
+      }
+    }
+  };
   const AI_SPRITES = {
     "relic-crimson": { col: 0, row: 0 },
     "relic-violet": { col: 1, row: 0 },
@@ -135,7 +206,7 @@
         block(736, 384, 30, 70, "glass-block", -0.006);
         block(864, 384, 30, 70, "glass-block", 0.006);
         block(800, 338, 170, 22, "wood-long");
-        target(690, 397, "skeleton");
+        target(724, 397, "skeleton");
         target(864, 305, "bat");
       }
     },
@@ -398,6 +469,7 @@
   const ctx = canvas.getContext("2d");
   const levelText = document.getElementById("levelText");
   const shotText = document.getElementById("shotText");
+  const runeText = document.getElementById("runeText");
   const scoreText = document.getElementById("scoreText");
   const toast = document.getElementById("toast");
   const bgm = document.getElementById("bgm");
@@ -472,7 +544,7 @@
     artImages[key] = img;
   }
 
-  bgm.volume = 0.55;
+  bgm.volume = 0.5;
   bgm.addEventListener("play", updateAudioButton);
   bgm.addEventListener("pause", updateAudioButton);
 
@@ -490,6 +562,10 @@
   fullscreenButton.addEventListener("click", toggleFullscreen);
   resetButton.addEventListener("click", () => resetLevel(false));
   nextButton.addEventListener("click", () => advanceLevel(true));
+  fullscreenButton.innerHTML = "&#9974;";
+  resetButton.innerHTML = "&#8635;";
+  nextButton.innerHTML = "&#8250;";
+  updateAudioButton();
 
   canvas.addEventListener("pointerdown", pointerDown);
   canvas.addEventListener("pointermove", pointerMove);
@@ -560,8 +636,20 @@
 
   function musicTrackForLevel() {
     return levelIndex >= 6 && levelIndex % 3 === 1
-      ? MP3_BGM_TRACKS[1]
-      : MP3_BGM_TRACKS[0];
+      ? BGM_TRACKS[1]
+      : BGM_TRACKS[0];
+  }
+
+  function shotTrait(sprite) {
+    return SHOT_TRAITS[sprite] || SHOT_TRAITS["relic-crimson"];
+  }
+
+  function materialType(sprite) {
+    if (!sprite) return "";
+    if (sprite.includes("glass")) return "glass";
+    if (sprite.includes("stone")) return "stone";
+    if (sprite.includes("wood") || sprite === "crate") return "wood";
+    return "";
   }
 
   function exposeDebugState() {
@@ -683,6 +771,7 @@
     musicButton.classList.toggle("active", musicEnabled && !bgm.paused);
     musicButton.setAttribute("aria-pressed", String(musicEnabled && !bgm.paused));
     musicButton.textContent = musicEnabled && !bgm.paused ? "♫" : "♪";
+    musicButton.innerHTML = musicEnabled && !bgm.paused ? "&#9835;" : "&#9834;";
   }
 
   function toggleFullscreen() {
@@ -726,7 +815,7 @@
 
   function resetLevel(showIntro) {
     clearAutoAdvance();
-    engine = Engine.create({ enableSleeping: false });
+    engine = Engine.create({ enableSleeping: true });
     world = engine.world;
     engine.gravity.y = 1.05;
     engine.timing.timeScale = 1;
@@ -778,6 +867,8 @@
         markShotImpact(pair.bodyB, speed);
         damage(pair.bodyA, pair.bodyB, speed);
         damage(pair.bodyB, pair.bodyA, speed);
+        triggerShotSpecial(pair.bodyA, pair.bodyB, speed);
+        triggerShotSpecial(pair.bodyB, pair.bodyA, speed);
       }
     });
   }
@@ -849,6 +940,7 @@
 
     const sprite = shotQueue.shift();
     currentShotSprite = sprite || "relic-crimson";
+    const trait = shotTrait(currentShotSprite);
 
     if (!sprite) {
       currentShot = null;
@@ -857,15 +949,17 @@
       return;
     }
 
-    const body = Bodies.circle(SLING.x, SLING.y, 20, {
+    const body = Bodies.circle(SLING.x, SLING.y, trait.radius, {
       friction: 0.4,
-      restitution: 0.34,
-      density: 0.005,
+      frictionAir: 0.004,
+      restitution: trait.restitution,
+      density: trait.density,
       label: "shot",
       plugin: {
         kind: "shot",
         sprite,
-        radius: 20
+        radius: trait.radius,
+        trait: trait.name
       }
     });
     Body.setStatic(body, true);
@@ -882,19 +976,81 @@
     if (!data || data.dead || data.kind === "terrain" || data.kind === "shot") return;
 
     const otherKind = other.plugin ? other.plugin.kind : "";
-    const shotBonus = otherKind === "shot" ? 1.85 : 1;
+    const otherTrait = otherKind === "shot" ? shotTrait(other.plugin.sprite) : null;
+    const material = materialType(data.sprite);
+    const shotBonus = otherTrait ? 1.65 * otherTrait.damage : 1;
     const massBonus = Math.min(2.7, Math.max(0.8, other.mass * 0.13));
-    const materialBonus = data.sprite && data.sprite.includes("glass") ? 1.25 : data.sprite && data.sprite.includes("stone") ? 0.82 : 1;
+    const baseMaterialBonus = material === "glass" ? 1.25 : material === "stone" ? 0.82 : 1;
+    const traitMaterialBonus = otherTrait && otherTrait.material && otherTrait.material[material]
+      ? otherTrait.material[material]
+      : 1;
+    const materialBonus = baseMaterialBonus * traitMaterialBonus;
     const amount = Math.max(0, (speed - 0.95) * shotBonus * massBonus * materialBonus);
 
     data.health -= amount;
     if (data.kind === "target" && otherKind === "shot" && speed > 2.4) {
-      data.health -= 2.8;
+      data.health -= 2.4 * (otherTrait ? otherTrait.damage : 1);
     }
 
     if (data.health <= 0) {
       data.dead = true;
       wakeDynamicBodies(body.position, 240);
+    }
+  }
+
+  function triggerShotSpecial(shot, other, speed) {
+    const shotData = shot.plugin;
+    if (!shotData || shotData.kind !== "shot" || shotData.specialUsed || speed < 1.9) return;
+    const trait = shotTrait(shotData.sprite);
+    const special = trait.special;
+    if (!special || speed < special.speed) return;
+
+    const otherData = other.plugin || {};
+    if (special.material && materialType(otherData.sprite) !== special.material) return;
+
+    shotData.specialUsed = true;
+    applyRadialShotEffect(shot.position, special, shot);
+  }
+
+  function applyRadialShotEffect(origin, special, shot) {
+    let hits = 0;
+    for (const body of Composite.allBodies(world)) {
+      const data = body.plugin;
+      if (!data || data.dead || body === shot || body.isStatic || data.kind === "terrain" || data.kind === "shot") continue;
+      const distance = Vector.magnitude(Vector.sub(body.position, origin));
+      if (distance > special.radius) continue;
+
+      const falloff = Math.max(0.15, 1 - distance / special.radius);
+      if (data.kind === "block") {
+        const material = materialType(data.sprite);
+        const materialMatch = !special.material || special.material === material ? 1 : 0.38;
+        data.health -= (special.blockDamage || 0) * falloff * materialMatch;
+      } else if (data.kind === "target") {
+        data.health -= (special.targetDamage || 0) * falloff;
+        if (special.drop) {
+          Body.setVelocity(body, {
+            x: body.velocity.x,
+            y: Math.max(body.velocity.y, special.drop * falloff)
+          });
+        }
+      }
+
+      if (special.impulse) {
+        const direction = Vector.normalise(Vector.sub(body.position, origin));
+        Body.applyForce(body, body.position, {
+          x: direction.x * special.impulse * falloff * body.mass,
+          y: (direction.y - 0.15) * special.impulse * falloff * body.mass
+        });
+      }
+
+      Sleeping.set(body, false);
+      if (data.health <= 0) data.dead = true;
+      hits += 1;
+    }
+
+    if (hits > 0) {
+      puff(origin.x, origin.y, 12 + hits * 2, special.color || "#ffffff");
+      wakeDynamicBodies(origin, special.radius + 60);
     }
   }
 
@@ -1236,9 +1392,11 @@
   }
 
   function launchVelocityFromPull(pull) {
+    const trait = currentShot && currentShot.plugin ? shotTrait(currentShot.plugin.sprite) : null;
+    const power = LAUNCH_POWER * (trait ? trait.launch : 1);
     return {
-      x: pull.x * LAUNCH_POWER,
-      y: pull.y * LAUNCH_POWER
+      x: pull.x * power,
+      y: pull.y * power
     };
   }
 
@@ -1298,6 +1456,7 @@
   function updateHud() {
     levelText.textContent = `${levelIndex + 1}`;
     shotText.textContent = `${shotQueue.length + (currentShot ? 1 : 0)}`;
+    if (runeText) runeText.textContent = currentShot ? shotTrait(currentShotSprite).name : "--";
     scoreText.textContent = `${score}`;
   }
 
