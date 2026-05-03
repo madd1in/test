@@ -38,6 +38,7 @@
   const LANES = 3;
   const TOTAL_LAPS = 3;
   const RUMBLE_LENGTH = 4;
+  const ARCADE_FONT = '"Cooper Black", "Cooper Std Black", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif';
 
   const COLORS = {
     skyTop: "#142033",
@@ -2316,7 +2317,7 @@
     ctx.fillRect(-size / 2, -size / 2, size, size);
     ctx.strokeRect(-size / 2, -size / 2, size, size);
     ctx.fillStyle = "#37dcc6";
-    ctx.font = `${Math.max(12, size * 0.7)}px system-ui`;
+    ctx.font = `900 ${Math.max(12, size * 0.7)}px ${ARCADE_FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("?", 0, size * 0.04);
@@ -2722,7 +2723,8 @@
       ctx.fillStyle = popup.color;
       ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
       ctx.lineWidth = 4;
-      ctx.font = `900 ${Math.max(18, width * 0.022)}px system-ui`;
+      const popupFontSize = Math.min(30, Math.max(18, height * 0.034));
+      ctx.font = `900 ${popupFontSize}px ${ARCADE_FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.strokeText(popup.text, popup.x, popup.y);
