@@ -1291,10 +1291,14 @@
       return ak - bk;
     });
 
-    for (const body of bodies) drawBody(body);
+    for (const body of bodies) {
+      if (body === currentShot && !launched) continue;
+      drawBody(body);
+    }
 
     if (currentShot && !launched) {
       drawElastic(false);
+      drawBody(currentShot);
     }
 
     drawParticles();
@@ -2064,14 +2068,136 @@
 
     if (data.kind === "block") {
       const alpha = Math.max(0.35, Math.min(1, data.health / data.maxHealth));
-      drawContactShadow(body, Math.max(data.width, data.height) * 0.42, 0.3);
-      drawBlockDepth(body, data, alpha);
-      drawSprite(data.sprite, p.x, p.y, data.width, data.height, body.angle, {
-        alpha,
-        shadow: { color: "rgba(0, 0, 0, 0.88)", blur: 10, y: 5 }
-      });
+      drawContactShadow(body, Math.max(data.width, data.height) * 0.36, 0.24);
+      drawFlatBlock(body, data, alpha);
       if (alpha < 0.7) drawCracks(p.x, p.y, data.width, data.height, body.angle);
     }
+  }
+
+  function drawFlatBlock(body, data, alpha) {
+    const w = data.width || 44;
+    const h = data.height || 44;
+    const sprite = data.sprite || "";
+    const palette = flatBlockPalette(sprite);
+
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.68)";
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 3;
+    ctx.translate(body.position.x, body.position.y);
+    ctx.rotate(body.angle || 0);
+
+    ctx.fillStyle = palette.base;
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = palette.top;
+    ctx.fillRect(-w / 2 + 3, -h / 2 + 3, w - 6, Math.max(4, Math.min(8, h * 0.16)));
+    ctx.strokeStyle = palette.edge;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-w / 2 + 1.5, -h / 2 + 1.5, w - 3, h - 3);
+    ctx.strokeStyle = palette.inner;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-w / 2 + 5.5, -h / 2 + 5.5, w - 11, h - 11);
+
+    if (sprite.includes("glass")) {
+      drawFlatGlassMarks(w, h, palette);
+    } else if (sprite.includes("wood") || sprite === "crate") {
+      drawFlatWoodMarks(w, h, palette);
+    } else {
+      drawFlatStoneMarks(w, h, palette);
+    }
+
+    ctx.restore();
+  }
+
+  function flatBlockPalette(sprite) {
+    if (sprite.includes("glass")) {
+      return {
+        base: "#4aaec2",
+        top: "#dbfff4",
+        edge: "#102230",
+        inner: "rgba(228, 255, 247, 0.72)",
+        mark: "rgba(18, 63, 82, 0.42)",
+        light: "rgba(244, 255, 252, 0.86)"
+      };
+    }
+    if (sprite.includes("wood") || sprite === "crate") {
+      return {
+        base: "#8a4d22",
+        top: "#d69a47",
+        edge: "#1d100b",
+        inner: "rgba(255, 184, 82, 0.34)",
+        mark: "rgba(45, 23, 12, 0.72)",
+        light: "rgba(246, 180, 88, 0.52)"
+      };
+    }
+    return {
+      base: "#6f7174",
+      top: "#c7c2b7",
+      edge: "#15151a",
+      inner: "rgba(234, 226, 205, 0.32)",
+      mark: "rgba(30, 29, 34, 0.58)",
+      light: "rgba(221, 214, 196, 0.52)"
+    };
+  }
+
+  function drawFlatStoneMarks(w, h, palette) {
+    ctx.strokeStyle = palette.mark;
+    ctx.lineWidth = 2;
+    const cols = Math.max(1, Math.round(w / 42));
+    const rows = Math.max(1, Math.round(h / 38));
+    for (let c = 1; c < cols; c++) {
+      const x = -w / 2 + c * w / cols + (c % 2 ? 2 : -2);
+      ctx.beginPath();
+      ctx.moveTo(x, -h / 2 + 8);
+      ctx.lineTo(x - 3, h / 2 - 8);
+      ctx.stroke();
+    }
+    for (let r = 1; r < rows; r++) {
+      const y = -h / 2 + r * h / rows;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2 + 8, y);
+      ctx.lineTo(w / 2 - 8, y + (r % 2 ? 2 : -2));
+      ctx.stroke();
+    }
+  }
+
+  function drawFlatWoodMarks(w, h, palette) {
+    ctx.strokeStyle = palette.mark;
+    ctx.lineWidth = 2;
+    for (let x = -w / 2 + 14; x < w / 2 - 8; x += 18) {
+      ctx.beginPath();
+      ctx.moveTo(x, -h / 2 + 8);
+      ctx.lineTo(x + 2, h / 2 - 8);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = palette.light;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 8, -h * 0.16);
+    ctx.lineTo(w / 2 - 10, -h * 0.18);
+    ctx.moveTo(-w / 2 + 10, h * 0.18);
+    ctx.lineTo(w / 2 - 8, h * 0.14);
+    ctx.stroke();
+  }
+
+  function drawFlatGlassMarks(w, h, palette) {
+    ctx.strokeStyle = palette.light;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 10, h / 2 - 9);
+    ctx.lineTo(w / 2 - 8, -h / 2 + 9);
+    ctx.moveTo(-w / 2 + 9, -h / 2 + 14);
+    ctx.lineTo(w / 2 - 18, -h / 2 + 14);
+    ctx.stroke();
+    ctx.strokeStyle = palette.mark;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 14, h / 2 - 12);
+    ctx.lineTo(w / 2 - 18, -h / 2 + 12);
+    ctx.stroke();
   }
 
   function drawBlockDepth(body, data, alpha) {
@@ -2266,7 +2392,7 @@
   function drawSprite(key, x, y, w, h, rotation, options = {}) {
     const safeKey = key || "";
     const alpha = options.alpha === undefined ? 1 : options.alpha;
-    const aiCell = AI_SPRITES[safeKey];
+    const aiCell = options.localOnly ? null : AI_SPRITES[safeKey];
     const aiSpriteSheet = artImages.aiSpritesKeyed || artImages.aiSprites;
     const shadow = options.shadow === false
       ? null

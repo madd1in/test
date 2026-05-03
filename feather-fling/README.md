@@ -10,6 +10,7 @@ Das Spiel hat jetzt zwoelf Level-Ideen: Moon Gate Trial, Glass Chapel, Clocktowe
 Level 1 ist als stabilerer Einstieg neu gebaut: zwei Ziele, sauber gestuetzte Plattformen und keine selbstkollabierenden Schraegkontakte.
 Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
 Der Hintergrund animiert mit Drift-Parallax, Nebel, Regen, Fensterflackern und gelegentlichen Blitzimpulsen.
+Die Blockdarstellung ist wieder flach 2D ohne 2,5D-Rahmenreste, der Bird rendert beim Zielen vor der Schleuder, und das HUD nutzt harte Pixel-Art-Rahmen.
 
 ## Dateien
 
