@@ -992,29 +992,31 @@
 
   function buildTrack() {
     segments = [];
+    addStraight(58);
+    addRoad(30, 86, 30, 2.4, 760);
+    addRoad(24, 64, 26, -1.6, -620);
+    addStraight(26);
+    addRoad(34, 102, 32, -3.05, 880);
+    addRoad(24, 58, 24, 1.35, -980);
+    addStraight(24);
+    addRoad(30, 96, 34, 3.35, 420);
+    addRoad(26, 72, 28, -2.7, -560);
+    addRoad(20, 54, 22, 1.15, 680);
+    addStraight(34);
+    addRoad(32, 104, 34, -3.45, -860);
+    addRoad(22, 68, 24, 2.25, 520);
+    addStraight(46);
+    addRoad(28, 84, 30, 2.95, -460);
+    addRoad(24, 70, 24, -1.9, 500);
+    addRoad(28, 86, 32, -2.8, -280);
     addStraight(70);
-    addRoad(30, 80, 30, 2.2, 520);
-    addRoad(22, 60, 26, -1.35, -360);
-    addStraight(42);
-    addRoad(28, 84, 30, -2.65, 620);
-    addRoad(24, 54, 24, 1.7, -410);
-    addStraight(36);
-    addRoad(30, 96, 36, 3.25, 0);
-    addRoad(28, 60, 28, -2.15, 720);
-    addStraight(38);
-    addRoad(20, 64, 24, 1.2, -720);
-    addRoad(28, 90, 32, -3.15, 340);
-    addStraight(62);
-    addRoad(24, 52, 28, 2.7, -250);
-    addRoad(20, 60, 22, -1.1, 0);
-    addStraight(80);
 
     for (let i = 0; i < segments.length; i += 1) {
       if (i < 16) segments[i].color = i % 2 ? COLORS.start : COLORS.finish;
-      if ((i > 94 && i < 104) || (i > 370 && i < 382) || (i > 700 && i < 712)) {
+      if ((i > 92 && i < 106) || (i > 438 && i < 452) || (i > 782 && i < 798) || (i > 1276 && i < 1292) || (i > 1610 && i < 1624)) {
         segments[i].boost = true;
       }
-      if ((i > 238 && i < 246) || (i > 545 && i < 553) || (i > 985 && i < 993)) {
+      if ((i > 246 && i < 254) || (i > 590 && i < 600) || (i > 1018 && i < 1028) || (i > 1450 && i < 1460)) {
         segments[i].ramp = true;
       }
     }
@@ -1029,7 +1031,7 @@
 
   function buildItems() {
     itemBoxes = [];
-    const boxSegments = [88, 178, 310, 474, 590, 760, 894, 1028, 1160];
+    const boxSegments = [88, 178, 310, 474, 590, 760, 894, 1028, 1160, 1320, 1504, 1690];
     const lanes = [-0.48, 0, 0.48];
     for (const segmentIndex of boxSegments) {
       for (const lane of lanes) {
@@ -1073,20 +1075,24 @@
 
   function buildTrackProps() {
     trackProps = [];
-    const sideDecor = ["palm", "lamp", "umbrella", "tires", "flowerBed", "pennants", "crowd", "palm", "buoy"];
-    for (let i = 24; i < segments.length; i += 18) {
-      const side = Math.floor(i / 18) % 2 ? 1 : -1;
-      const type = sideDecor[Math.floor(i / 18) % sideDecor.length];
-      const edge = type === "buoy" ? 1.7 : 1.28 + ((i * 7) % 5) * 0.055;
+    const beachDecor = ["palm", "umbrella", "buoy", "palm", "flowerBed", "pennants", "palmAlt", "umbrella"];
+    const inlandDecor = ["lamp", "tires", "crowd", "chevron", "billboard", "lamp", "flowerBed", "speedBoard"];
+    let decorSlot = 0;
+    for (let i = 24; i < segments.length; i += 16) {
+      const side = decorSlot % 2 ? 1 : -1;
+      const source = side < 0 ? beachDecor : inlandDecor;
+      const type = source[decorSlot % source.length];
+      const edge = type === "buoy" ? 1.86 : 1.28 + ((i * 7) % 5) * 0.055;
       trackProps.push({ z: i * SEGMENT_LENGTH, x: side * edge, type, phase: i * 0.31 });
+      decorSlot += 1;
     }
 
-    [132, 286, 438, 612, 846, 1056, 1218, 1410].forEach((index, slot) => {
+    [132, 286, 438, 612, 846, 1056, 1218, 1410, 1628, 1784].forEach((index, slot) => {
       const type = slot % 3 === 0 ? "chevron" : "billboard";
       trackProps.push({ z: mod(index * SEGMENT_LENGTH, trackLength), x: slot % 2 ? -1.46 : 1.46, type, phase: slot });
     });
 
-    [104, 382, 712, 992].forEach((index, slot) => {
+    [104, 382, 712, 992, 1328, 1660].forEach((index, slot) => {
       trackProps.push({ z: mod(index * SEGMENT_LENGTH, trackLength), x: 0, type: "gate", phase: slot });
       trackProps.push({ z: mod(index * SEGMENT_LENGTH + SEGMENT_LENGTH * 1.7, trackLength), x: -1.22, type: "flag", phase: slot });
       trackProps.push({ z: mod(index * SEGMENT_LENGTH + SEGMENT_LENGTH * 1.7, trackLength), x: 1.22, type: "flag", phase: slot + 1 });
@@ -1937,6 +1943,7 @@
     sunGlow.addColorStop(1, "rgba(255, 111, 95, 0)");
     ctx.fillStyle = sunGlow;
     ctx.fillRect(0, 0, width, height * 0.58);
+    drawArcadeSunStripes(sunX, sunY, horizon, storm);
 
     ctx.fillStyle = "rgba(245, 247, 235, 0.72)";
     for (let i = 0; i < 36; i += 1) {
@@ -1964,7 +1971,24 @@
       ctx.fillStyle = "#1e5032";
       ctx.fillRect(0, horizon + 72, width, height - horizon);
     }
+    drawLeftCoastlineBackdrop(player, horizon, offset, storm);
     drawHorizonMist(horizon, storm);
+  }
+
+  function drawArcadeSunStripes(sunX, sunY, horizon, storm) {
+    const radius = Math.min(width * 0.1, horizon * 0.26);
+    ctx.save();
+    ctx.globalAlpha = storm ? 0.22 : 0.68;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, radius, 0, Math.PI * 2);
+    ctx.clip();
+    for (let i = 0; i < 9; i += 1) {
+      const y = sunY - radius + i * radius * 0.24;
+      const h = Math.max(3, radius * (0.07 + i * 0.008));
+      ctx.fillStyle = i % 2 ? "rgba(255, 111, 95, 0.92)" : "rgba(255, 210, 74, 0.94)";
+      ctx.fillRect(sunX - radius, y, radius * 2, h);
+    }
+    ctx.restore();
   }
 
   function drawTiledBackdrop(player, horizon, offset) {
@@ -2053,6 +2077,68 @@
         ctx.quadraticCurveTo(x + 38, y + 4, x + 78, y);
         ctx.stroke();
       }
+    }
+    ctx.restore();
+  }
+
+  function drawLeftCoastlineBackdrop(player, horizon, offset, storm) {
+    const wave = Math.sin(player.z * 0.00022 + offset * 0.012) * width * 0.035;
+    const shoreTop = width * 0.22 + wave;
+    const shoreBottom = width * 0.34 + Math.sin(player.z * 0.00014) * width * 0.05;
+    const seaTop = Math.max(0, shoreTop - width * 0.15);
+    const seaBottom = Math.max(0, shoreBottom - width * 0.18);
+    const yTop = horizon + height * 0.07;
+    const yBottom = height;
+
+    ctx.save();
+    polygon(
+      0,
+      yTop,
+      seaTop,
+      yTop + height * 0.02,
+      seaBottom,
+      yBottom,
+      0,
+      yBottom,
+      storm ? "rgba(22, 93, 113, 0.52)" : "rgba(26, 145, 166, 0.58)"
+    );
+    polygon(
+      seaTop,
+      yTop + height * 0.015,
+      shoreTop + width * 0.06,
+      yTop,
+      shoreBottom + width * 0.09,
+      yBottom,
+      seaBottom,
+      yBottom,
+      storm ? "rgba(150, 128, 92, 0.46)" : "rgba(250, 198, 108, 0.62)"
+    );
+
+    ctx.globalAlpha = storm ? 0.22 : 0.52;
+    ctx.strokeStyle = "rgba(255, 248, 205, 0.9)";
+    ctx.lineWidth = Math.max(1, width * 0.0012);
+    for (let i = 0; i < 7; i += 1) {
+      const t = i / 6;
+      const y = lerp(yTop + height * 0.03, height * 0.96, t);
+      const x = lerp(seaTop, seaBottom, t) + Math.sin(player.z * 0.001 + i) * width * 0.012;
+      ctx.beginPath();
+      ctx.moveTo(Math.max(0, x - width * 0.08), y);
+      ctx.quadraticCurveTo(x + width * 0.03, y + 5, x + width * 0.14, y - 2);
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = storm ? 0.16 : 0.34;
+    ctx.strokeStyle = "rgba(255, 210, 74, 0.92)";
+    ctx.lineWidth = Math.max(2, width * 0.002);
+    for (let i = 0; i < 4; i += 1) {
+      const y = horizon + height * (0.12 + i * 0.052);
+      const shift = mod(player.z * (0.028 + i * 0.005) + offset + i * 71, 180);
+      ctx.beginPath();
+      ctx.moveTo(-shift, y);
+      for (let x = -shift; x < width * 0.5; x += 180) {
+        ctx.lineTo(x + 84, y + Math.sin(i + x * 0.02) * 2);
+      }
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -2296,6 +2382,7 @@
 
     const rumble1 = p1.w * 1.16;
     const rumble2 = p2.w * 1.16;
+    drawCoastalShoulder(segment, rumble1, rumble2);
     polygon(p1.x - rumble1, p1.y, p1.x + rumble1, p1.y, p2.x + rumble2, p2.y, p2.x - rumble2, p2.y, color.rumble);
     polygon(p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y, color.road);
     drawRoadTileOverlay(segment);
@@ -2386,6 +2473,73 @@
         p2.x + p2.w * 1.02,
         p2.y,
         "rgba(255, 210, 74, 0.38)"
+      );
+    }
+  }
+
+  function drawCoastalShoulder(segment, rumble1, rumble2) {
+    const p1 = segment.p1.screen;
+    const p2 = segment.p2.screen;
+    const leftRoad1 = p1.x - rumble1;
+    const leftRoad2 = p2.x - rumble2;
+    if (leftRoad1 < 8 && leftRoad2 < 8) return;
+
+    const shore1 = clamp(leftRoad1 - Math.max(width * 0.08, p1.w * 0.3), 0, width * 0.48);
+    const shore2 = clamp(leftRoad2 - Math.max(width * 0.06, p2.w * 0.34), 0, width * 0.46);
+    const water1 = clamp(shore1 - Math.max(width * 0.1, p1.w * 0.38), 0, width * 0.34);
+    const water2 = clamp(shore2 - Math.max(width * 0.08, p2.w * 0.42), 0, width * 0.32);
+    const beach1 = clamp(leftRoad1 - Math.max(width * 0.014, p1.w * 0.08), 0, width);
+    const beach2 = clamp(leftRoad2 - Math.max(width * 0.012, p2.w * 0.08), 0, width);
+    const storm = isStormActive();
+    const pulse = segment.index % 6;
+
+    polygon(
+      0,
+      p1.y,
+      water1,
+      p1.y,
+      water2,
+      p2.y,
+      0,
+      p2.y,
+      storm ? "rgba(19, 87, 108, 0.68)" : "rgba(24, 139, 165, 0.72)"
+    );
+    polygon(
+      water1,
+      p1.y,
+      shore1,
+      p1.y,
+      shore2,
+      p2.y,
+      water2,
+      p2.y,
+      storm ? "rgba(166, 145, 98, 0.66)" : "rgba(248, 198, 112, 0.82)"
+    );
+    polygon(
+      shore1,
+      p1.y,
+      beach1,
+      p1.y,
+      beach2,
+      p2.y,
+      shore2,
+      p2.y,
+      storm ? "rgba(37, 99, 72, 0.48)" : "rgba(73, 151, 72, 0.58)"
+    );
+
+    if (pulse < 3) {
+      const foam1 = lerp(water1, shore1, 0.62);
+      const foam2 = lerp(water2, shore2, 0.62);
+      polygon(
+        foam1,
+        p1.y,
+        foam1 + Math.max(2, p1.w * 0.026),
+        p1.y,
+        foam2 + Math.max(1, p2.w * 0.02),
+        p2.y,
+        foam2,
+        p2.y,
+        storm ? "rgba(184, 230, 226, 0.2)" : "rgba(255, 248, 210, 0.42)"
       );
     }
   }
@@ -2733,11 +2887,22 @@
     })) {
       return;
     }
-    if (prop.type === "palm" && drawWorldSprite(prop.phase % 2 ? WORLD_SPRITES.palmAlt : WORLD_SPRITES.palm, screen.x, baseY, size * 1.05, size * 1.55, {
-      anchorY: 1,
+    if (prop.type === "palm" || prop.type === "palmAlt") {
+      const palmSprite = prop.type === "palmAlt" || prop.phase % 2 ? WORLD_SPRITES.palmAlt : WORLD_SPRITES.palm;
+      if (drawWorldSprite(palmSprite, screen.x, baseY, size * 1.05, size * 1.55, {
+        anchorY: 1,
+        shadowY: 0,
+        shadowWidth: 0.32,
+        shadowHeight: 0.065
+      })) {
+        return;
+      }
+    }
+    if (prop.type === "speedBoard" && drawWorldSprite(WORLD_SPRITES.speedBoard, screen.x, baseY + size * 0.02, size * 1.02, size * 1.08, {
+      anchorY: 0.9,
       shadowY: 0,
-      shadowWidth: 0.32,
-      shadowHeight: 0.065
+      shadowWidth: 0.28,
+      shadowHeight: 0.05
     })) {
       return;
     }
