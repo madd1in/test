@@ -27,6 +27,8 @@ const checks = [
   [js.includes("class RuneLiftGame"), "game class is present"],
   [js.includes("pointermove"), "touch drag input is wired"],
   [js.includes("swipe"), "swipe handling is wired"],
+  [js.includes("applyAdaptiveQuality"), "adaptive performance mode is wired"],
+  [js.includes("Ebene III"), "expanded level objectives are present"],
   [js.includes("catacomb-bell-vault.mp3"), "BGM is referenced"],
   [js.includes("CanvasTexture"), "generated texture assets are used"]
 ];

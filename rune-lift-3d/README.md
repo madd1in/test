@@ -1,6 +1,6 @@
 # Rune Lift 3D
 
-A static Three.js puzzle platformer with swipe touch controls, locally generated materials, calm BGM from `Downloads`, and short SFX.
+A static Three.js puzzle platformer with swipe touch controls, locally generated materials, calm BGM from `Downloads`, three puzzle layers, and short SFX.
 
 ## Run locally
 
