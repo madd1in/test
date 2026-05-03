@@ -514,14 +514,15 @@
     return true;
   }
 
-  function drawKartSprite(x, y, w, h, sprite, frameIndex, rotation) {
+  function drawKartSprite(x, y, w, h, sprite, frameIndex, rotation, options = {}) {
     if (!spritesReady) return false;
     const frame = getKartFrame(sprite, frameIndex);
     return drawSprite(frame, x, y, w * 1.28, h * 1.58, {
+      ...options,
       rotation,
-      anchorY: 0.78,
-      shadowWidth: 0.38,
-      shadowHeight: 0.075
+      anchorY: options.anchorY ?? 0.78,
+      shadowWidth: options.shadowWidth ?? 0.38,
+      shadowHeight: options.shadowHeight ?? 0.075
     });
   }
 
@@ -529,6 +530,109 @@
     if (!spritesReady) return false;
     const frame = getSpriteFrame(spec);
     return drawSprite(frame, x, y, maxW, maxH, options);
+  }
+
+  function drawKart3DBase(x, y, w, h, body, trim, rotation, frameIndex, isPlayer) {
+    const yaw = clamp((frameIndex - KART_CENTER_FRAME) / KART_CENTER_FRAME, -1, 1);
+    const skew = yaw * w * 0.11;
+    const depth = h * (isPlayer ? 0.18 : 0.15);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
+    ctx.beginPath();
+    ctx.ellipse(skew * 0.16, h * 0.31, w * 0.54, h * 0.15, yaw * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawKartWheel3D(-w * 0.37 - skew * 0.12, h * 0.12, w * 0.18, h * 0.33, trim, 0.78 + Math.max(-yaw, 0) * 0.16);
+    drawKartWheel3D(w * 0.37 - skew * 0.12, h * 0.12, w * 0.18, h * 0.33, trim, 0.78 + Math.max(yaw, 0) * 0.16);
+    drawKartWheel3D(-w * 0.31 + skew * 0.08, -h * 0.23, w * 0.14, h * 0.25, trim, 0.62 + Math.max(-yaw, 0) * 0.12);
+    drawKartWheel3D(w * 0.31 + skew * 0.08, -h * 0.23, w * 0.14, h * 0.25, trim, 0.62 + Math.max(yaw, 0) * 0.12);
+
+    ctx.globalAlpha *= 0.95;
+    polygon(
+      -w * 0.45 + skew * 0.2,
+      -h * 0.19,
+      w * 0.45 + skew * 0.2,
+      -h * 0.19,
+      w * 0.5 - skew * 0.32,
+      h * 0.24,
+      -w * 0.5 - skew * 0.32,
+      h * 0.24,
+      body
+    );
+
+    polygon(
+      -w * 0.5 - skew * 0.32,
+      h * 0.17,
+      w * 0.5 - skew * 0.32,
+      h * 0.17,
+      w * 0.42 - skew * 0.18,
+      h * 0.31,
+      -w * 0.42 - skew * 0.18,
+      h * 0.31,
+      "rgba(12, 13, 13, 0.7)"
+    );
+
+    ctx.globalAlpha *= 0.88;
+    ctx.fillStyle = trim;
+    roundRect(-w * 0.3 + skew * 0.1, h * 0.04, w * 0.6, depth, Math.max(4, w * 0.04));
+    ctx.fill();
+
+    ctx.globalAlpha *= 0.55;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+    roundRect(-w * 0.2 + skew * 0.18, -h * 0.12, w * 0.32, h * 0.06, Math.max(3, w * 0.025));
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawKart3DAccents(x, y, w, h, trim, rotation, frameIndex, isPlayer) {
+    const yaw = clamp((frameIndex - KART_CENTER_FRAME) / KART_CENTER_FRAME, -1, 1);
+    const skew = yaw * w * 0.08;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.globalAlpha *= isPlayer ? 0.82 : 0.7;
+
+    ctx.fillStyle = isPlayer ? "#f5f7eb" : trim;
+    roundRect(-w * 0.27 - skew * 0.1, h * 0.2, w * 0.54, h * 0.08, Math.max(3, w * 0.025));
+    ctx.fill();
+
+    ctx.globalAlpha *= 0.82;
+    ctx.strokeStyle = "rgba(255, 246, 181, 0.64)";
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.34 + skew * 0.25, -h * 0.2);
+    ctx.lineTo(w * 0.34 + skew * 0.25, -h * 0.2);
+    ctx.stroke();
+
+    drawKartWheel3D(-w * 0.39 - skew * 0.16, h * 0.12, w * 0.13, h * 0.24, trim, 0.9 + Math.max(-yaw, 0) * 0.12);
+    drawKartWheel3D(w * 0.39 - skew * 0.16, h * 0.12, w * 0.13, h * 0.24, trim, 0.9 + Math.max(yaw, 0) * 0.12);
+
+    ctx.restore();
+  }
+
+  function drawKartWheel3D(x, y, w, h, trim, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, 1);
+    ctx.fillStyle = "#101111";
+    roundRect(-w / 2, -h / 2, w, h, Math.max(3, Math.min(w, h) * 0.28));
+    ctx.fill();
+    ctx.fillStyle = "rgba(245, 247, 235, 0.82)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.22, h * 0.34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = trim;
+    ctx.globalAlpha *= 0.74;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.12, h * 0.19, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function setupMenuPreviews() {
@@ -2470,40 +2574,100 @@
   function drawItemBox(box, screen) {
     const size = projectedSpriteSize(screen, 170, 9, 42, 3);
     const wobble = Math.sin(box.spin) * size * 0.08;
-    if (drawWorldSprite(WORLD_SPRITES.itemBox, screen.x, screen.y - size * 0.38 + wobble, size * 1.45, size * 1.45, {
-      rotation: box.spin * 0.2,
-      anchorY: 0.7
-    })) {
-      return;
-    }
+    drawItemCube3D(screen.x, screen.y - size * 0.5 + wobble, size, box.spin);
+  }
+
+  function drawItemCube3D(x, y, size, spin) {
+    const yaw = Math.sin(spin) * 0.7;
+    const side = (yaw >= 0 ? 1 : -1) * size * (0.22 + Math.abs(yaw) * 0.12);
+    const frontW = size * (0.9 - Math.abs(yaw) * 0.12);
+    const frontH = size * 0.78;
+    const depth = size * 0.34;
+
     ctx.save();
-    ctx.translate(screen.x, screen.y - size * 0.58 + wobble);
-    ctx.rotate(box.spin * 0.35);
+    ctx.translate(x, y);
+    ctx.rotate(Math.sin(spin * 0.7) * 0.07);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+    ctx.beginPath();
+    ctx.ellipse(side * 0.18, size * 0.54, size * 0.52, size * 0.11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    polygon(
+      -frontW / 2,
+      -frontH / 2,
+      frontW / 2,
+      -frontH / 2,
+      frontW / 2 + side,
+      -frontH / 2 - depth * 0.46,
+      -frontW / 2 + side,
+      -frontH / 2 - depth * 0.46,
+      "#fff2a6"
+    );
+    polygon(
+      side > 0 ? frontW / 2 : -frontW / 2,
+      -frontH / 2,
+      side > 0 ? frontW / 2 + side : -frontW / 2 + side,
+      -frontH / 2 - depth * 0.46,
+      side > 0 ? frontW / 2 + side : -frontW / 2 + side,
+      frontH / 2 - depth * 0.34,
+      side > 0 ? frontW / 2 : -frontW / 2,
+      frontH / 2,
+      "#e59735"
+    );
+
     ctx.fillStyle = "#ffd24a";
+    roundRect(-frontW / 2, -frontH / 2, frontW, frontH, Math.max(4, size * 0.08));
+    ctx.fill();
     ctx.strokeStyle = "#17180e";
-    ctx.lineWidth = Math.max(2, size * 0.08);
-    ctx.fillRect(-size / 2, -size / 2, size, size);
-    ctx.strokeRect(-size / 2, -size / 2, size, size);
+    ctx.lineWidth = Math.max(2, size * 0.07);
+    ctx.stroke();
+
+    ctx.globalAlpha *= 0.55;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+    ctx.lineWidth = Math.max(1, size * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(-frontW * 0.36, -frontH * 0.26);
+    ctx.lineTo(frontW * 0.26, -frontH * 0.26);
+    ctx.stroke();
+    ctx.globalAlpha /= 0.55;
+
     ctx.fillStyle = "#37dcc6";
+    ctx.strokeStyle = "#17180e";
+    ctx.lineWidth = Math.max(1.4, size * 0.045);
     ctx.font = `900 ${Math.max(12, size * 0.7)}px ${ARCADE_FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.strokeText("?", 0, size * 0.04);
     ctx.fillText("?", 0, size * 0.04);
     ctx.restore();
   }
 
   function drawCoin(coin, screen) {
     const size = projectedSpriteSize(screen, 150, 7, 36, 2.4);
-    if (drawWorldSprite(WORLD_SPRITES.coin, screen.x, screen.y - size * 0.56 + Math.sin(coin.spin * 1.3) * size * 0.12, size * 1.12, size * 1.12, {
-      shadow: false,
-      anchorY: 0.7
-    })) {
-      return;
-    }
-    const squash = 0.38 + Math.abs(Math.sin(coin.spin)) * 0.62;
+    drawCoin3D(screen.x, screen.y - size * 0.68, size, coin.spin);
+  }
+
+  function drawCoin3D(x, y, size, spin) {
+    const squash = 0.18 + Math.abs(Math.sin(spin)) * 0.56;
+    const thickness = size * (0.08 + (1 - Math.abs(Math.sin(spin))) * 0.11);
+
     ctx.save();
-    ctx.translate(screen.x, screen.y - size * 0.74 + Math.sin(coin.spin * 1.3) * size * 0.12);
+    ctx.translate(x, y + Math.sin(spin * 1.3) * size * 0.12);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
+    ctx.beginPath();
+    ctx.ellipse(0, size * 0.62, size * 0.36, size * 0.07, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.scale(squash, 1);
+    ctx.fillStyle = "#b87927";
+    for (let offset = -2; offset <= 2; offset += 1) {
+      ctx.beginPath();
+      ctx.ellipse(offset * thickness, 0, size * 0.5, size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.fillStyle = "#ffd24a";
     ctx.strokeStyle = "#fff6b5";
     ctx.lineWidth = Math.max(1.5, size * 0.12);
@@ -2514,6 +2678,10 @@
     ctx.fillStyle = "rgba(21, 21, 13, 0.25)";
     ctx.beginPath();
     ctx.arc(0, 0, size * 0.23, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.34)";
+    ctx.beginPath();
+    ctx.ellipse(-size * 0.14, -size * 0.16, size * 0.11, size * 0.06, -0.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -2788,8 +2956,14 @@
     const kartW = projectedSpriteSize(screen, 760, 13, 118, 4.2);
     const kartH = kartW * 0.66;
     const spin = racer.spinTimer > 0 ? Math.sin(racer.spinTimer * 32) * 0.35 : 0;
-    if (!drawKartSprite(screen.x, screen.y - kartH * 0.44, kartW, kartH, racer.sprite, getAIOpponentFrame(racer), spin)) {
-      drawKartShape(screen.x, screen.y - kartH * 0.44, kartW, kartH, racer.color, racer.trim, spin, false);
+    const frame = getAIOpponentFrame(racer);
+    const x = screen.x;
+    const y = screen.y - kartH * 0.44;
+    drawKart3DBase(x, y, kartW, kartH, racer.color, racer.trim, spin, frame, false);
+    if (drawKartSprite(x, y, kartW, kartH, racer.sprite, frame, spin, { shadow: false })) {
+      drawKart3DAccents(x, y, kartW, kartH, racer.trim, spin, frame, false);
+    } else {
+      drawKartShape(x, y, kartW, kartH, racer.color, racer.trim, spin, false);
     }
   }
 
@@ -2822,8 +2996,14 @@
     if (player.shieldTimer > 0) drawShieldAura(x, y, kartW, player.shieldTimer);
     if (player.magnetTimer > 0) drawMagnetAura(x, y, kartW, player.magnetTimer);
 
-    if (!drawKartSprite(x, y, kartW * jumpScale, kartH * jumpScale, stats.sprite, getPlayerKartFrame(player), tilt)) {
-      drawKartShape(x, y, kartW * jumpScale, kartH * jumpScale, stats.body, stats.trim, tilt, true);
+    const frame = getPlayerKartFrame(player);
+    const drawW = kartW * jumpScale;
+    const drawH = kartH * jumpScale;
+    drawKart3DBase(x, y, drawW, drawH, stats.body, stats.trim, tilt, frame, true);
+    if (drawKartSprite(x, y, drawW, drawH, stats.sprite, frame, tilt, { shadow: false })) {
+      drawKart3DAccents(x, y, drawW, drawH, stats.trim, tilt, frame, true);
+    } else {
+      drawKartShape(x, y, drawW, drawH, stats.body, stats.trim, tilt, true);
     }
     if (player.driftCharge > 0.1) drawDriftMeter(player.driftCharge, x, y + kartH * 0.72, kartW);
   }
