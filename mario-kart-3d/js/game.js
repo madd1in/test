@@ -39,6 +39,8 @@
   const TOTAL_LAPS = 3;
   const RUMBLE_LENGTH = 4;
   const ARCADE_FONT = '"Cooper Black", "Cooper Std Black", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif';
+  const KART_FRAME_COUNT = 9;
+  const KART_CENTER_FRAME = 4;
 
   const COLORS = {
     skyTop: "#142033",
@@ -78,18 +80,18 @@
   const SHEET_LAYOUTS = {
     rally: {
       characterRows: 3,
-      characterCols: 5,
-      characterTopRatio: 0.76,
+      characterCols: 9,
+      characterTopRatio: 0.75,
       iconRows: 1,
-      iconCols: 6,
-      iconTopRatio: 0.76
+      iconCols: 9,
+      iconTopRatio: 0.75
     },
     props: {
       characterRows: 1,
       characterCols: 1,
       characterTopRatio: 0,
-      iconRows: 2,
-      iconCols: 6,
+      iconRows: 4,
+      iconCols: 8,
       iconTopRatio: 0
     }
   };
@@ -178,15 +180,28 @@
     puddle: { sheet: "props", kind: "icon", row: 0, col: 3 },
     oil: { sheet: "props", kind: "icon", row: 0, col: 3 },
     turbo: { sheet: "props", kind: "icon", row: 0, col: 1 },
-    pulse: { sheet: "props", kind: "icon", row: 1, col: 5 },
-    shield: { sheet: "props", kind: "icon", row: 1, col: 4 },
+    pulse: { sheet: "props", kind: "icon", row: 1, col: 6 },
+    shield: { sheet: "props", kind: "icon", row: 1, col: 5 },
     magnet: { sheet: "props", kind: "icon", row: 0, col: 0 },
-    lamp: { sheet: "props", kind: "icon", row: 0, col: 5 },
-    palm: { sheet: "props", kind: "icon", row: 1, col: 0 },
+    lamp: { sheet: "props", kind: "icon", row: 0, col: 6 },
+    palm: { sheet: "props", kind: "icon", row: 0, col: 7 },
+    palmAlt: { sheet: "props", kind: "icon", row: 1, col: 0 },
     signRight: { sheet: "props", kind: "icon", row: 0, col: 4 },
-    signLeft: { sheet: "props", kind: "icon", row: 0, col: 4 },
-    arch: { sheet: "props", kind: "icon", row: 1, col: 1 },
-    finishGate: { sheet: "props", kind: "icon", row: 1, col: 2 }
+    signLeft: { sheet: "props", kind: "icon", row: 0, col: 5 },
+    flagLeft: { sheet: "props", kind: "icon", row: 1, col: 1 },
+    flagRight: { sheet: "props", kind: "icon", row: 1, col: 2 },
+    pennants: { sheet: "props", kind: "icon", row: 1, col: 3 },
+    cone: { sheet: "props", kind: "icon", row: 1, col: 4 },
+    marker: { sheet: "props", kind: "icon", row: 1, col: 5 },
+    sparkle: { sheet: "props", kind: "icon", row: 1, col: 6 },
+    chevronBoard: { sheet: "props", kind: "icon", row: 1, col: 7 },
+    umbrella: { sheet: "props", kind: "icon", row: 2, col: 0 },
+    buoy: { sheet: "props", kind: "icon", row: 2, col: 1 },
+    crowd: { sheet: "props", kind: "icon", row: 2, col: 2 },
+    tires: { sheet: "props", kind: "icon", row: 2, col: 3 },
+    flowerBed: { sheet: "props", kind: "icon", row: 2, col: 4 },
+    drone: { sheet: "props", kind: "icon", row: 2, col: 5 },
+    speedBoard: { sheet: "props", kind: "icon", row: 2, col: 6 }
   };
 
   const input = {
@@ -350,7 +365,7 @@
 
   function warmSpriteCache() {
     [...Object.values(KARTS), ...OPPONENTS].forEach((racer) => {
-      for (let col = 0; col < 5; col += 1) getKartFrame(racer.sprite, col);
+      for (let col = 0; col < KART_FRAME_COUNT; col += 1) getKartFrame(racer.sprite, col);
     });
     Object.values(WORLD_SPRITES).forEach((sprite) => getSpriteFrame(sprite));
   }
@@ -379,6 +394,18 @@
     let maxX = -1;
     let maxY = -1;
     const whiteCutoff = 242;
+    const cornerSamples = [
+      0,
+      (work.width - 1) * 4,
+      ((work.height - 1) * work.width) * 4,
+      ((work.height - 1) * work.width + work.width - 1) * 4
+    ];
+    const shouldCutWhite = cornerSamples.filter((index) => (
+      pixels[index + 3] > 220 &&
+      pixels[index] >= whiteCutoff &&
+      pixels[index + 1] >= whiteCutoff &&
+      pixels[index + 2] >= whiteCutoff
+    )).length >= 3;
 
     for (let y = 0; y < work.height; y += 1) {
       for (let x = 0; x < work.width; x += 1) {
@@ -388,7 +415,7 @@
         const b = pixels[index + 2];
         const a = pixels[index + 3];
         const whiteish = r >= whiteCutoff && g >= whiteCutoff && b >= whiteCutoff;
-        if (a < 10 || whiteish) {
+        if (a < 10 || (shouldCutWhite && whiteish)) {
           pixels[index + 3] = 0;
           continue;
         }
@@ -427,7 +454,7 @@
 
   function getKartFrame(sprite, frameIndex) {
     if (!sprite) return null;
-    const clamped = clamp(frameIndex, 0, 4);
+    const clamped = clamp(frameIndex, 0, KART_FRAME_COUNT - 1);
     return getSpriteFrame({
       sheet: sprite.sheet,
       kind: "character",
@@ -438,19 +465,27 @@
 
   function getPlayerKartFrame(player) {
     const steer = (input.left ? -1 : 0) + (input.right ? 1 : 0);
-    if (steer < 0) return player.drifting ? 0 : 1;
-    if (steer > 0) return player.drifting ? 4 : 3;
-    return 2;
+    const speedRatio = clamp(player.speed / KARTS[state.selectedKart].maxSpeed, 0, 1.4);
+    if (steer < 0) return player.drifting ? (player.driftCharge > 1.2 ? 0 : 1) : 2;
+    if (steer > 0) return player.drifting ? (player.driftCharge > 1.2 ? 8 : 7) : 6;
+    if (speedRatio > 0.48) {
+      const wobble = Math.floor((state.raceTime * (7 + speedRatio * 5)) % 3);
+      return [3, KART_CENTER_FRAME, 5][wobble];
+    }
+    return KART_CENTER_FRAME;
   }
 
   function getAIOpponentFrame(racer) {
     if (racer.spinTimer > 0) {
-      return Math.sin(racer.spinTimer * 24) > 0 ? 0 : 4;
+      return Math.sin(racer.spinTimer * 24) > 0 ? 0 : 8;
     }
-    const sway = Math.sin(racer.phase + state.raceTime * 0.9);
-    if (sway < -0.45) return 1;
-    if (sway > 0.45) return 3;
-    return 2;
+    const laneIntent = clamp((racer.targetX - racer.x) * 6, -1, 1);
+    const sway = Math.sin(racer.phase + state.raceTime * 1.25) * 0.42 + laneIntent;
+    if (sway < -0.72) return 1;
+    if (sway < -0.24) return 2;
+    if (sway > 0.72) return 7;
+    if (sway > 0.24) return 6;
+    return [3, KART_CENTER_FRAME, 5][Math.floor((state.raceTime * 5.5 + racer.phase) % 3)];
   }
 
   function drawSprite(frame, x, y, maxW, maxH, options = {}) {
@@ -496,14 +531,6 @@
     return drawSprite(frame, x, y, maxW, maxH, options);
   }
 
-  function getBillboardSprite(phase) {
-    return phase % 2 === 0 ? WORLD_SPRITES.signRight : WORLD_SPRITES.signLeft;
-  }
-
-  function getGateSprite(phase) {
-    return phase % 2 === 0 ? WORLD_SPRITES.finishGate : WORLD_SPRITES.arch;
-  }
-
   function setupMenuPreviews() {
     document.querySelectorAll(".kart-option").forEach((button) => {
       const kart = KARTS[button.dataset.kart];
@@ -511,7 +538,7 @@
       const preview = button.querySelector(".kart-preview");
       const label = button.querySelector("span:last-child");
       if (label) label.textContent = kart.name;
-      const frame = getKartFrame(kart.sprite, 1) || getKartFrame(kart.sprite, 2);
+      const frame = getKartFrame(kart.sprite, KART_CENTER_FRAME) || getKartFrame(kart.sprite, 3);
       if (preview && frame) {
         preview.style.backgroundImage = `url(${frame.toDataURL()})`;
       }
@@ -784,6 +811,13 @@
     return 1 - easeInOut(0, 0.55, t);
   }
 
+  function projectedSpriteSize(screen, base, nearMin, max, farMin = 2) {
+    const depth = Math.pow(screen.depthRatio ?? 1, 0.55);
+    const horizon = Math.pow(screen.perspectiveRatio ?? 1, 0.18);
+    const minSize = lerp(farMin, nearMin, depth);
+    return clamp(screen.scale * width * base * horizon, minSize, max);
+  }
+
   function percentRemaining(n, total) {
     return (n % total) / total;
   }
@@ -935,17 +969,23 @@
 
   function buildTrackProps() {
     trackProps = [];
-    for (let i = 28; i < segments.length; i += 28) {
-      const side = i % 28 === 0 ? -1 : 1;
-      trackProps.push({ z: i * SEGMENT_LENGTH, x: side * (1.32 + (i % 5) * 0.08), type: i % 42 === 0 ? "lamp" : "palm", phase: i * 0.31 });
+    const sideDecor = ["palm", "lamp", "umbrella", "tires", "flowerBed", "pennants", "crowd", "palm", "buoy"];
+    for (let i = 24; i < segments.length; i += 18) {
+      const side = Math.floor(i / 18) % 2 ? 1 : -1;
+      const type = sideDecor[Math.floor(i / 18) % sideDecor.length];
+      const edge = type === "buoy" ? 1.7 : 1.28 + ((i * 7) % 5) * 0.055;
+      trackProps.push({ z: i * SEGMENT_LENGTH, x: side * edge, type, phase: i * 0.31 });
     }
 
-    [132, 286, 438, 612, 846, 1056].forEach((index, slot) => {
-      trackProps.push({ z: mod(index * SEGMENT_LENGTH, trackLength), x: slot % 2 ? -1.5 : 1.5, type: "billboard", phase: slot });
+    [132, 286, 438, 612, 846, 1056, 1218, 1410].forEach((index, slot) => {
+      const type = slot % 3 === 0 ? "chevron" : "billboard";
+      trackProps.push({ z: mod(index * SEGMENT_LENGTH, trackLength), x: slot % 2 ? -1.46 : 1.46, type, phase: slot });
     });
 
     [104, 382, 712, 992].forEach((index, slot) => {
       trackProps.push({ z: mod(index * SEGMENT_LENGTH, trackLength), x: 0, type: "gate", phase: slot });
+      trackProps.push({ z: mod(index * SEGMENT_LENGTH + SEGMENT_LENGTH * 1.7, trackLength), x: -1.22, type: "flag", phase: slot });
+      trackProps.push({ z: mod(index * SEGMENT_LENGTH + SEGMENT_LENGTH * 1.7, trackLength), x: 1.22, type: "flag", phase: slot + 1 });
     });
   }
 
@@ -2408,10 +2448,15 @@
     const percent = percentRemaining(object.z, SEGMENT_LENGTH);
     if (!segment.p1.screen.scale || !segment.p2.screen.scale) return;
 
+    const y = lerp(segment.p1.screen.y, segment.p2.screen.y, percent);
+    const horizon = height * 0.42;
     const screen = {
       x: lerp(segment.p1.screen.x, segment.p2.screen.x, percent) + object.x * lerp(segment.p1.screen.w, segment.p2.screen.w, percent),
-      y: lerp(segment.p1.screen.y, segment.p2.screen.y, percent),
+      y,
       scale: lerp(segment.p1.screen.scale, segment.p2.screen.scale, percent),
+      distance,
+      depthRatio: clamp(1 - distance / (DRAW_DISTANCE * SEGMENT_LENGTH), 0, 1),
+      perspectiveRatio: clamp((y - horizon) / (height - horizon), 0, 1),
       fogOpacity: distanceFogOpacity(distance)
     };
 
@@ -2423,7 +2468,7 @@
   }
 
   function drawItemBox(box, screen) {
-    const size = clamp(screen.scale * width * 170, 10, 42);
+    const size = projectedSpriteSize(screen, 170, 9, 42, 3);
     const wobble = Math.sin(box.spin) * size * 0.08;
     if (drawWorldSprite(WORLD_SPRITES.itemBox, screen.x, screen.y - size * 0.38 + wobble, size * 1.45, size * 1.45, {
       rotation: box.spin * 0.2,
@@ -2448,7 +2493,7 @@
   }
 
   function drawCoin(coin, screen) {
-    const size = clamp(screen.scale * width * 150, 8, 36);
+    const size = projectedSpriteSize(screen, 150, 7, 36, 2.4);
     if (drawWorldSprite(WORLD_SPRITES.coin, screen.x, screen.y - size * 0.56 + Math.sin(coin.spin * 1.3) * size * 0.12, size * 1.12, size * 1.12, {
       shadow: false,
       anchorY: 0.7
@@ -2474,7 +2519,7 @@
   }
 
   function drawPuddle(puddle, screen) {
-    const w = clamp(screen.scale * width * 520 * puddle.width, 20, 110);
+    const w = projectedSpriteSize(screen, 520 * puddle.width, 12, 110, 4);
     const h = w * 0.34;
     if (drawWorldSprite(WORLD_SPRITES.puddle, screen.x, screen.y + h * 0.1, w * 1.06, h * 3.2, {
       shadow: false,
@@ -2499,32 +2544,88 @@
 
   function drawTrackProp(prop, screen) {
     if (prop.type === "gate") {
-      if (!drawWorldSprite(getGateSprite(prop.phase), screen.x, screen.y + 4, clamp(screen.scale * width * 1800, 70, 310), clamp(screen.scale * width * 1300, 50, 240), {
-        shadow: false,
-        anchorY: 0.92
-      })) {
-        drawNeonGate(screen);
-      }
+      drawGoalFlags(prop, screen);
       return;
     }
 
-    const size = clamp(screen.scale * width * 720, 18, 108);
+    const size = projectedSpriteSize(screen, 720, 12, 112, 3.6);
     const baseY = screen.y;
     if (prop.type === "lamp" && drawWorldSprite(WORLD_SPRITES.lamp, screen.x, baseY + size * 0.03, size * 0.9, size * 1.7, {
       anchorY: 0.94
     })) {
       return;
     }
-    if (prop.type === "billboard" && drawWorldSprite(getBillboardSprite(prop.phase), screen.x, baseY + size * 0.02, size * 1.15, size * 1.15, {
+    if (prop.type === "billboard" && drawWorldSprite(prop.x < 0 ? WORLD_SPRITES.signRight : WORLD_SPRITES.signLeft, screen.x, baseY + size * 0.02, size * 1.15, size * 1.15, {
       anchorY: 0.88
     })) {
       return;
     }
-    if (prop.type === "palm" && drawWorldSprite(WORLD_SPRITES.palm, screen.x, baseY, size * 1.05, size * 1.55, {
+    if (prop.type === "chevron" && drawWorldSprite(WORLD_SPRITES.chevronBoard, screen.x, baseY + size * 0.01, size * 1.22, size * 1.18, {
+      anchorY: 0.88
+    })) {
+      return;
+    }
+    if (prop.type === "palm" && drawWorldSprite(prop.phase % 2 ? WORLD_SPRITES.palmAlt : WORLD_SPRITES.palm, screen.x, baseY, size * 1.05, size * 1.55, {
       anchorY: 1,
       shadowY: 0,
       shadowWidth: 0.32,
       shadowHeight: 0.065
+    })) {
+      return;
+    }
+    if (prop.type === "flag" && drawWorldSprite(prop.x < 0 ? WORLD_SPRITES.flagRight : WORLD_SPRITES.flagLeft, screen.x, baseY, size * 0.88, size * 1.42, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.26,
+      shadowHeight: 0.058
+    })) {
+      return;
+    }
+    if (prop.type === "pennants" && drawWorldSprite(WORLD_SPRITES.pennants, screen.x, baseY, size * 1.28, size * 1.2, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.34,
+      shadowHeight: 0.05
+    })) {
+      return;
+    }
+    if (prop.type === "umbrella" && drawWorldSprite(WORLD_SPRITES.umbrella, screen.x, baseY, size * 1.04, size * 1.28, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.34,
+      shadowHeight: 0.06
+    })) {
+      return;
+    }
+    if (prop.type === "buoy" && drawWorldSprite(WORLD_SPRITES.buoy, screen.x, baseY, size * 0.78, size * 1.1, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.2,
+      shadowHeight: 0.045
+    })) {
+      return;
+    }
+    if (prop.type === "crowd" && drawWorldSprite(WORLD_SPRITES.crowd, screen.x, baseY, size * 1.34, size * 1.1, {
+      anchorY: 0.96,
+      shadowY: 0,
+      shadowWidth: 0.44,
+      shadowHeight: 0.055
+    })) {
+      return;
+    }
+    if (prop.type === "tires" && drawWorldSprite(WORLD_SPRITES.tires, screen.x, baseY, size * 0.88, size * 1.06, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.28,
+      shadowHeight: 0.055
+    })) {
+      return;
+    }
+    if (prop.type === "flowerBed" && drawWorldSprite(WORLD_SPRITES.flowerBed, screen.x, baseY, size * 0.98, size * 0.92, {
+      anchorY: 0.95,
+      shadowY: 0,
+      shadowWidth: 0.32,
+      shadowHeight: 0.045
     })) {
       return;
     }
@@ -2580,6 +2681,67 @@
     ctx.restore();
   }
 
+  function drawGoalFlags(prop, screen) {
+    const roadHalf = clamp(screen.scale * ROAD_WIDTH * width * 0.52, 22, width * 0.43);
+    const size = projectedSpriteSize(screen, 900, 18, 132, 5);
+    const leftX = screen.x - roadHalf * 0.94;
+    const rightX = screen.x + roadHalf * 0.94;
+    const flagY = screen.y + size * 0.02;
+    const leftOk = drawWorldSprite(WORLD_SPRITES.flagRight, leftX, flagY, size * 0.72, size * 1.35, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.22,
+      shadowHeight: 0.052
+    });
+    const rightOk = drawWorldSprite(WORLD_SPRITES.flagLeft, rightX, flagY, size * 0.72, size * 1.35, {
+      anchorY: 1,
+      shadowY: 0,
+      shadowWidth: 0.22,
+      shadowHeight: 0.052
+    });
+    if (leftOk && rightOk) {
+      const markerW = Math.max(2, size * 0.12);
+      ctx.save();
+      ctx.globalAlpha *= 0.42;
+      polygon(
+        screen.x - roadHalf * 0.5,
+        screen.y + markerW,
+        screen.x + roadHalf * 0.5,
+        screen.y + markerW,
+        screen.x + roadHalf * 0.62,
+        screen.y + markerW * 2.8,
+        screen.x - roadHalf * 0.62,
+        screen.y + markerW * 2.8,
+        prop.phase % 2 ? "rgba(255, 210, 74, 0.32)" : "rgba(245, 247, 235, 0.24)"
+      );
+      ctx.restore();
+      return;
+    }
+    drawGoalFlagsFallback(screen);
+  }
+
+  function drawGoalFlagsFallback(screen) {
+    const roadHalf = clamp(screen.scale * ROAD_WIDTH * width * 0.52, 22, width * 0.43);
+    const h = clamp(screen.scale * width * 960, 26, 116);
+    ctx.save();
+    [screen.x - roadHalf * 0.94, screen.x + roadHalf * 0.94].forEach((x, side) => {
+      ctx.strokeStyle = "rgba(245, 247, 235, 0.88)";
+      ctx.lineWidth = Math.max(2, h * 0.045);
+      ctx.beginPath();
+      ctx.moveTo(x, screen.y);
+      ctx.lineTo(x, screen.y - h);
+      ctx.stroke();
+      const dir = side ? -1 : 1;
+      for (let row = 0; row < 3; row += 1) {
+        for (let col = 0; col < 4; col += 1) {
+          ctx.fillStyle = (row + col) % 2 ? "#171918" : "#f5f7eb";
+          ctx.fillRect(x + dir * col * h * 0.12, screen.y - h + row * h * 0.1, dir * h * 0.12, h * 0.1);
+        }
+      }
+    });
+    ctx.restore();
+  }
+
   function drawNeonGate(screen) {
     const roadHalf = clamp(screen.scale * ROAD_WIDTH * width * 0.52, 34, width * 0.48);
     const h = clamp(screen.scale * width * 1450, 40, 220);
@@ -2600,7 +2762,7 @@
   }
 
   function drawOil(hazard, screen) {
-    const w = clamp(screen.scale * width * 310, 18, 76);
+    const w = projectedSpriteSize(screen, 310, 10, 76, 3);
     const h = w * 0.38;
     if (drawWorldSprite(WORLD_SPRITES.oil, screen.x, screen.y + h * 0.22, w * 1.18, h * 3.5, {
       alpha: clamp(hazard.life / 2, 0.28, 0.86),
@@ -2623,7 +2785,7 @@
   }
 
   function drawAICart(racer, screen) {
-    const kartW = clamp(screen.scale * width * 720, 22, 118);
+    const kartW = projectedSpriteSize(screen, 760, 13, 118, 4.2);
     const kartH = kartW * 0.66;
     const spin = racer.spinTimer > 0 ? Math.sin(racer.spinTimer * 32) * 0.35 : 0;
     if (!drawKartSprite(screen.x, screen.y - kartH * 0.44, kartW, kartH, racer.sprite, getAIOpponentFrame(racer), spin)) {
