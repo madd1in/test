@@ -43,15 +43,42 @@ def rounded_rect(draw: ImageDraw.ImageDraw, xy, radius, fill, outline=None, widt
     draw.rounded_rectangle([round(v) for v in xy], radius=round(radius), fill=fill, outline=outline, width=width)
 
 
+def lerp_color(a, b, t):
+    return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(len(a)))
+
+
+def gradient_rect(draw: ImageDraw.ImageDraw, xy, top, bottom):
+    x1, y1, x2, y2 = [round(v) for v in xy]
+    h = max(1, y2 - y1)
+    for y in range(y1, y2):
+        t = (y - y1) / h
+        draw.line((x1, y, x2, y), fill=lerp_color(top, bottom, t))
+
+
+def add_sheet_shadow(img: Image.Image, offset=(4, 5), blur=3, opacity=94) -> Image.Image:
+    alpha = img.getchannel("A").filter(ImageFilter.GaussianBlur(blur))
+    shadow_alpha = alpha.point(lambda value: int(value * opacity / 255))
+    shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    shadow.putalpha(shadow_alpha)
+    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    out.paste(shadow, offset, shadow)
+    out.alpha_composite(img)
+    return out
+
+
 def draw_asphalt(draw: ImageDraw.ImageDraw, ox: int, oy: int, wet=False, cracked=False):
-    base = (68, 72, 78, 255) if not wet else (46, 58, 66, 255)
-    rect(draw, (ox, oy, ox + 64, oy + 64), base)
+    top = (86, 89, 92, 255) if not wet else (48, 68, 82, 255)
+    bottom = (50, 54, 60, 255) if not wet else (32, 46, 58, 255)
+    gradient_rect(draw, (ox, oy, ox + 64, oy + 64), top, bottom)
     for _ in range(120):
         x = ox + random.randrange(64)
         y = oy + random.randrange(64)
         tone = random.randint(-22, 18)
+        base = lerp_color(top, bottom, y / 64)
         col = (clamp(base[0] + tone), clamp(base[1] + tone), clamp(base[2] + tone), 120)
         rect(draw, (x, y, x + random.randrange(1, 4), y + 1), col)
+    for y in (11, 27, 44, 58):
+        draw.line((ox, oy + y, ox + 64, oy + y + random.choice([-1, 0, 1])), fill=(255, 245, 205, 24), width=1)
     if wet:
         for i in range(5):
             y = oy + 8 + i * 11
@@ -82,8 +109,9 @@ def draw_curb(draw: ImageDraw.ImageDraw, ox: int, oy: int):
 
 
 def draw_grass(draw: ImageDraw.ImageDraw, ox: int, oy: int, dark=False):
-    base = (36, 118, 68, 255) if not dark else (28, 92, 56, 255)
-    rect(draw, (ox, oy, ox + 64, oy + 64), base)
+    top = (53, 151, 77, 255) if not dark else (34, 106, 70, 255)
+    bottom = (23, 97, 58, 255) if not dark else (20, 74, 50, 255)
+    gradient_rect(draw, (ox, oy, ox + 64, oy + 64), top, bottom)
     for i in range(18):
         x = ox + random.randrange(64)
         y = oy + random.randrange(64)
@@ -93,8 +121,8 @@ def draw_grass(draw: ImageDraw.ImageDraw, ox: int, oy: int, dark=False):
 
 
 def draw_sand(draw: ImageDraw.ImageDraw, ox: int, oy: int):
-    base = (218, 190, 120, 255)
-    rect(draw, (ox, oy, ox + 64, oy + 64), base)
+    base = (234, 195, 112, 255)
+    gradient_rect(draw, (ox, oy, ox + 64, oy + 64), (249, 222, 151, 255), (197, 151, 78, 255))
     for _ in range(80):
         x = ox + random.randrange(64)
         y = oy + random.randrange(64)
@@ -106,7 +134,7 @@ def draw_sand(draw: ImageDraw.ImageDraw, ox: int, oy: int):
 
 
 def draw_water(draw: ImageDraw.ImageDraw, ox: int, oy: int):
-    rect(draw, (ox, oy, ox + 64, oy + 64), (33, 125, 149, 255))
+    gradient_rect(draw, (ox, oy, ox + 64, oy + 64), (39, 168, 185, 255), (16, 79, 121, 255))
     for y in range(6, 64, 9):
         for x in range(-8, 72, 18):
             draw.arc((ox + x, oy + y - 4, ox + x + 18, oy + y + 7), 8, 170, fill=(105, 219, 216, 95), width=2)
@@ -181,6 +209,7 @@ def build_tileset():
         for col in range(8):
             fn = [draw_asphalt, draw_grass, draw_sand, draw_water, draw_curb, draw_city_tile, draw_cliff, draw_start][(row + col) % 8]
             fn(draw, col * 64, row * 64)
+    img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=130, threshold=3))
     img.save(OUT / "turbo-rally-tileset.png")
 
 
@@ -195,19 +224,33 @@ def build_coast_layer():
     w, h = 1536, 384
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
-    draw_glow(draw, int(w * 0.78), 86, 120, (255, 205, 70, 120))
-    rect(draw, (0, 190, w, h), (23, 116, 125, 170))
-    for y in range(205, 365, 24):
-        for x in range(-80, w + 80, 140):
-            draw.arc((x, y - 9, x + 130, y + 22), 4, 176, fill=(118, 225, 213, 64), width=3)
-    for base_x in (-90, 190, 655, 1150, w + 190):
-        polygon(draw, [(base_x, 230), (base_x + 92, 164), (base_x + 210, 238), (base_x + 255, 280), (base_x - 26, 280)], (54, 126, 78, 210))
-        polygon(draw, [(base_x + 40, 238), (base_x + 122, 186), (base_x + 194, 238), (base_x + 188, 258), (base_x + 34, 260)], (211, 180, 102, 185))
-    for base_x in (80, 420, 910, 1300):
-        rect(draw, (base_x, 244, base_x + 150, 256), (151, 98, 68, 185))
-        for p in range(0, 156, 26):
-            rect(draw, (base_x + p, 254, base_x + p + 5, 292), (77, 53, 44, 150))
-    img = img.filter(ImageFilter.GaussianBlur(0.35))
+    draw_glow(draw, int(w * 0.78), 78, 145, (255, 202, 68, 145))
+    gradient_rect(draw, (0, 152, w, h), (42, 172, 190, 188), (12, 83, 126, 210))
+    for y in range(170, 365, 18):
+        alpha = max(26, 104 - int((y - 170) * 0.25))
+        for x in range(-120, w + 120, 118):
+            wiggle = random.randint(-4, 4)
+            draw.arc((x, y - 8 + wiggle, x + 108, y + 20 + wiggle), 4, 176, fill=(151, 238, 223, alpha), width=3)
+    for x in range(0, w, 36):
+        draw.line((x, 238 + random.randint(-4, 4), x + 24, 238 + random.randint(-4, 4)), fill=(255, 228, 128, 32), width=2)
+
+    for base_x in (-120, 180, 642, 1120, w + 180):
+        polygon(draw, [(base_x, 238), (base_x + 100, 150), (base_x + 235, 232), (base_x + 282, 286), (base_x - 42, 288)], (42, 130, 82, 224))
+        polygon(draw, [(base_x + 46, 244), (base_x + 132, 184), (base_x + 220, 240), (base_x + 214, 268), (base_x + 32, 270)], (238, 191, 101, 204))
+        for palm_x in (base_x + 70, base_x + 168):
+            draw.line((palm_x, 252, palm_x + 6, 198), fill=(84, 55, 36, 210), width=5)
+            for i in range(5):
+                ang = -2.6 + i * 0.5
+                draw.line((palm_x + 6, 198, palm_x + 6 + math.cos(ang) * 35, 198 + math.sin(ang) * 18), fill=(55, 171, 85, 185), width=5)
+
+    for base_x in (80, 410, 902, 1280):
+        rect(draw, (base_x, 246, base_x + 168, 259), (144, 90, 58, 204))
+        draw.line((base_x, 242, base_x + 168, 242), fill=(255, 226, 134, 118), width=2)
+        for p in range(0, 176, 24):
+            rect(draw, (base_x + p, 258, base_x + p + 5, 306), (72, 49, 40, 176))
+        for p in range(14, 160, 46):
+            ellipse(draw, (base_x + p, 230, base_x + p + 11, 241), (255, 210, 74, 150))
+    img = img.filter(ImageFilter.GaussianBlur(0.22)).filter(ImageFilter.UnsharpMask(radius=1.0, percent=120, threshold=3))
     img.save(OUT / "backdrop-coast.png")
 
 
@@ -224,18 +267,20 @@ def build_skyline_layer():
     w, h = 1536, 384
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
-    # Repeatable mountain silhouettes.
     for base in (-260, 260, 780, 1300):
-        polygon(draw, [(base, 310), (base + 210, 126), (base + 390, 314)], (20, 41, 47, 235))
-        polygon(draw, [(base + 150, 312), (base + 365, 80), (base + 620, 320)], (24, 48, 54, 230))
+        polygon(draw, [(base, 320), (base + 210, 126), (base + 390, 320)], (14, 36, 55, 218))
+        polygon(draw, [(base + 150, 318), (base + 365, 80), (base + 620, 324)], (22, 46, 68, 226))
+        polygon(draw, [(base + 230, 318), (base + 426, 142), (base + 710, 326)], (45, 74, 82, 130))
     ground = 342
     x = -20
     while x < w + 80:
         bw = random.randint(38, 76)
         bh = random.randint(62, 170)
-        fill = random.choice([(180, 181, 159, 178), (132, 147, 139, 188), (92, 123, 131, 170)])
+        fill = random.choice([(190, 187, 166, 194), (121, 150, 151, 202), (83, 121, 147, 186), (207, 160, 138, 160)])
         light = random.choice([(55, 220, 198, 150), (255, 210, 74, 142), (245, 247, 235, 120)])
         building(draw, x, ground, bw, bh, fill, light)
+        if random.random() < 0.22:
+            rect(draw, (x + 4, ground - bh - 8, x + bw - 4, ground - bh - 3), (255, 111, 95, 125))
         x += bw + random.randint(4, 18)
     for palm_x in (68, 270, 615, 1040, 1390):
         draw.line((palm_x, ground, palm_x + 9, ground - 66), fill=(31, 71, 54, 220), width=6)
@@ -244,7 +289,10 @@ def build_skyline_layer():
             ex = palm_x + 9 + math.cos(ang) * 46
             ey = ground - 66 + math.sin(ang) * 23
             draw.line((palm_x + 9, ground - 66, ex, ey), fill=(51, 163, 86, 210), width=8)
-    img = img.filter(ImageFilter.GaussianBlur(0.25))
+    for sign_x in (178, 560, 970, 1260):
+        rounded_rect(draw, (sign_x, ground - 96, sign_x + 76, ground - 66), 5, (14, 18, 20, 160), (255, 210, 74, 110), 2)
+        polygon(draw, [(sign_x + 50, ground - 89), (sign_x + 65, ground - 81), (sign_x + 50, ground - 73)], (55, 220, 198, 150))
+    img = img.filter(ImageFilter.GaussianBlur(0.18)).filter(ImageFilter.UnsharpMask(radius=1.0, percent=115, threshold=4))
     img.save(OUT / "backdrop-skyline.png")
 
 
@@ -261,14 +309,14 @@ def build_cloud_layer():
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
     for x, y, scale, alpha in (
-        (-80, 74, 0.78, 54),
-        (190, 46, 0.58, 46),
-        (450, 92, 0.9, 42),
-        (800, 38, 0.64, 50),
-        (1110, 82, 0.84, 44),
-        (1420, 54, 0.7, 48),
+        (-80, 74, 0.82, 64),
+        (190, 46, 0.62, 58),
+        (450, 92, 0.96, 50),
+        (800, 38, 0.68, 60),
+        (1110, 82, 0.88, 54),
+        (1420, 54, 0.75, 58),
     ):
-        cloud_puff(draw, x, y, scale, (235, 224, 202, alpha))
+        cloud_puff(draw, x, y, scale, (255, 220, 196, alpha))
     for _ in range(26):
         x = random.randint(0, w)
         y = random.randint(20, h - 30)
@@ -285,6 +333,7 @@ def draw_sailboat(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, alpha
     draw.line((x + 35 * scale, y, x + 35 * scale, y - 66 * scale), fill=(35, 42, 41, alpha), width=max(1, round(3 * scale)))
     polygon(draw, [(x + 39 * scale, y - 62 * scale), (x + 39 * scale, y - 8 * scale), (x + 82 * scale, y - 8 * scale)], sail)
     polygon(draw, [(x + 31 * scale, y - 54 * scale), (x + 31 * scale, y - 8 * scale), (x - 7 * scale, y - 8 * scale)], accent)
+    draw.line((x - 12 * scale, y + 18 * scale, x + 92 * scale, y + 16 * scale), fill=(118, 225, 213, max(0, alpha - 110)), width=max(1, round(2 * scale)))
 
 
 def draw_lighthouse(draw: ImageDraw.ImageDraw, x: int, base: int, scale: float):
@@ -318,9 +367,13 @@ def build_horizon_elements_layer():
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
     base = 260
-    # Soft waterline silhouettes that can repeat without a hard seam.
     for x in range(-60, w + 80, 180):
         draw.line((x, base + 16, x + 118, base + 16 + random.randint(-2, 3)), fill=(118, 225, 213, 58), width=2)
+    for x in range(-20, w + 160, 260):
+        rect(draw, (x, base + 38, x + 170, base + 48), (116, 72, 48, 136))
+        draw.line((x, base + 33, x + 170, base + 33), fill=(255, 210, 74, 82), width=2)
+        for p in range(0, 180, 30):
+            rect(draw, (x + p, base + 46, x + p + 6, base + 88), (74, 50, 40, 118))
     draw_lighthouse(draw, 76, base + 10, 0.78)
     draw_bridge(draw, 340, base - 10, 0.72, 154)
     draw_bridge(draw, 1160, base - 4, 0.62, 136)
@@ -329,10 +382,11 @@ def build_horizon_elements_layer():
     draw_sailboat(draw, 1348, base + 21, 0.64, 164)
     for x, y, s in ((590, base + 28, 0.75), (1014, base + 22, 0.58), (1486, base + 30, 0.68), (30, base + 34, 0.52)):
         draw_buoy(draw, x, y, s, 190)
-    for x in (510, 880, 1070):
-        rect(draw, (x, base - 62, x + 84, base - 18), (18, 22, 21, 170), (255, 210, 74, 120), 2)
+    for x in (510, 880, 1070, 1510):
+        rounded_rect(draw, (x, base - 66, x + 92, base - 18), 7, (18, 22, 21, 178), (255, 210, 74, 138), 2)
         polygon(draw, [(x + 48, base - 52), (x + 68, base - 40), (x + 48, base - 28)], (55, 220, 198, 180))
-    img = img.filter(ImageFilter.GaussianBlur(0.18))
+        draw_glow(draw, x + 58, base - 42, 34, (55, 220, 198, 48))
+    img = img.filter(ImageFilter.GaussianBlur(0.14)).filter(ImageFilter.UnsharpMask(radius=1.0, percent=120, threshold=3))
     img.save(OUT / "backdrop-horizon-elements.png")
 
 
@@ -349,9 +403,12 @@ def draw_turbo_icon(draw, ox, oy):
 
 
 def draw_box(draw, ox, oy):
-    rect(draw, (ox + 30, oy + 32, ox + 96, oy + 98), (255, 210, 74, 245), (20, 20, 16, 220), 4)
-    rect(draw, (ox + 40, oy + 42, ox + 86, oy + 88), (38, 45, 42, 225), (245, 247, 235, 90), 2)
-    draw.line((ox + 46, oy + 52, ox + 80, oy + 78), fill=(55, 220, 198, 220), width=5)
+    polygon(draw, [(ox + 31, oy + 36), (ox + 84, oy + 26), (ox + 101, oy + 42), (ox + 48, oy + 53)], (255, 236, 122, 245), (20, 20, 16, 210))
+    polygon(draw, [(ox + 84, oy + 26), (ox + 101, oy + 42), (ox + 97, oy + 94), (ox + 82, oy + 105)], (224, 139, 44, 245), (20, 20, 16, 210))
+    polygon(draw, [(ox + 31, oy + 36), (ox + 48, oy + 53), (ox + 45, oy + 105), (ox + 28, oy + 89)], (238, 169, 54, 245), (20, 20, 16, 210))
+    rect(draw, (ox + 47, oy + 53, ox + 97, oy + 105), (255, 210, 74, 245), (20, 20, 16, 220), 4)
+    rect(draw, (ox + 58, oy + 62, ox + 86, oy + 91), (38, 45, 42, 225), (245, 247, 235, 90), 2)
+    draw.line((ox + 61, oy + 68, ox + 82, oy + 86), fill=(55, 220, 198, 220), width=5)
 
 
 def draw_puddle(draw, ox, oy):
@@ -370,6 +427,7 @@ def draw_lamp(draw, ox, oy):
     rect(draw, (ox + 50, oy + 100, ox + 78, oy + 112), (34, 44, 45, 245))
     draw_glow(draw, ox + 64, oy + 35, 42, (255, 210, 74, 105))
     ellipse(draw, (ox + 50, oy + 22, ox + 78, oy + 52), (255, 210, 74, 240), (44, 50, 47, 225), 3)
+    draw.line((ox + 58, oy + 26, ox + 70, oy + 48), fill=(255, 245, 178, 120), width=2)
 
 
 def draw_palm(draw, ox, oy):
@@ -686,6 +744,8 @@ def build_props():
     ]
     for i, fn in enumerate(fns):
         fn(draw, (i % 8) * 128, (i // 8) * 128)
+    img = add_sheet_shadow(img, offset=(4, 5), blur=3, opacity=82)
+    img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=140, threshold=3))
     img.save(OUT / "design-props.png")
 
 
