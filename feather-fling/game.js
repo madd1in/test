@@ -19,6 +19,7 @@
   const MAX_PHYSICS_STEPS = 4;
   const TRAJECTORY_STEPS = 128;
   const TRAJECTORY_SAMPLE_EVERY = 4;
+  const AUTO_ADVANCE_DELAY = 1350;
 
   const FRAMES = {
     "relic-crimson": { x: 0, y: 0, w: 64, h: 64 },
@@ -425,6 +426,7 @@
   let drag = null;
   let particles = [];
   let messageTimer = 0;
+  let levelAdvanceTimer = 0;
   let lastTime = performance.now();
   let animationTime = lastTime;
   let levelWon = false;
@@ -487,10 +489,7 @@
 
   fullscreenButton.addEventListener("click", toggleFullscreen);
   resetButton.addEventListener("click", () => resetLevel(false));
-  nextButton.addEventListener("click", () => {
-    levelIndex = (levelIndex + 1) % LEVELS.length;
-    resetLevel(true);
-  });
+  nextButton.addEventListener("click", () => advanceLevel(true));
 
   canvas.addEventListener("pointerdown", pointerDown);
   canvas.addEventListener("pointermove", pointerMove);
@@ -585,6 +584,16 @@
             : 0
         };
       },
+      getLevelState() {
+        return {
+          index: levelIndex,
+          number: levelIndex + 1,
+          name: LEVELS[levelIndex].name,
+          won: levelWon,
+          pendingAdvance: Boolean(levelAdvanceTimer),
+          targetCount: targetsLeft()
+        };
+      },
       getAimPath(sampleEvery) {
         if (!currentShot || !drag) return [];
         const pull = Vector.sub(SLING, currentShot.position);
@@ -659,6 +668,13 @@
           y: Math.max(targetBody.velocity.y, 2.2)
         });
         return { count: supports.length, targetY: targetBody.position.y };
+      },
+      defeatAllTargets() {
+        const targets = Composite.allBodies(world).filter((body) => body.plugin && body.plugin.kind === "target" && !body.plugin.dead);
+        for (const targetBody of targets) {
+          targetBody.plugin.dead = true;
+        }
+        return { count: targets.length, level: levelIndex + 1 };
       }
     };
   }
@@ -709,6 +725,7 @@
   }
 
   function resetLevel(showIntro) {
+    clearAutoAdvance();
     engine = Engine.create({ enableSleeping: false });
     world = engine.world;
     engine.gravity.y = 1.05;
@@ -1084,10 +1101,29 @@
       levelWon = true;
       score += Math.max(0, shotQueue.length + (currentShot && !launched ? 1 : 0)) * 500;
       updateHud();
-      setTimeout(() => {
-        showToast("Level geschafft. Weiter mit >.");
-      }, 250);
+      showToast("Level geschafft. Naechstes Level...");
+      scheduleAutoAdvance();
     }
+  }
+
+  function advanceLevel(showIntro) {
+    clearAutoAdvance();
+    levelIndex = (levelIndex + 1) % LEVELS.length;
+    resetLevel(showIntro);
+  }
+
+  function scheduleAutoAdvance() {
+    clearAutoAdvance();
+    levelAdvanceTimer = setTimeout(() => {
+      levelAdvanceTimer = 0;
+      advanceLevel(true);
+    }, AUTO_ADVANCE_DELAY);
+  }
+
+  function clearAutoAdvance() {
+    if (!levelAdvanceTimer) return;
+    clearTimeout(levelAdvanceTimer);
+    levelAdvanceTimer = 0;
   }
 
   function updateShotState(now) {

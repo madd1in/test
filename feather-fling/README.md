@@ -11,6 +11,7 @@ Level 1 ist als stabilerer Einstieg neu gebaut: zwei Ziele, sauber gestuetzte Pl
 Der neue ChatGPT-Image-Atlas liefert zusaetzliche Hintergrund-Panels, Tile-Akzente und Sprites fuer Gargoyle/Wisp/Raven-Gegner.
 Der Hintergrund animiert mit Drift-Parallax, Nebel, Regen, Fensterflackern und gelegentlichen Blitzimpulsen.
 Die Blockdarstellung ist wieder flach 2D ohne 2,5D-Rahmenreste, der Bird rendert beim Zielen vor der Schleuder, und das HUD nutzt harte Pixel-Art-Rahmen.
+Nach dem Abraeumen aller Gegner startet automatisch das naechste Level.
 
 ## Dateien
 
