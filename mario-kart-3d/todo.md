@@ -14,6 +14,7 @@ Eigenstaendiger Browser-Racer in diesem Projektordner.
 - [x] Style-Score, Combo-Kette und Canvas-Popups fuer saubere Fahraktionen
 - [x] Storm-Lap ab Runde 2 mit Regen, Blitzen, nasser Strecke und Pfuetzen
 - [x] Generierte BGM und SFX per Web Audio API
+- [x] Lokale Download-BGM als Playlist eingebunden
 - [x] Tastatur- und Touch-Steuerung
 - [x] Swipe-Steuerung auf dem Canvas und Vollbild-Schalter
 - [x] Originale KI-generierte Sprite-, Tile- und Kartenassets

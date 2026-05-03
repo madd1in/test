@@ -32,7 +32,7 @@ class Audio {
         this.createSound('finish', 'assets/sounds/finish.mp3', false);
         
         // Load background music
-        this.music = new Audio('assets/sounds/neon_skyway_theme.mp3');
+        this.music = new Audio('assets/sounds/turbo-banana-cup.mp3');
         this.music.loop = true;
         this.music.volume = this.musicVolume;
     }

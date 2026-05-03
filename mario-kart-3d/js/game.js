@@ -467,12 +467,19 @@
   }
 
   function createAudioEngine() {
+    const bgmTracks = [
+      "assets/sounds/turbo-banana-cup.mp3",
+      "assets/sounds/kartfire-parade.mp3"
+    ];
     let context = null;
     let master = null;
     let musicGain = null;
     let sfxGain = null;
     let engineGain = null;
     let engineOsc = null;
+    let bgm = null;
+    let bgmIndex = 0;
+    let usingExternalMusic = false;
     let musicTimer = 0;
     let step = 0;
     let muted = false;
@@ -507,16 +514,68 @@
       sfxGain.connect(master);
       master.connect(context.destination);
       engineOsc.start();
-      startMusicLoop();
+      if (!startExternalMusic()) startMusicLoop();
+    }
+
+    function createBgmElement() {
+      if (bgm || !bgmTracks.length) return bgm;
+
+      bgm = new Audio(bgmTracks[bgmIndex]);
+      bgm.preload = "auto";
+      bgm.volume = 0.42;
+      bgm.addEventListener("ended", playNextBgm);
+      bgm.addEventListener("error", () => {
+        usingExternalMusic = false;
+        startMusicLoop();
+      });
+      return bgm;
+    }
+
+    function startExternalMusic() {
+      const track = createBgmElement();
+      if (!track) return false;
+
+      track.muted = muted;
+      const playPromise = track.play();
+      if (!playPromise) {
+        usingExternalMusic = true;
+        stopMusicLoop();
+        return true;
+      }
+
+      playPromise
+        .then(() => {
+          usingExternalMusic = true;
+          stopMusicLoop();
+        })
+        .catch(() => {
+          usingExternalMusic = false;
+          startMusicLoop();
+        });
+      return true;
+    }
+
+    function playNextBgm() {
+      if (!bgmTracks.length || !bgm) return;
+      bgmIndex = (bgmIndex + 1) % bgmTracks.length;
+      bgm.src = bgmTracks[bgmIndex];
+      bgm.currentTime = 0;
+      startExternalMusic();
     }
 
     function startMusicLoop() {
-      if (musicTimer) return;
+      if (musicTimer || usingExternalMusic) return;
       musicTimer = window.setInterval(scheduleMusic, 132);
     }
 
+    function stopMusicLoop() {
+      if (!musicTimer) return;
+      window.clearInterval(musicTimer);
+      musicTimer = 0;
+    }
+
     function scheduleMusic() {
-      if (!context || muted) return;
+      if (!context || muted || usingExternalMusic) return;
       const now = context.currentTime + 0.02;
       const note = melody[step % melody.length];
       const low = bass[Math.floor(step / 4) % bass.length];
@@ -607,6 +666,10 @@
     function toggleMute() {
       muted = !muted;
       if (master) master.gain.setTargetAtTime(muted ? 0 : 0.68, context.currentTime, 0.04);
+      if (bgm) {
+        bgm.muted = muted;
+        if (!muted && usingExternalMusic && bgm.paused) bgm.play().catch(() => startMusicLoop());
+      }
       return muted;
     }
 
