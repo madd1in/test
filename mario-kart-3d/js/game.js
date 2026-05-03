@@ -31,7 +31,8 @@
 
   const SEGMENT_LENGTH = 180;
   const ROAD_WIDTH = 2200;
-  const DRAW_DISTANCE = 170;
+  const DRAW_DISTANCE = 42;
+  const RENDER_SCALE = 0.68;
   const CAMERA_HEIGHT = 1120;
   const CAMERA_DEPTH = 1 / Math.tan((92 * Math.PI / 180) / 2);
   const LANES = 3;
@@ -246,6 +247,7 @@
     }));
     return Promise.all([...sheetPromises, ...artPromises])
       .then(() => {
+        warmSpriteCache();
         setupMenuPreviews();
         spritesReady = true;
       })
@@ -306,6 +308,13 @@
     const frame = trimSpriteFromSheet(image, rect);
     spriteStore.cache.set(key, frame);
     return frame;
+  }
+
+  function warmSpriteCache() {
+    [...Object.values(KARTS), ...OPPONENTS].forEach((racer) => {
+      for (let col = 0; col < 5; col += 1) getKartFrame(racer.sprite, col);
+    });
+    Object.values(WORLD_SPRITES).forEach((sprite) => getSpriteFrame(sprite));
   }
 
   function trimSpriteFromSheet(image, rect) {
@@ -876,7 +885,7 @@
 
   function buildTrackProps() {
     trackProps = [];
-    for (let i = 28; i < segments.length; i += 14) {
+    for (let i = 28; i < segments.length; i += 28) {
       const side = i % 28 === 0 ? -1 : 1;
       trackProps.push({ z: i * SEGMENT_LENGTH, x: side * (1.32 + (i % 5) * 0.08), type: i % 42 === 0 ? "lamp" : "palm", phase: i * 0.31 });
     }
@@ -919,7 +928,7 @@
   }
 
   function resizeCanvas() {
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = Math.max(0.72, Math.min(window.devicePixelRatio || 1, 1.15) * RENDER_SCALE);
     const rect = canvas.getBoundingClientRect();
     width = Math.max(320, Math.floor(rect.width * ratio));
     height = Math.max(480, Math.floor(rect.height * ratio));
@@ -1845,7 +1854,7 @@
     const rumble2 = p2.w * 1.16;
     polygon(p1.x - rumble1, p1.y, p1.x + rumble1, p1.y, p2.x + rumble2, p2.y, p2.x - rumble2, p2.y, color.rumble);
     polygon(p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y, color.road);
-    drawRoadTile(segment);
+    drawMode7RoadTexture(segment);
     if (isStormActive()) {
       polygon(
         p1.x - p1.w,
@@ -1936,33 +1945,63 @@
     }
   }
 
-  function drawRoadTile(segment) {
-    const pattern = getRoadPattern();
-    if (!pattern) return;
-
+  function drawMode7RoadTexture(segment) {
     const p1 = segment.p1.screen;
     const p2 = segment.p2.screen;
+    const segmentHeight = p1.y - p2.y;
+    if (segmentHeight < 1) return;
+
+    const near = p1.y > height * 0.54;
+    const mid = p1.y > height * 0.38;
+    if (!near && !mid) return;
+    const bandCount = near ? 2 : 1;
+    for (let band = 0; band < bandCount; band += 1) {
+      if (!near && (segment.index + band) % 2 !== 0) continue;
+      const t1 = band / bandCount;
+      const t2 = (band + 0.62) / bandCount;
+      const stripePhase = (segment.index + band) % 4;
+      if (stripePhase > 1 && !near) continue;
+      const a = interpolateRoadEdge(p1, p2, t1);
+      const b = interpolateRoadEdge(p1, p2, Math.min(1, t2));
+      const insetA = a.w * (0.07 + (stripePhase % 2) * 0.025);
+      const insetB = b.w * (0.07 + (stripePhase % 2) * 0.025);
+      polygon(
+        a.x - a.w + insetA,
+        a.y,
+        a.x + a.w - insetA,
+        a.y,
+        b.x + b.w - insetB,
+        b.y,
+        b.x - b.w + insetB,
+        b.y,
+        stripePhase % 2 ? "rgba(255, 255, 255, 0.045)" : "rgba(0, 0, 0, 0.052)"
+      );
+    }
+
+    if (!near || segment.index % 3 !== 0) return;
+    const crackCount = 2;
     ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(p1.x - p1.w, p1.y);
-    ctx.lineTo(p1.x + p1.w, p1.y);
-    ctx.lineTo(p2.x + p2.w, p2.y);
-    ctx.lineTo(p2.x - p2.w, p2.y);
-    ctx.closePath();
-    ctx.clip();
-    ctx.globalAlpha = segment.boost || segment.ramp ? 0.06 : 0.1;
-    ctx.translate(0, -segment.index * 9);
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, p2.y + segment.index * 9, width, Math.max(1, p1.y - p2.y));
+    ctx.strokeStyle = "rgba(10, 12, 12, 0.18)";
+    ctx.lineWidth = Math.max(1, width * 0.0012);
+    for (let i = 0; i < crackCount; i += 1) {
+      const seed = Math.sin((segment.index + 1) * (i + 3) * 12.9898) * 43758.5453;
+      const lane = (seed - Math.floor(seed)) * 1.3 - 0.65;
+      const a = interpolateRoadEdge(p1, p2, 0.18 + i * 0.28);
+      const b = interpolateRoadEdge(p1, p2, 0.34 + i * 0.28);
+      ctx.beginPath();
+      ctx.moveTo(a.x + a.w * lane, a.y);
+      ctx.lineTo(b.x + b.w * (lane + 0.05), b.y);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
-  function getRoadPattern() {
-    if (!spriteStore.art.roadTile) return null;
-    if (!spriteStore.patterns.roadTile) {
-      spriteStore.patterns.roadTile = ctx.createPattern(spriteStore.art.roadTile, "repeat");
-    }
-    return spriteStore.patterns.roadTile;
+  function interpolateRoadEdge(p1, p2, t) {
+    return {
+      x: lerp(p1.x, p2.x, t),
+      y: lerp(p1.y, p2.y, t),
+      w: lerp(p1.w, p2.w, t)
+    };
   }
 
   function polygon(x1, y1, x2, y2, x3, y3, x4, y4, color) {
@@ -2137,7 +2176,7 @@
       return;
     }
 
-    const size = clamp(screen.scale * width * 760, 18, 150);
+    const size = clamp(screen.scale * width * 720, 18, 108);
     const baseY = screen.y;
     if (prop.type === "lamp" && drawWorldSprite(WORLD_SPRITES.lamp, screen.x, baseY + size * 0.03, size * 0.9, size * 1.7, {
       anchorY: 0.94
@@ -2249,7 +2288,7 @@
   }
 
   function drawAICart(racer, screen) {
-    const kartW = clamp(screen.scale * width * 760, 22, 142);
+    const kartW = clamp(screen.scale * width * 720, 22, 118);
     const kartH = kartW * 0.66;
     const spin = racer.spinTimer > 0 ? Math.sin(racer.spinTimer * 32) * 0.35 : 0;
     if (!drawKartSprite(screen.x, screen.y - kartH * 0.44, kartW, kartH, racer.sprite, getAIOpponentFrame(racer), spin)) {
@@ -2259,7 +2298,7 @@
 
   function drawPlayerKart(player) {
     const stats = KARTS[state.selectedKart];
-    const kartW = clamp(width * 0.14, 92, 178);
+    const kartW = clamp(width * 0.14, 86, 154);
     const kartH = kartW * 0.68;
     const steer = (input.left ? -1 : 0) + (input.right ? 1 : 0);
     const tilt = steer * (player.drifting ? 0.16 : 0.08);
