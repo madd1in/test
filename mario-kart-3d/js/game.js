@@ -12,6 +12,7 @@
     lap: document.getElementById("lap-value"),
     position: document.getElementById("position-value"),
     item: document.getElementById("item-value"),
+    itemSlot: document.querySelector(".item-slot"),
     time: document.getElementById("time-value"),
     coins: document.getElementById("coin-value"),
     overdrive: document.getElementById("overdrive-value"),
@@ -174,6 +175,14 @@
     magnet: "Magnet"
   };
 
+  const ITEM_COLORS = {
+    turbo: "#ffd24a",
+    pulse: "#37dcc6",
+    oil: "#8f7bff",
+    shield: "#7ee36d",
+    magnet: "#ff6f5f"
+  };
+
   const WORLD_SPRITES = {
     itemBox: { sheet: "props", kind: "icon", row: 0, col: 2 },
     coin: { sheet: "props", kind: "icon", row: 0, col: 0 },
@@ -281,6 +290,9 @@
     particles: [],
     sparks: [],
     popups: [],
+    itemReadyTimer: 0,
+    itemUseTimer: 0,
+    lastUsedItem: null,
     rainTime: 0,
     lightningTimer: 0,
     stormAnnounced: false,
@@ -817,8 +829,11 @@
         tone(420, 0.18, "sawtooth", 0.1, sfxGain, now + 0.05);
         noise(0.14, 0.045, 1700, sfxGain, now);
       } else if (name === "item") {
-        tone(523, 0.06, "square", 0.1, sfxGain, now);
-        tone(784, 0.08, "square", 0.11, sfxGain, now + 0.06);
+        [523, 659, 784, 1046].forEach((freq, index) => tone(freq, 0.07, "square", 0.09, sfxGain, now + index * 0.045));
+        noise(0.08, 0.025, 3400, sfxGain, now + 0.06);
+      } else if (name === "itemUse") {
+        [196, 392, 784, 1174].forEach((freq, index) => tone(freq, 0.13, index < 2 ? "sawtooth" : "square", 0.105, sfxGain, now + index * 0.04));
+        noise(0.18, 0.07, 2600, sfxGain, now);
       } else if (name === "hit") {
         noise(0.16, 0.16, 240, sfxGain, now);
         tone(110, 0.16, "sawtooth", 0.12, sfxGain, now);
@@ -1156,6 +1171,9 @@
     state.particles = [];
     state.sparks = [];
     state.popups = [];
+    state.itemReadyTimer = 0;
+    state.itemUseTimer = 0;
+    state.lastUsedItem = null;
     state.rainTime = 0;
     state.lightningTimer = 0;
     state.stormAnnounced = false;
@@ -1183,10 +1201,12 @@
     audio.init();
     audio.play("start");
     resetRace();
+    grantItem("turbo", false);
+    state.itemReadyTimer = 5.2;
     state.countdown = 3.15;
     ui.countdown.textContent = "3";
     setMode("countdown");
-    showToast("Bereit");
+    showToast("Turbo bereit");
   }
 
   function finishRace() {
@@ -1229,19 +1249,83 @@
     return "magnet";
   }
 
+  function getItemColor(item) {
+    return ITEM_COLORS[item] || "#ffd24a";
+  }
+
+  function grantItem(item, announce = true) {
+    const player = state.player;
+    player.item = item;
+    state.itemReadyTimer = 2.6;
+    state.lastUsedItem = item;
+    if (announce) {
+      audio.play("item");
+      showToast(`${ITEM_NAMES[item]} bereit`);
+      addStyle(45, "Item");
+      spawnItemReadySparks(item);
+    }
+    updateHud();
+  }
+
+  function spawnItemReadySparks(item) {
+    const color = getItemColor(item);
+    for (let i = 0; i < 18; i += 1) {
+      state.sparks.push({
+        x: width * 0.5 + (Math.random() - 0.5) * 130,
+        y: height * 0.64 + (Math.random() - 0.5) * 52,
+        vx: (Math.random() - 0.5) * 260,
+        vy: -90 - Math.random() * 210,
+        life: 0.42 + Math.random() * 0.26,
+        color,
+        size: 2 + Math.random() * 4
+      });
+    }
+  }
+
+  function triggerItemUseFx(item) {
+    const color = getItemColor(item);
+    state.itemUseTimer = 0.9;
+    state.itemReadyTimer = 0;
+    state.lastUsedItem = item;
+    state.popups.push({
+      text: ITEM_NAMES[item],
+      x: width * 0.5,
+      y: height * 0.52,
+      vy: -44,
+      life: 0.9,
+      color
+    });
+    for (let i = 0; i < 28; i += 1) {
+      const angle = (i / 28) * Math.PI * 2 + Math.random() * 0.18;
+      const speed = 130 + Math.random() * 230;
+      state.sparks.push({
+        x: width * 0.5 + Math.cos(angle) * 22,
+        y: height * 0.72 + Math.sin(angle) * 12,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed * 0.45 - 150,
+        life: 0.45 + Math.random() * 0.36,
+        color,
+        size: 2.5 + Math.random() * 5
+      });
+    }
+  }
+
   function useItem() {
     audio.init();
     const player = state.player;
     if (!player.item || state.mode !== "racing") return;
+    const usedItem = player.item;
+    audio.play("itemUse");
+    triggerItemUseFx(usedItem);
 
-    if (player.item === "turbo") {
+    if (usedItem === "turbo") {
       player.boostTimer = Math.max(player.boostTimer, 2.35);
       screenShake = Math.max(screenShake, 0.28);
       flashTimer = Math.max(flashTimer, 0.22);
       audio.play("boost");
       addStyle(120, "Turbo");
       showToast("Turbo gezuendet");
-    } else if (player.item === "pulse") {
+    } else if (usedItem === "pulse") {
       let hits = 0;
       state.racers.forEach((racer) => {
         const delta = Math.abs(trackDelta(racer.z, player.z));
@@ -1256,21 +1340,27 @@
       audio.play("hit");
       if (hits > 0) addStyle(140 + hits * 60, "Pulse");
       showToast(hits > 0 ? `Pulse trifft ${hits}` : "Pulse verpufft");
-    } else if (player.item === "oil") {
+    } else if (usedItem === "oil") {
       state.hazards.push({
         z: mod(player.z - 640, trackLength),
         x: player.x,
         life: 18
       });
-      audio.play("item");
+      screenShake = Math.max(screenShake, 0.12);
+      flashTimer = Math.max(flashTimer, 0.08);
+      addStyle(80, "Trap");
       showToast("Oelspur gelegt");
-    } else if (player.item === "shield") {
+    } else if (usedItem === "shield") {
       player.shieldTimer = Math.max(player.shieldTimer, 8);
-      audio.play("item");
+      screenShake = Math.max(screenShake, 0.08);
+      flashTimer = Math.max(flashTimer, 0.12);
+      addStyle(70, "Shield");
       showToast("Shield aktiv");
-    } else if (player.item === "magnet") {
+    } else if (usedItem === "magnet") {
       player.magnetTimer = Math.max(player.magnetTimer, 8);
-      audio.play("item");
+      screenShake = Math.max(screenShake, 0.08);
+      flashTimer = Math.max(flashTimer, 0.12);
+      addStyle(70, "Magnet");
       showToast("Coin-Magnet aktiv");
     }
 
@@ -1285,6 +1375,8 @@
     }
     if (screenShake > 0) screenShake -= dt;
     if (flashTimer > 0) flashTimer -= dt;
+    if (state.itemReadyTimer > 0) state.itemReadyTimer -= dt;
+    if (state.itemUseTimer > 0) state.itemUseTimer -= dt;
     coins.forEach((coin) => {
       coin.spin += dt * 5.2;
     });
@@ -1593,13 +1685,15 @@
     for (const box of itemBoxes) {
       if (box.cooldown > 0) continue;
       const distance = forwardDistance(box.z, player.z);
-      if (distance < 155 && Math.abs(player.x - box.x) < 0.22) {
-        box.cooldown = 8;
+      if (distance < 280 && Math.abs(player.x - box.x) < 0.36) {
+        box.cooldown = 7.5;
         if (!player.item) {
-          player.item = randomItem();
-          audio.play("item");
-          showToast(`${ITEM_NAMES[player.item]} erhalten`);
+          grantItem(randomItem());
         } else {
+          state.itemReadyTimer = Math.max(state.itemReadyTimer, 0.9);
+          player.overdrive = clamp(player.overdrive + 0.04, 0, 1);
+          audio.play("item");
+          spawnItemReadySparks(player.item);
           showToast("Item-Box");
         }
       }
@@ -1864,6 +1958,12 @@
     ui.lap.textContent = `${Math.min(player.lap, TOTAL_LAPS)}/${TOTAL_LAPS}`;
     ui.position.textContent = `${state.position}/8`;
     ui.item.textContent = player.item ? ITEM_NAMES[player.item] : "-";
+    ui.item.dataset.item = player.item || "empty";
+    if (ui.itemSlot) {
+      ui.itemSlot.classList.toggle("has-item", Boolean(player.item));
+      ui.itemSlot.classList.toggle("item-fresh", state.itemReadyTimer > 0);
+    }
+    shell.classList.toggle("item-ready", Boolean(player.item));
     ui.time.textContent = formatTime(state.mode === "finish" ? state.finishedAt : state.raceTime);
     ui.coins.textContent = String(player.coins);
     ui.overdrive.textContent = `${Math.round(player.overdrive * 100)}%`;
@@ -1899,12 +1999,14 @@
     drawDistanceHaze(renderPlayer);
     drawVisibleObjects(renderPlayer);
     drawPlayerKart(renderPlayer);
+    drawItemUseBurst();
     drawParticles();
     drawSparks();
     drawFlash();
     drawWeather();
     drawPopups();
     ctx.restore();
+    drawCurveIndicator(renderPlayer);
     drawVignette();
     drawMinimap(renderPlayer);
   }
@@ -3362,6 +3464,157 @@
       ctx.fillText(popup.text, popup.x, popup.y);
       ctx.restore();
     });
+  }
+
+  function drawItemUseBurst() {
+    if (state.itemUseTimer <= 0) return;
+    const progress = 1 - clamp(state.itemUseTimer / 0.9, 0, 1);
+    const color = getItemColor(state.lastUsedItem);
+    const x = width * 0.5;
+    const y = height * 0.73;
+    const radius = width * (0.08 + progress * 0.16);
+    const alpha = clamp(1 - progress, 0, 1);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = alpha * 0.78;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(3, width * 0.006);
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius * 0.34, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.globalAlpha = alpha * 0.32;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius * 0.82, radius * 0.23, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = alpha * 0.92;
+    for (let i = 0; i < 10; i += 1) {
+      const angle = progress * Math.PI * 1.7 + (i / 10) * Math.PI * 2;
+      const px = x + Math.cos(angle) * radius * 0.68;
+      const py = y + Math.sin(angle) * radius * 0.2;
+      ctx.beginPath();
+      ctx.arc(px, py, 2.5 + alpha * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function getUpcomingCurveSignal(player) {
+    if (!segments.length) return null;
+    const base = findSegment(player.z);
+    let weightedCurve = 0;
+    let totalWeight = 0;
+    let firstCurveSegment = 0;
+
+    for (let i = 7; i < 58; i += 1) {
+      const segment = segments[(base.index + i) % segments.length];
+      const weight = 1 - (i / 64);
+      weightedCurve += segment.curve * weight;
+      totalWeight += weight;
+      if (!firstCurveSegment && Math.abs(segment.curve) > 0.72) firstCurveSegment = i;
+    }
+
+    const curve = weightedCurve / Math.max(0.01, totalWeight);
+    const strength = clamp(Math.abs(curve) / 2.15, 0, 1);
+    if (strength < 0.18) return null;
+    return {
+      direction: curve > 0 ? 1 : -1,
+      strength,
+      distance: Math.max(40, Math.round(((firstCurveSegment || 12) * SEGMENT_LENGTH * 0.085) / 10) * 10)
+    };
+  }
+
+  function drawCurveIndicator(player) {
+    if (state.mode !== "racing" && state.mode !== "countdown") return;
+    const signal = getUpcomingCurveSignal(player);
+    if (!signal) return;
+
+    const boxW = clamp(width * 0.24, 128, 218);
+    const boxH = clamp(height * 0.075, 36, 52);
+    const x = (width - boxW) * 0.5;
+    const y = clamp(height * 0.12, 58, 82);
+    const hot = signal.strength;
+    const color = hot > 0.62 ? "#ff6f5f" : "#ffd24a";
+    const label = signal.direction < 0 ? "LINKS" : "RECHTS";
+
+    ctx.save();
+    ctx.globalAlpha = 0.88 + Math.sin(performance.now() * 0.01) * 0.04 * hot;
+    ctx.fillStyle = "rgba(9, 12, 11, 0.68)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(2, width * 0.0024);
+    roundRect(x, y, boxW, boxH, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(245, 247, 235, 0.08)";
+    roundRect(x + boxW * 0.38, y + 6, boxW * 0.24, boxH - 12, 6);
+    ctx.fill();
+
+    drawIndicatorChevrons(x + (signal.direction < 0 ? 28 : boxW - 28), y + boxH * 0.5, signal.direction, color, boxH, hot);
+    drawIndicatorRoadRibbon(x, y, boxW, boxH, signal.direction, color);
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `900 ${Math.floor(boxH * 0.36)}px ${ARCADE_FONT}`;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.66)";
+    ctx.fillStyle = "#f5f7eb";
+    ctx.strokeText(label, x + boxW * 0.5, y + boxH * 0.47);
+    ctx.fillText(label, x + boxW * 0.5, y + boxH * 0.47);
+
+    ctx.font = `900 ${Math.floor(boxH * 0.19)}px ${ARCADE_FONT}`;
+    ctx.fillStyle = color;
+    ctx.fillText(`${signal.distance}m`, x + boxW * 0.5, y + boxH * 0.78);
+    ctx.restore();
+  }
+
+  function drawIndicatorChevrons(cx, cy, direction, color, boxH, strength) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.72 + strength * 0.28;
+    for (let i = 0; i < 3; i += 1) {
+      const offset = i * 11 * -direction;
+      const size = boxH * (0.23 + i * 0.02);
+      const x = cx + offset;
+      ctx.beginPath();
+      if (direction < 0) {
+        ctx.moveTo(x + size * 0.7, cy - size);
+        ctx.lineTo(x - size * 0.55, cy);
+        ctx.lineTo(x + size * 0.7, cy + size);
+        ctx.lineTo(x + size * 0.2, cy);
+      } else {
+        ctx.moveTo(x - size * 0.7, cy - size);
+        ctx.lineTo(x + size * 0.55, cy);
+        ctx.lineTo(x - size * 0.7, cy + size);
+        ctx.lineTo(x - size * 0.2, cy);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawIndicatorRoadRibbon(x, y, w, h, direction, color) {
+    const startX = x + w * (direction < 0 ? 0.64 : 0.36);
+    const endX = x + w * (direction < 0 ? 0.36 : 0.64);
+    ctx.save();
+    ctx.strokeStyle = "rgba(245, 247, 235, 0.62)";
+    ctx.lineWidth = Math.max(2, h * 0.08);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(startX, y + h * 0.78);
+    ctx.quadraticCurveTo(x + w * (direction < 0 ? 0.28 : 0.72), y + h * 0.42, endX, y + h * 0.18);
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, h * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(startX, y + h * 0.78);
+    ctx.quadraticCurveTo(x + w * (direction < 0 ? 0.28 : 0.72), y + h * 0.42, endX, y + h * 0.18);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawVignette() {
