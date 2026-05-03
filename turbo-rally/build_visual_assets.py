@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parent
+ASSET_OUT = ROOT / "assets"
 OUT = ROOT / "assets" / "tiles"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -36,6 +37,10 @@ def ellipse(draw: ImageDraw.ImageDraw, xy, fill, outline=None, width=1):
 
 def polygon(draw: ImageDraw.ImageDraw, points, fill, outline=None):
     draw.polygon([(round(x), round(y)) for x, y in points], fill=fill, outline=outline)
+
+
+def rounded_rect(draw: ImageDraw.ImageDraw, xy, radius, fill, outline=None, width=1):
+    draw.rounded_rectangle([round(v) for v in xy], radius=round(radius), fill=fill, outline=outline, width=width)
 
 
 def draw_asphalt(draw: ImageDraw.ImageDraw, ox: int, oy: int, wet=False, cracked=False):
@@ -407,25 +412,280 @@ def draw_spark(draw, ox, oy):
     polygon(draw, [(ox + 64, oy + 30), (ox + 72, oy + 57), (ox + 98, oy + 64), (ox + 72, oy + 71), (ox + 64, oy + 98), (ox + 56, oy + 71), (ox + 30, oy + 64), (ox + 56, oy + 57)], (255, 238, 123, 245))
 
 
+def draw_kart_driver(draw: ImageDraw.ImageDraw, cx: float, cy: float, palette: dict, yaw: float, kind: int):
+    outline = (12, 17, 18, 245)
+    helmet = palette["driver"]
+    trim = palette["driver_trim"]
+    if kind == 0:
+        ellipse(draw, (cx - 21 + yaw * 4, cy - 30, cx + 21 + yaw * 4, cy + 15), helmet, outline, 4)
+        ellipse(draw, (cx - 22 + yaw * 8, cy - 35, cx - 4 + yaw * 8, cy - 16), helmet, outline, 3)
+        ellipse(draw, (cx + 4 + yaw * 8, cy - 35, cx + 22 + yaw * 8, cy - 16), helmet, outline, 3)
+        rect(draw, (cx - 6 + yaw * 6, cy - 29, cx + 7 + yaw * 6, cy + 11), trim)
+        ellipse(draw, (cx + 9 + yaw * 8, cy - 12, cx + 18 + yaw * 8, cy - 4), (32, 137, 45, 220))
+    elif kind == 1:
+        ellipse(draw, (cx - 22 + yaw * 4, cy - 31, cx + 22 + yaw * 4, cy + 14), helmet, outline, 4)
+        rect(draw, (cx - 7 + yaw * 5, cy - 30, cx + 8 + yaw * 5, cy + 12), trim)
+        for side in (-1, 1):
+            draw.line((cx + side * 12 + yaw * 6, cy - 29, cx + side * 17 + yaw * 10, cy - 48), fill=outline, width=3)
+            ellipse(draw, (cx + side * 14 + yaw * 10 - 4, cy - 52, cx + side * 14 + yaw * 10 + 4, cy - 44), (255, 165, 38, 245), outline, 2)
+        ellipse(draw, (cx - 37 + yaw * 6, cy - 8, cx - 8 + yaw * 6, cy + 14), (151, 219, 255, 172), (245, 247, 235, 110), 2)
+        ellipse(draw, (cx + 8 + yaw * 6, cy - 8, cx + 37 + yaw * 6, cy + 14), (151, 219, 255, 172), (245, 247, 235, 110), 2)
+    else:
+        ellipse(draw, (cx - 22 + yaw * 4, cy - 30, cx + 22 + yaw * 4, cy + 16), helmet, outline, 4)
+        polygon(draw, [(cx - 18 + yaw * 4, cy - 26), (cx - 6 + yaw * 4, cy - 49), (cx + 1 + yaw * 4, cy - 23)], helmet, outline)
+        polygon(draw, [(cx + 18 + yaw * 4, cy - 26), (cx + 6 + yaw * 4, cy - 49), (cx - 1 + yaw * 4, cy - 23)], helmet, outline)
+        rect(draw, (cx - 6 + yaw * 5, cy - 30, cx + 7 + yaw * 5, cy + 13), trim)
+        ellipse(draw, (cx + yaw * 9 - 8, cy - 8, cx + yaw * 9 + 8, cy + 4), (245, 247, 235, 180))
+
+
+def draw_kart_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, palette: dict, yaw: float, drift=False, bounce=0, kind=0):
+    outline = (12, 17, 18, 255)
+    body = palette["body"]
+    trim = palette["trim"]
+    bright = palette["bright"]
+    cx = ox + 96
+    ground = oy + 158 + bounce
+    roll = yaw * (7 if drift else 4)
+    top_shift = yaw * 38
+    lower_shift = yaw * 13
+    body_top = ground - 86
+    body_bottom = ground - 28
+
+    if drift:
+        smoke_x = cx - yaw * 58
+        for i in range(4):
+            ellipse(draw, (smoke_x - 38 - i * 12, ground - 29 + i * 2, smoke_x + 1 - i * 8, ground + 4 + i * 2), (224, 225, 218, 130 - i * 20))
+
+    wheel_y = ground - 34
+    for side in (-1, 1):
+        wx = cx + side * (43 - abs(yaw) * 9) + lower_shift * 0.72
+        wy = wheel_y + (side * yaw * 8)
+        ellipse(draw, (wx - 19, wy - 28, wx + 19, wy + 22), (18, 21, 23, 255), outline, 4)
+        ellipse(draw, (wx - 10, wy - 18, wx + 10, wy + 11), (55, 60, 64, 255), (6, 8, 9, 210), 2)
+        rect(draw, (wx - 4, wy - 17, wx + 5, wy + 10), bright)
+
+    body_poly = [
+        (cx - 54 + lower_shift, body_bottom),
+        (cx + 54 + lower_shift, body_bottom),
+        (cx + 40 + top_shift, body_top),
+        (cx - 40 + top_shift, body_top),
+    ]
+    polygon(draw, body_poly, body, outline)
+    rounded_rect(draw, (cx - 42 + lower_shift, body_bottom - 29, cx + 42 + lower_shift, body_bottom + 5), 12, body, outline, 3)
+    rounded_rect(draw, (cx - 24 + lower_shift, body_bottom - 23, cx + 24 + lower_shift, body_bottom - 3), 8, trim, None, 1)
+    rounded_rect(draw, (cx - 31 + top_shift, body_top + 14, cx + 31 + top_shift, body_top + 34), 9, (28, 34, 33, 255), outline, 3)
+    rect(draw, (cx - 9 + top_shift, body_top + 19, cx + 10 + top_shift, body_bottom - 3), bright)
+    ellipse(draw, (cx - 14 + lower_shift, body_bottom - 18, cx + 14 + lower_shift, body_bottom + 10), (30, 36, 39, 255), outline, 4)
+    ellipse(draw, (cx - 8 + lower_shift, body_bottom - 11, cx + 8 + lower_shift, body_bottom + 4), (117, 130, 130, 255))
+    for side in (-1, 1):
+        rounded_rect(draw, (cx + side * 34 + lower_shift - 9, body_bottom - 20, cx + side * 34 + lower_shift + 9, body_bottom + 2), 6, trim, outline, 2)
+
+    draw_kart_driver(draw, cx + top_shift * 0.86, body_top - 6 + roll * 0.2, palette, yaw, kind)
+
+    for side in (-1, 1):
+        sx = cx + side * 31 + lower_shift
+        draw.line((sx, body_top + 24, sx + side * 18, body_bottom - 4), fill=(245, 247, 235, 135), width=4)
+    if drift:
+        spark_x = cx + yaw * 52
+        polygon(draw, [(spark_x, ground - 34), (spark_x + 9, ground - 20), (spark_x + 26, ground - 18), (spark_x + 12, ground - 8), (spark_x + 5, ground + 8), (spark_x - 3, ground - 8), (spark_x - 20, ground - 15), (spark_x - 4, ground - 21)], (255, 210, 74, 210))
+
+
+def build_rally_sheet():
+    ASSET_OUT.mkdir(parents=True, exist_ok=True)
+    w, h = 1728, 768
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img, "RGBA")
+    frames = [
+        (-1.0, True, -2),
+        (-0.72, True, 0),
+        (-0.42, False, 1),
+        (-0.16, False, -1),
+        (0.0, False, 0),
+        (0.16, False, 1),
+        (0.42, False, -1),
+        (0.72, True, 0),
+        (1.0, True, 2),
+    ]
+    palettes = [
+        {"body": (93, 212, 61, 255), "trim": (246, 215, 61, 255), "bright": (226, 244, 176, 255), "driver": (90, 220, 56, 255), "driver_trim": (238, 244, 190, 245)},
+        {"body": (255, 210, 74, 255), "trim": (43, 33, 17, 255), "bright": (255, 239, 132, 255), "driver": (246, 196, 42, 255), "driver_trim": (58, 48, 28, 255)},
+        {"body": (239, 86, 56, 255), "trim": (255, 207, 84, 255), "bright": (255, 236, 210, 255), "driver": (244, 95, 65, 255), "driver_trim": (255, 241, 222, 250)},
+    ]
+    for row, palette in enumerate(palettes):
+        for col, (yaw, drift, bounce) in enumerate(frames):
+            draw_kart_frame(draw, col * 192, row * 192, palette, yaw, drift, bounce, row)
+
+    # Keep a small item/decal row in the unused lower band for easy visual inspection.
+    icon_y = 600
+    for i, fn in enumerate((draw_coin, draw_turbo_icon, draw_box, draw_puddle, draw_cone, draw_marker, draw_spark, draw_lamp, draw_palm)):
+        fn(draw, i * 192 + 32, icon_y + 18)
+    img.save(ASSET_OUT / "rally-sprite-sheet.png")
+
+
+def draw_arrow_sign(draw, ox, oy, direction=1):
+    post_x = ox + (56 if direction > 0 else 72)
+    rect(draw, (post_x, oy + 62, post_x + 8, oy + 113), (74, 51, 38, 245))
+    polygon(draw, [(ox + 17, oy + 29), (ox + 91, oy + 29), (ox + 112, oy + 49), (ox + 91, oy + 69), (ox + 17, oy + 69)], (255, 210, 74, 250), (35, 32, 25, 235))
+    if direction > 0:
+        polygon(draw, [(ox + 72, oy + 38), (ox + 96, oy + 49), (ox + 72, oy + 60)], (34, 38, 34, 245))
+    else:
+        polygon(draw, [(ox + 56, oy + 38), (ox + 32, oy + 49), (ox + 56, oy + 60)], (34, 38, 34, 245))
+
+
+def draw_sign_right(draw, ox, oy):
+    draw_arrow_sign(draw, ox, oy, 1)
+
+
+def draw_sign_left(draw, ox, oy):
+    draw_arrow_sign(draw, ox, oy, -1)
+
+
+def draw_palm_alt(draw, ox, oy):
+    draw.line((ox + 61, oy + 115, ox + 54, oy + 35), fill=(99, 65, 42, 255), width=10)
+    for i in range(8):
+        ang = -2.92 + i * 0.5
+        ex = ox + 54 + math.cos(ang) * 52
+        ey = oy + 35 + math.sin(ang) * 28
+        draw.line((ox + 54, oy + 35, ex, ey), fill=(62, 184, 92, 245), width=10)
+    ellipse(draw, (ox + 47, oy + 29, ox + 65, oy + 47), (132, 78, 38, 255))
+
+
+def draw_check_flag(draw, ox, oy, direction=1):
+    pole_x = ox + (43 if direction > 0 else 85)
+    rect(draw, (pole_x, oy + 18, pole_x + 7, oy + 114), (235, 238, 218, 245), (20, 24, 24, 170), 1)
+    wave = direction * 7
+    flag = [(pole_x + 6, oy + 21), (pole_x + 58 * direction, oy + 17 + wave), (pole_x + 62 * direction, oy + 56 - wave), (pole_x + 6, oy + 50)]
+    polygon(draw, flag, (245, 247, 235, 245), (18, 20, 20, 220))
+    min_x = min(x for x, _ in flag)
+    for r in range(3):
+        for c in range(4):
+            if (r + c) % 2:
+                x = min_x + c * 14
+                y = oy + 22 + r * 9
+                rect(draw, (x, y, x + 14, y + 9), (24, 26, 25, 235))
+
+
+def draw_flag_left(draw, ox, oy):
+    draw_check_flag(draw, ox, oy, -1)
+
+
+def draw_flag_right(draw, ox, oy):
+    draw_check_flag(draw, ox, oy, 1)
+
+
+def draw_pennants(draw, ox, oy):
+    draw.line((ox + 12, oy + 36, ox + 116, oy + 26), fill=(245, 247, 235, 190), width=3)
+    colors = [(255, 210, 74, 245), (255, 111, 95, 245), (55, 220, 198, 245), (126, 227, 109, 245)]
+    for i in range(7):
+        x = ox + 17 + i * 15
+        y = oy + 34 - i
+        polygon(draw, [(x, y), (x + 10, y - 1), (x + 5, y + 18)], colors[i % len(colors)], (22, 25, 24, 125))
+    rect(draw, (ox + 14, oy + 38, ox + 20, oy + 112), (58, 45, 37, 220))
+    rect(draw, (ox + 108, oy + 30, ox + 114, oy + 112), (58, 45, 37, 220))
+
+
+def draw_chevron_board(draw, ox, oy):
+    rounded_rect(draw, (ox + 15, oy + 35, ox + 113, oy + 81), 8, (21, 25, 26, 245), (255, 210, 74, 220), 3)
+    for i in range(3):
+        x = ox + 33 + i * 25
+        polygon(draw, [(x, oy + 45), (x + 16, oy + 58), (x, oy + 71), (x + 9, oy + 58)], (255, 111, 95, 250) if i < 2 else (55, 220, 198, 250))
+    rect(draw, (ox + 27, oy + 82, ox + 34, oy + 113), (58, 45, 37, 220))
+    rect(draw, (ox + 94, oy + 82, ox + 101, oy + 113), (58, 45, 37, 220))
+
+
+def draw_umbrella(draw, ox, oy):
+    rect(draw, (ox + 62, oy + 52, ox + 68, oy + 113), (77, 53, 38, 235))
+    polygon(draw, [(ox + 23, oy + 59), (ox + 65, oy + 24), (ox + 107, oy + 59)], (255, 111, 95, 245), (22, 25, 24, 180))
+    polygon(draw, [(ox + 35, oy + 59), (ox + 65, oy + 24), (ox + 64, oy + 59)], (245, 247, 235, 235))
+    polygon(draw, [(ox + 64, oy + 59), (ox + 65, oy + 24), (ox + 95, oy + 59)], (255, 210, 74, 245))
+
+
+def draw_course_buoy(draw, ox, oy):
+    draw.line((ox + 64, oy + 74, ox + 64, oy + 113), fill=(31, 35, 34, 200), width=3)
+    ellipse(draw, (ox + 44, oy + 45, ox + 84, oy + 85), (255, 111, 95, 245), (245, 247, 235, 220), 4)
+    rect(draw, (ox + 45, oy + 60, ox + 83, oy + 70), (245, 247, 235, 235))
+
+
+def draw_crowd_stand(draw, ox, oy):
+    rounded_rect(draw, (ox + 13, oy + 39, ox + 115, oy + 91), 6, (25, 31, 32, 235), (55, 220, 198, 150), 3)
+    for r in range(2):
+        for c in range(7):
+            color = [(255, 210, 74, 220), (255, 111, 95, 220), (55, 220, 198, 220), (245, 247, 235, 200)][(r + c) % 4]
+            ellipse(draw, (ox + 24 + c * 12, oy + 50 + r * 17, ox + 31 + c * 12, oy + 57 + r * 17), color)
+    rect(draw, (ox + 22, oy + 92, ox + 29, oy + 114), (58, 45, 37, 220))
+    rect(draw, (ox + 100, oy + 92, ox + 107, oy + 114), (58, 45, 37, 220))
+
+
+def draw_tire_stack(draw, ox, oy):
+    for i in range(4):
+        x = ox + 27 + (i % 2) * 31
+        y = oy + 38 + i * 18
+        ellipse(draw, (x, y, x + 39, y + 29), (21, 23, 24, 245), (88, 96, 96, 190), 3)
+        ellipse(draw, (x + 11, y + 8, x + 28, y + 21), (45, 49, 50, 245))
+
+
+def draw_flower_bed(draw, ox, oy):
+    ellipse(draw, (ox + 19, oy + 78, ox + 109, oy + 111), (33, 112, 61, 230), (17, 50, 31, 160), 2)
+    for i in range(9):
+        x = ox + 28 + (i * 17) % 72
+        y = oy + 83 + (i * 11) % 20
+        ellipse(draw, (x - 4, y - 4, x + 4, y + 4), [(255, 210, 74, 235), (255, 111, 95, 235), (55, 220, 198, 235)][i % 3])
+
+
+def draw_camera_drone(draw, ox, oy):
+    rounded_rect(draw, (ox + 50, oy + 54, ox + 78, oy + 76), 7, (32, 39, 42, 245), (245, 247, 235, 160), 2)
+    ellipse(draw, (ox + 58, oy + 58, ox + 70, oy + 70), (55, 220, 198, 245))
+    for sx, sy in ((28, 44), (96, 44), (28, 86), (96, 86)):
+        draw.line((ox + 64, oy + 65, ox + sx, oy + sy), fill=(32, 39, 42, 210), width=3)
+        ellipse(draw, (ox + sx - 14, oy + sy - 5, ox + sx + 14, oy + sy + 5), (245, 247, 235, 115))
+
+
+def draw_speed_board(draw, ox, oy):
+    rounded_rect(draw, (ox + 19, oy + 34, ox + 109, oy + 82), 8, (16, 21, 22, 245), (255, 210, 74, 230), 3)
+    draw.line((ox + 48, oy + 82, ox + 48, oy + 113), fill=(62, 49, 41, 235), width=7)
+    draw.line((ox + 80, oy + 82, ox + 80, oy + 113), fill=(62, 49, 41, 235), width=7)
+    for i in range(3):
+        x = ox + 36 + i * 18
+        polygon(draw, [(x, oy + 44), (x + 12, oy + 58), (x, oy + 72), (x + 7, oy + 58)], (55, 220, 198, 245))
+
+
 def build_props():
-    img = Image.new("RGBA", (768, 256), (0, 0, 0, 0))
+    img = Image.new("RGBA", (1024, 512), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img, "RGBA")
     fns = [
         draw_coin,
         draw_turbo_icon,
         draw_box,
         draw_puddle,
-        draw_sign,
+        draw_sign_right,
+        draw_sign_left,
         draw_lamp,
         draw_palm,
-        lambda d, x, y: draw_gate(d, x, y, False),
-        lambda d, x, y: draw_gate(d, x, y, True),
+        draw_palm_alt,
+        draw_flag_left,
+        draw_flag_right,
+        draw_pennants,
         draw_cone,
         draw_marker,
         draw_spark,
+        draw_chevron_board,
+        draw_umbrella,
+        draw_course_buoy,
+        draw_crowd_stand,
+        draw_tire_stack,
+        draw_flower_bed,
+        draw_camera_drone,
+        draw_speed_board,
+        draw_lamp,
+        draw_palm,
+        draw_pennants,
+        draw_cone,
+        draw_marker,
+        draw_spark,
+        draw_chevron_board,
     ]
     for i, fn in enumerate(fns):
-        fn(draw, (i % 6) * 128, (i // 6) * 128)
+        fn(draw, (i % 8) * 128, (i // 8) * 128)
     img.save(OUT / "design-props.png")
 
 
@@ -443,6 +703,7 @@ def build_icon():
 
 
 def main():
+    build_rally_sheet()
     build_tileset()
     build_cloud_layer()
     build_coast_layer()
