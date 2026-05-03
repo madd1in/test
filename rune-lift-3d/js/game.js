@@ -144,9 +144,11 @@ class AudioBus {
     this.muted = false;
     this.unlocked = false;
     this.lastPlayed = new Map();
-    this.bgm = new Audio("./assets/audio/bgm/sky-garden-relay.mp3");
+    this.bgm = new Audio("./assets/audio/bgm/catacomb-bell-vault.mp3");
     this.bgm.loop = true;
-    this.bgm.volume = 0.34;
+    this.bgm.preload = "auto";
+    this.bgm.volume = 0.22;
+    this.bgm.playbackRate = 0.94;
 
     this.sounds = {
       jump: new Audio("./assets/audio/sfx/jump.mp3"),

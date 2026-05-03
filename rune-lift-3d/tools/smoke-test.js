@@ -7,7 +7,7 @@ const requiredFiles = [
   "style.css",
   "js/game.js",
   "assets/vendor/three.module.js",
-  "assets/audio/bgm/sky-garden-relay.mp3",
+  "assets/audio/bgm/catacomb-bell-vault.mp3",
   "assets/audio/sfx/jump.mp3",
   "assets/audio/sfx/land.mp3",
   "assets/audio/sfx/switch.mp3",
@@ -27,7 +27,7 @@ const checks = [
   [js.includes("class RuneLiftGame"), "game class is present"],
   [js.includes("pointermove"), "touch drag input is wired"],
   [js.includes("swipe"), "swipe handling is wired"],
-  [js.includes("sky-garden-relay.mp3"), "BGM is referenced"],
+  [js.includes("catacomb-bell-vault.mp3"), "BGM is referenced"],
   [js.includes("CanvasTexture"), "generated texture assets are used"]
 ];
 
