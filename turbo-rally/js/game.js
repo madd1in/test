@@ -290,15 +290,26 @@
     particles: [],
     sparks: [],
     popups: [],
+    banner: {
+      text: "",
+      subtext: "",
+      timer: 0,
+      duration: 0,
+      color: "#ffd24a",
+      accent: "#ff6f5f"
+    },
     itemReadyTimer: 0,
     itemUseTimer: 0,
     lastUsedItem: null,
+    positionFlashTimer: 0,
+    finishCelebrationTimer: 0,
     rainTime: 0,
     lightningTimer: 0,
     stormAnnounced: false,
     raceTime: 0,
     finishedAt: 0,
-    position: 1
+    position: 1,
+    lastPosition: null
   };
 
   function loadSpriteAssets() {
@@ -1171,15 +1182,26 @@
     state.particles = [];
     state.sparks = [];
     state.popups = [];
+    state.banner = {
+      text: "",
+      subtext: "",
+      timer: 0,
+      duration: 0,
+      color: "#ffd24a",
+      accent: "#ff6f5f"
+    };
     state.itemReadyTimer = 0;
     state.itemUseTimer = 0;
     state.lastUsedItem = null;
+    state.positionFlashTimer = 0;
+    state.finishCelebrationTimer = 0;
     state.rainTime = 0;
     state.lightningTimer = 0;
     state.stormAnnounced = false;
     state.raceTime = 0;
     state.finishedAt = 0;
     state.position = 1;
+    state.lastPosition = null;
     screenShake = 0;
     flashTimer = 0;
     itemBoxes.forEach((box) => {
@@ -1215,6 +1237,9 @@
     const placeText = `${state.position}. Platz`;
     ui.finishTitle.textContent = state.position === 1 ? "Sieg!" : "Rennen beendet";
     ui.finishStats.textContent = `${placeText} | Zeit ${formatTime(state.finishedAt)} | Kart ${KARTS[state.selectedKart].name} | Coins ${state.player.coins} | Style ${state.player.styleScore} | Best x${state.player.bestCombo}`;
+    showRaceBanner(state.position === 1 ? "CHAMP!" : "FINISH!", placeText, state.position === 1 ? "#ffd24a" : "#37dcc6", "#ff6f5f", 2.4);
+    state.finishCelebrationTimer = 2.8;
+    spawnConfettiBurst(width * 0.5, height * 0.28, state.position === 1 ? 90 : 54);
     setMode("finish");
   }
 
@@ -1238,6 +1263,30 @@
     ui.toast.textContent = text;
     ui.toast.classList.add("visible");
     toastTimer = 1.4;
+  }
+
+  function showRaceBanner(text, subtext = "", color = "#ffd24a", accent = "#ff6f5f", duration = 1.35) {
+    state.banner = {
+      text,
+      subtext,
+      timer: duration,
+      duration,
+      color,
+      accent
+    };
+  }
+
+  function triggerStartBoost() {
+    const player = state.player;
+    player.boostTimer = Math.max(player.boostTimer, 1.55);
+    player.speed = Math.max(player.speed, 2450);
+    player.overdrive = clamp(player.overdrive + 0.12, 0, 1);
+    screenShake = Math.max(screenShake, 0.22);
+    flashTimer = Math.max(flashTimer, 0.18);
+    audio.play("boost");
+    addStyle(180, "Start boost");
+    showRaceBanner("START BOOST", "perfect launch", "#ffd24a", "#37dcc6", 1.4);
+    spawnConfettiBurst(width * 0.5, height * 0.66, 34);
   }
 
   function randomItem() {
@@ -1377,6 +1426,14 @@
     if (flashTimer > 0) flashTimer -= dt;
     if (state.itemReadyTimer > 0) state.itemReadyTimer -= dt;
     if (state.itemUseTimer > 0) state.itemUseTimer -= dt;
+    if (state.banner.timer > 0) state.banner.timer -= dt;
+    if (state.positionFlashTimer > 0) state.positionFlashTimer -= dt;
+    if (state.finishCelebrationTimer > 0) {
+      state.finishCelebrationTimer -= dt;
+      if (Math.random() < dt * 16) {
+        spawnConfettiBurst(width * (0.25 + Math.random() * 0.5), height * (0.18 + Math.random() * 0.24), 10);
+      }
+    }
     coins.forEach((coin) => {
       coin.spin += dt * 5.2;
     });
@@ -1407,6 +1464,8 @@
       } else {
         setMode("racing");
         audio.play("start");
+        if (input.gas && !input.brake) triggerStartBoost();
+        else showRaceBanner("GO!", "floor it", "#ffd24a", "#ff6f5f", 0.95);
         showToast("Los!");
       }
       updateParticles(dt);
@@ -1602,6 +1661,8 @@
       player.overdrive = clamp(player.overdrive + 0.2, 0, 1);
       audio.play("lap");
       addStyle(320, "Clean lap");
+      showRaceBanner(player.lap === TOTAL_LAPS ? "FINAL LAP" : `LAP ${player.lap}`, player.lap === TOTAL_LAPS ? "all or nothing" : "keep it clean", player.lap === TOTAL_LAPS ? "#ff6f5f" : "#ffd24a", "#37dcc6", 1.65);
+      spawnConfettiBurst(width * 0.5, height * 0.26, player.lap === TOTAL_LAPS ? 58 : 36);
       showToast(`Runde ${player.lap}`);
     }
 
@@ -1940,6 +2001,38 @@
     });
   }
 
+  function spawnConfettiBurst(x, y, amount = 36) {
+    const colors = ["#ffd24a", "#ff6f5f", "#37dcc6", "#7ee36d", "#f5f7eb"];
+    for (let i = 0; i < amount; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 80 + Math.random() * 300;
+      state.sparks.push({
+        x: x + (Math.random() - 0.5) * width * 0.08,
+        y: y + (Math.random() - 0.5) * height * 0.05,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed * 0.55 - 160 - Math.random() * 80,
+        life: 0.72 + Math.random() * 0.58,
+        color: colors[i % colors.length],
+        size: 2.4 + Math.random() * 4.2
+      });
+    }
+  }
+
+  function handlePositionChange(nextPosition, previousPosition) {
+    if (state.raceTime < 1.1 || previousPosition == null) return;
+    const improved = nextPosition < previousPosition;
+    state.positionFlashTimer = 0.72;
+    if (improved) {
+      audio.play("style");
+      addStyle(120 + (previousPosition - nextPosition) * 45, "Pass");
+      showRaceBanner("PASS!", `${nextPosition}/8`, "#ffd24a", "#37dcc6", 1.0);
+      spawnConfettiBurst(width * 0.5, height * 0.36, 20);
+    } else {
+      screenShake = Math.max(screenShake, 0.08);
+      showRaceBanner("RIVAL!", `${nextPosition}/8`, "#ff6f5f", "#ffd24a", 0.78);
+    }
+  }
+
   function updateRacePosition() {
     const playerDistance = Math.min(state.player.totalDistance, TOTAL_LAPS * trackLength);
     const field = [
@@ -1949,7 +2042,14 @@
         distance: Math.min(racer.totalDistance, TOTAL_LAPS * trackLength)
       }))
     ].sort((a, b) => b.distance - a.distance);
-    state.position = field.findIndex((entry) => entry.player) + 1;
+    const nextPosition = field.findIndex((entry) => entry.player) + 1;
+    if (state.lastPosition == null) {
+      state.lastPosition = nextPosition;
+    } else if (nextPosition !== state.lastPosition) {
+      handlePositionChange(nextPosition, state.lastPosition);
+      state.lastPosition = nextPosition;
+    }
+    state.position = nextPosition;
   }
 
   function updateHud() {
@@ -1964,6 +2064,9 @@
       ui.itemSlot.classList.toggle("item-fresh", state.itemReadyTimer > 0);
     }
     shell.classList.toggle("item-ready", Boolean(player.item));
+    shell.classList.toggle("position-pop", state.positionFlashTimer > 0);
+    shell.classList.toggle("overdrive-ready", player.overdrive >= 1 && state.mode === "racing");
+    shell.classList.toggle("final-lap", player.lap === TOTAL_LAPS && state.mode === "racing");
     ui.time.textContent = formatTime(state.mode === "finish" ? state.finishedAt : state.raceTime);
     ui.coins.textContent = String(player.coins);
     ui.overdrive.textContent = `${Math.round(player.overdrive * 100)}%`;
@@ -2000,6 +2103,7 @@
     drawVisibleObjects(renderPlayer);
     drawPlayerKart(renderPlayer);
     drawItemUseBurst();
+    drawSpeedLines(renderPlayer);
     drawParticles();
     drawSparks();
     drawFlash();
@@ -2008,6 +2112,7 @@
     ctx.restore();
     drawCurveIndicator(renderPlayer);
     drawVignette();
+    drawRaceBanner();
     drawMinimap(renderPlayer);
   }
 
@@ -3314,6 +3419,38 @@
     ctx.restore();
   }
 
+  function drawSpeedLines(player) {
+    const stats = KARTS[state.selectedKart] || KARTS.sprinter;
+    const speedRatio = clamp((player.speed || 0) / stats.maxSpeed, 0, 1.55);
+    const boost = player.boostTimer > 0 || player.overdriveTimer > 0;
+    const intensity = clamp((speedRatio - 0.72) / 0.58 + (boost ? 0.36 : 0), 0, 1);
+    if (intensity <= 0.02) return;
+
+    const time = performance.now() * 0.001;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+    const lineCount = Math.floor(12 + intensity * 28);
+    for (let i = 0; i < lineCount; i += 1) {
+      const side = i % 2 ? -1 : 1;
+      const seed = i * 91.7;
+      const drift = mod(time * (520 + intensity * 640) + seed, height * 0.72);
+      const y = height * 0.24 + drift;
+      const edge = side < 0 ? width * (0.04 + (i % 5) * 0.022) : width * (0.96 - (i % 5) * 0.022);
+      const centerPull = width * (0.5 + Math.sin(seed) * 0.05);
+      const len = width * (0.08 + intensity * 0.12);
+      const alpha = clamp((1 - Math.abs(y - height * 0.58) / (height * 0.62)) * intensity, 0, 0.62);
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = boost && i % 3 === 0 ? "#ffd24a" : "rgba(245, 247, 235, 0.9)";
+      ctx.lineWidth = Math.max(1.5, width * (0.0015 + intensity * 0.0016));
+      ctx.beginPath();
+      ctx.moveTo(edge, y);
+      ctx.lineTo(lerp(edge, centerPull, 0.22) + side * len, y + height * (0.035 + intensity * 0.03));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawKartShape(x, y, w, h, body, trim, rotation, isPlayer) {
     ctx.save();
     ctx.translate(x, y);
@@ -3464,6 +3601,78 @@
       ctx.fillText(popup.text, popup.x, popup.y);
       ctx.restore();
     });
+  }
+
+  function drawRaceBanner() {
+    if (state.banner.timer <= 0 || !state.banner.text) return;
+    const progress = 1 - clamp(state.banner.timer / Math.max(0.01, state.banner.duration), 0, 1);
+    const fade = Math.min(1, state.banner.timer * 3.2, progress * 4.5);
+    const scale = 1 + Math.sin(progress * Math.PI) * 0.08;
+    const y = clamp(height * 0.24, 94, height * 0.36);
+    const boxW = clamp(width * 0.42, 260, 540);
+    const boxH = clamp(height * 0.12, 72, 118);
+    const x = (width - boxW) * 0.5;
+
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(width * 0.5, y);
+    ctx.scale(scale, scale);
+    ctx.translate(-width * 0.5, -y);
+
+    ctx.fillStyle = "rgba(32, 21, 11, 0.72)";
+    ctx.strokeStyle = "#20150b";
+    ctx.lineWidth = Math.max(4, width * 0.004);
+    roundRect(x, y - boxH * 0.5, boxW, boxH, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = state.banner.color;
+    roundRect(x + 8, y - boxH * 0.5 + 8, boxW - 16, boxH - 16, 9);
+    ctx.fill();
+
+    ctx.fillStyle = state.banner.accent;
+    polygon(
+      x + 14,
+      y + boxH * 0.5 - 18,
+      x + boxW * 0.36,
+      y + boxH * 0.5 - 18,
+      x + boxW * 0.27,
+      y + boxH * 0.5 - 8,
+      x + 14,
+      y + boxH * 0.5 - 8,
+      state.banner.accent
+    );
+    polygon(
+      x + boxW - 14,
+      y - boxH * 0.5 + 18,
+      x + boxW * 0.64,
+      y - boxH * 0.5 + 18,
+      x + boxW * 0.73,
+      y - boxH * 0.5 + 8,
+      x + boxW - 14,
+      y - boxH * 0.5 + 8,
+      state.banner.accent
+    );
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const titleSize = Math.floor(clamp(boxH * 0.36, 26, 44));
+    ctx.font = `900 ${titleSize}px ${ARCADE_FONT}`;
+    ctx.lineWidth = Math.max(4, titleSize * 0.16);
+    ctx.strokeStyle = "#20150b";
+    ctx.fillStyle = "#fff9da";
+    ctx.strokeText(state.banner.text, width * 0.5, y - boxH * 0.08);
+    ctx.fillText(state.banner.text, width * 0.5, y - boxH * 0.08);
+
+    if (state.banner.subtext) {
+      ctx.font = `900 ${Math.floor(clamp(boxH * 0.17, 13, 18))}px ${ARCADE_FONT}`;
+      ctx.lineWidth = 3;
+      ctx.fillStyle = "#20150b";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+      ctx.strokeText(state.banner.subtext.toUpperCase(), width * 0.5, y + boxH * 0.27);
+      ctx.fillText(state.banner.subtext.toUpperCase(), width * 0.5, y + boxH * 0.27);
+    }
+    ctx.restore();
   }
 
   function drawItemUseBurst() {
