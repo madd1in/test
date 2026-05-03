@@ -2,9 +2,9 @@
   color-scheme: dark;
   --ink: #f5f7eb;
   --muted: #b8c3b1;
-  --panel: rgba(16, 20, 18, 0.88);
-  --panel-strong: rgba(9, 11, 10, 0.94);
-  --line: rgba(245, 247, 235, 0.16);
+  --panel: rgba(12, 15, 14, 0.62);
+  --panel-strong: rgba(8, 10, 9, 0.76);
+  --line: rgba(245, 247, 235, 0.12);
   --yellow: #ffd24a;
   --teal: #37dcc6;
   --coral: #ff6f5f;
@@ -65,22 +65,22 @@ button {
 .fullscreen-button {
   position: absolute;
   right: 18px;
-  top: 88px;
+  top: 18px;
   z-index: 6;
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(245, 247, 235, 0.24);
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(245, 247, 235, 0.16);
   border-radius: 8px;
-  background: rgba(10, 12, 12, 0.62);
-  box-shadow: 0 12px 26px var(--shadow);
-  backdrop-filter: blur(10px);
+  background: rgba(9, 12, 11, 0.28);
+  box-shadow: none;
+  backdrop-filter: blur(8px);
   cursor: pointer;
 }
 
 .fullscreen-button::before,
 .fullscreen-button::after {
   position: absolute;
-  inset: 12px;
+  inset: 10px;
   content: "";
   border-color: var(--ink);
   border-style: solid;
@@ -105,30 +105,43 @@ button {
 
 .hud {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
+  top: 14px;
+  left: 14px;
+  right: 66px;
   z-index: 5;
-  display: grid;
-  grid-template-columns: repeat(8, minmax(72px, 1fr));
-  gap: 8px;
+  display: flex;
+  width: fit-content;
+  max-width: calc(100vw - 96px);
+  min-height: 42px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 247, 235, 0.1);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(8, 11, 10, 0.48), rgba(8, 11, 10, 0.28));
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
   pointer-events: none;
 }
 
 .hud-block {
-  min-height: 58px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(10, 12, 12, 0.68);
-  box-shadow: 0 12px 28px var(--shadow);
-  backdrop-filter: blur(12px);
+  min-width: 64px;
+  min-height: 42px;
+  padding: 7px 10px 8px;
+  border: 0;
+  border-right: 1px solid rgba(245, 247, 235, 0.09);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.hud-block:last-child {
+  border-right: 0;
 }
 
 .hud-label {
   display: block;
-  color: var(--muted);
-  font-size: 11px;
+  color: rgba(245, 247, 235, 0.58);
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -136,9 +149,9 @@ button {
 
 .hud-block strong {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: var(--ink);
-  font-size: clamp(18px, 2.2vw, 30px);
+  font-size: clamp(15px, 1.8vw, 23px);
   line-height: 1;
 }
 
@@ -159,13 +172,13 @@ button {
   right: 18px;
   bottom: 18px;
   z-index: 4;
-  width: 156px;
-  height: 156px;
-  border: 1px solid rgba(245, 247, 235, 0.2);
+  width: 132px;
+  height: 132px;
+  border: 1px solid rgba(245, 247, 235, 0.14);
   border-radius: 8px;
-  background: rgba(9, 11, 10, 0.72);
-  box-shadow: 0 16px 32px var(--shadow);
-  backdrop-filter: blur(10px);
+  background: rgba(9, 11, 10, 0.42);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(7px);
 }
 
 .screen {
@@ -173,12 +186,10 @@ button {
   inset: 0;
   z-index: 10;
   display: none;
-  place-items: center;
+  place-items: end start;
   padding: 20px;
   background:
-    linear-gradient(180deg, rgba(7, 10, 12, 0.28), rgba(7, 10, 12, 0.74)),
-    radial-gradient(circle at 25% 20%, rgba(55, 220, 198, 0.18), transparent 30%),
-    radial-gradient(circle at 78% 68%, rgba(255, 210, 74, 0.14), transparent 32%);
+    linear-gradient(180deg, rgba(7, 10, 12, 0.1), rgba(7, 10, 12, 0.58));
 }
 
 .screen.active {
@@ -188,15 +199,22 @@ button {
 .panel {
   width: min(680px, calc(100vw - 32px));
   padding: clamp(22px, 4vw, 40px);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(245, 247, 235, 0.1);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.56);
-  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(12px);
 }
 
 .menu-panel {
-  text-align: center;
+  width: min(620px, calc(100vw - 28px));
+  margin: 0 0 26px 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.62);
 }
 
 .small-panel {
@@ -206,8 +224,8 @@ button {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: var(--teal);
-  font-size: 12px;
+  color: rgba(245, 247, 235, 0.74);
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -221,8 +239,8 @@ h2,
 }
 
 h1 {
-  font-size: clamp(56px, 11vw, 104px);
-  line-height: 0.88;
+  font-size: clamp(44px, 9vw, 92px);
+  line-height: 0.9;
   text-transform: uppercase;
 }
 
@@ -232,30 +250,39 @@ h2 {
 }
 
 .subtitle {
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--yellow);
-  font-size: clamp(24px, 5vw, 44px);
+  font-size: clamp(18px, 3.6vw, 34px);
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .kart-select {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 26px 0 20px;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+  margin: 18px 0 14px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid rgba(245, 247, 235, 0.12);
+  border-radius: 8px;
+  background: rgba(8, 11, 10, 0.34);
+  backdrop-filter: blur(8px);
 }
 
 .kart-option {
-  display: grid;
-  min-height: 108px;
-  padding: 12px 8px;
-  place-items: center;
-  gap: 8px;
+  display: flex;
+  min-width: 132px;
+  min-height: 48px;
+  padding: 6px 10px 6px 6px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
   color: var(--ink);
-  border: 1px solid rgba(245, 247, 235, 0.14);
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: rgba(245, 247, 235, 0.06);
+  background: transparent;
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
@@ -268,15 +295,15 @@ h2 {
 }
 
 .kart-option.active {
-  border-color: var(--yellow);
-  background: rgba(255, 210, 74, 0.14);
+  border-color: rgba(255, 210, 74, 0.5);
+  background: rgba(255, 210, 74, 0.12);
 }
 
 .kart-preview {
   position: relative;
   display: block;
-  width: 92px;
-  height: 72px;
+  width: 54px;
+  height: 42px;
   border-radius: 0;
   background-position: center;
   background-repeat: no-repeat;
@@ -305,10 +332,10 @@ h2 {
 .primary-button,
 .secondary-button {
   display: inline-grid;
-  min-width: min(100%, 220px);
-  min-height: 48px;
-  margin: 6px;
-  padding: 12px 18px;
+  min-width: min(100%, 176px);
+  min-height: 42px;
+  margin: 0;
+  padding: 10px 16px;
   place-items: center;
   border-radius: 8px;
   font-weight: 900;
@@ -319,7 +346,7 @@ h2 {
 .primary-button {
   color: #15150d;
   border: 0;
-  background: linear-gradient(135deg, var(--yellow), #ff8f3d);
+  background: var(--yellow);
 }
 
 .secondary-button {
@@ -338,9 +365,7 @@ h2 {
 }
 
 .control-line {
-  margin: 14px 0 0;
-  color: var(--muted);
-  font-size: 14px;
+  display: none;
 }
 
 .countdown {
@@ -388,20 +413,20 @@ h2 {
   bottom: 14px;
   z-index: 8;
   display: none;
-  grid-template-columns: 52px 52px 52px 52px 58px 58px 58px;
-  gap: 8px;
+  grid-template-columns: 46px 46px 46px 46px 50px 50px 50px;
+  gap: 6px;
   pointer-events: none;
 }
 
 #touch-controls button {
-  width: 52px;
-  height: 56px;
+  width: 46px;
+  height: 48px;
   color: var(--ink);
-  border: 1px solid rgba(245, 247, 235, 0.22);
+  border: 1px solid rgba(245, 247, 235, 0.15);
   border-radius: 8px;
-  background: rgba(10, 12, 12, 0.62);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(10px);
+  background: rgba(10, 12, 12, 0.38);
+  box-shadow: none;
+  backdrop-filter: blur(8px);
   font-weight: 1000;
   pointer-events: auto;
   touch-action: none;
@@ -421,28 +446,42 @@ h2 {
   .hud {
     top: 10px;
     left: 10px;
-    right: 10px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    right: 58px;
+    max-width: calc(100vw - 78px);
+    flex-wrap: nowrap;
+    min-height: 0;
   }
 
   .hud-block {
-    min-height: 50px;
-    padding: 8px;
+    min-width: 58px;
+    min-height: 34px;
+    padding: 5px 7px;
+  }
+
+  .hud-block:nth-child(5),
+  .hud-block:nth-child(6),
+  .hud-block:nth-child(8) {
+    display: none;
+  }
+
+  .hud-label {
+    font-size: 8px;
   }
 
   .hud-block strong {
-    font-size: 18px;
+    font-size: 15px;
   }
 
   .kart-select {
-    grid-template-columns: 1fr;
+    width: min(100%, 360px);
   }
 
   .kart-option {
-    min-height: 82px;
-    grid-template-columns: auto 1fr;
-    justify-items: start;
-    padding-inline: 14px;
+    flex: 1 0 104px;
+    min-width: 104px;
+    min-height: 44px;
+    padding-inline: 6px 10px;
+    font-size: 14px;
   }
 
   #minimap {
@@ -453,15 +492,11 @@ h2 {
   }
 
   .fullscreen-button {
-    top: auto;
+    top: 10px;
     right: 10px;
-    bottom: 210px;
-    width: 42px;
-    height: 42px;
-  }
-
-  .control-line {
-    font-size: 12px;
+    bottom: auto;
+    width: 38px;
+    height: 38px;
   }
 
   #touch-controls {
@@ -484,6 +519,10 @@ h2 {
     padding: 16px;
   }
 
+  .menu-panel {
+    padding: 0;
+  }
+
   .kart-select {
     margin-block: 14px;
   }
@@ -494,5 +533,34 @@ h2 {
 
   .control-line {
     display: none;
+  }
+}
+
+#game-shell:has(#menu-screen.active) .hud,
+#game-shell:has(#menu-screen.active) #minimap,
+#game-shell:has(.screen.active) #touch-controls {
+  display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  #touch-controls {
+    left: 18px;
+    right: auto;
+    bottom: 16px;
+    grid-template-columns: repeat(3, 44px);
+    gap: 8px;
+    opacity: 0.74;
+  }
+
+  #touch-controls button:nth-child(-n + 4) {
+    display: none;
+  }
+
+  #touch-controls button,
+  #touch-controls button:nth-last-child(-n + 3) {
+    width: 44px;
+    height: 46px;
+    font-size: 14px;
+    background: rgba(10, 12, 12, 0.28);
   }
 }
