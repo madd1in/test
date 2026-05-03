@@ -70,7 +70,8 @@
   };
 
   const SPRITE_SHEETS = {
-    rally: "assets/rally-sprite-sheet.png"
+    rally: "assets/rally-sprite-sheet.png",
+    props: "assets/tiles/design-props.png"
   };
 
   const SHEET_LAYOUTS = {
@@ -81,12 +82,40 @@
       iconRows: 1,
       iconCols: 6,
       iconTopRatio: 0.76
+    },
+    props: {
+      characterRows: 1,
+      characterCols: 1,
+      characterTopRatio: 0,
+      iconRows: 2,
+      iconCols: 6,
+      iconTopRatio: 0
     }
   };
 
   const ART_ASSETS = {
     map: "assets/coastal-rally-map.png",
-    roadTile: "assets/coastal-road-tile.png"
+    roadTile: "assets/coastal-road-tile.png",
+    tileset: "assets/tiles/turbo-rally-tileset.png",
+    coastLayer: "assets/tiles/backdrop-coast.png",
+    skylineLayer: "assets/tiles/backdrop-skyline.png"
+  };
+
+  const TILE_SIZE = 64;
+  const TILE_RECTS = {
+    asphalt: { col: 0, row: 0 },
+    lane: { col: 1, row: 0 },
+    curb: { col: 2, row: 0 },
+    grass: { col: 3, row: 0 },
+    sand: { col: 4, row: 0 },
+    water: { col: 5, row: 0 },
+    boost: { col: 6, row: 0 },
+    start: { col: 7, row: 0 },
+    wetRoad: { col: 0, row: 1 },
+    crackedRoad: { col: 1, row: 1 },
+    cliff: { col: 2, row: 1 },
+    city: { col: 3, row: 1 },
+    darkGrass: { col: 4, row: 1 }
   };
 
   const KARTS = {
@@ -141,20 +170,20 @@
   };
 
   const WORLD_SPRITES = {
-    itemBox: { sheet: "rally", kind: "icon", row: 0, col: 2 },
-    coin: { sheet: "rally", kind: "icon", row: 0, col: 0 },
-    puddle: { sheet: "rally", kind: "icon", row: 0, col: 3 },
-    oil: { sheet: "rally", kind: "icon", row: 0, col: 3 },
-    turbo: { sheet: "rally", kind: "icon", row: 0, col: 1 },
-    pulse: { sheet: "rally", kind: "icon", row: 0, col: 4 },
-    shield: { sheet: "rally", kind: "icon", row: 0, col: 2 },
-    magnet: { sheet: "rally", kind: "icon", row: 0, col: 0 },
-    lamp: { sheet: "rally", kind: "icon", row: 0, col: 5 },
-    palm: { sheet: "rally", kind: "icon", row: 0, col: 5 },
-    signRight: { sheet: "rally", kind: "icon", row: 0, col: 4 },
-    signLeft: { sheet: "rally", kind: "icon", row: 0, col: 4 },
-    arch: { sheet: "rally", kind: "icon", row: 0, col: 4 },
-    finishGate: { sheet: "rally", kind: "icon", row: 0, col: 4 }
+    itemBox: { sheet: "props", kind: "icon", row: 0, col: 2 },
+    coin: { sheet: "props", kind: "icon", row: 0, col: 0 },
+    puddle: { sheet: "props", kind: "icon", row: 0, col: 3 },
+    oil: { sheet: "props", kind: "icon", row: 0, col: 3 },
+    turbo: { sheet: "props", kind: "icon", row: 0, col: 1 },
+    pulse: { sheet: "props", kind: "icon", row: 1, col: 5 },
+    shield: { sheet: "props", kind: "icon", row: 1, col: 4 },
+    magnet: { sheet: "props", kind: "icon", row: 0, col: 0 },
+    lamp: { sheet: "props", kind: "icon", row: 0, col: 5 },
+    palm: { sheet: "props", kind: "icon", row: 1, col: 0 },
+    signRight: { sheet: "props", kind: "icon", row: 0, col: 4 },
+    signLeft: { sheet: "props", kind: "icon", row: 0, col: 4 },
+    arch: { sheet: "props", kind: "icon", row: 1, col: 1 },
+    finishGate: { sheet: "props", kind: "icon", row: 1, col: 2 }
   };
 
   const input = {
@@ -1733,7 +1762,6 @@
 
     const offset = (findSegment(player.z).curve * 18 + player.x * -28);
     const horizon = height * 0.42;
-    drawGeneratedBackdrop(player, horizon, offset);
 
     const sunX = width * 0.72 + Math.sin(player.z * 0.00008) * width * 0.04;
     const sunY = horizon * 0.48;
@@ -1754,25 +1782,111 @@
     }
     ctx.globalAlpha = 1;
 
-    ctx.fillStyle = "#24343f";
-    drawMountain(offset - width * 0.3, horizon + 18, 0.9);
-    ctx.fillStyle = "#31434a";
-    drawMountain(offset + width * 0.2, horizon + 28, 1.08);
-
-    ctx.fillStyle = "rgba(247, 240, 213, 0.78)";
-    for (let i = 0; i < 28; i += 1) {
-      const x = mod(i * 173 + offset * 1.6, width + 120) - 60;
-      const h = 24 + ((i * 37) % 70);
-      ctx.fillRect(x, horizon + 78 - h, 30 + ((i * 19) % 28), h);
-      ctx.fillStyle = storm
-        ? (i % 3 === 0 ? "rgba(143, 123, 255, 0.7)" : "rgba(55, 220, 198, 0.58)")
-        : (i % 3 === 0 ? "rgba(55, 220, 198, 0.62)" : "rgba(255, 210, 74, 0.58)");
-      ctx.fillRect(x + 6, horizon + 88 - h, 5, Math.max(5, h * 0.18));
-      ctx.fillStyle = "rgba(247, 240, 213, 0.78)";
+    if (!drawTiledBackdrop(player, horizon, offset)) {
+      drawGeneratedBackdrop(player, horizon, offset);
+      ctx.fillStyle = "#24343f";
+      drawMountain(offset - width * 0.3, horizon + 18, 0.9);
+      ctx.fillStyle = "#31434a";
+      drawMountain(offset + width * 0.2, horizon + 28, 1.08);
     }
 
-    ctx.fillStyle = "#1e5032";
-    ctx.fillRect(0, horizon + 76, width, height - horizon);
+    if (!fillTileBand("water", horizon + 6, height * 0.1, player.z * 0.008 + offset * 0.65, storm ? 0.2 : 0.3)) {
+      ctx.fillStyle = "#1f7d86";
+      ctx.fillRect(0, horizon + 6, width, height * 0.1);
+    }
+    if (!fillTileBand("darkGrass", horizon + 72, height - horizon - 72, offset * 0.4, storm ? 0.68 : 0.82)) {
+      ctx.fillStyle = "#1e5032";
+      ctx.fillRect(0, horizon + 72, width, height - horizon);
+    }
+  }
+
+  function drawTiledBackdrop(player, horizon, offset) {
+    const skyline = spriteStore.art.skylineLayer;
+    const coast = spriteStore.art.coastLayer;
+    if (!skyline || !coast) return false;
+
+    const storm = isStormActive();
+    const coastHeight = Math.min(height * 0.34, 270);
+    const skylineHeight = Math.min(height * 0.38, 310);
+
+    drawRepeatingImage(
+      coast,
+      horizon - coastHeight * 0.4,
+      coastHeight,
+      player.z * 0.006 + offset * 0.32,
+      storm ? 0.48 : 0.78
+    );
+    drawRepeatingImage(
+      skyline,
+      horizon - skylineHeight * 0.72,
+      skylineHeight,
+      player.z * 0.004 + offset * 0.62,
+      storm ? 0.42 : 0.72
+    );
+
+    if (fillTileBand("sand", horizon + 54, 34, player.z * 0.012 + offset * 0.7, storm ? 0.32 : 0.48)) {
+      ctx.fillStyle = storm ? "rgba(7, 12, 20, 0.26)" : "rgba(255, 214, 149, 0.08)";
+      ctx.fillRect(0, horizon + 54, width, 34);
+    }
+    return true;
+  }
+
+  function drawRepeatingImage(image, y, layerHeight, travel, alpha) {
+    if (!image || image.width <= 0 || image.height <= 0) return false;
+    const drawHeight = Math.max(1, layerHeight);
+    const drawWidth = Math.max(1, image.width * (drawHeight / image.height));
+    const shift = mod(travel, drawWidth);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    for (let x = -shift - drawWidth; x < width + drawWidth; x += drawWidth) {
+      ctx.drawImage(image, x, y, drawWidth, drawHeight);
+    }
+    ctx.restore();
+    return true;
+  }
+
+  function getTilePattern(name) {
+    const rect = TILE_RECTS[name];
+    const image = spriteStore.art.tileset;
+    if (!rect || !image) return null;
+
+    const key = `tile:${name}`;
+    if (spriteStore.patterns[key]) return spriteStore.patterns[key];
+
+    const tile = document.createElement("canvas");
+    tile.width = TILE_SIZE;
+    tile.height = TILE_SIZE;
+    const tileCtx = tile.getContext("2d");
+    tileCtx.drawImage(
+      image,
+      rect.col * TILE_SIZE,
+      rect.row * TILE_SIZE,
+      TILE_SIZE,
+      TILE_SIZE,
+      0,
+      0,
+      TILE_SIZE,
+      TILE_SIZE
+    );
+    const pattern = ctx.createPattern(tile, "repeat");
+    spriteStore.patterns[key] = pattern;
+    return pattern;
+  }
+
+  function fillTileBand(name, y, bandHeight, shiftX = 0, alpha = 1) {
+    const pattern = getTilePattern(name);
+    if (!pattern || bandHeight <= 0) return false;
+
+    const offsetX = -mod(shiftX, TILE_SIZE);
+    const offsetY = -mod(y, TILE_SIZE);
+    ctx.save();
+    ctx.globalAlpha = ctx.globalAlpha * alpha;
+    ctx.translate(offsetX, offsetY);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(-offsetX, y - offsetY, width + TILE_SIZE, bandHeight + TILE_SIZE);
+    ctx.restore();
+    return true;
   }
 
   function drawGeneratedBackdrop(player, horizon, offset) {
@@ -1854,6 +1968,7 @@
     const rumble2 = p2.w * 1.16;
     polygon(p1.x - rumble1, p1.y, p1.x + rumble1, p1.y, p2.x + rumble2, p2.y, p2.x - rumble2, p2.y, color.rumble);
     polygon(p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y, color.road);
+    drawRoadTileOverlay(segment);
     drawMode7RoadTexture(segment);
     if (isStormActive()) {
       polygon(
@@ -1943,6 +2058,33 @@
         "rgba(255, 210, 74, 0.38)"
       );
     }
+  }
+
+  function drawRoadTileOverlay(segment) {
+    const p1 = segment.p1.screen;
+    const p2 = segment.p2.screen;
+    if (p1.y < height * 0.45) return;
+
+    const patternName = isStormActive()
+      ? "wetRoad"
+      : (segment.index % 7 === 0 ? "crackedRoad" : "asphalt");
+    const pattern = getTilePattern(patternName);
+    if (!pattern) return;
+
+    const alpha = clamp((p1.y / height - 0.42) * 0.38, 0.07, 0.22);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(p1.x - p1.w, p1.y);
+    ctx.lineTo(p1.x + p1.w, p1.y);
+    ctx.lineTo(p2.x + p2.w, p2.y);
+    ctx.lineTo(p2.x - p2.w, p2.y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.globalAlpha = alpha;
+    ctx.translate(-mod(segment.index * 11 + state.player.z * 0.004, TILE_SIZE), -mod(p2.y, TILE_SIZE));
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, p2.y, width + TILE_SIZE, Math.max(1, p1.y - p2.y) + TILE_SIZE);
+    ctx.restore();
   }
 
   function drawMode7RoadTexture(segment) {
