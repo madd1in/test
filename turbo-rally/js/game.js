@@ -240,6 +240,12 @@
   let screenShake = 0;
   let flashTimer = 0;
   let spritesReady = false;
+  let roadFogBand = {
+    active: false,
+    farY: 0,
+    farX: 0,
+    farW: 0
+  };
 
   const spriteStore = {
     images: {},
@@ -458,7 +464,7 @@
     ctx.translate(x, y);
     if (options.rotation) ctx.rotate(options.rotation);
     if (options.flipX) ctx.scale(-1, 1);
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha *= alpha;
     if (options.shadow !== false) {
       const shadowY = options.shadowY ?? (drawH * (1 - anchorY) - drawH * 0.015);
       const shadowW = drawW * (options.shadowWidth ?? 0.36);
@@ -769,6 +775,13 @@
 
   function easeInOut(a, b, t) {
     return a + (b - a) * ((-Math.cos(t * Math.PI) / 2) + 0.5);
+  }
+
+  function distanceFogOpacity(distance) {
+    const start = DRAW_DISTANCE * SEGMENT_LENGTH * 0.62;
+    const end = DRAW_DISTANCE * SEGMENT_LENGTH;
+    const t = clamp((distance - start) / (end - start), 0, 1);
+    return 1 - easeInOut(0, 0.55, t);
   }
 
   function percentRemaining(n, total) {
@@ -1733,6 +1746,7 @@
     }
     drawBackground(renderPlayer);
     drawRoad(renderPlayer);
+    drawDistanceHaze(renderPlayer);
     drawVisibleObjects(renderPlayer);
     drawPlayerKart(renderPlayer);
     drawParticles();
@@ -1806,6 +1820,7 @@
       ctx.fillStyle = "#1e5032";
       ctx.fillRect(0, horizon + 72, width, height - horizon);
     }
+    drawHorizonMist(horizon, storm);
   }
 
   function drawTiledBackdrop(player, horizon, offset) {
@@ -1895,6 +1910,31 @@
         ctx.stroke();
       }
     }
+    ctx.restore();
+  }
+
+  function drawHorizonMist(horizon, storm) {
+    const mistTop = Math.max(0, horizon - height * 0.06);
+    const mistBottom = horizon + height * 0.19;
+    const softColor = storm ? "118, 200, 210" : "245, 235, 190";
+    const warmColor = storm ? "55, 220, 198" : "255, 210, 74";
+
+    ctx.save();
+    const vertical = ctx.createLinearGradient(0, mistTop, 0, mistBottom);
+    vertical.addColorStop(0, `rgba(${softColor}, 0)`);
+    vertical.addColorStop(0.36, `rgba(${softColor}, ${storm ? 0.13 : 0.2})`);
+    vertical.addColorStop(0.68, `rgba(${warmColor}, ${storm ? 0.08 : 0.14})`);
+    vertical.addColorStop(1, `rgba(${softColor}, 0)`);
+    ctx.fillStyle = vertical;
+    ctx.fillRect(0, mistTop, width, mistBottom - mistTop);
+
+    ctx.globalCompositeOperation = "screen";
+    const glow = ctx.createRadialGradient(width * 0.62, horizon + height * 0.04, width * 0.04, width * 0.62, horizon + height * 0.04, width * 0.62);
+    glow.addColorStop(0, `rgba(${warmColor}, ${storm ? 0.09 : 0.16})`);
+    glow.addColorStop(0.58, `rgba(${softColor}, ${storm ? 0.06 : 0.1})`);
+    glow.addColorStop(1, `rgba(${softColor}, 0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, mistTop - height * 0.04, width, mistBottom - mistTop + height * 0.08);
     ctx.restore();
   }
 
@@ -1991,6 +2031,10 @@
     let x = 0;
     let dx = -(baseSegment.curve * basePercent);
     let maxY = height;
+    let visibleSegments = 0;
+    let farY = height;
+    let farX = width * 0.5;
+    let farW = 0;
 
     for (let n = 0; n < DRAW_DISTANCE; n += 1) {
       const segment = segments[(baseSegment.index + n) % segments.length];
@@ -2017,8 +2061,83 @@
 
       if (segment.p1.camera.z <= CAMERA_DEPTH || segment.p2.screen.y >= maxY) continue;
       drawSegment(segment);
+      visibleSegments += 1;
+      if (segment.p2.screen.y < farY) {
+        farY = segment.p2.screen.y;
+        farX = segment.p2.screen.x;
+        farW = segment.p2.screen.w;
+      }
       maxY = segment.p1.screen.y;
     }
+
+    roadFogBand = {
+      active: visibleSegments > 0,
+      farY,
+      farX,
+      farW
+    };
+  }
+
+  function drawDistanceHaze(player) {
+    if (!roadFogBand.active) return;
+
+    const storm = isStormActive();
+    const horizon = height * 0.42;
+    const focusY = clamp(roadFogBand.farY, horizon + height * 0.05, height * 0.58);
+    const top = clamp(focusY - height * 0.14, horizon - height * 0.02, height * 0.56);
+    const bottom = clamp(focusY + height * 0.27, height * 0.54, height * 0.78);
+    const pulse = Math.sin(performance.now() * 0.0008 + player.z * 0.00011) * 0.02;
+    const soft = storm ? "108, 206, 214" : "244, 232, 188";
+    const warm = storm ? "55, 220, 198" : "255, 210, 126";
+
+    ctx.save();
+    const veil = ctx.createLinearGradient(0, top, 0, bottom);
+    veil.addColorStop(0, `rgba(${soft}, 0)`);
+    veil.addColorStop(0.26, `rgba(${soft}, ${storm ? 0.13 : 0.2})`);
+    veil.addColorStop(0.52, `rgba(${warm}, ${storm ? 0.14 : 0.22 + pulse})`);
+    veil.addColorStop(0.78, `rgba(${soft}, ${storm ? 0.1 : 0.14})`);
+    veil.addColorStop(1, `rgba(${soft}, 0)`);
+    ctx.fillStyle = veil;
+    ctx.fillRect(0, top, width, bottom - top);
+
+    const roadHalfTop = clamp(Math.max(roadFogBand.farW * 1.8, width * 0.11), width * 0.08, width * 0.36);
+    const roadHalfBottom = width * 0.72;
+    const centerX = clamp(roadFogBand.farX, width * 0.22, width * 0.78);
+    polygon(
+      centerX - roadHalfTop,
+      top + height * 0.02,
+      centerX + roadHalfTop,
+      top + height * 0.02,
+      width * 0.5 + roadHalfBottom,
+      bottom,
+      width * 0.5 - roadHalfBottom,
+      bottom,
+      storm ? "rgba(86, 189, 204, 0.13)" : "rgba(255, 231, 176, 0.17)"
+    );
+
+    ctx.globalCompositeOperation = "screen";
+    const bloom = ctx.createRadialGradient(centerX, focusY, width * 0.04, centerX, focusY, width * 0.54);
+    bloom.addColorStop(0, `rgba(${warm}, ${storm ? 0.1 : 0.17})`);
+    bloom.addColorStop(0.54, `rgba(${soft}, ${storm ? 0.06 : 0.1})`);
+    bloom.addColorStop(1, `rgba(${soft}, 0)`);
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, top - height * 0.05, width, bottom - top + height * 0.1);
+
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = storm ? "rgba(178, 243, 238, 0.11)" : "rgba(255, 245, 206, 0.14)";
+    ctx.lineWidth = Math.max(1, height * 0.0014);
+    for (let i = 0; i < 7; i += 1) {
+      const y = top + (bottom - top) * (0.2 + i * 0.095) + Math.sin(player.z * 0.001 + i) * 2;
+      const shift = mod(player.z * (0.02 + i * 0.002) + i * 83, 180);
+      ctx.beginPath();
+      ctx.moveTo(-70 - shift, y);
+      for (let x = -70 - shift; x < width + 180; x += 180) {
+        ctx.quadraticCurveTo(x + 52, y - 4, x + 90, y);
+        ctx.quadraticCurveTo(x + 134, y + 4, x + 180, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawSegment(segment) {
@@ -2292,11 +2411,15 @@
     const screen = {
       x: lerp(segment.p1.screen.x, segment.p2.screen.x, percent) + object.x * lerp(segment.p1.screen.w, segment.p2.screen.w, percent),
       y: lerp(segment.p1.screen.y, segment.p2.screen.y, percent),
-      scale: lerp(segment.p1.screen.scale, segment.p2.screen.scale, percent)
+      scale: lerp(segment.p1.screen.scale, segment.p2.screen.scale, percent),
+      fogOpacity: distanceFogOpacity(distance)
     };
 
     if (screen.y >= segment.clip || distance < 40) return;
+    ctx.save();
+    ctx.globalAlpha *= screen.fogOpacity;
     drawFn(object, screen);
+    ctx.restore();
   }
 
   function drawItemBox(box, screen) {
@@ -2487,7 +2610,7 @@
       return;
     }
     ctx.save();
-    ctx.globalAlpha = clamp(hazard.life / 2, 0.2, 0.78);
+    ctx.globalAlpha *= clamp(hazard.life / 2, 0.2, 0.78);
     ctx.fillStyle = "#171717";
     ctx.beginPath();
     ctx.ellipse(screen.x, screen.y, w, h, 0, 0, Math.PI * 2);
