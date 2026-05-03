@@ -1926,9 +1926,10 @@
   function drawBackground(player) {
     const storm = isStormActive();
     const sky = ctx.createLinearGradient(0, 0, 0, height * 0.72);
-    sky.addColorStop(0, storm ? "#07111f" : COLORS.skyTop);
-    sky.addColorStop(0.58, storm ? "#263a52" : "#477f9d");
-    sky.addColorStop(1, storm ? "#47636d" : COLORS.skyBottom);
+    sky.addColorStop(0, storm ? "#07111f" : "#17205d");
+    sky.addColorStop(0.5, storm ? "#263a52" : "#2e80a8");
+    sky.addColorStop(0.78, storm ? "#47636d" : "#ff8f78");
+    sky.addColorStop(1, storm ? "#47636d" : "#ffd17b");
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, width, height);
 
@@ -2000,9 +2001,9 @@
 
     const storm = isStormActive();
     const cloudHeight = Math.min(height * 0.2, 170);
-    const coastHeight = Math.min(height * 0.34, 270);
-    const skylineHeight = Math.min(height * 0.38, 310);
-    const elementsHeight = Math.min(height * 0.28, 220);
+    const coastHeight = Math.min(height * 0.38, 300);
+    const skylineHeight = Math.min(height * 0.4, 326);
+    const elementsHeight = Math.min(height * 0.3, 238);
 
     if (clouds) {
       drawRepeatingImage(
@@ -2016,17 +2017,17 @@
 
     drawRepeatingImage(
       coast,
-      horizon - coastHeight * 0.4,
+      horizon - coastHeight * 0.45,
       coastHeight,
       player.z * 0.006 + offset * 0.32,
-      storm ? 0.48 : 0.78
+      storm ? 0.52 : 0.92
     );
     drawRepeatingImage(
       skyline,
       horizon - skylineHeight * 0.72,
       skylineHeight,
       player.z * 0.004 + offset * 0.62,
-      storm ? 0.42 : 0.72
+      storm ? 0.44 : 0.82
     );
 
     if (elements) {
@@ -2035,7 +2036,7 @@
         horizon + Math.min(78, height * 0.09) - elementsHeight,
         elementsHeight,
         player.z * 0.014 + offset * 1.12,
-        storm ? 0.46 : 0.86
+        storm ? 0.5 : 0.98
       );
     }
 
