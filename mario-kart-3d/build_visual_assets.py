@@ -243,6 +243,94 @@ def build_skyline_layer():
     img.save(OUT / "backdrop-skyline.png")
 
 
+def cloud_puff(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, fill):
+    ellipse(draw, (x, y + 18 * scale, x + 92 * scale, y + 54 * scale), fill)
+    ellipse(draw, (x + 26 * scale, y, x + 92 * scale, y + 58 * scale), fill)
+    ellipse(draw, (x + 70 * scale, y + 12 * scale, x + 146 * scale, y + 58 * scale), fill)
+    ellipse(draw, (x + 112 * scale, y + 24 * scale, x + 180 * scale, y + 58 * scale), fill)
+
+
+def build_cloud_layer():
+    random.seed(132)
+    w, h = 1536, 240
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img, "RGBA")
+    for x, y, scale, alpha in (
+        (-80, 74, 0.78, 54),
+        (190, 46, 0.58, 46),
+        (450, 92, 0.9, 42),
+        (800, 38, 0.64, 50),
+        (1110, 82, 0.84, 44),
+        (1420, 54, 0.7, 48),
+    ):
+        cloud_puff(draw, x, y, scale, (235, 224, 202, alpha))
+    for _ in range(26):
+        x = random.randint(0, w)
+        y = random.randint(20, h - 30)
+        draw.line((x, y, x + random.randint(42, 115), y + random.randint(-2, 3)), fill=(143, 199, 210, random.randint(16, 34)), width=random.randint(1, 3))
+    img = img.filter(ImageFilter.GaussianBlur(1.1))
+    img.save(OUT / "backdrop-clouds.png")
+
+
+def draw_sailboat(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, alpha: int):
+    hull = (88, 61, 45, alpha)
+    sail = (245, 247, 235, max(0, alpha - 20))
+    accent = (255, 210, 74, max(0, alpha - 10))
+    polygon(draw, [(x, y), (x + 78 * scale, y), (x + 62 * scale, y + 12 * scale), (x + 12 * scale, y + 14 * scale)], hull)
+    draw.line((x + 35 * scale, y, x + 35 * scale, y - 66 * scale), fill=(35, 42, 41, alpha), width=max(1, round(3 * scale)))
+    polygon(draw, [(x + 39 * scale, y - 62 * scale), (x + 39 * scale, y - 8 * scale), (x + 82 * scale, y - 8 * scale)], sail)
+    polygon(draw, [(x + 31 * scale, y - 54 * scale), (x + 31 * scale, y - 8 * scale), (x - 7 * scale, y - 8 * scale)], accent)
+
+
+def draw_lighthouse(draw: ImageDraw.ImageDraw, x: int, base: int, scale: float):
+    rect(draw, (x + 20 * scale, base - 120 * scale, x + 60 * scale, base), (235, 238, 218, 230), (25, 30, 29, 170), max(1, round(2 * scale)))
+    rect(draw, (x + 20 * scale, base - 82 * scale, x + 60 * scale, base - 66 * scale), (255, 111, 95, 210))
+    rect(draw, (x + 20 * scale, base - 42 * scale, x + 60 * scale, base - 28 * scale), (255, 111, 95, 210))
+    rect(draw, (x + 14 * scale, base - 135 * scale, x + 66 * scale, base - 116 * scale), (38, 46, 45, 230))
+    ellipse(draw, (x + 26 * scale, base - 151 * scale, x + 54 * scale, base - 123 * scale), (255, 210, 74, 230), (32, 38, 36, 180), max(1, round(2 * scale)))
+    draw_glow(draw, round(x + 40 * scale), round(base - 137 * scale), round(45 * scale), (255, 210, 74, 65))
+
+
+def draw_bridge(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, alpha: int):
+    deck = (80, 62, 52, alpha)
+    rail = (245, 247, 235, max(0, alpha - 45))
+    rect(draw, (x, y, x + 250 * scale, y + 10 * scale), deck)
+    draw.line((x, y - 9 * scale, x + 250 * scale, y - 9 * scale), fill=rail, width=max(1, round(2 * scale)))
+    for p in range(0, 260, 32):
+        rect(draw, (x + p * scale, y + 10 * scale, x + (p + 6) * scale, y + 62 * scale), deck)
+    for p in range(0, 220, 52):
+        draw.arc((x + p * scale, y + 16 * scale, x + (p + 60) * scale, y + 82 * scale), 190, 350, fill=(55, 220, 198, max(0, alpha - 95)), width=max(1, round(2 * scale)))
+
+
+def draw_buoy(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, alpha: int):
+    draw.line((x, y + 12 * scale, x, y + 32 * scale), fill=(28, 34, 33, alpha), width=max(1, round(2 * scale)))
+    ellipse(draw, (x - 9 * scale, y - 4 * scale, x + 9 * scale, y + 15 * scale), (255, 111, 95, alpha), (245, 247, 235, max(0, alpha - 50)), max(1, round(2 * scale)))
+
+
+def build_horizon_elements_layer():
+    random.seed(155)
+    w, h = 1536, 320
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img, "RGBA")
+    base = 260
+    # Soft waterline silhouettes that can repeat without a hard seam.
+    for x in range(-60, w + 80, 180):
+        draw.line((x, base + 16, x + 118, base + 16 + random.randint(-2, 3)), fill=(118, 225, 213, 58), width=2)
+    draw_lighthouse(draw, 76, base + 10, 0.78)
+    draw_bridge(draw, 340, base - 10, 0.72, 154)
+    draw_bridge(draw, 1160, base - 4, 0.62, 136)
+    draw_sailboat(draw, 230, base + 18, 0.72, 178)
+    draw_sailboat(draw, 706, base + 26, 0.52, 146)
+    draw_sailboat(draw, 1348, base + 21, 0.64, 164)
+    for x, y, s in ((590, base + 28, 0.75), (1014, base + 22, 0.58), (1486, base + 30, 0.68), (30, base + 34, 0.52)):
+        draw_buoy(draw, x, y, s, 190)
+    for x in (510, 880, 1070):
+        rect(draw, (x, base - 62, x + 84, base - 18), (18, 22, 21, 170), (255, 210, 74, 120), 2)
+        polygon(draw, [(x + 48, base - 52), (x + 68, base - 40), (x + 48, base - 28)], (55, 220, 198, 180))
+    img = img.filter(ImageFilter.GaussianBlur(0.18))
+    img.save(OUT / "backdrop-horizon-elements.png")
+
+
 def draw_coin(draw, ox, oy):
     ellipse(draw, (ox + 36, oy + 20, ox + 92, oy + 98), (255, 210, 74, 255), (88, 60, 24, 190), 4)
     ellipse(draw, (ox + 48, oy + 30, ox + 80, oy + 88), (255, 236, 112, 255))
@@ -356,8 +444,10 @@ def build_icon():
 
 def main():
     build_tileset()
+    build_cloud_layer()
     build_coast_layer()
     build_skyline_layer()
+    build_horizon_elements_layer()
     build_props()
     build_icon()
     print("built visual assets in", OUT)

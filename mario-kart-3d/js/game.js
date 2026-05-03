@@ -98,7 +98,9 @@
     roadTile: "assets/coastal-road-tile.png",
     tileset: "assets/tiles/turbo-rally-tileset.png",
     coastLayer: "assets/tiles/backdrop-coast.png",
-    skylineLayer: "assets/tiles/backdrop-skyline.png"
+    skylineLayer: "assets/tiles/backdrop-skyline.png",
+    cloudLayer: "assets/tiles/backdrop-clouds.png",
+    horizonElementsLayer: "assets/tiles/backdrop-horizon-elements.png"
   };
 
   const TILE_SIZE = 64;
@@ -1803,11 +1805,25 @@
   function drawTiledBackdrop(player, horizon, offset) {
     const skyline = spriteStore.art.skylineLayer;
     const coast = spriteStore.art.coastLayer;
+    const clouds = spriteStore.art.cloudLayer;
+    const elements = spriteStore.art.horizonElementsLayer;
     if (!skyline || !coast) return false;
 
     const storm = isStormActive();
+    const cloudHeight = Math.min(height * 0.2, 170);
     const coastHeight = Math.min(height * 0.34, 270);
     const skylineHeight = Math.min(height * 0.38, 310);
+    const elementsHeight = Math.min(height * 0.28, 220);
+
+    if (clouds) {
+      drawRepeatingImage(
+        clouds,
+        Math.max(-cloudHeight * 0.18, horizon - skylineHeight * 1.18),
+        cloudHeight,
+        player.z * 0.0018 + offset * 0.12,
+        storm ? 0.18 : 0.42
+      );
+    }
 
     drawRepeatingImage(
       coast,
@@ -1824,11 +1840,56 @@
       storm ? 0.42 : 0.72
     );
 
+    if (elements) {
+      drawRepeatingImage(
+        elements,
+        horizon + Math.min(78, height * 0.09) - elementsHeight,
+        elementsHeight,
+        player.z * 0.014 + offset * 1.12,
+        storm ? 0.46 : 0.86
+      );
+    }
+
+    drawHorizonEffects(player, horizon, offset, storm);
+
     if (fillTileBand("sand", horizon + 54, 34, player.z * 0.012 + offset * 0.7, storm ? 0.32 : 0.48)) {
       ctx.fillStyle = storm ? "rgba(7, 12, 20, 0.26)" : "rgba(255, 214, 149, 0.08)";
       ctx.fillRect(0, horizon + 54, width, 34);
     }
     return true;
+  }
+
+  function drawHorizonEffects(player, horizon, offset, storm) {
+    const time = performance.now() * 0.001;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    for (let i = 0; i < 7; i += 1) {
+      const x = mod(i * 247 - player.z * 0.013 + offset * 1.05, width + 140) - 70;
+      const y = horizon - 44 + ((i * 19) % 54);
+      const pulse = 0.35 + Math.sin(time * 1.8 + i * 1.7) * 0.18;
+      const color = i % 2 ? [55, 220, 198] : [255, 210, 74];
+      const glow = ctx.createRadialGradient(x, y, 1, x, y, 22 + pulse * 26);
+      glow.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${storm ? 0.22 : 0.36})`);
+      glow.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - 60, y - 60, 120, 120);
+    }
+
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = storm ? "rgba(118, 225, 213, 0.12)" : "rgba(245, 247, 235, 0.14)";
+    ctx.lineWidth = Math.max(1, width * 0.0011);
+    for (let i = 0; i < 5; i += 1) {
+      const y = horizon + 18 + i * 9 + Math.sin(time * 1.2 + i) * 2;
+      const shift = mod(player.z * (0.018 + i * 0.004) + offset * 0.8 + i * 97, 156);
+      for (let x = -shift; x < width + 120; x += 156) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + 38, y + 4, x + 78, y);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function drawRepeatingImage(image, y, layerHeight, travel, alpha) {
