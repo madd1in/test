@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - main
+      - turbo-rally
   workflow_dispatch:
 
 permissions:
