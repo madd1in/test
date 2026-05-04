@@ -49,7 +49,7 @@ button {
   left: max(14px, env(safe-area-inset-left));
   right: max(14px, env(safe-area-inset-right));
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 10px;
   pointer-events: none;
@@ -115,7 +115,6 @@ button {
 }
 
 .icon-button {
-  grid-column: 4;
   width: 40px;
   height: 40px;
   display: grid;
@@ -127,7 +126,26 @@ button {
 }
 
 .icon-button[aria-pressed="true"] {
+  color: #7fe1c0;
+}
+
+#audio-button {
+  grid-column: 5;
+}
+
+#audio-button[aria-pressed="true"] {
   color: #f07f5f;
+}
+
+#quality-button {
+  grid-column: 4;
+  color: #7fe1c0;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+#quality-button[aria-pressed="false"] {
+  color: #f6d36d;
 }
 
 .mode-chip {
@@ -305,7 +323,7 @@ h2 {
 
 @media (max-width: 680px) {
   .hud {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
   }
 
   .brand-chip {
@@ -322,7 +340,7 @@ h2 {
   }
 
   .icon-button {
-    grid-column: 3;
+    grid-column: auto;
   }
 
   .mode-chip,

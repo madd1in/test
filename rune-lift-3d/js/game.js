@@ -214,8 +214,19 @@ class RuneLiftGame {
     this.finishStats = document.querySelector("#finish-stats");
     this.toast = document.querySelector("#toast");
     this.touchRing = document.querySelector("#touch-ring");
+    this.qualityButton = document.querySelector("#quality-button");
     this.audio = new AudioBus(document.querySelector("#audio-button"));
-    this.performanceMode = window.innerWidth < 900 || (window.devicePixelRatio || 1) > 1.25 || (navigator.deviceMemory ?? 8) <= 4;
+    const deviceMemory = navigator.deviceMemory ?? 4;
+    const dpr = window.devicePixelRatio || 1;
+    this.basePerformanceMode = window.innerWidth < 1200 || dpr > 1.05 || deviceMemory <= 8;
+    this.turboMode = (() => {
+      try {
+        return localStorage.getItem("runeLiftQuality") !== "fx";
+      } catch {
+        return true;
+      }
+    })();
+    this.performanceMode = this.turboMode || this.basePerformanceMode;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
@@ -244,7 +255,7 @@ class RuneLiftGame {
     this.collected = 0;
     this.state = { bridge: false, lift: false, spire: false, echo: false, crown: false };
     this.hudState = { objective: "", count: "", level: "" };
-    this.framePressure = { slowTime: 0, qualityReduced: this.performanceMode };
+    this.framePressure = { slowTime: 0, qualityReduced: this.performanceMode, renderSkip: false };
     this.assistMode = true;
     this.assistProfiles = {
       assist: {
@@ -325,6 +336,7 @@ class RuneLiftGame {
     this.cameraOffsetMobile = new THREE.Vector3(6.7, 7.1, 9.1);
     this.cameraDesired = new THREE.Vector3();
     this.cameraTargetDesired = new THREE.Vector3();
+    this.geometryCache = new Map();
     this.platforms = [];
     this.switches = [];
     this.shards = [];
@@ -333,6 +345,7 @@ class RuneLiftGame {
     this.guideWisps = [];
     this.safetyNets = [];
     this.auroraRibbons = [];
+    this.windZones = [];
     this.wispDummy = new THREE.Object3D();
 
     this.createLights();
@@ -343,6 +356,7 @@ class RuneLiftGame {
     this.createPlayer();
     this.bindEvents();
     this.updateModeUi();
+    this.updateQualityUi();
     this.updateAssistVisibility();
     this.resize();
     this.renderer.setAnimationLoop(() => this.tick());
@@ -355,7 +369,7 @@ class RuneLiftGame {
     const sun = new THREE.DirectionalLight(0xffe2a0, 2.6);
     sun.position.set(-8, 12, 8);
     sun.castShadow = !this.performanceMode;
-    const shadowSize = this.performanceMode ? 512 : 1024;
+    const shadowSize = this.performanceMode ? 256 : 768;
     sun.shadow.mapSize.set(shadowSize, shadowSize);
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 45;
@@ -373,7 +387,7 @@ class RuneLiftGame {
   }
 
   createMaterials() {
-    const textureSize = this.performanceMode ? 128 : 192;
+    const textureSize = this.performanceMode ? 96 : 160;
     const stone = makeCanvasTexture(textureSize, 2, 2, paintStone);
     const moss = makeCanvasTexture(textureSize, 2, 2, paintMoss);
     const rune = makeCanvasTexture(textureSize, 1, 1, paintRune);
@@ -436,9 +450,9 @@ class RuneLiftGame {
   }
 
   createSky() {
-    const texture = makeCanvasTexture(this.performanceMode ? 256 : 384, 1, 1, paintSky);
+    const texture = makeCanvasTexture(this.performanceMode ? 192 : 320, 1, 1, paintSky);
     const sky = new THREE.Mesh(
-      new THREE.SphereGeometry(92, this.performanceMode ? 24 : 30, this.performanceMode ? 12 : 15),
+      new THREE.SphereGeometry(92, this.performanceMode ? 16 : 26, this.performanceMode ? 8 : 12),
       new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide })
     );
     sky.position.y = 10;
@@ -446,7 +460,7 @@ class RuneLiftGame {
   }
 
   createAtmosphere() {
-    const moteCount = this.performanceMode ? 38 : 110;
+    const moteCount = this.performanceMode ? 0 : 80;
     const positions = new Float32Array(moteCount * 3);
     const random = seededRandom(902);
     for (let i = 0; i < moteCount; i += 1) {
@@ -464,11 +478,11 @@ class RuneLiftGame {
       opacity: 0.48,
       depthWrite: false
     });
-    this.moteField = new THREE.Points(geometry, material);
-    this.scene.add(this.moteField);
+    this.moteField = moteCount > 0 ? new THREE.Points(geometry, material) : null;
+    if (this.moteField) this.scene.add(this.moteField);
 
     const moon = new THREE.Mesh(
-      new THREE.SphereGeometry(2.8, this.performanceMode ? 14 : 20, this.performanceMode ? 8 : 10),
+      new THREE.SphereGeometry(2.8, this.performanceMode ? 10 : 18, this.performanceMode ? 6 : 9),
       new THREE.MeshBasicMaterial({ color: 0xf6e3a8, transparent: true, opacity: 0.82 })
     );
     moon.position.set(-18, 19, -28);
@@ -598,6 +612,8 @@ class RuneLiftGame {
     this.addBouncePad([8.6, 0.64, 21.25]);
     this.addBouncePad([35.0, 3.64, 21.35]);
     this.addBouncePad([51.15, 6.39, 14.6]);
+    this.addWindZone([37.4, 4.35, 21.1], 3.4, [1.1, 0, -0.3], "Rueckenwind");
+    this.addWindZone([49.3, 6.1, 16.1], 3.8, [1.0, 0, -0.8], "Aurora-Schub");
     this.addShard("east", [8.4, 1.72, -8.2]);
     this.addShard("sky", [-12.05, 5.22, 1.8]);
     this.addShard("south", [0, 1.72, 14.55]);
@@ -622,24 +638,38 @@ class RuneLiftGame {
     this.addDecor();
   }
 
+  getBoxGeometry(size) {
+    const key = `${size.x.toFixed(2)}:${size.y.toFixed(2)}:${size.z.toFixed(2)}`;
+    if (!this.geometryCache.has(key)) {
+      this.geometryCache.set(key, new THREE.BoxGeometry(size.x, size.y, size.z));
+    }
+    return this.geometryCache.get(key);
+  }
+
   addPlatform(id, positionArray, sizeArray, options = {}) {
     const size = new THREE.Vector3(...sizeArray);
     const basePosition = new THREE.Vector3(...positionArray);
-    const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
-    const material = this.materials[options.material ?? "stone"].clone();
+    const geometry = this.getBoxGeometry(size);
+    const materialName = options.material ?? "stone";
+    const needsUniqueMaterial = Boolean(options.ghost || options.assistOnly || materialName === "bridge");
+    const material = needsUniqueMaterial ? this.materials[materialName].clone() : this.materials[materialName];
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.copy(basePosition);
     mesh.castShadow = !this.performanceMode;
     mesh.receiveShadow = !this.performanceMode;
 
-    const edgeMaterial = new THREE.LineBasicMaterial({
-      color: options.material === "bridge" ? 0xdcfff4 : 0xf4f0e7,
-      transparent: true,
-      opacity: options.material === "bridge" ? 0.38 : 0.13
-    });
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial);
-    edges.visible = !this.performanceMode || options.material === "bridge";
-    mesh.add(edges);
+    let edges = null;
+    const needsEdges = !this.performanceMode || materialName === "bridge";
+    if (needsEdges) {
+      const edgeMaterial = new THREE.LineBasicMaterial({
+        color: materialName === "bridge" ? 0xdcfff4 : 0xf4f0e7,
+        transparent: true,
+        opacity: materialName === "bridge" ? 0.32 : 0.1
+      });
+      edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial);
+      edges.visible = true;
+      mesh.add(edges);
+    }
     this.scene.add(mesh);
 
     const platform = {
@@ -675,13 +705,13 @@ class RuneLiftGame {
   addSwitch(id, positionArray, label) {
     const group = new THREE.Group();
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.72, 0.82, 0.16, this.performanceMode ? 24 : 40),
+      new THREE.CylinderGeometry(0.72, 0.82, 0.16, this.performanceMode ? 16 : 32),
       this.materials.rune.clone()
     );
     base.castShadow = !this.performanceMode;
     base.receiveShadow = !this.performanceMode;
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.5, 0.035, 8, this.performanceMode ? 28 : 40),
+      new THREE.TorusGeometry(0.5, 0.035, 6, this.performanceMode ? 18 : 32),
       new THREE.MeshStandardMaterial({
         color: 0x7fe1c0,
         emissive: 0x235f54,
@@ -706,7 +736,7 @@ class RuneLiftGame {
   addBouncePad(positionArray) {
     const group = new THREE.Group();
     const disc = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.86, 0.92, 0.14, this.performanceMode ? 24 : 40),
+      new THREE.CylinderGeometry(0.86, 0.92, 0.14, this.performanceMode ? 16 : 32),
       new THREE.MeshStandardMaterial({
         color: 0xf2c14e,
         emissive: 0x8e5c19,
@@ -734,6 +764,17 @@ class RuneLiftGame {
     this.bouncePads.push({ group, cooldown: 0 });
   }
 
+  addWindZone(positionArray, radius, directionArray, label) {
+    const direction = new THREE.Vector3(...directionArray).normalize();
+    this.windZones.push({
+      position: new THREE.Vector3(...positionArray),
+      radius,
+      direction,
+      label,
+      cooldown: 0
+    });
+  }
+
   addShard(id, positionArray) {
     const group = new THREE.Group();
     const core = new THREE.Mesh(
@@ -746,17 +787,20 @@ class RuneLiftGame {
         metalness: 0.18
       })
     );
-    const halo = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.74, 1),
-      new THREE.MeshBasicMaterial({
-        color: 0xf2c14e,
-        transparent: true,
-        opacity: 0.16,
-        wireframe: true
-      })
-    );
+    const halo = this.performanceMode
+      ? null
+      : new THREE.Mesh(
+          new THREE.IcosahedronGeometry(0.74, 1),
+          new THREE.MeshBasicMaterial({
+            color: 0xf2c14e,
+            transparent: true,
+            opacity: 0.16,
+            wireframe: true
+          })
+        );
     const light = this.performanceMode ? null : new THREE.PointLight(0x7fe1c0, 1.25, 6, 2);
-    group.add(core, halo);
+    group.add(core);
+    if (halo) group.add(halo);
     if (light) group.add(light);
     group.position.set(...positionArray);
     this.scene.add(group);
@@ -831,14 +875,19 @@ class RuneLiftGame {
       [[56.7, 5.15, 11.5], [8.6, 4.6]]
     ];
 
-    for (const [position, size] of nets) {
-      const net = new THREE.Mesh(new THREE.PlaneGeometry(size[0], size[1], 1, 1), material.clone());
-      net.position.set(...position);
-      net.rotation.x = -Math.PI / 2;
-      net.visible = this.assistMode;
-      this.scene.add(net);
-      this.safetyNets.push(net);
-    }
+    const dummy = new THREE.Object3D();
+    const netMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1, 1, 1), material, nets.length);
+    nets.forEach(([position, size], index) => {
+      dummy.position.set(...position);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      dummy.scale.set(size[0], size[1], 1);
+      dummy.updateMatrix();
+      netMesh.setMatrixAt(index, dummy.matrix);
+    });
+    netMesh.instanceMatrix.needsUpdate = true;
+    netMesh.visible = this.assistMode;
+    this.scene.add(netMesh);
+    this.safetyNets.push(netMesh);
   }
 
   addRouteRails() {
@@ -865,7 +914,7 @@ class RuneLiftGame {
   }
 
   addAuroraRibbons() {
-    const ribbonCount = this.performanceMode ? 2 : 4;
+    const ribbonCount = this.performanceMode ? 1 : 3;
     const colors = [0x7fe1c0, 0xf2c14e, 0xa8d8ff, 0xf4f0e7];
     for (let i = 0; i < ribbonCount; i += 1) {
       const ribbon = new THREE.Mesh(
@@ -1072,6 +1121,9 @@ class RuneLiftGame {
     this.assistButton.addEventListener("click", () => {
       this.setAssistMode(!this.assistMode, true);
     });
+    this.qualityButton.addEventListener("click", () => {
+      this.setQualityMode(!this.turboMode);
+    });
     this.assistModeButton.addEventListener("click", () => {
       this.setAssistMode(true, true);
     });
@@ -1159,6 +1211,25 @@ class RuneLiftGame {
     this.normalModeButton.setAttribute("aria-pressed", String(!this.assistMode));
   }
 
+  setQualityMode(turbo) {
+    this.turboMode = turbo;
+    try {
+      localStorage.setItem("runeLiftQuality", turbo ? "turbo" : "fx");
+    } catch {}
+    this.showToast(turbo ? "Turbo-Modus aktiv" : "FX-Modus laedt neu");
+    window.setTimeout(() => window.location.reload(), 180);
+  }
+
+  updateQualityUi() {
+    const forced = this.basePerformanceMode && !this.turboMode;
+    this.qualityButton.textContent = this.performanceMode ? "T" : "FX";
+    this.qualityButton.setAttribute("aria-pressed", String(this.performanceMode));
+    this.qualityButton.setAttribute(
+      "aria-label",
+      forced ? "Turbo-Modus wegen Geraet aktiv" : "Turbo-Modus umschalten"
+    );
+  }
+
   updateAssistVisibility() {
     if (this.guideWispMesh) this.guideWispMesh.visible = this.assistMode;
     for (const net of this.safetyNets) {
@@ -1170,7 +1241,7 @@ class RuneLiftGame {
     const width = this.shell.clientWidth;
     const height = this.shell.clientHeight;
     const compact = width < 760;
-    const cap = this.framePressure.qualityReduced ? (compact ? 0.62 : 0.82) : compact ? 0.82 : 1;
+    const cap = this.framePressure.qualityReduced ? (compact ? 0.5 : 0.68) : compact ? 0.78 : 0.95;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / Math.max(1, height);
@@ -1244,9 +1315,18 @@ class RuneLiftGame {
 
   applyAdaptiveQuality() {
     this.framePressure.qualityReduced = true;
+    this.performanceMode = true;
     this.renderer.shadowMap.enabled = false;
     if (this.moteField) this.moteField.visible = false;
+    if (this.routeRail) this.routeRail.material.opacity = 0.07;
+    for (const ribbon of this.auroraRibbons) {
+      ribbon.mesh.visible = false;
+    }
+    for (const platform of this.platforms) {
+      if (platform.edges && !platform.id.includes("bridge")) platform.edges.visible = false;
+    }
     this.resize();
+    this.updateQualityUi();
     this.showToast("Performance-Modus aktiv");
   }
 
@@ -1275,8 +1355,8 @@ class RuneLiftGame {
         platform.mesh.material.opacity = opacity;
         platform.cachedOpacity = opacity;
       }
-      const edgeOpacity = platform.solid ? 0.26 : 0.08;
-      if (platform.cachedEdgeOpacity !== edgeOpacity) {
+      const edgeOpacity = platform.solid ? 0.22 : 0.07;
+      if (platform.edges && platform.cachedEdgeOpacity !== edgeOpacity) {
         platform.edges.material.opacity = edgeOpacity;
         platform.cachedEdgeOpacity = edgeOpacity;
       }
@@ -1424,6 +1504,21 @@ class RuneLiftGame {
         pad.cooldown = 0.8;
         this.audio.play("jump", 0.56, 1.55, 80);
         this.showToast("Aufwind");
+      }
+    }
+
+    for (const wind of this.windZones) {
+      wind.cooldown = Math.max(0, wind.cooldown - dt);
+      const near = distanceXZ(this.player.position, wind.position) < wind.radius;
+      const heightMatch = Math.abs(this.player.position.y - wind.position.y) < 2.4;
+      if (near && heightMatch) {
+        this.player.velocity.x += wind.direction.x * (this.assistMode ? 7.2 : 4.4) * dt;
+        this.player.velocity.z += wind.direction.z * (this.assistMode ? 7.2 : 4.4) * dt;
+        if (this.player.velocity.y < 1.2) this.player.velocity.y += 1.2 * dt;
+        if (wind.cooldown <= 0) {
+          wind.cooldown = 1.4;
+          this.showToast(wind.label);
+        }
       }
     }
 
