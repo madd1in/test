@@ -1,6 +1,6 @@
 # Rune Lift 3D
 
-A static Three.js puzzle platformer with Assist and Normal difficulty, double jump assists, optional helper ledges, guide wisps, batched safety nets, a target compass, route rails, wind-boost zones, a three-step relay puzzle, a relay-vault side route, lightweight constellation graphics, a new Aurora/Crown finale, swipe touch controls, locally generated materials, calm lazy-loaded BGM from `Downloads`, and instant synthetic SFX fallbacks. The renderer now defaults to Turbo mode with fewer point lights, lower texture cost, batched helper surfaces, capped pixel ratio, geometry reuse, and adaptive quality.
+A static Three.js puzzle platformer with Assist and Normal difficulty, double jump assists, optional helper ledges, guide wisps, batched safety nets, a target compass, route rails, wind-boost zones, a three-step relay puzzle, a relay-vault side route, lightweight constellation graphics, an Aurora/Crown route, a new Eclipse Forge finale with 12 runes, swipe touch controls, locally generated materials, calm lazy-loaded BGM from `Downloads`, and instant synthetic SFX fallbacks. The renderer now defaults to Turbo mode with fewer point lights, lower texture cost, batched helper surfaces, capped pixel ratio, geometry reuse, and adaptive quality.
 
 ## Run locally
 
