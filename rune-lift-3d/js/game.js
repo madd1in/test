@@ -144,31 +144,89 @@ class AudioBus {
     this.muted = false;
     this.unlocked = false;
     this.lastPlayed = new Map();
-    this.bgm = new Audio("./assets/audio/bgm/catacomb-bell-vault.mp3");
-    this.bgm.loop = true;
-    this.bgm.preload = "auto";
-    this.bgm.volume = 0.22;
-    this.bgm.playbackRate = 0.94;
-
-    this.sounds = {
-      jump: new Audio("./assets/audio/sfx/jump.mp3"),
-      land: new Audio("./assets/audio/sfx/land.mp3"),
-      switch: new Audio("./assets/audio/sfx/switch.mp3"),
-      reset: new Audio("./assets/audio/sfx/reset.mp3")
+    this.bgmUrl = "./assets/audio/bgm/catacomb-bell-vault.mp3";
+    this.soundUrls = {
+      jump: "./assets/audio/sfx/jump.mp3",
+      land: "./assets/audio/sfx/land.mp3",
+      switch: "./assets/audio/sfx/switch.mp3",
+      reset: "./assets/audio/sfx/reset.mp3"
     };
-
-    Object.values(this.sounds).forEach((sound) => {
-      sound.preload = "auto";
-      sound.volume = 0.55;
-    });
+    this.bgm = null;
+    this.sounds = {};
+    this.assetsQueued = false;
+    this.context = null;
+    this.padGain = null;
 
     this.button.addEventListener("click", () => this.toggle());
   }
 
+  ensureContext() {
+    if (!this.context) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return null;
+      this.context = new AudioContext();
+    }
+    this.context.resume?.().catch(() => {});
+    return this.context;
+  }
+
+  queueAssets() {
+    if (this.assetsQueued) return;
+    this.assetsQueued = true;
+    const warmAssets = () => {
+      for (const [name, url] of Object.entries(this.soundUrls)) {
+        const sound = new Audio(url);
+        sound.preload = "none";
+        sound.volume = 0.4;
+        this.sounds[name] = sound;
+      }
+      this.getBgm();
+    };
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(warmAssets, { timeout: 2600 });
+    } else {
+      window.setTimeout(warmAssets, 1400);
+    }
+  }
+
+  getBgm() {
+    if (!this.bgm) {
+      this.bgm = new Audio(this.bgmUrl);
+      this.bgm.loop = true;
+      this.bgm.preload = "none";
+      this.bgm.volume = 0.16;
+      this.bgm.playbackRate = 0.92;
+    }
+    return this.bgm;
+  }
+
+  startPad() {
+    const context = this.ensureContext();
+    if (!context || this.padGain) return;
+    const gain = context.createGain();
+    gain.gain.value = this.muted ? 0 : 0.018;
+    gain.connect(context.destination);
+    [110, 165].forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      oscillator.type = index === 0 ? "sine" : "triangle";
+      oscillator.frequency.value = frequency;
+      const voiceGain = context.createGain();
+      voiceGain.gain.value = index === 0 ? 0.55 : 0.24;
+      oscillator.connect(voiceGain).connect(gain);
+      oscillator.start();
+    });
+    this.padGain = gain;
+  }
+
   unlock() {
     this.unlocked = true;
+    this.ensureContext();
+    this.startPad();
+    this.queueAssets();
     if (!this.muted) {
-      this.bgm.play().catch(() => {});
+      window.setTimeout(() => {
+        if (!this.muted) this.getBgm().play().catch(() => {});
+      }, 600);
     }
   }
 
@@ -176,10 +234,38 @@ class AudioBus {
     this.muted = !this.muted;
     this.button.setAttribute("aria-pressed", String(this.muted));
     if (this.muted) {
-      this.bgm.pause();
+      if (this.bgm) this.bgm.pause();
+      if (this.padGain) this.padGain.gain.setTargetAtTime(0, this.context.currentTime, 0.04);
       return;
     }
     this.unlock();
+    if (this.padGain) this.padGain.gain.setTargetAtTime(0.018, this.context.currentTime, 0.08);
+  }
+
+  synth(name, volume, rate) {
+    const context = this.ensureContext();
+    if (!context || this.muted) return;
+    const now = context.currentTime;
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.001, volume * 0.14), now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (name === "land" ? 0.16 : 0.28));
+    gain.connect(context.destination);
+
+    const oscillator = context.createOscillator();
+    oscillator.type = name === "land" ? "sine" : name === "reset" ? "sawtooth" : "triangle";
+    const base = {
+      jump: 420,
+      land: 90,
+      switch: 620,
+      reset: 260,
+      relay: 720
+    }[name] ?? 360;
+    oscillator.frequency.setValueAtTime(base * rate, now);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(60, base * rate * (name === "jump" ? 1.75 : 0.55)), now + 0.18);
+    oscillator.connect(gain);
+    oscillator.start(now);
+    oscillator.stop(now + 0.32);
   }
 
   play(name, volume = 0.55, rate = 1, cooldown = 40) {
@@ -187,11 +273,13 @@ class AudioBus {
     const now = performance.now();
     if ((this.lastPlayed.get(name) ?? 0) + cooldown > now) return;
     this.lastPlayed.set(name, now);
+    this.synth(name, volume, rate);
 
     const source = this.sounds[name];
     if (!source) return;
     const sound = source.cloneNode(true);
-    sound.volume = volume;
+    sound.preload = "none";
+    sound.volume = Math.min(0.22, volume * 0.35);
     sound.playbackRate = rate;
     sound.play().catch(() => {});
   }
@@ -251,9 +339,10 @@ class RuneLiftGame {
     this.runStartedAt = 0;
     this.running = false;
     this.finished = false;
-    this.totalShards = 9;
+    this.totalShards = 10;
     this.collected = 0;
-    this.state = { bridge: false, lift: false, spire: false, echo: false, crown: false };
+    this.state = { bridge: false, lift: false, spire: false, echo: false, relay: false, crown: false };
+    this.relayIndex = 0;
     this.hudState = { objective: "", count: "", level: "" };
     this.framePressure = { slowTime: 0, qualityReduced: this.performanceMode, renderSkip: false };
     this.assistMode = true;
@@ -342,6 +431,7 @@ class RuneLiftGame {
     this.shards = [];
     this.bouncePads = [];
     this.hazards = [];
+    this.relayNodes = [];
     this.guideWisps = [];
     this.safetyNets = [];
     this.auroraRibbons = [];
@@ -574,6 +664,14 @@ class RuneLiftGame {
       ghostOpacity: 0.1
     });
     this.addPlatform("prism-garden", [35.0, 3.0, 22.65], [5.4, 1, 5.4], { material: "stone" });
+    this.addPlatform("relay-vault-bridge", [35.0, 3.25, 19.15], [3.45, 0.38, 6.35], {
+      material: "bridge",
+      activeWhen: () => this.state.relay,
+      ghost: true,
+      ghostOpacity: 0.1,
+      supportWhenGhost: false
+    });
+    this.addPlatform("relay-vault", [35.0, 3.35, 15.45], [4.75, 0.82, 4.75], { material: "rune" });
     this.addPlatform("prism-step", [37.75, 3.82, 20.2], [4.0, 0.58, 3.45], { material: "lift" });
     this.addPlatform("sunrise-bridge", [40.35, 4.45, 20.2], [3.75, 0.42, 2.5], {
       material: "bridge",
@@ -608,6 +706,9 @@ class RuneLiftGame {
     this.addSwitch("spire", [8.6, 0.64, 22.55], "Mondspitze geoeffnet");
     this.addSwitch("echo", [26.9, 3.64, 22.65], "Echo-Bruecke aktiv");
     this.addSwitch("crown", [43.2, 5.09, 20.2], "Aurora-Bruecke aktiv");
+    this.addRelayNode("sun", [33.4, 3.66, 23.95], 0, "Sonnen-Relais", 0xf2c14e);
+    this.addRelayNode("moon", [37.75, 4.42, 20.2], 1, "Mond-Relais", 0x9fd8ff);
+    this.addRelayNode("crown", [43.2, 5.1, 18.45], 2, "Kronen-Relais", 0x7fe1c0);
     this.addBouncePad([-7.35, 0.64, 1.8]);
     this.addBouncePad([8.6, 0.64, 21.25]);
     this.addBouncePad([35.0, 3.64, 21.35]);
@@ -620,6 +721,7 @@ class RuneLiftGame {
     this.addShard("spire", [16.8, 4.45, 15.2]);
     this.addShard("moon", [18.3, 4.55, 22.65]);
     this.addShard("echo", [26.9, 4.72, 24.25]);
+    this.addShard("relay-vault", [35.0, 5.02, 15.45]);
     this.addShard("sunrise", [43.2, 6.0, 20.2]);
     this.addShard("aurora", [51.15, 7.12, 14.6]);
     this.addShard("crown", [58.4, 8.02, 10.95]);
@@ -634,6 +736,7 @@ class RuneLiftGame {
     this.addSafetyNets();
     this.addRouteRails();
     this.addAuroraRibbons();
+    this.addConstellationWeb();
     this.addGuideCompass();
     this.addDecor();
   }
@@ -775,6 +878,28 @@ class RuneLiftGame {
     });
   }
 
+  addRelayNode(id, positionArray, sequence, label, color) {
+    const group = new THREE.Group();
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.46, 0.56, 0.18, this.performanceMode ? 12 : 24),
+      this.materials.rune.clone()
+    );
+    const core = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.28, 0),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.86 })
+    );
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.42, 0.025, 5, this.performanceMode ? 16 : 28),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.48 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    core.position.y = 0.36;
+    group.add(base, ring, core);
+    group.position.set(...positionArray);
+    this.scene.add(group);
+    this.relayNodes.push({ id, sequence, label, color, group, ring, core, active: false, cooldown: 0 });
+  }
+
   addShard(id, positionArray) {
     const group = new THREE.Group();
     const core = new THREE.Mesh(
@@ -832,7 +957,8 @@ class RuneLiftGame {
       [0, 1.08, 5.0], [0, 1.08, 10.2], [0, 1.08, 14.55], [0, 1.08, 20.2],
       [8.6, 1.08, 22.55], [12.4, 1.95, 19.6], [15.35, 3.45, 16.4], [16.8, 4.0, 15.2],
       [18.3, 4.0, 22.65], [22.8, 4.0, 22.65], [26.9, 4.0, 22.65], [31.0, 4.0, 22.65],
-      [35.0, 4.0, 22.65], [37.75, 4.78, 20.2], [40.35, 5.38, 20.2], [43.2, 5.5, 20.2],
+      [35.0, 4.0, 22.65], [35.0, 4.35, 19.15], [35.0, 4.55, 15.45],
+      [37.75, 4.78, 20.2], [40.35, 5.38, 20.2], [43.2, 5.5, 20.2],
       [47.6, 5.8, 17.65], [51.15, 6.8, 14.6], [54.85, 7.25, 11.8], [58.4, 7.5, 10.95]
     ];
     const geometry = new THREE.OctahedronGeometry(0.16, 0);
@@ -932,6 +1058,44 @@ class RuneLiftGame {
       this.scene.add(ribbon);
       this.auroraRibbons.push({ mesh: ribbon, baseY: ribbon.position.y, phase: i * 0.7 });
     }
+  }
+
+  addConstellationWeb() {
+    const anchors = [
+      [-4, 12.2, -12], [6, 13.4, -10], [13, 12.6, -2], [22, 13.8, 8],
+      [34, 14.5, 18], [46, 13.2, 15], [57, 14.2, 9], [42, 15.1, 25]
+    ];
+    const linePositions = [];
+    for (let i = 0; i < anchors.length - 1; i += 1) {
+      linePositions.push(...anchors[i], ...anchors[i + 1]);
+    }
+    linePositions.push(...anchors[2], ...anchors[5], ...anchors[4], ...anchors[7]);
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3));
+    this.constellationLines = new THREE.LineSegments(
+      lineGeometry,
+      new THREE.LineBasicMaterial({
+        color: 0x9ff5d8,
+        transparent: true,
+        opacity: this.performanceMode ? 0.13 : 0.24,
+        depthWrite: false
+      })
+    );
+    this.scene.add(this.constellationLines);
+
+    const pointGeometry = new THREE.BufferGeometry();
+    pointGeometry.setAttribute("position", new THREE.Float32BufferAttribute(anchors.flat(), 3));
+    this.constellationPoints = new THREE.Points(
+      pointGeometry,
+      new THREE.PointsMaterial({
+        color: 0xf6d36d,
+        size: this.performanceMode ? 0.12 : 0.18,
+        transparent: true,
+        opacity: 0.78,
+        depthWrite: false
+      })
+    );
+    this.scene.add(this.constellationPoints);
   }
 
   addGuideCompass() {
@@ -1255,6 +1419,7 @@ class RuneLiftGame {
     Object.keys(this.state).forEach((key) => {
       this.state[key] = false;
     });
+    this.relayIndex = 0;
     this.hudState.objective = "";
     this.hudState.count = "";
     this.hudState.level = "";
@@ -1272,6 +1437,12 @@ class RuneLiftGame {
     this.switches.forEach((switchPlate) => {
       switchPlate.active = false;
       if (switchPlate.light) switchPlate.light.intensity = 0.15;
+    });
+    this.relayNodes.forEach((node) => {
+      node.active = false;
+      node.cooldown = 0;
+      node.core.material.opacity = 0.86;
+      node.group.scale.setScalar(1);
     });
     this.shards.forEach((shard) => {
       shard.collected = false;
@@ -1494,6 +1665,38 @@ class RuneLiftGame {
       }
     }
 
+    for (const node of this.relayNodes) {
+      node.cooldown = Math.max(0, node.cooldown - dt);
+      if (node.active || node.cooldown > 0) continue;
+      const near = distanceXZ(this.player.position, node.group.position) < this.assist.switchRadius;
+      const heightMatch = Math.abs(feetY - node.group.position.y) < 1.25;
+      if (!near || !heightMatch) continue;
+      if (node.sequence === this.relayIndex) {
+        node.active = true;
+        this.relayIndex += 1;
+        this.audio.play("relay", 0.5, 1.05 + node.sequence * 0.14, 90);
+        if (this.relayIndex >= this.relayNodes.length) {
+          this.state.relay = true;
+          this.showToast("Prisma-Relais synchron");
+        } else {
+          this.showToast(`${node.label} ${this.relayIndex}/${this.relayNodes.length}`);
+        }
+      } else {
+        node.cooldown = 1.0;
+        if (this.assistMode) {
+          this.showToast(`Relais ${this.relayIndex + 1} zuerst`);
+        } else {
+          this.relayIndex = 0;
+          this.relayNodes.forEach((relayNode) => {
+            relayNode.active = false;
+            relayNode.core.material.opacity = 0.86;
+          });
+          this.audio.play("reset", 0.28, 0.76, 160);
+          this.showToast("Relaisfolge neu starten");
+        }
+      }
+    }
+
     for (const pad of this.bouncePads) {
       pad.cooldown = Math.max(0, pad.cooldown - dt);
       pad.group.rotation.y += dt * 1.6;
@@ -1602,6 +1805,13 @@ class RuneLiftGame {
       switchPlate.group.scale.y = approach(switchPlate.group.scale.y, switchPlate.active ? 0.78 : 1, dt * 3);
     }
 
+    for (const node of this.relayNodes) {
+      node.ring.rotation.z += dt * (node.active ? 2.9 : 1.1);
+      node.core.rotation.y -= dt * 1.4;
+      node.core.material.opacity = approach(node.core.material.opacity, node.active ? 1 : 0.64, dt * 2);
+      node.group.scale.setScalar(approach(node.group.scale.x, node.active ? 1.18 : 1, dt * 2.4));
+    }
+
     for (const hazard of this.hazards) {
       hazard.group.rotation.x += dt * 1.2;
       hazard.group.rotation.y -= dt * 1.8;
@@ -1633,6 +1843,12 @@ class RuneLiftGame {
     for (const ribbon of this.auroraRibbons) {
       ribbon.mesh.position.y = ribbon.baseY + Math.sin(this.elapsed * 0.8 + ribbon.phase) * 0.28;
       ribbon.mesh.material.opacity = 0.09 + Math.sin(this.elapsed * 0.9 + ribbon.phase) * 0.035;
+    }
+
+    if (this.constellationLines) {
+      this.constellationLines.material.opacity = this.performanceMode
+        ? 0.12 + Math.sin(this.elapsed * 0.42) * 0.025
+        : 0.22 + Math.sin(this.elapsed * 0.42) * 0.04;
     }
 
     this.updateGuideCompass();
@@ -1676,7 +1892,9 @@ class RuneLiftGame {
     }
     if (this.state.echo || this.collected >= 6) {
       level = `${mode} IV`;
-      text = this.collected < this.totalShards ? "Ebene IV - Prismengarten" : "Ebene IV - Betritt das Sonnenportal";
+      text = this.state.relay
+        ? "Ebene IV - Relais-Vault offen"
+        : "Ebene IV - Relais: Sonne, Mond, Krone";
     }
     if (this.state.crown || this.collected >= 8) {
       level = `${mode} V`;
