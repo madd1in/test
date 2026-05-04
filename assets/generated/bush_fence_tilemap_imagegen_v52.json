@@ -1,0 +1,233 @@
+{
+  "tileSize": 32,
+  "columns": 8,
+  "rows": 4,
+  "source": "bush_fence_tilemap_imagegen_v52_raw.png",
+  "sourcePrompt": "Imagegen 8x4 16-bit gothic garden atlas: hedges, rose bushes, wrought-iron fence, garden lattice/grille tiles.",
+  "tiles": {
+    "hedge_dense": {
+      "index": 0,
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "hedge_low": {
+      "index": 1,
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "bush_round": {
+      "index": 2,
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "bush_gloss": {
+      "index": 3,
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "bush_shadow": {
+      "index": 4,
+      "x": 128,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "bush_cluster": {
+      "index": 5,
+      "x": 160,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "fern_spike": {
+      "index": 6,
+      "x": 192,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "vine_hedge": {
+      "index": 7,
+      "x": 224,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "rose_left": {
+      "index": 8,
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_bloom": {
+      "index": 9,
+      "x": 32,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_branch": {
+      "index": 10,
+      "x": 64,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_dense": {
+      "index": 11,
+      "x": 96,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_buds": {
+      "index": 12,
+      "x": 128,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_hanging": {
+      "index": 13,
+      "x": 160,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_tree": {
+      "index": 14,
+      "x": 192,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "rose_wall": {
+      "index": 15,
+      "x": 224,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    "fence_pillar_left": {
+      "index": 16,
+      "x": 0,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_rail_round": {
+      "index": 17,
+      "x": 32,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_rail_vine": {
+      "index": 18,
+      "x": 64,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_rail_plain": {
+      "index": 19,
+      "x": 96,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_crown": {
+      "index": 20,
+      "x": 128,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_low": {
+      "index": 21,
+      "x": 160,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_frame": {
+      "index": 22,
+      "x": 192,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "fence_pillar_right": {
+      "index": 23,
+      "x": 224,
+      "y": 64,
+      "w": 32,
+      "h": 32
+    },
+    "lattice_clover": {
+      "index": 24,
+      "x": 0,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "lattice_diamond": {
+      "index": 25,
+      "x": 32,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "lattice_arch": {
+      "index": 26,
+      "x": 64,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "lattice_cross": {
+      "index": 27,
+      "x": 96,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "lattice_rosette": {
+      "index": 28,
+      "x": 128,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "lattice_quatrefoil": {
+      "index": 29,
+      "x": 160,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "stone_plinth_a": {
+      "index": 30,
+      "x": 192,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    },
+    "stone_plinth_b": {
+      "index": 31,
+      "x": 224,
+      "y": 96,
+      "w": 32,
+      "h": 32
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+ "player_idle": {
+  "file": "sprites_actors/r00_c01.png",
+  "w": 78,
+  "h": 175
+ },
+ "player_walk1": {
+  "file": "sprites_actors/r00_c03.png",
+  "w": 75,
+  "h": 183
+ },
+ "player_walk2": {
+  "file": "sprites_actors/r00_c05.png",
+  "w": 90,
+  "h": 195
+ },
+ "player_jump": {
+  "file": "sprites_actors/r01_c00.png",
+  "w": 131,
+  "h": 164
+ },
+ "player_whip": {
+  "file": "sprites_actors/r02_c00.png",
+  "w": 110,
+  "h": 184
+ },
+ "player_hurt": {
+  "file": "sprites_actors/r02_c05.png",
+  "w": 212,
+  "h": 224
+ },
+ "player_stair": {
+  "file": "sprites_actors/r03_c04.png",
+  "w": 89,
+  "h": 196
+ },
+ "skeleton_walk": {
+  "file": "sprites_enemies/r00_c00.png",
+  "w": 69,
+  "h": 154
+ },
+ "bat": {
+  "file": "sprites_actors/r03_c06.png",
+  "w": 98,
+  "h": 208
+ },
+ "knight_idle": {
+  "file": "sprites_enemies/r00_c00.png",
+  "w": 69,
+  "h": 154
+ },
+ "knight_walk": {
+  "file": "sprites_enemies/r00_c01.png",
+  "w": 121,
+  "h": 145
+ },
+ "knight_attack": {
+  "file": "sprites_enemies/r00_c05.png",
+  "w": 136,
+  "h": 149
+ },
+ "wolf": {
+  "file": "sprites_enemies/r01_c00.png",
+  "w": 83,
+  "h": 142
+ },
+ "medusa": {
+  "file": "sprites_enemies/r02_c02.png",
+  "w": 81,
+  "h": 217
+ },
+ "reaper": {
+  "file": "sprites_enemies/r04_c02.png",
+  "w": 88,
+  "h": 150
+ }
+}
