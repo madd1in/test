@@ -240,9 +240,9 @@ class RuneLiftGame {
     this.runStartedAt = 0;
     this.running = false;
     this.finished = false;
-    this.totalShards = 7;
+    this.totalShards = 9;
     this.collected = 0;
-    this.state = { bridge: false, lift: false, spire: false, echo: false };
+    this.state = { bridge: false, lift: false, spire: false, echo: false, crown: false };
     this.hudState = { objective: "", count: "", level: "" };
     this.framePressure = { slowTime: 0, qualityReduced: this.performanceMode };
     this.assistMode = true;
@@ -332,6 +332,7 @@ class RuneLiftGame {
     this.hazards = [];
     this.guideWisps = [];
     this.safetyNets = [];
+    this.auroraRibbons = [];
     this.wispDummy = new THREE.Object3D();
 
     this.createLights();
@@ -567,14 +568,36 @@ class RuneLiftGame {
       ghostOpacity: 0.11
     });
     this.addPlatform("sunrise-gate", [43.2, 4.45, 20.2], [5.65, 1, 5.65], { material: "rune" });
+    this.addPlatform("aurora-drift", [47.6, 4.95, 17.65], [4.55, 0.52, 3.25], {
+      material: "lift",
+      moving: { axis: [0.35, 0, -0.94], range: 0.92, speed: 0.42, phase: 1.4 },
+      ghost: true,
+      ghostOpacity: 0.16
+    });
+    this.addPlatform("aurora-rest", [51.15, 5.75, 14.6], [4.8, 0.62, 3.85], { material: "moss" });
+    this.addPlatform("aurora-helper-rail", [54.0, 6.15, 13.0], [4.65, 0.38, 2.7], {
+      material: "bridge",
+      ghost: true,
+      ghostOpacity: 0.16,
+      assistOnly: true
+    });
+    this.addPlatform("crown-bridge", [54.85, 6.35, 11.8], [4.55, 0.42, 2.45], {
+      material: "bridge",
+      activeWhen: () => this.state.crown,
+      ghost: true,
+      ghostOpacity: 0.11
+    });
+    this.addPlatform("crown-garden", [58.4, 6.35, 10.95], [5.95, 1, 5.95], { material: "rune" });
 
     this.addSwitch("bridge", [0, 0.64, -8.2], "Lichtbruecke aktiv");
     this.addSwitch("lift", [8.4, 0.64, -6.75], "Runenlift aktiv");
     this.addSwitch("spire", [8.6, 0.64, 22.55], "Mondspitze geoeffnet");
     this.addSwitch("echo", [26.9, 3.64, 22.65], "Echo-Bruecke aktiv");
+    this.addSwitch("crown", [43.2, 5.09, 20.2], "Aurora-Bruecke aktiv");
     this.addBouncePad([-7.35, 0.64, 1.8]);
     this.addBouncePad([8.6, 0.64, 21.25]);
     this.addBouncePad([35.0, 3.64, 21.35]);
+    this.addBouncePad([51.15, 6.39, 14.6]);
     this.addShard("east", [8.4, 1.72, -8.2]);
     this.addShard("sky", [-12.05, 5.22, 1.8]);
     this.addShard("south", [0, 1.72, 14.55]);
@@ -582,14 +605,20 @@ class RuneLiftGame {
     this.addShard("moon", [18.3, 4.55, 22.65]);
     this.addShard("echo", [26.9, 4.72, 24.25]);
     this.addShard("sunrise", [43.2, 6.0, 20.2]);
+    this.addShard("aurora", [51.15, 7.12, 14.6]);
+    this.addShard("crown", [58.4, 8.02, 10.95]);
     this.addHazard([-1.7, 0.72, 14.25], 0.78);
     this.addHazard([1.55, 0.72, 15.1], 0.68);
     this.addHazard([14.1, 3.04, 17.7], 0.58);
     this.addHazard([18.9, 4.25, 21.1], 0.64);
     this.addHazard([35.0, 3.72, 24.25], 0.58);
+    this.addHazard([54.75, 7.0, 11.8], 0.52);
     this.addPortal();
     this.addGuideWisps();
     this.addSafetyNets();
+    this.addRouteRails();
+    this.addAuroraRibbons();
+    this.addGuideCompass();
     this.addDecor();
   }
 
@@ -759,7 +788,8 @@ class RuneLiftGame {
       [0, 1.08, 5.0], [0, 1.08, 10.2], [0, 1.08, 14.55], [0, 1.08, 20.2],
       [8.6, 1.08, 22.55], [12.4, 1.95, 19.6], [15.35, 3.45, 16.4], [16.8, 4.0, 15.2],
       [18.3, 4.0, 22.65], [22.8, 4.0, 22.65], [26.9, 4.0, 22.65], [31.0, 4.0, 22.65],
-      [35.0, 4.0, 22.65], [37.75, 4.78, 20.2], [40.35, 5.38, 20.2], [43.2, 5.5, 20.2]
+      [35.0, 4.0, 22.65], [37.75, 4.78, 20.2], [40.35, 5.38, 20.2], [43.2, 5.5, 20.2],
+      [47.6, 5.8, 17.65], [51.15, 6.8, 14.6], [54.85, 7.25, 11.8], [58.4, 7.5, 10.95]
     ];
     const geometry = new THREE.OctahedronGeometry(0.16, 0);
     const material = new THREE.MeshBasicMaterial({
@@ -796,7 +826,9 @@ class RuneLiftGame {
       [[5.9, -0.82, 22.55], [10.4, 3.4]],
       [[15.1, 2.2, 18.7], [10.8, 5.2]],
       [[29.4, 2.18, 22.65], [9.8, 4.4]],
-      [[39.8, 3.6, 21.2], [9.2, 4.6]]
+      [[39.8, 3.6, 21.2], [9.2, 4.6]],
+      [[50.3, 4.2, 15.2], [9.8, 5.4]],
+      [[56.7, 5.15, 11.5], [8.6, 4.6]]
     ];
 
     for (const [position, size] of nets) {
@@ -807,6 +839,88 @@ class RuneLiftGame {
       this.scene.add(net);
       this.safetyNets.push(net);
     }
+  }
+
+  addRouteRails() {
+    const route = [
+      [0, 0.72, 0], [0, 0.72, -8.2], [8.4, 0.72, -8.2], [0, 0.72, 14.55],
+      [0, 0.72, 22.55], [8.6, 0.72, 22.55], [16.8, 3.7, 15.2], [18.3, 3.7, 22.65],
+      [26.9, 3.7, 22.65], [35.0, 3.7, 22.65], [43.2, 5.15, 20.2],
+      [51.15, 6.45, 14.6], [58.4, 7.05, 10.95]
+    ];
+    const positions = [];
+    for (let i = 0; i < route.length - 1; i += 1) {
+      positions.push(...route[i], ...route[i + 1]);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const material = new THREE.LineBasicMaterial({
+      color: 0xf6d36d,
+      transparent: true,
+      opacity: this.performanceMode ? 0.08 : 0.18,
+      depthWrite: false
+    });
+    this.routeRail = new THREE.LineSegments(geometry, material);
+    this.scene.add(this.routeRail);
+  }
+
+  addAuroraRibbons() {
+    const ribbonCount = this.performanceMode ? 2 : 4;
+    const colors = [0x7fe1c0, 0xf2c14e, 0xa8d8ff, 0xf4f0e7];
+    for (let i = 0; i < ribbonCount; i += 1) {
+      const ribbon = new THREE.Mesh(
+        new THREE.PlaneGeometry(22 - i * 2.4, 1.9 + i * 0.28, 1, 1),
+        new THREE.MeshBasicMaterial({
+          color: colors[i],
+          transparent: true,
+          opacity: 0.12,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        })
+      );
+      ribbon.position.set(49.5 + i * 2.2, 11.8 + i * 0.55, 9.6 - i * 1.25);
+      ribbon.rotation.set(-0.38 + i * 0.04, 0.7 - i * 0.08, 0.12 + i * 0.1);
+      this.scene.add(ribbon);
+      this.auroraRibbons.push({ mesh: ribbon, baseY: ribbon.position.y, phase: i * 0.7 });
+    }
+  }
+
+  addGuideCompass() {
+    this.compassGroup = new THREE.Group();
+    const compassMaterial = new THREE.MeshBasicMaterial({
+      color: 0xf6d36d,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false
+    });
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0x7fe1c0,
+      transparent: true,
+      opacity: 0.48,
+      depthWrite: false
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.024, 6, 34), ringMaterial);
+    ring.rotation.x = Math.PI / 2;
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.48, 3), compassMaterial);
+    arrow.rotation.x = Math.PI / 2;
+    arrow.position.z = 0.34;
+    this.compassGroup.add(ring, arrow);
+    this.compassGroup.visible = false;
+    this.scene.add(this.compassGroup);
+    this.compassMaterials = [compassMaterial, ringMaterial];
+
+    this.checkpointBeacon = new THREE.Mesh(
+      new THREE.TorusGeometry(0.62, 0.025, 6, 38),
+      new THREE.MeshBasicMaterial({
+        color: 0x7fe1c0,
+        transparent: true,
+        opacity: 0.34,
+        depthWrite: false
+      })
+    );
+    this.checkpointBeacon.rotation.x = Math.PI / 2;
+    this.checkpointBeacon.visible = false;
+    this.scene.add(this.checkpointBeacon);
   }
 
   addPortal() {
@@ -828,7 +942,7 @@ class RuneLiftGame {
     light.position.z = -0.3;
     light.intensity = this.performanceMode ? 0 : 1.2;
     this.portal.add(ring, inner, light);
-    this.portal.position.set(43.2, 5.9, 20.2);
+    this.portal.position.set(58.4, 7.85, 10.95);
     this.scene.add(this.portal);
   }
 
@@ -850,7 +964,8 @@ class RuneLiftGame {
       [-2.4, 1.7, -10.2], [2.4, 1.7, -10.2], [10.2, 1.7, -10], [6.6, 1.7, -6.4],
       [-13.8, 5.7, -0.2], [-10.3, 5.7, 3.8], [-2.1, 1.7, 24.8], [2.1, 1.7, 24.8],
       [7.0, 1.7, 24.6], [10.1, 1.7, 20.4], [16.2, 5.0, 13.4], [20.1, 5.0, 24.9],
-      [25.0, 4.7, 25.6], [29.5, 4.7, 20.2], [41.3, 6.1, 17.7], [45.3, 6.1, 23.0]
+      [25.0, 4.7, 25.6], [29.5, 4.7, 20.2], [41.3, 6.1, 17.7], [45.3, 6.1, 23.0],
+      [50.0, 7.4, 12.5], [53.5, 7.9, 16.0], [56.0, 8.4, 8.3], [60.9, 8.4, 13.4]
     ];
     const dummy = new THREE.Object3D();
     const pillars = new THREE.InstancedMesh(pillarGeometry, pillarMaterial, corners.length);
@@ -884,7 +999,8 @@ class RuneLiftGame {
     const crystalAnchors = [
       [-2.8, 0.78, -2.2], [2.6, 0.78, 2.4], [9.9, 0.78, -10.3], [-12.9, 4.82, 3.8],
       [1.9, 0.78, 16.8], [7.3, 0.78, 20.9], [12.7, 1.94, 19.2], [18.8, 4.38, 24.8],
-      [27.7, 3.78, 24.9], [36.6, 3.78, 24.6], [43.6, 5.22, 22.7]
+      [27.7, 3.78, 24.9], [36.6, 3.78, 24.6], [43.6, 5.22, 22.7],
+      [50.0, 6.48, 12.9], [56.0, 7.06, 8.8], [60.3, 7.06, 12.8]
     ];
     const crystals = new THREE.InstancedMesh(crystalGeometry, crystalMaterial, crystalAnchors.length * 3);
     let instance = 0;
@@ -1054,7 +1170,7 @@ class RuneLiftGame {
     const width = this.shell.clientWidth;
     const height = this.shell.clientHeight;
     const compact = width < 760;
-    const cap = this.framePressure.qualityReduced ? (compact ? 0.72 : 0.9) : compact ? 0.9 : 1.15;
+    const cap = this.framePressure.qualityReduced ? (compact ? 0.62 : 0.82) : compact ? 0.82 : 1;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / Math.max(1, height);
@@ -1342,6 +1458,35 @@ class RuneLiftGame {
     }
   }
 
+  getNextObjectivePosition() {
+    const nextShard = this.shards.find((shard) => !shard.collected);
+    return nextShard ? nextShard.group.position : this.portal.position;
+  }
+
+  updateGuideCompass() {
+    if (!this.compassGroup || !this.checkpointBeacon) return;
+    const visible = this.running && !this.finished;
+    this.compassGroup.visible = visible;
+    this.checkpointBeacon.visible = visible && this.assistMode;
+    if (!visible) return;
+
+    const target = this.getNextObjectivePosition();
+    const dx = target.x - this.player.position.x;
+    const dz = target.z - this.player.position.z;
+    this.compassGroup.position.copy(this.player.position);
+    this.compassGroup.position.y += 1.42 + Math.sin(this.elapsed * 2.2) * 0.06;
+    this.compassGroup.rotation.y = Math.atan2(dx, dz);
+    this.compassGroup.rotation.z = Math.sin(this.elapsed * 3.4) * 0.06;
+    this.compassGroup.scale.setScalar(this.assistMode ? 1 : 0.82);
+    this.compassMaterials[0].opacity = this.assistMode ? 0.86 : 0.48;
+    this.compassMaterials[1].opacity = this.assistMode ? 0.5 : 0.24;
+
+    this.checkpointBeacon.position.copy(this.player.checkpoint);
+    this.checkpointBeacon.position.y -= 0.62;
+    this.checkpointBeacon.rotation.z += 0.018;
+    this.checkpointBeacon.material.opacity = 0.27 + Math.sin(this.elapsed * 2.4) * 0.08;
+  }
+
   animateScene(dt) {
     if (this.moteField?.visible) {
       this.moteField.rotation.y += dt * 0.015;
@@ -1390,6 +1535,13 @@ class RuneLiftGame {
       this.portal.children[2].intensity = portalOpen ? 2.4 + Math.sin(this.elapsed * 4) * 0.28 : 0.55;
     }
 
+    for (const ribbon of this.auroraRibbons) {
+      ribbon.mesh.position.y = ribbon.baseY + Math.sin(this.elapsed * 0.8 + ribbon.phase) * 0.28;
+      ribbon.mesh.material.opacity = 0.09 + Math.sin(this.elapsed * 0.9 + ribbon.phase) * 0.035;
+    }
+
+    this.updateGuideCompass();
+
     const moveAmount = Math.hypot(this.player.velocity.x, this.player.velocity.z);
     if (moveAmount > 0.2) {
       this.playerGroup.rotation.y = Math.atan2(this.player.velocity.x, this.player.velocity.z);
@@ -1430,6 +1582,10 @@ class RuneLiftGame {
     if (this.state.echo || this.collected >= 6) {
       level = `${mode} IV`;
       text = this.collected < this.totalShards ? "Ebene IV - Prismengarten" : "Ebene IV - Betritt das Sonnenportal";
+    }
+    if (this.state.crown || this.collected >= 8) {
+      level = `${mode} V`;
+      text = this.collected < this.totalShards ? "Ebene V - Aurora-Krone" : "Ebene V - Portal bereit";
     }
     if (this.finished) text = "Runenpfad geloest";
 
