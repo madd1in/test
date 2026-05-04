@@ -1,6 +1,6 @@
 # Rune Lift 3D
 
-A static Three.js puzzle platformer with swipe touch controls, locally generated materials, calm BGM from `Downloads`, three puzzle layers, and short SFX.
+A forgiving static Three.js puzzle platformer with double jump, wide ghost bridges that are always safe to stand on, helper ledges, guide wisps, visible safety nets, swipe touch controls, locally generated materials, calm BGM from `Downloads`, three puzzle layers, and short SFX.
 
 ## Run locally
 
@@ -14,5 +14,5 @@ Open `http://localhost:4177`.
 
 ## Controls
 
-- Keyboard: WASD or arrow keys to move, Space to jump, R to reset, M to mute.
-- Touch: drag to move, swipe up to jump, swipe down to reset.
+- Keyboard: WASD or arrow keys to move, Space to jump or double jump, R to reset, M to mute.
+- Touch: drag to move, swipe up to jump or double jump, swipe down to reset.

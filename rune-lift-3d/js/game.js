@@ -242,6 +242,16 @@ class RuneLiftGame {
     this.state = { bridge: false, lift: false, spire: false };
     this.hudState = { objective: "", count: "", level: "" };
     this.framePressure = { slowTime: 0, qualityReduced: false };
+    this.assist = {
+      maxJumps: 2,
+      coyoteTime: 0.34,
+      jumpBufferTime: 0.3,
+      landingForgiveness: 1.75,
+      platformMargin: 1.12,
+      rescueY: -1.15,
+      switchRadius: 1.65,
+      shardRadius: 1.95
+    };
 
     this.keys = new Set();
     this.touch = {
@@ -263,7 +273,10 @@ class RuneLiftGame {
       height: 1.32,
       grounded: false,
       currentPlatform: null,
-      safeTimer: 0
+      safeTimer: 0,
+      coyoteTimer: 0,
+      jumpBufferTimer: 0,
+      jumpsRemaining: 2
     };
 
     this.moveInput = new THREE.Vector2();
@@ -276,6 +289,7 @@ class RuneLiftGame {
     this.shards = [];
     this.bouncePads = [];
     this.hazards = [];
+    this.guideWisps = [];
 
     this.createLights();
     this.createMaterials();
@@ -414,67 +428,85 @@ class RuneLiftGame {
 
   createLevel() {
     this.addPlatform("hub", [0, 0, 0], [6, 1, 6], { material: "stone" });
-    this.addPlatform("north-walk", [0, 0, -4.7], [2.25, 0.55, 3.7], { material: "moss" });
+    this.addPlatform("north-walk", [0, 0, -4.7], [3.15, 0.55, 3.9], { material: "moss" });
     this.addPlatform("north", [0, 0, -8.2], [4.8, 1, 4.8], { material: "rune" });
-    this.addPlatform("light-bridge", [4.55, 0, -8.2], [4.8, 0.42, 1.8], {
+    this.addPlatform("light-bridge", [4.55, 0, -8.2], [5.35, 0.42, 2.65], {
       material: "bridge",
       activeWhen: () => this.state.bridge,
       ghost: true,
       ghostOpacity: 0.13
     });
     this.addPlatform("east", [8.4, 0, -8.2], [4.8, 1, 4.8], { material: "moss" });
-    this.addPlatform("west-walk", [-4.1, 0, 1.8], [3.5, 0.55, 1.9], { material: "moss" });
+    this.addPlatform("west-walk", [-4.1, 0, 1.8], [4.25, 0.55, 2.65], { material: "moss" });
     this.addPlatform("west", [-7.35, 0, 1.8], [4.4, 1, 4.4], { material: "stone" });
-    this.addPlatform("sky-step", [-9.8, 2.15, 1.8], [2.9, 0.62, 2.9], { material: "lift" });
-    this.addPlatform("sky-ledge", [-12.05, 4.05, 1.8], [4.8, 1, 4.8], { material: "rune" });
-    this.addPlatform("south-dock", [0, 0, 4.95], [3.25, 0.55, 3.45], { material: "stone" });
+    this.addPlatform("sky-step", [-9.75, 1.75, 1.8], [3.55, 0.62, 3.4], { material: "lift" });
+    this.addPlatform("sky-helper-ledge", [-10.95, 2.85, 1.8], [4.05, 0.46, 3.15], {
+      material: "bridge",
+      ghost: true,
+      ghostOpacity: 0.16
+    });
+    this.addPlatform("sky-ledge", [-12.05, 3.55, 1.8], [5.15, 1, 5.15], { material: "rune" });
+    this.addPlatform("south-dock", [0, 0, 4.95], [4.25, 0.55, 4.05], { material: "stone" });
     this.addPlatform("moving-lift", [0, 0, 9.55], [3.15, 0.55, 3.15], {
       material: "lift",
       activeWhen: () => this.state.lift,
-      moving: { axis: [0, 0, 1], range: 3.25, speed: 0.82, phase: 0.1 },
-      ghost: false
+      moving: { axis: [0, 0, 1], range: 2.4, speed: 0.55, phase: 0.1 },
+      ghost: true,
+      ghostOpacity: 0.2
     });
-    this.addPlatform("south", [0, 0, 14.55], [5.2, 1, 5.2], { material: "moss" });
-    this.addPlatform("portal-bridge", [0, 0, 18.65], [2.4, 0.44, 4.25], {
+    this.addPlatform("south-helper-bridge", [0, -0.02, 10.1], [3.75, 0.38, 8.8], {
+      material: "bridge",
+      ghost: true,
+      ghostOpacity: 0.15
+    });
+    this.addPlatform("south", [0, 0, 14.55], [5.85, 1, 5.85], { material: "moss" });
+    this.addPlatform("portal-bridge", [0, 0, 18.65], [3.7, 0.44, 5.45], {
       material: "bridge",
       activeWhen: () => this.collected >= 3,
       ghost: true,
       ghostOpacity: 0.11
     });
     this.addPlatform("portal-island", [0, 0, 22.55], [5.5, 1, 5.5], { material: "rune" });
-    this.addPlatform("threshold-bridge", [4.75, 0, 22.55], [4.55, 0.42, 1.7], {
+    this.addPlatform("threshold-bridge", [4.75, 0, 22.55], [5.45, 0.42, 2.55], {
       material: "bridge",
       activeWhen: () => this.collected >= 3,
       ghost: true,
       ghostOpacity: 0.1
     });
     this.addPlatform("spire-foyer", [8.6, 0, 22.55], [4.9, 1, 4.9], { material: "stone" });
-    this.addPlatform("spiral-low", [11.65, 1.15, 20.2], [3.1, 0.58, 2.8], { material: "moss" });
-    this.addPlatform("spiral-mid", [14.1, 2.35, 17.7], [3.1, 0.58, 2.8], { material: "lift" });
-    this.addPlatform("spiral-high", [16.8, 3.6, 15.2], [3.3, 0.62, 3.3], { material: "stone" });
-    this.addPlatform("spire-bridge", [17.7, 3.6, 18.75], [2.0, 0.42, 5.35], {
+    this.addPlatform("spiral-low", [11.65, 0.92, 20.2], [4.0, 0.58, 3.55], { material: "moss" });
+    this.addPlatform("spiral-mid", [14.1, 1.9, 17.7], [4.0, 0.58, 3.55], { material: "lift" });
+    this.addPlatform("spiral-high", [16.8, 3.0, 15.2], [4.25, 0.62, 4.05], { material: "stone" });
+    this.addPlatform("spire-helper-bridge", [15.35, 2.45, 16.4], [3.9, 0.42, 3.8], {
+      material: "bridge",
+      ghost: true,
+      ghostOpacity: 0.15
+    });
+    this.addPlatform("spire-bridge", [17.7, 3.0, 18.75], [3.15, 0.42, 5.75], {
       material: "bridge",
       activeWhen: () => this.state.spire,
       ghost: true,
       ghostOpacity: 0.1
     });
-    this.addPlatform("moon-gate", [18.3, 3.6, 22.65], [5.25, 1, 5.25], { material: "rune" });
+    this.addPlatform("moon-gate", [18.3, 3.0, 22.65], [5.75, 1, 5.75], { material: "rune" });
 
-    this.addSwitch("bridge", [0, 0.64, -8.2], "Lichtbrücke aktiv");
+    this.addSwitch("bridge", [0, 0.64, -8.2], "Lichtbruecke aktiv");
     this.addSwitch("lift", [8.4, 0.64, -6.75], "Runenlift aktiv");
-    this.addSwitch("spire", [8.6, 0.64, 22.55], "Mondspitze geöffnet");
+    this.addSwitch("spire", [8.6, 0.64, 22.55], "Mondspitze geoeffnet");
     this.addBouncePad([-7.35, 0.64, 1.8]);
     this.addBouncePad([8.6, 0.64, 21.25]);
     this.addShard("east", [8.4, 1.72, -8.2]);
-    this.addShard("sky", [-12.05, 5.72, 1.8]);
+    this.addShard("sky", [-12.05, 5.22, 1.8]);
     this.addShard("south", [0, 1.72, 14.55]);
-    this.addShard("spire", [16.8, 5.05, 15.2]);
-    this.addShard("moon", [18.3, 5.15, 22.65]);
+    this.addShard("spire", [16.8, 4.45, 15.2]);
+    this.addShard("moon", [18.3, 4.55, 22.65]);
     this.addHazard([-1.7, 0.72, 14.25], 0.78);
     this.addHazard([1.55, 0.72, 15.1], 0.68);
     this.addHazard([14.1, 3.04, 17.7], 0.58);
     this.addHazard([18.9, 4.25, 21.1], 0.64);
     this.addPortal();
+    this.addGuideWisps();
+    this.addSafetyNets();
     this.addDecor();
   }
 
@@ -516,9 +548,11 @@ class RuneLiftGame {
         : null,
       activeWhen: options.activeWhen ?? null,
       ghost: Boolean(options.ghost),
+      supportWhenGhost: options.supportWhenGhost ?? true,
       active: true,
+      solid: true,
       activeOpacity: material.opacity,
-      ghostOpacity: options.ghostOpacity ?? 0.16
+      ghostOpacity: Math.max(options.ghostOpacity ?? 0.18, 0.2)
     };
     this.platforms.push(platform);
     return platform;
@@ -628,6 +662,54 @@ class RuneLiftGame {
     this.hazards.push({ group, radius });
   }
 
+  addGuideWisps() {
+    const path = [
+      [0, 1.08, -2.8], [0, 1.08, -5.8], [1.9, 1.08, -8.2], [5.0, 1.08, -8.2],
+      [8.4, 1.08, -8.2], [5.6, 1.08, -3.4], [0, 1.08, 2.8], [-4.1, 1.08, 1.8],
+      [-7.35, 1.08, 1.8], [-9.8, 2.7, 1.8], [-10.95, 3.8, 1.8], [-12.05, 4.58, 1.8],
+      [0, 1.08, 5.0], [0, 1.08, 10.2], [0, 1.08, 14.55], [0, 1.08, 20.2],
+      [8.6, 1.08, 22.55], [12.4, 1.95, 19.6], [15.35, 3.45, 16.4], [16.8, 4.0, 15.2], [18.3, 4.0, 22.65]
+    ];
+    const geometry = new THREE.OctahedronGeometry(0.16, 0);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x9ff5d8,
+      transparent: true,
+      opacity: 0.72
+    });
+    path.forEach((position, index) => {
+      const wisp = new THREE.Mesh(geometry, material.clone());
+      wisp.position.set(...position);
+      wisp.rotation.y = index * 0.6;
+      this.scene.add(wisp);
+      this.guideWisps.push({ mesh: wisp, baseY: position[1], phase: index * 0.7 });
+    });
+  }
+
+  addSafetyNets() {
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x7fe1c0,
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const nets = [
+      [[0, -0.82, -4.1], [5.8, 4.6]],
+      [[4.7, -0.82, -8.2], [7.2, 3.2]],
+      [[-6.9, -0.82, 1.8], [7.4, 3.2]],
+      [[0, -0.82, 10.0], [4.6, 9.0]],
+      [[5.9, -0.82, 22.55], [10.4, 3.4]],
+      [[15.1, 2.2, 18.7], [10.8, 5.2]]
+    ];
+
+    for (const [position, size] of nets) {
+      const net = new THREE.Mesh(new THREE.PlaneGeometry(size[0], size[1], 1, 1), material.clone());
+      net.position.set(...position);
+      net.rotation.x = -Math.PI / 2;
+      this.scene.add(net);
+    }
+  }
+
   addPortal() {
     this.portal = new THREE.Group();
     const ring = new THREE.Mesh(
@@ -646,7 +728,7 @@ class RuneLiftGame {
     const light = new THREE.PointLight(0xf2c14e, 1.2, 9, 1.8);
     light.position.z = -0.3;
     this.portal.add(ring, inner, light);
-    this.portal.position.set(18.3, 5.05, 22.65);
+    this.portal.position.set(18.3, 4.45, 22.65);
     this.scene.add(this.portal);
   }
 
@@ -846,6 +928,9 @@ class RuneLiftGame {
     this.player.checkpoint.set(0, 1.42, 0);
     this.player.grounded = false;
     this.player.currentPlatform = null;
+    this.player.coyoteTimer = 0;
+    this.player.jumpBufferTimer = 0;
+    this.player.jumpsRemaining = this.assist.maxJumps;
     this.switches.forEach((switchPlate) => {
       switchPlate.active = false;
       switchPlate.light.intensity = 0.15;
@@ -855,11 +940,12 @@ class RuneLiftGame {
       shard.group.visible = true;
     });
     this.audio.unlock();
-    this.showToast("Der Runenpfad erwacht");
+    this.showToast("Easy Mode: Double Jump aktiv");
   }
 
   requestJump() {
     this.jumpQueued = true;
+    this.player.jumpBufferTimer = this.assist.jumpBufferTime;
   }
 
   tick() {
@@ -901,6 +987,7 @@ class RuneLiftGame {
     for (const platform of this.platforms) {
       platform.previousPosition.copy(platform.position);
       platform.active = platform.activeWhen ? Boolean(platform.activeWhen()) : true;
+      platform.solid = platform.active || (platform.ghost && platform.supportWhenGhost);
       platform.position.copy(platform.basePosition);
       if (platform.moving && platform.active) {
         const amount = Math.sin(this.elapsed * platform.moving.speed + platform.moving.phase) * platform.moving.range;
@@ -912,7 +999,7 @@ class RuneLiftGame {
       platform.mesh.visible = platform.active || platform.ghost;
       platform.mesh.material.transparent = platform.ghost || platform.mesh.material.transparent;
       platform.mesh.material.opacity = platform.active ? platform.activeOpacity : platform.ghostOpacity;
-      platform.edges.material.opacity = platform.active ? 0.22 : 0.11;
+      platform.edges.material.opacity = platform.solid ? 0.26 : 0.08;
     }
   }
 
@@ -936,8 +1023,8 @@ class RuneLiftGame {
 
   updatePlayer(dt) {
     const input = this.readMoveInput();
-    const speed = this.player.grounded ? 5.35 : 4.3;
-    const acceleration = this.player.grounded ? 28 : 12;
+    const speed = this.player.grounded ? 4.7 : 4.05;
+    const acceleration = this.player.grounded ? 22 : 13;
 
     if (this.player.grounded && this.player.currentPlatform?.active) {
       this.player.position.add(this.player.currentPlatform.delta);
@@ -946,24 +1033,36 @@ class RuneLiftGame {
     this.player.velocity.x = approach(this.player.velocity.x, input.x * speed, acceleration * dt);
     this.player.velocity.z = approach(this.player.velocity.z, input.y * speed, acceleration * dt);
 
-    if (this.jumpQueued && this.player.grounded) {
-      this.player.velocity.y = 7.25;
+    this.player.coyoteTimer = this.player.grounded
+      ? this.assist.coyoteTime
+      : Math.max(0, this.player.coyoteTimer - dt);
+    this.player.jumpBufferTimer = Math.max(0, this.player.jumpBufferTimer - dt);
+    const wantsJump = this.jumpQueued || this.player.jumpBufferTimer > 0;
+    const canGroundJump = this.player.grounded || this.player.coyoteTimer > 0;
+    const canDoubleJump = this.player.jumpsRemaining > 0;
+    if (wantsJump && (canGroundJump || canDoubleJump)) {
+      const doubleJump = !canGroundJump;
+      this.player.velocity.y = doubleJump ? 7.05 : 7.7;
       this.player.grounded = false;
       this.player.currentPlatform = null;
-      this.audio.play("jump", 0.5, 1.28, 70);
+      this.player.coyoteTimer = 0;
+      this.player.jumpBufferTimer = 0;
+      this.player.jumpsRemaining = doubleJump ? Math.max(0, this.player.jumpsRemaining - 1) : this.assist.maxJumps - 1;
+      this.audio.play("jump", 0.48, doubleJump ? 1.58 : 1.18, 70);
+      if (doubleJump) this.showToast("Double Jump");
     }
     this.jumpQueued = false;
 
     const previousFeet = this.player.position.y - this.player.height * 0.5;
-    this.player.velocity.y -= 18.4 * dt;
-    this.player.velocity.y = Math.max(this.player.velocity.y, -24);
+    this.player.velocity.y -= 15.8 * dt;
+    this.player.velocity.y = Math.max(this.player.velocity.y, -16);
     this.player.position.x += this.player.velocity.x * dt;
     this.player.position.z += this.player.velocity.z * dt;
     this.player.position.y += this.player.velocity.y * dt;
 
     this.resolveGround(previousFeet);
-    if (this.player.position.y < -7.5) {
-      this.resetPlayer("Vom Pfad gefallen");
+    if (this.player.position.y < this.assist.rescueY) {
+      this.recoverPlayer("Fangnetz");
     }
     this.updateCheckpoint(dt);
     this.syncPlayerMesh();
@@ -976,12 +1075,14 @@ class RuneLiftGame {
 
     if (this.player.velocity.y <= 0) {
       for (const platform of this.platforms) {
-        if (!platform.active) continue;
+        if (!platform.solid) continue;
         const top = platform.position.y + platform.size.y * 0.5;
-        const xOverlap = Math.abs(this.player.position.x - platform.position.x) <= platform.size.x * 0.5 + this.player.radius;
-        const zOverlap = Math.abs(this.player.position.z - platform.position.z) <= platform.size.z * 0.5 + this.player.radius;
+        const xOverlap = Math.abs(this.player.position.x - platform.position.x) <= platform.size.x * 0.5 + this.assist.platformMargin;
+        const zOverlap = Math.abs(this.player.position.z - platform.position.z) <= platform.size.z * 0.5 + this.assist.platformMargin;
         if (!xOverlap || !zOverlap) continue;
-        if (previousFeet >= top - 0.1 && feet <= top + 0.1 && top > bestTop) {
+        const crossedTop = previousFeet >= top - this.assist.landingForgiveness && feet <= top + this.assist.landingForgiveness;
+        const closeAbove = feet >= top - this.assist.landingForgiveness && feet <= top + 0.35;
+        if ((crossedTop || closeAbove) && top > bestTop) {
           bestTop = top;
           landedPlatform = platform;
         }
@@ -997,6 +1098,8 @@ class RuneLiftGame {
       this.player.velocity.y = 0;
       this.player.grounded = true;
       this.player.currentPlatform = landedPlatform;
+      this.player.coyoteTimer = this.assist.coyoteTime;
+      this.player.jumpsRemaining = this.assist.maxJumps;
     } else {
       this.player.grounded = false;
       this.player.currentPlatform = null;
@@ -1023,7 +1126,7 @@ class RuneLiftGame {
 
     for (const switchPlate of this.switches) {
       if (switchPlate.active) continue;
-      if (distanceXZ(this.player.position, switchPlate.group.position) < 0.78 && Math.abs(feetY - switchPlate.group.position.y) < 0.6) {
+      if (distanceXZ(this.player.position, switchPlate.group.position) < this.assist.switchRadius && Math.abs(feetY - switchPlate.group.position.y) < 0.9) {
         switchPlate.active = true;
         this.state[switchPlate.id] = true;
         this.audio.play("switch", 0.58, switchPlate.id === "lift" ? 1.12 : 0.96, 120);
@@ -1046,18 +1149,22 @@ class RuneLiftGame {
 
     for (const shard of this.shards) {
       if (shard.collected) continue;
-      if (this.player.position.distanceTo(shard.group.position) < 1.05) {
+      if (this.player.position.distanceTo(shard.group.position) < this.assist.shardRadius) {
         shard.collected = true;
         shard.group.visible = false;
         this.collected += 1;
         this.audio.play("switch", 0.48, 1.34 + this.collected * 0.08, 60);
-        this.showToast(this.collected >= this.totalShards ? "Mondportal geöffnet" : "Runensplitter geborgen");
+        this.showToast(this.collected >= this.totalShards ? "Mondportal geoeffnet" : "Runensplitter geborgen");
       }
     }
 
     for (const hazard of this.hazards) {
-      if (distanceXZ(this.player.position, hazard.group.position) < hazard.radius + 0.35 && Math.abs(this.player.position.y - hazard.group.position.y) < 1.2) {
-        this.resetPlayer("Instabile Rune");
+      if (distanceXZ(this.player.position, hazard.group.position) < hazard.radius + 0.08 && Math.abs(this.player.position.y - hazard.group.position.y) < 1.0) {
+        this.player.velocity.y = 5.8;
+        this.player.velocity.x *= -0.35;
+        this.player.velocity.z *= -0.35;
+        this.player.jumpsRemaining = this.assist.maxJumps;
+        this.showToast("Runenpuffer");
         return;
       }
     }
@@ -1088,6 +1195,12 @@ class RuneLiftGame {
     for (const hazard of this.hazards) {
       hazard.group.rotation.x += dt * 1.2;
       hazard.group.rotation.y -= dt * 1.8;
+    }
+
+    for (const wisp of this.guideWisps) {
+      wisp.mesh.rotation.y += dt * 1.3;
+      wisp.mesh.position.y = wisp.baseY + Math.sin(this.elapsed * 2.2 + wisp.phase) * 0.12;
+      wisp.mesh.material.opacity = 0.44 + Math.sin(this.elapsed * 2.6 + wisp.phase) * 0.18;
     }
 
     const portalOpen = this.collected >= this.totalShards;
@@ -1121,18 +1234,18 @@ class RuneLiftGame {
   updateHud() {
     const count = `${this.collected}/${this.totalShards}`;
     let level = "Ebene I";
-    let text = "Ebene I · Aktiviere die Nordrune";
-    if (this.state.bridge && !this.state.lift) text = "Ebene I · Folge der Lichtbrücke";
-    if (this.state.lift && this.collected < 3) text = "Ebene I · Sammle die ersten Splitter";
+    let text = "Ebene I - Folge den Wisps";
+    if (this.state.bridge && !this.state.lift) text = "Ebene I - Bruecken sind sicher";
+    if (this.state.lift && this.collected < 3) text = "Ebene I - Double Jump hilft";
     if (this.collected >= 3) {
       level = "Ebene II";
-      text = "Ebene II · Öffne die Mondspitze";
+      text = "Ebene II - Keine Eile, Fangnetze halten";
     }
     if (this.state.spire) {
       level = "Ebene III";
-      text = this.collected < this.totalShards ? "Ebene III · Steig zur Mondpforte" : "Ebene III · Betritt das Mondportal";
+      text = this.collected < this.totalShards ? "Ebene III - Folge den hellen Wisps" : "Ebene III - Betritt das Mondportal";
     }
-    if (this.finished) text = "Runenpfad gelöst";
+    if (this.finished) text = "Runenpfad geloest";
 
     if (this.hudState.count !== count) {
       this.hudState.count = count;
@@ -1150,10 +1263,18 @@ class RuneLiftGame {
 
   resetPlayer(message) {
     if (!this.running || this.finished) return;
+    this.recoverPlayer(message);
+  }
+
+  recoverPlayer(message) {
     this.player.position.copy(this.player.checkpoint);
+    this.player.position.y += 0.35;
     this.player.velocity.set(0, 0, 0);
     this.player.grounded = false;
     this.player.currentPlatform = null;
+    this.player.coyoteTimer = this.assist.coyoteTime;
+    this.player.jumpBufferTimer = 0;
+    this.player.jumpsRemaining = this.assist.maxJumps;
     this.syncPlayerMesh();
     this.audio.play("reset", 0.42, 1, 150);
     this.showToast(message);
@@ -1165,7 +1286,7 @@ class RuneLiftGame {
     const seconds = Math.max(1, Math.round((performance.now() - this.runStartedAt) / 1000));
     const minutes = Math.floor(seconds / 60);
     const rest = String(seconds % 60).padStart(2, "0");
-    this.finishStats.textContent = `Zeit ${minutes}:${rest} · ${this.totalShards}/${this.totalShards} Runen`;
+    this.finishStats.textContent = `Zeit ${minutes}:${rest} - ${this.totalShards}/${this.totalShards} Runen`;
     this.finishScreen.classList.add("active");
     this.audio.play("switch", 0.62, 1.55, 160);
   }
