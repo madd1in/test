@@ -139,8 +139,9 @@ function paintSky(ctx, size) {
 }
 
 class AudioBus {
-  constructor(button) {
+  constructor(button, onMuteChange = () => {}) {
     this.button = button;
+    this.onMuteChange = onMuteChange;
     this.muted = false;
     this.unlocked = false;
     this.lastPlayed = new Map();
@@ -233,6 +234,7 @@ class AudioBus {
   toggle() {
     this.muted = !this.muted;
     this.button.setAttribute("aria-pressed", String(this.muted));
+    this.onMuteChange(this.muted);
     if (this.muted) {
       if (this.bgm) this.bgm.pause();
       if (this.padGain) this.padGain.gain.setTargetAtTime(0, this.context.currentTime, 0.04);
@@ -285,6 +287,67 @@ class AudioBus {
   }
 }
 
+class LabAI {
+  constructor(caption, line) {
+    this.caption = caption;
+    this.line = line;
+    this.enabled = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    this.unlocked = false;
+    this.muted = false;
+    this.currentKey = "";
+    this.hideTimer = null;
+    this.voice = null;
+  }
+
+  unlock() {
+    this.unlocked = true;
+    this.pickVoice();
+  }
+
+  reset() {
+    this.currentKey = "";
+    clearTimeout(this.hideTimer);
+    window.speechSynthesis?.cancel();
+    this.caption?.classList.remove("visible");
+  }
+
+  setMuted(muted) {
+    this.muted = muted;
+    if (muted) window.speechSynthesis?.cancel();
+  }
+
+  pickVoice() {
+    if (!this.enabled || this.voice) return;
+    const voices = window.speechSynthesis.getVoices?.() ?? [];
+    this.voice =
+      voices.find((voice) => /de/i.test(voice.lang) && /Microsoft|Google|Anna|Katja|Hedda/i.test(voice.name)) ||
+      voices.find((voice) => /de/i.test(voice.lang)) ||
+      voices.find((voice) => /en/i.test(voice.lang)) ||
+      voices[0] ||
+      null;
+  }
+
+  say(message, key = message) {
+    if (!message || this.currentKey === key) return;
+    this.currentKey = key;
+    clearTimeout(this.hideTimer);
+    if (this.line) this.line.textContent = message;
+    this.caption?.classList.add("visible");
+    this.hideTimer = window.setTimeout(() => this.caption?.classList.remove("visible"), 6200);
+
+    if (!this.enabled || !this.unlocked || this.muted) return;
+    this.pickVoice();
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = this.voice?.lang || "de-DE";
+    utterance.voice = this.voice;
+    utterance.rate = 0.78;
+    utterance.pitch = 0.62;
+    utterance.volume = 0.72;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
 class RuneLiftGame {
   constructor() {
     this.canvas = document.querySelector("#scene");
@@ -301,11 +364,14 @@ class RuneLiftGame {
     this.levelValue = document.querySelector("#level-value");
     this.finishStats = document.querySelector("#finish-stats");
     this.toast = document.querySelector("#toast");
+    this.aiCaption = document.querySelector("#ai-caption");
+    this.aiLine = document.querySelector("#ai-line");
     this.touchRing = document.querySelector("#touch-ring");
     this.jumpButton = document.querySelector("#jump-button");
     this.qualityButton = document.querySelector("#quality-button");
     this.fullscreenButton = document.querySelector("#fullscreen-button");
-    this.audio = new AudioBus(document.querySelector("#audio-button"));
+    this.labAi = new LabAI(this.aiCaption, this.aiLine);
+    this.audio = new AudioBus(document.querySelector("#audio-button"), (muted) => this.labAi.setMuted(muted));
     const deviceMemory = navigator.deviceMemory ?? 4;
     const dpr = window.devicePixelRatio || 1;
     this.basePerformanceMode = window.innerWidth < 1200 || dpr > 1.05 || deviceMemory <= 8;
@@ -361,6 +427,7 @@ class RuneLiftGame {
       guardian: false
     };
     this.relayIndex = 0;
+    this.testChamberIndex = -1;
     this.hudState = { objective: "", count: "", level: "" };
     this.framePressure = { slowTime: 0, qualityReduced: this.performanceMode, renderSkip: false };
     this.assistMode = true;
@@ -464,6 +531,7 @@ class RuneLiftGame {
     this.safetyNets = [];
     this.auroraRibbons = [];
     this.eclipseGates = [];
+    this.testFrames = [];
     this.windZones = [];
     this.driftFields = [];
     this.mirrorBeam = null;
@@ -568,6 +636,20 @@ class RuneLiftGame {
         roughness: 0.32,
         metalness: 0.18
       }),
+      playerCloak: new THREE.MeshStandardMaterial({
+        color: 0x26343d,
+        emissive: 0x0c1f22,
+        emissiveIntensity: 0.32,
+        roughness: 0.62,
+        metalness: 0.04
+      }),
+      playerGold: new THREE.MeshStandardMaterial({
+        color: 0xf2c14e,
+        emissive: 0x7a4d18,
+        emissiveIntensity: 0.4,
+        roughness: 0.36,
+        metalness: 0.2
+      }),
       enemy: new THREE.MeshStandardMaterial({
         color: 0x3a303f,
         emissive: 0x241a2b,
@@ -581,6 +663,32 @@ class RuneLiftGame {
         emissiveIntensity: 0.72,
         roughness: 0.34,
         metalness: 0.12
+      }),
+      enemyGold: new THREE.MeshStandardMaterial({
+        color: 0xf2c14e,
+        emissive: 0x704017,
+        emissiveIntensity: 0.52,
+        roughness: 0.32,
+        metalness: 0.2
+      }),
+      testBlue: new THREE.MeshBasicMaterial({
+        color: 0x45b7ff,
+        transparent: true,
+        opacity: this.performanceMode ? 0.38 : 0.56,
+        depthWrite: false
+      }),
+      testOrange: new THREE.MeshBasicMaterial({
+        color: 0xf2a24e,
+        transparent: true,
+        opacity: this.performanceMode ? 0.34 : 0.52,
+        depthWrite: false
+      }),
+      camera: new THREE.MeshStandardMaterial({
+        color: 0xf4f0e7,
+        emissive: 0x263a5f,
+        emissiveIntensity: 0.25,
+        roughness: 0.38,
+        metalness: 0.18
       })
     };
   }
@@ -1061,6 +1169,7 @@ class RuneLiftGame {
       activeWhen: () => this.state.skyKey && !this.state.guardian
     });
     this.addPortal();
+    this.addTestChamberFrames();
     this.addGuideWisps();
     this.addSafetyNets();
     this.addRouteRails();
@@ -1561,6 +1670,25 @@ class RuneLiftGame {
     );
     eye.position.set(0, 1.12, -0.29);
 
+    const leftShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), this.materials.enemyGold.clone());
+    const rightShoulder = leftShoulder.clone();
+    leftShoulder.position.set(-0.36, 0.74, -0.02);
+    rightShoulder.position.set(0.36, 0.74, -0.02);
+
+    const blade = new THREE.Mesh(
+      new THREE.ConeGeometry(0.1, 0.52, 4),
+      this.materials.enemyAccent.clone()
+    );
+    blade.position.set(0.45, 0.52, -0.32);
+    blade.rotation.set(Math.PI * 0.58, 0.22, -0.18);
+
+    const crest = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.022, 5, this.performanceMode ? 18 : 28),
+      this.materials.enemyGold.clone()
+    );
+    crest.position.y = 1.24;
+    crest.rotation.x = Math.PI / 2;
+
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(0.62, 0.025, 5, this.performanceMode ? 18 : 30),
       new THREE.MeshBasicMaterial({
@@ -1573,7 +1701,20 @@ class RuneLiftGame {
     ring.rotation.x = Math.PI / 2;
     ring.position.y = 0.05;
 
-    group.add(body, helm, shield, eye, ring);
+    const pips = [];
+    if (options.hitPoints) {
+      for (let i = 0; i < options.hitPoints; i += 1) {
+        const pip = new THREE.Mesh(
+          new THREE.BoxGeometry(0.14, 0.08, 0.05),
+          new THREE.MeshBasicMaterial({ color: 0x7fe1c0, transparent: true, opacity: 0.9 })
+        );
+        pip.position.set((i - (options.hitPoints - 1) * 0.5) * 0.18, 1.44, -0.24);
+        pips.push(pip);
+        group.add(pip);
+      }
+    }
+
+    group.add(body, helm, shield, eye, leftShoulder, rightShoulder, blade, crest, ring);
     const path = patrolPointsArray.map((point) => new THREE.Vector3(...point));
     group.position.copy(path[0]);
     group.scale.setScalar(options.scale ?? 1);
@@ -1589,6 +1730,7 @@ class RuneLiftGame {
       shield,
       eye,
       ring,
+      pips,
       path,
       speed: options.speed ?? 0.9,
       radius: options.radius ?? 0.64,
@@ -1893,6 +2035,49 @@ class RuneLiftGame {
     this.scene.add(this.portal);
   }
 
+  addTestChamberFrames() {
+    const postGeometry = new THREE.BoxGeometry(0.16, 1.85, 0.16);
+    const beamGeometry = new THREE.BoxGeometry(2.7, 0.16, 0.16);
+    const cameraGeometry = new THREE.ConeGeometry(0.18, 0.42, 6);
+    const lensGeometry = new THREE.SphereGeometry(0.08, this.performanceMode ? 8 : 12, this.performanceMode ? 5 : 8);
+    const frames = [
+      { position: [0, 1.15, -4.7], rotation: 0, phase: 0.2, material: "testBlue" },
+      { position: [0, 1.15, 18.65], rotation: 0, phase: 0.9, material: "testOrange" },
+      { position: [88.85, 9.6, -4.25], rotation: Math.PI / 2, phase: 1.5, material: "testBlue" },
+      { position: [153.1, 15.25, -8.7], rotation: 0, phase: 2.2, material: "testOrange" },
+      { position: [178.55, 17.1, -13.15], rotation: Math.PI / 2, phase: 2.8, material: "testBlue" },
+      { position: [199.2, 18.3, -13.15], rotation: Math.PI / 2, phase: 3.4, material: "testOrange" },
+      { position: [208.35, 18.85, -13.15], rotation: Math.PI / 2, phase: 4.0, material: "testBlue" }
+    ];
+
+    for (const frame of frames) {
+      const group = new THREE.Group();
+      const material = this.materials[frame.material].clone();
+      const left = new THREE.Mesh(postGeometry, material);
+      const right = new THREE.Mesh(postGeometry, material.clone());
+      const top = new THREE.Mesh(beamGeometry, material.clone());
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(1.12, 0.024, 5, this.performanceMode ? 28 : 44),
+        material.clone()
+      );
+      const cameraBody = new THREE.Mesh(cameraGeometry, this.materials.camera.clone());
+      const lens = new THREE.Mesh(lensGeometry, this.materials.testOrange.clone());
+      left.position.set(-1.18, 0.86, 0);
+      right.position.set(1.18, 0.86, 0);
+      top.position.set(0, 1.78, 0);
+      ring.position.y = 0.9;
+      ring.rotation.x = Math.PI / 2;
+      cameraBody.position.set(0, 2.08, -0.2);
+      cameraBody.rotation.x = Math.PI / 2;
+      lens.position.set(0, 2.08, -0.46);
+      group.add(left, right, top, ring, cameraBody, lens);
+      group.position.set(...frame.position);
+      group.rotation.y = frame.rotation;
+      this.scene.add(group);
+      this.testFrames.push({ group, ring, lens, phase: frame.phase });
+    }
+  }
+
   addDecor() {
     const pillarGeometry = new THREE.CylinderGeometry(0.23, 0.31, 2.6, 10);
     const rockGeometry = new THREE.DodecahedronGeometry(0.5, 0);
@@ -1982,23 +2167,75 @@ class RuneLiftGame {
 
   createPlayer() {
     this.playerGroup = new THREE.Group();
+    const shell = this.materials.player.clone();
+    const accent = this.materials.playerAccent.clone();
+    const gold = this.materials.playerGold.clone();
+    const cloak = this.materials.playerCloak.clone();
     const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.34, 0.58, 8, 18),
-      this.materials.player.clone()
+      new THREE.CapsuleGeometry(0.34, 0.64, this.performanceMode ? 6 : 8, this.performanceMode ? 14 : 20),
+      shell
     );
-    body.position.y = 0.03;
+    body.position.y = 0.02;
     body.castShadow = !this.performanceMode;
-    const visor = new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, 0.11, 0.08),
-      this.materials.playerAccent.clone()
+
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, this.performanceMode ? 12 : 18, this.performanceMode ? 8 : 12),
+      shell.clone()
     );
-    visor.position.set(0, 0.32, -0.32);
+    head.position.y = 0.58;
+
+    const hood = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.035, 6, this.performanceMode ? 18 : 30),
+      cloak
+    );
+    hood.position.y = 0.45;
+    hood.rotation.x = Math.PI / 2;
+
+    const visor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.36, 0.1, 0.08),
+      accent
+    );
+    visor.position.set(0, 0.6, -0.24);
+
+    const chestRune = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.12, 0),
+      accent.clone()
+    );
+    chestRune.position.set(0, 0.2, -0.33);
+
+    const belt = new THREE.Mesh(
+      new THREE.TorusGeometry(0.34, 0.026, 5, this.performanceMode ? 18 : 28),
+      gold
+    );
+    belt.position.y = -0.07;
+    belt.rotation.x = Math.PI / 2;
+
     const pack = new THREE.Mesh(
       new THREE.OctahedronGeometry(0.22, 0),
-      this.materials.playerAccent.clone()
+      accent.clone()
     );
     pack.position.set(0, 0.1, 0.39);
-    this.playerGroup.add(body, visor, pack);
+
+    const cape = new THREE.Mesh(
+      new THREE.BoxGeometry(0.52, 0.74, 0.08),
+      cloak.clone()
+    );
+    cape.position.set(0, 0.08, 0.44);
+    cape.rotation.x = -0.16;
+
+    const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.14, 0.28), gold.clone());
+    const rightBoot = leftBoot.clone();
+    leftBoot.position.set(-0.18, -0.6, -0.06);
+    rightBoot.position.set(0.18, -0.6, -0.06);
+
+    const leftWing = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.38, 3), accent.clone());
+    const rightWing = leftWing.clone();
+    leftWing.position.set(-0.4, 0.12, 0.1);
+    rightWing.position.set(0.4, 0.12, 0.1);
+    leftWing.rotation.set(0.25, 0, -0.75);
+    rightWing.rotation.set(0.25, 0, 0.75);
+
+    this.playerGroup.add(body, head, hood, visor, chestRune, belt, cape, pack, leftBoot, rightBoot, leftWing, rightWing);
     this.scene.add(this.playerGroup);
     this.syncPlayerMesh();
   }
@@ -2213,6 +2450,7 @@ class RuneLiftGame {
       this.state[key] = false;
     });
     this.relayIndex = 0;
+    this.testChamberIndex = -1;
     this.hudState.objective = "";
     this.hudState.count = "";
     this.hudState.level = "";
@@ -2293,7 +2531,11 @@ class RuneLiftGame {
       shard.group.visible = true;
     });
     this.audio.unlock();
+    this.labAi.reset();
+    this.labAi.setMuted(this.audio.muted);
+    this.labAi.unlock();
     this.showToast(`${this.assist.name}-Modus gestartet`);
+    this.updateTestChamberFlow();
   }
 
   requestJump() {
@@ -2417,6 +2659,10 @@ class RuneLiftGame {
       enemy.ring.rotation.z += dt * (enemy.disabledTimer > 0 ? 0.7 : 2.1);
       enemy.ring.material.opacity = enemy.disabledTimer > 0 ? 0.18 : 0.34 + Math.sin(this.elapsed * 3.0) * 0.08;
       enemy.eye.material.opacity = enemy.disabledTimer > 0 ? 0.28 : 0.78 + Math.sin(this.elapsed * 5.0) * 0.12;
+      const remainingHits = Math.max(0, (enemy.hitPoints ?? 0) - enemy.hits);
+      enemy.pips.forEach((pip, index) => {
+        pip.material.opacity = index < remainingHits ? 0.9 : 0.18;
+      });
     }
   }
 
@@ -3022,6 +3268,13 @@ class RuneLiftGame {
       this.portal.children[2].intensity = portalOpen ? 2.4 + Math.sin(this.elapsed * 4) * 0.28 : 0.55;
     }
 
+    for (const frame of this.testFrames) {
+      frame.ring.rotation.z += dt * 0.9;
+      frame.lens.position.y = 2.08 + Math.sin(this.elapsed * 2.2 + frame.phase) * 0.035;
+      frame.ring.material.opacity = (this.performanceMode ? 0.28 : 0.44) + Math.sin(this.elapsed * 1.4 + frame.phase) * 0.08;
+      frame.lens.material.opacity = 0.48 + Math.sin(this.elapsed * 2.7 + frame.phase) * 0.16;
+    }
+
     for (const ribbon of this.auroraRibbons) {
       ribbon.mesh.position.y = ribbon.baseY + Math.sin(this.elapsed * 0.8 + ribbon.phase) * 0.28;
       ribbon.mesh.material.opacity = 0.09 + Math.sin(this.elapsed * 0.9 + ribbon.phase) * 0.035;
@@ -3155,6 +3408,30 @@ class RuneLiftGame {
       this.hudState.objective = text;
       this.objective.textContent = text;
     }
+    this.updateTestChamberFlow();
+  }
+
+  updateTestChamberFlow() {
+    if (!this.running || this.finished) return;
+    const chambers = [
+      "Testkammer 01 aktiv. Bitte springen Sie nicht in den Abgrund. Er ist nur dekorativ.",
+      "Testkammer 02: Druckplatten. Der Boden moechte Ihre volle Aufmerksamkeit.",
+      "Testkammer 03: Zeit, Spiegel, Gravitation. Vorgaenger nannten es unfair. Sie lagen falsch.",
+      "Testkammer 04: Rissportal und Glyphen. Bitte falten Sie die Realitaet ordentlich zusammen.",
+      "Testkammer 05: Drei Truhen. Der Himmelsschluessel ist bestimmt nicht in der letzten.",
+      "Testkammer 06: Runenwaechter. Springen Sie auf den Kopf. Wissenschaftlich.",
+      "Testkammer 07: Portal-Dais. Kuchen bleibt weiterhin nicht verfuegbar."
+    ];
+    let index = 0;
+    if (this.collected >= 3) index = 1;
+    if (this.collected >= 12 || this.state.chrono) index = 2;
+    if (this.collected >= 18 || this.state.sanctum) index = 3;
+    if (this.collected >= 20 || this.state.skyKey) index = 4;
+    if (this.collected >= 21 || this.state.guardian) index = 5;
+    if (this.collected >= this.totalShards) index = 6;
+    if (index === this.testChamberIndex) return;
+    this.testChamberIndex = index;
+    this.labAi.say(chambers[index], `chamber-${index}`);
   }
 
   resetPlayer(message) {
@@ -3185,6 +3462,7 @@ class RuneLiftGame {
     this.finishStats.textContent = `${this.assist.name} - Zeit ${minutes}:${rest} - ${this.totalShards}/${this.totalShards} Runen`;
     this.finishScreen.classList.add("active");
     this.audio.play("switch", 0.62, 1.55, 160);
+    this.labAi.say("Test abgeschlossen. Ihre Ueberlebensdaten wurden widerwillig akzeptiert.", "finish");
   }
 
   showToast(message) {
