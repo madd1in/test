@@ -19,6 +19,7 @@ for (const file of requiredFiles) {
 }
 
 const html = readFileSync(join(root, "index.html"), "utf8");
+const css = readFileSync(join(root, "style.css"), "utf8");
 const js = readFileSync(join(root, "js/game.js"), "utf8");
 
 const checks = [
@@ -28,6 +29,7 @@ const checks = [
   [html.includes("normal-mode-button"), "normal mode selector is present"],
   [html.includes("quality-button"), "turbo quality toggle is present"],
   [html.includes("fullscreen-button"), "fullscreen toggle is present"],
+  [html.includes("jump-button"), "mobile jump button is present"],
   [html.includes("Sammle 20 Runen"), "expanded objective count is shown"],
   [html.includes("0/20"), "expanded shard count is shown"],
   [js.includes("class RuneLiftGame"), "game class is present"],
@@ -45,6 +47,12 @@ const checks = [
   [js.includes("toggleFullscreen"), "fullscreen action is wired"],
   [js.includes("requestFullscreen"), "fullscreen request API is wired"],
   [js.includes("fullscreenchange"), "fullscreen state listener is wired"],
+  [js.includes("addEnemyPatrol"), "patrolling enemies are wired"],
+  [js.includes("updateEnemies"), "enemy patrol update is wired"],
+  [js.includes("handleEnemyContact"), "enemy contact rules are wired"],
+  [js.includes("Echo-Wache"), "new enemy encounter is present"],
+  [js.includes("jumpButton.addEventListener(\"pointerdown\""), "separate touch jump button is wired"],
+  [html.includes("Tempelwachen"), "enemy idea is surfaced in start copy"],
   [js.includes("echo-bridge"), "new echo level bridge is present"],
   [js.includes("sunrise-gate"), "new final level island is present"],
   [js.includes("aurora-drift"), "aurora extension platform is present"],
@@ -89,7 +97,8 @@ const checks = [
   [js.includes("Ebene IV"), "new level objectives are present"],
   [js.includes("Ebene III"), "expanded level objectives are present"],
   [js.includes("catacomb-bell-vault.mp3"), "BGM is referenced"],
-  [js.includes("CanvasTexture"), "generated texture assets are used"]
+  [js.includes("CanvasTexture"), "generated texture assets are used"],
+  [css.includes("--rune-title-font") && css.includes("Palatino Linotype"), "zelda-like title font styling is present"]
 ];
 
 const failed = checks.filter(([ok]) => !ok);
