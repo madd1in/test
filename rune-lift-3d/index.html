@@ -14,10 +14,11 @@
     <section class="hud" aria-live="polite">
       <div class="brand-chip">Rune Lift 3D</div>
       <div class="hud-strip">
-        <span id="objective">Sammle 5 Runen</span>
+        <span id="objective">Sammle 7 Runen</span>
         <strong id="level-value">Ebene I</strong>
-        <strong id="shard-count">0/5</strong>
+        <strong id="shard-count">0/7</strong>
       </div>
+      <button id="assist-button" type="button" class="mode-chip" aria-label="Assist-Modus umschalten" aria-pressed="true">Assist</button>
       <button id="audio-button" type="button" class="icon-button" aria-label="Audio umschalten" aria-pressed="false">M</button>
     </section>
 
@@ -25,7 +26,11 @@
       <div class="menu-panel">
         <p class="eyebrow">Floating Puzzle Platformer</p>
         <h1 id="title">Rune Lift 3D</h1>
-        <p class="subtitle">Leichter Modus: sichtbare Bruecken tragen dich, Double Jump rettet Spruenge und Fangnetze setzen dich sicher zurueck.</p>
+        <p class="subtitle">Waehle Assist fuer sichere Bruecken und Double Jump oder Normal fuer die knackigere Route mit weniger Hilfen.</p>
+        <div class="mode-toggle" role="group" aria-label="Schwierigkeit">
+          <button id="assist-mode-button" type="button" class="mode-option active" aria-pressed="true">Assist</button>
+          <button id="normal-mode-button" type="button" class="mode-option" aria-pressed="false">Normal</button>
+        </div>
         <button id="start-button" type="button" class="primary-button">Start</button>
       </div>
     </section>
