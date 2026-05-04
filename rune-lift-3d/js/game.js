@@ -341,7 +341,7 @@ class RuneLiftGame {
     this.runStartedAt = 0;
     this.running = false;
     this.finished = false;
-    this.totalShards = 20;
+    this.totalShards = 22;
     this.collected = 0;
     this.state = {
       bridge: false,
@@ -356,7 +356,9 @@ class RuneLiftGame {
       chrono: false,
       mirror: false,
       orrery: false,
-      sanctum: false
+      sanctum: false,
+      skyKey: false,
+      guardian: false
     };
     this.relayIndex = 0;
     this.hudState = { objective: "", count: "", level: "" };
@@ -443,6 +445,7 @@ class RuneLiftGame {
     this.cameraTargetDesired = new THREE.Vector3();
     this.enemyMoveScratch = new THREE.Vector3();
     this.enemyContactScratch = new THREE.Vector3();
+    this.enemySafeScratch = new THREE.Vector3();
     this.geometryCache = new Map();
     this.platforms = [];
     this.switches = [];
@@ -455,6 +458,7 @@ class RuneLiftGame {
     this.gravityWells = [];
     this.glyphSeals = [];
     this.riftPairs = [];
+    this.treasureChests = [];
     this.enemies = [];
     this.guideWisps = [];
     this.safetyNets = [];
@@ -899,6 +903,52 @@ class RuneLiftGame {
       ghostOpacity: 0.1
     });
     this.addPlatform("sanctum-vault", [169.95, 15.55, -13.15], [6.55, 1, 6.55], { material: "rune" });
+    this.addPlatform("keeper-causeway", [174.35, 15.82, -13.15], [5.3, 0.42, 2.55], {
+      material: "bridge",
+      activeWhen: () => this.state.sanctum,
+      ghost: true,
+      ghostOpacity: 0.12
+    });
+    this.addPlatform("key-hall", [178.55, 15.95, -13.15], [6.2, 0.9, 6.2], { material: "stone" });
+    this.addPlatform("key-west", [182.6, 16.28, -17.2], [3.8, 0.52, 3.2], {
+      material: "lift",
+      moving: { axis: [0.24, 0, -0.26], range: 0.3, speed: 0.48, phase: 0.9 },
+      ghost: true,
+      ghostOpacity: 0.15
+    });
+    this.addPlatform("key-east", [182.6, 16.28, -9.1], [3.8, 0.52, 3.2], {
+      material: "lift",
+      moving: { axis: [-0.24, 0, 0.26], range: 0.3, speed: 0.5, phase: 1.9 },
+      ghost: true,
+      ghostOpacity: 0.15
+    });
+    this.addPlatform("key-helper-rail", [184.35, 16.45, -13.15], [7.3, 0.36, 2.25], {
+      material: "bridge",
+      ghost: true,
+      ghostOpacity: 0.14,
+      assistOnly: true
+    });
+    this.addPlatform("sky-lock-bridge", [186.3, 16.58, -13.15], [5.35, 0.42, 2.5], {
+      material: "bridge",
+      activeWhen: () => this.state.skyKey,
+      ghost: true,
+      ghostOpacity: 0.1
+    });
+    this.addPlatform("sky-keep", [190.5, 16.75, -13.15], [6.45, 1, 6.45], { material: "rune" });
+    this.addPlatform("guardian-causeway", [195.0, 17.0, -13.15], [5.2, 0.42, 2.45], {
+      material: "bridge",
+      activeWhen: () => this.collected >= 21,
+      ghost: true,
+      ghostOpacity: 0.11
+    });
+    this.addPlatform("guardian-arena", [199.2, 17.15, -13.15], [7.05, 1, 7.05], { material: "stone" });
+    this.addPlatform("portal-dais-bridge", [204.0, 17.42, -13.15], [5.35, 0.42, 2.45], {
+      material: "bridge",
+      activeWhen: () => this.state.guardian,
+      ghost: true,
+      ghostOpacity: 0.1
+    });
+    this.addPlatform("portal-dais", [208.35, 17.6, -13.15], [6.7, 1, 6.7], { material: "rune" });
 
     this.addSwitch("bridge", [0, 0.64, -8.2], "Lichtbruecke aktiv");
     this.addSwitch("lift", [8.4, 0.64, -6.75], "Runenlift aktiv");
@@ -917,6 +967,9 @@ class RuneLiftGame {
     this.addGlyphSeal("west", [162.0, 15.6, -17.1], "West-Glyphe", 0x9fd8ff);
     this.addGlyphSeal("east", [162.0, 15.6, -9.2], "Ost-Glyphe", 0xf2c14e);
     this.addGlyphSeal("core", [158.05, 15.28, -13.15], "Kern-Glyphe", 0x7fe1c0);
+    this.addTreasureChest("hall", [178.55, 16.56, -13.15], "Hallen-Truhe", 0xf2c14e);
+    this.addTreasureChest("west", [182.6, 16.86, -17.2], "West-Truhe", 0x9fd8ff);
+    this.addTreasureChest("east", [182.6, 16.86, -9.1], "Ost-Truhe", 0x7fe1c0);
     this.addRelayNode("sun", [33.4, 3.66, 23.95], 0, "Sonnen-Relais", 0xf2c14e);
     this.addRelayNode("moon", [37.75, 4.42, 20.2], 1, "Mond-Relais", 0x9fd8ff);
     this.addRelayNode("crown", [43.2, 5.1, 18.45], 2, "Kronen-Relais", 0x7fe1c0);
@@ -954,6 +1007,8 @@ class RuneLiftGame {
     this.addShard("nebula", [144.45, 14.48, -4.25]);
     this.addShard("rift", [153.1, 16.12, -13.15]);
     this.addShard("sanctum", [169.95, 17.25, -13.15]);
+    this.addShard("sky-keep", [190.5, 18.48, -13.15]);
+    this.addShard("portal-dais", [208.35, 19.25, -13.15]);
     this.addHazard([-1.7, 0.72, 14.25], 0.78);
     this.addHazard([1.55, 0.72, 15.1], 0.68);
     this.addHazard([14.1, 3.04, 17.7], 0.58);
@@ -995,6 +1050,15 @@ class RuneLiftGame {
       speed: 0.82,
       radius: 0.7,
       activeWhen: () => this.collected >= 18
+    });
+    this.addEnemyPatrol("guardian-boss", [[197.35, 17.75, -15.55], [201.0, 17.75, -10.75], [201.35, 17.75, -15.45]], {
+      label: "Runenwaechter",
+      speed: 0.72,
+      radius: 1.05,
+      scale: 1.38,
+      hitPoints: 3,
+      defeatState: "guardian",
+      activeWhen: () => this.state.skyKey && !this.state.guardian
     });
     this.addPortal();
     this.addGuideWisps();
@@ -1423,6 +1487,46 @@ class RuneLiftGame {
     this.hazards.push({ group, radius });
   }
 
+  addTreasureChest(id, positionArray, label, color) {
+    const group = new THREE.Group();
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6a4a28,
+      emissive: 0x21140a,
+      emissiveIntensity: 0.22,
+      roughness: 0.54,
+      metalness: 0.08
+    });
+    const trimMaterial = new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.42,
+      roughness: 0.28,
+      metalness: 0.18
+    });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.44, 0.64), baseMaterial);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.94, 0.18, 0.68), baseMaterial.clone());
+    const lock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.08), trimMaterial.clone());
+    const glow = new THREE.Mesh(
+      new THREE.TorusGeometry(0.56, 0.022, 5, this.performanceMode ? 18 : 30),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: this.performanceMode ? 0.24 : 0.38,
+        depthWrite: false
+      })
+    );
+    base.position.y = 0.22;
+    lid.position.y = 0.56;
+    lid.userData.closedY = lid.position.y;
+    lock.position.set(0, 0.42, -0.36);
+    glow.position.y = 0.08;
+    glow.rotation.x = Math.PI / 2;
+    group.add(base, lid, lock, glow);
+    group.position.set(...positionArray);
+    this.scene.add(group);
+    this.treasureChests.push({ id, label, color, group, lid, lock, glow, opened: false, cooldown: 0 });
+  }
+
   addEnemyPatrol(id, patrolPointsArray, options = {}) {
     const group = new THREE.Group();
     const body = new THREE.Mesh(
@@ -1472,6 +1576,7 @@ class RuneLiftGame {
     group.add(body, helm, shield, eye, ring);
     const path = patrolPointsArray.map((point) => new THREE.Vector3(...point));
     group.position.copy(path[0]);
+    group.scale.setScalar(options.scale ?? 1);
     group.visible = options.activeWhen ? Boolean(options.activeWhen()) : true;
     this.scene.add(group);
 
@@ -1493,6 +1598,10 @@ class RuneLiftGame {
       direction: 1,
       cooldown: 0,
       disabledTimer: 0,
+      hitPoints: options.hitPoints ?? null,
+      hits: 0,
+      defeatState: options.defeatState ?? null,
+      defeated: false,
       baseScale: options.scale ?? 1,
       velocity: new THREE.Vector3(),
       lastPosition: path[0].clone()
@@ -1520,7 +1629,10 @@ class RuneLiftGame {
       [140.3, 13.38, -4.25], [144.45, 13.62, -4.25], [148.9, 14.0, -4.25],
       [153.1, 14.7, -4.25], [153.1, 16.0, -13.15], [158.05, 15.7, -13.15],
       [162.0, 16.0, -17.1], [162.0, 16.0, -9.2], [165.75, 16.35, -13.15],
-      [169.95, 16.85, -13.15]
+      [169.95, 16.85, -13.15], [174.35, 16.75, -13.15], [178.55, 16.95, -13.15],
+      [182.6, 17.35, -17.2], [182.6, 17.35, -9.1], [186.3, 17.45, -13.15],
+      [190.5, 17.85, -13.15], [195.0, 18.05, -13.15], [199.2, 18.22, -13.15],
+      [204.0, 18.55, -13.15], [208.35, 18.95, -13.15]
     ];
     const geometry = new THREE.OctahedronGeometry(0.16, 0);
     const material = new THREE.MeshBasicMaterial({
@@ -1569,7 +1681,10 @@ class RuneLiftGame {
       [[133.6, 9.7, -4.25], [13.6, 8.8]],
       [[142.4, 10.42, -4.25], [10.8, 5.6]],
       [[156.0, 11.5, -8.8], [11.8, 9.0]],
-      [[166.6, 13.0, -13.15], [10.6, 5.8]]
+      [[166.6, 13.0, -13.15], [10.6, 5.8]],
+      [[181.0, 13.4, -13.15], [12.8, 9.6]],
+      [[195.8, 14.2, -13.15], [14.4, 7.4]],
+      [[207.0, 14.6, -13.15], [10.8, 5.8]]
     ];
 
     const dummy = new THREE.Object3D();
@@ -1599,7 +1714,9 @@ class RuneLiftGame {
       [122.0, 11.4, -4.25], [130.8, 11.95, -4.25], [135.25, 12.4, -7.55],
       [135.45, 12.8, -0.95], [144.45, 13.42, -4.25], [153.1, 14.2, -4.25],
       [153.1, 15.42, -13.15], [158.05, 15.28, -13.15], [162.0, 15.88, -17.1],
-      [162.0, 15.88, -9.2], [169.95, 16.5, -13.15]
+      [162.0, 15.88, -9.2], [169.95, 16.5, -13.15], [178.55, 16.55, -13.15],
+      [182.6, 16.95, -17.2], [182.6, 16.95, -9.1], [190.5, 17.35, -13.15],
+      [199.2, 17.78, -13.15], [208.35, 18.25, -13.15]
     ];
     const positions = [];
     for (let i = 0; i < route.length - 1; i += 1) {
@@ -1644,7 +1761,8 @@ class RuneLiftGame {
       [34, 14.5, 18], [46, 13.2, 15], [57, 14.2, 9], [42, 15.1, 25],
       [68, 15.4, 5], [80, 16.0, 0], [91, 16.4, -6], [102, 15.8, -4],
       [113, 16.5, -8], [123, 15.9, -4], [134, 16.6, -8], [145, 16.1, -4],
-      [156, 17.1, -11], [170, 17.5, -13]
+      [156, 17.1, -11], [170, 17.5, -13], [182, 18.0, -17], [190, 18.4, -13],
+      [199, 19.0, -16], [208, 19.5, -13]
     ];
     const linePositions = [];
     for (let i = 0; i < anchors.length - 1; i += 1) {
@@ -1771,7 +1889,7 @@ class RuneLiftGame {
     light.position.z = -0.3;
     light.intensity = this.performanceMode ? 0 : 1.2;
     this.portal.add(ring, inner, light);
-    this.portal.position.set(169.95, 17.02, -13.15);
+    this.portal.position.set(208.35, 19.05, -13.15);
     this.scene.add(this.portal);
   }
 
@@ -1799,7 +1917,9 @@ class RuneLiftGame {
       [86.4, 10.3, -7.6], [91.6, 10.8, -10.2], [98.3, 11.7, -8.0], [103.7, 11.7, -1.6],
       [107.0, 11.85, -8.0], [113.4, 12.3, -11.0], [118.6, 12.4, -0.4], [125.1, 12.45, -7.0],
       [128.0, 13.15, -8.6], [136.6, 13.5, -10.4], [140.2, 14.1, -0.3], [147.3, 14.35, -7.1],
-      [151.0, 15.2, -1.5], [156.0, 16.6, -16.4], [165.2, 17.3, -18.4], [173.2, 17.4, -9.0]
+      [151.0, 15.2, -1.5], [156.0, 16.6, -16.4], [165.2, 17.3, -18.4], [173.2, 17.4, -9.0],
+      [176.4, 17.8, -16.8], [181.4, 18.1, -20.0], [186.2, 18.4, -7.0], [192.8, 18.9, -17.2],
+      [201.8, 19.3, -9.0], [211.5, 19.5, -16.0]
     ];
     const dummy = new THREE.Object3D();
     const pillars = new THREE.InstancedMesh(pillarGeometry, pillarMaterial, corners.length);
@@ -1839,7 +1959,9 @@ class RuneLiftGame {
       [88.1, 9.12, -7.0], [96.8, 10.08, -1.4], [102.4, 10.2, -7.0],
       [110.6, 10.55, -8.4], [116.2, 11.05, -1.0], [123.2, 11.05, -6.8],
       [131.1, 11.7, -7.6], [139.5, 13.0, -1.0], [145.2, 13.08, -7.2],
-      [154.0, 14.05, -6.4], [160.6, 15.75, -16.2], [170.4, 16.05, -16.6]
+      [154.0, 14.05, -6.4], [160.6, 15.75, -16.2], [170.4, 16.05, -16.6],
+      [178.7, 16.58, -10.5], [183.2, 16.88, -18.8], [190.6, 17.35, -10.0],
+      [199.4, 17.8, -17.0], [208.7, 18.15, -10.4]
     ];
     const crystals = new THREE.InstancedMesh(crystalGeometry, crystalMaterial, crystalAnchors.length * 3);
     let instance = 0;
@@ -2144,6 +2266,15 @@ class RuneLiftGame {
     this.riftPairs.forEach((pair) => {
       pair.cooldown = 0;
     });
+    this.treasureChests.forEach((chest) => {
+      chest.opened = false;
+      chest.cooldown = 0;
+      chest.lid.rotation.x = 0;
+      chest.lid.position.y = chest.lid.userData.closedY;
+      chest.lock.visible = true;
+      chest.glow.material.opacity = this.performanceMode ? 0.24 : 0.38;
+      chest.group.scale.setScalar(1);
+    });
     this.enemies.forEach((enemy) => {
       enemy.group.position.copy(enemy.path[0]);
       enemy.lastPosition.copy(enemy.path[0]);
@@ -2151,6 +2282,10 @@ class RuneLiftGame {
       enemy.direction = 1;
       enemy.cooldown = 0;
       enemy.disabledTimer = 0;
+      enemy.hits = 0;
+      enemy.defeated = false;
+      enemy.active = enemy.activeWhen ? Boolean(enemy.activeWhen()) : true;
+      enemy.group.visible = enemy.active;
       enemy.group.scale.setScalar(enemy.baseScale);
     });
     this.shards.forEach((shard) => {
@@ -2249,7 +2384,7 @@ class RuneLiftGame {
       enemy.lastPosition.copy(enemy.group.position);
       enemy.cooldown = Math.max(0, enemy.cooldown - dt);
       enemy.disabledTimer = Math.max(0, enemy.disabledTimer - dt);
-      enemy.active = enemy.activeWhen ? Boolean(enemy.activeWhen()) : true;
+      enemy.active = !enemy.defeated && (enemy.activeWhen ? Boolean(enemy.activeWhen()) : true);
       enemy.group.visible = enemy.active;
       if (!enemy.active) continue;
 
@@ -2396,6 +2531,7 @@ class RuneLiftGame {
       }
     }
     for (const enemy of this.enemies) {
+      if (enemy.defeated || !enemy.active) continue;
       const enemyCenterY = enemy.group.position.y + 0.65 * enemy.baseScale;
       if (enemy.active && enemy.disabledTimer <= 0 && distanceXZ(this.player.position, enemy.group.position) < enemy.radius + 0.95 && Math.abs(this.player.position.y - enemyCenterY) < 1.55) {
         return;
@@ -2561,6 +2697,25 @@ class RuneLiftGame {
       }
     }
 
+    for (const chest of this.treasureChests) {
+      chest.cooldown = Math.max(0, chest.cooldown - dt);
+      if (chest.opened || chest.cooldown > 0) continue;
+      const near = distanceXZ(this.player.position, chest.group.position) < this.assist.switchRadius;
+      const heightMatch = Math.abs(feetY - chest.group.position.y) < 1.28;
+      if (!near || !heightMatch) continue;
+      chest.opened = true;
+      chest.lock.visible = false;
+      chest.cooldown = 0.6;
+      this.audio.play("switch", 0.55, 1.62 + this.treasureChests.indexOf(chest) * 0.08, 80);
+      const openCount = this.treasureChests.filter((treasureChest) => treasureChest.opened).length;
+      if (openCount >= this.treasureChests.length) {
+        this.state.skyKey = true;
+        this.showToast("Himmelsschluessel geschmiedet");
+      } else {
+        this.showToast(`${chest.label} ${openCount}/${this.treasureChests.length}`);
+      }
+    }
+
     for (const pad of this.bouncePads) {
       pad.cooldown = Math.max(0, pad.cooldown - dt);
       pad.group.rotation.y += dt * 1.6;
@@ -2641,22 +2796,31 @@ class RuneLiftGame {
   }
 
   handleEnemyContact(enemy) {
-    if (!enemy.active || enemy.cooldown > 0 || enemy.disabledTimer > 0) return false;
+    if (enemy.defeated || !enemy.active || enemy.cooldown > 0 || enemy.disabledTimer > 0) return false;
     const horizontal = distanceXZ(this.player.position, enemy.group.position);
     if (horizontal > enemy.radius + this.player.radius) return false;
 
     const feetY = this.player.position.y - this.player.height * 0.5;
     const enemyCenterY = enemy.group.position.y + 0.65 * enemy.baseScale;
-    const stomped = this.player.velocity.y < -0.45 && feetY > enemy.group.position.y + 0.42;
+    const stomped = this.player.velocity.y < -0.45 && feetY > enemy.group.position.y + 0.42 * enemy.baseScale;
     if (stomped) {
-      enemy.disabledTimer = this.assistMode ? 4.2 : 2.7;
+      enemy.hits += 1;
       enemy.cooldown = 0.5;
       this.player.velocity.y = this.assist.bounceVelocity * 0.72;
       this.player.grounded = false;
       this.player.currentPlatform = null;
       this.player.jumpsRemaining = this.assist.maxJumps;
       this.audio.play("jump", 0.52, 1.72, 75);
-      this.showToast(`${enemy.label} betaeubt`);
+      if (enemy.hitPoints && enemy.hits >= enemy.hitPoints) {
+        enemy.defeated = true;
+        enemy.active = false;
+        enemy.group.visible = false;
+        if (enemy.defeatState) this.state[enemy.defeatState] = true;
+        this.showToast(`${enemy.label} besiegt`);
+      } else {
+        enemy.disabledTimer = enemy.hitPoints ? 1.65 : this.assistMode ? 4.2 : 2.7;
+        this.showToast(enemy.hitPoints ? `${enemy.label} ${enemy.hits}/${enemy.hitPoints}` : `${enemy.label} betaeubt`);
+      }
       return false;
     }
 
@@ -2678,7 +2842,7 @@ class RuneLiftGame {
     this.player.jumpsRemaining = this.assist.maxJumps;
     enemy.cooldown = 1.0;
     this.audio.play("reset", 0.3, 1.18, 120);
-    this.showToast("Wache geblockt");
+    this.showToast(enemy.hitPoints ? "Waechter geblockt" : "Wache geblockt");
     return false;
   }
 
@@ -2698,6 +2862,14 @@ class RuneLiftGame {
     if (this.collected >= 19 && !this.state.sanctum) {
       const nextSeal = this.glyphSeals.find((seal) => !seal.active);
       if (nextSeal) return nextSeal.group.position;
+    }
+    if (this.collected >= 20 && !this.state.skyKey) {
+      const nextChest = this.treasureChests.find((chest) => !chest.opened);
+      if (nextChest) return nextChest.group.position;
+    }
+    if (this.collected >= 21 && !this.state.guardian) {
+      const guardian = this.enemies.find((enemy) => enemy.id === "guardian-boss" && !enemy.defeated);
+      if (guardian) return guardian.group.position;
     }
     const nextShard = this.shards.find((shard) => !shard.collected);
     return nextShard ? nextShard.group.position : this.portal.position;
@@ -2807,6 +2979,19 @@ class RuneLiftGame {
       seal.core.material.opacity = approach(seal.core.material.opacity, seal.active ? 1 : 0.62, dt * 2.5);
       seal.glyph.material.opacity = approach(seal.glyph.material.opacity, seal.active ? 0.9 : 0.46, dt * 2.2);
       seal.group.scale.setScalar(approach(seal.group.scale.x, seal.active ? 1.15 : 1, dt * 2.2));
+    }
+
+    for (const chest of this.treasureChests) {
+      const targetRotation = chest.opened ? -1.08 : 0;
+      chest.lid.rotation.x = approach(chest.lid.rotation.x, targetRotation, dt * 4.2);
+      chest.lid.position.y = approach(chest.lid.position.y, chest.lid.userData.closedY + (chest.opened ? 0.08 : 0), dt * 3.5);
+      chest.glow.rotation.z += dt * (chest.opened ? 2.2 : 0.75);
+      chest.glow.material.opacity = approach(
+        chest.glow.material.opacity,
+        chest.opened ? 0.62 : this.performanceMode ? 0.24 : 0.38,
+        dt * 2.4
+      );
+      chest.group.scale.setScalar(approach(chest.group.scale.x, chest.opened ? 1.08 : 1, dt * 2.2));
     }
 
     for (const hazard of this.hazards) {
@@ -2945,8 +3130,16 @@ class RuneLiftGame {
     if (this.state.sanctum || this.collected >= 18) {
       level = `${mode} X`;
       text = this.state.sanctum
-        ? this.collected < this.totalShards ? "Ebene X - Rift-Sanctum" : "Ebene X - Portal bereit"
+        ? this.collected < 20 ? "Ebene X - Rift-Sanctum" : "Ebene X - Himmelsschluessel"
         : "Ebene X - Rissportal und Glyphen";
+    }
+    if (this.state.skyKey || this.collected >= 20) {
+      level = `${mode} XI`;
+      text = this.state.guardian
+        ? this.collected < this.totalShards ? "Ebene XI - Portal-Dais" : "Ebene XI - Portal bereit"
+        : this.state.skyKey
+          ? this.collected < 21 ? "Ebene XI - Sky Keep" : "Ebene XI - Runenwaechter"
+          : "Ebene XI - Drei Schatztruhen";
     }
     if (this.finished) text = "Runenpfad geloest";
 
