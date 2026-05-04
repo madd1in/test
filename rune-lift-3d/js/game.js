@@ -420,6 +420,7 @@ class RuneLiftGame {
       dawn: false,
       dusk: false,
       chrono: false,
+      blockGate: false,
       mirror: false,
       orrery: false,
       sanctum: false,
@@ -519,6 +520,8 @@ class RuneLiftGame {
     this.shards = [];
     this.bouncePads = [];
     this.hazards = [];
+    this.pushBlocks = [];
+    this.blockTargets = [];
     this.relayNodes = [];
     this.timeAnchors = [];
     this.mirrorBeacons = [];
@@ -602,6 +605,19 @@ class RuneLiftGame {
         opacity: 0.74,
         roughness: 0.28,
         metalness: 0.12
+      }),
+      pushBlock: new THREE.MeshStandardMaterial({
+        color: 0x53616a,
+        emissive: 0x18242a,
+        emissiveIntensity: 0.34,
+        roughness: 0.78,
+        metalness: 0.08
+      }),
+      blockTarget: new THREE.MeshBasicMaterial({
+        color: 0xf2c14e,
+        transparent: true,
+        opacity: this.performanceMode ? 0.32 : 0.44,
+        depthWrite: false
       }),
       lift: new THREE.MeshStandardMaterial({
         color: 0x8d9fb5,
@@ -829,7 +845,7 @@ class RuneLiftGame {
     this.addPlatform("prism-step", [37.75, 3.82, 20.2], [4.0, 0.58, 3.45], { material: "lift" });
     this.addPlatform("sunrise-bridge", [40.35, 4.45, 20.2], [3.75, 0.42, 2.5], {
       material: "bridge",
-      activeWhen: () => this.collected >= 6,
+      activeWhen: () => this.state.blockGate,
       ghost: true,
       ghostOpacity: 0.11
     });
@@ -1081,6 +1097,16 @@ class RuneLiftGame {
     this.addRelayNode("sun", [33.4, 3.66, 23.95], 0, "Sonnen-Relais", 0xf2c14e);
     this.addRelayNode("moon", [37.75, 4.42, 20.2], 1, "Mond-Relais", 0x9fd8ff);
     this.addRelayNode("crown", [43.2, 5.1, 18.45], 2, "Kronen-Relais", 0x7fe1c0);
+    this.addBlockTarget("west", [33.35, 3.58, 21.15], "Westplatte");
+    this.addBlockTarget("east", [36.65, 3.58, 24.05], "Ostplatte");
+    this.addPushBlock("west", [35.05, 3.94, 21.15], {
+      label: "Westblock",
+      bounds: { minX: 32.7, maxX: 37.25, minZ: 20.35, maxZ: 24.95 }
+    });
+    this.addPushBlock("east", [35.05, 3.94, 24.05], {
+      label: "Ostblock",
+      bounds: { minX: 32.7, maxX: 37.25, minZ: 20.35, maxZ: 24.95 }
+    });
     this.addBouncePad([-7.35, 0.64, 1.8]);
     this.addBouncePad([8.6, 0.64, 21.25]);
     this.addBouncePad([35.0, 3.64, 21.35]);
@@ -1274,6 +1300,86 @@ class RuneLiftGame {
     this.scene.add(group);
 
     this.switches.push({ id, label, group, ring, light, active: false });
+  }
+
+  addBlockTarget(id, positionArray, label) {
+    const group = new THREE.Group();
+    const base = new THREE.Mesh(
+      new THREE.BoxGeometry(0.98, 0.08, 0.98),
+      this.materials.blockTarget.clone()
+    );
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.62, 0.03, 5, this.performanceMode ? 18 : 30),
+      new THREE.MeshBasicMaterial({
+        color: 0x7fe1c0,
+        transparent: true,
+        opacity: 0.48,
+        depthWrite: false
+      })
+    );
+    const chevron = new THREE.Mesh(
+      new THREE.ConeGeometry(0.28, 0.2, 3),
+      new THREE.MeshBasicMaterial({
+        color: 0xf4f0e7,
+        transparent: true,
+        opacity: 0.64,
+        depthWrite: false
+      })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.08;
+    chevron.position.y = 0.16;
+    chevron.rotation.set(Math.PI / 2, 0, Math.PI / 6);
+    group.add(base, ring, chevron);
+    group.position.set(...positionArray);
+    this.scene.add(group);
+    this.blockTargets.push({ id, label, group, ring, chevron, active: false });
+  }
+
+  addPushBlock(id, positionArray, options = {}) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.88, 0.88, 0.88),
+      this.materials.pushBlock.clone()
+    );
+    const rune = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.26, 0.26, 0.035, 5),
+      this.materials.playerAccent.clone()
+    );
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.48, 0.025, 5, this.performanceMode ? 18 : 28),
+      this.materials.playerGold.clone()
+    );
+    body.castShadow = !this.performanceMode;
+    body.receiveShadow = !this.performanceMode;
+    rim.material.transparent = true;
+    rune.position.y = 0.46;
+    rune.rotation.x = Math.PI / 2;
+    rim.position.y = 0.47;
+    rim.rotation.x = Math.PI / 2;
+    group.add(body, rune, rim);
+    group.position.set(...positionArray);
+    this.scene.add(group);
+
+    const bounds = options.bounds ?? {
+      minX: positionArray[0] - 2.2,
+      maxX: positionArray[0] + 2.2,
+      minZ: positionArray[2] - 2.2,
+      maxZ: positionArray[2] + 2.2
+    };
+    this.pushBlocks.push({
+      id,
+      label: options.label ?? "Schiebeblock",
+      group,
+      body,
+      rune,
+      rim,
+      startPosition: group.position.clone(),
+      bounds,
+      half: 0.49,
+      activeTarget: null,
+      cooldown: 0
+    });
   }
 
   addBouncePad(positionArray) {
@@ -2513,6 +2619,19 @@ class RuneLiftGame {
       chest.glow.material.opacity = this.performanceMode ? 0.24 : 0.38;
       chest.group.scale.setScalar(1);
     });
+    this.pushBlocks.forEach((block) => {
+      block.group.position.copy(block.startPosition);
+      block.group.rotation.set(0, 0, 0);
+      block.activeTarget = null;
+      block.cooldown = 0;
+      block.rim.material.opacity = 0.9;
+    });
+    this.blockTargets.forEach((target) => {
+      target.active = false;
+      target.group.scale.setScalar(1);
+      target.ring.material.opacity = 0.48;
+      target.chevron.material.opacity = 0.64;
+    });
     this.enemies.forEach((enemy) => {
       enemy.group.position.copy(enemy.path[0]);
       enemy.lastPosition.copy(enemy.path[0]);
@@ -2666,6 +2785,91 @@ class RuneLiftGame {
     }
   }
 
+  updatePushBlocks(dt) {
+    for (const block of this.pushBlocks) {
+      block.cooldown = Math.max(0, block.cooldown - dt);
+    }
+    if (!this.player.grounded) return;
+    const pushSpeed = this.assistMode ? 3.35 : 2.65;
+    for (const block of this.pushBlocks) {
+      const verticalMatch = Math.abs(this.player.position.y - block.group.position.y) < 1.12;
+      if (!verticalMatch) continue;
+
+      const dx = this.player.position.x - block.group.position.x;
+      const dz = this.player.position.z - block.group.position.z;
+      const overlapX = block.half + this.player.radius - Math.abs(dx);
+      const overlapZ = block.half + this.player.radius - Math.abs(dz);
+      if (overlapX <= 0 || overlapZ <= 0) continue;
+
+      const inputX = Math.abs(this.moveInput.x);
+      const inputZ = Math.abs(this.moveInput.y);
+      const axis = inputX > inputZ + 0.08 ? "x" : inputZ > inputX + 0.08 ? "z" : overlapX < overlapZ ? "x" : "z";
+      const pushDir = axis === "x" ? (dx < 0 ? 1 : -1) : (dz < 0 ? 1 : -1);
+      const amount = pushDir * pushSpeed * dt;
+      const moved = axis === "x"
+        ? this.tryMovePushBlock(block, amount, 0)
+        : this.tryMovePushBlock(block, 0, amount);
+
+      if (axis === "x") {
+        this.player.position.x = block.group.position.x - pushDir * (block.half + this.player.radius + 0.018);
+        if (moved) block.group.rotation.z -= amount * 0.9;
+      } else {
+        this.player.position.z = block.group.position.z - pushDir * (block.half + this.player.radius + 0.018);
+        if (moved) block.group.rotation.x += amount * 0.9;
+      }
+
+      if (moved && block.cooldown <= 0) {
+        block.cooldown = 0.28;
+        this.audio.play("land", 0.22, 0.74, 180);
+      }
+      break;
+    }
+
+  }
+
+  tryMovePushBlock(block, dx, dz) {
+    const nextX = clamp(block.group.position.x + dx, block.bounds.minX, block.bounds.maxX);
+    const nextZ = clamp(block.group.position.z + dz, block.bounds.minZ, block.bounds.maxZ);
+    if (Math.abs(nextX - block.group.position.x) < 0.001 && Math.abs(nextZ - block.group.position.z) < 0.001) {
+      return false;
+    }
+
+    for (const other of this.pushBlocks) {
+      if (other === block) continue;
+      const gapX = Math.abs(nextX - other.group.position.x);
+      const gapZ = Math.abs(nextZ - other.group.position.z);
+      if (gapX < block.half + other.half + 0.08 && gapZ < block.half + other.half + 0.08) {
+        return false;
+      }
+    }
+
+    block.group.position.x = nextX;
+    block.group.position.z = nextZ;
+    return true;
+  }
+
+  updateBlockTargets() {
+    let activeCount = 0;
+    this.pushBlocks.forEach((block) => {
+      block.activeTarget = null;
+    });
+    for (const target of this.blockTargets) {
+      const matchingBlock = this.pushBlocks.find((block) => distanceXZ(block.group.position, target.group.position) < (this.assistMode ? 0.78 : 0.62));
+      const active = Boolean(matchingBlock);
+      target.active = active;
+      target.activeBlock = matchingBlock ?? null;
+      if (matchingBlock) matchingBlock.activeTarget = target.id;
+      if (active) activeCount += 1;
+    }
+
+    if (this.blockTargets.length > 0 && activeCount >= this.blockTargets.length && !this.state.blockGate) {
+      this.state.blockGate = true;
+      this.audio.play("relay", 0.55, 1.18, 110);
+      this.showToast("Blockaltar offen");
+      this.labAi.say("Blockschiebe-Test bestanden. Der Stein hat mehr Initiative gezeigt als erwartet.", "block-gate");
+    }
+  }
+
   readMoveInput() {
     let x = 0;
     let z = 0;
@@ -2721,6 +2925,7 @@ class RuneLiftGame {
     this.player.velocity.y = Math.max(this.player.velocity.y, -this.assist.maxFallSpeed);
     this.player.position.x += this.player.velocity.x * dt;
     this.player.position.z += this.player.velocity.z * dt;
+    this.updatePushBlocks(dt);
     this.player.position.y += this.player.velocity.y * dt;
 
     this.resolveGround(previousFeet);
@@ -2803,6 +3008,8 @@ class RuneLiftGame {
         this.showToast(switchPlate.label);
       }
     }
+
+    this.updateBlockTargets();
 
     for (const node of this.relayNodes) {
       node.cooldown = Math.max(0, node.cooldown - dt);
@@ -3093,6 +3300,10 @@ class RuneLiftGame {
   }
 
   getNextObjectivePosition() {
+    if (this.collected >= 6 && !this.state.blockGate) {
+      const nextTarget = this.blockTargets.find((target) => !target.active);
+      if (nextTarget) return nextTarget.group.position;
+    }
     if (this.collected >= 13 && !this.state.chrono) {
       const nextAnchor = this.timeAnchors.find((anchor) => !anchor.active);
       if (nextAnchor) return nextAnchor.group.position;
@@ -3163,6 +3374,21 @@ class RuneLiftGame {
         switchPlate.light.intensity = switchPlate.active ? 1.35 + Math.sin(this.elapsed * 5) * 0.12 : 0.18;
       }
       switchPlate.group.scale.y = approach(switchPlate.group.scale.y, switchPlate.active ? 0.78 : 1, dt * 3);
+    }
+
+    for (const target of this.blockTargets) {
+      target.ring.rotation.z += dt * (target.active ? 2.5 : 0.75);
+      target.chevron.rotation.z -= dt * (target.active ? 1.5 : 0.4);
+      target.ring.material.opacity = approach(target.ring.material.opacity, target.active ? 0.86 : 0.48, dt * 2.8);
+      target.chevron.material.opacity = approach(target.chevron.material.opacity, target.active ? 0.95 : 0.64, dt * 2.8);
+      target.group.scale.setScalar(approach(target.group.scale.x, target.active ? 1.08 : 1, dt * 2.4));
+    }
+
+    for (const block of this.pushBlocks) {
+      block.rune.rotation.z += dt * 0.75;
+      block.rim.rotation.z -= dt * 0.55;
+      block.body.position.y = Math.sin(this.elapsed * 1.5 + block.startPosition.x) * 0.012;
+      block.rim.material.opacity = approach(block.rim.material.opacity, block.activeTarget ? 1 : 0.82, dt * 2);
     }
 
     for (const node of this.relayNodes) {
@@ -3350,7 +3576,9 @@ class RuneLiftGame {
     }
     if (this.state.echo || this.collected >= 6) {
       level = `${mode} IV`;
-      text = this.state.relay
+      text = !this.state.blockGate
+        ? "Ebene IV - Schiebebloecke auf Zielplatten"
+        : this.state.relay
         ? "Ebene IV - Relais-Vault offen"
         : "Ebene IV - Relais: Sonne, Mond, Krone";
     }
@@ -3415,7 +3643,7 @@ class RuneLiftGame {
     if (!this.running || this.finished) return;
     const chambers = [
       "Testkammer 01 aktiv. Bitte springen Sie nicht in den Abgrund. Er ist nur dekorativ.",
-      "Testkammer 02: Druckplatten. Der Boden moechte Ihre volle Aufmerksamkeit.",
+      "Testkammer 02: Druckplatten und Schiebebloecke. Der Boden moechte Ihre volle Aufmerksamkeit.",
       "Testkammer 03: Zeit, Spiegel, Gravitation. Vorgaenger nannten es unfair. Sie lagen falsch.",
       "Testkammer 04: Rissportal und Glyphen. Bitte falten Sie die Realitaet ordentlich zusammen.",
       "Testkammer 05: Drei Truhen. Der Himmelsschluessel ist bestimmt nicht in der letzten.",
