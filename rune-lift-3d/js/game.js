@@ -340,7 +340,7 @@ class RuneLiftGame {
     this.runStartedAt = 0;
     this.running = false;
     this.finished = false;
-    this.totalShards = 14;
+    this.totalShards = 16;
     this.collected = 0;
     this.state = {
       bridge: false,
@@ -352,7 +352,8 @@ class RuneLiftGame {
       eclipse: false,
       dawn: false,
       dusk: false,
-      chrono: false
+      chrono: false,
+      mirror: false
     };
     this.relayIndex = 0;
     this.hudState = { objective: "", count: "", level: "" };
@@ -445,12 +446,14 @@ class RuneLiftGame {
     this.hazards = [];
     this.relayNodes = [];
     this.timeAnchors = [];
+    this.mirrorBeacons = [];
     this.guideWisps = [];
     this.safetyNets = [];
     this.auroraRibbons = [];
     this.eclipseGates = [];
     this.windZones = [];
     this.driftFields = [];
+    this.mirrorBeam = null;
     this.wispDummy = new THREE.Object3D();
 
     this.createLights();
@@ -775,6 +778,38 @@ class RuneLiftGame {
       ghostOpacity: 0.1
     });
     this.addPlatform("zenith-vault", [101.0, 9.55, -4.25], [6.1, 1, 6.1], { material: "rune" });
+    this.addPlatform("mirror-causeway", [105.45, 9.8, -4.25], [5.1, 0.42, 2.45], {
+      material: "bridge",
+      activeWhen: () => this.collected >= 14,
+      ghost: true,
+      ghostOpacity: 0.12
+    });
+    this.addPlatform("mirror-observatory", [109.9, 9.95, -4.25], [6.0, 0.9, 6.0], { material: "stone" });
+    this.addPlatform("mirror-north-dish", [114.2, 10.35, -8.3], [3.8, 0.52, 3.2], {
+      material: "lift",
+      moving: { axis: [0.35, 0, -0.2], range: 0.34, speed: 0.54, phase: 0.4 },
+      ghost: true,
+      ghostOpacity: 0.15
+    });
+    this.addPlatform("mirror-south-dish", [114.2, 10.35, -0.2], [3.8, 0.52, 3.2], {
+      material: "lift",
+      moving: { axis: [-0.28, 0, 0.24], range: 0.34, speed: 0.5, phase: 1.8 },
+      ghost: true,
+      ghostOpacity: 0.15
+    });
+    this.addPlatform("mirror-helper-rail", [116.25, 10.48, -4.25], [6.9, 0.36, 2.3], {
+      material: "bridge",
+      ghost: true,
+      ghostOpacity: 0.14,
+      assistOnly: true
+    });
+    this.addPlatform("astral-bridge", [117.95, 10.65, -4.25], [5.2, 0.42, 2.5], {
+      material: "bridge",
+      activeWhen: () => this.state.mirror,
+      ghost: true,
+      ghostOpacity: 0.1
+    });
+    this.addPlatform("astral-vault", [122.0, 10.85, -4.25], [6.25, 1, 6.25], { material: "rune" });
 
     this.addSwitch("bridge", [0, 0.64, -8.2], "Lichtbruecke aktiv");
     this.addSwitch("lift", [8.4, 0.64, -6.75], "Runenlift aktiv");
@@ -784,6 +819,9 @@ class RuneLiftGame {
     this.addSwitch("eclipse", [66.0, 7.32, 7.1], "Eclipse-Schmiede offen");
     this.addTimeAnchor("dawn", [92.7, 9.52, -8.0], "Morgenanker", 0xf2c14e);
     this.addTimeAnchor("dusk", [92.85, 9.67, -0.6], "Daemmeranker", 0x9fd8ff);
+    this.addMirrorBeacon("north", [114.2, 10.92, -8.3], "Nordspiegel", 0x9fd8ff);
+    this.addMirrorBeacon("south", [114.2, 10.92, -0.2], "Suedspiegel", 0xf2c14e);
+    this.addMirrorBeacon("core", [109.9, 10.48, -4.25], "Kernspiegel", 0x7fe1c0);
     this.addRelayNode("sun", [33.4, 3.66, 23.95], 0, "Sonnen-Relais", 0xf2c14e);
     this.addRelayNode("moon", [37.75, 4.42, 20.2], 1, "Mond-Relais", 0x9fd8ff);
     this.addRelayNode("crown", [43.2, 5.1, 18.45], 2, "Kronen-Relais", 0x7fe1c0);
@@ -793,10 +831,12 @@ class RuneLiftGame {
     this.addBouncePad([51.15, 6.39, 14.6]);
     this.addBouncePad([73.7, 8.2, 2.75]);
     this.addBouncePad([88.85, 9.02, -4.25]);
+    this.addBouncePad([109.9, 10.52, -4.25]);
     this.addWindZone([37.4, 4.35, 21.1], 3.4, [1.1, 0, -0.3], "Rueckenwind");
     this.addWindZone([49.3, 6.1, 16.1], 3.8, [1.0, 0, -0.8], "Aurora-Schub");
     this.addWindZone([70.2, 7.9, 5.0], 3.6, [1.1, 0, -0.72], "Sternenstrom");
     this.addDriftField([94.9, 10.15, -4.25], 4.15, "Zeitdrift");
+    this.addDriftField([116.2, 11.12, -4.25], 3.55, "Spiegeldrift");
     this.addShard("east", [8.4, 1.72, -8.2]);
     this.addShard("sky", [-12.05, 5.22, 1.8]);
     this.addShard("south", [0, 1.72, 14.55]);
@@ -811,6 +851,8 @@ class RuneLiftGame {
     this.addShard("star-forge", [80.1, 9.72, 0.4]);
     this.addShard("chrono", [88.85, 10.12, -4.25]);
     this.addShard("zenith", [101.0, 11.22, -4.25]);
+    this.addShard("mirror", [109.9, 11.58, -4.25]);
+    this.addShard("astral", [122.0, 12.52, -4.25]);
     this.addHazard([-1.7, 0.72, 14.25], 0.78);
     this.addHazard([1.55, 0.72, 15.1], 0.68);
     this.addHazard([14.1, 3.04, 17.7], 0.58);
@@ -821,6 +863,8 @@ class RuneLiftGame {
     this.addHazard([78.45, 8.72, 1.9], 0.5);
     this.addHazard([94.7, 10.05, -4.25], 0.48);
     this.addHazard([99.35, 10.23, -2.1], 0.5);
+    this.addHazard([116.15, 11.05, -5.8], 0.48);
+    this.addHazard([120.4, 11.48, -2.15], 0.5);
     this.addPortal();
     this.addGuideWisps();
     this.addSafetyNets();
@@ -828,6 +872,7 @@ class RuneLiftGame {
     this.addAuroraRibbons();
     this.addConstellationWeb();
     this.addEclipseHalo();
+    this.addMirrorBeams();
     this.addGuideCompass();
     this.addDecor();
   }
@@ -1047,6 +1092,68 @@ class RuneLiftGame {
     this.timeAnchors.push({ id, label, color, group, upper, lower, core, active: false, cooldown: 0 });
   }
 
+  addMirrorBeacon(id, positionArray, label, color) {
+    const group = new THREE.Group();
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.48, 0.62, 0.14, this.performanceMode ? 12 : 24),
+      this.materials.rune.clone()
+    );
+    const dish = new THREE.Mesh(
+      new THREE.BoxGeometry(0.82, 0.12, 0.46),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.66
+      })
+    );
+    const core = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.22, 0),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.68 })
+    );
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.54, 0.022, 5, this.performanceMode ? 18 : 32),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.44 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.16;
+    dish.position.y = 0.38;
+    dish.rotation.y = id === "north" ? -0.55 : id === "south" ? 0.55 : 0;
+    core.position.y = 0.66;
+    group.add(base, ring, dish, core);
+    group.position.set(...positionArray);
+    this.scene.add(group);
+    this.mirrorBeacons.push({ id, label, color, group, ring, dish, core, active: false, cooldown: 0 });
+  }
+
+  addMirrorBeams() {
+    const focus = new THREE.Vector3(117.0, 12.0, -4.25);
+    const finale = new THREE.Vector3(122.0, 12.35, -4.25);
+    const positions = [];
+    for (const beacon of this.mirrorBeacons) {
+      positions.push(
+        beacon.group.position.x,
+        beacon.group.position.y + 0.55,
+        beacon.group.position.z,
+        focus.x,
+        focus.y,
+        focus.z
+      );
+    }
+    positions.push(focus.x, focus.y, focus.z, finale.x, finale.y, finale.z);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    this.mirrorBeam = new THREE.LineSegments(
+      geometry,
+      new THREE.LineBasicMaterial({
+        color: 0x9fd8ff,
+        transparent: true,
+        opacity: this.performanceMode ? 0.08 : 0.14,
+        depthWrite: false
+      })
+    );
+    this.scene.add(this.mirrorBeam);
+  }
+
   addShard(id, positionArray) {
     const group = new THREE.Group();
     const core = new THREE.Mesh(
@@ -1110,7 +1217,9 @@ class RuneLiftGame {
       [62.25, 7.45, 9.1], [66.0, 8.0, 7.1], [70.25, 8.25, 5.2], [73.7, 8.75, 2.75],
       [76.85, 9.0, 1.45], [80.1, 9.25, 0.4], [84.65, 9.15, -1.8],
       [88.85, 9.55, -4.25], [92.7, 10.08, -8.0], [92.85, 10.22, -0.6],
-      [97.0, 10.2, -4.25], [101.0, 10.65, -4.25]
+      [97.0, 10.2, -4.25], [101.0, 10.65, -4.25], [105.45, 10.75, -4.25],
+      [109.9, 11.0, -4.25], [114.2, 11.35, -8.3], [114.2, 11.35, -0.2],
+      [117.95, 11.68, -4.25], [122.0, 11.95, -4.25]
     ];
     const geometry = new THREE.OctahedronGeometry(0.16, 0);
     const material = new THREE.MeshBasicMaterial({
@@ -1153,7 +1262,9 @@ class RuneLiftGame {
       [[66.7, 5.72, 6.35], [10.8, 5.0]],
       [[77.2, 6.72, 1.25], [11.0, 4.8]],
       [[90.6, 7.0, -4.25], [12.0, 8.2]],
-      [[99.2, 8.0, -4.25], [10.4, 5.2]]
+      [[99.2, 8.0, -4.25], [10.4, 5.2]],
+      [[111.4, 8.18, -4.25], [13.0, 8.4]],
+      [[120.2, 9.05, -4.25], [10.2, 5.4]]
     ];
 
     const dummy = new THREE.Object3D();
@@ -1178,7 +1289,9 @@ class RuneLiftGame {
       [26.9, 3.7, 22.65], [35.0, 3.7, 22.65], [43.2, 5.15, 20.2],
       [51.15, 6.45, 14.6], [58.4, 7.05, 10.95], [66.0, 7.5, 7.1],
       [73.7, 8.35, 2.75], [80.1, 8.8, 0.4], [88.85, 9.05, -4.25],
-      [92.7, 9.7, -8.0], [92.85, 9.85, -0.6], [101.0, 10.15, -4.25]
+      [92.7, 9.7, -8.0], [92.85, 9.85, -0.6], [101.0, 10.15, -4.25],
+      [109.9, 10.58, -4.25], [114.2, 11.0, -8.3], [114.2, 11.0, -0.2],
+      [122.0, 11.4, -4.25]
     ];
     const positions = [];
     for (let i = 0; i < route.length - 1; i += 1) {
@@ -1221,7 +1334,8 @@ class RuneLiftGame {
     const anchors = [
       [-4, 12.2, -12], [6, 13.4, -10], [13, 12.6, -2], [22, 13.8, 8],
       [34, 14.5, 18], [46, 13.2, 15], [57, 14.2, 9], [42, 15.1, 25],
-      [68, 15.4, 5], [80, 16.0, 0], [91, 16.4, -6], [102, 15.8, -4]
+      [68, 15.4, 5], [80, 16.0, 0], [91, 16.4, -6], [102, 15.8, -4],
+      [113, 16.5, -8], [123, 15.9, -4]
     ];
     const linePositions = [];
     for (let i = 0; i < anchors.length - 1; i += 1) {
@@ -1348,7 +1462,7 @@ class RuneLiftGame {
     light.position.z = -0.3;
     light.intensity = this.performanceMode ? 0 : 1.2;
     this.portal.add(ring, inner, light);
-    this.portal.position.set(101.0, 11.05, -4.25);
+    this.portal.position.set(122.0, 12.35, -4.25);
     this.scene.add(this.portal);
   }
 
@@ -1373,7 +1487,8 @@ class RuneLiftGame {
       [25.0, 4.7, 25.6], [29.5, 4.7, 20.2], [41.3, 6.1, 17.7], [45.3, 6.1, 23.0],
       [50.0, 7.4, 12.5], [53.5, 7.9, 16.0], [56.0, 8.4, 8.3], [60.9, 8.4, 13.4],
       [63.8, 8.7, 11.1], [68.6, 8.95, 4.1], [77.4, 10.0, -2.3], [82.9, 10.0, 3.1],
-      [86.4, 10.3, -7.6], [91.6, 10.8, -10.2], [98.3, 11.7, -8.0], [103.7, 11.7, -1.6]
+      [86.4, 10.3, -7.6], [91.6, 10.8, -10.2], [98.3, 11.7, -8.0], [103.7, 11.7, -1.6],
+      [107.0, 11.85, -8.0], [113.4, 12.3, -11.0], [118.6, 12.4, -0.4], [125.1, 12.45, -7.0]
     ];
     const dummy = new THREE.Object3D();
     const pillars = new THREE.InstancedMesh(pillarGeometry, pillarMaterial, corners.length);
@@ -1410,7 +1525,8 @@ class RuneLiftGame {
       [27.7, 3.78, 24.9], [36.6, 3.78, 24.6], [43.6, 5.22, 22.7],
       [50.0, 6.48, 12.9], [56.0, 7.06, 8.8], [60.3, 7.06, 12.8],
       [66.8, 7.5, 9.3], [73.1, 8.42, 0.8], [80.8, 8.7, -2.4],
-      [88.1, 9.12, -7.0], [96.8, 10.08, -1.4], [102.4, 10.2, -7.0]
+      [88.1, 9.12, -7.0], [96.8, 10.08, -1.4], [102.4, 10.2, -7.0],
+      [110.6, 10.55, -8.4], [116.2, 11.05, -1.0], [123.2, 11.05, -6.8]
     ];
     const crystals = new THREE.InstancedMesh(crystalGeometry, crystalMaterial, crystalAnchors.length * 3);
     let instance = 0;
@@ -1687,6 +1803,13 @@ class RuneLiftGame {
       anchor.core.material.opacity = 0.72;
       anchor.group.scale.setScalar(1);
     });
+    this.mirrorBeacons.forEach((beacon) => {
+      beacon.active = false;
+      beacon.cooldown = 0;
+      beacon.core.material.opacity = 0.68;
+      beacon.dish.material.opacity = 0.66;
+      beacon.group.scale.setScalar(1);
+    });
     this.shards.forEach((shard) => {
       shard.collected = false;
       shard.group.visible = true;
@@ -1958,6 +2081,23 @@ class RuneLiftGame {
       }
     }
 
+    for (const beacon of this.mirrorBeacons) {
+      beacon.cooldown = Math.max(0, beacon.cooldown - dt);
+      if (beacon.active || beacon.cooldown > 0) continue;
+      const near = distanceXZ(this.player.position, beacon.group.position) < this.assist.switchRadius;
+      const heightMatch = Math.abs(feetY - beacon.group.position.y) < 1.28;
+      if (!near || !heightMatch) continue;
+      beacon.active = true;
+      this.audio.play("relay", 0.46, 1.52 + this.mirrorBeacons.indexOf(beacon) * 0.1, 85);
+      const activeCount = this.mirrorBeacons.filter((mirrorBeacon) => mirrorBeacon.active).length;
+      if (activeCount >= this.mirrorBeacons.length) {
+        this.state.mirror = true;
+        this.showToast("Spiegelpfad fokussiert");
+      } else {
+        this.showToast(`${beacon.label} ${activeCount}/${this.mirrorBeacons.length}`);
+      }
+    }
+
     for (const pad of this.bouncePads) {
       pad.cooldown = Math.max(0, pad.cooldown - dt);
       pad.group.rotation.y += dt * 1.6;
@@ -2038,6 +2178,10 @@ class RuneLiftGame {
       const nextAnchor = this.timeAnchors.find((anchor) => !anchor.active);
       if (nextAnchor) return nextAnchor.group.position;
     }
+    if (this.collected >= 15 && !this.state.mirror) {
+      const nextBeacon = this.mirrorBeacons.find((beacon) => !beacon.active);
+      if (nextBeacon) return nextBeacon.group.position;
+    }
     const nextShard = this.shards.find((shard) => !shard.collected);
     return nextShard ? nextShard.group.position : this.portal.position;
   }
@@ -2103,6 +2247,17 @@ class RuneLiftGame {
       anchor.group.scale.setScalar(approach(anchor.group.scale.x, anchor.active ? 1.16 : 1, dt * 2.2));
     }
 
+    for (const beacon of this.mirrorBeacons) {
+      const speed = beacon.active ? 2.7 : 0.85;
+      beacon.ring.rotation.z += dt * speed;
+      beacon.dish.rotation.z = Math.sin(this.elapsed * 1.4 + beacon.group.position.x) * 0.08;
+      beacon.core.rotation.y -= dt * 1.6;
+      beacon.core.position.y = 0.66 + Math.sin(this.elapsed * 2.4 + beacon.group.position.z) * 0.05;
+      beacon.core.material.opacity = approach(beacon.core.material.opacity, beacon.active ? 1 : 0.58, dt * 2.4);
+      beacon.dish.material.opacity = approach(beacon.dish.material.opacity, beacon.active ? 0.92 : 0.58, dt * 2);
+      beacon.group.scale.setScalar(approach(beacon.group.scale.x, beacon.active ? 1.15 : 1, dt * 2.2));
+    }
+
     for (const hazard of this.hazards) {
       hazard.group.rotation.x += dt * 1.2;
       hazard.group.rotation.y -= dt * 1.8;
@@ -2157,6 +2312,12 @@ class RuneLiftGame {
       drift.inner.rotation.z -= dt * 1.05;
       drift.outer.material.opacity = (this.performanceMode ? 0.1 : 0.2) + Math.sin(this.elapsed * 0.9) * 0.035;
       drift.inner.material.opacity = (this.performanceMode ? 0.09 : 0.17) + Math.sin(this.elapsed * 1.1) * 0.03;
+    }
+
+    if (this.mirrorBeam) {
+      const activeCount = this.mirrorBeacons.filter((beacon) => beacon.active).length;
+      const baseOpacity = this.state.mirror ? 0.48 : 0.1 + activeCount * 0.08;
+      this.mirrorBeam.material.opacity = (this.performanceMode ? baseOpacity * 0.62 : baseOpacity) + Math.sin(this.elapsed * 1.15) * 0.035;
     }
 
     this.updateGuideCompass();
@@ -2215,8 +2376,14 @@ class RuneLiftGame {
     if (this.state.chrono || this.collected >= 12) {
       level = `${mode} VII`;
       text = this.state.chrono
-        ? this.collected < this.totalShards ? "Ebene VII - Zenith-Vault" : "Ebene VII - Portal bereit"
+        ? this.collected < 14 ? "Ebene VII - Zenith-Vault" : "Ebene VII - Sternwarte"
         : "Ebene VII - Zwei Zeitanker";
+    }
+    if (this.state.mirror || this.collected >= 14) {
+      level = `${mode} VIII`;
+      text = this.state.mirror
+        ? this.collected < this.totalShards ? "Ebene VIII - Astral-Vault" : "Ebene VIII - Portal bereit"
+        : "Ebene VIII - Drei Spiegel";
     }
     if (this.finished) text = "Runenpfad geloest";
 
