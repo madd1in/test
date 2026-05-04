@@ -1,6 +1,8 @@
 :root {
   color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ui-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rune-title-font: "Palatino Linotype", "Book Antiqua", "Cinzel", "Trajan Pro", Georgia, serif;
+  font-family: var(--ui-font);
   background: #101419;
   color: #f4f0e7;
 }
@@ -73,6 +75,7 @@ button {
   padding: 0 13px;
   border-radius: 8px;
   color: #f6d36d;
+  font-family: var(--rune-title-font);
   font-size: 0.86rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -222,9 +225,11 @@ h1,
 h2 {
   margin: 0;
   color: #fff8df;
+  font-family: var(--rune-title-font);
   font-weight: 900;
   letter-spacing: 0;
   line-height: 0.96;
+  text-shadow: 0 3px 0 rgba(55, 34, 18, 0.45), 0 0 26px rgba(242, 193, 78, 0.18);
 }
 
 h1 {
@@ -257,6 +262,7 @@ h2 {
   background: rgba(13, 18, 22, 0.58);
   color: rgba(244, 240, 231, 0.84);
   cursor: pointer;
+  font-family: var(--rune-title-font);
   font-weight: 900;
   letter-spacing: 0;
 }
@@ -276,6 +282,7 @@ h2 {
   background: linear-gradient(135deg, #f2c14e, #f07f5f);
   color: #19130e;
   cursor: pointer;
+  font-family: var(--rune-title-font);
   font-weight: 900;
   letter-spacing: 0;
   box-shadow: 0 15px 30px rgba(240, 127, 95, 0.28);
@@ -332,9 +339,41 @@ h2 {
   transform: translate(-50%, -50%) scale(1);
 }
 
+.touch-action-button {
+  position: absolute;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(28px, env(safe-area-inset-bottom));
+  display: none;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 1px solid rgba(246, 211, 109, 0.62);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 248, 223, 0.22), transparent 33%),
+    linear-gradient(145deg, rgba(242, 193, 78, 0.92), rgba(240, 127, 95, 0.86));
+  color: #19130e;
+  cursor: pointer;
+  font-family: var(--rune-title-font);
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: auto;
+  touch-action: none;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34), inset 0 2px 0 rgba(255, 248, 223, 0.42);
+}
+
+.touch-action-button:active {
+  transform: translateY(2px) scale(0.96);
+}
+
 @media (max-width: 680px) {
   .hud {
-    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    grid-template-columns: minmax(0, 200px) 54px 40px 40px;
+    gap: 6px;
+    justify-content: start;
   }
 
   .brand-chip {
@@ -354,15 +393,26 @@ h2 {
     grid-column: auto;
   }
 
+  #audio-button,
+  #quality-button,
+  #fullscreen-button {
+    grid-column: auto;
+  }
+
+  #quality-button {
+    display: none;
+  }
+
   .mode-chip,
   .icon-button {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
   }
 
   .mode-chip {
-    min-width: 60px;
-    font-size: 0.72rem;
+    min-width: 0;
+    width: 54px;
+    font-size: 0.68rem;
   }
 
   #objective {
@@ -372,14 +422,69 @@ h2 {
   #level-value {
     display: none;
   }
+
+  .screen {
+    justify-content: flex-start;
+  }
+
+  .menu-panel {
+    width: min(340px, calc(100vw - 32px));
+  }
+
+  .touch-action-button {
+    display: grid;
+  }
 }
 
 @media (max-width: 420px) {
+  .hud {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    grid-template-columns: minmax(0, 150px) 52px 38px 38px;
+  }
+
+  .hud-strip {
+    padding: 0 9px;
+    gap: 8px;
+  }
+
+  .mode-chip {
+    width: 52px;
+  }
+
+  .icon-button {
+    width: 38px;
+    height: 38px;
+  }
+
   .menu-panel {
     padding: 22px;
+  }
+
+  h1 {
+    font-size: clamp(2.15rem, 10.5vw, 2.85rem);
+    line-height: 1;
   }
 
   .subtitle {
     font-size: 0.96rem;
   }
+
+  .touch-action-button {
+    width: 70px;
+    height: 70px;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(22px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (pointer: coarse) {
+  .touch-action-button {
+    display: grid;
+  }
+}
+
+#start-screen.active ~ #jump-button,
+#finish-screen.active ~ #jump-button {
+  display: none;
 }

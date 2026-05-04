@@ -302,6 +302,7 @@ class RuneLiftGame {
     this.finishStats = document.querySelector("#finish-stats");
     this.toast = document.querySelector("#toast");
     this.touchRing = document.querySelector("#touch-ring");
+    this.jumpButton = document.querySelector("#jump-button");
     this.qualityButton = document.querySelector("#quality-button");
     this.fullscreenButton = document.querySelector("#fullscreen-button");
     this.audio = new AudioBus(document.querySelector("#audio-button"));
@@ -440,6 +441,8 @@ class RuneLiftGame {
     this.cameraOffsetMobile = new THREE.Vector3(6.7, 7.1, 9.1);
     this.cameraDesired = new THREE.Vector3();
     this.cameraTargetDesired = new THREE.Vector3();
+    this.enemyMoveScratch = new THREE.Vector3();
+    this.enemyContactScratch = new THREE.Vector3();
     this.geometryCache = new Map();
     this.platforms = [];
     this.switches = [];
@@ -452,6 +455,7 @@ class RuneLiftGame {
     this.gravityWells = [];
     this.glyphSeals = [];
     this.riftPairs = [];
+    this.enemies = [];
     this.guideWisps = [];
     this.safetyNets = [];
     this.auroraRibbons = [];
@@ -559,6 +563,20 @@ class RuneLiftGame {
         emissiveIntensity: 0.55,
         roughness: 0.32,
         metalness: 0.18
+      }),
+      enemy: new THREE.MeshStandardMaterial({
+        color: 0x3a303f,
+        emissive: 0x241a2b,
+        emissiveIntensity: 0.38,
+        roughness: 0.5,
+        metalness: 0.08
+      }),
+      enemyAccent: new THREE.MeshStandardMaterial({
+        color: 0xf07f5f,
+        emissive: 0x812821,
+        emissiveIntensity: 0.72,
+        roughness: 0.34,
+        metalness: 0.12
       })
     };
   }
@@ -952,6 +970,32 @@ class RuneLiftGame {
     this.addHazard([142.6, 13.4, -2.1], 0.5);
     this.addHazard([164.5, 15.9, -15.45], 0.48);
     this.addHazard([167.6, 16.05, -10.9], 0.5);
+    this.addEnemyPatrol("echo-warden", [[24.7, 3.56, 21.25], [29.2, 3.56, 24.05]], {
+      label: "Echo-Wache",
+      speed: 0.98,
+      activeWhen: () => this.collected >= 4
+    });
+    this.addEnemyPatrol("crown-warden", [[56.3, 6.9, 8.9], [60.35, 6.9, 12.75]], {
+      label: "Kronen-Wache",
+      speed: 0.92,
+      activeWhen: () => this.collected >= 8
+    });
+    this.addEnemyPatrol("chrono-warden", [[87.0, 8.92, -6.25], [91.0, 8.92, -2.35]], {
+      label: "Chrono-Wache",
+      speed: 0.86,
+      activeWhen: () => this.collected >= 12
+    });
+    this.addEnemyPatrol("mirror-warden", [[107.7, 10.42, -6.45], [112.2, 10.42, -2.2]], {
+      label: "Spiegel-Wache",
+      speed: 0.9,
+      activeWhen: () => this.collected >= 14
+    });
+    this.addEnemyPatrol("sanctum-warden", [[156.2, 15.18, -15.35], [160.15, 15.18, -10.95]], {
+      label: "Sanctum-Wache",
+      speed: 0.82,
+      radius: 0.7,
+      activeWhen: () => this.collected >= 18
+    });
     this.addPortal();
     this.addGuideWisps();
     this.addSafetyNets();
@@ -1379,6 +1423,82 @@ class RuneLiftGame {
     this.hazards.push({ group, radius });
   }
 
+  addEnemyPatrol(id, patrolPointsArray, options = {}) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.28, 0.5, this.performanceMode ? 4 : 6, this.performanceMode ? 8 : 12),
+      this.materials.enemy.clone()
+    );
+    body.position.y = 0.66;
+    body.castShadow = !this.performanceMode;
+
+    const helm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.62, 0.2, 0.52),
+      this.materials.enemyAccent.clone()
+    );
+    helm.position.y = 1.1;
+
+    const shield = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.34, 0.4, 0.11, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0xf2c14e,
+        emissive: 0x6f4213,
+        emissiveIntensity: 0.5,
+        roughness: 0.38,
+        metalness: 0.18
+      })
+    );
+    shield.position.set(0, 0.68, -0.36);
+    shield.rotation.x = Math.PI / 2;
+
+    const eye = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, 0.08, 0.055),
+      new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0.88 })
+    );
+    eye.position.set(0, 1.12, -0.29);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.62, 0.025, 5, this.performanceMode ? 18 : 30),
+      new THREE.MeshBasicMaterial({
+        color: 0xf07f5f,
+        transparent: true,
+        opacity: 0.42,
+        depthWrite: false
+      })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.05;
+
+    group.add(body, helm, shield, eye, ring);
+    const path = patrolPointsArray.map((point) => new THREE.Vector3(...point));
+    group.position.copy(path[0]);
+    group.visible = options.activeWhen ? Boolean(options.activeWhen()) : true;
+    this.scene.add(group);
+
+    this.enemies.push({
+      id,
+      label: options.label ?? "Tempel-Wache",
+      group,
+      body,
+      helm,
+      shield,
+      eye,
+      ring,
+      path,
+      speed: options.speed ?? 0.9,
+      radius: options.radius ?? 0.64,
+      activeWhen: options.activeWhen ?? null,
+      active: group.visible,
+      targetIndex: path.length > 1 ? 1 : 0,
+      direction: 1,
+      cooldown: 0,
+      disabledTimer: 0,
+      baseScale: options.scale ?? 1,
+      velocity: new THREE.Vector3(),
+      lastPosition: path[0].clone()
+    });
+  }
+
   addGuideWisps() {
     const path = [
       [0, 1.08, -2.8], [0, 1.08, -5.8], [1.9, 1.08, -8.2], [5.0, 1.08, -8.2],
@@ -1800,6 +1920,11 @@ class RuneLiftGame {
     this.fullscreenButton.addEventListener("click", () => {
       this.toggleFullscreen();
     });
+    this.jumpButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.requestJump();
+    });
     this.assistModeButton.addEventListener("click", () => {
       this.setAssistMode(true, true);
     });
@@ -2019,6 +2144,15 @@ class RuneLiftGame {
     this.riftPairs.forEach((pair) => {
       pair.cooldown = 0;
     });
+    this.enemies.forEach((enemy) => {
+      enemy.group.position.copy(enemy.path[0]);
+      enemy.lastPosition.copy(enemy.path[0]);
+      enemy.targetIndex = enemy.path.length > 1 ? 1 : 0;
+      enemy.direction = 1;
+      enemy.cooldown = 0;
+      enemy.disabledTimer = 0;
+      enemy.group.scale.setScalar(enemy.baseScale);
+    });
     this.shards.forEach((shard) => {
       shard.collected = false;
       shard.group.visible = true;
@@ -2037,6 +2171,7 @@ class RuneLiftGame {
     this.elapsed += dt;
     this.monitorPerformance(dt);
     this.updatePlatforms();
+    this.updateEnemies(dt);
     if (this.running && !this.finished) {
       this.updatePlayer(dt);
       this.checkMechanics(dt);
@@ -2106,6 +2241,47 @@ class RuneLiftGame {
         platform.edges.material.opacity = edgeOpacity;
         platform.cachedEdgeOpacity = edgeOpacity;
       }
+    }
+  }
+
+  updateEnemies(dt) {
+    for (const enemy of this.enemies) {
+      enemy.lastPosition.copy(enemy.group.position);
+      enemy.cooldown = Math.max(0, enemy.cooldown - dt);
+      enemy.disabledTimer = Math.max(0, enemy.disabledTimer - dt);
+      enemy.active = enemy.activeWhen ? Boolean(enemy.activeWhen()) : true;
+      enemy.group.visible = enemy.active;
+      if (!enemy.active) continue;
+
+      if (enemy.disabledTimer <= 0 && enemy.path.length > 1) {
+        const target = enemy.path[enemy.targetIndex];
+        const toTarget = this.enemyMoveScratch.subVectors(target, enemy.group.position);
+        const distance = toTarget.length();
+        const step = enemy.speed * dt;
+        if (distance <= step) {
+          enemy.group.position.copy(target);
+          if (enemy.targetIndex === enemy.path.length - 1 || enemy.targetIndex === 0) {
+            enemy.direction *= -1;
+          }
+          enemy.targetIndex = clamp(enemy.targetIndex + enemy.direction, 0, enemy.path.length - 1);
+        } else if (distance > 0.001) {
+          enemy.group.position.addScaledVector(toTarget.normalize(), step);
+        }
+      }
+
+      enemy.velocity.subVectors(enemy.group.position, enemy.lastPosition);
+      if (dt > 0) enemy.velocity.divideScalar(dt);
+      const moveAmount = Math.hypot(enemy.velocity.x, enemy.velocity.z);
+      if (moveAmount > 0.04) {
+        enemy.group.rotation.y = Math.atan2(enemy.velocity.x, enemy.velocity.z);
+      }
+
+      const stunScale = enemy.disabledTimer > 0 ? 0.72 : 1;
+      enemy.group.scale.set(enemy.baseScale, enemy.baseScale * stunScale, enemy.baseScale);
+      enemy.body.position.y = 0.66 + Math.sin(this.elapsed * 4.2 + enemy.group.position.x) * 0.035;
+      enemy.ring.rotation.z += dt * (enemy.disabledTimer > 0 ? 0.7 : 2.1);
+      enemy.ring.material.opacity = enemy.disabledTimer > 0 ? 0.18 : 0.34 + Math.sin(this.elapsed * 3.0) * 0.08;
+      enemy.eye.material.opacity = enemy.disabledTimer > 0 ? 0.28 : 0.78 + Math.sin(this.elapsed * 5.0) * 0.12;
     }
   }
 
@@ -2216,6 +2392,12 @@ class RuneLiftGame {
     if (!this.player.grounded || !this.player.currentPlatform || this.player.currentPlatform.moving) return;
     for (const hazard of this.hazards) {
       if (distanceXZ(this.player.position, hazard.group.position) < hazard.radius + 0.65 && Math.abs(this.player.position.y - hazard.group.position.y) < 1.35) {
+        return;
+      }
+    }
+    for (const enemy of this.enemies) {
+      const enemyCenterY = enemy.group.position.y + 0.65 * enemy.baseScale;
+      if (enemy.active && enemy.disabledTimer <= 0 && distanceXZ(this.player.position, enemy.group.position) < enemy.radius + 0.95 && Math.abs(this.player.position.y - enemyCenterY) < 1.55) {
         return;
       }
     }
@@ -2449,9 +2631,55 @@ class RuneLiftGame {
       }
     }
 
+    for (const enemy of this.enemies) {
+      if (this.handleEnemyContact(enemy)) return;
+    }
+
     if (this.collected >= this.totalShards && this.player.position.distanceTo(this.portal.position) < 1.35) {
       this.finishRun();
     }
+  }
+
+  handleEnemyContact(enemy) {
+    if (!enemy.active || enemy.cooldown > 0 || enemy.disabledTimer > 0) return false;
+    const horizontal = distanceXZ(this.player.position, enemy.group.position);
+    if (horizontal > enemy.radius + this.player.radius) return false;
+
+    const feetY = this.player.position.y - this.player.height * 0.5;
+    const enemyCenterY = enemy.group.position.y + 0.65 * enemy.baseScale;
+    const stomped = this.player.velocity.y < -0.45 && feetY > enemy.group.position.y + 0.42;
+    if (stomped) {
+      enemy.disabledTimer = this.assistMode ? 4.2 : 2.7;
+      enemy.cooldown = 0.5;
+      this.player.velocity.y = this.assist.bounceVelocity * 0.72;
+      this.player.grounded = false;
+      this.player.currentPlatform = null;
+      this.player.jumpsRemaining = this.assist.maxJumps;
+      this.audio.play("jump", 0.52, 1.72, 75);
+      this.showToast(`${enemy.label} betaeubt`);
+      return false;
+    }
+
+    if (Math.abs(this.player.position.y - enemyCenterY) > 1.25) return false;
+    if (!this.assistMode) {
+      this.recoverPlayer(enemy.label);
+      return true;
+    }
+
+    const away = this.enemyContactScratch.subVectors(this.player.position, enemy.group.position);
+    away.y = 0;
+    if (away.lengthSq() < 0.001) away.set(0, 0, 1);
+    away.normalize();
+    this.player.velocity.x = away.x * 5.4;
+    this.player.velocity.z = away.z * 5.4;
+    this.player.velocity.y = Math.max(this.player.velocity.y, 4.7);
+    this.player.grounded = false;
+    this.player.currentPlatform = null;
+    this.player.jumpsRemaining = this.assist.maxJumps;
+    enemy.cooldown = 1.0;
+    this.audio.play("reset", 0.3, 1.18, 120);
+    this.showToast("Wache geblockt");
+    return false;
   }
 
   getNextObjectivePosition() {
