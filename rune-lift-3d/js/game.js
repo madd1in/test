@@ -303,6 +303,7 @@ class RuneLiftGame {
     this.toast = document.querySelector("#toast");
     this.touchRing = document.querySelector("#touch-ring");
     this.qualityButton = document.querySelector("#quality-button");
+    this.fullscreenButton = document.querySelector("#fullscreen-button");
     this.audio = new AudioBus(document.querySelector("#audio-button"));
     const deviceMemory = navigator.deviceMemory ?? 4;
     const dpr = window.devicePixelRatio || 1;
@@ -447,6 +448,7 @@ class RuneLiftGame {
     this.bindEvents();
     this.updateModeUi();
     this.updateQualityUi();
+    this.updateFullscreenUi();
     this.updateAssistVisibility();
     this.resize();
     this.renderer.setAnimationLoop(() => this.tick());
@@ -1269,6 +1271,9 @@ class RuneLiftGame {
       if (event.code === "KeyM") {
         this.audio.toggle();
       }
+      if (event.code === "KeyF") {
+        this.toggleFullscreen();
+      }
       if (event.code === "KeyH") {
         this.setAssistMode(!this.assistMode, true);
       }
@@ -1287,6 +1292,9 @@ class RuneLiftGame {
     });
     this.qualityButton.addEventListener("click", () => {
       this.setQualityMode(!this.turboMode);
+    });
+    this.fullscreenButton.addEventListener("click", () => {
+      this.toggleFullscreen();
     });
     this.assistModeButton.addEventListener("click", () => {
       this.setAssistMode(true, true);
@@ -1343,6 +1351,8 @@ class RuneLiftGame {
     };
     this.shell.addEventListener("pointerup", clearTouch);
     this.shell.addEventListener("pointercancel", clearTouch);
+    document.addEventListener("fullscreenchange", () => this.updateFullscreenUi());
+    document.addEventListener("webkitfullscreenchange", () => this.updateFullscreenUi());
   }
 
   setAssistMode(enabled, announce = false) {
@@ -1391,6 +1401,38 @@ class RuneLiftGame {
     this.qualityButton.setAttribute(
       "aria-label",
       forced ? "Turbo-Modus wegen Geraet aktiv" : "Turbo-Modus umschalten"
+    );
+  }
+
+  getFullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  async toggleFullscreen() {
+    try {
+      if (this.getFullscreenElement()) {
+        const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+        if (!exitFullscreen) throw new Error("Fullscreen exit unavailable");
+        await exitFullscreen.call(document);
+      } else {
+        const requestFullscreen = this.shell.requestFullscreen || this.shell.webkitRequestFullscreen;
+        if (!requestFullscreen) throw new Error("Fullscreen request unavailable");
+        await requestFullscreen.call(this.shell);
+      }
+    } catch {
+      this.showToast("Vollbild nicht verfuegbar");
+    }
+    this.updateFullscreenUi();
+    window.setTimeout(() => this.resize(), 120);
+  }
+
+  updateFullscreenUi() {
+    const active = Boolean(this.getFullscreenElement());
+    this.fullscreenButton.textContent = active ? "X" : "F";
+    this.fullscreenButton.setAttribute("aria-pressed", String(active));
+    this.fullscreenButton.setAttribute(
+      "aria-label",
+      active ? "Vollbild beenden" : "Vollbild umschalten"
     );
   }
 

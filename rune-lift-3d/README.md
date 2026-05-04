@@ -14,5 +14,5 @@ Open `http://localhost:4177`.
 
 ## Controls
 
-- Keyboard: WASD or arrow keys to move, Space to jump or double jump in Assist, H to toggle Assist/Normal, R to reset, M to mute. Use the `T` HUD button to stay in Turbo mode or reload into FX mode.
+- Keyboard: WASD or arrow keys to move, Space to jump or double jump in Assist, H to toggle Assist/Normal, R to reset, M to mute, F to toggle fullscreen. Use the `T` HUD button to stay in Turbo mode or reload into FX mode.
 - Touch: drag to move, swipe up to jump or double jump, swipe down to reset.
