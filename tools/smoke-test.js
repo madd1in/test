@@ -114,6 +114,9 @@ async function browserSmoke() {
       debugState: window.__NOCTURNE_DEBUG_STATE(),
       hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
       hasMobile: Boolean(document.getElementById("mobileButton")),
+      touchButtonText: Array.from(document.querySelectorAll("#touchControls button"), (button) => button.textContent.trim()).join(""),
+      touchUserSelect: getComputedStyle(document.querySelector("#touchControls button")).userSelect,
+      touchWebkitUserSelect: getComputedStyle(document.querySelector("#touchControls button")).webkitUserSelect,
       lit,
       alpha,
       hpTransform: document.getElementById("hpFill").style.transform
@@ -154,9 +157,14 @@ async function browserSmoke() {
   assert(!result.state.inputInfo.upKeys.includes("ArrowUp"), "ArrowUp should not be reserved for up doors");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
   assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
+  assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");
   assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
+  assert(result.state.tuningInfo.referenceAssets === "20260505", "new reference assets should be wired");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
+  assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
+  assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
+  assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);

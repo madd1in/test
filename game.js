@@ -5,6 +5,7 @@
   const H = 540;
   const GRAVITY = 0.68;
   const LONG_ROOM_WIDTH = 1440;
+  const LONG_ROOM_HEIGHT = 720;
   const WHIP_SIDE_REACH = 166;
   const WHIP_SIDE_HEIGHT = 86;
   const WHIP_DRAW_W = 206;
@@ -47,13 +48,13 @@
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
-    bgGate: "assets/generated/bg_stage1_crisp.png",
+    bgGate: "assets/generated/bg_ref_hall.png",
     midGate: "assets/generated/bg_stage1_mid_tiled.png",
-    bgClock: "assets/generated/bg_stage2_crisp.png",
+    bgClock: "assets/generated/bg_ref_stairs.png",
     midClock: "assets/generated/bg_stage2_mid_tiled.png",
-    bgCrypt: "assets/generated/bg_stage3_crisp.png",
+    bgCrypt: "assets/generated/bg_ref_dungeon.png",
     midCrypt: "assets/generated/bg_stage3_mid_tiled.png",
-    bgThrone: "assets/generated/bg_stage5_crisp.png",
+    bgThrone: "assets/generated/bg_ref_cathedral.png",
     midThrone: "assets/generated/bg_stage5_mid_tiled.png"
   };
 
@@ -102,7 +103,9 @@
   window.__NOCTURNE_TUNING_INFO = {
     roomFlow: "horizontalCamera",
     longRoomWidth: LONG_ROOM_WIDTH,
+    longRoomHeight: LONG_ROOM_HEIGHT,
     whipSideReach: WHIP_SIDE_REACH,
+    referenceAssets: "20260505",
     difficulty: "mercy-pass"
   };
 
@@ -150,7 +153,9 @@
     time: 0,
     shake: 0,
     cameraX: 0,
+    cameraY: 0,
     cameraTargetX: 0,
+    cameraTargetY: 0,
     muted: false,
     mobileMode: false,
     message: "",
@@ -464,8 +469,12 @@
 
     for (const [id, room] of Object.entries(rooms)) {
       room.width = room.boss ? W : LONG_ROOM_WIDTH;
+      room.height = room.boss ? H : LONG_ROOM_HEIGHT;
       for (const solid of room.platforms) {
-        if (solid.x === 0 && solid.w >= W) solid.w = room.width;
+        if (solid.x === 0 && solid.w >= W) {
+          solid.w = room.width;
+          solid.h = room.height - solid.y;
+        }
         else if (solid.x > 560) solid.x += rightShift;
       }
       room.platforms.push(...(bridgePlatforms[id] || []));
@@ -497,7 +506,9 @@
     room: game.roomId,
     time: Number(game.time.toFixed(2)),
     roomWidth: roomWidth(),
+    roomHeight: roomHeight(),
     cameraX: Math.round(game.cameraX),
+    cameraY: Math.round(game.cameraY),
     playerX: Math.round(player.x),
     playerVx: Number(player.vx.toFixed(2)),
     keys: Array.from(keysDown),
@@ -711,7 +722,7 @@
       h: 128,
       vx: -0.45,
       vy: 0,
-      row: 5,
+      row: 0,
       hp: 150,
       maxHp: 150,
       facing: -1,
@@ -893,7 +904,7 @@
       burst(player.x + player.w / 2, player.y + player.h, "#927f61", 5);
     }
 
-    if (player.y > H + 80) {
+    if (player.y > roomHeight() + 80) {
       hurtPlayer(14);
       const spawn = game.room.spawn;
       player.x = spawn.x;
@@ -952,11 +963,17 @@
 
   function updateCamera(snap) {
     const maxX = Math.max(0, roomWidth() - W);
+    const maxY = Math.max(0, roomHeight() - H);
     const lookAhead = clamp(player.vx * 18, -110, 110);
+    const lookVertical = clamp(player.vy * 8, -70, 70);
     const target = clamp(player.x + player.w / 2 - W * 0.44 + lookAhead, 0, maxX);
+    const targetY = clamp(player.y + player.h / 2 - H * 0.58 + lookVertical, 0, maxY);
     game.cameraTargetX = target;
+    game.cameraTargetY = targetY;
     game.cameraX = snap ? target : game.cameraX + (target - game.cameraX) * 0.14;
+    game.cameraY = snap ? targetY : game.cameraY + (targetY - game.cameraY) * 0.16;
     if (Math.abs(game.cameraX - target) < 0.5) game.cameraX = target;
+    if (Math.abs(game.cameraY - targetY) < 0.5) game.cameraY = targetY;
   }
 
   function moveEntity(ent, step, clampToRoom) {
@@ -1147,7 +1164,7 @@
         hurtPlayer(shot.damage);
       }
     }
-    game.projectiles = game.projectiles.filter((shot) => shot.life > 0 && shot.x > -80 && shot.x < roomWidth() + 80 && shot.y > -80 && shot.y < H + 80);
+    game.projectiles = game.projectiles.filter((shot) => shot.life > 0 && shot.x > -80 && shot.x < roomWidth() + 80 && shot.y > -80 && shot.y < roomHeight() + 80);
   }
 
   function updatePickups(dt) {
@@ -1308,7 +1325,7 @@
     ctx.translate(shakeX, shakeY);
     drawRoom();
     ctx.save();
-    ctx.translate(-Math.round(game.cameraX), 0);
+    ctx.translate(-Math.round(game.cameraX), -Math.round(game.cameraY));
     drawDoors();
     drawPickups();
     drawProjectiles();
@@ -1327,9 +1344,10 @@
     const bg = images[room.bg];
     const mid = images[room.mid];
     const cameraX = game.cameraX || 0;
-    drawCover(bg, -cameraX * 0.08, 0, W + 120, H);
+    const cameraY = game.cameraY || 0;
+    drawCover(bg, -cameraX * 0.08, -cameraY * 0.06, W + 120, H + 90);
     ctx.globalAlpha = 0.48;
-    drawCover(mid, Math.sin(game.time * 0.12) * 8 - cameraX * 0.22, 0, W + 260, H);
+    drawCover(mid, Math.sin(game.time * 0.12) * 8 - cameraX * 0.22, -cameraY * 0.12, W + 260, H + 140);
     ctx.globalAlpha = 1;
 
     const tone = room.palette === "red" ? "rgba(105, 18, 28, 0.20)" : room.palette === "green" ? "rgba(24, 86, 53, 0.18)" : room.palette === "blue" ? "rgba(31, 75, 115, 0.18)" : "rgba(111, 79, 30, 0.16)";
@@ -1337,7 +1355,7 @@
     ctx.fillRect(0, 0, W, H);
 
     ctx.save();
-    ctx.translate(-Math.round(cameraX), 0);
+    ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
     drawArchitecture(room);
     for (const solid of room.platforms) drawPlatform(solid);
     ctx.restore();
@@ -1574,6 +1592,10 @@
     return (room && room.width) || W;
   }
 
+  function roomHeight(room = game.room) {
+    return (room && room.height) || H;
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -1785,6 +1807,11 @@
   canvas.addEventListener("pointermove", moveSwipe);
   canvas.addEventListener("pointerup", endSwipe);
   canvas.addEventListener("pointercancel", endSwipe);
+
+  for (const eventName of ["contextmenu", "selectstart", "dragstart"]) {
+    dom.touchControls.addEventListener(eventName, (event) => event.preventDefault());
+    canvas.addEventListener(eventName, (event) => event.preventDefault());
+  }
 
   for (const button of dom.touchControls.querySelectorAll("button")) {
     const action = button.dataset.touch;
