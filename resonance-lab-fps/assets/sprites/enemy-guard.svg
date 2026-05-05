@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230 270">
+  <defs>
+    <linearGradient id="suit" y1="0" y2="1">
+      <stop offset="0" stop-color="#9e4a29"/>
+      <stop offset=".35" stop-color="#5b2218"/>
+      <stop offset=".72" stop-color="#20282a"/>
+      <stop offset="1" stop-color="#0f1415"/>
+    </linearGradient>
+    <radialGradient id="visor" cx=".5" cy=".45" r=".55">
+      <stop offset="0" stop-color="#fff1d8"/>
+      <stop offset=".32" stop-color="#ffb13d"/>
+      <stop offset="1" stop-color="#4b120e"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="115" cy="250" rx="79" ry="16" fill="#000" opacity=".38"/>
+  <path d="M54 103c-25 27-34 65-24 111 3 16 19 24 35 15 15-8 19-28 10-44-10-20-6-39 13-58Z" fill="#171a1a" stroke="#ff7b36" stroke-width="8"/>
+  <path d="M176 103c25 27 34 65 24 111-3 16-19 24-35 15-15-8-19-28-10-44 10-20 6-39-13-58Z" fill="#171a1a" stroke="#ff7b36" stroke-width="8"/>
+  <path d="M69 88c0-48 21-76 46-76s46 28 46 76c21 24 27 93 0 130-28 20-64 20-92 0-27-37-21-106 0-130Z" fill="url(#suit)" stroke="#ffb07c" stroke-width="6"/>
+  <path d="M74 76c14-26 68-26 82 0v38c-15 17-67 17-82 0Z" fill="#0a0d0e" stroke="#a85031" stroke-width="5"/>
+  <ellipse cx="115" cy="96" rx="42" ry="22" fill="url(#visor)"/>
+  <path d="M76 147h78M73 169h84M82 191h66" stroke="#ffd09b" stroke-width="6" stroke-linecap="round" opacity=".42"/>
+  <path d="M90 214l-16 43M140 214l16 43" stroke="#151b1c" stroke-width="16" stroke-linecap="round"/>
+  <path d="M75 245h44M111 245h44" stroke="#ff9b4f" stroke-width="7" stroke-linecap="round"/>
+  <path d="M108 130h14v80h-14Z" fill="#ffb13d" opacity=".42"/>
+</svg>
