@@ -1,73 +1,70 @@
 <!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Moonwalker Nocturne - Scratch Fusion</title>
-  <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="frame">
-    <canvas id="game" width="960" height="540" class="crt"></canvas>
-    <header class="hud">
-      <div>HP <span id="hp">16</span></div>
-      <div>HRT <span id="hearts">5</span></div>
-      <div>STG <span id="stage">01</span></div>
-      <div>TIME <span id="time">300</span></div>
-      <div>SCORE <span id="score">0</span></div>
-      <div>WPN <span id="weapon">AXE</span></div>
-      <div>GRV <span id="special">0%</span></div>
-      <div>GRD <span id="guard">1</span></div>
-      <div>BEST <span id="best">0</span></div>
-    </header>
-    <div id="overlay" class="overlay overlay-title">
-      <div class="title-screen">
-        <div class="intro-reel" aria-hidden="true">
-          <div class="intro-moon"></div>
-          <div class="intro-cloud intro-cloud-a"></div>
-          <div class="intro-cloud intro-cloud-b"></div>
-          <div class="intro-castle"></div>
-          <div class="intro-hero"></div>
-          <div class="intro-whip"></div>
-          <div class="intro-bats"><i></i><i></i><i></i><i></i></div>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nocturne Reliquary</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app" class="shell">
+      <canvas id="game" width="960" height="540" aria-label="Nocturne Reliquary game canvas"></canvas>
+
+      <section id="hud" class="hud" aria-live="polite">
+        <div class="hud-left">
+          <div class="brandline">
+            <span class="crest"></span>
+            <span>Nocturne Reliquary</span>
+          </div>
+          <div class="meter hp"><span id="hpFill"></span></div>
+          <div class="meter mp"><span id="mpFill"></span></div>
         </div>
-        <div class="title-content">
-          <h1 class="gothic-title" data-title="NOCTURNE"><span>NOCTURNE</span><small>MOONWALKER</small></h1>
-          <div class="title-rule" aria-hidden="true"></div>
-          <p class="title-command gothic-ui">ENTER / START</p>
-          <p class="title-subcommand gothic-ui">NEW RUN &nbsp; C / CONT CONTINUE &nbsp; M / MUS TRACK</p>
-          <p class="stage-pick gothic-ui">Stage 1: Courtyard</p>
+        <div class="hud-center">
+          <div id="roomName" class="room-name">Gate Hall</div>
+          <div id="statusLine" class="status-line">Waking the reliquary...</div>
         </div>
-      </div>
-    </div>
-    <nav id="touchControls" class="touch-controls" aria-label="Touch controls">
-      <button type="button" id="fullscreenToggle" class="fullscreen-toggle" data-touch="fullscreen" aria-label="Toggle fullscreen" aria-pressed="false">
-        <span aria-hidden="true"></span>
-      </button>
-      <div class="touch-menu">
-        <button type="button" data-touch="start" aria-label="Start game">START</button>
-        <button type="button" data-touch="continue" aria-label="Continue game">CONT</button>
-        <button type="button" data-touch="music" aria-label="Next music track">MUS</button>
-      </div>
-      <div class="touch-dpad" aria-label="Movement">
-        <button type="button" class="touch-up" data-touch="up" aria-label="Up">UP</button>
-        <button type="button" class="touch-left" data-touch="left" aria-label="Left">L</button>
-        <button type="button" class="touch-right" data-touch="right" aria-label="Right">R</button>
-        <button type="button" class="touch-down" data-touch="down" aria-label="Down">DN</button>
-      </div>
-      <div class="touch-actions" aria-label="Actions">
-        <button type="button" data-touch="jump" aria-label="Jump">JMP</button>
-        <button type="button" data-touch="whip" aria-label="Whip">W</button>
-        <button type="button" data-touch="sub" aria-label="Subweapon">SUB</button>
-        <button type="button" data-touch="dash" aria-label="Dash">DASH</button>
-        <button type="button" data-touch="moonwalk" aria-label="Moonwalk">MOON</button>
-        <button type="button" data-touch="dance" aria-label="Dance burst">BURST</button>
-      </div>
-    </nav>
-  </div>
-  <span id="chain" hidden></span>
-  <span id="mode" hidden></span>
-  <script src="game.js"></script>
-</body>
+        <div class="hud-right">
+          <button id="mapButton" class="icon-button" type="button" aria-label="Toggle map">MAP</button>
+          <button id="muteButton" class="icon-button" type="button" aria-label="Toggle audio">VOL</button>
+        </div>
+      </section>
+
+      <section id="titlePanel" class="title-panel">
+        <div class="title-inner">
+          <p class="kicker">A new gothic action quest</p>
+          <h1>Nocturne Reliquary</h1>
+          <p class="subtitle">Hunt relics through a moonlocked castle and break the crimson rite.</p>
+          <div class="title-actions">
+            <button id="startButton" class="primary-button" type="button">Begin</button>
+            <button id="continueButton" class="secondary-button" type="button">Continue</button>
+          </div>
+          <div id="loadState" class="load-state">Loading local assets...</div>
+        </div>
+      </section>
+
+      <section id="mapPanel" class="map-panel" hidden>
+        <div class="map-head">
+          <h2>Castle Map</h2>
+          <button id="closeMapButton" class="icon-button" type="button" aria-label="Close map">X</button>
+        </div>
+        <div id="mapGrid" class="map-grid"></div>
+        <div id="relicList" class="relic-list"></div>
+      </section>
+
+      <section id="touchControls" class="touch-controls" aria-label="Touch controls">
+        <div class="touch-cluster">
+          <button data-touch="left" type="button" aria-label="Move left">&lt;</button>
+          <button data-touch="right" type="button" aria-label="Move right">&gt;</button>
+          <button data-touch="up" type="button" aria-label="Move up">^</button>
+        </div>
+        <div class="touch-cluster">
+          <button data-touch="jump" type="button" aria-label="Jump">JMP</button>
+          <button data-touch="attack" type="button" aria-label="Attack">ATK</button>
+          <button data-touch="dash" type="button" aria-label="Dash">DASH</button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
 </html>
