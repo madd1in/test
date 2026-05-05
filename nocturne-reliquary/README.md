@@ -32,10 +32,14 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Down-whip in the air bounces off enemies as a Moon pogo
 - Softer enemy damage, slower pressure, and longer invulnerability after hits
 - Horizontal camera rooms are about one and a half screens wide for better flow
+- Vertical camera rooms are taller than one screen
+- May 5 reference PNGs are sliced into the shipped player, whip, enemy, boss, and room backdrop assets
+- Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
 - Aerial whip stalls descent briefly for safer mid-air attacks
 - Moon chain combo rewards quick kills with extra MP
 - Local sprite-sheet animation for player, enemies, boss, projectiles, and whip
 - Reproducible slicing for the raw player and whip PNGs in `tools/slice-local-assets.py`
+- Reproducible slicing for the May 5 reference PNGs in `tools/slice-reference-assets.py`
 - Local BGM and SFX
 - Save/continue through `localStorage`
 - Boss finale in the Crimson Reliquary
