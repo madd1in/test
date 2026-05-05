@@ -76,7 +76,7 @@ const AUDIO_SOURCES = {
 };
 
 const TILE_SPRITE_MAP_KEY = "tileSpriteMap";
-const TILE_SPRITE_SIZE = 64;
+const TILE_SPRITE_SIZE = 128;
 const TILE_SPRITE_FRAMES = {
   grass: 0,
   grassAlt: 1,
@@ -181,7 +181,7 @@ let hudCache = "";
 function loadAssets() {
   const entries = [
     ...Object.entries(ASSET_SOURCES),
-    [TILE_SPRITE_MAP_KEY, "assets/environment/tile-sprite-map-autotile-v5.png"],
+    [TILE_SPRITE_MAP_KEY, "assets/environment/tile-sprite-map-quality-seamless-v9.png"],
     [ENEMY_SPRITE_MAP_KEY, "assets/characters/enemy-sprite-map-animated-v2.png"],
     [OBJECT_SPRITE_MAP_KEY, "assets/items/object-sprite-map-imagen.png"],
     [PLAYER_SPRITE_MAP_KEY, "assets/characters/player-sprite-map-combat-v2.png"],

@@ -29,10 +29,10 @@ for (const asset of assetRefs) {
   assertFile(path.join(root, asset));
 }
 
-const tileAtlas = path.join(root, "assets", "environment", "tile-sprite-map-autotile-v5.png");
+const tileAtlas = path.join(root, "assets", "environment", "tile-sprite-map-quality-seamless-v9.png");
 const tileAtlasSize = readPngSize(tileAtlas);
-if (tileAtlasSize.width !== 3264 || tileAtlasSize.height !== 64) {
-  throw new Error(`Tile atlas must be 3264x64, got ${tileAtlasSize.width}x${tileAtlasSize.height}`);
+if (tileAtlasSize.width !== 6528 || tileAtlasSize.height !== 128) {
+  throw new Error(`Tile atlas must be 6528x128, got ${tileAtlasSize.width}x${tileAtlasSize.height}`);
 }
 
 const enemyAtlas = path.join(root, "assets", "characters", "enemy-sprite-map-animated-v2.png");
