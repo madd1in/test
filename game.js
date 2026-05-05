@@ -48,13 +48,13 @@
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
-    bgGate: "assets/generated/bg_ref_hall.png",
+    bgGate: "assets/generated/bg_gothic_hall.png",
     midGate: "assets/generated/bg_stage1_mid_tiled.png",
-    bgClock: "assets/generated/bg_ref_stairs.png",
+    bgClock: "assets/generated/bg_gothic_stairs.png",
     midClock: "assets/generated/bg_stage2_mid_tiled.png",
-    bgCrypt: "assets/generated/bg_ref_dungeon.png",
+    bgCrypt: "assets/generated/bg_gothic_dungeon.png",
     midCrypt: "assets/generated/bg_stage3_mid_tiled.png",
-    bgThrone: "assets/generated/bg_ref_cathedral.png",
+    bgThrone: "assets/generated/bg_gothic_cathedral.png",
     midThrone: "assets/generated/bg_stage5_mid_tiled.png"
   };
 
@@ -105,7 +105,8 @@
     longRoomWidth: LONG_ROOM_WIDTH,
     longRoomHeight: LONG_ROOM_HEIGHT,
     whipSideReach: WHIP_SIDE_REACH,
-    referenceAssets: "20260505",
+    spriteSet: "stable-v4",
+    backgroundSet: "procedural-gothic-v1",
     difficulty: "mercy-pass"
   };
 
@@ -722,7 +723,7 @@
       h: 128,
       vx: -0.45,
       vy: 0,
-      row: 0,
+      row: 5,
       hp: 150,
       maxHp: 150,
       facing: -1,
