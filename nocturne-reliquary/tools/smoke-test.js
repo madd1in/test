@@ -159,7 +159,8 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
   assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");
   assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
-  assert(result.state.tuningInfo.referenceAssets === "20260505", "new reference assets should be wired");
+  assert(result.state.tuningInfo.spriteSet === "stable-v4", "sprites should use the stable pre-reference-slice sheets");
+  assert(result.state.tuningInfo.backgroundSet === "procedural-gothic-v1", "new procedural backgrounds should be wired");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
