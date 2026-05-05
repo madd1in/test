@@ -1,4 +1,4 @@
-name: Deploy Rune Lift 3D
+name: Deploy Murrwald 3D
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
       - name: Upload static game
         uses: actions/upload-pages-artifact@v3
         with:
-          path: rune-lift-3d
+          path: murrwald-3d
 
       - name: Deploy
         id: deployment

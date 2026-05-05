@@ -1,0 +1,4 @@
+chrome-visual-profile/
+server.out.log
+server.err.log
+smoke-*.png
