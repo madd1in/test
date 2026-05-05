@@ -83,7 +83,7 @@ async function browserSmoke() {
   await page.click("#startButton");
   await page.waitForTimeout(900);
   await page.keyboard.press("KeyJ");
-  await page.keyboard.press("Space");
+  await page.keyboard.press("ArrowUp");
   await page.waitForTimeout(500);
 
   const state = await page.evaluate(() => {
@@ -105,6 +105,7 @@ async function browserSmoke() {
       titleHidden: document.getElementById("titlePanel").hidden,
       room: document.getElementById("roomName").textContent,
       frameInfo: window.__NOCTURNE_FRAME_INFO,
+      inputInfo: window.__NOCTURNE_INPUT_INFO,
       hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
       hasMobile: Boolean(document.getElementById("mobileButton")),
       lit,
@@ -143,6 +144,9 @@ async function browserSmoke() {
   assert(result.state.frameInfo.playerFrames === 24, "player frame count should be 24");
   assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
   assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
+  assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
+  assert(!result.state.inputInfo.upKeys.includes("ArrowUp"), "ArrowUp should not be reserved for up doors");
+  assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);
