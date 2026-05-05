@@ -2,6 +2,10 @@
 
 Ein eigenstaendiges, Zelda-inspiriertes Top-down-Browsergame mit lokalen Assets.
 
+Weitere Deploys:
+
+- [Resonance Lab FPS](./resonance-lab-fps/)
+
 ## Start
 
 `index.html` im Browser oeffnen. Das Spiel nutzt keine externen CDNs, keine npm-Abhaengigkeiten und keine Nintendo-Assets.
