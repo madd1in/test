@@ -1,4 +1,4 @@
-name: Deploy Murrwald 3D
+name: Deploy Nocturne Reliquary
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
       - name: Upload static game
         uses: actions/upload-pages-artifact@v3
         with:
-          path: murrwald-3d
+          path: nocturne-reliquary
 
       - name: Deploy
         id: deployment
