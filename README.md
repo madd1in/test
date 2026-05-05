@@ -8,9 +8,9 @@ Open `index.html` in a browser, or serve this folder with any static server.
 
 ## Controls
 
-- Move: arrow keys or A/D
-- Climb doors: up/down
-- Jump: Space or Z
+- Move: Left/Right arrows or A/D
+- Climb doors: W/S or touch up/down
+- Jump: ArrowUp, Space, or Z
 - Double jump: jump again in the air
 - Attack: J or X
 - Spell: K or C
@@ -26,6 +26,9 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Relic-gated progression: Grave Boots, Mist Dash, Moon Sigil
 - Grave Boots upgrade double jump into Triple Moonstep
 - Moon Sigil turns the spell into a three-way moon arc
+- ArrowUp is dedicated to jump, while W keeps up-door control clean
+- Jump buffering and short-hop release make platforming sharper
+- Down-whip in the air bounces off enemies as a Moon pogo
 - Aerial whip stalls descent briefly for safer mid-air attacks
 - Moon chain combo rewards quick kills with extra MP
 - Local sprite-sheet animation for player, enemies, boss, projectiles, and whip

@@ -78,9 +78,9 @@
   const KEYMAP = {
     left: ["ArrowLeft", "KeyA"],
     right: ["ArrowRight", "KeyD"],
-    up: ["ArrowUp", "KeyW"],
+    up: ["KeyW"],
     down: ["ArrowDown", "KeyS"],
-    jump: ["Space", "KeyZ"],
+    jump: ["ArrowUp", "Space", "KeyZ"],
     attack: ["KeyJ", "KeyX"],
     spell: ["KeyK", "KeyC"],
     dash: ["KeyL", "ShiftLeft", "ShiftRight"],
@@ -88,6 +88,11 @@
     pause: ["Escape"],
     mute: ["KeyM"],
     interact: ["KeyE", "Enter"]
+  };
+  window.__NOCTURNE_INPUT_INFO = {
+    jumpKeys: KEYMAP.jump.slice(),
+    upKeys: KEYMAP.up.slice(),
+    feel: ["jumpBuffer", "downWhipPogo"]
   };
 
   const SPRITES = {
@@ -165,8 +170,10 @@
     onGround: false,
     jumps: 0,
     coyote: 0,
+    jumpBuffer: 0,
     attackTimer: 0,
     attackHit: false,
+    attackVariant: "side",
     dashTimer: 0,
     dashCooldown: 0,
     invuln: 0,
@@ -502,8 +509,13 @@
     player.facing = 1;
     player.invuln = 0;
     player.attackTimer = 0;
+    player.attackHit = false;
+    player.attackVariant = "side";
     player.dashTimer = 0;
     player.dashCooldown = 0;
+    player.jumps = 0;
+    player.coyote = 0;
+    player.jumpBuffer = 0;
     player.combo = 0;
     player.comboTimer = 0;
     game.projectiles.length = 0;
@@ -705,11 +717,15 @@
       player.coyote = Math.max(0, player.coyote - dt);
     }
 
-    if (actionJust("jump")) {
+    if (actionJust("jump")) player.jumpBuffer = 0.13;
+    else player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
+
+    if (player.jumpBuffer > 0) {
       if (player.onGround || player.coyote > 0) {
         player.vy = -12.4;
         player.onGround = false;
         player.coyote = 0;
+        player.jumpBuffer = 0;
         player.jumps = 1;
         playSound("jump");
       } else {
@@ -717,11 +733,16 @@
         if (player.jumps < maxJumps) {
           player.vy = player.jumps === 1 ? -11.4 : -10.6;
           player.jumps += 1;
+          player.jumpBuffer = 0;
           burst(player.x + player.w / 2, player.y + player.h, player.jumps > 2 ? "#f2cb68" : "#8bd7ff", player.jumps > 2 ? 18 : 12);
           if (player.jumps > 2) message("Moonstep");
           playSound("jump");
         }
       }
+    }
+
+    if (!actionDown("jump") && player.vy < -4.6) {
+      player.vy += 0.82 * step;
     }
 
     if (actionJust("dash")) {
@@ -747,6 +768,7 @@
     if (actionJust("attack") && player.attackTimer <= 0.02) {
       player.attackTimer = 0.28;
       player.attackHit = false;
+      player.attackVariant = !player.onGround && actionDown("down") ? "down" : "side";
       if (!player.onGround && player.vy > -2) {
         player.vy *= 0.42;
         burst(player.x + player.w / 2, player.y + 46, "#f0bf61", 6);
@@ -805,29 +827,47 @@
   }
 
   function playerMelee() {
-    const box = {
-      x: player.facing > 0 ? player.x + player.w - 2 : player.x - 86,
-      y: player.y + 24,
-      w: 88,
-      h: 56
-    };
-    slashParticles(box);
+    const downWhip = player.attackVariant === "down";
+    const box = downWhip
+      ? { x: player.x - 18, y: player.y + player.h - 6, w: player.w + 36, h: 82 }
+      : {
+          x: player.facing > 0 ? player.x + player.w - 2 : player.x - 86,
+          y: player.y + 24,
+          w: 88,
+          h: 56
+        };
+    let hits = 0;
+    slashParticles(box, downWhip);
     for (const enemy of game.enemies) {
-      if (rectsOverlap(box, enemy)) damageEnemy(enemy, 24);
+      if (rectsOverlap(box, enemy)) {
+        damageEnemy(enemy, downWhip ? 20 : 24);
+        hits += 1;
+      }
     }
-    if (game.boss && rectsOverlap(box, game.boss)) damageBoss(18);
+    if (game.boss && rectsOverlap(box, game.boss)) {
+      damageBoss(downWhip ? 16 : 18);
+      hits += 1;
+    }
+    if (downWhip && hits > 0) {
+      player.vy = -10.2;
+      player.jumps = Math.min(player.jumps, 1);
+      player.jumpBuffer = 0;
+      burst(player.x + player.w / 2, player.y + player.h, "#8bd7ff", 13);
+      message("Moon pogo");
+      playSound("jump", 0.24);
+    }
   }
 
-  function slashParticles(box) {
+  function slashParticles(box, downWhip = false) {
     for (let i = 0; i < 10; i += 1) {
       game.particles.push({
         x: box.x + Math.random() * box.w,
         y: box.y + Math.random() * box.h,
-        vx: player.facing * (1 + Math.random() * 3),
-        vy: -1 + Math.random() * 2,
+        vx: downWhip ? -1.6 + Math.random() * 3.2 : player.facing * (1 + Math.random() * 3),
+        vy: downWhip ? 1 + Math.random() * 3 : -1 + Math.random() * 2,
         life: 0.18 + Math.random() * 0.16,
         maxLife: 0.32,
-        color: i % 2 ? "#f0bf61" : "#e95a45",
+        color: downWhip ? (i % 2 ? "#8bd7ff" : "#f0bf61") : i % 2 ? "#f0bf61" : "#e95a45",
         size: 2 + Math.random() * 3
       });
     }
@@ -1325,7 +1365,11 @@
       const drawH = 72;
       const x = player.facing > 0 ? player.x + player.w - 12 : player.x - drawW + 10;
       ctx.save();
-      if (player.facing < 0) {
+      if (player.attackVariant === "down") {
+        ctx.translate(player.x + player.w / 2, player.y + player.h - 8);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, -4, -drawH / 2, drawW, drawH);
+      } else if (player.facing < 0) {
         ctx.translate(x + drawW, player.y + 24);
         ctx.scale(-1, 1);
         ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, 0, 0, drawW, drawH);
