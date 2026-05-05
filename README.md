@@ -28,7 +28,10 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Moon Sigil turns the spell into a three-way moon arc
 - ArrowUp is dedicated to jump, while W keeps up-door control clean
 - Jump buffering and short-hop release make platforming sharper
+- Wider whip hitboxes line up better with the visible whip arc
 - Down-whip in the air bounces off enemies as a Moon pogo
+- Softer enemy damage, slower pressure, and longer invulnerability after hits
+- Horizontal camera rooms are about one and a half screens wide for better flow
 - Aerial whip stalls descent briefly for safer mid-air attacks
 - Moon chain combo rewards quick kills with extra MP
 - Local sprite-sheet animation for player, enemies, boss, projectiles, and whip

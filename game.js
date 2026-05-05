@@ -4,6 +4,11 @@
   const W = 960;
   const H = 540;
   const GRAVITY = 0.68;
+  const LONG_ROOM_WIDTH = 1440;
+  const WHIP_SIDE_REACH = 166;
+  const WHIP_SIDE_HEIGHT = 86;
+  const WHIP_DRAW_W = 206;
+  const WHIP_DRAW_H = 78;
   const STORE_KEY = "nocturneReliquarySaveV1";
 
   const canvas = document.getElementById("game");
@@ -94,6 +99,12 @@
     upKeys: KEYMAP.up.slice(),
     feel: ["jumpBuffer", "downWhipPogo"]
   };
+  window.__NOCTURNE_TUNING_INFO = {
+    roomFlow: "horizontalCamera",
+    longRoomWidth: LONG_ROOM_WIDTH,
+    whipSideReach: WHIP_SIDE_REACH,
+    difficulty: "mercy-pass"
+  };
 
   const SPRITES = {
     playerFrameW: 128,
@@ -106,16 +117,16 @@
   window.__NOCTURNE_FRAME_INFO = SPRITES;
 
   const ENEMY_TYPES = {
-    zombie: { row: 0, hp: 26, w: 42, h: 82, dw: 86, dh: 118, speed: 0.72, damage: 8, ai: "walker" },
-    skeleton: { row: 1, hp: 32, w: 42, h: 86, dw: 88, dh: 122, speed: 0.62, damage: 9, ai: "thrower" },
-    bat: { row: 2, hp: 18, w: 42, h: 32, dw: 84, dh: 64, speed: 1.18, damage: 7, ai: "flyer" },
-    medusa: { row: 3, hp: 24, w: 48, h: 56, dw: 90, dh: 86, speed: 1.08, damage: 9, ai: "sine" },
-    bonepillar: { row: 4, hp: 36, w: 34, h: 100, dw: 74, dh: 136, speed: 0, damage: 10, ai: "turret" },
-    knight: { row: 5, hp: 52, w: 50, h: 92, dw: 92, dh: 134, speed: 0.55, damage: 12, ai: "guard" },
-    phantom: { row: 6, hp: 34, w: 46, h: 78, dw: 86, dh: 128, speed: 0.72, damage: 10, ai: "ghost" },
-    gargoyle: { row: 7, hp: 54, w: 58, h: 92, dw: 108, dh: 134, speed: 0.72, damage: 12, ai: "leaper" },
-    reaper: { row: 8, hp: 58, w: 54, h: 92, dw: 96, dh: 132, speed: 0.58, damage: 13, ai: "reaper" },
-    witch: { row: 9, hp: 42, w: 48, h: 88, dw: 86, dh: 126, speed: 0.38, damage: 10, ai: "witch" }
+    zombie: { row: 0, hp: 22, w: 42, h: 82, dw: 86, dh: 118, speed: 0.62, damage: 5, ai: "walker" },
+    skeleton: { row: 1, hp: 28, w: 42, h: 86, dw: 88, dh: 122, speed: 0.54, damage: 6, ai: "thrower" },
+    bat: { row: 2, hp: 16, w: 42, h: 32, dw: 84, dh: 64, speed: 0.98, damage: 5, ai: "flyer" },
+    medusa: { row: 3, hp: 22, w: 48, h: 56, dw: 90, dh: 86, speed: 0.9, damage: 6, ai: "sine" },
+    bonepillar: { row: 4, hp: 30, w: 34, h: 100, dw: 74, dh: 136, speed: 0, damage: 7, ai: "turret" },
+    knight: { row: 5, hp: 44, w: 50, h: 92, dw: 92, dh: 134, speed: 0.48, damage: 8, ai: "guard" },
+    phantom: { row: 6, hp: 28, w: 46, h: 78, dw: 86, dh: 128, speed: 0.58, damage: 7, ai: "ghost" },
+    gargoyle: { row: 7, hp: 44, w: 58, h: 92, dw: 108, dh: 134, speed: 0.62, damage: 8, ai: "leaper" },
+    reaper: { row: 8, hp: 48, w: 54, h: 92, dw: 96, dh: 132, speed: 0.5, damage: 9, ai: "reaper" },
+    witch: { row: 9, hp: 34, w: 48, h: 88, dw: 86, dh: 126, speed: 0.34, damage: 7, ai: "witch" }
   };
 
   const images = {};
@@ -138,6 +149,8 @@
     boss: null,
     time: 0,
     shake: 0,
+    cameraX: 0,
+    cameraTargetX: 0,
     muted: false,
     mobileMode: false,
     message: "",
@@ -150,7 +163,7 @@
       relics: { doubleJump: false, dash: false },
       moonSigil: false,
       bossDefeated: false,
-      maxHp: 96,
+      maxHp: 112,
       maxMp: 48
     }
   };
@@ -163,8 +176,8 @@
     vx: 0,
     vy: 0,
     facing: 1,
-    hp: 96,
-    maxHp: 96,
+    hp: 112,
+    maxHp: 112,
     mp: 48,
     maxMp: 48,
     onGround: false,
@@ -436,6 +449,67 @@
     return { id, type, x, y, w: 28, h: 28 };
   }
 
+  function enhanceRoomFlow() {
+    const rightShift = LONG_ROOM_WIDTH - W;
+    const bridgePlatforms = {
+      gate: [p(902, 402, 156, 28, "stone"), p(1138, 344, 168, 28, "gold")],
+      gallery: [p(842, 386, 158, 28, "red"), p(1084, 334, 178, 28, "stone")],
+      chapel: [p(846, 348, 160, 28, "blue"), p(1098, 286, 178, 28, "stone")],
+      crypt: [p(846, 378, 164, 28, "green"), p(1118, 306, 184, 28, "stone")],
+      catacomb: [p(884, 390, 166, 28, "green"), p(1120, 322, 176, 28, "stone")],
+      clock: [p(864, 380, 158, 28, "blue"), p(1090, 300, 172, 28, "stone")],
+      tower: [p(872, 352, 162, 28, "gold"), p(1108, 270, 170, 28, "stone")],
+      garden: [p(854, 384, 164, 28, "green"), p(1126, 318, 184, 28, "stone")]
+    };
+
+    for (const [id, room] of Object.entries(rooms)) {
+      room.width = room.boss ? W : LONG_ROOM_WIDTH;
+      for (const solid of room.platforms) {
+        if (solid.x === 0 && solid.w >= W) solid.w = room.width;
+        else if (solid.x > 560) solid.x += rightShift;
+      }
+      room.platforms.push(...(bridgePlatforms[id] || []));
+      for (const door of room.doors) {
+        if (door.side === "right") door.x = room.width - door.w;
+      }
+      for (const def of room.enemies) {
+        if (def.x > 560) def.x += rightShift;
+        if (def.min > 560) def.min += rightShift;
+        if (def.max > 560) def.max += rightShift;
+        def.max = Math.min(def.max, room.width - 64);
+      }
+      for (const drop of room.items) {
+        if (drop.x > 560) drop.x += rightShift;
+      }
+    }
+
+    for (const room of Object.values(rooms)) {
+      for (const door of room.doors) {
+        const target = rooms[door.to];
+        if (door.side === "left" && target) door.spawn.x = Math.max(54, roomWidth(target) - 104);
+      }
+    }
+  }
+
+  enhanceRoomFlow();
+  window.__NOCTURNE_DEBUG_STATE = () => ({
+    mode: game.mode,
+    room: game.roomId,
+    time: Number(game.time.toFixed(2)),
+    roomWidth: roomWidth(),
+    cameraX: Math.round(game.cameraX),
+    playerX: Math.round(player.x),
+    playerVx: Number(player.vx.toFixed(2)),
+    keys: Array.from(keysDown),
+    touches: Array.from(touchDown),
+    hp: Math.round(player.hp)
+  });
+  window.__NOCTURNE_TEST_INPUT = (action, down) => {
+    if (!KEYMAP[action]) return;
+    if (down) touchDown.add(action);
+    else touchDown.delete(action);
+  };
+
   function loadImage(key, src) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -483,7 +557,7 @@
       roomId: "gate",
       x: rooms.gate.spawn.x,
       y: rooms.gate.spawn.y,
-      hp: 96,
+      hp: 112,
       mp: 48,
       save: {
         visited: {},
@@ -492,7 +566,7 @@
         relics: { doubleJump: false, dash: false },
         moonSigil: false,
         bossDefeated: false,
-        maxHp: 96,
+        maxHp: 112,
         maxMp: 48
       }
     };
@@ -541,7 +615,7 @@
       },
       moonSigil: Boolean(save.moonSigil),
       bossDefeated: Boolean(save.bossDefeated),
-      maxHp: clamp(save.maxHp || 96, 96, 160),
+      maxHp: clamp(save.maxHp || 112, 112, 160),
       maxMp: clamp(save.maxMp || 48, 48, 120)
     };
   }
@@ -582,6 +656,7 @@
     player.vy = 0;
     player.onGround = false;
     player.coyote = 0;
+    player.jumpBuffer = 0;
     game.enemies = room.enemies
       .filter((def) => !game.save.killed[`${roomId}:${def.id}`])
       .map(createEnemy);
@@ -597,6 +672,7 @@
     } else {
       playMusic(room.music);
     }
+    updateCamera(true);
     updateHud();
     updateMapPanel();
     if (autosave) writeSave();
@@ -633,11 +709,11 @@
       y: 318,
       w: 80,
       h: 128,
-      vx: -0.55,
+      vx: -0.45,
       vy: 0,
       row: 5,
-      hp: 180,
-      maxHp: 180,
+      hp: 150,
+      maxHp: 150,
       facing: -1,
       cooldown: 1.4,
       state: "stalk",
@@ -687,6 +763,7 @@
     updatePickups(dt);
     updateParticles(step, dt);
     updateDoors();
+    updateCamera(false);
     updateHud();
     clearJust();
   }
@@ -829,23 +906,23 @@
   function playerMelee() {
     const downWhip = player.attackVariant === "down";
     const box = downWhip
-      ? { x: player.x - 18, y: player.y + player.h - 6, w: player.w + 36, h: 82 }
+      ? { x: player.x - 28, y: player.y + player.h - 10, w: player.w + 56, h: 96 }
       : {
-          x: player.facing > 0 ? player.x + player.w - 2 : player.x - 86,
-          y: player.y + 24,
-          w: 88,
-          h: 56
+          x: player.facing > 0 ? player.x + player.w - 10 : player.x - WHIP_SIDE_REACH + 10,
+          y: player.y + 10,
+          w: WHIP_SIDE_REACH,
+          h: WHIP_SIDE_HEIGHT
         };
     let hits = 0;
     slashParticles(box, downWhip);
     for (const enemy of game.enemies) {
       if (rectsOverlap(box, enemy)) {
-        damageEnemy(enemy, downWhip ? 20 : 24);
+        damageEnemy(enemy, downWhip ? 22 : 26);
         hits += 1;
       }
     }
     if (game.boss && rectsOverlap(box, game.boss)) {
-      damageBoss(downWhip ? 16 : 18);
+      damageBoss(downWhip ? 18 : 20);
       hits += 1;
     }
     if (downWhip && hits > 0) {
@@ -873,10 +950,20 @@
     }
   }
 
+  function updateCamera(snap) {
+    const maxX = Math.max(0, roomWidth() - W);
+    const lookAhead = clamp(player.vx * 18, -110, 110);
+    const target = clamp(player.x + player.w / 2 - W * 0.44 + lookAhead, 0, maxX);
+    game.cameraTargetX = target;
+    game.cameraX = snap ? target : game.cameraX + (target - game.cameraX) * 0.14;
+    if (Math.abs(game.cameraX - target) < 0.5) game.cameraX = target;
+  }
+
   function moveEntity(ent, step, clampToRoom) {
     ent.onGround = false;
     ent.x += ent.vx * step;
     for (const solid of game.room.platforms) {
+      if (solid.h <= 44) continue;
       if (rectsOverlap(ent, solid)) {
         if (ent.vx > 0) ent.x = solid.x - ent.w;
         if (ent.vx < 0) ent.x = solid.x + solid.w;
@@ -898,7 +985,7 @@
     }
 
     if (clampToRoom) {
-      ent.x = clamp(ent.x, -12, W - ent.w + 12);
+      ent.x = clamp(ent.x, -12, roomWidth() - ent.w + 12);
     }
   }
 
@@ -969,7 +1056,7 @@
       h: 16,
       vx: (dx / len) * speed,
       vy: (dy / len) * speed,
-      damage: 8,
+      damage: 6,
       life: 2.2,
       color
     });
@@ -985,20 +1072,20 @@
     boss.facing = player.x > boss.x ? 1 : -1;
 
     if (boss.state === "dash") {
-      boss.vx = boss.facing * 6.2;
+      boss.vx = boss.facing * 5.4;
       if (boss.stateTimer <= 0) {
         boss.state = "stalk";
-        boss.cooldown = 1.0;
+        boss.cooldown = 1.15;
       }
     } else if (boss.state === "cast") {
       boss.vx *= 0.8;
       if (boss.stateTimer <= 0) {
         boss.state = "stalk";
-        boss.cooldown = 1.2;
+        boss.cooldown = 1.4;
       }
     } else {
       boss.vx += boss.facing * 0.035 * step;
-      boss.vx = clamp(boss.vx, -1.3, 1.3);
+      boss.vx = clamp(boss.vx, -1.1, 1.1);
       if (boss.cooldown <= 0) {
         if (boss.hp < boss.maxHp * 0.52 || Math.random() > 0.48) {
           boss.state = "cast";
@@ -1015,7 +1102,7 @@
     moveEntity(boss, step, false);
     boss.x = clamp(boss.x, 140, 828);
 
-    if (rectsOverlap(player, boss)) hurtPlayer(boss.state === "dash" ? 18 : 12);
+    if (rectsOverlap(player, boss)) hurtPlayer(boss.state === "dash" ? 14 : 9);
   }
 
   function bossVolley(boss) {
@@ -1030,7 +1117,7 @@
         h: 22,
         vx: dir * (5.6 - Math.abs(angle) * 2),
         vy: angle * 8,
-        damage: 11,
+        damage: 8,
         life: 2.0,
         color: "#ff5465"
       });
@@ -1060,7 +1147,7 @@
         hurtPlayer(shot.damage);
       }
     }
-    game.projectiles = game.projectiles.filter((shot) => shot.life > 0 && shot.x > -80 && shot.x < W + 80 && shot.y > -80 && shot.y < H + 80);
+    game.projectiles = game.projectiles.filter((shot) => shot.life > 0 && shot.x > -80 && shot.x < roomWidth() + 80 && shot.y > -80 && shot.y < H + 80);
   }
 
   function updatePickups(dt) {
@@ -1193,10 +1280,10 @@
   function hurtPlayer(amount) {
     if (player.invuln > 0 || game.mode !== "playing") return;
     player.hp -= amount;
-    player.invuln = 0.9;
-    player.vx = -player.facing * 4.2;
-    player.vy = -5.2;
-    game.shake = 2.0;
+    player.invuln = 1.1;
+    player.vx = -player.facing * 3.4;
+    player.vy = -4.7;
+    game.shake = 1.45;
     playSound("playerHit", 0.45);
     burst(player.x + player.w / 2, player.y + player.h / 2, "#d74236", 18);
     if (player.hp <= 0) {
@@ -1220,6 +1307,8 @@
     ctx.save();
     ctx.translate(shakeX, shakeY);
     drawRoom();
+    ctx.save();
+    ctx.translate(-Math.round(game.cameraX), 0);
     drawDoors();
     drawPickups();
     drawProjectiles();
@@ -1227,6 +1316,7 @@
     drawBoss();
     drawPlayer();
     drawParticles();
+    ctx.restore();
     drawBossHud();
     drawVignette();
     ctx.restore();
@@ -1236,31 +1326,35 @@
     const room = game.room || rooms.gate;
     const bg = images[room.bg];
     const mid = images[room.mid];
-    drawCover(bg, 0, 0, W, H);
+    const cameraX = game.cameraX || 0;
+    drawCover(bg, -cameraX * 0.08, 0, W + 120, H);
     ctx.globalAlpha = 0.48;
-    drawCover(mid, Math.sin(game.time * 0.12) * 8, 0, W + 18, H);
+    drawCover(mid, Math.sin(game.time * 0.12) * 8 - cameraX * 0.22, 0, W + 260, H);
     ctx.globalAlpha = 1;
 
     const tone = room.palette === "red" ? "rgba(105, 18, 28, 0.20)" : room.palette === "green" ? "rgba(24, 86, 53, 0.18)" : room.palette === "blue" ? "rgba(31, 75, 115, 0.18)" : "rgba(111, 79, 30, 0.16)";
     ctx.fillStyle = tone;
     ctx.fillRect(0, 0, W, H);
 
+    ctx.save();
+    ctx.translate(-Math.round(cameraX), 0);
     drawArchitecture(room);
     for (const solid of room.platforms) drawPlatform(solid);
+    ctx.restore();
   }
 
   function drawArchitecture(room) {
     const chain = images.chain;
     const lamp = images.lamp;
     if (!chain || !lamp || !images.tiles) return;
-    for (let x = 88; x < W; x += 192) {
+    for (let x = 88; x < roomWidth(room); x += 192) {
       ctx.globalAlpha = 0.42;
       ctx.drawImage(chain, x, 34 + Math.sin(game.time + x) * 3, 24, 146);
       ctx.globalAlpha = 0.8;
       ctx.drawImage(lamp, x - 18, 170 + Math.sin(game.time * 1.7 + x) * 3, 42, 42);
     }
     ctx.globalAlpha = room.palette === "green" ? 0.18 : 0.14;
-    for (let x = -40; x < W; x += 112) {
+    for (let x = -40; x < roomWidth(room) + 80; x += 112) {
       drawTileCell(3, 0, x, 76, 64, 64);
       drawTileCell(3, 1, x + 44, 138, 64, 64);
     }
@@ -1361,9 +1455,9 @@
 
     if (player.attackTimer > 0.08) {
       const sx = clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
-      const drawW = 176;
-      const drawH = 72;
-      const x = player.facing > 0 ? player.x + player.w - 12 : player.x - drawW + 10;
+      const drawW = WHIP_DRAW_W;
+      const drawH = WHIP_DRAW_H;
+      const x = player.facing > 0 ? player.x + player.w - 14 : player.x - drawW + 14;
       ctx.save();
       if (player.attackVariant === "down") {
         ctx.translate(player.x + player.w / 2, player.y + player.h - 8);
@@ -1474,6 +1568,10 @@
 
   function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function roomWidth(room = game.room) {
+    return (room && room.width) || W;
   }
 
   function clamp(value, min, max) {
@@ -1619,7 +1717,9 @@
     swipe.lastX = event.clientX;
     swipe.lastY = event.clientY;
     swipe.jumpSent = false;
-    canvas.setPointerCapture(event.pointerId);
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {}
   }
 
   function moveSwipe(event) {
@@ -1692,7 +1792,9 @@
       event.preventDefault();
       touchDown.add(action);
       justPressed.add(`touch:${action}`);
-      button.setPointerCapture(event.pointerId);
+      try {
+        button.setPointerCapture(event.pointerId);
+      } catch {}
     });
     button.addEventListener("pointerup", () => touchDown.delete(action));
     button.addEventListener("pointercancel", () => touchDown.delete(action));
