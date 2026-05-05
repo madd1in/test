@@ -1,48 +1,26 @@
-# Nocturne Reliquary
+# Glimmerwald Quest
 
-Original gothic action-platformer built as a static browser game with local assets from this workspace.
+Ein eigenstaendiges, Zelda-inspiriertes Top-down-Browsergame mit lokalen Assets.
 
-## Run
+## Start
 
-Open `index.html` in a browser, or serve this folder with any static server.
+`index.html` im Browser oeffnen. Das Spiel nutzt keine externen CDNs, keine npm-Abhaengigkeiten und keine Nintendo-Assets.
 
-## Controls
+## Steuerung
 
-- Move: Left/Right arrows or A/D
-- Climb doors: W/S or touch up/down
-- Jump: ArrowUp, Space, or Z
-- Double jump: jump again in the air
-- Attack: J or X
-- Spell: K or C
-- Dash: L or Shift after the relic is found
-- Map: Tab or I
-- Audio: M
-- Mobile: use the on-screen buttons or swipe on the canvas
-- Fullscreen: FS button
+- `WASD` oder Pfeiltasten: bewegen
+- `Leertaste` oder `J`: Klingenangriff
+- `Shift` oder `K`: Dash
+- `E`: interagieren
+- `Q`: Trank verwenden
+- `P` oder `Escape`: Pause
+- Touch: D-Pad, Action-Buttons, Swipe/Drag im Spielfeld zum Laufen, schneller Swipe fuer Dash, Tap fuer Angriff
+- Button `Fullscreen`: Vollbild umschalten
 
-## Game Shape
+## Inhalt
 
-- Room-based castle map with persistent visited rooms
-- Relic-gated progression: Grave Boots, Mist Dash, Moon Sigil
-- Grave Boots upgrade double jump into Triple Moonstep
-- Moon Sigil turns the spell into a three-way moon arc
-- ArrowUp is dedicated to jump, while W keeps up-door control clean
-- Jump buffering and short-hop release make platforming sharper
-- Wider whip hitboxes line up better with the visible whip arc
-- Down-whip in the air bounces off enemies as a Moon pogo
-- Softer enemy damage, slower pressure, and longer invulnerability after hits
-- Horizontal camera rooms are about one and a half screens wide for better flow
-- Vertical camera rooms are taller than one screen
-- Sprite sheets use the stable pre-reference-slice versions
-- Procedural 1440x720 gothic backdrops replace the coarse poster crops
-- Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
-- Aerial whip stalls descent briefly for safer mid-air attacks
-- Moon chain combo rewards quick kills with extra MP
-- Local sprite-sheet animation for player, enemies, boss, projectiles, and whip
-- Reproducible slicing for the raw player and whip PNGs in `tools/slice-local-assets.py`
-- Reproducible high-resolution backdrop generation in `tools/build-gothic-backgrounds.py`
-- Local BGM and SFX
-- Save/continue through `localStorage`
-- Boss finale in the Crimson Reliquary
-
-The game intentionally uses an original name, story, and characters while chasing the gothic exploration feel requested.
+- Offene Waldkarte mit drei Schreinen
+- Lokale Sprite-/Tile-SVGs fuer Figuren, Umgebung, Items und UI
+- Lokale WAV-SFX und geloopte BGM unter `assets/audio`
+- Gegner-KI, Bosskampf, Kisten, Schluessel, Heilung, Minimap und Savegame
+- Performance-Cache fuer statische Tile-Layer und wiederverwendete Sprite-Raster

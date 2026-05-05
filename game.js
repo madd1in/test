@@ -1,1848 +1,1698 @@
-(() => {
-  "use strict";
+"use strict";
 
-  const W = 960;
-  const H = 540;
-  const GRAVITY = 0.68;
-  const LONG_ROOM_WIDTH = 1440;
-  const LONG_ROOM_HEIGHT = 720;
-  const WHIP_SIDE_REACH = 166;
-  const WHIP_SIDE_HEIGHT = 86;
-  const WHIP_DRAW_W = 206;
-  const WHIP_DRAW_H = 78;
-  const STORE_KEY = "nocturneReliquarySaveV1";
+const TILE = 48;
+const WORLD_COLS = 42;
+const WORLD_ROWS = 30;
+const WORLD_W = WORLD_COLS * TILE;
+const WORLD_H = WORLD_ROWS * TILE;
+const SAVE_KEY = "glimmerwald-quest-save-v1";
 
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const minimap = document.getElementById("minimap");
+const mini = minimap.getContext("2d");
 
-  const dom = {
-    hpFill: document.getElementById("hpFill"),
-    mpFill: document.getElementById("mpFill"),
-    roomName: document.getElementById("roomName"),
-    statusLine: document.getElementById("statusLine"),
-    titlePanel: document.getElementById("titlePanel"),
-    startButton: document.getElementById("startButton"),
-    continueButton: document.getElementById("continueButton"),
-    loadState: document.getElementById("loadState"),
-    mobileButton: document.getElementById("mobileButton"),
-    fullscreenButton: document.getElementById("fullscreenButton"),
-    mapButton: document.getElementById("mapButton"),
-    muteButton: document.getElementById("muteButton"),
-    mapPanel: document.getElementById("mapPanel"),
-    closeMapButton: document.getElementById("closeMapButton"),
-    mapGrid: document.getElementById("mapGrid"),
-    relicList: document.getElementById("relicList"),
-    title: document.querySelector(".title-inner h1"),
-    subtitle: document.querySelector(".title-inner .subtitle"),
-    touchControls: document.getElementById("touchControls")
-  };
+const heartsEl = document.getElementById("hearts");
+const sealCountEl = document.getElementById("sealCount");
+const keyCountEl = document.getElementById("keyCount");
+const bagCountEl = document.getElementById("bagCount");
+const potionCountEl = document.getElementById("potionCount");
+const rankTextEl = document.getElementById("rankText");
+const timeTextEl = document.getElementById("timeText");
+const questTextEl = document.getElementById("questText");
+const progressBarEl = document.getElementById("progressBar");
+const toastEl = document.getElementById("toast");
+const startOverlay = document.getElementById("startOverlay");
+const pauseOverlay = document.getElementById("pauseOverlay");
+const endOverlay = document.getElementById("endOverlay");
+const endKickerEl = document.getElementById("endKicker");
+const endTitleEl = document.getElementById("endTitle");
+const endCopyEl = document.getElementById("endCopy");
+const newGameButton = document.getElementById("newGameButton");
+const continueButton = document.getElementById("continueButton");
+const pauseButton = document.getElementById("pauseButton");
+const resumeButton = document.getElementById("resumeButton");
+const restartButton = document.getElementById("restartButton");
+const endRestartButton = document.getElementById("endRestartButton");
+const soundButton = document.getElementById("soundButton");
+const fullscreenButton = document.getElementById("fullscreenButton");
+const appEl = document.querySelector(".game-app");
+const stageEl = document.querySelector(".stage");
 
-  const IMG = {
-    player: "assets/generated/player_sheet_anim.png",
-    enemy: "assets/generated/enemy_sheet_clean.png",
-    boss: "assets/generated/boss_sheet_anim.png",
-    projectile: "assets/generated/projectile_sheet.png",
-    whip: "assets/generated/whip_sheet.png",
-    tiles: "assets/generated/ai_tileset_16bit.png",
-    gate: "assets/generated/tile_gate.png",
-    chain: "assets/generated/fg_chain.png",
-    lamp: "assets/generated/fg_lamp.png",
-    bgGate: "assets/generated/bg_gothic_hall.png",
-    midGate: "assets/generated/bg_stage1_mid_tiled.png",
-    bgClock: "assets/generated/bg_gothic_stairs.png",
-    midClock: "assets/generated/bg_stage2_mid_tiled.png",
-    bgCrypt: "assets/generated/bg_gothic_dungeon.png",
-    midCrypt: "assets/generated/bg_stage3_mid_tiled.png",
-    bgThrone: "assets/generated/bg_gothic_cathedral.png",
-    midThrone: "assets/generated/bg_stage5_mid_tiled.png"
-  };
+const ASSET_SOURCES = {
+  grass: "assets/environment/grass.svg",
+  darkGrass: "assets/environment/dark-grass.svg",
+  path: "assets/environment/path.svg",
+  stone: "assets/environment/stone.svg",
+  water: "assets/environment/water.svg",
+  wall: "assets/environment/wall.svg",
+  bridge: "assets/environment/bridge.svg",
+  tree: "assets/environment/tree.svg",
+  rock: "assets/environment/rock.svg",
+  bush: "assets/environment/bush.svg",
+  gate: "assets/environment/gate.svg",
+  chest: "assets/items/chest.svg",
+  key: "assets/items/key.svg",
+  seal: "assets/items/seal.svg",
+  rupee: "assets/items/rupee.svg",
+  potion: "assets/items/potion.svg",
+  heart: "assets/ui/heart.svg",
+  slash: "assets/ui/slash.svg",
+  bolt: "assets/ui/bolt.svg",
+  hero: "assets/characters/hero.svg",
+  thornling: "assets/characters/thornling.svg",
+  brute: "assets/characters/brute.svg",
+  wisp: "assets/characters/wisp.svg",
+  boss: "assets/characters/boss.svg"
+};
 
-  const AUDIO = {
-    explore: "assets/bgm/Cathedral Hunt Overture.mp3",
-    clock: "assets/bgm/Moonveil Keep.mp3",
-    throne: "assets/bgm/Crimson Cathedral.mp3",
-    boss: "assets/bgm/boss_theme.mp3",
-    jump: "assets/sfx/jump.ogg",
-    land: "assets/sfx/land.ogg",
-    whip: "assets/sfx/whip_slash_1.mp3",
-    whip2: "assets/sfx/whip_slash_2.mp3",
-    hit: "assets/sfx/hit_thunk.wav",
-    enemyHit: "assets/sfx/enemy_hit1.ogg",
-    enemyDie: "assets/sfx/monster_die.wav",
-    pickup: "assets/sfx/pickup_gem.wav",
-    heart: "assets/sfx/heart.wav",
-    ui: "assets/sfx/ui_confirm.wav",
-    gate: "assets/sfx/gate_chime_soft.wav",
-    playerHit: "assets/sfx/player_hit.wav",
-    dash: "assets/sfx/dash.wav",
-    spell: "assets/sfx/spell_impact_chime.wav",
-    bossRoar: "assets/sfx/boss_roar_gothic.wav",
-    bossDie: "assets/sfx/boss_die.wav"
-  };
+const AUDIO_SOURCES = {
+  bgm: "assets/audio/glimmerwald-theme.wav",
+  slash: "assets/audio/slash.wav",
+  hit: "assets/audio/hit.wav",
+  pickup: "assets/audio/pickup.wav",
+  hurt: "assets/audio/hurt.wav",
+  gate: "assets/audio/gate.wav"
+};
 
-  const KEYMAP = {
-    left: ["ArrowLeft", "KeyA"],
-    right: ["ArrowRight", "KeyD"],
-    up: ["KeyW"],
-    down: ["ArrowDown", "KeyS"],
-    jump: ["ArrowUp", "Space", "KeyZ"],
-    attack: ["KeyJ", "KeyX"],
-    spell: ["KeyK", "KeyC"],
-    dash: ["KeyL", "ShiftLeft", "ShiftRight"],
-    map: ["Tab", "KeyI"],
-    pause: ["Escape"],
-    mute: ["KeyM"],
-    interact: ["KeyE", "Enter"]
-  };
-  window.__NOCTURNE_INPUT_INFO = {
-    jumpKeys: KEYMAP.jump.slice(),
-    upKeys: KEYMAP.up.slice(),
-    feel: ["jumpBuffer", "downWhipPogo"]
-  };
-  window.__NOCTURNE_TUNING_INFO = {
-    roomFlow: "horizontalCamera",
-    longRoomWidth: LONG_ROOM_WIDTH,
-    longRoomHeight: LONG_ROOM_HEIGHT,
-    whipSideReach: WHIP_SIDE_REACH,
-    spriteSet: "stable-v4",
-    backgroundSet: "procedural-gothic-v1",
-    difficulty: "mercy-pass"
-  };
+const images = {};
+const audioAssets = {};
+const renderCache = new Map();
+const camera = { x: 0, y: 0 };
+const input = {
+  keys: new Set(),
+  virtual: { up: false, down: false, left: false, right: false },
+  swipeMove: { up: false, down: false, left: false, right: false },
+  queued: { attack: false, dash: false, interact: false, potion: false },
+  swipe: { active: false, id: null, startX: 0, startY: 0 }
+};
 
-  const SPRITES = {
-    playerFrameW: 128,
-    playerFrameH: 184,
-    playerFrames: 24,
-    whipFrameW: 192,
-    whipFrameH: 72,
-    whipFrames: 8
-  };
-  window.__NOCTURNE_FRAME_INFO = SPRITES;
+let game = null;
+let lastTime = 0;
+let assetsReady = false;
+let soundEnabled = false;
+let audioCtx = null;
+let saveTimer = 0;
+let hudCache = "";
 
-  const ENEMY_TYPES = {
-    zombie: { row: 0, hp: 22, w: 42, h: 82, dw: 86, dh: 118, speed: 0.62, damage: 5, ai: "walker" },
-    skeleton: { row: 1, hp: 28, w: 42, h: 86, dw: 88, dh: 122, speed: 0.54, damage: 6, ai: "thrower" },
-    bat: { row: 2, hp: 16, w: 42, h: 32, dw: 84, dh: 64, speed: 0.98, damage: 5, ai: "flyer" },
-    medusa: { row: 3, hp: 22, w: 48, h: 56, dw: 90, dh: 86, speed: 0.9, damage: 6, ai: "sine" },
-    bonepillar: { row: 4, hp: 30, w: 34, h: 100, dw: 74, dh: 136, speed: 0, damage: 7, ai: "turret" },
-    knight: { row: 5, hp: 44, w: 50, h: 92, dw: 92, dh: 134, speed: 0.48, damage: 8, ai: "guard" },
-    phantom: { row: 6, hp: 28, w: 46, h: 78, dw: 86, dh: 128, speed: 0.58, damage: 7, ai: "ghost" },
-    gargoyle: { row: 7, hp: 44, w: 58, h: 92, dw: 108, dh: 134, speed: 0.62, damage: 8, ai: "leaper" },
-    reaper: { row: 8, hp: 48, w: 54, h: 92, dw: 96, dh: 132, speed: 0.5, damage: 9, ai: "reaper" },
-    witch: { row: 9, hp: 34, w: 48, h: 88, dw: 86, dh: 126, speed: 0.34, damage: 7, ai: "witch" }
-  };
+function loadAssets() {
+  const entries = Object.entries(ASSET_SOURCES);
+  return Promise.all(entries.map(([key, src]) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      images[key] = img;
+      resolve();
+    };
+    img.onerror = reject;
+    img.src = src;
+  }))).then(() => {
+    Object.entries(AUDIO_SOURCES).forEach(([key, src]) => {
+      const audio = new Audio(src);
+      audio.preload = "auto";
+      audioAssets[key] = audio;
+    });
+    if (audioAssets.bgm) {
+      audioAssets.bgm.loop = true;
+      audioAssets.bgm.volume = 0.35;
+    }
+  });
+}
 
-  const images = {};
-  const keysDown = new Set();
-  const justPressed = new Set();
-  const touchDown = new Set();
-  const swipe = { id: null, startX: 0, startY: 0, lastX: 0, lastY: 0, jumpSent: false };
-  let lastTime = 0;
-  let activeMusic = null;
-  let musicKey = null;
-
-  const game = {
-    mode: "loading",
-    roomId: "gate",
-    room: null,
-    enemies: [],
-    pickups: [],
-    projectiles: [],
-    particles: [],
-    boss: null,
-    time: 0,
-    shake: 0,
-    cameraX: 0,
-    cameraY: 0,
-    cameraTargetX: 0,
-    cameraTargetY: 0,
-    muted: false,
-    mobileMode: false,
+function createGame() {
+  const state = {
+    started: false,
+    paused: false,
+    over: false,
+    won: false,
+    elapsed: 0,
     message: "",
     messageTimer: 0,
-    loaded: false,
-    save: {
-      visited: {},
-      collected: {},
-      killed: {},
-      relics: { doubleJump: false, dash: false },
-      moonSigil: false,
-      bossDefeated: false,
-      maxHp: 112,
-      maxMp: 48
+    shake: 0,
+    tiles: createWorldTiles(),
+    props: [],
+    enemies: [],
+    projectiles: [],
+    pickups: [],
+    particles: [],
+    defeated: new Set(),
+    flags: {
+      gateOpen: false,
+      bossAwake: false,
+      shrineSeals: { moss: false, tide: false, ember: false }
+    },
+    player: {
+      x: 4.5 * TILE,
+      y: 7.5 * TILE,
+      r: 15,
+      hp: 8,
+      maxHp: 8,
+      stamina: 100,
+      keys: 0,
+      seals: 0,
+      rupees: 0,
+      potions: 1,
+      dir: "down",
+      attackTimer: 0,
+      attackCooldown: 0,
+      dashTimer: 0,
+      dashCooldown: 0,
+      dashVector: { x: 0, y: 1 },
+      invuln: 0
     }
   };
 
-  const player = {
-    x: 100,
-    y: 330,
-    w: 42,
-    h: 116,
-    vx: 0,
-    vy: 0,
-    facing: 1,
-    hp: 112,
-    maxHp: 112,
-    mp: 48,
-    maxMp: 48,
-    onGround: false,
-    jumps: 0,
-    coyote: 0,
-    jumpBuffer: 0,
-    attackTimer: 0,
-    attackHit: false,
-    attackVariant: "side",
-    dashTimer: 0,
-    dashCooldown: 0,
-    invuln: 0,
-    spellCooldown: 0,
-    combo: 0,
-    comboTimer: 0,
-    score: 0,
-    stepWasGrounded: false
-  };
+  populateProps(state);
+  populateEnemies(state);
+  buildStaticLayers(state);
+  return state;
+}
 
-  const rooms = {
-    gate: {
-      name: "Gate Hall",
-      grid: [0, 1],
-      bg: "bgGate",
-      mid: "midGate",
-      music: "explore",
-      palette: "gold",
-      spawn: { x: 100, y: 330 },
-      platforms: [
-        p(0, 468, 960, 72, "gold"),
-        p(146, 374, 190, 32, "gold"),
-        p(460, 326, 210, 32, "stone"),
-        p(710, 250, 132, 28, "stone"),
-        p(386, 156, 120, 24, "trim")
-      ],
-      doors: [
-        d(922, 340, 38, 120, "gallery", 54, 330, "right"),
-        d(424, 460, 112, 30, "crypt", 462, 72, "down")
-      ],
-      enemies: [
-        e("z1", "zombie", 602, 386, 510, 760),
-        e("bat1", "bat", 720, 195, 650, 850)
-      ],
-      items: []
-    },
-    gallery: {
-      name: "Silver Portrait Gallery",
-      grid: [1, 1],
-      bg: "bgGate",
-      mid: "midGate",
-      music: "explore",
-      palette: "red",
-      spawn: { x: 80, y: 330 },
-      platforms: [
-        p(0, 468, 960, 72, "red"),
-        p(112, 382, 172, 28, "red"),
-        p(360, 318, 172, 28, "stone"),
-        p(606, 268, 190, 28, "stone"),
-        p(384, 124, 176, 24, "trim")
-      ],
-      doors: [
-        d(0, 340, 38, 120, "gate", 856, 330, "left"),
-        d(922, 340, 38, 120, "chapel", 54, 330, "right"),
-        d(430, 82, 100, 60, "clock", 448, 382, "up")
-      ],
-      enemies: [
-        e("sk1", "skeleton", 388, 232, 330, 575),
-        e("med1", "medusa", 640, 205, 580, 805),
-        e("kn1", "knight", 754, 376, 650, 875)
-      ],
-      items: [
-        item("moonSigil", "moonSigil", 668, 226)
-      ]
-    },
-    chapel: {
-      name: "Ashen Chapel",
-      grid: [2, 1],
-      bg: "bgThrone",
-      mid: "midThrone",
-      music: "throne",
-      palette: "blue",
-      spawn: { x: 80, y: 330 },
-      platforms: [
-        p(0, 468, 960, 72, "blue"),
-        p(112, 354, 158, 28, "blue"),
-        p(320, 288, 162, 28, "stone"),
-        p(568, 226, 160, 28, "stone"),
-        p(696, 368, 116, 28, "trim")
-      ],
-      doors: [
-        d(0, 340, 38, 120, "gallery", 856, 330, "left"),
-        d(922, 320, 38, 140, "throne", 68, 326, "right", "moonGate"),
-        d(438, 0, 96, 56, "garden", 460, 372, "up")
-      ],
-      enemies: [
-        e("ph1", "phantom", 450, 216, 370, 650),
-        e("bp1", "bonepillar", 740, 268, 700, 780),
-        e("wi1", "witch", 235, 378, 110, 350)
-      ],
-      items: []
-    },
-    throne: {
-      name: "Crimson Reliquary",
-      grid: [3, 1],
-      bg: "bgThrone",
-      mid: "midThrone",
-      music: "boss",
-      palette: "red",
-      spawn: { x: 80, y: 326 },
-      platforms: [
-        p(0, 468, 960, 72, "red"),
-        p(122, 356, 150, 28, "stone"),
-        p(688, 356, 150, 28, "stone")
-      ],
-      doors: [
-        d(0, 320, 38, 140, "chapel", 850, 330, "left")
-      ],
-      enemies: [],
-      items: [],
-      boss: true
-    },
-    crypt: {
-      name: "Lower Crypt",
-      grid: [0, 2],
-      bg: "bgCrypt",
-      mid: "midCrypt",
-      music: "explore",
-      palette: "green",
-      spawn: { x: 462, y: 72 },
-      platforms: [
-        p(0, 468, 960, 72, "green"),
-        p(360, 150, 214, 28, "stone"),
-        p(92, 306, 170, 28, "green"),
-        p(656, 334, 190, 28, "green")
-      ],
-      doors: [
-        d(422, 0, 116, 54, "gate", 456, 336, "up"),
-        d(922, 340, 38, 120, "catacomb", 54, 330, "right")
-      ],
-      enemies: [
-        e("z2", "zombie", 150, 386, 80, 290),
-        e("sk2", "skeleton", 704, 250, 620, 870),
-        e("bp2", "bonepillar", 472, 50, 420, 520)
-      ],
-      items: []
-    },
-    catacomb: {
-      name: "Bone Bell Catacomb",
-      grid: [1, 2],
-      bg: "bgCrypt",
-      mid: "midCrypt",
-      music: "explore",
-      palette: "green",
-      spawn: { x: 80, y: 330 },
-      platforms: [
-        p(0, 468, 960, 72, "green"),
-        p(188, 374, 154, 28, "green"),
-        p(446, 292, 156, 28, "stone"),
-        p(700, 214, 142, 28, "stone")
-      ],
-      doors: [
-        d(0, 340, 38, 120, "crypt", 856, 330, "left")
-      ],
-      enemies: [
-        e("sk3", "skeleton", 230, 290, 160, 380),
-        e("g1", "gargoyle", 520, 198, 430, 650),
-        e("r1", "reaper", 735, 118, 680, 870)
-      ],
-      items: [
-        item("graveBoots", "doubleJump", 766, 170)
-      ]
-    },
-    clock: {
-      name: "Clockwork Rise",
-      grid: [1, 0],
-      bg: "bgClock",
-      mid: "midClock",
-      music: "clock",
-      palette: "blue",
-      spawn: { x: 448, y: 382 },
-      platforms: [
-        p(0, 468, 960, 72, "blue"),
-        p(114, 386, 150, 28, "blue"),
-        p(328, 312, 146, 28, "stone"),
-        p(544, 238, 150, 28, "stone"),
-        p(770, 154, 150, 28, "blue")
-      ],
-      doors: [
-        d(430, 472, 100, 56, "gallery", 470, 72, "down"),
-        d(922, 72, 38, 118, "tower", 60, 112, "right")
-      ],
-      enemies: [
-        e("bat2", "bat", 214, 300, 120, 360),
-        e("med2", "medusa", 510, 190, 430, 720),
-        e("wi2", "witch", 790, 66, 720, 900)
-      ],
-      items: []
-    },
-    tower: {
-      name: "Moon Chain Tower",
-      grid: [2, 0],
-      bg: "bgClock",
-      mid: "midClock",
-      music: "clock",
-      palette: "gold",
-      spawn: { x: 60, y: 112 },
-      platforms: [
-        p(0, 468, 960, 72, "gold"),
-        p(48, 202, 152, 28, "stone"),
-        p(300, 310, 154, 28, "gold"),
-        p(518, 226, 146, 28, "stone"),
-        p(720, 138, 150, 28, "gold")
-      ],
-      doors: [
-        d(0, 70, 38, 122, "clock", 850, 88, "left"),
-        d(430, 472, 100, 56, "garden", 480, 70, "down")
-      ],
-      enemies: [
-        e("bat3", "bat", 620, 156, 500, 760),
-        e("ph2", "phantom", 320, 240, 250, 510),
-        e("kn2", "knight", 748, 376, 680, 900)
-      ],
-      items: [
-        item("mistDash", "dash", 772, 96)
-      ]
-    },
-    garden: {
-      name: "Drowned Rose Garden",
-      grid: [2, 2],
-      bg: "bgGate",
-      mid: "midGate",
-      music: "explore",
-      palette: "green",
-      spawn: { x: 480, y: 70 },
-      platforms: [
-        p(0, 468, 960, 72, "green"),
-        p(110, 386, 156, 28, "green"),
-        p(348, 316, 160, 28, "stone"),
-        p(618, 256, 170, 28, "green")
-      ],
-      doors: [
-        d(430, 0, 100, 56, "tower", 454, 384, "up"),
-        d(922, 340, 38, 120, "chapel", 74, 330, "right")
-      ],
-      enemies: [
-        e("z3", "zombie", 154, 302, 80, 300),
-        e("g2", "gargoyle", 440, 222, 330, 610),
-        e("med3", "medusa", 675, 198, 600, 830)
-      ],
-      items: [
-        item("bloodRose", "heartVessel", 682, 214)
-      ]
+function createWorldTiles() {
+  const tiles = Array.from({ length: WORLD_ROWS }, (_, y) =>
+    Array.from({ length: WORLD_COLS }, (_, x) => {
+      if (x === 0 || y === 0 || x === WORLD_COLS - 1 || y === WORLD_ROWS - 1) {
+        return "tree";
+      }
+      return (x * 11 + y * 17) % 9 === 0 ? "darkGrass" : "grass";
+    })
+  );
+
+  const set = (x, y, value) => {
+    if (x >= 0 && x < WORLD_COLS && y >= 0 && y < WORLD_ROWS) tiles[y][x] = value;
+  };
+  const rect = (x, y, w, h, value) => {
+    for (let yy = y; yy < y + h; yy += 1) {
+      for (let xx = x; xx < x + w; xx += 1) set(xx, yy, value);
     }
   };
 
-  function p(x, y, w, h, type) {
-    return { x, y, w, h, type };
+  rect(2, 7, 35, 2, "path");
+  rect(5, 8, 2, 15, "path");
+  rect(5, 21, 28, 2, "path");
+  rect(30, 8, 2, 15, "path");
+  rect(15, 9, 2, 6, "path");
+  rect(24, 9, 2, 6, "path");
+
+  for (let x = 1; x < WORLD_COLS - 1; x += 1) {
+    set(x, 14, "water");
+    set(x, 15, "water");
   }
-
-  function d(x, y, w, h, to, sx, sy, side, lock) {
-    return { x, y, w, h, to, spawn: { x: sx, y: sy }, side, lock };
-  }
-
-  function e(id, type, x, y, min, max) {
-    return { id, type, x, y, min, max };
-  }
-
-  function item(id, type, x, y) {
-    return { id, type, x, y, w: 28, h: 28 };
-  }
-
-  function enhanceRoomFlow() {
-    const rightShift = LONG_ROOM_WIDTH - W;
-    const bridgePlatforms = {
-      gate: [p(902, 402, 156, 28, "stone"), p(1138, 344, 168, 28, "gold")],
-      gallery: [p(842, 386, 158, 28, "red"), p(1084, 334, 178, 28, "stone")],
-      chapel: [p(846, 348, 160, 28, "blue"), p(1098, 286, 178, 28, "stone")],
-      crypt: [p(846, 378, 164, 28, "green"), p(1118, 306, 184, 28, "stone")],
-      catacomb: [p(884, 390, 166, 28, "green"), p(1120, 322, 176, 28, "stone")],
-      clock: [p(864, 380, 158, 28, "blue"), p(1090, 300, 172, 28, "stone")],
-      tower: [p(872, 352, 162, 28, "gold"), p(1108, 270, 170, 28, "stone")],
-      garden: [p(854, 384, 164, 28, "green"), p(1126, 318, 184, 28, "stone")]
-    };
-
-    for (const [id, room] of Object.entries(rooms)) {
-      room.width = room.boss ? W : LONG_ROOM_WIDTH;
-      room.height = room.boss ? H : LONG_ROOM_HEIGHT;
-      for (const solid of room.platforms) {
-        if (solid.x === 0 && solid.w >= W) {
-          solid.w = room.width;
-          solid.h = room.height - solid.y;
-        }
-        else if (solid.x > 560) solid.x += rightShift;
-      }
-      room.platforms.push(...(bridgePlatforms[id] || []));
-      for (const door of room.doors) {
-        if (door.side === "right") door.x = room.width - door.w;
-      }
-      for (const def of room.enemies) {
-        if (def.x > 560) def.x += rightShift;
-        if (def.min > 560) def.min += rightShift;
-        if (def.max > 560) def.max += rightShift;
-        def.max = Math.min(def.max, room.width - 64);
-      }
-      for (const drop of room.items) {
-        if (drop.x > 560) drop.x += rightShift;
-      }
-    }
-
-    for (const room of Object.values(rooms)) {
-      for (const door of room.doors) {
-        const target = rooms[door.to];
-        if (door.side === "left" && target) door.spawn.x = Math.max(54, roomWidth(target) - 104);
-      }
-    }
-  }
-
-  enhanceRoomFlow();
-  window.__NOCTURNE_DEBUG_STATE = () => ({
-    mode: game.mode,
-    room: game.roomId,
-    time: Number(game.time.toFixed(2)),
-    roomWidth: roomWidth(),
-    roomHeight: roomHeight(),
-    cameraX: Math.round(game.cameraX),
-    cameraY: Math.round(game.cameraY),
-    playerX: Math.round(player.x),
-    playerVx: Number(player.vx.toFixed(2)),
-    keys: Array.from(keysDown),
-    touches: Array.from(touchDown),
-    hp: Math.round(player.hp)
+  [5, 15, 24, 31, 36].forEach((bridgeX) => {
+    rect(bridgeX, 14, 2, 2, "bridge");
   });
-  window.__NOCTURNE_TEST_INPUT = (action, down) => {
-    if (!KEYMAP[action]) return;
-    if (down) touchDown.add(action);
-    else touchDown.delete(action);
-  };
 
-  function loadImage(key, src) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve({ key, img, ok: true });
-      img.onerror = () => resolve({ key, img, ok: false, src });
-      img.src = src;
-    });
+  placeRuin(tiles, 7, 3, 10, 8, "stone", "bottom", 11);
+  placeRuin(tiles, 5, 19, 10, 7, "stone", "top", 9);
+  placeRuin(tiles, 27, 19, 10, 7, "stone", "top", 31);
+  placeRuin(tiles, 31, 4, 9, 9, "stone", "left", 8);
+
+  [
+    [20, 4], [21, 4], [22, 4], [20, 5], [22, 5],
+    [18, 10], [19, 10], [21, 11], [34, 2], [35, 2],
+    [2, 18], [3, 19], [18, 24], [19, 24], [20, 24],
+    [38, 18], [39, 18], [38, 19], [12, 12], [13, 12]
+  ].forEach(([x, y]) => set(x, y, "rock"));
+
+  [
+    [3, 3], [4, 3], [5, 3], [24, 3], [25, 3], [26, 3],
+    [2, 11], [3, 11], [37, 12], [38, 12], [39, 12],
+    [18, 17], [19, 17], [20, 17], [21, 17],
+    [22, 26], [23, 26], [24, 26], [25, 26],
+    [34, 27], [35, 27], [36, 27]
+  ].forEach(([x, y]) => set(x, y, "tree"));
+
+  return tiles;
+}
+
+function placeRuin(tiles, x, y, w, h, floorTile, gapSide, gapIndex) {
+  for (let yy = y; yy < y + h; yy += 1) {
+    for (let xx = x; xx < x + w; xx += 1) tiles[yy][xx] = floorTile;
   }
-
-  async function loadAssets() {
-    const entries = Object.entries(IMG);
-    let done = 0;
-    await Promise.all(entries.map(async ([key, src]) => {
-      const result = await loadImage(key, src);
-      images[key] = result.img;
-      done += 1;
-      dom.loadState.textContent = `Loading local assets ${done}/${entries.length}`;
-    }));
-    game.loaded = true;
-    window.__NOCTURNE_READY = true;
-    game.mode = "title";
-    dom.loadState.textContent = "Ready";
-    dom.startButton.disabled = false;
-    dom.continueButton.disabled = !hasSave();
-    renderTitle("Nocturne Reliquary", "Hunt relics through a moonlocked castle and break the crimson rite.");
+  for (let xx = x; xx < x + w; xx += 1) {
+    tiles[y][xx] = "wall";
+    tiles[y + h - 1][xx] = "wall";
   }
-
-  function hasSave() {
-    try {
-      return Boolean(localStorage.getItem(STORE_KEY));
-    } catch {
-      return false;
-    }
+  for (let yy = y; yy < y + h; yy += 1) {
+    tiles[yy][x] = "wall";
+    tiles[yy][x + w - 1] = "wall";
   }
-
-  function renderTitle(title, subtitle) {
-    dom.title.textContent = title;
-    dom.subtitle.textContent = subtitle;
-    dom.titlePanel.hidden = false;
+  if (gapSide === "bottom") {
+    tiles[y + h - 1][gapIndex] = floorTile;
+    tiles[y + h - 1][gapIndex + 1] = floorTile;
   }
-
-  function resetRun(fromSave) {
-    const saved = fromSave ? readSave() : null;
-    const base = saved || {
-      roomId: "gate",
-      x: rooms.gate.spawn.x,
-      y: rooms.gate.spawn.y,
-      hp: 112,
-      mp: 48,
-      save: {
-        visited: {},
-        collected: {},
-        killed: {},
-        relics: { doubleJump: false, dash: false },
-        moonSigil: false,
-        bossDefeated: false,
-        maxHp: 112,
-        maxMp: 48
-      }
-    };
-
-    game.save = normalizeSave(base.save);
-    player.maxHp = game.save.maxHp;
-    player.maxMp = game.save.maxMp;
-    player.hp = clamp(base.hp || player.maxHp, 1, player.maxHp);
-    player.mp = clamp(base.mp ?? player.maxMp, 0, player.maxMp);
-    player.x = base.x ?? rooms[base.roomId || "gate"].spawn.x;
-    player.y = base.y ?? rooms[base.roomId || "gate"].spawn.y;
-    player.vx = 0;
-    player.vy = 0;
-    player.facing = 1;
-    player.invuln = 0;
-    player.attackTimer = 0;
-    player.attackHit = false;
-    player.attackVariant = "side";
-    player.dashTimer = 0;
-    player.dashCooldown = 0;
-    player.jumps = 0;
-    player.coyote = 0;
-    player.jumpBuffer = 0;
-    player.combo = 0;
-    player.comboTimer = 0;
-    game.projectiles.length = 0;
-    game.particles.length = 0;
-    game.message = "";
-    game.messageTimer = 0;
-    game.mode = "playing";
-    dom.titlePanel.hidden = true;
-    enterRoom(base.roomId || "gate", { x: player.x, y: player.y }, false);
-    playSound("ui");
-    playMusic(game.room.music);
+  if (gapSide === "top") {
+    tiles[y][gapIndex] = floorTile;
+    tiles[y][gapIndex + 1] = floorTile;
   }
-
-  function normalizeSave(source) {
-    const save = source || {};
-    return {
-      visited: { ...(save.visited || {}) },
-      collected: { ...(save.collected || {}) },
-      killed: { ...(save.killed || {}) },
-      relics: {
-        doubleJump: Boolean(save.relics && save.relics.doubleJump),
-        dash: Boolean(save.relics && save.relics.dash)
-      },
-      moonSigil: Boolean(save.moonSigil),
-      bossDefeated: Boolean(save.bossDefeated),
-      maxHp: clamp(save.maxHp || 112, 112, 160),
-      maxMp: clamp(save.maxMp || 48, 48, 120)
-    };
+  if (gapSide === "left") {
+    tiles[gapIndex][x] = floorTile;
+    tiles[gapIndex + 1][x] = floorTile;
   }
+}
 
-  function readSave() {
-    try {
-      const raw = localStorage.getItem(STORE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+function populateProps(state) {
+  const add = (prop) => state.props.push(prop);
+
+  [
+    [3, 6], [6, 5], [8, 9], [14, 10], [16, 12],
+    [4, 20], [7, 24], [11, 18], [18, 22], [24, 20],
+    [29, 18], [33, 23], [37, 21], [35, 15], [27, 11],
+    [23, 7], [2, 25], [39, 25]
+  ].forEach(([x, y], index) => add({
+    id: `bush-${index}`,
+    type: "bush",
+    x: (x + 0.5) * TILE,
+    y: (y + 0.58) * TILE,
+    w: 42,
+    h: 34,
+    hp: 1,
+    solid: true
+  }));
+
+  [
+    ["starter-key", 6.5, 6.4, "key", 1],
+    ["west-cache", 3.5, 23.4, "potion", 1],
+    ["river-cache", 18.5, 12.4, "rupee", 8],
+    ["ember-cache", 34.5, 23.4, "key", 1],
+    ["moon-cache", 37.5, 6.4, "potion", 1]
+  ].forEach(([id, x, y, content, value]) => add({
+    id: `chest-${id}`,
+    type: "chest",
+    x: x * TILE,
+    y: y * TILE,
+    w: 42,
+    h: 34,
+    content,
+    value,
+    solid: true,
+    opened: false
+  }));
+
+  add({
+    id: "door-west-cache",
+    type: "door",
+    x: 4.5 * TILE,
+    y: 21.5 * TILE,
+    w: 42,
+    h: 54,
+    solid: true,
+    opened: false
+  });
+
+  add({
+    id: "moon-gate",
+    type: "gate",
+    x: 31.15 * TILE,
+    y: 8.5 * TILE,
+    w: 48,
+    h: 112,
+    solid: true,
+    opened: false
+  });
+}
+
+function populateEnemies(state) {
+  [
+    ["thorn-1", "thornling", 12.5, 7.1],
+    ["thorn-2", "thornling", 23.5, 8.6],
+    ["thorn-3", "thornling", 8.5, 17.5],
+    ["thorn-4", "thornling", 27.5, 17.6],
+    ["thorn-5", "thornling", 37.5, 19.5],
+    ["brute-1", "brute", 20.5, 20.6],
+    ["wisp-1", "wisp", 17.4, 6.2],
+    ["wisp-2", "wisp", 35.4, 14.2]
+  ].forEach(([id, type, x, y]) => addEnemy(state, id, type, x * TILE, y * TILE));
+
+  addEnemy(state, "seal-moss", "brute", 12 * TILE, 6.5 * TILE, {
+    name: "Moosritter",
+    hp: 8,
+    seal: "moss",
+    aggro: 330
+  });
+  addEnemy(state, "seal-tide", "wisp", 10 * TILE, 22.5 * TILE, {
+    name: "Quelllicht",
+    hp: 7,
+    seal: "tide",
+    aggro: 360
+  });
+  addEnemy(state, "seal-ember", "brute", 32 * TILE, 22.5 * TILE, {
+    name: "Aschewache",
+    hp: 9,
+    seal: "ember",
+    aggro: 360
+  });
+  addEnemy(state, "heart-of-grove", "boss", 35.5 * TILE, 8.2 * TILE, {
+    name: "Herz des Hains",
+    hp: 30,
+    aggro: 440,
+    active: false
+  });
+}
+
+function addEnemy(state, id, type, x, y, extra = {}) {
+  const base = {
+    thornling: { hp: 2, r: 17, speed: 72, damage: 1, aggro: 250 },
+    brute: { hp: 5, r: 21, speed: 54, damage: 2, aggro: 280 },
+    wisp: { hp: 3, r: 18, speed: 62, damage: 1, aggro: 300 },
+    boss: { hp: 30, r: 38, speed: 44, damage: 2, aggro: 440 }
+  }[type];
+  const hp = extra.hp || base.hp;
+  state.enemies.push({
+    id,
+    type,
+    name: extra.name || type,
+    x,
+    y,
+    homeX: x,
+    homeY: y,
+    r: base.r,
+    hp,
+    maxHp: hp,
+    speed: base.speed,
+    damage: base.damage,
+    aggro: extra.aggro || base.aggro,
+    seal: extra.seal || null,
+    active: extra.active !== undefined ? extra.active : true,
+    cooldown: 0,
+    shootCooldown: 0.8 + Math.random() * 0.6,
+    hitTimer: 0,
+    knockX: 0,
+    knockY: 0,
+    phaseTimer: 1.2
+  });
+}
+
+function startNewGame() {
+  game = createGame();
+  game.started = true;
+  hideAllOverlays();
+  focusCanvas();
+  showMessage("Der Glimmerwald oeffnet sich.");
+  playBgm();
+  saveGame();
+}
+
+function continueGame() {
+  const loaded = loadGame();
+  if (!loaded) {
+    startNewGame();
+    return;
   }
+  game.started = true;
+  hideAllOverlays();
+  focusCanvas();
+  showMessage("Save geladen.");
+  playBgm();
+}
 
-  function writeSave() {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({
-        roomId: game.roomId,
-        x: player.x,
-        y: player.y,
-        hp: player.hp,
-        mp: player.mp,
-        save: game.save
-      }));
-      dom.continueButton.disabled = false;
-    } catch {
-      message("Save crystal fractured");
-    }
-  }
+function resetToStartOverlay() {
+  game = createGame();
+  updateContinueButton();
+  startOverlay.classList.remove("is-hidden");
+  pauseOverlay.classList.add("is-hidden");
+  endOverlay.classList.add("is-hidden");
+}
 
-  function enterRoom(roomId, spawn, autosave = true) {
-    const room = rooms[roomId] || rooms.gate;
-    game.roomId = roomId;
-    game.room = room;
-    game.save.visited[roomId] = true;
-    player.x = spawn.x;
-    player.y = spawn.y;
-    player.vx = 0;
-    player.vy = 0;
-    player.onGround = false;
-    player.coyote = 0;
-    player.jumpBuffer = 0;
-    game.enemies = room.enemies
-      .filter((def) => !game.save.killed[`${roomId}:${def.id}`])
-      .map(createEnemy);
-    game.pickups = room.items
-      .filter((def) => !game.save.collected[`${roomId}:${def.id}`])
-      .map((def) => ({ ...def, bob: Math.random() * 10 }));
-    game.projectiles.length = 0;
-    game.boss = room.boss && !game.save.bossDefeated ? createBoss() : null;
-    if (game.boss) {
-      playMusic("boss");
-      playSound("bossRoar");
-      message("Lord Veyr waits beyond the glass altar");
-    } else {
-      playMusic(room.music);
-    }
-    updateCamera(true);
+function hideAllOverlays() {
+  startOverlay.classList.add("is-hidden");
+  pauseOverlay.classList.add("is-hidden");
+  endOverlay.classList.add("is-hidden");
+}
+
+function togglePause(force) {
+  if (!game || !game.started || game.over || game.won) return;
+  game.paused = force !== undefined ? force : !game.paused;
+  pauseOverlay.classList.toggle("is-hidden", !game.paused);
+  pauseButton.textContent = game.paused ? "Weiter" : "Pause";
+  if (game.paused) pauseBgm();
+  else playBgm();
+  if (!game.paused) focusCanvas();
+}
+
+function update(dt) {
+  if (!game || !game.started || game.paused || game.over || game.won) {
     updateHud();
-    updateMapPanel();
-    if (autosave) writeSave();
+    return;
   }
 
-  function createEnemy(def) {
-    const cfg = ENEMY_TYPES[def.type];
-    return {
-      id: def.id,
-      type: def.type,
-      cfg,
-      x: def.x,
-      y: def.y,
-      w: cfg.w,
-      h: cfg.h,
-      vx: Math.random() > 0.5 ? cfg.speed : -cfg.speed,
-      vy: 0,
-      hp: cfg.hp,
-      maxHp: cfg.hp,
-      min: def.min,
-      max: def.max,
-      facing: -1,
-      onGround: false,
-      cooldown: 0.6 + Math.random() * 1.4,
-      phase: Math.random() * Math.PI * 2,
-      hurt: 0
-    };
+  game.elapsed += dt;
+  game.messageTimer = Math.max(0, game.messageTimer - dt);
+  game.shake = Math.max(0, game.shake - dt);
+  saveTimer += dt;
+
+  updatePlayer(dt);
+  updateEnemies(dt);
+  updateProjectiles(dt);
+  updatePickups(dt);
+  updateParticles(dt);
+
+  if (saveTimer > 2) {
+    saveTimer = 0;
+    saveGame();
   }
 
-  function createBoss() {
-    return {
-      type: "lordVeyr",
-      x: 650,
-      y: 318,
-      w: 80,
-      h: 128,
-      vx: -0.45,
-      vy: 0,
-      row: 5,
-      hp: 150,
-      maxHp: 150,
-      facing: -1,
-      cooldown: 1.4,
-      state: "stalk",
-      stateTimer: 1.2,
-      hurt: 0
-    };
+  updateHud();
+}
+
+function updatePlayer(dt) {
+  const p = game.player;
+  p.attackCooldown = Math.max(0, p.attackCooldown - dt);
+  p.attackTimer = Math.max(0, p.attackTimer - dt);
+  p.dashCooldown = Math.max(0, p.dashCooldown - dt);
+  p.invuln = Math.max(0, p.invuln - dt);
+
+  if (consumeAction("attack")) tryAttack();
+  if (consumeAction("interact")) interact();
+  if (consumeAction("potion")) usePotion();
+  if (consumeAction("dash")) startDash();
+
+  const move = getMoveVector();
+  if (move.x || move.y) {
+    p.dir = vectorToDir(move.x, move.y);
   }
 
-  function actionDown(action) {
-    return KEYMAP[action].some((code) => keysDown.has(code)) || touchDown.has(action);
+  if (p.dashTimer > 0) {
+    p.dashTimer -= dt;
+    moveEntity(p, p.dashVector.x * 420 * dt, p.dashVector.y * 420 * dt, true);
+    spawnTrail(p.x, p.y, "#8ee8c1");
+  } else {
+    const terrain = getTileAtPixel(p.x, p.y);
+    const terrainSpeed = terrain === "darkGrass" ? 0.9 : 1;
+    moveEntity(p, move.x * 168 * terrainSpeed * dt, move.y * 168 * terrainSpeed * dt, true);
+    p.stamina = Math.min(100, p.stamina + 28 * dt);
+  }
+}
+
+function getMoveVector() {
+  let x = 0;
+  let y = 0;
+  if (input.keys.has("ArrowLeft") || input.keys.has("KeyA") || input.virtual.left || input.swipeMove.left) x -= 1;
+  if (input.keys.has("ArrowRight") || input.keys.has("KeyD") || input.virtual.right || input.swipeMove.right) x += 1;
+  if (input.keys.has("ArrowUp") || input.keys.has("KeyW") || input.virtual.up || input.swipeMove.up) y -= 1;
+  if (input.keys.has("ArrowDown") || input.keys.has("KeyS") || input.virtual.down || input.swipeMove.down) y += 1;
+  const len = Math.hypot(x, y);
+  return len ? { x: x / len, y: y / len } : { x: 0, y: 0 };
+}
+
+function startDash() {
+  const p = game.player;
+  if (p.dashCooldown > 0 || p.stamina < 22 || p.dashTimer > 0) return;
+  const move = getMoveVector();
+  const fallback = dirVector(p.dir);
+  p.dashVector = move.x || move.y ? move : fallback;
+  p.dashTimer = 0.15;
+  p.dashCooldown = 0.45;
+  p.stamina -= 22;
+  game.shake = 0.05;
+  playSfx("slash");
+}
+
+function tryAttack() {
+  const p = game.player;
+  if (p.attackCooldown > 0) return;
+  p.attackCooldown = 0.26;
+  p.attackTimer = 0.16;
+  performSlash();
+  playSfx("slash");
+}
+
+function performSlash() {
+  const p = game.player;
+  const vec = dirVector(p.dir);
+  const cx = p.x + vec.x * 42;
+  const cy = p.y + vec.y * 42;
+  let connected = false;
+
+  for (const enemy of game.enemies) {
+    if (!enemy.active && enemy.type === "boss") continue;
+    if (directionalHit(p, enemy, 74, 0.22)) {
+      damageEnemy(enemy, enemy.type === "boss" ? 1 : 2, p.x, p.y);
+      connected = true;
+    }
   }
 
-  function actionJust(action) {
-    return KEYMAP[action].some((code) => justPressed.has(code)) || justPressed.has(`touch:${action}`);
+  for (const prop of game.props) {
+    if (prop.opened || prop.removed || prop.type !== "bush") continue;
+    if (circleRectHit(cx, cy, 38, propRect(prop))) {
+      prop.hp -= 1;
+      if (prop.hp <= 0) {
+        prop.removed = true;
+        spawnBurst(prop.x, prop.y, "#7bd36c", 9);
+        if (Math.random() < 0.5) spawnPickup("rupee", prop.x, prop.y, 1);
+        if (Math.random() < 0.18) spawnPickup("heart", prop.x, prop.y, 1);
+      }
+      connected = true;
+    }
   }
 
-  function clearJust() {
-    justPressed.clear();
+  spawnBurst(cx, cy, connected ? "#fff7c6" : "#66b5d8", connected ? 7 : 3);
+}
+
+function directionalHit(source, target, range, widthBias) {
+  const vec = dirVector(source.dir);
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist > range + target.r) return false;
+  if (dist < 24) return true;
+  const dot = (dx / dist) * vec.x + (dy / dist) * vec.y;
+  return dot > widthBias;
+}
+
+function damageEnemy(enemy, amount, fromX, fromY) {
+  if (enemy.hitTimer > 0.03) return;
+  enemy.hp -= amount;
+  enemy.hitTimer = 0.16;
+  const dx = enemy.x - fromX;
+  const dy = enemy.y - fromY;
+  const len = Math.hypot(dx, dy) || 1;
+  enemy.knockX += (dx / len) * 150;
+  enemy.knockY += (dy / len) * 150;
+  game.shake = Math.max(game.shake, 0.08);
+  spawnBurst(enemy.x, enemy.y, "#f5c75c", 8);
+  playSfx("hit");
+
+  if (enemy.hp <= 0) defeatEnemy(enemy);
+}
+
+function defeatEnemy(enemy) {
+  game.defeated.add(enemy.id);
+  game.enemies = game.enemies.filter((entry) => entry !== enemy);
+  spawnBurst(enemy.x, enemy.y, "#8ee8c1", enemy.type === "boss" ? 28 : 12);
+
+  if (enemy.seal && !game.flags.shrineSeals[enemy.seal]) {
+    game.flags.shrineSeals[enemy.seal] = true;
+    game.player.seals += 1;
+    game.player.maxHp = Math.min(12, game.player.maxHp + 1);
+    game.player.hp = Math.min(game.player.maxHp, game.player.hp + 2);
+    spawnPickup("seal", enemy.x, enemy.y - 8, 1);
+    showMessage(`Mondsplitter geborgen: ${game.player.seals}/3.`);
+  } else if (enemy.type === "boss") {
+    winGame();
+  } else {
+    const roll = Math.random();
+    if (roll < 0.2) spawnPickup("heart", enemy.x, enemy.y, 1);
+    else if (roll < 0.34) spawnPickup("potion", enemy.x, enemy.y, 1);
+    else spawnPickup("rupee", enemy.x, enemy.y, enemy.type === "brute" ? 3 : 1);
   }
 
-  function update(dt) {
-    if (game.mode !== "playing") {
-      clearJust();
+  saveGame();
+}
+
+function interact() {
+  const p = game.player;
+  const nearby = game.props
+    .filter((prop) => !prop.removed && ["chest", "door", "gate"].includes(prop.type) && distance(p, prop) < 76)
+    .sort((a, b) => distance(p, a) - distance(p, b))[0];
+
+  if (!nearby) {
+    showMessage("Hier antwortet nur das Rascheln.");
+    return;
+  }
+
+  if (nearby.type === "chest") {
+    if (nearby.opened) {
+      showMessage("Die Kiste ist leer.");
       return;
     }
-
-    const step = Math.min(2, dt * 60);
-    game.time += dt;
-    game.shake = Math.max(0, game.shake - dt * 10);
-    game.messageTimer = Math.max(0, game.messageTimer - dt);
-    player.invuln = Math.max(0, player.invuln - dt);
-    player.attackTimer = Math.max(0, player.attackTimer - dt);
-    player.dashCooldown = Math.max(0, player.dashCooldown - dt);
-    player.spellCooldown = Math.max(0, player.spellCooldown - dt);
-    player.comboTimer = Math.max(0, player.comboTimer - dt);
-    if (player.comboTimer === 0) player.combo = 0;
-    if (player.attackTimer === 0) player.attackHit = false;
-
-    if (actionJust("map")) toggleMap();
-    if (actionJust("mute")) toggleMute();
-    if (dom.mapPanel.hidden === false && actionJust("pause")) toggleMap(false);
-
-    updatePlayer(step, dt);
-    updateEnemies(step, dt);
-    updateBoss(step, dt);
-    updateProjectiles(step, dt);
-    updatePickups(dt);
-    updateParticles(step, dt);
-    updateDoors();
-    updateCamera(false);
-    updateHud();
-    clearJust();
+    nearby.opened = true;
+    grantChest(nearby);
+    spawnBurst(nearby.x, nearby.y - 10, "#f5c75c", 12);
+    saveGame();
+    return;
   }
 
-  function updatePlayer(step, dt) {
-    const left = actionDown("left");
-    const right = actionDown("right");
-    const save = game.save;
-    let move = 0;
-    if (left) move -= 1;
-    if (right) move += 1;
-
-    if (move) {
-      player.facing = move;
-      player.vx += move * 0.54 * step;
+  if (nearby.type === "door") {
+    if (nearby.opened) return;
+    if (p.keys > 0) {
+      p.keys -= 1;
+      nearby.opened = true;
+      spawnBurst(nearby.x, nearby.y, "#66b5d8", 12);
+      showMessage("Das Schloss gibt nach.");
+      playSfx("gate");
+      saveGame();
     } else {
-      player.vx *= Math.pow(0.78, step);
-      if (Math.abs(player.vx) < 0.04) player.vx = 0;
+      showMessage("Ein alter Schluessel fehlt.");
+    }
+    return;
+  }
+
+  if (nearby.type === "gate") {
+    if (nearby.opened) return;
+    if (p.seals >= 3) {
+      nearby.opened = true;
+      game.flags.gateOpen = true;
+      showMessage("Das Mondtor gleitet auf.");
+      spawnBurst(nearby.x, nearby.y, "#8ee8c1", 22);
+      playSfx("gate");
+      saveGame();
+    } else {
+      showMessage("Das Tor verlangt drei Mondsplitter.");
+    }
+  }
+}
+
+function grantChest(chest) {
+  const p = game.player;
+  if (chest.content === "key") {
+    p.keys += chest.value || 1;
+    showMessage("Schluessel gefunden.");
+    playSfx("pickup");
+  } else if (chest.content === "potion") {
+    p.potions += chest.value || 1;
+    showMessage("Trank verstaut.");
+    playSfx("pickup");
+  } else if (chest.content === "rupee") {
+    p.rupees += chest.value || 1;
+    showMessage(`${chest.value || 1} Glimmersteine gefunden.`);
+    playSfx("pickup");
+  }
+}
+
+function usePotion() {
+  const p = game.player;
+  if (p.potions <= 0) {
+    showMessage("Kein Trank im Rucksack.");
+    return;
+  }
+  if (p.hp >= p.maxHp) {
+    showMessage("Du bist bereits erholt.");
+    return;
+  }
+  p.potions -= 1;
+  p.hp = Math.min(p.maxHp, p.hp + 5);
+  spawnBurst(p.x, p.y, "#e45655", 15);
+  playSfx("pickup");
+  saveGame();
+}
+
+function updateEnemies(dt) {
+  const p = game.player;
+  for (const enemy of [...game.enemies]) {
+    enemy.cooldown = Math.max(0, enemy.cooldown - dt);
+    enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
+    enemy.shootCooldown = Math.max(0, enemy.shootCooldown - dt);
+    enemy.phaseTimer = Math.max(0, enemy.phaseTimer - dt);
+
+    if (enemy.knockX || enemy.knockY) {
+      moveEntity(enemy, enemy.knockX * dt, enemy.knockY * dt, false);
+      enemy.knockX *= Math.pow(0.06, dt);
+      enemy.knockY *= Math.pow(0.06, dt);
+      if (Math.abs(enemy.knockX) < 1) enemy.knockX = 0;
+      if (Math.abs(enemy.knockY) < 1) enemy.knockY = 0;
+      continue;
     }
 
-    const maxSpeed = player.dashTimer > 0 ? 10.4 : 4.2;
-    player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
-
-    if (player.onGround) {
-      player.coyote = 0.12;
-      player.jumps = 0;
-    } else {
-      player.coyote = Math.max(0, player.coyote - dt);
-    }
-
-    if (actionJust("jump")) player.jumpBuffer = 0.13;
-    else player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
-
-    if (player.jumpBuffer > 0) {
-      if (player.onGround || player.coyote > 0) {
-        player.vy = -12.4;
-        player.onGround = false;
-        player.coyote = 0;
-        player.jumpBuffer = 0;
-        player.jumps = 1;
-        playSound("jump");
+    const distToPlayer = distance(enemy, p);
+    if (enemy.type === "boss" && !enemy.active) {
+      if (game.flags.gateOpen && distToPlayer < 330) {
+        enemy.active = true;
+        game.flags.bossAwake = true;
+        showMessage("Das Herz des Hains erwacht.");
       } else {
-        const maxJumps = save.relics.doubleJump ? 3 : 2;
-        if (player.jumps < maxJumps) {
-          player.vy = player.jumps === 1 ? -11.4 : -10.6;
-          player.jumps += 1;
-          player.jumpBuffer = 0;
-          burst(player.x + player.w / 2, player.y + player.h, player.jumps > 2 ? "#f2cb68" : "#8bd7ff", player.jumps > 2 ? 18 : 12);
-          if (player.jumps > 2) message("Moonstep");
-          playSound("jump");
-        }
+        continue;
       }
     }
 
-    if (!actionDown("jump") && player.vy < -4.6) {
-      player.vy += 0.82 * step;
-    }
-
-    if (actionJust("dash")) {
-      if (save.relics.dash && player.dashCooldown <= 0) {
-        player.dashTimer = 0.18;
-        player.dashCooldown = 0.62;
-        player.invuln = Math.max(player.invuln, 0.22);
-        player.vx = player.facing * 10.6;
-        burst(player.x + player.w / 2, player.y + player.h / 2, "#c9f4ee", 14);
-        playSound("dash");
-      } else if (!save.relics.dash) {
-        message("Mist Dash is sealed elsewhere");
-      }
-    }
-
-    if (player.dashTimer > 0) {
-      player.dashTimer = Math.max(0, player.dashTimer - dt);
-      player.vy *= 0.72;
+    if (enemy.type === "wisp") {
+      updateWisp(enemy, distToPlayer, dt);
+    } else if (enemy.type === "boss") {
+      updateBoss(enemy, distToPlayer, dt);
     } else {
-      player.vy += GRAVITY * step;
+      updateChaser(enemy, distToPlayer, dt);
     }
 
-    if (actionJust("attack") && player.attackTimer <= 0.02) {
-      player.attackTimer = 0.28;
-      player.attackHit = false;
-      player.attackVariant = !player.onGround && actionDown("down") ? "down" : "side";
-      if (!player.onGround && player.vy > -2) {
-        player.vy *= 0.42;
-        burst(player.x + player.w / 2, player.y + 46, "#f0bf61", 6);
-      }
-      playSound(Math.random() > 0.5 ? "whip" : "whip2");
-    }
-
-    if (player.attackTimer > 0.13 && !player.attackHit) {
-      player.attackHit = true;
-      playerMelee();
-    }
-
-    if (actionJust("spell") && player.spellCooldown <= 0) {
-      const cost = game.save.moonSigil ? 10 : 8;
-      if (player.mp >= cost) {
-        player.mp -= cost;
-        player.spellCooldown = 0.34;
-        const arcs = game.save.moonSigil ? [-0.34, 0, 0.34] : [0];
-        for (const arc of arcs) {
-          game.projectiles.push({
-            from: "player",
-            x: player.x + player.w / 2 + player.facing * 28,
-            y: player.y + 42,
-            w: 18,
-            h: 12,
-            vx: player.facing * (8.0 - Math.abs(arc) * 2),
-            vy: arc * 6 - 0.25,
-            damage: game.save.moonSigil ? 11 : 14,
-            life: 1.2,
-            color: game.save.moonSigil ? "#f2cb68" : "#78dbe1"
-          });
-        }
-        playSound("spell");
-      } else {
-        message("The reliquary is dry");
-      }
-    }
-
-    player.mp = Math.min(player.maxMp, player.mp + dt * 2.2);
-    player.stepWasGrounded = player.onGround;
-    moveEntity(player, step, true);
-
-    if (!player.stepWasGrounded && player.onGround) {
-      playSound("land", 0.3);
-      burst(player.x + player.w / 2, player.y + player.h, "#927f61", 5);
-    }
-
-    if (player.y > roomHeight() + 80) {
-      hurtPlayer(14);
-      const spawn = game.room.spawn;
-      player.x = spawn.x;
-      player.y = spawn.y;
-      player.vx = 0;
-      player.vy = 0;
+    if (distToPlayer < enemy.r + p.r && enemy.cooldown <= 0) {
+      damagePlayer(enemy.damage, enemy.x, enemy.y);
+      enemy.cooldown = enemy.type === "boss" ? 0.9 : 0.7;
     }
   }
+}
 
-  function playerMelee() {
-    const downWhip = player.attackVariant === "down";
-    const box = downWhip
-      ? { x: player.x - 28, y: player.y + player.h - 10, w: player.w + 56, h: 96 }
-      : {
-          x: player.facing > 0 ? player.x + player.w - 10 : player.x - WHIP_SIDE_REACH + 10,
-          y: player.y + 10,
-          w: WHIP_SIDE_REACH,
-          h: WHIP_SIDE_HEIGHT
-        };
-    let hits = 0;
-    slashParticles(box, downWhip);
-    for (const enemy of game.enemies) {
-      if (rectsOverlap(box, enemy)) {
-        damageEnemy(enemy, downWhip ? 22 : 26);
-        hits += 1;
-      }
+function updateChaser(enemy, distToPlayer, dt) {
+  const p = game.player;
+  if (distToPlayer < enemy.aggro) {
+    const dx = p.x - enemy.x;
+    const dy = p.y - enemy.y;
+    const len = Math.hypot(dx, dy) || 1;
+    moveEntity(enemy, (dx / len) * enemy.speed * dt, (dy / len) * enemy.speed * dt, false);
+  } else {
+    const t = game.elapsed * 0.7 + enemy.homeX * 0.01;
+    const tx = enemy.homeX + Math.cos(t) * 34;
+    const ty = enemy.homeY + Math.sin(t * 0.8) * 24;
+    driftToward(enemy, tx, ty, enemy.speed * 0.34, dt);
+  }
+}
+
+function updateWisp(enemy, distToPlayer, dt) {
+  const p = game.player;
+  if (distToPlayer < enemy.aggro) {
+    const dx = p.x - enemy.x;
+    const dy = p.y - enemy.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const desired = distToPlayer < 145 ? -1 : 1;
+    const strafe = Math.sin(game.elapsed * 2 + enemy.x) * 0.55;
+    const mx = (dx / len) * desired + (-dy / len) * strafe;
+    const my = (dy / len) * desired + (dx / len) * strafe;
+    const mlen = Math.hypot(mx, my) || 1;
+    moveEntity(enemy, (mx / mlen) * enemy.speed * dt, (my / mlen) * enemy.speed * dt, false);
+
+    if (enemy.shootCooldown <= 0) {
+      shootAt(enemy, p, 185);
+      enemy.shootCooldown = enemy.seal ? 1.0 : 1.45;
     }
-    if (game.boss && rectsOverlap(box, game.boss)) {
-      damageBoss(downWhip ? 18 : 20);
-      hits += 1;
-    }
-    if (downWhip && hits > 0) {
-      player.vy = -10.2;
-      player.jumps = Math.min(player.jumps, 1);
-      player.jumpBuffer = 0;
-      burst(player.x + player.w / 2, player.y + player.h, "#8bd7ff", 13);
-      message("Moon pogo");
-      playSound("jump", 0.24);
-    }
+  } else {
+    const t = game.elapsed * 1.4 + enemy.homeY * 0.03;
+    driftToward(enemy, enemy.homeX + Math.cos(t) * 40, enemy.homeY + Math.sin(t) * 34, enemy.speed * 0.5, dt);
+  }
+}
+
+function updateBoss(enemy, distToPlayer, dt) {
+  const p = game.player;
+  if (distToPlayer > 78) {
+    driftToward(enemy, p.x, p.y, enemy.speed, dt);
   }
 
-  function slashParticles(box, downWhip = false) {
-    for (let i = 0; i < 10; i += 1) {
-      game.particles.push({
-        x: box.x + Math.random() * box.w,
-        y: box.y + Math.random() * box.h,
-        vx: downWhip ? -1.6 + Math.random() * 3.2 : player.facing * (1 + Math.random() * 3),
-        vy: downWhip ? 1 + Math.random() * 3 : -1 + Math.random() * 2,
-        life: 0.18 + Math.random() * 0.16,
-        maxLife: 0.32,
-        color: downWhip ? (i % 2 ? "#8bd7ff" : "#f0bf61") : i % 2 ? "#f0bf61" : "#e95a45",
-        size: 2 + Math.random() * 3
-      });
-    }
-  }
-
-  function updateCamera(snap) {
-    const maxX = Math.max(0, roomWidth() - W);
-    const maxY = Math.max(0, roomHeight() - H);
-    const lookAhead = clamp(player.vx * 18, -110, 110);
-    const lookVertical = clamp(player.vy * 8, -70, 70);
-    const target = clamp(player.x + player.w / 2 - W * 0.44 + lookAhead, 0, maxX);
-    const targetY = clamp(player.y + player.h / 2 - H * 0.58 + lookVertical, 0, maxY);
-    game.cameraTargetX = target;
-    game.cameraTargetY = targetY;
-    game.cameraX = snap ? target : game.cameraX + (target - game.cameraX) * 0.14;
-    game.cameraY = snap ? targetY : game.cameraY + (targetY - game.cameraY) * 0.16;
-    if (Math.abs(game.cameraX - target) < 0.5) game.cameraX = target;
-    if (Math.abs(game.cameraY - targetY) < 0.5) game.cameraY = targetY;
-  }
-
-  function moveEntity(ent, step, clampToRoom) {
-    ent.onGround = false;
-    ent.x += ent.vx * step;
-    for (const solid of game.room.platforms) {
-      if (solid.h <= 44) continue;
-      if (rectsOverlap(ent, solid)) {
-        if (ent.vx > 0) ent.x = solid.x - ent.w;
-        if (ent.vx < 0) ent.x = solid.x + solid.w;
-        ent.vx = 0;
-      }
-    }
-
-    ent.y += ent.vy * step;
-    for (const solid of game.room.platforms) {
-      if (!rectsOverlap(ent, solid)) continue;
-      if (ent.vy >= 0) {
-        ent.y = solid.y - ent.h;
-        ent.vy = 0;
-        ent.onGround = true;
-      } else {
-        ent.y = solid.y + solid.h;
-        ent.vy = 0;
-      }
-    }
-
-    if (clampToRoom) {
-      ent.x = clamp(ent.x, -12, roomWidth() - ent.w + 12);
-    }
-  }
-
-  function updateEnemies(step, dt) {
-    for (const enemy of game.enemies) {
-      enemy.cooldown -= dt;
-      enemy.hurt = Math.max(0, enemy.hurt - dt);
-      const cfg = enemy.cfg;
-      const center = enemy.x + enemy.w / 2;
-      enemy.facing = player.x + player.w / 2 > center ? 1 : -1;
-
-      if (cfg.ai === "walker" || cfg.ai === "thrower" || cfg.ai === "guard") {
-        const desired = cfg.ai === "guard" && Math.abs(player.x - enemy.x) < 170 ? enemy.facing : Math.sign(enemy.vx || 1);
-        enemy.vx += desired * cfg.speed * 0.05 * step;
-        enemy.vx = clamp(enemy.vx, -cfg.speed, cfg.speed);
-        if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
-        enemy.vy += GRAVITY * step;
-        moveEntity(enemy, step, false);
-        if (cfg.ai !== "walker" && enemy.cooldown <= 0 && Math.abs(player.x - enemy.x) < 430) {
-          shootEnemy(enemy, cfg.ai === "guard" ? 6.2 : 4.6, cfg.ai === "guard" ? "#f0bf61" : "#dce8d8");
-          enemy.cooldown = cfg.ai === "guard" ? 1.2 : 1.6;
-        }
-      } else if (cfg.ai === "turret") {
-        enemy.vx = 0;
-        enemy.vy += GRAVITY * step;
-        moveEntity(enemy, step, false);
-        if (enemy.cooldown <= 0) {
-          shootEnemy(enemy, 4.7, "#98e8c8");
-          enemy.cooldown = 1.35;
-        }
-      } else if (cfg.ai === "leaper") {
-        enemy.vy += GRAVITY * step;
-        if (enemy.onGround && enemy.cooldown <= 0) {
-          enemy.vx = enemy.facing * 3.6;
-          enemy.vy = -10.2;
-          enemy.cooldown = 1.8;
-        }
-        moveEntity(enemy, step, false);
-        if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
-      } else {
-        const targetY = player.y + (cfg.ai === "sine" ? 12 : -4);
-        const dx = Math.sign(player.x - enemy.x);
-        const dy = Math.sign(targetY - enemy.y);
-        const pulse = Math.sin(game.time * 3 + enemy.phase);
-        enemy.x += (dx * cfg.speed + pulse * 0.45) * step;
-        enemy.y += (dy * cfg.speed * 0.46 + pulse * 0.35) * step;
-        enemy.x = clamp(enemy.x, enemy.min, enemy.max);
-        enemy.y = clamp(enemy.y, 68, 398);
-        if ((cfg.ai === "witch" || cfg.ai === "reaper" || cfg.ai === "ghost") && enemy.cooldown <= 0) {
-          shootEnemy(enemy, cfg.ai === "reaper" ? 5.8 : 4.2, cfg.ai === "witch" ? "#bb7dff" : "#9af5df");
-          enemy.cooldown = cfg.ai === "reaper" ? 1.1 : 1.7;
-        }
-      }
-
-      if (rectsOverlap(player, enemy)) hurtPlayer(cfg.damage);
-    }
-  }
-
-  function shootEnemy(enemy, speed, color) {
-    const dx = player.x + player.w / 2 - (enemy.x + enemy.w / 2);
-    const dy = player.y + player.h / 2 - (enemy.y + enemy.h / 2);
-    const len = Math.max(1, Math.hypot(dx, dy));
-    game.projectiles.push({
-      from: "enemy",
-      x: enemy.x + enemy.w / 2,
-      y: enemy.y + enemy.h * 0.38,
-      w: 16,
-      h: 16,
-      vx: (dx / len) * speed,
-      vy: (dy / len) * speed,
-      damage: 6,
-      life: 2.2,
-      color
-    });
-  }
-
-  function updateBoss(step, dt) {
-    const boss = game.boss;
-    if (!boss) return;
-
-    boss.cooldown -= dt;
-    boss.stateTimer -= dt;
-    boss.hurt = Math.max(0, boss.hurt - dt);
-    boss.facing = player.x > boss.x ? 1 : -1;
-
-    if (boss.state === "dash") {
-      boss.vx = boss.facing * 5.4;
-      if (boss.stateTimer <= 0) {
-        boss.state = "stalk";
-        boss.cooldown = 1.15;
-      }
-    } else if (boss.state === "cast") {
-      boss.vx *= 0.8;
-      if (boss.stateTimer <= 0) {
-        boss.state = "stalk";
-        boss.cooldown = 1.4;
-      }
-    } else {
-      boss.vx += boss.facing * 0.035 * step;
-      boss.vx = clamp(boss.vx, -1.1, 1.1);
-      if (boss.cooldown <= 0) {
-        if (boss.hp < boss.maxHp * 0.52 || Math.random() > 0.48) {
-          boss.state = "cast";
-          boss.stateTimer = 0.74;
-          bossVolley(boss);
-        } else {
-          boss.state = "dash";
-          boss.stateTimer = 0.42;
-        }
-      }
-    }
-
-    boss.vy += GRAVITY * step;
-    moveEntity(boss, step, false);
-    boss.x = clamp(boss.x, 140, 828);
-
-    if (rectsOverlap(player, boss)) hurtPlayer(boss.state === "dash" ? 14 : 9);
-  }
-
-  function bossVolley(boss) {
-    playSound("spell", 0.45);
-    for (const angle of [-0.25, 0, 0.25]) {
-      const dir = boss.facing;
-      game.projectiles.push({
-        from: "enemy",
-        x: boss.x + boss.w / 2,
-        y: boss.y + 58,
-        w: 22,
-        h: 22,
-        vx: dir * (5.6 - Math.abs(angle) * 2),
-        vy: angle * 8,
-        damage: 8,
-        life: 2.0,
-        color: "#ff5465"
-      });
-    }
-  }
-
-  function updateProjectiles(step, dt) {
-    for (const shot of game.projectiles) {
-      shot.life -= dt;
-      shot.x += shot.vx * step;
-      shot.y += shot.vy * step;
-      shot.vy += (shot.from === "player" ? 0 : 0.02) * step;
-
-      if (shot.from === "player") {
-        for (const enemy of game.enemies) {
-          if (shot.life > 0 && rectsOverlap(shot, enemy)) {
-            shot.life = 0;
-            damageEnemy(enemy, shot.damage);
-          }
-        }
-        if (game.boss && shot.life > 0 && rectsOverlap(shot, game.boss)) {
-          shot.life = 0;
-          damageBoss(shot.damage);
-        }
-      } else if (rectsOverlap(shot, player)) {
-        shot.life = 0;
-        hurtPlayer(shot.damage);
-      }
-    }
-    game.projectiles = game.projectiles.filter((shot) => shot.life > 0 && shot.x > -80 && shot.x < roomWidth() + 80 && shot.y > -80 && shot.y < roomHeight() + 80);
-  }
-
-  function updatePickups(dt) {
-    for (const drop of game.pickups) {
-      drop.bob += dt * 5;
-      if (rectsOverlap(player, { x: drop.x, y: drop.y, w: drop.w, h: drop.h })) {
-        collectItem(drop);
-      }
-    }
-    game.pickups = game.pickups.filter((drop) => !drop.dead);
-  }
-
-  function updateParticles(step, dt) {
-    for (const dot of game.particles) {
-      dot.life -= dt;
-      dot.x += dot.vx * step;
-      dot.y += dot.vy * step;
-      dot.vy += 0.06 * step;
-    }
-    game.particles = game.particles.filter((dot) => dot.life > 0);
-  }
-
-  function updateDoors() {
-    for (const door of game.room.doors) {
-      if (!rectsOverlap(player, door)) continue;
-      if ((door.side === "up" && !actionDown("up")) || (door.side === "down" && !actionDown("down"))) continue;
-      if (!doorOpen(door)) {
-        message(lockMessage(door.lock));
-        player.x += door.side === "right" ? -6 : door.side === "left" ? 6 : 0;
-        player.y += door.side === "up" ? 6 : door.side === "down" ? -6 : 0;
-        return;
-      }
-      burst(player.x + player.w / 2, player.y + player.h / 2, "#eac36f", 18);
-      playSound("gate");
-      enterRoom(door.to, door.spawn);
-      return;
-    }
-  }
-
-  function doorOpen(door) {
-    if (!door.lock) return true;
-    if (door.lock === "moonGate") return game.save.moonSigil && game.save.relics.dash;
-    return true;
-  }
-
-  function lockMessage(lock) {
-    if (lock === "moonGate") {
-      if (!game.save.moonSigil) return "The altar wants the Moon Sigil";
-      if (!game.save.relics.dash) return "The red seal yields only to Mist Dash";
-    }
-    return "Sealed";
-  }
-
-  function collectItem(drop) {
-    drop.dead = true;
-    game.save.collected[`${game.roomId}:${drop.id}`] = true;
-    if (drop.type === "doubleJump") {
-      game.save.relics.doubleJump = true;
-      message("Relic gained: Grave Boots / Triple Moonstep");
-      burst(drop.x, drop.y, "#86d8ff", 34);
-    } else if (drop.type === "dash") {
-      game.save.relics.dash = true;
-      message("Relic gained: Mist Dash");
-      burst(drop.x, drop.y, "#d8fff3", 34);
-    } else if (drop.type === "moonSigil") {
-      game.save.moonSigil = true;
-      message("Moon Sigil recovered");
-      burst(drop.x, drop.y, "#f2cb68", 30);
-    } else if (drop.type === "heartVessel") {
-      game.save.maxHp = Math.min(160, game.save.maxHp + 16);
-      player.maxHp = game.save.maxHp;
-      player.hp = player.maxHp;
-      message("Blood Rose deepens your life");
-      burst(drop.x, drop.y, "#f05f5b", 30);
-    } else {
-      player.mp = Math.min(player.maxMp, player.mp + 12);
-    }
-    playSound(drop.type === "heartVessel" ? "heart" : "pickup");
-    updateMapPanel();
-    writeSave();
-  }
-
-  function damageEnemy(enemy, amount) {
-    enemy.hp -= amount;
-    enemy.hurt = 0.12;
-    enemy.vx += player.facing * 1.4;
-    burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#cfe8b5", 9);
-    playSound("enemyHit", 0.42);
-    if (enemy.hp <= 0) {
-      game.save.killed[`${game.roomId}:${enemy.id}`] = true;
-      game.enemies = game.enemies.filter((other) => other !== enemy);
-      player.combo += 1;
-      player.comboTimer = 3.0;
-      player.score += 100 + player.combo * 25;
-      player.mp = Math.min(player.maxMp, player.mp + 5 + Math.min(8, player.combo));
-      if (player.combo > 1) message(`Moon chain x${player.combo}`);
-      burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#e1d0a0", 22);
-      playSound("enemyDie", 0.45);
-      if (Math.random() > 0.65) {
-        game.pickups.push({ id: `drop${game.time}${Math.random()}`, type: "mp", x: enemy.x, y: enemy.y + enemy.h / 2, w: 22, h: 22, bob: 0 });
-      }
-    }
-  }
-
-  function damageBoss(amount) {
-    const boss = game.boss;
-    if (!boss) return;
-    boss.hp -= amount;
-    boss.hurt = 0.13;
-    game.shake = Math.max(game.shake, 1.2);
-    burst(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff6d4e", 12);
-    playSound("enemyHit", 0.5);
-    if (boss.hp <= 0) {
-      game.boss = null;
-      game.save.bossDefeated = true;
-      game.projectiles.length = 0;
-      player.hp = player.maxHp;
-      player.mp = player.maxMp;
-      burst(W / 2, H / 2, "#f4d38b", 80);
-      playSound("bossDie", 0.55);
-      writeSave();
-      setTimeout(() => {
-        game.mode = "win";
-        renderTitle("Rite Broken", "The Reliquary is silent. A new run can begin whenever the moon rises again.");
-        dom.startButton.textContent = "New Run";
-      }, 700);
-    }
-  }
-
-  function hurtPlayer(amount) {
-    if (player.invuln > 0 || game.mode !== "playing") return;
-    player.hp -= amount;
-    player.invuln = 1.1;
-    player.vx = -player.facing * 3.4;
-    player.vy = -4.7;
-    game.shake = 1.45;
-    playSound("playerHit", 0.45);
-    burst(player.x + player.w / 2, player.y + player.h / 2, "#d74236", 18);
-    if (player.hp <= 0) {
-      player.hp = 0;
-      game.mode = "dead";
-      renderTitle("Moonfall", "The castle rewinds around the last saved chamber.");
-      dom.startButton.textContent = "New Run";
-      dom.continueButton.disabled = !hasSave();
-      stopMusic();
-    }
-  }
-
-  function message(text) {
-    game.message = text;
-    game.messageTimer = 2.1;
-  }
-
-  function draw() {
-    const shakeX = game.shake ? (Math.random() - 0.5) * game.shake * 4 : 0;
-    const shakeY = game.shake ? (Math.random() - 0.5) * game.shake * 4 : 0;
-    ctx.save();
-    ctx.translate(shakeX, shakeY);
-    drawRoom();
-    ctx.save();
-    ctx.translate(-Math.round(game.cameraX), -Math.round(game.cameraY));
-    drawDoors();
-    drawPickups();
-    drawProjectiles();
-    drawEnemies();
-    drawBoss();
-    drawPlayer();
-    drawParticles();
-    ctx.restore();
-    drawBossHud();
-    drawVignette();
-    ctx.restore();
-  }
-
-  function drawRoom() {
-    const room = game.room || rooms.gate;
-    const bg = images[room.bg];
-    const mid = images[room.mid];
-    const cameraX = game.cameraX || 0;
-    const cameraY = game.cameraY || 0;
-    drawCover(bg, -cameraX * 0.08, -cameraY * 0.06, W + 120, H + 90);
-    ctx.globalAlpha = 0.48;
-    drawCover(mid, Math.sin(game.time * 0.12) * 8 - cameraX * 0.22, -cameraY * 0.12, W + 260, H + 140);
-    ctx.globalAlpha = 1;
-
-    const tone = room.palette === "red" ? "rgba(105, 18, 28, 0.20)" : room.palette === "green" ? "rgba(24, 86, 53, 0.18)" : room.palette === "blue" ? "rgba(31, 75, 115, 0.18)" : "rgba(111, 79, 30, 0.16)";
-    ctx.fillStyle = tone;
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.save();
-    ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
-    drawArchitecture(room);
-    for (const solid of room.platforms) drawPlatform(solid);
-    ctx.restore();
-  }
-
-  function drawArchitecture(room) {
-    const chain = images.chain;
-    const lamp = images.lamp;
-    if (!chain || !lamp || !images.tiles) return;
-    for (let x = 88; x < roomWidth(room); x += 192) {
-      ctx.globalAlpha = 0.42;
-      ctx.drawImage(chain, x, 34 + Math.sin(game.time + x) * 3, 24, 146);
-      ctx.globalAlpha = 0.8;
-      ctx.drawImage(lamp, x - 18, 170 + Math.sin(game.time * 1.7 + x) * 3, 42, 42);
-    }
-    ctx.globalAlpha = room.palette === "green" ? 0.18 : 0.14;
-    for (let x = -40; x < roomWidth(room) + 80; x += 112) {
-      drawTileCell(3, 0, x, 76, 64, 64);
-      drawTileCell(3, 1, x + 44, 138, 64, 64);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawPlatform(solid) {
-    const tile = solid.type === "green" ? [0, 4] : solid.type === "red" ? [0, 5] : solid.type === "blue" ? [4, 5] : solid.type === "trim" ? [5, 0] : solid.type === "stone" ? [1, 0] : [0, 0];
-    ctx.fillStyle = solid.type === "trim" ? "rgba(44, 36, 38, 0.84)" : "rgba(20, 20, 24, 0.88)";
-    ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
-    if (!images.tiles) return;
-    for (let x = solid.x; x < solid.x + solid.w; x += 48) {
-      for (let y = solid.y; y < solid.y + solid.h; y += 48) {
-        drawTileCell(tile[0], tile[1], x, y, Math.min(48, solid.x + solid.w - x), Math.min(48, solid.y + solid.h - y));
-      }
-    }
-    ctx.fillStyle = "rgba(244, 211, 139, 0.16)";
-    ctx.fillRect(solid.x, solid.y, solid.w, 2);
-  }
-
-  function drawTileCell(cx, cy, x, y, w, h) {
-    if (!images.tiles) return;
-    ctx.drawImage(images.tiles, cx * 64, cy * 64, 64, 64, x, y, w, h);
-  }
-
-  function drawDoors() {
-    for (const door of game.room.doors) {
-      const open = doorOpen(door);
-      ctx.save();
-      ctx.globalAlpha = open ? 0.92 : 0.72;
-      if (images.gate) ctx.drawImage(images.gate, door.x - 8, door.y - 18, door.w + 16, door.h + 28);
-      ctx.fillStyle = open ? "rgba(107, 220, 194, 0.22)" : "rgba(211, 55, 52, 0.34)";
-      ctx.fillRect(door.x, door.y, door.w, door.h);
-      ctx.restore();
-    }
-  }
-
-  function drawPickups() {
-    for (const drop of game.pickups) {
-      const y = drop.y + Math.sin(drop.bob) * 5;
-      const color = drop.type === "doubleJump" ? "#8bd7ff" : drop.type === "dash" ? "#d8fff3" : drop.type === "heartVessel" ? "#f05f5b" : "#f2cb68";
-      ctx.save();
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 20;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(drop.x + 14, y + 14, 13, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "#08080d";
-      ctx.fillRect(drop.x + 8, y + 8, 12, 12);
-      ctx.restore();
-    }
-  }
-
-  function drawProjectiles() {
-    for (const shot of game.projectiles) {
-      ctx.save();
-      ctx.shadowColor = shot.color;
-      ctx.shadowBlur = shot.from === "player" ? 16 : 12;
-      ctx.fillStyle = shot.color;
-      ctx.beginPath();
-      ctx.ellipse(shot.x + shot.w / 2, shot.y + shot.h / 2, shot.w / 2, shot.h / 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  function drawEnemies() {
-    for (const enemy of game.enemies) {
-      const frame = Math.floor(game.time * 7 + enemy.phase) % 4;
-      const alpha = enemy.hurt > 0 ? 0.55 : 1;
-      drawSheetFrame(images.enemy, frame, enemy.cfg.row, 128, 176, enemy.x + enemy.w / 2, enemy.y + enemy.h, enemy.cfg.dw, enemy.cfg.dh, enemy.facing < 0, alpha);
-      if (enemy.hp < enemy.maxHp) {
-        drawSmallBar(enemy.x - 6, enemy.y - 10, enemy.w + 12, enemy.hp / enemy.maxHp, "#cfe8b5");
-      }
-    }
-  }
-
-  function drawBoss() {
-    const boss = game.boss;
-    if (!boss) return;
-    const frame = boss.state === "dash" ? 2 : boss.state === "cast" ? 1 : Math.floor(game.time * 4) % 2;
-    const alpha = boss.hurt > 0 ? 0.6 : 1;
-    drawSheetFrame(images.boss, frame, boss.row, 300, 240, boss.x + boss.w / 2, boss.y + boss.h + 12, 236, 188, boss.facing < 0, alpha);
-  }
-
-  function drawPlayer() {
-    let frame = 0;
-    if (player.invuln > 0.62) frame = 11;
-    else if (player.attackTimer > 0) frame = 12 + clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * 6), 0, 5);
-    else if (!player.onGround) frame = 9;
-    else if (actionDown("down")) frame = 18;
-    else if (Math.abs(player.vx) > 0.25) frame = 1 + Math.floor(game.time * 10) % 8;
-    else frame = Math.floor(game.time * 2) % 2;
-    const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
-    drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha);
-
-    if (player.attackTimer > 0.08) {
-      const sx = clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
-      const drawW = WHIP_DRAW_W;
-      const drawH = WHIP_DRAW_H;
-      const x = player.facing > 0 ? player.x + player.w - 14 : player.x - drawW + 14;
-      ctx.save();
-      if (player.attackVariant === "down") {
-        ctx.translate(player.x + player.w / 2, player.y + player.h - 8);
-        ctx.rotate(Math.PI / 2);
-        ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, -4, -drawH / 2, drawW, drawH);
-      } else if (player.facing < 0) {
-        ctx.translate(x + drawW, player.y + 24);
-        ctx.scale(-1, 1);
-        ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, 0, 0, drawW, drawH);
-      } else {
-        ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, x, player.y + 24, drawW, drawH);
-      }
-      ctx.restore();
-    }
-  }
-
-  function drawSheetFrame(img, col, row, fw, fh, cx, bottom, dw, dh, flip, alpha = 1) {
-    if (!img || !img.width) {
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = "rgba(244, 211, 139, 0.7)";
-      ctx.fillRect(cx - dw / 4, bottom - dh / 2, dw / 2, dh / 2);
-      ctx.restore();
-      return;
-    }
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    if (flip) {
-      ctx.translate(cx, bottom - dh);
-      ctx.scale(-1, 1);
-      ctx.drawImage(img, col * fw, row * fh, fw, fh, -dw / 2, 0, dw, dh);
-    } else {
-      ctx.drawImage(img, col * fw, row * fh, fw, fh, cx - dw / 2, bottom - dh, dw, dh);
-    }
-    ctx.restore();
-  }
-
-  function drawParticles() {
-    for (const dot of game.particles) {
-      const a = clamp(dot.life / dot.maxLife, 0, 1);
-      ctx.globalAlpha = a;
-      ctx.fillStyle = dot.color;
-      ctx.fillRect(dot.x, dot.y, dot.size, dot.size);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawBossHud() {
-    if (!game.boss) return;
-    const x = 254;
-    const y = H - 34;
-    const w = 452;
-    ctx.fillStyle = "rgba(5, 4, 8, 0.78)";
-    ctx.fillRect(x, y, w, 12);
-    ctx.strokeStyle = "rgba(244, 211, 139, 0.5)";
-    ctx.strokeRect(x, y, w, 12);
-    ctx.fillStyle = "#d74539";
-    ctx.fillRect(x + 2, y + 2, (w - 4) * (game.boss.hp / game.boss.maxHp), 8);
-    ctx.fillStyle = "#f4d38b";
-    ctx.font = "12px Trebuchet MS, Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("Lord Veyr", x + w / 2, y - 6);
-  }
-
-  function drawSmallBar(x, y, w, pct, color) {
-    ctx.fillStyle = "rgba(0,0,0,0.62)";
-    ctx.fillRect(x, y, w, 4);
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w * clamp(pct, 0, 1), 4);
-  }
-
-  function drawVignette() {
-    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.24, W / 2, H / 2, H * 0.8);
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, "rgba(0,0,0,0.54)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  function drawCover(img, x, y, w, h) {
-    if (!img || !img.width) {
-      ctx.fillStyle = "#08080d";
-      ctx.fillRect(x, y, w, h);
-      return;
-    }
-    const scale = Math.max(w / img.width, h / img.height);
-    const dw = img.width * scale;
-    const dh = img.height * scale;
-    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-  }
-
-  function burst(x, y, color, count) {
+  if (enemy.phaseTimer <= 0) {
+    enemy.phaseTimer = enemy.hp < enemy.maxHp * 0.45 ? 1.15 : 1.8;
+    const count = enemy.hp < enemy.maxHp * 0.45 ? 8 : 5;
     for (let i = 0; i < count; i += 1) {
-      const a = Math.random() * Math.PI * 2;
-      const s = 0.8 + Math.random() * 3.8;
-      game.particles.push({
-        x,
-        y,
-        vx: Math.cos(a) * s,
-        vy: Math.sin(a) * s - 0.8,
-        life: 0.35 + Math.random() * 0.45,
-        maxLife: 0.8,
-        color,
-        size: 2 + Math.random() * 4
+      const angle = (Math.PI * 2 * i) / count + game.elapsed * 0.2;
+      game.projectiles.push({
+        x: enemy.x,
+        y: enemy.y - 8,
+        dx: Math.cos(angle) * 150,
+        dy: Math.sin(angle) * 150,
+        r: 9,
+        life: 2.4,
+        damage: 1,
+        kind: "root"
       });
     }
+    spawnBurst(enemy.x, enemy.y, "#7bd36c", 16);
   }
+}
 
-  function rectsOverlap(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  }
+function driftToward(entity, tx, ty, speed, dt) {
+  const dx = tx - entity.x;
+  const dy = ty - entity.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 2) return;
+  moveEntity(entity, (dx / len) * speed * dt, (dy / len) * speed * dt, false);
+}
 
-  function roomWidth(room = game.room) {
-    return (room && room.width) || W;
-  }
+function shootAt(enemy, target, speed) {
+  const dx = target.x - enemy.x;
+  const dy = target.y - enemy.y;
+  const len = Math.hypot(dx, dy) || 1;
+  game.projectiles.push({
+    x: enemy.x,
+    y: enemy.y,
+    dx: (dx / len) * speed,
+    dy: (dy / len) * speed,
+    r: 8,
+    life: 2.8,
+    damage: enemy.seal ? 2 : 1,
+    kind: "bolt"
+  });
+}
 
-  function roomHeight(room = game.room) {
-    return (room && room.height) || H;
-  }
+function updateProjectiles(dt) {
+  const p = game.player;
+  for (const projectile of [...game.projectiles]) {
+    projectile.life -= dt;
+    projectile.x += projectile.dx * dt;
+    projectile.y += projectile.dy * dt;
 
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  function updateHud() {
-    dom.hpFill.style.transform = `scaleX(${clamp(player.hp / player.maxHp, 0, 1)})`;
-    dom.mpFill.style.transform = `scaleX(${clamp(player.mp / player.maxMp, 0, 1)})`;
-    dom.roomName.textContent = game.room ? game.room.name : "Nocturne Reliquary";
-    dom.statusLine.textContent = game.messageTimer > 0 ? game.message : statusSummary();
-  }
-
-  function statusSummary() {
-    const relics = [];
-    relics.push(game.save.relics.doubleJump ? "Triple Moonstep" : "Double Jump");
-    if (game.save.relics.dash) relics.push("Mist Dash");
-    if (game.save.moonSigil) relics.push("Moon Sigil");
-    if (player.combo > 1) relics.push(`Chain x${player.combo}`);
-    return relics.join(" / ");
-  }
-
-  function updateMapPanel() {
-    dom.mapGrid.innerHTML = "";
-    const grid = Array.from({ length: 12 }, () => null);
-    for (const [id, room] of Object.entries(rooms)) {
-      const [gx, gy] = room.grid;
-      grid[gy * 4 + gx] = { id, room };
+    if (projectile.life <= 0 || isSolidCircle(projectile.x, projectile.y, projectile.r, false)) {
+      projectile.life = -1;
+      spawnBurst(projectile.x, projectile.y, "#66b5d8", 4);
+      continue;
     }
-    for (const slot of grid) {
-      const cell = document.createElement("div");
-      cell.className = "map-cell";
-      if (slot) {
-        const seen = game.save.visited[slot.id];
-        cell.classList.toggle("visited", Boolean(seen));
-        cell.classList.toggle("current", slot.id === game.roomId);
-        cell.textContent = seen || slot.id === game.roomId ? slot.room.name : "...";
+
+    if (distance(projectile, p) < projectile.r + p.r) {
+      damagePlayer(projectile.damage, projectile.x, projectile.y);
+      projectile.life = -1;
+      spawnBurst(projectile.x, projectile.y, "#e45655", 6);
+    }
+  }
+  game.projectiles = game.projectiles.filter((projectile) => projectile.life > 0);
+}
+
+function damagePlayer(amount, fromX, fromY) {
+  const p = game.player;
+  if (p.invuln > 0 || game.over || game.won) return;
+  p.hp -= amount;
+  p.invuln = 0.85;
+  game.shake = 0.16;
+  const dx = p.x - fromX;
+  const dy = p.y - fromY;
+  const len = Math.hypot(dx, dy) || 1;
+  moveEntity(p, (dx / len) * 18, (dy / len) * 18, true);
+  spawnBurst(p.x, p.y, "#e45655", 12);
+  playSfx("hurt");
+
+  if (p.hp <= 0) {
+    p.hp = 0;
+    loseGame();
+  }
+}
+
+function spawnPickup(type, x, y, value = 1) {
+  game.pickups.push({
+    type,
+    x,
+    y,
+    value,
+    r: type === "seal" ? 18 : 14,
+    life: type === "seal" ? 999 : 22,
+    bob: Math.random() * Math.PI * 2
+  });
+}
+
+function updatePickups(dt) {
+  const p = game.player;
+  for (const pickup of [...game.pickups]) {
+    pickup.life -= dt;
+    pickup.bob += dt * 5;
+    if (distance(pickup, p) < pickup.r + p.r + 4) {
+      collectPickup(pickup);
+      pickup.life = -1;
+    }
+  }
+  game.pickups = game.pickups.filter((pickup) => pickup.life > 0);
+}
+
+function collectPickup(pickup) {
+  const p = game.player;
+  if (pickup.type === "heart") {
+    p.hp = Math.min(p.maxHp, p.hp + 1);
+    showMessage("Herz gesammelt.");
+  } else if (pickup.type === "rupee") {
+    p.rupees += pickup.value;
+  } else if (pickup.type === "key") {
+    p.keys += pickup.value;
+    showMessage("Schluessel gefunden.");
+  } else if (pickup.type === "potion") {
+    p.potions += pickup.value;
+    showMessage("Trank gesammelt.");
+  } else if (pickup.type === "seal") {
+    playSfx("gate");
+  }
+  if (pickup.type !== "seal") playSfx("pickup");
+  spawnBurst(pickup.x, pickup.y, "#fff7c6", 8);
+}
+
+function updateParticles(dt) {
+  for (const particle of game.particles) {
+    particle.life -= dt;
+    particle.x += particle.dx * dt;
+    particle.y += particle.dy * dt;
+    particle.dy += 60 * dt;
+  }
+  game.particles = game.particles.filter((particle) => particle.life > 0);
+}
+
+function moveEntity(entity, dx, dy, includeProps) {
+  if (!dx && !dy) return;
+  const nextX = entity.x + dx;
+  if (!isSolidCircle(nextX, entity.y, entity.r, includeProps)) entity.x = clamp(nextX, entity.r, WORLD_W - entity.r);
+  const nextY = entity.y + dy;
+  if (!isSolidCircle(entity.x, nextY, entity.r, includeProps)) entity.y = clamp(nextY, entity.r, WORLD_H - entity.r);
+}
+
+function isSolidCircle(x, y, r, includeProps) {
+  const minX = Math.floor((x - r) / TILE);
+  const maxX = Math.floor((x + r) / TILE);
+  const minY = Math.floor((y - r) / TILE);
+  const maxY = Math.floor((y + r) / TILE);
+
+  for (let ty = minY; ty <= maxY; ty += 1) {
+    for (let tx = minX; tx <= maxX; tx += 1) {
+      if (tileBlocks(getTile(tx, ty))) {
+        if (circleRectHit(x, y, r, { x: tx * TILE, y: ty * TILE, w: TILE, h: TILE })) return true;
       }
-      dom.mapGrid.appendChild(cell);
-    }
-
-    dom.relicList.innerHTML = "";
-    const chips = [
-      game.save.relics.doubleJump && "Grave Boots",
-      game.save.relics.dash && "Mist Dash",
-      game.save.moonSigil && "Moon Sigil",
-      game.save.bossDefeated && "Crimson Rite"
-    ].filter(Boolean);
-    for (const label of chips.length ? chips : ["No relics"]) {
-      const chip = document.createElement("span");
-      chip.className = "relic-chip";
-      chip.textContent = label;
-      dom.relicList.appendChild(chip);
     }
   }
 
-  function toggleMap(force) {
-    const shouldOpen = force ?? dom.mapPanel.hidden;
-    dom.mapPanel.hidden = !shouldOpen;
-    updateMapPanel();
+  if (!includeProps) return false;
+  for (const prop of game.props) {
+    if (!propIsSolid(prop)) continue;
+    if (circleRectHit(x, y, r, propRect(prop))) return true;
   }
+  return false;
+}
 
-  function playSound(key, volume = 0.36) {
-    if (game.muted || !AUDIO[key]) return;
-    const sound = new Audio(AUDIO[key]);
-    sound.volume = volume;
-    sound.play().catch(() => {});
-  }
+function tileBlocks(tile) {
+  return tile === "tree" || tile === "rock" || tile === "wall" || tile === "water";
+}
 
-  function playMusic(key) {
-    if (game.muted || !AUDIO[key]) return;
-    if (musicKey === key && activeMusic) {
-      if (activeMusic.paused) activeMusic.play().catch(() => {});
-      return;
+function propIsSolid(prop) {
+  if (prop.removed || prop.opened) return false;
+  return prop.solid || prop.type === "gate" || prop.type === "door";
+}
+
+function propRect(prop) {
+  return {
+    x: prop.x - (prop.w || 42) / 2,
+    y: prop.y - (prop.h || 42) / 2,
+    w: prop.w || 42,
+    h: prop.h || 42
+  };
+}
+
+function circleRectHit(cx, cy, r, rect) {
+  const closestX = clamp(cx, rect.x, rect.x + rect.w);
+  const closestY = clamp(cy, rect.y, rect.y + rect.h);
+  return Math.hypot(cx - closestX, cy - closestY) < r;
+}
+
+function getTile(tx, ty) {
+  if (tx < 0 || ty < 0 || tx >= WORLD_COLS || ty >= WORLD_ROWS) return "tree";
+  return game.tiles[ty][tx];
+}
+
+function getTileAtPixel(x, y) {
+  return getTile(Math.floor(x / TILE), Math.floor(y / TILE));
+}
+
+function buildStaticLayers(state) {
+  state.staticLayer = document.createElement("canvas");
+  state.staticLayer.width = WORLD_W;
+  state.staticLayer.height = WORLD_H;
+  const layer = state.staticLayer.getContext("2d");
+  layer.imageSmoothingEnabled = true;
+
+  for (let y = 0; y < WORLD_ROWS; y += 1) {
+    for (let x = 0; x < WORLD_COLS; x += 1) {
+      drawTileAsset(layer, state.tiles[y][x], x * TILE, y * TILE);
     }
-    stopMusic();
-    musicKey = key;
-    activeMusic = new Audio(AUDIO[key]);
-    activeMusic.loop = true;
-    activeMusic.volume = key === "boss" ? 0.42 : 0.32;
-    activeMusic.play().catch(() => {});
   }
 
-  function stopMusic() {
-    if (activeMusic) {
-      activeMusic.pause();
-      activeMusic.currentTime = 0;
+  state.minimapBase = document.createElement("canvas");
+  state.minimapBase.width = minimap.width;
+  state.minimapBase.height = minimap.height;
+  const map = state.minimapBase.getContext("2d");
+  const sx = minimap.width / WORLD_COLS;
+  const sy = minimap.height / WORLD_ROWS;
+  map.fillStyle = "#0c1219";
+  map.fillRect(0, 0, minimap.width, minimap.height);
+  for (let y = 0; y < WORLD_ROWS; y += 1) {
+    for (let x = 0; x < WORLD_COLS; x += 1) {
+      map.fillStyle = tileMiniColor(state.tiles[y][x]);
+      map.fillRect(x * sx, y * sy, Math.ceil(sx), Math.ceil(sy));
     }
-    activeMusic = null;
-    musicKey = null;
+  }
+}
+
+function drawTileAsset(context, tile, px, py) {
+  if (tile === "tree") {
+    drawAsset(context, "darkGrass", px, py, TILE, TILE);
+    drawAsset(context, "tree", px - 10, py - 28, 68, 82);
+  } else if (tile === "rock") {
+    drawAsset(context, "grass", px, py, TILE, TILE);
+    drawAsset(context, "rock", px + 2, py + 1, 46, 46);
+  } else if (tile === "wall") {
+    drawAsset(context, "wall", px, py, TILE, TILE);
+  } else {
+    drawAsset(context, tile, px, py, TILE, TILE);
+  }
+}
+
+function tileMiniColor(tile) {
+  if (tile === "water") return "#2d91b2";
+  if (tile === "bridge") return "#b47a45";
+  if (tile === "wall" || tile === "rock") return "#6a7480";
+  if (tile === "tree") return "#205033";
+  if (tile === "stone") return "#7d8791";
+  if (tile === "path") return "#a88454";
+  return "#3d7844";
+}
+
+function render() {
+  if (!game) return;
+  const p = game.player;
+  const shakeX = game.shake ? (Math.random() - 0.5) * game.shake * 20 : 0;
+  const shakeY = game.shake ? (Math.random() - 0.5) * game.shake * 20 : 0;
+  camera.x = clamp(p.x - canvas.width / 2, 0, WORLD_W - canvas.width);
+  camera.y = clamp(p.y - canvas.height / 2, 0, WORLD_H - canvas.height);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
+  drawTiles();
+  drawWorldEntities();
+  ctx.restore();
+  drawScreenShade();
+  renderMinimap();
+  renderToast();
+}
+
+function drawTiles() {
+  if (!game.staticLayer) return;
+  const sx = clamp(Math.floor(camera.x) - TILE, 0, WORLD_W);
+  const sy = clamp(Math.floor(camera.y) - TILE, 0, WORLD_H);
+  const sw = Math.min(canvas.width + TILE * 2, WORLD_W - sx);
+  const sh = Math.min(canvas.height + TILE * 2, WORLD_H - sy);
+  ctx.drawImage(game.staticLayer, sx, sy, sw, sh, sx, sy, sw, sh);
+}
+
+function drawWorldEntities() {
+  const drawables = [];
+  for (const prop of game.props) {
+    if (!prop.removed && isOnCamera(prop.x, prop.y, 100)) drawables.push({ y: prop.y, kind: "prop", value: prop });
+  }
+  for (const pickup of game.pickups) {
+    if (isOnCamera(pickup.x, pickup.y, 80)) drawables.push({ y: pickup.y, kind: "pickup", value: pickup });
+  }
+  for (const enemy of game.enemies) {
+    if (isOnCamera(enemy.x, enemy.y, 140)) drawables.push({ y: enemy.y, kind: "enemy", value: enemy });
+  }
+  drawables.push({ y: game.player.y, kind: "player", value: game.player });
+  drawables.sort((a, b) => a.y - b.y);
+
+  for (const drawable of drawables) {
+    if (drawable.kind === "prop") drawProp(drawable.value);
+    if (drawable.kind === "pickup") drawPickup(drawable.value);
+    if (drawable.kind === "enemy") drawEnemy(drawable.value);
+    if (drawable.kind === "player") drawPlayer(drawable.value);
   }
 
-  function toggleMute() {
-    game.muted = !game.muted;
-    dom.muteButton.textContent = game.muted ? "MUT" : "VOL";
-    if (game.muted) stopMusic();
-    else if (game.room) playMusic(game.boss ? "boss" : game.room.music);
+  for (const projectile of game.projectiles) {
+    if (isOnCamera(projectile.x, projectile.y, 80)) drawProjectile(projectile);
+  }
+  for (const particle of game.particles) {
+    if (isOnCamera(particle.x, particle.y, 40)) drawParticle(particle);
+  }
+}
+
+function isOnCamera(x, y, margin) {
+  return x > camera.x - margin &&
+    x < camera.x + canvas.width + margin &&
+    y > camera.y - margin &&
+    y < camera.y + canvas.height + margin;
+}
+
+function drawProp(prop) {
+  if (prop.type === "bush") {
+    drawImage("bush", prop.x - 30, prop.y - 42, 60, 58);
+    return;
+  }
+  if (prop.type === "chest") {
+    ctx.globalAlpha = prop.opened ? 0.45 : 1;
+    drawImage("chest", prop.x - 28, prop.y - 36, 56, 56);
+    ctx.globalAlpha = 1;
+    return;
+  }
+  if (prop.type === "door") {
+    if (!prop.opened) drawImage("gate", prop.x - 32, prop.y - 50, 64, 72);
+    return;
+  }
+  if (prop.type === "gate") {
+    ctx.globalAlpha = prop.opened ? 0.25 : 1;
+    drawImage("gate", prop.x - 42, prop.y - 70, 84, 116);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawPickup(pickup) {
+  const bob = Math.sin(pickup.bob) * 4;
+  const size = pickup.type === "seal" ? 46 : 32;
+  drawImage(pickup.type, pickup.x - size / 2, pickup.y - size / 2 - bob, size, size);
+}
+
+function drawEnemy(enemy) {
+  if (enemy.type === "boss" && !enemy.active) {
+    ctx.globalAlpha = game.flags.gateOpen ? 0.65 : 0.36;
+  }
+  drawShadow(enemy.x, enemy.y + enemy.r * 0.65, enemy.r * 1.4, enemy.r * 0.36);
+  const scale = enemy.type === "boss" ? 116 : enemy.type === "brute" ? 70 : 58;
+  const yOffset = enemy.type === "boss" ? 94 : enemy.type === "brute" ? 62 : 52;
+  if (enemy.hitTimer > 0) ctx.filter = "brightness(1.8)";
+  drawImage(enemy.type, enemy.x - scale / 2, enemy.y - yOffset, scale, scale);
+  ctx.filter = "none";
+  ctx.globalAlpha = 1;
+  if (enemy.hp < enemy.maxHp || enemy.type === "boss" || enemy.seal) {
+    drawBar(enemy.x - 26, enemy.y - yOffset - 7, 52, 6, enemy.hp / enemy.maxHp, enemy.type === "boss" ? "#e45655" : "#f5c75c");
+  }
+}
+
+function drawPlayer(p) {
+  if (p.invuln > 0 && Math.floor(game.elapsed * 18) % 2 === 0) return;
+  if (p.dashTimer > 0) {
+    ctx.globalAlpha = 0.35;
+    drawImage("hero", p.x - 34 - p.dashVector.x * 18, p.y - 66 - p.dashVector.y * 18, 68, 82);
+    ctx.globalAlpha = 1;
+  }
+  drawShadow(p.x, p.y + 13, 24, 6);
+  if (p.dir === "left") {
+    ctx.save();
+    ctx.translate(p.x, p.y - 24);
+    ctx.scale(-1, 1);
+    drawImage("hero", -34, -42, 68, 82);
+    ctx.restore();
+  } else {
+    drawImage("hero", p.x - 34, p.y - 66, 68, 82);
   }
 
-  function toggleMobileMode(force) {
-    game.mobileMode = force ?? !game.mobileMode;
-    document.body.classList.toggle("mobile-mode", game.mobileMode);
-    dom.mobileButton.textContent = game.mobileMode ? "PAD" : "MOB";
-    dom.mobileButton.setAttribute("aria-pressed", String(game.mobileMode));
-    message(game.mobileMode ? "Swipe mode armed" : "Swipe mode tucked away");
+  if (p.attackTimer > 0) {
+    const vec = dirVector(p.dir);
+    const angle = dirAngle(p.dir);
+    ctx.save();
+    ctx.translate(p.x + vec.x * 42, p.y + vec.y * 42 - 6);
+    ctx.rotate(angle);
+    ctx.globalAlpha = clamp(p.attackTimer / 0.16, 0, 1);
+    drawImage("slash", -44, -30, 88, 58);
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
-  async function toggleFullscreen() {
-    const root = document.getElementById("app");
-    try {
-      if (!document.fullscreenElement) {
-        if (!root.requestFullscreen) {
-          message("Fullscreen is not available here");
-          return;
-        }
-        await root.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
+  drawBar(p.x - 24, p.y + 24, 48, 5, p.stamina / 100, "#8ee8c1");
+}
+
+function drawProjectile(projectile) {
+  const size = projectile.kind === "root" ? 24 : 28;
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y);
+  ctx.rotate(Math.atan2(projectile.dy, projectile.dx));
+  drawImage("bolt", -size / 2, -size / 2, size, size);
+  ctx.restore();
+}
+
+function drawParticle(particle) {
+  ctx.globalAlpha = clamp(particle.life / particle.maxLife, 0, 1);
+  ctx.fillStyle = particle.color;
+  ctx.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
+  ctx.globalAlpha = 1;
+}
+
+function drawScreenShade() {
+  const grd = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 120, canvas.width / 2, canvas.height / 2, 560);
+  grd.addColorStop(0, "rgba(0,0,0,0)");
+  grd.addColorStop(1, "rgba(0,0,0,0.34)");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawImage(key, x, y, w, h) {
+  drawAsset(ctx, key, x, y, w, h);
+}
+
+function drawAsset(context, key, x, y, w, h) {
+  const img = images[key];
+  if (!img) {
+    context.fillStyle = "#f5c75c";
+    context.fillRect(x, y, w, h);
+    return;
+  }
+  const width = Math.max(1, Math.round(w));
+  const height = Math.max(1, Math.round(h));
+  const cacheKey = `${key}:${width}x${height}`;
+  let cached = renderCache.get(cacheKey);
+  if (!cached) {
+    cached = document.createElement("canvas");
+    cached.width = width;
+    cached.height = height;
+    const cacheCtx = cached.getContext("2d");
+    cacheCtx.imageSmoothingEnabled = true;
+    cacheCtx.drawImage(img, 0, 0, width, height);
+    renderCache.set(cacheKey, cached);
+  }
+  context.drawImage(cached, x, y, w, h);
+}
+
+function drawShadow(x, y, w, h) {
+  ctx.fillStyle = "rgba(0,0,0,0.24)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawBar(x, y, w, h, ratio, color) {
+  ctx.fillStyle = "rgba(0,0,0,0.44)";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, Math.max(0, w * clamp(ratio, 0, 1)), h);
+}
+
+function renderMinimap() {
+  if (!game) return;
+  const sx = minimap.width / WORLD_COLS;
+  const sy = minimap.height / WORLD_ROWS;
+  mini.clearRect(0, 0, minimap.width, minimap.height);
+  if (game.minimapBase) mini.drawImage(game.minimapBase, 0, 0);
+  else {
+    mini.fillStyle = "#0c1219";
+    mini.fillRect(0, 0, minimap.width, minimap.height);
+  }
+
+  for (const prop of game.props) {
+    if (prop.removed || prop.opened) continue;
+    if (prop.type === "chest") mini.fillStyle = "#f5c75c";
+    else if (prop.type === "gate") mini.fillStyle = "#8ee8c1";
+    else continue;
+    mini.fillRect((prop.x / TILE) * sx - 2, (prop.y / TILE) * sy - 2, 4, 4);
+  }
+
+  mini.fillStyle = "#e45655";
+  for (const enemy of game.enemies) {
+    if (enemy.type === "boss" && !enemy.active && !game.flags.gateOpen) continue;
+    mini.fillRect((enemy.x / TILE) * sx - 2, (enemy.y / TILE) * sy - 2, 4, 4);
+  }
+
+  mini.fillStyle = "#fff7c6";
+  mini.beginPath();
+  mini.arc((game.player.x / TILE) * sx, (game.player.y / TILE) * sy, 3.5, 0, Math.PI * 2);
+  mini.fill();
+}
+
+function updateHud() {
+  if (!game) return;
+  const p = game.player;
+  const rank = p.seals >= 3 ? "Torbrecher" : p.seals >= 2 ? "Splitterjaeger" : p.seals >= 1 ? "Hainhueter" : "Pfadfinder";
+  const quest = getQuestText();
+  const key = `${p.hp}/${p.maxHp}/${p.keys}/${p.seals}/${p.rupees}/${p.potions}/${rank}/${quest}/${Math.floor(game.elapsed)}/${game.paused}/${game.over}/${game.won}`;
+  if (key === hudCache) return;
+  hudCache = key;
+
+  heartsEl.innerHTML = "";
+  for (let i = 0; i < p.maxHp; i += 1) {
+    const heart = document.createElement("span");
+    heart.className = `heart${i >= p.hp ? " is-empty" : ""}`;
+    heartsEl.appendChild(heart);
+  }
+  sealCountEl.textContent = `${p.seals}/3`;
+  keyCountEl.textContent = String(p.keys);
+  bagCountEl.textContent = String(p.rupees);
+  potionCountEl.textContent = String(p.potions);
+  rankTextEl.textContent = rank;
+  timeTextEl.textContent = formatTime(game.elapsed);
+  questTextEl.textContent = quest;
+  const progress = game.won ? 100 : game.flags.gateOpen ? 82 : Math.min(75, (p.seals / 3) * 75);
+  progressBarEl.style.width = `${progress}%`;
+  pauseButton.textContent = game.paused ? "Weiter" : "Pause";
+}
+
+function getQuestText() {
+  if (game.won) return "Der Glimmerwald ist frei.";
+  if (game.over) return "Der Hain wartet auf einen neuen Versuch.";
+  if (game.player.seals < 3) return `Mondsplitter bergen: ${game.player.seals}/3`;
+  if (!game.flags.gateOpen) return "Das Mondtor im Osten oeffnen.";
+  return "Das Herz des Hains stellen.";
+}
+
+function renderToast() {
+  if (!game || game.messageTimer <= 0) {
+    toastEl.classList.remove("is-visible");
+    return;
+  }
+  toastEl.textContent = game.message;
+  toastEl.classList.add("is-visible");
+}
+
+function showMessage(message) {
+  game.message = message;
+  game.messageTimer = 3.2;
+  toastEl.textContent = message;
+}
+
+function spawnBurst(x, y, color, count) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 35 + Math.random() * 130;
+    game.particles.push({
+      x,
+      y,
+      dx: Math.cos(angle) * speed,
+      dy: Math.sin(angle) * speed - 25,
+      color,
+      size: 3 + Math.random() * 4,
+      life: 0.35 + Math.random() * 0.45,
+      maxLife: 0.8
+    });
+  }
+}
+
+function spawnTrail(x, y, color) {
+  game.particles.push({
+    x: x + (Math.random() - 0.5) * 12,
+    y: y + (Math.random() - 0.5) * 12,
+    dx: (Math.random() - 0.5) * 25,
+    dy: (Math.random() - 0.5) * 25,
+    color,
+    size: 5,
+    life: 0.18,
+    maxLife: 0.18
+  });
+}
+
+function winGame() {
+  game.won = true;
+  game.started = false;
+  saveGame();
+  pauseBgm(true);
+  playSfx("gate");
+  endKickerEl.textContent = "Quest geschafft";
+  endTitleEl.textContent = "Der Hain leuchtet wieder";
+  endCopyEl.textContent = `Zeit: ${formatTime(game.elapsed)}. Glimmersteine: ${game.player.rupees}.`;
+  endOverlay.classList.remove("is-hidden");
+  showMessage("Glimmerwald gerettet.");
+}
+
+function loseGame() {
+  game.over = true;
+  game.started = false;
+  pauseBgm(true);
+  endKickerEl.textContent = "Quest gescheitert";
+  endTitleEl.textContent = "Der Wald wird still";
+  endCopyEl.textContent = "Ein neuer Lauf startet dich wieder am alten Pfad.";
+  endOverlay.classList.remove("is-hidden");
+  showMessage("Du wurdest niedergestreckt.");
+}
+
+function saveGame() {
+  if (!game || !game.started && !game.won) return;
+  try {
+    const data = {
+      elapsed: game.elapsed,
+      player: {
+        x: game.player.x,
+        y: game.player.y,
+        hp: game.player.hp,
+        maxHp: game.player.maxHp,
+        keys: game.player.keys,
+        seals: game.player.seals,
+        rupees: game.player.rupees,
+        potions: game.player.potions
+      },
+      flags: game.flags,
+      openedProps: game.props.filter((prop) => prop.opened || prop.removed).map((prop) => prop.id),
+      defeated: Array.from(game.defeated),
+      won: game.won
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    updateContinueButton();
+  } catch (error) {
+    console.warn("Save failed", error);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    game = createGame();
+    Object.assign(game.player, data.player || {});
+    game.elapsed = data.elapsed || 0;
+    game.flags = {
+      ...game.flags,
+      ...(data.flags || {}),
+      shrineSeals: {
+        ...game.flags.shrineSeals,
+        ...((data.flags && data.flags.shrineSeals) || {})
       }
-    } catch {
-      message("Fullscreen request was blocked");
+    };
+    game.won = Boolean(data.won);
+    game.defeated = new Set(data.defeated || []);
+    const opened = new Set(data.openedProps || []);
+    for (const prop of game.props) {
+      if (opened.has(prop.id)) {
+        if (prop.type === "bush") prop.removed = true;
+        else prop.opened = true;
+      }
     }
-    updateFullscreenButton();
+    game.enemies = game.enemies.filter((enemy) => !game.defeated.has(enemy.id));
+    const gate = game.props.find((prop) => prop.id === "moon-gate");
+    if (gate && game.flags.gateOpen) gate.opened = true;
+    return true;
+  } catch (error) {
+    console.warn("Load failed", error);
+    return false;
   }
+}
 
-  function updateFullscreenButton() {
-    dom.fullscreenButton.textContent = document.fullscreenElement ? "WIN" : "FS";
-    dom.fullscreenButton.setAttribute("aria-pressed", String(Boolean(document.fullscreenElement)));
+function updateContinueButton() {
+  try {
+    continueButton.disabled = !localStorage.getItem(SAVE_KEY);
+  } catch {
+    continueButton.disabled = true;
   }
+}
 
-  function clearSwipeMovement() {
-    touchDown.delete("left");
-    touchDown.delete("right");
-    touchDown.delete("up");
-    touchDown.delete("down");
-  }
+function loop(now) {
+  const dt = Math.min(0.033, (now - lastTime) / 1000 || 0);
+  lastTime = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
 
-  function beginSwipe(event) {
-    if (event.pointerType === "mouse" && !game.mobileMode) return;
-    swipe.id = event.pointerId;
-    swipe.startX = event.clientX;
-    swipe.startY = event.clientY;
-    swipe.lastX = event.clientX;
-    swipe.lastY = event.clientY;
-    swipe.jumpSent = false;
-    try {
-      canvas.setPointerCapture(event.pointerId);
-    } catch {}
-  }
+function queueAction(action) {
+  input.queued[action] = true;
+}
 
-  function moveSwipe(event) {
-    if (swipe.id !== event.pointerId) return;
-    const dx = event.clientX - swipe.startX;
-    const dy = event.clientY - swipe.startY;
-    swipe.lastX = event.clientX;
-    swipe.lastY = event.clientY;
-    if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.05) {
-      touchDown.delete(dx > 0 ? "left" : "right");
-      touchDown.add(dx > 0 ? "right" : "left");
-    }
-    if (dy < -42 && !swipe.jumpSent) {
-      justPressed.add("touch:jump");
-      touchDown.add("up");
-      swipe.jumpSent = true;
-    } else if (dy > 52) {
-      touchDown.add("down");
-    }
-  }
+function consumeAction(action) {
+  const value = input.queued[action];
+  input.queued[action] = false;
+  return value;
+}
 
-  function endSwipe(event) {
-    if (swipe.id !== event.pointerId) return;
-    const dx = event.clientX - swipe.startX;
-    const dy = event.clientY - swipe.startY;
-    const travel = Math.hypot(dx, dy);
-    if (travel < 16 && game.mode === "playing") {
-      const rect = canvas.getBoundingClientRect();
-      const localX = event.clientX - rect.left;
-      justPressed.add(localX > rect.width * 0.48 ? "touch:attack" : "touch:jump");
-    }
-    swipe.id = null;
-    clearSwipeMovement();
-  }
+function dirVector(dir) {
+  if (dir === "left") return { x: -1, y: 0 };
+  if (dir === "right") return { x: 1, y: 0 };
+  if (dir === "up") return { x: 0, y: -1 };
+  return { x: 0, y: 1 };
+}
 
-  function loop(now) {
-    const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
-    lastTime = now;
-    update(dt);
-    draw();
-    requestAnimationFrame(loop);
+function dirAngle(dir) {
+  if (dir === "right") return 0;
+  if (dir === "down") return Math.PI / 2;
+  if (dir === "left") return Math.PI;
+  return -Math.PI / 2;
+}
+
+function vectorToDir(x, y) {
+  if (Math.abs(x) > Math.abs(y)) return x < 0 ? "left" : "right";
+  return y < 0 ? "up" : "down";
+}
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function formatTime(totalSeconds) {
+  const total = Math.max(0, Math.floor(totalSeconds));
+  const minutes = String(Math.floor(total / 60)).padStart(2, "0");
+  const seconds = String(total % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function focusCanvas() {
+  window.setTimeout(() => canvas.focus({ preventScroll: true }), 20);
+}
+
+function setSound(enabled) {
+  soundEnabled = enabled;
+  soundButton.textContent = soundEnabled ? "Ton: An" : "Ton: Aus";
+  if (soundEnabled && !audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  if (soundEnabled) {
+    playBgm();
+    playSfx("pickup");
+  } else {
+    pauseBgm();
+  }
+}
+
+function playBgm() {
+  const bgm = audioAssets.bgm;
+  if (!soundEnabled || !bgm || !game || !game.started || game.paused || game.over || game.won) return;
+  bgm.volume = 0.34;
+  bgm.play().catch(() => {});
+}
+
+function pauseBgm(reset = false) {
+  const bgm = audioAssets.bgm;
+  if (!bgm) return;
+  bgm.pause();
+  if (reset) bgm.currentTime = 0;
+}
+
+function playSfx(key) {
+  if (!soundEnabled) return;
+  const source = audioAssets[key];
+  if (!source) {
+    playTone(key === "hurt" ? 110 : 420, 0.08, "triangle", 0.035);
+    return;
+  }
+  const clip = source.cloneNode(true);
+  clip.volume = key === "gate" ? 0.42 : 0.5;
+  clip.play().catch(() => {});
+}
+
+function playTone(freq, duration, type, gainValue) {
+  if (!soundEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = gainValue;
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function setSwipeMove(dx, dy) {
+  input.swipeMove.up = false;
+  input.swipeMove.down = false;
+  input.swipeMove.left = false;
+  input.swipeMove.right = false;
+  if (Math.hypot(dx, dy) < 18) return;
+  if (dx < -14) input.swipeMove.left = true;
+  if (dx > 14) input.swipeMove.right = true;
+  if (dy < -14) input.swipeMove.up = true;
+  if (dy > 14) input.swipeMove.down = true;
+}
+
+function clearSwipeMove() {
+  input.swipeMove.up = false;
+  input.swipeMove.down = false;
+  input.swipeMove.left = false;
+  input.swipeMove.right = false;
+}
+
+function handleSwipeStart(event) {
+  if (event.pointerType !== "touch" || event.target.closest("button")) return;
+  if (!game || !game.started || game.paused || game.over || game.won) return;
+  event.preventDefault();
+  input.swipe.active = true;
+  input.swipe.id = event.pointerId;
+  input.swipe.startX = event.clientX;
+  input.swipe.startY = event.clientY;
+  input.swipe.startT = performance.now();
+  clearSwipeMove();
+  stageEl.setPointerCapture(event.pointerId);
+  focusCanvas();
+}
+
+function handleSwipeMove(event) {
+  if (!input.swipe.active || input.swipe.id !== event.pointerId) return;
+  event.preventDefault();
+  setSwipeMove(event.clientX - input.swipe.startX, event.clientY - input.swipe.startY);
+}
+
+function handleSwipeEnd(event) {
+  if (!input.swipe.active || input.swipe.id !== event.pointerId) return;
+  event.preventDefault();
+  const dx = event.clientX - input.swipe.startX;
+  const dy = event.clientY - input.swipe.startY;
+  const dist = Math.hypot(dx, dy);
+  const age = performance.now() - (input.swipe.startT || performance.now());
+  if (dist < 14) queueAction("attack");
+  if (dist > 84 && age < 320) queueAction("dash");
+  clearSwipeMove();
+  input.swipe.active = false;
+  input.swipe.id = null;
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenEnabled || !appEl.requestFullscreen) {
+    showMessage("Fullscreen ist in diesem Browser nicht verfuegbar.");
+    return;
+  }
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  } else {
+    appEl.requestFullscreen().catch(() => showMessage("Fullscreen wurde blockiert."));
+  }
+}
+
+function syncFullscreenUi() {
+  const active = Boolean(document.fullscreenElement);
+  appEl.classList.toggle("is-fullscreen", active);
+  fullscreenButton.textContent = active ? "Fenster" : "Fullscreen";
+}
+
+function bindInputs() {
+  const blockKeys = new Set([
+    "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+    "Space", "KeyW", "KeyA", "KeyS", "KeyD"
+  ]);
 
   window.addEventListener("keydown", (event) => {
-    const code = event.code;
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", "Tab"].includes(code)) {
-      event.preventDefault();
-    }
-    if (!event.repeat) {
-      justPressed.add(code);
-      if ((game.mode === "title" || game.mode === "dead" || game.mode === "win") && code === "Enter" && game.loaded) {
-        resetRun(false);
-      }
-    }
-    keysDown.add(code);
+    if (blockKeys.has(event.code)) event.preventDefault();
+    input.keys.add(event.code);
+    if (event.repeat) return;
+    if (event.code === "Space" || event.code === "KeyJ") queueAction("attack");
+    if (event.code === "ShiftLeft" || event.code === "ShiftRight" || event.code === "KeyK") queueAction("dash");
+    if (event.code === "KeyE") queueAction("interact");
+    if (event.code === "KeyQ") queueAction("potion");
+    if (event.code === "Escape" || event.code === "KeyP") togglePause();
+    if (event.code === "Enter" && startOverlay && !startOverlay.classList.contains("is-hidden")) continueGame();
   });
 
   window.addEventListener("keyup", (event) => {
-    keysDown.delete(event.code);
+    input.keys.delete(event.code);
   });
 
-  canvas.addEventListener("pointerdown", beginSwipe);
-  canvas.addEventListener("pointermove", moveSwipe);
-  canvas.addEventListener("pointerup", endSwipe);
-  canvas.addEventListener("pointercancel", endSwipe);
-
-  for (const eventName of ["contextmenu", "selectstart", "dragstart"]) {
-    dom.touchControls.addEventListener(eventName, (event) => event.preventDefault());
-    canvas.addEventListener(eventName, (event) => event.preventDefault());
-  }
-
-  for (const button of dom.touchControls.querySelectorAll("button")) {
-    const action = button.dataset.touch;
+  document.querySelectorAll("[data-hold]").forEach((button) => {
+    const dir = button.dataset.hold;
+    const setHold = (value) => {
+      input.virtual[dir] = value;
+      if (value) focusCanvas();
+    };
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      touchDown.add(action);
-      justPressed.add(`touch:${action}`);
-      try {
-        button.setPointerCapture(event.pointerId);
-      } catch {}
+      button.setPointerCapture(event.pointerId);
+      setHold(true);
     });
-    button.addEventListener("pointerup", () => touchDown.delete(action));
-    button.addEventListener("pointercancel", () => touchDown.delete(action));
-    button.addEventListener("pointerleave", () => touchDown.delete(action));
-  }
-
-  dom.startButton.disabled = true;
-  dom.startButton.addEventListener("click", () => {
-    dom.startButton.textContent = "Begin";
-    resetRun(false);
+    button.addEventListener("pointerup", () => setHold(false));
+    button.addEventListener("pointercancel", () => setHold(false));
+    button.addEventListener("pointerleave", () => setHold(false));
   });
-  dom.continueButton.addEventListener("click", () => resetRun(true));
-  dom.mobileButton.addEventListener("click", () => toggleMobileMode());
-  dom.fullscreenButton.addEventListener("click", toggleFullscreen);
-  dom.mapButton.addEventListener("click", () => toggleMap());
-  dom.closeMapButton.addEventListener("click", () => toggleMap(false));
-  dom.muteButton.addEventListener("click", toggleMute);
-  document.addEventListener("fullscreenchange", updateFullscreenButton);
 
-  loadAssets();
-  enterRoom("gate", rooms.gate.spawn, false);
-  requestAnimationFrame(loop);
-})();
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      queueAction(button.dataset.action);
+      focusCanvas();
+    });
+  });
+
+  newGameButton.addEventListener("click", startNewGame);
+  continueButton.addEventListener("click", continueGame);
+  pauseButton.addEventListener("click", () => togglePause());
+  resumeButton.addEventListener("click", () => togglePause(false));
+  restartButton.addEventListener("click", startNewGame);
+  endRestartButton.addEventListener("click", startNewGame);
+  soundButton.addEventListener("click", () => setSound(!soundEnabled));
+  fullscreenButton.addEventListener("click", toggleFullscreen);
+  document.addEventListener("fullscreenchange", syncFullscreenUi);
+  stageEl.addEventListener("pointerdown", handleSwipeStart);
+  stageEl.addEventListener("pointermove", handleSwipeMove);
+  stageEl.addEventListener("pointerup", handleSwipeEnd);
+  stageEl.addEventListener("pointercancel", handleSwipeEnd);
+  canvas.addEventListener("pointerdown", () => focusCanvas());
+}
+
+loadAssets()
+  .then(() => {
+    assetsReady = true;
+    bindInputs();
+    resetToStartOverlay();
+    updateHud();
+    requestAnimationFrame(loop);
+  })
+  .catch((error) => {
+    console.error("Asset load failed", error);
+    toastEl.textContent = "Asset-Laden fehlgeschlagen.";
+    toastEl.classList.add("is-visible");
+  });
