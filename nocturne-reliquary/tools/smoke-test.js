@@ -84,6 +84,10 @@ async function browserSmoke() {
   await page.waitForTimeout(900);
   await page.keyboard.press("KeyJ");
   await page.keyboard.press("ArrowUp");
+  await page.evaluate(() => window.__NOCTURNE_TEST_INPUT("right", true));
+  await page.waitForTimeout(3200);
+  const movementState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
+  await page.evaluate(() => window.__NOCTURNE_TEST_INPUT("right", false));
   await page.waitForTimeout(500);
 
   const state = await page.evaluate(() => {
@@ -106,6 +110,8 @@ async function browserSmoke() {
       room: document.getElementById("roomName").textContent,
       frameInfo: window.__NOCTURNE_FRAME_INFO,
       inputInfo: window.__NOCTURNE_INPUT_INFO,
+      tuningInfo: window.__NOCTURNE_TUNING_INFO,
+      debugState: window.__NOCTURNE_DEBUG_STATE(),
       hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
       hasMobile: Boolean(document.getElementById("mobileButton")),
       lit,
@@ -116,7 +122,7 @@ async function browserSmoke() {
 
   await browser.close();
   server.close();
-  return { url, state, consoleErrors, pageErrors, badResponses };
+  return { url, state, movementState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -147,6 +153,10 @@ async function browserSmoke() {
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
   assert(!result.state.inputInfo.upKeys.includes("ArrowUp"), "ArrowUp should not be reserved for up doors");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
+  assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
+  assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
+  assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
+  assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);
