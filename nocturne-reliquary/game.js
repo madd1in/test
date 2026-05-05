@@ -19,6 +19,8 @@
     startButton: document.getElementById("startButton"),
     continueButton: document.getElementById("continueButton"),
     loadState: document.getElementById("loadState"),
+    mobileButton: document.getElementById("mobileButton"),
+    fullscreenButton: document.getElementById("fullscreenButton"),
     mapButton: document.getElementById("mapButton"),
     muteButton: document.getElementById("muteButton"),
     mapPanel: document.getElementById("mapPanel"),
@@ -88,6 +90,16 @@
     interact: ["KeyE", "Enter"]
   };
 
+  const SPRITES = {
+    playerFrameW: 128,
+    playerFrameH: 184,
+    playerFrames: 24,
+    whipFrameW: 192,
+    whipFrameH: 72,
+    whipFrames: 8
+  };
+  window.__NOCTURNE_FRAME_INFO = SPRITES;
+
   const ENEMY_TYPES = {
     zombie: { row: 0, hp: 26, w: 42, h: 82, dw: 86, dh: 118, speed: 0.72, damage: 8, ai: "walker" },
     skeleton: { row: 1, hp: 32, w: 42, h: 86, dw: 88, dh: 122, speed: 0.62, damage: 9, ai: "thrower" },
@@ -105,6 +117,7 @@
   const keysDown = new Set();
   const justPressed = new Set();
   const touchDown = new Set();
+  const swipe = { id: null, startX: 0, startY: 0, lastX: 0, lastY: 0, jumpSent: false };
   let lastTime = 0;
   let activeMusic = null;
   let musicKey = null;
@@ -121,6 +134,7 @@
     time: 0,
     shake: 0,
     muted: false,
+    mobileMode: false,
     message: "",
     messageTimer: 0,
     loaded: false,
@@ -157,6 +171,9 @@
     dashCooldown: 0,
     invuln: 0,
     spellCooldown: 0,
+    combo: 0,
+    comboTimer: 0,
+    score: 0,
     stepWasGrounded: false
   };
 
@@ -487,6 +504,8 @@
     player.attackTimer = 0;
     player.dashTimer = 0;
     player.dashCooldown = 0;
+    player.combo = 0;
+    player.comboTimer = 0;
     game.projectiles.length = 0;
     game.particles.length = 0;
     game.message = "";
@@ -641,6 +660,8 @@
     player.attackTimer = Math.max(0, player.attackTimer - dt);
     player.dashCooldown = Math.max(0, player.dashCooldown - dt);
     player.spellCooldown = Math.max(0, player.spellCooldown - dt);
+    player.comboTimer = Math.max(0, player.comboTimer - dt);
+    if (player.comboTimer === 0) player.combo = 0;
     if (player.attackTimer === 0) player.attackHit = false;
 
     if (actionJust("map")) toggleMap();
@@ -691,11 +712,15 @@
         player.coyote = 0;
         player.jumps = 1;
         playSound("jump");
-      } else if (save.relics.doubleJump && player.jumps < 2) {
-        player.vy = -11.6;
-        player.jumps = 2;
-        burst(player.x + player.w / 2, player.y + player.h, "#8bd7ff", 12);
-        playSound("jump");
+      } else {
+        const maxJumps = save.relics.doubleJump ? 3 : 2;
+        if (player.jumps < maxJumps) {
+          player.vy = player.jumps === 1 ? -11.4 : -10.6;
+          player.jumps += 1;
+          burst(player.x + player.w / 2, player.y + player.h, player.jumps > 2 ? "#f2cb68" : "#8bd7ff", player.jumps > 2 ? 18 : 12);
+          if (player.jumps > 2) message("Moonstep");
+          playSound("jump");
+        }
       }
     }
 
@@ -722,6 +747,10 @@
     if (actionJust("attack") && player.attackTimer <= 0.02) {
       player.attackTimer = 0.28;
       player.attackHit = false;
+      if (!player.onGround && player.vy > -2) {
+        player.vy *= 0.42;
+        burst(player.x + player.w / 2, player.y + 46, "#f0bf61", 6);
+      }
       playSound(Math.random() > 0.5 ? "whip" : "whip2");
     }
 
@@ -731,21 +760,25 @@
     }
 
     if (actionJust("spell") && player.spellCooldown <= 0) {
-      if (player.mp >= 8) {
-        player.mp -= 8;
+      const cost = game.save.moonSigil ? 10 : 8;
+      if (player.mp >= cost) {
+        player.mp -= cost;
         player.spellCooldown = 0.34;
-        game.projectiles.push({
-          from: "player",
-          x: player.x + player.w / 2 + player.facing * 28,
-          y: player.y + 42,
-          w: 18,
-          h: 12,
-          vx: player.facing * 8.3,
-          vy: -0.25,
-          damage: 14,
-          life: 1.2,
-          color: "#78dbe1"
-        });
+        const arcs = game.save.moonSigil ? [-0.34, 0, 0.34] : [0];
+        for (const arc of arcs) {
+          game.projectiles.push({
+            from: "player",
+            x: player.x + player.w / 2 + player.facing * 28,
+            y: player.y + 42,
+            w: 18,
+            h: 12,
+            vx: player.facing * (8.0 - Math.abs(arc) * 2),
+            vy: arc * 6 - 0.25,
+            damage: game.save.moonSigil ? 11 : 14,
+            life: 1.2,
+            color: game.save.moonSigil ? "#f2cb68" : "#78dbe1"
+          });
+        }
         playSound("spell");
       } else {
         message("The reliquary is dry");
@@ -1046,7 +1079,7 @@
     game.save.collected[`${game.roomId}:${drop.id}`] = true;
     if (drop.type === "doubleJump") {
       game.save.relics.doubleJump = true;
-      message("Relic gained: Grave Boots");
+      message("Relic gained: Grave Boots / Triple Moonstep");
       burst(drop.x, drop.y, "#86d8ff", 34);
     } else if (drop.type === "dash") {
       game.save.relics.dash = true;
@@ -1079,7 +1112,11 @@
     if (enemy.hp <= 0) {
       game.save.killed[`${game.roomId}:${enemy.id}`] = true;
       game.enemies = game.enemies.filter((other) => other !== enemy);
-      player.mp = Math.min(player.maxMp, player.mp + 5);
+      player.combo += 1;
+      player.comboTimer = 3.0;
+      player.score += 100 + player.combo * 25;
+      player.mp = Math.min(player.maxMp, player.mp + 5 + Math.min(8, player.combo));
+      if (player.combo > 1) message(`Moon chain x${player.combo}`);
       burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#e1d0a0", 22);
       playSound("enemyDie", 0.45);
       if (Math.random() > 0.65) {
@@ -1273,24 +1310,27 @@
 
   function drawPlayer() {
     let frame = 0;
-    if (player.invuln > 0.62) frame = 29;
-    else if (player.attackTimer > 0) frame = 12 + clamp(Math.floor((0.28 - player.attackTimer) * 26), 0, 7);
+    if (player.invuln > 0.62) frame = 11;
+    else if (player.attackTimer > 0) frame = 12 + clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * 6), 0, 5);
     else if (!player.onGround) frame = 9;
-    else if (Math.abs(player.vx) > 0.25) frame = Math.floor(game.time * 10) % 8;
+    else if (actionDown("down")) frame = 18;
+    else if (Math.abs(player.vx) > 0.25) frame = 1 + Math.floor(game.time * 10) % 8;
     else frame = Math.floor(game.time * 2) % 2;
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
-    drawSheetFrame(images.player, frame, 0, 96, 184, player.x + player.w / 2, player.y + player.h + 14, 102, 184, player.facing < 0, alpha);
+    drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha);
 
     if (player.attackTimer > 0.08) {
-      const sx = clamp(Math.floor((0.28 - player.attackTimer) * 36), 0, 15);
-      const x = player.facing > 0 ? player.x + player.w - 8 : player.x - 92;
+      const sx = clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
+      const drawW = 176;
+      const drawH = 72;
+      const x = player.facing > 0 ? player.x + player.w - 12 : player.x - drawW + 10;
       ctx.save();
       if (player.facing < 0) {
-        ctx.translate(x + 96, player.y + 24);
+        ctx.translate(x + drawW, player.y + 24);
         ctx.scale(-1, 1);
-        ctx.drawImage(images.whip, sx * 96, 0, 96, 72, 0, 0, 96, 72);
+        ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, 0, 0, drawW, drawH);
       } else {
-        ctx.drawImage(images.whip, sx * 96, 0, 96, 72, x, player.y + 24, 96, 72);
+        ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, x, player.y + 24, drawW, drawH);
       }
       ctx.restore();
     }
@@ -1405,10 +1445,11 @@
 
   function statusSummary() {
     const relics = [];
-    if (game.save.relics.doubleJump) relics.push("Grave Boots");
+    relics.push(game.save.relics.doubleJump ? "Triple Moonstep" : "Double Jump");
     if (game.save.relics.dash) relics.push("Mist Dash");
     if (game.save.moonSigil) relics.push("Moon Sigil");
-    return relics.length ? relics.join(" / ") : "The gatehouse breathes below the moon";
+    if (player.combo > 1) relics.push(`Chain x${player.combo}`);
+    return relics.join(" / ");
   }
 
   function updateMapPanel() {
@@ -1488,6 +1529,88 @@
     else if (game.room) playMusic(game.boss ? "boss" : game.room.music);
   }
 
+  function toggleMobileMode(force) {
+    game.mobileMode = force ?? !game.mobileMode;
+    document.body.classList.toggle("mobile-mode", game.mobileMode);
+    dom.mobileButton.textContent = game.mobileMode ? "PAD" : "MOB";
+    dom.mobileButton.setAttribute("aria-pressed", String(game.mobileMode));
+    message(game.mobileMode ? "Swipe mode armed" : "Swipe mode tucked away");
+  }
+
+  async function toggleFullscreen() {
+    const root = document.getElementById("app");
+    try {
+      if (!document.fullscreenElement) {
+        if (!root.requestFullscreen) {
+          message("Fullscreen is not available here");
+          return;
+        }
+        await root.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      message("Fullscreen request was blocked");
+    }
+    updateFullscreenButton();
+  }
+
+  function updateFullscreenButton() {
+    dom.fullscreenButton.textContent = document.fullscreenElement ? "WIN" : "FS";
+    dom.fullscreenButton.setAttribute("aria-pressed", String(Boolean(document.fullscreenElement)));
+  }
+
+  function clearSwipeMovement() {
+    touchDown.delete("left");
+    touchDown.delete("right");
+    touchDown.delete("up");
+    touchDown.delete("down");
+  }
+
+  function beginSwipe(event) {
+    if (event.pointerType === "mouse" && !game.mobileMode) return;
+    swipe.id = event.pointerId;
+    swipe.startX = event.clientX;
+    swipe.startY = event.clientY;
+    swipe.lastX = event.clientX;
+    swipe.lastY = event.clientY;
+    swipe.jumpSent = false;
+    canvas.setPointerCapture(event.pointerId);
+  }
+
+  function moveSwipe(event) {
+    if (swipe.id !== event.pointerId) return;
+    const dx = event.clientX - swipe.startX;
+    const dy = event.clientY - swipe.startY;
+    swipe.lastX = event.clientX;
+    swipe.lastY = event.clientY;
+    if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.05) {
+      touchDown.delete(dx > 0 ? "left" : "right");
+      touchDown.add(dx > 0 ? "right" : "left");
+    }
+    if (dy < -42 && !swipe.jumpSent) {
+      justPressed.add("touch:jump");
+      touchDown.add("up");
+      swipe.jumpSent = true;
+    } else if (dy > 52) {
+      touchDown.add("down");
+    }
+  }
+
+  function endSwipe(event) {
+    if (swipe.id !== event.pointerId) return;
+    const dx = event.clientX - swipe.startX;
+    const dy = event.clientY - swipe.startY;
+    const travel = Math.hypot(dx, dy);
+    if (travel < 16 && game.mode === "playing") {
+      const rect = canvas.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      justPressed.add(localX > rect.width * 0.48 ? "touch:attack" : "touch:jump");
+    }
+    swipe.id = null;
+    clearSwipeMovement();
+  }
+
   function loop(now) {
     const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
     lastTime = now;
@@ -1514,6 +1637,11 @@
     keysDown.delete(event.code);
   });
 
+  canvas.addEventListener("pointerdown", beginSwipe);
+  canvas.addEventListener("pointermove", moveSwipe);
+  canvas.addEventListener("pointerup", endSwipe);
+  canvas.addEventListener("pointercancel", endSwipe);
+
   for (const button of dom.touchControls.querySelectorAll("button")) {
     const action = button.dataset.touch;
     button.addEventListener("pointerdown", (event) => {
@@ -1533,9 +1661,12 @@
     resetRun(false);
   });
   dom.continueButton.addEventListener("click", () => resetRun(true));
+  dom.mobileButton.addEventListener("click", () => toggleMobileMode());
+  dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.mapButton.addEventListener("click", () => toggleMap());
   dom.closeMapButton.addEventListener("click", () => toggleMap(false));
   dom.muteButton.addEventListener("click", toggleMute);
+  document.addEventListener("fullscreenchange", updateFullscreenButton);
 
   loadAssets();
   enterRoom("gate", rooms.gate.spawn, false);

@@ -104,6 +104,9 @@ async function browserSmoke() {
       ready: window.__NOCTURNE_READY === true,
       titleHidden: document.getElementById("titlePanel").hidden,
       room: document.getElementById("roomName").textContent,
+      frameInfo: window.__NOCTURNE_FRAME_INFO,
+      hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
+      hasMobile: Boolean(document.getElementById("mobileButton")),
       lit,
       alpha,
       hpTransform: document.getElementById("hpFill").style.transform
@@ -136,6 +139,12 @@ async function browserSmoke() {
   assert(result.badResponses.length === 0, `bad responses: ${result.badResponses.join("; ")}`);
   assert(result.state.ready, "game never became ready");
   assert(result.state.titleHidden, "title did not hide after begin");
+  assert(result.state.frameInfo.playerFrameW === 128, "player frame width should be 128");
+  assert(result.state.frameInfo.playerFrames === 24, "player frame count should be 24");
+  assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
+  assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
+  assert(result.state.hasFullscreen, "fullscreen button missing");
+  assert(result.state.hasMobile, "mobile mode button missing");
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);
   assert(result.state.room.length > 0, "room label missing");
   console.log(JSON.stringify({ ok: true, ...result }, null, 2));
