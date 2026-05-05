@@ -1,4 +1,4 @@
-name: Deploy Nocturne Reliquary
+name: Deploy Glimmerwald Quest
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
       - name: Upload static game
         uses: actions/upload-pages-artifact@v3
         with:
-          path: nocturne-reliquary
+          path: glimmerwald-quest
 
       - name: Deploy
         id: deployment
