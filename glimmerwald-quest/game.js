@@ -75,6 +75,89 @@ const AUDIO_SOURCES = {
   gate: "assets/audio/gate.wav"
 };
 
+const TILE_SPRITE_MAP_KEY = "tileSpriteMap";
+const TILE_SPRITE_SIZE = 64;
+const TILE_SPRITE_FRAMES = {
+  grass: 0,
+  grassAlt: 1,
+  grassFlower: 2,
+  darkGrass: 3,
+  darkGrassAlt: 4,
+  path: 5,
+  water: 21,
+  stone: 37,
+  wall: 40,
+  rock: 43,
+  tree: 44,
+  bridgeLeft: 45,
+  bridgeRight: 46,
+  bridgeLeftTop: 47,
+  bridgeRightTop: 48,
+  bridgeLeftBottom: 49,
+  bridgeRightBottom: 50
+};
+const TILE_AUTOTILE_FRAME_COUNT = 16;
+
+const ENEMY_SPRITE_MAP_KEY = "enemySpriteMap";
+const ENEMY_SPRITE_SIZE = 128;
+const ENEMY_ANIMATION_FRAMES = 4;
+const ENEMY_SPRITE_FRAMES = {
+  thornling: 0,
+  brute: 1,
+  wisp: 2,
+  boss: 3
+};
+
+const OBJECT_SPRITE_MAP_KEY = "objectSpriteMap";
+const OBJECT_SPRITE_SIZE = 96;
+const OBJECT_SPRITE_FRAMES = {
+  chest: 0,
+  chestOpen: 1,
+  key: 2,
+  potion: 3,
+  rupee: 4,
+  seal: 5,
+  heart: 6,
+  bush: 7,
+  gate: 8
+};
+
+const PLAYER_SPRITE_MAP_KEY = "playerSpriteMap";
+const PLAYER_SPRITE_SIZE = 96;
+const PLAYER_ATTACK_FRAME_COUNT = 4;
+const PLAYER_SPRITE_FRAMES = {
+  downIdle: 0,
+  downWalk: 1,
+  upIdle: 2,
+  upWalk: 3,
+  leftIdle: 4,
+  leftWalk: 5,
+  rightIdle: 6,
+  rightWalk: 7,
+  downAttack0: 8,
+  downAttack1: 9,
+  downAttack2: 10,
+  downAttack3: 11,
+  upAttack0: 12,
+  upAttack1: 13,
+  upAttack2: 14,
+  upAttack3: 15,
+  leftAttack0: 16,
+  leftAttack1: 17,
+  leftAttack2: 18,
+  leftAttack3: 19,
+  rightAttack0: 20,
+  rightAttack1: 21,
+  rightAttack2: 22,
+  rightAttack3: 23
+};
+
+const ATTACK_ANIMATION_DURATION = 0.16;
+
+const SLASH_SPRITE_MAP_KEY = "slashSpriteMap";
+const SLASH_SPRITE_SIZE = 96;
+const SLASH_SPRITE_FRAMES = 4;
+
 const images = {};
 const audioAssets = {};
 const renderCache = new Map();
@@ -96,7 +179,14 @@ let saveTimer = 0;
 let hudCache = "";
 
 function loadAssets() {
-  const entries = Object.entries(ASSET_SOURCES);
+  const entries = [
+    ...Object.entries(ASSET_SOURCES),
+    [TILE_SPRITE_MAP_KEY, "assets/environment/tile-sprite-map-autotile-v5.png"],
+    [ENEMY_SPRITE_MAP_KEY, "assets/characters/enemy-sprite-map-animated-v2.png"],
+    [OBJECT_SPRITE_MAP_KEY, "assets/items/object-sprite-map-imagen.png"],
+    [PLAYER_SPRITE_MAP_KEY, "assets/characters/player-sprite-map-combat-v2.png"],
+    [SLASH_SPRITE_MAP_KEY, "assets/ui/slash-sprite-map.png"]
+  ];
   return Promise.all(entries.map(([key, src]) => new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -152,6 +242,8 @@ function createGame() {
       rupees: 0,
       potions: 1,
       dir: "down",
+      moving: false,
+      walkTimer: 0,
       attackTimer: 0,
       attackCooldown: 0,
       dashTimer: 0,
@@ -198,7 +290,10 @@ function createWorldTiles() {
     set(x, 15, "water");
   }
   [5, 15, 24, 31, 36].forEach((bridgeX) => {
-    rect(bridgeX, 14, 2, 2, "bridge");
+    set(bridgeX, 14, "bridgeLeft");
+    set(bridgeX + 1, 14, "bridgeRight");
+    set(bridgeX, 15, "bridgeLeft");
+    set(bridgeX + 1, 15, "bridgeRight");
   });
 
   placeRuin(tiles, 7, 3, 10, 8, "stone", "bottom", 11);
@@ -470,6 +565,8 @@ function updatePlayer(dt) {
   if (move.x || move.y) {
     p.dir = vectorToDir(move.x, move.y);
   }
+  p.moving = Boolean(move.x || move.y || p.dashTimer > 0);
+  p.walkTimer = p.moving ? p.walkTimer + dt * (p.dashTimer > 0 ? 16 : 8) : 0;
 
   if (p.dashTimer > 0) {
     p.dashTimer -= dt;
@@ -511,7 +608,7 @@ function tryAttack() {
   const p = game.player;
   if (p.attackCooldown > 0) return;
   p.attackCooldown = 0.26;
-  p.attackTimer = 0.16;
+  p.attackTimer = ATTACK_ANIMATION_DURATION;
   performSlash();
   playSfx("slash");
 }
@@ -985,7 +1082,7 @@ function buildStaticLayers(state) {
 
   for (let y = 0; y < WORLD_ROWS; y += 1) {
     for (let x = 0; x < WORLD_COLS; x += 1) {
-      drawTileAsset(layer, state.tiles[y][x], x * TILE, y * TILE);
+      drawTileAsset(layer, state.tiles[y][x], x * TILE, y * TILE, x, y, state.tiles);
     }
   }
 
@@ -1005,7 +1102,8 @@ function buildStaticLayers(state) {
   }
 }
 
-function drawTileAsset(context, tile, px, py) {
+function drawTileAsset(context, tile, px, py, tileX = 0, tileY = 0, tiles = null) {
+  if (drawTileFromSpriteMap(context, tile, px, py, tileX, tileY, tiles)) return;
   if (tile === "tree") {
     drawAsset(context, "darkGrass", px, py, TILE, TILE);
     drawAsset(context, "tree", px - 10, py - 28, 68, 82);
@@ -1019,9 +1117,97 @@ function drawTileAsset(context, tile, px, py) {
   }
 }
 
+function drawTileFromSpriteMap(context, tile, px, py, tileX, tileY, tiles) {
+  const frame = resolveTileSpriteFrame(tile, tileX, tileY, tiles);
+  const atlas = images[TILE_SPRITE_MAP_KEY];
+  if (frame === undefined || !atlas) return false;
+  context.drawImage(
+    atlas,
+    frame * TILE_SPRITE_SIZE,
+    0,
+    TILE_SPRITE_SIZE,
+    TILE_SPRITE_SIZE,
+    px,
+    py,
+    TILE,
+    TILE
+  );
+  return true;
+}
+
+function resolveTileSpriteFrame(tile, tileX, tileY, tiles) {
+  const hash = tileHash(tileX, tileY);
+  if (tile === "grass") {
+    return [TILE_SPRITE_FRAMES.grass, TILE_SPRITE_FRAMES.grassAlt, TILE_SPRITE_FRAMES.grassFlower][hash % 3];
+  }
+  if (tile === "darkGrass") {
+    return hash % 2 === 0 ? TILE_SPRITE_FRAMES.darkGrass : TILE_SPRITE_FRAMES.darkGrassAlt;
+  }
+  if (tile === "path") {
+    return TILE_SPRITE_FRAMES.path + autotileMask(tiles, tileX, tileY, isPathConnection);
+  }
+  if (tile === "water") {
+    return TILE_SPRITE_FRAMES.water + autotileMask(tiles, tileX, tileY, isWaterConnection);
+  }
+  if (tile === "stone") {
+    return TILE_SPRITE_FRAMES.stone + hash % 3;
+  }
+  if (tile === "wall") {
+    return TILE_SPRITE_FRAMES.wall + hash % 3;
+  }
+  if (tile === "bridgeLeft" || tile === "bridgeRight") {
+    return bridgeSpriteFrame(tile, tileX, tileY, tiles);
+  }
+  return TILE_SPRITE_FRAMES[tile];
+}
+
+function autotileMask(tiles, x, y, predicate) {
+  if (!tiles) return TILE_AUTOTILE_FRAME_COUNT - 1;
+  let mask = 0;
+  if (predicate(tileAt(tiles, x, y - 1))) mask |= 1;
+  if (predicate(tileAt(tiles, x + 1, y))) mask |= 2;
+  if (predicate(tileAt(tiles, x, y + 1))) mask |= 4;
+  if (predicate(tileAt(tiles, x - 1, y))) mask |= 8;
+  return mask;
+}
+
+function bridgeSpriteFrame(tile, x, y, tiles) {
+  const top = !isBridgeTile(tileAt(tiles, x, y - 1));
+  const bottom = !isBridgeTile(tileAt(tiles, x, y + 1));
+  if (tile === "bridgeLeft") {
+    if (top) return TILE_SPRITE_FRAMES.bridgeLeftTop;
+    if (bottom) return TILE_SPRITE_FRAMES.bridgeLeftBottom;
+    return TILE_SPRITE_FRAMES.bridgeLeft;
+  }
+  if (top) return TILE_SPRITE_FRAMES.bridgeRightTop;
+  if (bottom) return TILE_SPRITE_FRAMES.bridgeRightBottom;
+  return TILE_SPRITE_FRAMES.bridgeRight;
+}
+
+function tileAt(tiles, x, y) {
+  if (!tiles || y < 0 || y >= tiles.length || x < 0 || x >= tiles[y].length) return null;
+  return tiles[y][x];
+}
+
+function tileHash(x, y) {
+  return Math.abs((x * 928371 + y * 689287 + x * y * 37) | 0);
+}
+
+function isPathConnection(tile) {
+  return tile === "path" || tile === "stone" || isBridgeTile(tile);
+}
+
+function isWaterConnection(tile) {
+  return tile === "water" || isBridgeTile(tile);
+}
+
+function isBridgeTile(tile) {
+  return tile === "bridgeLeft" || tile === "bridgeRight";
+}
+
 function tileMiniColor(tile) {
   if (tile === "water") return "#2d91b2";
-  if (tile === "bridge") return "#b47a45";
+  if (tile === "bridgeLeft" || tile === "bridgeRight") return "#b47a45";
   if (tile === "wall" || tile === "rock") return "#6a7480";
   if (tile === "tree") return "#205033";
   if (tile === "stone") return "#7d8791";
@@ -1095,79 +1281,182 @@ function isOnCamera(x, y, margin) {
 
 function drawProp(prop) {
   if (prop.type === "bush") {
-    drawImage("bush", prop.x - 30, prop.y - 42, 60, 58);
+    drawObjectSprite("bush", prop.x - 30, prop.y - 42, 60, 58, "bush");
     return;
   }
   if (prop.type === "chest") {
-    ctx.globalAlpha = prop.opened ? 0.45 : 1;
-    drawImage("chest", prop.x - 28, prop.y - 36, 56, 56);
+    ctx.globalAlpha = prop.opened ? 0.78 : 1;
+    drawObjectSprite(prop.opened ? "chestOpen" : "chest", prop.x - 30, prop.y - 42, 60, 64, "chest");
     ctx.globalAlpha = 1;
     return;
   }
   if (prop.type === "door") {
-    if (!prop.opened) drawImage("gate", prop.x - 32, prop.y - 50, 64, 72);
+    if (!prop.opened) drawObjectSprite("gate", prop.x - 34, prop.y - 58, 68, 86, "gate");
     return;
   }
   if (prop.type === "gate") {
     ctx.globalAlpha = prop.opened ? 0.25 : 1;
-    drawImage("gate", prop.x - 42, prop.y - 70, 84, 116);
+    drawObjectSprite("gate", prop.x - 48, prop.y - 86, 96, 126, "gate");
     ctx.globalAlpha = 1;
   }
 }
 
 function drawPickup(pickup) {
   const bob = Math.sin(pickup.bob) * 4;
-  const size = pickup.type === "seal" ? 46 : 32;
-  drawImage(pickup.type, pickup.x - size / 2, pickup.y - size / 2 - bob, size, size);
+  const size = pickup.type === "seal" ? 46 : pickup.type === "heart" ? 34 : 32;
+  drawObjectSprite(pickup.type, pickup.x - size / 2, pickup.y - size / 2 - bob, size, size, pickup.type);
+}
+
+function drawObjectSprite(type, x, y, w, h, fallbackKey) {
+  const frame = OBJECT_SPRITE_FRAMES[type];
+  const atlas = images[OBJECT_SPRITE_MAP_KEY];
+  if (frame === undefined || !atlas) {
+    drawImage(fallbackKey || type, x, y, w, h);
+    return;
+  }
+  ctx.drawImage(
+    atlas,
+    frame * OBJECT_SPRITE_SIZE,
+    0,
+    OBJECT_SPRITE_SIZE,
+    OBJECT_SPRITE_SIZE,
+    x,
+    y,
+    w,
+    h
+  );
 }
 
 function drawEnemy(enemy) {
-  if (enemy.type === "boss" && !enemy.active) {
-    ctx.globalAlpha = game.flags.gateOpen ? 0.65 : 0.36;
-  }
-  drawShadow(enemy.x, enemy.y + enemy.r * 0.65, enemy.r * 1.4, enemy.r * 0.36);
+  const inactiveAlpha = enemy.type === "boss" && !enemy.active
+    ? game.flags.gateOpen ? 0.65 : 0.36
+    : 1;
   const scale = enemy.type === "boss" ? 116 : enemy.type === "brute" ? 70 : 58;
   const yOffset = enemy.type === "boss" ? 94 : enemy.type === "brute" ? 62 : 52;
-  if (enemy.hitTimer > 0) ctx.filter = "brightness(1.8)";
-  drawImage(enemy.type, enemy.x - scale / 2, enemy.y - yOffset, scale, scale);
-  ctx.filter = "none";
-  ctx.globalAlpha = 1;
+  const baseX = enemy.homeX || enemy.x;
+  const baseY = enemy.homeY || enemy.y;
+  const hitPulse = clamp(enemy.hitTimer / 0.16, 0, 1);
+  const bobSpeed = enemy.type === "wisp" ? 5.8 : enemy.type === "boss" ? 2.4 : 3.6;
+  const bobSize = enemy.type === "wisp" ? 6 : enemy.type === "brute" ? 1.5 : 2.5;
+  const bob = Math.sin(game.elapsed * bobSpeed + baseX * 0.017 + baseY * 0.011) * bobSize;
+  const lean = enemy.knockX ? clamp(enemy.knockX / 900, -0.18, 0.18) : 0;
+
+  ctx.save();
+  ctx.globalAlpha *= inactiveAlpha;
+  drawShadow(enemy.x, enemy.y + enemy.r * 0.65, enemy.r * 1.4, enemy.r * 0.36);
+  if (enemy.type === "wisp") {
+    const glow = ctx.createRadialGradient(enemy.x, enemy.y - 28 + bob, 4, enemy.x, enemy.y - 28 + bob, 44);
+    glow.addColorStop(0, "rgba(137, 241, 225, 0.28)");
+    glow.addColorStop(1, "rgba(137, 241, 225, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(enemy.x - 48, enemy.y - 76 + bob, 96, 96);
+  }
+  if (enemy.hitTimer > 0) ctx.filter = "brightness(1.85) saturate(1.25)";
+  ctx.translate(enemy.x, enemy.y - yOffset + bob);
+  ctx.rotate(lean);
+  ctx.scale(1 + hitPulse * 0.08, 1 - hitPulse * 0.08);
+  drawEnemySprite(enemy.type, -scale / 2, 0, scale, scale);
+  ctx.restore();
   if (enemy.hp < enemy.maxHp || enemy.type === "boss" || enemy.seal) {
     drawBar(enemy.x - 26, enemy.y - yOffset - 7, 52, 6, enemy.hp / enemy.maxHp, enemy.type === "boss" ? "#e45655" : "#f5c75c");
   }
+}
+
+function drawEnemySprite(type, x, y, w, h) {
+  const typeFrame = ENEMY_SPRITE_FRAMES[type];
+  const atlas = images[ENEMY_SPRITE_MAP_KEY];
+  if (typeFrame === undefined || !atlas) {
+    drawImage(type, x, y, w, h);
+    return;
+  }
+  const speed = type === "wisp" ? 7.5 : type === "brute" ? 4.5 : type === "boss" ? 3.2 : 5.2;
+  const animFrame = Math.floor(game.elapsed * speed + typeFrame * 0.67) % ENEMY_ANIMATION_FRAMES;
+  const frame = typeFrame * ENEMY_ANIMATION_FRAMES + animFrame;
+  ctx.drawImage(
+    atlas,
+    frame * ENEMY_SPRITE_SIZE,
+    0,
+    ENEMY_SPRITE_SIZE,
+    ENEMY_SPRITE_SIZE,
+    x,
+    y,
+    w,
+    h
+  );
 }
 
 function drawPlayer(p) {
   if (p.invuln > 0 && Math.floor(game.elapsed * 18) % 2 === 0) return;
   if (p.dashTimer > 0) {
     ctx.globalAlpha = 0.35;
-    drawImage("hero", p.x - 34 - p.dashVector.x * 18, p.y - 66 - p.dashVector.y * 18, 68, 82);
+    drawPlayerSprite(p, p.x - 34 - p.dashVector.x * 18, p.y - 66 - p.dashVector.y * 18, 68, 82);
     ctx.globalAlpha = 1;
   }
   drawShadow(p.x, p.y + 13, 24, 6);
-  if (p.dir === "left") {
-    ctx.save();
-    ctx.translate(p.x, p.y - 24);
-    ctx.scale(-1, 1);
-    drawImage("hero", -34, -42, 68, 82);
-    ctx.restore();
-  } else {
-    drawImage("hero", p.x - 34, p.y - 66, 68, 82);
-  }
-
-  if (p.attackTimer > 0) {
-    const vec = dirVector(p.dir);
-    const angle = dirAngle(p.dir);
-    ctx.save();
-    ctx.translate(p.x + vec.x * 42, p.y + vec.y * 42 - 6);
-    ctx.rotate(angle);
-    ctx.globalAlpha = clamp(p.attackTimer / 0.16, 0, 1);
-    drawImage("slash", -44, -30, 88, 58);
-    ctx.restore();
-    ctx.globalAlpha = 1;
-  }
+  drawPlayerSprite(p, p.x - 34, p.y - 66, 68, 82);
+  drawSlashSprite(p);
 
   drawBar(p.x - 24, p.y + 24, 48, 5, p.stamina / 100, "#8ee8c1");
+}
+
+function drawSlashSprite(p) {
+  if (p.attackTimer <= 0) return;
+  const vec = dirVector(p.dir);
+  const angle = dirAngle(p.dir);
+  const atlas = images[SLASH_SPRITE_MAP_KEY];
+  const attackDuration = ATTACK_ANIMATION_DURATION;
+  const progress = clamp(1 - p.attackTimer / attackDuration, 0, 0.999);
+  const frame = Math.min(SLASH_SPRITE_FRAMES - 1, Math.floor(progress * SLASH_SPRITE_FRAMES));
+  const reach = 40 + progress * 9;
+
+  ctx.save();
+  ctx.translate(p.x + vec.x * reach, p.y + vec.y * reach - 7);
+  ctx.rotate(angle + (progress - 0.5) * 0.18);
+  ctx.globalAlpha = clamp(p.attackTimer / attackDuration + 0.12, 0, 1);
+  if (atlas) {
+    const scale = 0.88 + progress * 0.16;
+    ctx.scale(scale, scale);
+    ctx.drawImage(
+      atlas,
+      frame * SLASH_SPRITE_SIZE,
+      0,
+      SLASH_SPRITE_SIZE,
+      SLASH_SPRITE_SIZE,
+      -48,
+      -48,
+      96,
+      96
+    );
+  } else {
+    drawImage("slash", -44, -30, 88, 58);
+  }
+  ctx.restore();
+}
+
+function drawPlayerSprite(player, x, y, w, h) {
+  const atlas = images[PLAYER_SPRITE_MAP_KEY];
+  const attackProgress = clamp(1 - player.attackTimer / ATTACK_ANIMATION_DURATION, 0, 0.999);
+  const attackFrame = Math.min(PLAYER_ATTACK_FRAME_COUNT - 1, Math.floor(attackProgress * PLAYER_ATTACK_FRAME_COUNT));
+  const walkFrame = player.moving && Math.floor(player.walkTimer) % 2 === 1;
+  const frameName = player.attackTimer > 0
+    ? `${player.dir}Attack${attackFrame}`
+    : `${player.dir}${walkFrame ? "Walk" : "Idle"}`;
+  const frame = PLAYER_SPRITE_FRAMES[frameName] ?? PLAYER_SPRITE_FRAMES.downIdle;
+  if (!atlas) {
+    drawImage("hero", x, y, w, h);
+    return;
+  }
+  ctx.drawImage(
+    atlas,
+    frame * PLAYER_SPRITE_SIZE,
+    0,
+    PLAYER_SPRITE_SIZE,
+    PLAYER_SPRITE_SIZE,
+    x,
+    y,
+    w,
+    h
+  );
 }
 
 function drawProjectile(projectile) {
