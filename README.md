@@ -5,6 +5,7 @@ Ein eigenstaendiges, Zelda-inspiriertes Top-down-Browsergame mit lokalen Assets.
 Weitere Deploys:
 
 - [Resonance Lab FPS](./resonance-lab-fps/)
+- [Super Tile Hopper](./super-tile-hopper/)
 
 ## Start
 
