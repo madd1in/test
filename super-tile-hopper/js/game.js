@@ -15,7 +15,10 @@
   const DOUBLE_JUMP_SPEED = 640;
   const TRIPLE_JUMP_SPEED = 675;
   const RING_BOOST_SPEED = 760;
+  const DASH_SPEED = 640;
+  const DASH_TIME = 0.18;
   const MAX_JUMPS = 3;
+  const MAX_DASHES = 1;
   const COYOTE_TIME = 0.105;
   const JUMP_BUFFER = 0.13;
   const GRAPHIC_PATHS = {
@@ -103,8 +106,10 @@
   const restartButton = document.getElementById("restartButton");
   const hudCoins = document.getElementById("hudCoins");
   const hudShards = document.getElementById("hudShards");
+  const hudRelics = document.getElementById("hudRelics");
   const hudLives = document.getElementById("hudLives");
   const hudAir = document.getElementById("hudAir");
+  const hudDash = document.getElementById("hudDash");
   const hudTime = document.getElementById("hudTime");
 
   const view = { w: 960, h: 540, dpr: 1 };
@@ -114,6 +119,7 @@
     run: false,
     jump: false,
     jumpPressed: false,
+    dashPressed: false,
   };
 
   const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S"]);
@@ -281,6 +287,9 @@
       if (action === "jump" && !input.jump && !event.repeat) {
         input.jumpPressed = true;
       }
+      if (action === "run" && !input.run && !event.repeat) {
+        input.dashPressed = true;
+      }
       input[action] = true;
     });
 
@@ -301,6 +310,7 @@
         button.setPointerCapture?.(event.pointerId);
         button.classList.add("is-active");
         if (action === "jump" && !input.jump) input.jumpPressed = true;
+        if (action === "run" && !input.run) input.dashPressed = true;
         input[action] = true;
         unlockAudio();
       };
@@ -339,6 +349,8 @@
       totalCoins: world.coins.length + world.bonusCoins,
       shards: 0,
       totalShards: world.shards.length,
+      relics: 0,
+      totalRelics: world.relics.length,
       time: 0,
       cameraX: 0,
       cameraY: 0,
@@ -371,6 +383,8 @@
       coyote: 0,
       jumpBuffer: 0,
       jumpsLeft: MAX_JUMPS - 1,
+      dashesLeft: MAX_DASHES,
+      dashTimer: 0,
       invulnerable: 0,
       anim: 0,
       hurtPulse: 0,
@@ -395,6 +409,10 @@
       player.jumpBuffer = JUMP_BUFFER;
       input.jumpPressed = false;
     }
+    if (input.dashPressed) {
+      tryStartDash();
+      input.dashPressed = false;
+    }
 
     updatePlayer(dt);
     updateEnemies(dt);
@@ -411,14 +429,20 @@
     player.invulnerable = Math.max(0, player.invulnerable - dt);
     player.hurtPulse = Math.max(0, player.hurtPulse - dt);
     player.doubleJumpFlash = Math.max(0, player.doubleJumpFlash - dt);
-    if (player.grounded) player.jumpsLeft = MAX_JUMPS - 1;
+    player.dashTimer = Math.max(0, player.dashTimer - dt);
+    if (player.grounded) {
+      player.jumpsLeft = MAX_JUMPS - 1;
+      player.dashesLeft = MAX_DASHES;
+    }
     player.coyote = player.grounded ? COYOTE_TIME : Math.max(0, player.coyote - dt);
     player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
 
     const direction = Number(input.right) - Number(input.left);
     const targetSpeed = input.run ? RUN_SPEED : WALK_SPEED;
     const accel = player.grounded ? GROUND_ACCEL : AIR_ACCEL;
-    if (direction !== 0) {
+    if (player.dashTimer > 0) {
+      player.vx = player.facing * DASH_SPEED;
+    } else if (direction !== 0) {
       player.vx += direction * accel * dt;
       player.vx = clamp(player.vx, -targetSpeed, targetSpeed);
       player.facing = direction;
@@ -435,7 +459,8 @@
     }
 
     const gravityBoost = !input.jump && player.vy < 0 ? 1.55 : 1;
-    player.vy = Math.min(MAX_FALL, player.vy + GRAVITY * gravityBoost * dt);
+    const gravityScale = player.dashTimer > 0 ? 0.18 : gravityBoost;
+    player.vy = Math.min(MAX_FALL, player.vy + GRAVITY * gravityScale * dt);
 
     moveWithTiles(player, player.vx * dt, 0, {
       onHorizontalHit: () => {
@@ -452,6 +477,7 @@
           player.grounded = false;
           player.coyote = 0;
           player.jumpsLeft = MAX_JUMPS - 1;
+          player.dashesLeft = MAX_DASHES;
           player.doubleJumpFlash = 0.25;
           game.shake = Math.max(game.shake, 4);
           spawnSpark(tile.tx * TILE + TILE * 0.5, tile.ty * TILE + 5, "#9bfff1", 12);
@@ -461,6 +487,7 @@
         player.vy = 0;
         player.grounded = true;
         player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
         return "land";
       },
       onCeilingTile: (tile) => {
@@ -493,6 +520,21 @@
       popDust(player.x + player.w * 0.5, player.y + player.h, 8);
       playSound("jump");
     }
+  }
+
+  function tryStartDash() {
+    if (!player || player.dashesLeft <= 0 || player.dashTimer > 0 || player.grounded) return;
+    const direction = Number(input.right) - Number(input.left) || player.facing || 1;
+    player.facing = direction > 0 ? 1 : -1;
+    player.dashesLeft -= 1;
+    player.dashTimer = DASH_TIME;
+    player.vx = player.facing * DASH_SPEED;
+    player.vy = Math.min(player.vy, -72);
+    player.doubleJumpFlash = 0.35;
+    game.shake = Math.max(game.shake, 4);
+    spawnSpark(player.x + player.w * 0.5, player.y + player.h * 0.5, "#ffd35a", 18);
+    spawnText(player.x + player.w * 0.5, player.y - 10, "Dash");
+    playSound("ring");
   }
 
   function updateEnemies(dt) {
@@ -533,6 +575,7 @@
           player.vy = -440;
           player.grounded = false;
           player.jumpsLeft = MAX_JUMPS - 1;
+          player.dashesLeft = MAX_DASHES;
           player.doubleJumpFlash = 0.2;
           spawnSpark(enemy.x + enemy.w * 0.5, enemy.y + 12, "#ffd35a", 16);
           spawnText(enemy.x + enemy.w * 0.5, enemy.y - 8, "Pop");
@@ -564,6 +607,7 @@
         shard.collected = true;
         game.shards += 1;
         player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
         player.doubleJumpFlash = 0.35;
         spawnSpark(shard.x, shard.y, "#9bfff1", 14);
         spawnText(shard.x, shard.y - 14, "Air +");
@@ -582,11 +626,31 @@
         player.grounded = false;
         player.coyote = 0;
         player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
         player.doubleJumpFlash = 0.5;
         game.shake = Math.max(game.shake, 3);
         spawnSpark(ring.x, ring.y, "#9bfff1", 18);
         showGameMessage("Aero reset");
         playSound("ring");
+      }
+    }
+
+    for (const relic of world.relics) {
+      if (relic.collected) continue;
+      relic.anim += dt;
+      const relicRect = { x: relic.x - 18, y: relic.y - 18, w: 36, h: 36 };
+      if (rectsOverlap(player, relicRect)) {
+        relic.collected = true;
+        game.relics += 1;
+        game.lives = Math.min(5, game.lives + 1);
+        player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
+        player.doubleJumpFlash = 0.65;
+        game.shake = Math.max(game.shake, 5);
+        spawnSpark(relic.x, relic.y, "#ff6f61", 24);
+        spawnText(relic.x, relic.y - 16, "Relic");
+        showGameMessage("Relic boost");
+        playSound("win");
       }
     }
   }
@@ -883,6 +947,14 @@
       const pulse = 1 + Math.sin(shard.anim * 7 + shard.phase) * 0.04;
       drawAssetOrShard(shard.x, shard.y + bob, 44 * pulse);
     }
+
+    for (const relic of world.relics) {
+      if (relic.collected) continue;
+      if (relic.x < game.cameraX - 60 || relic.x > game.cameraX + view.w + 60) continue;
+      const bob = Math.sin(relic.anim * 3.2 + relic.phase) * 5;
+      const pulse = 1 + Math.sin(relic.anim * 8 + relic.phase) * 0.06;
+      drawAssetOrRelic(relic.x, relic.y + bob, 42 * pulse);
+    }
   }
 
   function drawAssetOrRing(x, y, size, alpha) {
@@ -922,6 +994,16 @@
     ctx.fillRect(x - 7, y - 18, 14, 36);
     ctx.fillStyle = "#2f6fd6";
     ctx.fillRect(x - 11, y - 8, 22, 18);
+  }
+
+  function drawAssetOrRelic(x, y, size) {
+    if (drawImportedFrame(ASSET_MAP.spriteAsset, ASSET_MAP.objectFrames.heart, x - size * 0.58, y - size * 0.58, size * 1.16, size * 1.16)) {
+      return;
+    }
+    ctx.fillStyle = "#ff6f61";
+    ctx.fillRect(x - 12, y - 10, 24, 22);
+    ctx.fillStyle = "#ffd35a";
+    ctx.fillRect(x - 5, y - 4, 10, 10);
   }
 
   function drawEnemies() {
@@ -1223,8 +1305,10 @@
   function updateHud() {
     hudCoins.textContent = `Coins ${game.collected}/${game.totalCoins}`;
     hudShards.textContent = `Shards ${game.shards}/${game.totalShards}`;
+    hudRelics.textContent = `Relics ${game.relics}/${game.totalRelics}`;
     hudLives.textContent = `Lives ${game.lives}`;
     hudAir.textContent = `Air ${player.jumpsLeft}`;
+    hudDash.textContent = `Dash ${player.dashesLeft}`;
     hudTime.textContent = `Time ${Math.floor(game.time).toString().padStart(3, "0")}`;
   }
 
@@ -1234,6 +1318,7 @@
     input.right = false;
     input.run = false;
     input.jump = false;
+    input.dashPressed = false;
   }
 
   function buildWorld() {
@@ -1342,6 +1427,13 @@
     ].forEach(([x, y]) => set(x, y, "M"));
 
     [
+      [45, 7],
+      [121, 5],
+      [176, 5],
+      [220, 7],
+    ].forEach(([x, y]) => set(x, y, "R"));
+
+    [
       [6, 13, "a"],
       [15, 13, "f"],
       [26, 14, "v"],
@@ -1382,6 +1474,7 @@
       bonusCoins,
       shards: parsed.shards,
       rings: parsed.rings,
+      relics: parsed.relics,
       enemies: parsed.enemies,
       checkpoints: parsed.checkpoints,
       plants: parsed.plants,
@@ -1397,6 +1490,7 @@
     const coins = [];
     const shards = [];
     const rings = [];
+    const relics = [];
     const enemies = [];
     const checkpoints = [];
     const plants = [];
@@ -1421,6 +1515,15 @@
             collected: false,
             anim: 0,
             phase: shards.length * 0.51,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "R") {
+          relics.push({
+            x: x * TILE + TILE * 0.5,
+            y: y * TILE + TILE * 0.5,
+            collected: false,
+            anim: 0,
+            phase: relics.length * 0.71,
           });
           tiles[y][x] = ".";
         } else if (ch === "O") {
@@ -1481,7 +1584,7 @@
       }
     }
 
-    return { coins, shards, rings, enemies, checkpoints, plants, goal };
+    return { coins, shards, rings, relics, enemies, checkpoints, plants, goal };
   }
 
   function createTileAtlas() {

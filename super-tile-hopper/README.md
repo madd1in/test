@@ -9,7 +9,7 @@ Oeffne `index.html` direkt im Browser.
 ## Steuerung
 
 - Links/Rechts oder A/D: laufen
-- Shift oder K: sprinten
+- Shift oder K: sprinten; in der Luft antippen fuer Air-Dash
 - Space, Pfeil hoch oder W: springen, in der Luft zweimal nachsetzen fuer Triple-Jump
 - P oder Escape: Pause
 - R: Neustart
@@ -29,7 +29,9 @@ Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons.
 - Tile-Atlas fuer Gras, Erde, Bricks, Bonus-Blocks, Plattformen und Sprungfedern
 - Handgebautes Tilemap-Level mit Luecken, Hoehenwechseln, Coins, Sky-Shards, Aero-Ringen, Gegnern, Checkpoint und Ziel
 - Parallax-Hintergrund mit Sonne, Wolken, Bergen und Huegeln
-- Platformer-Physik mit Coyote-Time, Jump-Buffer, variablem Sprung, Triple-Jump, Gegner-Stomp, Respawn und lokalem Sound
+- Platformer-Physik mit Coyote-Time, Jump-Buffer, variablem Sprung, Triple-Jump, Air-Dash, Gegner-Stomp, Respawn und lokalem Sound
+- Relic-Pickups als riskantere Nebenroute; jedes Relic gibt einen kurzen Boost und ein Bonusleben
+- Aero-Ringe, Sky-Shards und Stomps laden jetzt Air-Jumps und Dash wieder auf
 
 ## Assets neu bauen
 
