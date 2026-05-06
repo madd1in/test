@@ -20,11 +20,7 @@
   const startButton = document.querySelector("#startButton");
   const restartButton = document.querySelector("#restartButton");
   const pauseButton = document.querySelector("#pauseButton");
-  const assetButton = document.querySelector("#assetButton");
   const audioButton = document.querySelector("#audioButton");
-  const overlayAssetButton = document.querySelector("#overlayAssetButton");
-  const assetPanel = document.querySelector("#assetPanel");
-  const closeAssetButton = document.querySelector("#closeAssetButton");
   const hudHoops = document.querySelector("#hudHoops");
   const hudScore = document.querySelector("#hudScore");
   const hudTime = document.querySelector("#hudTime");
@@ -489,10 +485,7 @@
   startButton.addEventListener("click", resetGame);
   restartButton.addEventListener("click", resetGame);
   pauseButton.addEventListener("click", togglePause);
-  assetButton.addEventListener("click", toggleAssetPanel);
   audioButton.addEventListener("click", toggleAudio);
-  overlayAssetButton.addEventListener("click", toggleAssetPanel);
-  closeAssetButton.addEventListener("click", toggleAssetPanel);
 
   function togglePause() {
     if (state.mode !== "playing") return;
@@ -502,12 +495,6 @@
     } else {
       overlay.classList.remove("overlay--visible");
     }
-  }
-
-  function toggleAssetPanel() {
-    const open = !assetPanel.classList.contains("is-open");
-    assetPanel.classList.toggle("is-open", open);
-    assetPanel.setAttribute("aria-hidden", open ? "false" : "true");
   }
 
   function frame(name) {
