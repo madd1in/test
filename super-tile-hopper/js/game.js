@@ -23,6 +23,8 @@
   const STOMP_COMBO_WINDOW = 1.1;
   const COYOTE_TIME = 0.105;
   const JUMP_BUFFER = 0.13;
+  const DASH_BUFFER = 0.18;
+  const TOUCH_ZONE_DEADZONE = 16;
   const GRAPHIC_PATHS = {
     bgFar: "assets/gfx/bg-far.svg",
     bgMid: "assets/gfx/bg-mid.svg",
@@ -132,6 +134,14 @@
     jumpPressed: false,
     dashPressed: false,
   };
+  const keyHolds = { left: false, right: false, run: false, jump: false };
+  const touchHolds = {
+    left: new Set(),
+    right: new Set(),
+    run: new Set(),
+    jump: new Set(),
+  };
+  const screenPointers = new Map();
 
   const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S"]);
   const decorTiles = new Set(["a", "f", "v", "x"]);
@@ -380,16 +390,18 @@
         input.jumpPressed = true;
       }
       if (action === "run" && !input.run && !event.repeat) {
-        input.dashPressed = true;
+        bufferDash();
       }
-      input[action] = true;
+      keyHolds[action] = true;
+      syncInputAction(action);
     });
 
     window.addEventListener("keyup", (event) => {
       const action = keyMap[event.code];
       if (!action) return;
       event.preventDefault();
-      input[action] = false;
+      keyHolds[action] = false;
+      syncInputAction(action);
       if (action === "jump" && player && player.vy < -260) {
         player.vy *= 0.52;
       }
@@ -399,27 +411,26 @@
       const action = button.dataset.action;
       const press = (event) => {
         event.preventDefault();
-        button.setPointerCapture?.(event.pointerId);
+        try {
+          button.setPointerCapture?.(event.pointerId);
+        } catch {}
         button.classList.add("is-active");
-        if (action === "jump" && !input.jump) input.jumpPressed = true;
-        if (action === "run" && !input.run) input.dashPressed = true;
-        input[action] = true;
+        pressTouchAction(action, event.pointerId);
         unlockAudio();
       };
       const release = (event) => {
         event.preventDefault();
-        button.classList.remove("is-active");
-        input[action] = false;
-        if (action === "jump" && player && player.vy < -260) player.vy *= 0.58;
+        releaseTouchAction(action, event.pointerId);
       };
       button.addEventListener("pointerdown", press);
       button.addEventListener("pointerup", release);
       button.addEventListener("pointercancel", release);
-      button.addEventListener("lostpointercapture", () => {
-        button.classList.remove("is-active");
-        input[action] = false;
+      button.addEventListener("lostpointercapture", (event) => {
+        releaseTouchAction(action, event.pointerId, false);
       });
     });
+
+    wireScreenTouchZones();
 
     pauseButton.addEventListener("click", () => {
       unlockAudio();
@@ -434,6 +445,113 @@
       unlockAudio();
       newRun(true);
     });
+  }
+
+  function wireScreenTouchZones() {
+    gameShell.addEventListener("contextmenu", (event) => event.preventDefault());
+    gameShell.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+      if (event.target.closest?.(".hud, .overlay, .touch-pad")) return;
+      event.preventDefault();
+      try {
+        gameShell.setPointerCapture?.(event.pointerId);
+      } catch {}
+      unlockAudio();
+
+      const rect = gameShell.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      if (localX < rect.width * 0.52) {
+        const action = localX < rect.width * 0.26 ? "left" : "right";
+        screenPointers.set(event.pointerId, {
+          type: "move",
+          action,
+          startX: event.clientX,
+          startY: event.clientY,
+        });
+        pressTouchAction(action, `screen-${event.pointerId}`);
+      } else {
+        screenPointers.set(event.pointerId, {
+          type: "action",
+          startX: event.clientX,
+          startY: event.clientY,
+          didDash: false,
+        });
+        pressTouchAction("jump", `screen-${event.pointerId}`);
+        if (localY > rect.height * 0.64) bufferDash();
+      }
+    });
+
+    gameShell.addEventListener("pointermove", (event) => {
+      const pointer = screenPointers.get(event.pointerId);
+      if (!pointer) return;
+      event.preventDefault();
+      if (pointer.type === "move") {
+        const dx = event.clientX - pointer.startX;
+        const nextAction = Math.abs(dx) < TOUCH_ZONE_DEADZONE ? pointer.action : dx < 0 ? "left" : "right";
+        if (nextAction !== pointer.action) {
+          releaseTouchAction(pointer.action, `screen-${event.pointerId}`, false);
+          pointer.action = nextAction;
+          pressTouchAction(pointer.action, `screen-${event.pointerId}`, false);
+        }
+      } else {
+        const dx = event.clientX - pointer.startX;
+        const dy = event.clientY - pointer.startY;
+        if (!pointer.didDash && Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+          pointer.didDash = true;
+          pressTouchAction("run", `screen-dash-${event.pointerId}`);
+          bufferDash();
+          window.setTimeout(() => releaseTouchAction("run", `screen-dash-${event.pointerId}`, false), 90);
+        }
+      }
+    });
+
+    const releaseScreenPointer = (event) => {
+      const pointer = screenPointers.get(event.pointerId);
+      if (!pointer) return;
+      event.preventDefault();
+      if (pointer.type === "move") {
+        releaseTouchAction(pointer.action, `screen-${event.pointerId}`, false);
+      } else {
+        releaseTouchAction("jump", `screen-${event.pointerId}`);
+        releaseTouchAction("run", `screen-dash-${event.pointerId}`, false);
+      }
+      screenPointers.delete(event.pointerId);
+    };
+    gameShell.addEventListener("pointerup", releaseScreenPointer);
+    gameShell.addEventListener("pointercancel", releaseScreenPointer);
+    gameShell.addEventListener("lostpointercapture", releaseScreenPointer);
+  }
+
+  function pressTouchAction(action, pointerId, edge = true) {
+    const wasHeld = input[action];
+    touchHolds[action].add(pointerId);
+    syncInputAction(action);
+    if (edge && action === "jump" && !wasHeld) input.jumpPressed = true;
+    if (edge && action === "run" && !wasHeld) bufferDash();
+    syncTouchButtonState(action);
+  }
+
+  function releaseTouchAction(action, pointerId, cutJump = true) {
+    touchHolds[action].delete(pointerId);
+    syncInputAction(action);
+    if (cutJump && action === "jump" && player && player.vy < -260) player.vy *= 0.58;
+    syncTouchButtonState(action);
+  }
+
+  function syncInputAction(action) {
+    input[action] = Boolean(keyHolds[action] || touchHolds[action].size);
+  }
+
+  function syncTouchButtonState(action) {
+    document.querySelectorAll(`[data-action="${action}"]`).forEach((button) => {
+      button.classList.toggle("is-active", touchHolds[action].size > 0);
+    });
+  }
+
+  function bufferDash() {
+    input.dashPressed = true;
+    if (player) player.dashBuffer = DASH_BUFFER;
   }
 
   function toggleFullscreen() {
@@ -496,6 +614,7 @@
       jumpsLeft: MAX_JUMPS - 1,
       dashesLeft: MAX_DASHES,
       dashTimer: 0,
+      dashBuffer: 0,
       invulnerable: 0,
       anim: 0,
       hurtPulse: 0,
@@ -524,12 +643,14 @@
       input.jumpPressed = false;
     }
     if (input.dashPressed) {
-      tryStartDash();
+      player.dashBuffer = DASH_BUFFER;
       input.dashPressed = false;
     }
+    player.dashBuffer = Math.max(0, player.dashBuffer - dt);
 
     updateMovingPlatforms(dt);
     updatePlayer(dt);
+    if (player.dashBuffer > 0 && tryStartDash()) player.dashBuffer = 0;
     updateEnemies(dt);
     updateCoins(dt);
     updateShardsAndRings(dt);
@@ -675,7 +796,7 @@
   }
 
   function tryStartDash() {
-    if (!player || player.dashesLeft <= 0 || player.dashTimer > 0 || player.grounded) return;
+    if (!player || player.dashesLeft <= 0 || player.dashTimer > 0 || player.grounded) return false;
     const direction = Number(input.right) - Number(input.left) || player.facing || 1;
     player.facing = direction > 0 ? 1 : -1;
     player.dashesLeft -= 1;
@@ -687,6 +808,7 @@
     spawnSpark(player.x + player.w * 0.5, player.y + player.h * 0.5, "#ffd35a", 18);
     spawnText(player.x + player.w * 0.5, player.y - 10, "Dash");
     playSound("ring");
+    return true;
   }
 
   function updateEnemies(dt) {
@@ -1570,6 +1692,12 @@
     input.run = false;
     input.jump = false;
     input.dashPressed = false;
+    Object.keys(keyHolds).forEach((action) => {
+      keyHolds[action] = false;
+    });
+    Object.values(touchHolds).forEach((held) => held.clear());
+    screenPointers.clear();
+    document.querySelectorAll("[data-action]").forEach((button) => button.classList.remove("is-active"));
   }
 
   function buildWorld() {

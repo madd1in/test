@@ -15,7 +15,7 @@ Oeffne `index.html` direkt im Browser.
 - R: Neustart
 - Vollbild-Button im HUD: Fullscreen umschalten
 
-Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons fuer links/rechts, Dash/Sprint und Sprung.
+Auf Touch-Geraeten erscheinen groessere On-Screen-Buttons fuer links/rechts, Dash/Sprint und Sprung. Zusaetzlich reagiert die linke Bildschirmhaelfte als Bewegungszone und die rechte Bildschirmhaelfte als Sprung-/Dash-Zone.
 
 ## Inhalt
 
@@ -38,6 +38,7 @@ Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons fuer links/rechts, Dash/S
 - Star-Rush-Pickups geben kurzzeitig mehr Tempo und Schutz gegen Gegnerkontakt
 - Bewegliche Lift-Plattformen oeffnen neue Timing-Routen ueber groessere Luecken
 - Stomp-Combo-Boni belohnen mehrere Gegner-Treffer kurz hintereinander mit Bonus-Coins
+- Responsivere Mobile-Steuerung mit Multi-Touch-Tracking, Dash-Buffer, groesseren Buttons und Screen-Tap-Zonen
 
 ## Assets neu bauen
 
