@@ -45,16 +45,18 @@
     mascotAtlasRaw: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
     cleanGameplayAtlas: "assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png",
     playfieldTileset: "assets/imagen-hd/gfx/hd-playfield-tileset-imagen.png",
+    themeHazardAtlas: "assets/imagen-hd/gfx/hd-theme-hazard-atlas-imagen.png",
     repeatBackground: "assets/imagen-hd/gfx/hd-repeatable-background-imagen.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
   const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
-  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas", "playfieldTileset"]);
+  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas", "playfieldTileset", "themeHazardAtlas"]);
   const ASSET_MAP = {
     tileAsset: "mascotAtlas",
     spriteAsset: "mascotAtlas",
     cleanAsset: "cleanGameplayAtlas",
     playfieldAsset: "playfieldTileset",
+    themeAsset: "themeHazardAtlas",
     backgroundAsset: "repeatBackground",
     backgroundFrame: null,
     backgroundRepeat: "mirror-x",
@@ -119,6 +121,20 @@
       I: "pipeTop",
       J: "pipeShaft",
     },
+    themeFrames: {
+      meadowBlock: [53, 65, 406, 381],
+      cloudBlock: [557, 136, 421, 240],
+      pipeTop: [1100, 126, 360, 260],
+      pipeShaft: [1630, 51, 323, 410],
+      piranhaTall: [118, 530, 276, 476],
+      piranhaBite: [604, 573, 328, 390],
+      piranhaClosed: [1093, 595, 373, 345],
+      blueBeetle: [1603, 603, 377, 330],
+      caveBlock: [61, 1075, 389, 410],
+      palaceBlock: [569, 1075, 397, 410],
+      meadowBg: [1084, 1065, 391, 430],
+      caveBg: [1597, 1065, 389, 430],
+    },
     objectFrames: {
       gem: [324, 484, 106, 152],
       portal: [1126, 484, 116, 152],
@@ -144,12 +160,11 @@
     bump: "assets/audio/bump.wav",
     checkpoint: "assets/imported/audio/workspace-gate.wav",
     win: "assets/imported/audio/workspace-gate.wav",
-    bgm: "assets/downloads/audio/sky-garden-relay.mp3",
   };
   const LEVELS = [
-    { name: "Meadow Gate" },
-    { name: "Cloud Lift Climb" },
-    { name: "Flag Rush Gauntlet" },
+    { name: "Meadow Gate", theme: "meadow", bgm: "assets/downloads/audio/pixel-quest-parade.mp3" },
+    { name: "Cloud Lift Climb", theme: "sky", bgm: "assets/downloads/audio/skygarden-march.mp3" },
+    { name: "Flag Rush Gauntlet", theme: "cave", bgm: "assets/downloads/audio/pixel-boss-rush.mp3" },
   ];
 
   const canvas = document.getElementById("game");
@@ -173,7 +188,7 @@
   const hudPower = document.getElementById("hudPower");
   const hudTime = document.getElementById("hudTime");
 
-  const view = { w: 960, h: 540, dpr: 1 };
+  const view = { w: 960, h: 540, cssW: 960, cssH: 540, dpr: 1, zoom: 1 };
   const input = {
     left: false,
     right: false,
@@ -211,6 +226,7 @@
   let imageAssets = {};
   let audioAssets = {};
   let bgmTrack = null;
+  let bgmTracks = [];
   let audioContext = null;
   let world;
   let game;
@@ -263,15 +279,20 @@
       audioAssets[key] = audio;
     }
 
-    bgmTrack = new Audio(AUDIO_PATHS.bgm);
-    bgmTrack.preload = "auto";
-    bgmTrack.loop = true;
-    bgmTrack.volume = 0.2;
+    bgmTracks = LEVELS.map((level) => {
+      const audio = new Audio(level.bgm);
+      audio.preload = "auto";
+      audio.loop = true;
+      audio.volume = 0.22;
+      return audio;
+    });
+    bgmTrack = bgmTracks[0] || null;
   }
 
   function atlasFramesForKey(key) {
     if (key === ASSET_MAP.cleanAsset) return Object.values(ASSET_MAP.cleanFrames);
     if (key === ASSET_MAP.playfieldAsset) return Object.values(ASSET_MAP.playfieldFrames);
+    if (key === ASSET_MAP.themeAsset) return Object.values(ASSET_MAP.themeFrames);
     if (key !== ASSET_MAP.tileAsset && key !== ASSET_MAP.spriteAsset) return [];
     return [
       ...Object.values(ASSET_MAP.tileFrames),
@@ -415,11 +436,14 @@
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
     view.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    view.w = Math.max(320, Math.floor(rect.width));
-    view.h = Math.max(240, Math.floor(rect.height));
-    canvas.width = Math.floor(view.w * view.dpr);
-    canvas.height = Math.floor(view.h * view.dpr);
-    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    view.cssW = Math.max(320, Math.floor(rect.width));
+    view.cssH = Math.max(240, Math.floor(rect.height));
+    view.zoom = view.cssW >= 900 && view.cssH >= 560 ? 1.14 : view.cssW >= 700 ? 1.08 : 1;
+    view.w = Math.max(320, Math.floor(view.cssW / view.zoom));
+    view.h = Math.max(240, Math.floor(view.cssH / view.zoom));
+    canvas.width = Math.floor(view.cssW * view.dpr);
+    canvas.height = Math.floor(view.cssH * view.dpr);
+    ctx.setTransform(view.dpr * view.zoom, 0, 0, view.dpr * view.zoom, 0, 0);
     ctx.imageSmoothingEnabled = false;
   }
 
@@ -645,6 +669,7 @@
       message: "",
       messageTimer: 0,
     };
+    setBgmForLevel(levelIndex);
     clearInputEdges();
     updateHud();
     if (startPlaying) {
@@ -1122,7 +1147,7 @@
 
   function render() {
     ctx.save();
-    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    ctx.setTransform(view.dpr * view.zoom, 0, 0, view.dpr * view.zoom, 0, 0);
     ctx.clearRect(0, 0, view.w, view.h);
     drawBackground();
 
@@ -1149,7 +1174,8 @@
   function drawBackground() {
     const cx = game ? game.cameraX : 0;
     if (drawOriginalBackgroundMap(cx)) {
-      drawAssetLayer("importCloudBank", cx * 0.12 + 90, 44, 116, 0.18);
+      drawLevelThemeOverlay(cx);
+      if (world?.theme !== "cave") drawAssetLayer("importCloudBank", cx * 0.12 + 90, 44, 116, 0.18);
       return;
     }
     const gradient = ctx.createLinearGradient(0, 0, 0, view.h);
@@ -1169,6 +1195,53 @@
     drawMountainLayer(cx * 0.22 + 170, view.h - 168, "#67b978", "#4ea465", 0.82);
     drawHillLayer(cx * 0.38, view.h - 92);
     drawAssetLayer("bgNear", cx * 0.48, view.h - 134, 140, 0.94);
+    drawLevelThemeOverlay(cx);
+  }
+
+  function drawLevelThemeOverlay(offset) {
+    const theme = world?.theme || "meadow";
+    ctx.save();
+    if (theme === "sky") {
+      const glow = ctx.createLinearGradient(0, 0, 0, view.h);
+      glow.addColorStop(0, "rgba(210, 252, 255, 0.2)");
+      glow.addColorStop(0.58, "rgba(118, 224, 255, 0.12)");
+      glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, view.w, view.h);
+      drawThemeCloudBand(offset * 0.18, view.h * 0.36, 0.34);
+    } else if (theme === "cave") {
+      const shade = ctx.createLinearGradient(0, 0, 0, view.h);
+      shade.addColorStop(0, "rgba(48, 18, 10, 0.24)");
+      shade.addColorStop(0.45, "rgba(255, 125, 42, 0.1)");
+      shade.addColorStop(1, "rgba(42, 14, 7, 0.28)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, view.w, view.h);
+      const frame = ASSET_MAP.themeFrames.caveBg;
+      const size = view.h * 0.42;
+      drawImportedFrame(ASSET_MAP.themeAsset, frame, view.w - size * 0.88, view.h - size * 0.82, size, size, false, 0.34);
+    } else {
+      const warm = ctx.createLinearGradient(0, 0, 0, view.h);
+      warm.addColorStop(0, "rgba(255, 246, 185, 0.1)");
+      warm.addColorStop(1, "rgba(91, 214, 130, 0.08)");
+      ctx.fillStyle = warm;
+      ctx.fillRect(0, 0, view.w, view.h);
+    }
+    ctx.restore();
+  }
+
+  function drawThemeCloudBand(offset, y, alpha) {
+    const image = imageAssets[ASSET_MAP.themeAsset];
+    const frame = ASSET_MAP.themeFrames.cloudBlock;
+    if (!isImageReady(image) || !frame) return;
+    const tileW = 188;
+    const tileH = 54;
+    const start = -((offset % tileW) + tileW) % tileW;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    for (let x = start - tileW; x < view.w + tileW; x += tileW) {
+      ctx.drawImage(image, frame[0], frame[1], frame[2], frame[3], x, y + Math.sin((x + offset) * 0.015) * 6, tileW, tileH);
+    }
+    ctx.restore();
   }
 
   function drawOriginalBackgroundMap(offset) {
@@ -1516,12 +1589,13 @@
   function drawMovingPlatforms() {
     for (const platform of world.platforms) {
       if (platform.x + platform.w < game.cameraX - 90 || platform.x > game.cameraX + view.w + 90) continue;
+      const platformStyle = movingPlatformStyle();
       ctx.save();
       ctx.fillStyle = "rgba(72, 38, 0, 0.2)";
       ctx.fillRect(Math.round(platform.x + 4), Math.round(platform.y + platform.h + 5), Math.round(platform.w - 8), 5);
       for (let x = 0; x < platform.w; x += TILE) {
         const w = Math.min(TILE, platform.w - x);
-        if (!drawImportedFrame(ASSET_MAP.tileAsset, ASSET_MAP.tileFrames.P, platform.x + x, platform.y, w, platform.h + 10)) {
+        if (!drawImportedFrame(platformStyle.asset, platformStyle.frame, platform.x + x, platform.y + platformStyle.yOffset, w, platformStyle.h)) {
           ctx.fillStyle = "#9c5c2a";
           ctx.fillRect(platform.x + x, platform.y, w, platform.h);
           ctx.fillStyle = "#ffd35a";
@@ -1533,6 +1607,16 @@
       ctx.fillRect(Math.round(platform.x + platform.w - 13), Math.round(platform.y + 4), 5, 5);
       ctx.restore();
     }
+  }
+
+  function movingPlatformStyle() {
+    if (world.theme === "sky") {
+      return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.cloudBlock, yOffset: -7, h: 30 };
+    }
+    if (world.theme === "cave") {
+      return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.caveBlock, yOffset: -1, h: 24 };
+    }
+    return { asset: ASSET_MAP.tileAsset, frame: ASSET_MAP.tileFrames.P, yOffset: 0, h: 28 };
   }
 
   function drawAssetOrRing(x, y, size, alpha) {
@@ -1615,10 +1699,19 @@
     for (const piranha of world.piranhas) {
       if (piranha.x < game.cameraX - 90 || piranha.x > game.cameraX + view.w + 90) continue;
       const rise = piranhaRise(piranha);
-      const frame = rise > 0.48 ? ASSET_MAP.playfieldFrames.piranhaUp : ASSET_MAP.playfieldFrames.piranhaDown;
-      const y = piranha.pipeY - 54 * rise - 38;
+      const bite = Math.floor((piranha.anim + piranha.phase) * 8) % 2 === 0;
+      const frame =
+        rise < 0.18
+          ? ASSET_MAP.themeFrames.piranhaClosed
+          : rise < 0.62
+            ? ASSET_MAP.themeFrames.piranhaBite
+            : bite
+              ? ASSET_MAP.themeFrames.piranhaTall
+              : ASSET_MAP.themeFrames.piranhaBite;
+      const h = frame === ASSET_MAP.themeFrames.piranhaTall ? 126 : 104;
+      const y = piranha.pipeY + 62 - h;
       const alpha = piranha.stunned > 0 ? 0.35 + Math.sin(game.time * 18) * 0.14 : 1;
-      if (drawImportedFrame(ASSET_MAP.playfieldAsset, frame, piranha.x - 7, y, 78, 102, false, alpha)) {
+      if (drawImportedFrame(ASSET_MAP.themeAsset, frame, piranha.x - 8, y, 80, h, false, alpha)) {
         continue;
       }
       const hitbox = piranhaHitbox(piranha);
@@ -1635,6 +1728,12 @@
       if (enemy.x < game.cameraX - 80 || enemy.x > game.cameraX + view.w + 80) continue;
       const frame = Math.floor(enemy.anim * 8) % 2 === 0 ? "snail0" : "snail1";
       const bob = Math.sin(enemy.anim * 13) * 1.4;
+      if (
+        world.theme === "sky" &&
+        drawImportedFrame(ASSET_MAP.themeAsset, ASSET_MAP.themeFrames.blueBeetle, enemy.x - 14, enemy.y - 25 + bob, 64, 54, enemy.vx > 0)
+      ) {
+        continue;
+      }
       if (drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.beetle, enemy.x - 13, enemy.y - 23 + bob, 62, 50, enemy.vx > 0)) {
         continue;
       }
@@ -1725,6 +1824,17 @@
   }
 
   function drawImportedTile(ch, x, y) {
+    const themedTile = themeTileFrame(ch);
+    if (themedTile) {
+      const tx = Math.round(x / TILE);
+      const ty = Math.round(y / TILE);
+      const pipeSpan = (ch === "I" || ch === "J") && getTile(tx + 1, ty) === ch ? TILE * 2 : TILE;
+      const yOffset = ch === "W" ? -5 : ch === "I" ? -4 : 0;
+      const height = ch === "W" ? TILE + 8 : ch === "I" ? TILE + 7 : TILE;
+      if (drawImportedFrame(themedTile.asset, themedTile.frame, x, y + yOffset, pipeSpan, height, false, themedTile.alpha ?? 1)) {
+        return;
+      }
+    }
     const playfieldKey = ASSET_MAP.playfieldTileFrames[ch];
     const playfieldFrame = playfieldKey ? ASSET_MAP.playfieldFrames[playfieldKey] : null;
     if (playfieldFrame) {
@@ -1753,6 +1863,23 @@
       ctx.fillRect(x + 12, y + 9, 8, 12);
     }
     ctx.restore();
+  }
+
+  function themeTileFrame(ch) {
+    const theme = world?.theme || "meadow";
+    if (ch === "W") return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.cloudBlock };
+    if (ch === "I") return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.pipeTop };
+    if (ch === "J") return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.pipeShaft, alpha: 0.98 };
+    if (theme === "sky" && (ch === "G" || ch === "D" || ch === "B" || ch === "U")) {
+      return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.palaceBlock, alpha: ch === "D" ? 0.94 : 1 };
+    }
+    if (theme === "cave" && (ch === "G" || ch === "D" || ch === "B" || ch === "U")) {
+      return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.caveBlock, alpha: ch === "D" ? 0.96 : 1 };
+    }
+    if (theme === "meadow" && ch === "G") {
+      return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.meadowBlock };
+    }
+    return null;
   }
 
   function drawSprite(name, x, y, w, h, flip) {
@@ -1986,6 +2113,7 @@
     return {
       levelIndex,
       levelName: level.name,
+      theme: level.theme || "meadow",
       tiles,
       coins: parsed.coins,
       bonusCoins,
@@ -2168,9 +2296,8 @@
     set(226, 11, "F");
 
     const platforms = [
-      movingPlatform(44, 12, 4, 66, 0, 1.15, 0.1),
-      movingPlatform(92, 10, 3, 0, 54, 1.35, 1.4),
-      movingPlatform(200, 9, 4, 72, 0, 1.05, 2.1),
+      movingPlatform(44, 12, 4, 42, 0, 0.95, 0.1),
+      movingPlatform(200, 9, 4, 54, 0, 0.9, 2.1),
     ];
     return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
   }
@@ -2323,10 +2450,9 @@
     set(226, 11, "F");
 
     const platforms = [
-      movingPlatform(38, 11, 4, 54, 0, 1.1, 0.2),
-      movingPlatform(86, 10, 3, 0, 70, 1.45, 1.2),
-      movingPlatform(112, 9, 4, 70, 0, 1.18, 2.1),
-      movingPlatform(183, 10, 4, 0, 62, 1.3, 2.8),
+      movingPlatform(40, 11, 4, 46, 0, 0.95, 0.2),
+      movingPlatform(88, 10, 4, 0, 58, 1.1, 1.2),
+      movingPlatform(176, 10, 4, 0, 50, 1.05, 2.8),
     ];
     return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
   }
@@ -2449,9 +2575,8 @@
     set(226, 11, "F");
 
     const platforms = [
-      movingPlatform(68, 11, 4, 78, 0, 1.3, 0.5),
-      movingPlatform(126, 9, 3, 0, 64, 1.5, 1.7),
-      movingPlatform(187, 9, 4, 72, 0, 1.24, 2.4),
+      movingPlatform(68, 11, 4, 52, 0, 1.05, 0.5),
+      movingPlatform(187, 9, 4, 48, 0, 1.0, 2.4),
     ];
     return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
   }
@@ -2959,6 +3084,16 @@
       if (AudioCtx) audioContext = new AudioCtx();
     }
     audioContext?.resume?.();
+  }
+
+  function setBgmForLevel(levelIndex) {
+    const next = bgmTracks[levelIndex] || bgmTracks[0] || bgmTrack;
+    if (!next || next === bgmTrack) return;
+    const shouldResume = bgmTrack && !bgmTrack.paused && game?.mode === "playing";
+    bgmTrack?.pause();
+    if (bgmTrack) bgmTrack.currentTime = 0;
+    bgmTrack = next;
+    if (shouldResume) startBgm();
   }
 
   function startBgm() {

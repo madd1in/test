@@ -1,6 +1,6 @@
 {
-  "version": 10,
-  "description": "Super Tile Hopper asset map. Version 10 adds a transparent Imagen playfield tileset with pipes, piranhas, cloud tiles, and animated flag frames.",
+  "version": 11,
+  "description": "Super Tile Hopper asset map. Version 11 adds a cleaner Imagen theme/hazard atlas plus per-level BGM tracks.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -70,6 +70,27 @@
         "piranhaDown": [577, 1120, 381, 320],
         "flagA": [1115, 1089, 330, 382],
         "flagB": [1627, 1087, 330, 385]
+      }
+    },
+    "themeHazardAtlas": {
+      "path": "assets/imagen-hd/gfx/hd-theme-hazard-atlas-imagen.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0729913352a074980169fb4a9a11648191b0be7f9f995b8c9b.png",
+      "frameSize": [2048, 1536],
+      "frameKey": true,
+      "role": "activeThemeHazards",
+      "frames": {
+        "meadowBlock": [53, 65, 406, 381],
+        "cloudBlock": [557, 136, 421, 240],
+        "pipeTop": [1100, 126, 360, 260],
+        "pipeShaft": [1630, 51, 323, 410],
+        "piranhaTall": [118, 530, 276, 476],
+        "piranhaBite": [604, 573, 328, 390],
+        "piranhaClosed": [1093, 595, 373, 345],
+        "blueBeetle": [1603, 603, 377, 330],
+        "caveBlock": [61, 1075, 389, 410],
+        "palaceBlock": [569, 1075, 397, 410],
+        "meadowBg": [1084, 1065, 391, 430],
+        "caveBg": [1597, 1065, 389, 430]
       }
     },
     "repeatableImagenBackground": {
@@ -240,6 +261,18 @@
     "bgm": {
       "path": "assets/downloads/audio/sky-garden-relay.mp3",
       "source": "C:/Users/User/Downloads/Sky Garden Relay (1).mp3"
+    },
+    "meadowBgm": {
+      "path": "assets/downloads/audio/pixel-quest-parade.mp3",
+      "source": "C:/Users/User/Downloads/Pixel Quest Parade.mp3"
+    },
+    "skyBgm": {
+      "path": "assets/downloads/audio/skygarden-march.mp3",
+      "source": "C:/Users/User/Downloads/Skygarden March.mp3"
+    },
+    "caveBgm": {
+      "path": "assets/downloads/audio/pixel-boss-rush.mp3",
+      "source": "C:/Users/User/Downloads/Pixel Boss Rush.mp3"
     },
     "workspaceBgm": {
       "path": "assets/imported/audio/workspace-theme.wav",
