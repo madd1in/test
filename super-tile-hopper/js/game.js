@@ -43,6 +43,7 @@
     hdAtlasRaw: "assets/imagen-hd/gfx/hd-imagen-atlas.png",
     mascotAtlas: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
     mascotAtlasRaw: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
+    repeatBackground: "assets/imagen-hd/gfx/hd-repeatable-background-imagen.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
   const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
@@ -50,8 +51,9 @@
   const ASSET_MAP = {
     tileAsset: "mascotAtlas",
     spriteAsset: "mascotAtlas",
-    backgroundAsset: "mascotAtlasRaw",
-    backgroundFrame: [14, 656, 1226, 574],
+    backgroundAsset: "repeatBackground",
+    backgroundFrame: null,
+    backgroundRepeat: "mirror-x",
     tileFrames: {
       G: [14, 96, 112, 126],
       D: [127, 96, 108, 126],
@@ -1070,18 +1072,36 @@
       const scale = view.h / sh;
       const w = sw * scale;
       const start = -((offset * 0.14) % w + w) % w;
-      for (let x = start - w; x < view.w + w; x += w) {
-        ctx.drawImage(image, sx, sy, sw, sh, Math.round(x), 0, Math.ceil(w), view.h);
-      }
+      drawBackgroundTiles(image, start, w, view.h, ASSET_MAP.backgroundRepeat, [sx, sy, sw, sh]);
       return true;
     }
     const scale = view.h / imageHeight(image);
     const w = imageWidth(image) * scale;
     const start = -((offset * 0.16) % w + w) % w;
-    for (let x = start - w; x < view.w + w; x += w) {
-      ctx.drawImage(image, Math.round(x), 0, Math.ceil(w), view.h);
-    }
+    drawBackgroundTiles(image, start, w, view.h, ASSET_MAP.backgroundRepeat);
     return true;
+  }
+
+  function drawBackgroundTiles(image, start, w, h, repeatMode, frame = null) {
+    let index = -1;
+    for (let x = start - w; x < view.w + w; x += w) {
+      const drawX = Math.round(x);
+      const drawW = Math.ceil(w);
+      const flip = repeatMode === "mirror-x" && Math.abs(index % 2) === 1;
+      ctx.save();
+      if (flip) {
+        ctx.translate(drawX + drawW, 0);
+        ctx.scale(-1, 1);
+        if (frame) ctx.drawImage(image, frame[0], frame[1], frame[2], frame[3], 0, 0, drawW, h);
+        else ctx.drawImage(image, 0, 0, drawW, h);
+      } else if (frame) {
+        ctx.drawImage(image, frame[0], frame[1], frame[2], frame[3], drawX, 0, drawW, h);
+      } else {
+        ctx.drawImage(image, drawX, 0, drawW, h);
+      }
+      ctx.restore();
+      index += 1;
+    }
   }
 
   function drawAssetLayer(name, offset, y, h, alpha) {

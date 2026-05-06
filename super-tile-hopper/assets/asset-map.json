@@ -1,6 +1,6 @@
 {
-  "version": 6,
-  "description": "Super Tile Hopper asset map. Version 6 keeps the cleaner original mascot-platformer Imagen atlas active and exposes the star frame used by the Star-Rush powerup.",
+  "version": 7,
+  "description": "Super Tile Hopper asset map. Version 7 adds a dedicated Imagen background strip that repeats horizontally with mirror-x wrapping for seamless parallax.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -37,6 +37,13 @@
         "coin2": [214, 484, 106, 152],
         "backgroundBand": [14, 656, 1226, 574]
       }
+    },
+    "repeatableImagenBackground": {
+      "path": "assets/imagen-hd/gfx/hd-repeatable-background-imagen.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0f51da78b6a6c1070169fb0eae008881918534ad4e6d590f7f.png",
+      "frameSize": [1774, 887],
+      "repeat": "mirror-x",
+      "role": "activeBackground"
     },
     "hdImagenAtlas": {
       "path": "assets/imagen-hd/gfx/hd-imagen-atlas.png",
