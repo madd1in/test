@@ -26,6 +26,7 @@ Auf Touch-Geraeten erscheinen groessere On-Screen-Buttons fuer links/rechts, Das
 - Neues Imagen-HD-Atlasblatt unter `assets/imagen-hd/gfx/hd-imagen-atlas.png`
 - Neues sauberer gerastertes Mascot-Platformer-Imagen-Atlasblatt unter `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png`
 - Neuer horizontal wiederholbarer Imagen-Hintergrund unter `assets/imagen-hd/gfx/hd-repeatable-background-imagen.png`
+- Vier Parallax-Layer aus demselben Imagen-Background: Sky/Clouds, Far Hills, Near Hills und Foreground Foliage
 - Neue Original-PNG-Maps fuer Tileset, Sprite-Sheet und Background
 - Importierte Imagen-Grafikmaps bleiben als Fallback im Projekt
 - Importierte Workspace-Audioquellen fuer BGM, Pickup, Gate, Hit und Hurt
@@ -60,4 +61,4 @@ Die importierten Dateien liegen unter `assets/imported/`. Sie wurden aus lokalen
 - `glimmerwald-quest/assets/...` fuer Imagen-Tiles, Charaktere, Gegner, Objekte und WAV-Sounds
 - `pixel-plumber-platformer/assets/bg_cloud_bank.png` fuer einen zusaetzlichen Wolkenlayer
 
-Die aktuell aktive Grafik nutzt `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png` mit frameweiser Freistellung. Der Hintergrund nutzt `assets/imagen-hd/gfx/hd-repeatable-background-imagen.png` mit Mirror-X-Repeat, damit der Parallax-Loop ohne harte Naht laeuft. Die Original-PNG-Maps unter `assets/original/gfx/` bleiben als robuste Fallbacks erhalten.
+Die aktuell aktive Grafik nutzt `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png` mit frameweiser Freistellung. Der Hintergrund nutzt `assets/imagen-hd/gfx/hd-repeatable-background-imagen.png` mit Mirror-X-Repeat und vier unterschiedlich schnellen Parallax-Slices, damit der Loop ohne harte Naht laeuft. Die Original-PNG-Maps unter `assets/original/gfx/` bleiben als robuste Fallbacks erhalten.

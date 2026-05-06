@@ -54,6 +54,12 @@
     backgroundAsset: "repeatBackground",
     backgroundFrame: null,
     backgroundRepeat: "mirror-x",
+    backgroundLayers: [
+      { name: "skyClouds", frame: [0, 0, 1774, 520], y: 0, h: 0.72, speed: 0.025, alpha: 1 },
+      { name: "farHills", frame: [0, 340, 1774, 310], y: 0.34, h: 0.42, speed: 0.09, alpha: 0.94, fadeTop: 96, fadeBottom: 36 },
+      { name: "nearHills", frame: [0, 500, 1774, 270], y: 0.53, h: 0.38, speed: 0.2, alpha: 0.98, fadeTop: 72, fadeBottom: 32 },
+      { name: "foregroundFoliage", frame: [0, 650, 1774, 237], y: 0.7, h: 0.33, speed: 0.42, alpha: 1, fadeTop: 72 },
+    ],
     tileFrames: {
       G: [14, 96, 112, 126],
       D: [127, 96, 108, 126],
@@ -170,6 +176,8 @@
   let game;
   let player;
   let lastTime = performance.now();
+  let backgroundLayerCanvas = null;
+  let backgroundLayerContext = null;
 
   boot();
 
@@ -1067,6 +1075,10 @@
   function drawOriginalBackgroundMap(offset) {
     const image = imageAssets[ASSET_MAP.backgroundAsset];
     if (!isImageReady(image)) return false;
+    if (Array.isArray(ASSET_MAP.backgroundLayers) && ASSET_MAP.backgroundLayers.length > 0) {
+      drawParallaxBackgroundLayers(image, offset, ASSET_MAP.backgroundLayers);
+      return true;
+    }
     if (ASSET_MAP.backgroundFrame) {
       const [sx, sy, sw, sh] = ASSET_MAP.backgroundFrame;
       const scale = view.h / sh;
@@ -1082,24 +1094,89 @@
     return true;
   }
 
-  function drawBackgroundTiles(image, start, w, h, repeatMode, frame = null) {
+  function drawParallaxBackgroundLayers(image, offset, layers) {
+    drawBackgroundGradient();
+    for (const layer of layers) {
+      const frame = layer.frame || [0, 0, imageWidth(image), imageHeight(image)];
+      const destY = Math.round((layer.y || 0) * view.h + (layer.offsetY || 0));
+      const destH = Math.ceil((layer.h || 1) * view.h);
+      const scale = destH / frame[3];
+      const w = frame[2] * scale;
+      const speed = layer.speed ?? 0.16;
+      const start = -((offset * speed) % w + w) % w;
+      if (layer.fadeTop || layer.fadeBottom) {
+        drawFadedParallaxLayer(image, start, w, destH, frame, destY, layer);
+        continue;
+      }
+      ctx.save();
+      ctx.globalAlpha = layer.alpha ?? 1;
+      drawBackgroundTiles(image, start, w, destH, ASSET_MAP.backgroundRepeat, frame, destY);
+      ctx.restore();
+    }
+  }
+
+  function drawFadedParallaxLayer(image, start, w, h, frame, y, layer) {
+    const layerCtx = getBackgroundLayerContext();
+    layerCtx.clearRect(0, 0, view.w, view.h);
+    drawBackgroundTiles(image, start, w, h, ASSET_MAP.backgroundRepeat, frame, y, layerCtx);
+    layerCtx.save();
+    layerCtx.globalCompositeOperation = "destination-in";
+    const mask = layerCtx.createLinearGradient(0, y, 0, y + h);
+    const fadeTop = clamp((layer.fadeTop || 0) / h, 0, 0.48);
+    const fadeBottom = clamp((layer.fadeBottom || 0) / h, 0, 0.48);
+    mask.addColorStop(0, fadeTop > 0 ? "rgba(0,0,0,0)" : "rgba(0,0,0,1)");
+    if (fadeTop > 0) mask.addColorStop(fadeTop, "rgba(0,0,0,1)");
+    if (fadeBottom > 0) mask.addColorStop(1 - fadeBottom, "rgba(0,0,0,1)");
+    mask.addColorStop(1, fadeBottom > 0 ? "rgba(0,0,0,0)" : "rgba(0,0,0,1)");
+    layerCtx.fillStyle = mask;
+    layerCtx.fillRect(0, y, view.w, h);
+    layerCtx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = layer.alpha ?? 1;
+    ctx.drawImage(backgroundLayerCanvas, 0, 0, view.w, view.h);
+    ctx.restore();
+  }
+
+  function getBackgroundLayerContext() {
+    if (!backgroundLayerCanvas) {
+      backgroundLayerCanvas = document.createElement("canvas");
+      backgroundLayerContext = backgroundLayerCanvas.getContext("2d");
+    }
+    if (backgroundLayerCanvas.width !== view.w || backgroundLayerCanvas.height !== view.h) {
+      backgroundLayerCanvas.width = view.w;
+      backgroundLayerCanvas.height = view.h;
+    }
+    return backgroundLayerContext;
+  }
+
+  function drawBackgroundGradient() {
+    const gradient = ctx.createLinearGradient(0, 0, 0, view.h);
+    gradient.addColorStop(0, "#087cff");
+    gradient.addColorStop(0.48, "#4bd3ff");
+    gradient.addColorStop(1, "#c8f77d");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, view.w, view.h);
+  }
+
+  function drawBackgroundTiles(image, start, w, h, repeatMode, frame = null, y = 0, targetCtx = ctx) {
     let index = -1;
     for (let x = start - w; x < view.w + w; x += w) {
       const drawX = Math.round(x);
       const drawW = Math.ceil(w);
       const flip = repeatMode === "mirror-x" && Math.abs(index % 2) === 1;
-      ctx.save();
+      targetCtx.save();
       if (flip) {
-        ctx.translate(drawX + drawW, 0);
-        ctx.scale(-1, 1);
-        if (frame) ctx.drawImage(image, frame[0], frame[1], frame[2], frame[3], 0, 0, drawW, h);
-        else ctx.drawImage(image, 0, 0, drawW, h);
+        targetCtx.translate(drawX + drawW, y);
+        targetCtx.scale(-1, 1);
+        if (frame) targetCtx.drawImage(image, frame[0], frame[1], frame[2], frame[3], 0, 0, drawW, h);
+        else targetCtx.drawImage(image, 0, 0, drawW, h);
       } else if (frame) {
-        ctx.drawImage(image, frame[0], frame[1], frame[2], frame[3], drawX, 0, drawW, h);
+        targetCtx.drawImage(image, frame[0], frame[1], frame[2], frame[3], drawX, y, drawW, h);
       } else {
-        ctx.drawImage(image, drawX, 0, drawW, h);
+        targetCtx.drawImage(image, drawX, y, drawW, h);
       }
-      ctx.restore();
+      targetCtx.restore();
       index += 1;
     }
   }

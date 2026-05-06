@@ -1,6 +1,6 @@
 {
-  "version": 7,
-  "description": "Super Tile Hopper asset map. Version 7 adds a dedicated Imagen background strip that repeats horizontally with mirror-x wrapping for seamless parallax.",
+  "version": 8,
+  "description": "Super Tile Hopper asset map. Version 8 turns the repeatable Imagen background into four independent parallax source layers with mirror-x wrapping.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -43,7 +43,13 @@
       "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0f51da78b6a6c1070169fb0eae008881918534ad4e6d590f7f.png",
       "frameSize": [1774, 887],
       "repeat": "mirror-x",
-      "role": "activeBackground"
+      "role": "activeBackground",
+      "layers": {
+        "skyClouds": { "frame": [0, 0, 1774, 520], "speed": 0.025, "y": 0, "h": 0.72 },
+        "farHills": { "frame": [0, 340, 1774, 310], "speed": 0.09, "y": 0.34, "h": 0.42, "fadeTop": 96, "fadeBottom": 36 },
+        "nearHills": { "frame": [0, 500, 1774, 270], "speed": 0.2, "y": 0.53, "h": 0.38, "fadeTop": 72, "fadeBottom": 32 },
+        "foregroundFoliage": { "frame": [0, 650, 1774, 237], "speed": 0.42, "y": 0.7, "h": 0.33, "fadeTop": 72 }
+      }
     },
     "hdImagenAtlas": {
       "path": "assets/imagen-hd/gfx/hd-imagen-atlas.png",
