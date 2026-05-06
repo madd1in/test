@@ -43,14 +43,16 @@
     hdAtlasRaw: "assets/imagen-hd/gfx/hd-imagen-atlas.png",
     mascotAtlas: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
     mascotAtlasRaw: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
+    cleanGameplayAtlas: "assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png",
     repeatBackground: "assets/imagen-hd/gfx/hd-repeatable-background-imagen.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
   const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
-  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas"]);
+  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas"]);
   const ASSET_MAP = {
     tileAsset: "mascotAtlas",
     spriteAsset: "mascotAtlas",
+    cleanAsset: "cleanGameplayAtlas",
     backgroundAsset: "repeatBackground",
     backgroundFrame: null,
     backgroundRepeat: "mirror-x",
@@ -85,6 +87,12 @@
       [963, 484, 136, 152],
       [684, 484, 128, 152],
     ],
+    cleanFrames: {
+      beetle: [50, 91, 412, 330],
+      cloudTile: [540, 149, 456, 213],
+      finishFlag: [1141, 13, 277, 486],
+      checkpointFlag: [1653, 70, 277, 372],
+    },
     objectFrames: {
       gem: [324, 484, 106, 152],
       portal: [1126, 484, 116, 152],
@@ -112,6 +120,11 @@
     win: "assets/imported/audio/workspace-gate.wav",
     bgm: "assets/downloads/audio/sky-garden-relay.mp3",
   };
+  const LEVELS = [
+    { name: "Meadow Gate" },
+    { name: "Cloud Lift Climb" },
+    { name: "Flag Rush Gauntlet" },
+  ];
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -128,6 +141,7 @@
   const hudShards = document.getElementById("hudShards");
   const hudRelics = document.getElementById("hudRelics");
   const hudLives = document.getElementById("hudLives");
+  const hudLevel = document.getElementById("hudLevel");
   const hudAir = document.getElementById("hudAir");
   const hudDash = document.getElementById("hudDash");
   const hudPower = document.getElementById("hudPower");
@@ -151,7 +165,7 @@
   };
   const screenPointers = new Map();
 
-  const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S"]);
+  const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S", "W"]);
   const decorTiles = new Set(["a", "f", "v", "x"]);
   const keyMap = {
     ArrowLeft: "left",
@@ -230,6 +244,7 @@
   }
 
   function atlasFramesForKey(key) {
+    if (key === ASSET_MAP.cleanAsset) return Object.values(ASSET_MAP.cleanFrames);
     if (key !== ASSET_MAP.tileAsset && key !== ASSET_MAP.spriteAsset) return [];
     return [
       ...Object.values(ASSET_MAP.tileFrames),
@@ -578,11 +593,15 @@
     fullscreenButton?.classList.toggle("is-active", Boolean(document.fullscreenElement));
   }
 
-  function newRun(startPlaying) {
-    world = buildWorld();
+  function newRun(startPlaying, requestedLevelIndex = game ? game.levelIndex : 0) {
+    const levelIndex = clamp(Math.trunc(requestedLevelIndex || 0), 0, LEVELS.length - 1);
+    world = buildWorld(levelIndex);
     player = createPlayer(world.start.x, world.start.y);
     game = {
       mode: startPlaying ? "playing" : "menu",
+      levelIndex,
+      levelName: world.levelName,
+      totalLevels: LEVELS.length,
       lives: 3,
       collected: 0,
       totalCoins: world.coins.length + world.bonusCoins,
@@ -990,12 +1009,22 @@
     }
 
     if (world.goal && rectsOverlap(player, world.goal)) {
-      game.mode = "win";
-      pauseBgm();
-      showOverlay("Ziel erreicht", "Wolkentor offen", `Coins ${game.collected}/${game.totalCoins}`, "Noch einmal", () => {
-        unlockAudio();
-        newRun(true);
-      });
+      const nextLevel = game.levelIndex + 1;
+      const hasNextLevel = nextLevel < LEVELS.length;
+      game.mode = hasNextLevel ? "levelclear" : "win";
+      if (!hasNextLevel) pauseBgm();
+      showOverlay(
+        hasNextLevel ? "Fahne erreicht" : "Ziel erreicht",
+        hasNextLevel ? LEVELS[nextLevel].name : "Wolkentor offen",
+        hasNextLevel
+          ? `Level ${game.levelIndex + 1}/${LEVELS.length} geschafft`
+          : `Coins ${game.collected}/${game.totalCoins}`,
+        hasNextLevel ? "Weiter" : "Noch einmal",
+        () => {
+          unlockAudio();
+          newRun(true, hasNextLevel ? nextLevel : 0);
+        }
+      );
       playSound("win");
     }
   }
@@ -1298,6 +1327,21 @@
   function drawCheckpointsAndGoal() {
     for (const checkpoint of world.checkpoints) {
       if (checkpoint.x < game.cameraX - 80 || checkpoint.x > game.cameraX + view.w + 80) continue;
+      if (
+        drawImportedFrame(
+          ASSET_MAP.cleanAsset,
+          ASSET_MAP.cleanFrames.checkpointFlag,
+          checkpoint.x - 5,
+          checkpoint.y - 10,
+          64,
+          86
+        )
+      ) {
+        if (checkpoint.reached) {
+          drawImportedFrame(ASSET_MAP.spriteAsset, ASSET_MAP.objectFrames.heart, checkpoint.x + 17, checkpoint.y - 14, 30, 30);
+        }
+        continue;
+      }
       ctx.fillStyle = "#f8f0d0";
       ctx.fillRect(checkpoint.x + 14, checkpoint.y + 2, 4, checkpoint.h);
       ctx.fillStyle = checkpoint.reached ? "#54d682" : "#ff6f61";
@@ -1311,6 +1355,9 @@
 
     if (world.goal) {
       const goal = world.goal;
+      if (drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.finishFlag, goal.x - 8, goal.y - 72, 88, 154)) {
+        return;
+      }
       if (drawImportedFrame(ASSET_MAP.spriteAsset, ASSET_MAP.objectFrames.portal, goal.x - 12, goal.y - 70, 104, 104)) {
         ctx.fillStyle = "#fff7dc";
         ctx.fillRect(goal.x + 22, goal.y - 80, 5, 116);
@@ -1477,6 +1524,10 @@
       if (!enemy.active) continue;
       if (enemy.x < game.cameraX - 80 || enemy.x > game.cameraX + view.w + 80) continue;
       const frame = Math.floor(enemy.anim * 8) % 2 === 0 ? "snail0" : "snail1";
+      const bob = Math.sin(enemy.anim * 13) * 1.4;
+      if (drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.beetle, enemy.x - 32, enemy.y - 42 + bob, 90, 72, enemy.vx > 0)) {
+        continue;
+      }
       const importedFrame = ASSET_MAP.enemyFrames[enemy.kind % ASSET_MAP.enemyFrames.length];
       if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, enemy.x - 22, enemy.y - 42, 72, 78, enemy.vx > 0)) {
         continue;
@@ -1561,6 +1612,9 @@
   }
 
   function drawImportedTile(ch, x, y) {
+    if (ch === "W" && drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.cloudTile, x - 7, y - 6, TILE + 14, TILE + 9)) {
+      return;
+    }
     const frame = ASSET_MAP.tileFrames[ch];
     const image = imageAssets[ASSET_MAP.tileAsset] || imageAssets.importTiles;
     if (!frame || !isImageReady(image)) return;
@@ -1771,6 +1825,8 @@
   }
 
   function updateHud() {
+    hudLevel.textContent = `Level ${game.levelIndex + 1}/${game.totalLevels}`;
+    hudLevel.title = game.levelName;
     hudCoins.textContent = `Coins ${game.collected}/${game.totalCoins}`;
     hudShards.textContent = `Shards ${game.shards}/${game.totalShards}`;
     hudRelics.textContent = `Relics ${game.relics}/${game.totalRelics}`;
@@ -1797,7 +1853,35 @@
     document.querySelectorAll("[data-action]").forEach((button) => button.classList.remove("is-active"));
   }
 
-  function buildWorld() {
+  function finishLevel(tiles, platforms, start, levelIndex) {
+    const bonusCoins = tiles.reduce((sum, line) => sum + line.filter((ch) => ch === "Q").length, 0);
+    const parsed = parseObjects(tiles);
+    const level = LEVELS[levelIndex] || LEVELS[0];
+    return {
+      levelIndex,
+      levelName: level.name,
+      tiles,
+      coins: parsed.coins,
+      bonusCoins,
+      shards: parsed.shards,
+      rings: parsed.rings,
+      relics: parsed.relics,
+      stars: parsed.stars,
+      platforms,
+      enemies: parsed.enemies,
+      checkpoints: parsed.checkpoints,
+      plants: parsed.plants,
+      goal: parsed.goal,
+      effects: [],
+      start,
+      width: MAP_COLS * TILE,
+      height: MAP_ROWS * TILE,
+    };
+  }
+
+  function buildWorld(levelIndex = 0) {
+    if (levelIndex === 1) return buildCloudLiftLevel(levelIndex);
+    if (levelIndex === 2) return buildFlagRushLevel(levelIndex);
     const tiles = Array.from({ length: MAP_ROWS }, () => Array(MAP_COLS).fill("."));
     const set = (x, y, ch) => {
       if (x >= 0 && x < MAP_COLS && y >= 0 && y < MAP_ROWS) tiles[y][x] = ch;
@@ -1836,20 +1920,20 @@
 
     row(10, 8, 12, "B");
     set(13, 10, "Q");
-    row(8, 23, 30, "P");
+    row(8, 23, 30, "W");
     row(11, 52, 58, "B");
     set(62, 9, "S");
-    row(10, 76, 83, "P");
+    row(10, 76, 83, "W");
     set(88, 9, "Q");
     row(9, 103, 108, "B");
-    row(8, 112, 117, "P");
-    row(7, 130, 137, "P");
+    row(8, 112, 117, "W");
+    row(7, 130, 137, "W");
     set(141, 8, "Q");
     row(8, 157, 164, "B");
     set(168, 8, "S");
-    row(7, 181, 188, "P");
+    row(7, 181, 188, "W");
     row(10, 194, 199, "B");
-    row(8, 211, 218, "P");
+    row(8, 211, 218, "W");
 
     for (let step = 0; step < 5; step += 1) {
       row(13 - step, 116 + step * 2, 117 + step * 2, "B");
@@ -1948,31 +2032,274 @@
     set(122, 10, "K");
     set(226, 11, "F");
 
-    const bonusCoins = tiles.reduce((sum, line) => sum + line.filter((ch) => ch === "Q").length, 0);
-    const parsed = parseObjects(tiles);
     const platforms = [
       movingPlatform(44, 12, 4, 66, 0, 1.15, 0.1),
       movingPlatform(92, 10, 3, 0, 54, 1.35, 1.4),
       movingPlatform(200, 9, 4, 72, 0, 1.05, 2.1),
     ];
-    return {
-      tiles,
-      coins: parsed.coins,
-      bonusCoins,
-      shards: parsed.shards,
-      rings: parsed.rings,
-      relics: parsed.relics,
-      stars: parsed.stars,
-      platforms,
-      enemies: parsed.enemies,
-      checkpoints: parsed.checkpoints,
-      plants: parsed.plants,
-      goal: parsed.goal,
-      effects: [],
-      start: { x: 76, y: 14 * TILE - 34 },
-      width: MAP_COLS * TILE,
-      height: MAP_ROWS * TILE,
+    return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
+  }
+
+  function createLevelSketch() {
+    const tiles = Array.from({ length: MAP_ROWS }, () => Array(MAP_COLS).fill("."));
+    const set = (x, y, ch) => {
+      if (x >= 0 && x < MAP_COLS && y >= 0 && y < MAP_ROWS) tiles[y][x] = ch;
     };
+    const ground = (from, to, top) => {
+      for (let x = from; x <= to; x += 1) {
+        set(x, top, "G");
+        for (let y = top + 1; y < MAP_ROWS; y += 1) set(x, y, "D");
+      }
+    };
+    const row = (y, from, to, ch) => {
+      for (let x = from; x <= to; x += 1) set(x, y, ch);
+    };
+    const coins = (points) => {
+      for (const [x, y] of points) set(x, y, "C");
+    };
+    const coinLine = (from, to, y) => {
+      for (let x = from; x <= to; x += 1) set(x, y, "C");
+    };
+    const coinArc = (from, y, length) => {
+      for (let i = 0; i < length; i += 1) {
+        const dy = Math.abs(i - (length - 1) / 2) > length / 3 ? 1 : 0;
+        set(from + i, y + dy, "C");
+      }
+    };
+    return { tiles, set, ground, row, coins, coinLine, coinArc };
+  }
+
+  function buildCloudLiftLevel(levelIndex) {
+    const { tiles, set, ground, row, coins, coinLine, coinArc } = createLevelSketch();
+
+    ground(0, 16, 14);
+    ground(24, 36, 15);
+    ground(46, 56, 13);
+    ground(70, 82, 15);
+    ground(94, 104, 12);
+    ground(118, 130, 15);
+    ground(144, 154, 12);
+    ground(168, 182, 15);
+    ground(196, 231, 13);
+
+    row(10, 7, 12, "W");
+    row(8, 22, 26, "W");
+    row(6, 31, 35, "W");
+    row(9, 59, 64, "W");
+    row(7, 66, 71, "W");
+    row(8, 106, 111, "W");
+    row(7, 132, 138, "W");
+    row(6, 146, 152, "W");
+    row(8, 159, 165, "W");
+    row(9, 186, 193, "W");
+    row(8, 208, 215, "W");
+    row(11, 49, 53, "B");
+    row(9, 97, 101, "B");
+    row(10, 171, 177, "B");
+    set(53, 12, "S");
+    set(166, 14, "S");
+    set(18, 11, "Q");
+    set(84, 11, "Q");
+    set(139, 8, "Q");
+    set(219, 9, "Q");
+
+    coinArc(6, 7, 8);
+    coinLine(22, 26, 6);
+    coinArc(30, 4, 7);
+    coinLine(48, 52, 9);
+    coinArc(58, 6, 9);
+    coinLine(96, 101, 7);
+    coinArc(128, 6, 11);
+    coinLine(146, 153, 4);
+    coinArc(158, 6, 9);
+    coinLine(186, 193, 7);
+    coinArc(208, 5, 8);
+    coins([
+      [74, 11],
+      [80, 11],
+      [119, 11],
+      [124, 10],
+      [151, 9],
+      [174, 8],
+      [200, 10],
+      [225, 9],
+    ]);
+
+    [
+      [28, 5],
+      [65, 5],
+      [90, 8],
+      [113, 6],
+      [156, 6],
+      [183, 7],
+      [204, 7],
+    ].forEach(([x, y]) => set(x, y, "O"));
+    [
+      [25, 5],
+      [62, 5],
+      [99, 5],
+      [135, 5],
+      [150, 4],
+      [190, 6],
+      [212, 5],
+    ].forEach(([x, y]) => set(x, y, "M"));
+    [
+      [55, 8],
+      [147, 4],
+      [217, 6],
+    ].forEach(([x, y]) => set(x, y, "R"));
+    [
+      [72, 10],
+      [163, 6],
+    ].forEach(([x, y]) => set(x, y, "T"));
+    [
+      [34, 14],
+      [78, 14],
+      [126, 14],
+      [178, 14],
+      [211, 12],
+      [221, 12],
+    ].forEach(([x, y], index) => set(x, y, index % 2 === 0 ? "E" : "N"));
+    [
+      [5, 13, "f"],
+      [26, 14, "a"],
+      [49, 12, "v"],
+      [75, 14, "f"],
+      [99, 11, "x"],
+      [121, 14, "f"],
+      [148, 11, "a"],
+      [175, 14, "f"],
+      [207, 12, "v"],
+      [228, 12, "a"],
+    ].forEach(([x, y, ch]) => set(x, y, ch));
+
+    set(122, 13, "K");
+    set(226, 11, "F");
+
+    const platforms = [
+      movingPlatform(38, 11, 4, 54, 0, 1.1, 0.2),
+      movingPlatform(86, 10, 3, 0, 70, 1.45, 1.2),
+      movingPlatform(112, 9, 4, 70, 0, 1.18, 2.1),
+      movingPlatform(183, 10, 4, 0, 62, 1.3, 2.8),
+    ];
+    return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
+  }
+
+  function buildFlagRushLevel(levelIndex) {
+    const { tiles, set, ground, row, coins, coinLine, coinArc } = createLevelSketch();
+
+    ground(0, 18, 14);
+    ground(25, 42, 14);
+    ground(50, 66, 15);
+    ground(74, 94, 13);
+    ground(104, 125, 15);
+    ground(136, 154, 12);
+    ground(164, 187, 15);
+    ground(198, 231, 13);
+
+    row(9, 14, 19, "W");
+    row(10, 45, 49, "W");
+    row(7, 56, 62, "W");
+    row(8, 97, 103, "W");
+    row(6, 128, 134, "W");
+    row(8, 156, 162, "W");
+    row(7, 190, 196, "W");
+    row(11, 78, 84, "B");
+    row(9, 111, 118, "B");
+    row(10, 171, 178, "B");
+    set(67, 14, "S");
+    set(155, 11, "S");
+    set(22, 10, "Q");
+    set(88, 10, "Q");
+    set(133, 5, "Q");
+    set(202, 10, "Q");
+
+    coinArc(10, 7, 10);
+    coinLine(28, 41, 10);
+    coinArc(53, 5, 10);
+    coinLine(77, 84, 9);
+    coinArc(96, 6, 11);
+    coinLine(111, 118, 7);
+    coinArc(128, 4, 8);
+    coinLine(158, 163, 6);
+    coinArc(170, 8, 12);
+    coinLine(190, 196, 5);
+    coinArc(208, 6, 11);
+    coins([
+      [63, 12],
+      [76, 9],
+      [106, 12],
+      [122, 11],
+      [141, 8],
+      [150, 8],
+      [184, 12],
+      [221, 9],
+    ]);
+
+    [
+      [20, 9],
+      [70, 10],
+      [102, 6],
+      [126, 7],
+      [161, 6],
+      [189, 5],
+    ].forEach(([x, y]) => set(x, y, "O"));
+    [
+      [17, 6],
+      [58, 5],
+      [101, 5],
+      [131, 4],
+      [159, 6],
+      [193, 4],
+      [214, 6],
+    ].forEach(([x, y]) => set(x, y, "M"));
+    [
+      [48, 7],
+      [139, 5],
+      [205, 7],
+    ].forEach(([x, y]) => set(x, y, "R"));
+    [
+      [23, 11],
+      [151, 7],
+    ].forEach(([x, y]) => set(x, y, "T"));
+    [
+      [29, 13],
+      [34, 13],
+      [39, 13],
+      [82, 12],
+      [90, 12],
+      [112, 14],
+      [120, 14],
+      [170, 14],
+      [176, 14],
+      [182, 14],
+      [209, 12],
+      [216, 12],
+      [223, 12],
+    ].forEach(([x, y], index) => set(x, y, index % 2 === 0 ? "E" : "N"));
+    [
+      [6, 13, "f"],
+      [31, 13, "a"],
+      [52, 14, "v"],
+      [78, 12, "f"],
+      [114, 14, "x"],
+      [141, 11, "f"],
+      [168, 14, "a"],
+      [184, 14, "f"],
+      [207, 12, "v"],
+      [228, 12, "a"],
+    ].forEach(([x, y, ch]) => set(x, y, ch));
+
+    set(96, 11, "K");
+    set(166, 13, "K");
+    set(226, 11, "F");
+
+    const platforms = [
+      movingPlatform(68, 11, 4, 78, 0, 1.3, 0.5),
+      movingPlatform(126, 9, 3, 0, 64, 1.5, 1.7),
+      movingPlatform(187, 9, 4, 72, 0, 1.24, 2.4),
+    ];
+    return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
   }
 
   function movingPlatform(tileX, tileY, tileW, moveX, moveY, speed, phase) {
@@ -2195,6 +2522,18 @@
       a.fillRect(9, 5, 14, 3);
     });
 
+    cell(a, 7, 0, () => {
+      a.fillStyle = "rgba(115, 171, 220, 0.34)";
+      a.fillRect(3, 19, 26, 7);
+      a.fillStyle = "#f8fdff";
+      a.fillRect(3, 15, 26, 10);
+      a.fillRect(7, 11, 8, 8);
+      a.fillRect(15, 9, 10, 10);
+      a.fillStyle = "#9dc0e7";
+      a.fillRect(3, 24, 26, 3);
+      a.fillRect(7, 18, 4, 3);
+    });
+
     cell(a, 0, 1, () => {
       a.fillStyle = "#2da75d";
       a.fillRect(8, 18, 5, 12);
@@ -2267,6 +2606,7 @@
       U: [4, 0],
       P: [5, 0],
       S: [6, 0],
+      W: [7, 0],
       a: [0, 1],
       f: [1, 1],
       v: [0, 1],

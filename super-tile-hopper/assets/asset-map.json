@@ -1,6 +1,6 @@
 {
-  "version": 8,
-  "description": "Super Tile Hopper asset map. Version 8 turns the repeatable Imagen background into four independent parallax source layers with mirror-x wrapping.",
+  "version": 9,
+  "description": "Super Tile Hopper asset map. Version 9 adds a cleaned transparent Imagen gameplay atlas for beetle enemies, cloud tiles, checkpoints, and finish flags.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -36,6 +36,19 @@
         "coin1": [124, 484, 90, 152],
         "coin2": [214, 484, 106, 152],
         "backgroundBand": [14, 656, 1226, 574]
+      }
+    },
+    "cleanGameplayAtlas": {
+      "path": "assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0f51da78b6a6c1070169fb17c525708191bf84146930c3044c.png",
+      "frameSize": [2048, 512],
+      "frameKey": true,
+      "role": "activeGameplayDetails",
+      "frames": {
+        "beetle": [50, 91, 412, 330],
+        "cloudTile": [540, 149, 456, 213],
+        "finishFlag": [1141, 13, 277, 486],
+        "checkpointFlag": [1653, 70, 277, 372]
       }
     },
     "repeatableImagenBackground": {

@@ -25,6 +25,7 @@ Auf Touch-Geraeten erscheinen groessere On-Screen-Buttons fuer links/rechts, Das
 - Asset-Map unter `assets/asset-map.json` fuer neue Original-Atlanten plus importierte Fallbacks
 - Neues Imagen-HD-Atlasblatt unter `assets/imagen-hd/gfx/hd-imagen-atlas.png`
 - Neues sauberer gerastertes Mascot-Platformer-Imagen-Atlasblatt unter `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png`
+- Neues transparent getrimmtes Gameplay-Imagen-Atlasblatt unter `assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png` fuer Kaefer, Wolken-Tile, Checkpoint-Fahne und Zielfahne
 - Neuer horizontal wiederholbarer Imagen-Hintergrund unter `assets/imagen-hd/gfx/hd-repeatable-background-imagen.png`
 - Vier Parallax-Layer aus demselben Imagen-Background: Sky/Clouds, Far Hills, Near Hills und Foreground Foliage
 - Neue Original-PNG-Maps fuer Tileset, Sprite-Sheet und Background
@@ -32,7 +33,7 @@ Auf Touch-Geraeten erscheinen groessere On-Screen-Buttons fuer links/rechts, Das
 - Importierte Workspace-Audioquellen fuer BGM, Pickup, Gate, Hit und Hurt
 - BGM aus dem lokalen Downloads-Ordner unter `assets/downloads/audio/sky-garden-relay.mp3`
 - Tile-Atlas fuer Gras, Erde, Bricks, Bonus-Blocks, Plattformen und Sprungfedern
-- Handgebautes Tilemap-Level mit Luecken, Hoehenwechseln, Coins, Sky-Shards, Aero-Ringen, Gegnern, Checkpoint und Ziel
+- Drei handgebaute Tilemap-Level mit Luecken, Hoehenwechseln, Wolken-Tiles, Coins, Sky-Shards, Aero-Ringen, Gegnern, Checkpoints und Zielfahnen
 - Parallax-Hintergrund mit Sonne, Wolken, Bergen und Huegeln
 - Platformer-Physik mit Coyote-Time, Jump-Buffer, variablem Sprung, Triple-Jump, Air-Dash, Gegner-Stomp, Respawn und lokalem Sound
 - Relic-Pickups als riskantere Nebenroute; jedes Relic gibt einen kurzen Boost und ein Bonusleben
@@ -61,4 +62,4 @@ Die importierten Dateien liegen unter `assets/imported/`. Sie wurden aus lokalen
 - `glimmerwald-quest/assets/...` fuer Imagen-Tiles, Charaktere, Gegner, Objekte und WAV-Sounds
 - `pixel-plumber-platformer/assets/bg_cloud_bank.png` fuer einen zusaetzlichen Wolkenlayer
 
-Die aktuell aktive Grafik nutzt `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png` mit frameweiser Freistellung. Der Hintergrund nutzt `assets/imagen-hd/gfx/hd-repeatable-background-imagen.png` mit Mirror-X-Repeat und vier unterschiedlich schnellen Parallax-Slices, damit der Loop ohne harte Naht laeuft. Die Original-PNG-Maps unter `assets/original/gfx/` bleiben als robuste Fallbacks erhalten.
+Die aktuell aktive Basisgrafik nutzt `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png` mit frameweiser Freistellung. Kaefer, Wolken-Plattformen und Fahnen kommen aus dem extra getrimmten `assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png`, damit diese Objekte sauber gesliced bleiben. Der Hintergrund nutzt `assets/imagen-hd/gfx/hd-repeatable-background-imagen.png` mit Mirror-X-Repeat und vier unterschiedlich schnellen Parallax-Slices, damit der Loop ohne harte Naht laeuft. Die Original-PNG-Maps unter `assets/original/gfx/` bleiben als robuste Fallbacks erhalten.
