@@ -146,6 +146,10 @@ button:focus-visible {
   background: linear-gradient(180deg, #e7ffd1, #7ce35f);
 }
 
+#hudPower {
+  background: linear-gradient(180deg, #fff6a5, #ffb22d);
+}
+
 #hudLives {
   background: linear-gradient(180deg, #ffd5d0, #ff6c62);
   color: #ffffff;

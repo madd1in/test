@@ -1,6 +1,6 @@
 {
-  "version": 5,
-  "description": "Super Tile Hopper asset map. Version 5 adds a cleaner original mascot-platformer Imagen atlas with fixed frame cells, a raw background band, and a BGM imported from the local Downloads folder.",
+  "version": 6,
+  "description": "Super Tile Hopper asset map. Version 6 keeps the cleaner original mascot-platformer Imagen atlas active and exposes the star frame used by the Star-Rush powerup.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -31,6 +31,7 @@
         "portal": [1126, 484, 116, 152],
         "chest": [553, 484, 128, 152],
         "heart": [438, 484, 108, 152],
+        "star": [340, 96, 104, 114],
         "coin0": [14, 484, 106, 152],
         "coin1": [124, 484, 90, 152],
         "coin2": [214, 484, 106, 152],

@@ -19,6 +19,8 @@
   const DASH_TIME = 0.18;
   const MAX_JUMPS = 3;
   const MAX_DASHES = 1;
+  const STAR_POWER_TIME = 6.5;
+  const STOMP_COMBO_WINDOW = 1.1;
   const COYOTE_TIME = 0.105;
   const JUMP_BUFFER = 0.13;
   const GRAPHIC_PATHS = {
@@ -78,6 +80,7 @@
       portal: [1126, 484, 116, 152],
       chest: [553, 484, 128, 152],
       heart: [438, 484, 108, 152],
+      star: [340, 96, 104, 114],
       coin0: [14, 484, 106, 152],
       coin1: [124, 484, 90, 152],
       coin2: [214, 484, 106, 152],
@@ -117,6 +120,7 @@
   const hudLives = document.getElementById("hudLives");
   const hudAir = document.getElementById("hudAir");
   const hudDash = document.getElementById("hudDash");
+  const hudPower = document.getElementById("hudPower");
   const hudTime = document.getElementById("hudTime");
 
   const view = { w: 960, h: 540, dpr: 1 };
@@ -496,6 +500,9 @@
       anim: 0,
       hurtPulse: 0,
       doubleJumpFlash: 0,
+      starTimer: 0,
+      combo: 0,
+      comboTimer: 0,
     };
   }
 
@@ -521,6 +528,7 @@
       input.dashPressed = false;
     }
 
+    updateMovingPlatforms(dt);
     updatePlayer(dt);
     updateEnemies(dt);
     updateCoins(dt);
@@ -537,6 +545,9 @@
     player.hurtPulse = Math.max(0, player.hurtPulse - dt);
     player.doubleJumpFlash = Math.max(0, player.doubleJumpFlash - dt);
     player.dashTimer = Math.max(0, player.dashTimer - dt);
+    player.starTimer = Math.max(0, player.starTimer - dt);
+    player.comboTimer = Math.max(0, player.comboTimer - dt);
+    if (player.comboTimer <= 0) player.combo = 0;
     if (player.grounded) {
       player.jumpsLeft = MAX_JUMPS - 1;
       player.dashesLeft = MAX_DASHES;
@@ -545,8 +556,9 @@
     player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
 
     const direction = Number(input.right) - Number(input.left);
-    const targetSpeed = input.run ? RUN_SPEED : WALK_SPEED;
+    const targetSpeed = player.starTimer > 0 ? RUN_SPEED + 86 : input.run ? RUN_SPEED : WALK_SPEED;
     const accel = player.grounded ? GROUND_ACCEL : AIR_ACCEL;
+    const previousY = player.y;
     if (player.dashTimer > 0) {
       player.vx = player.facing * DASH_SPEED;
     } else if (direction !== 0) {
@@ -602,10 +614,43 @@
         bumpTile(tile.tx, tile.ty, tile.ch);
       },
     });
+    resolveMovingPlatforms(previousY);
 
     if (player.y > world.height + 180) {
       hurtPlayer(true);
     }
+  }
+
+  function updateMovingPlatforms(dt) {
+    for (const platform of world.platforms) {
+      platform.prevX = platform.x;
+      platform.prevY = platform.y;
+      platform.phase += dt * platform.speed;
+      const wave = Math.sin(platform.phase);
+      platform.x = platform.baseX + platform.moveX * wave;
+      platform.y = platform.baseY + platform.moveY * wave;
+      platform.dx = platform.x - platform.prevX;
+      platform.dy = platform.y - platform.prevY;
+    }
+  }
+
+  function resolveMovingPlatforms(previousY) {
+    const previousBottom = previousY + player.h;
+    const currentBottom = player.y + player.h;
+    for (const platform of world.platforms) {
+      const withinX = player.x + player.w > platform.x + 4 && player.x < platform.x + platform.w - 4;
+      const crossingTop = previousBottom <= platform.y + Math.max(8, Math.abs(platform.dy) + 5) && currentBottom >= platform.y;
+      if (player.vy >= 0 && withinX && crossingTop && player.y < platform.y) {
+        player.y = platform.y - player.h - 0.01;
+        player.x += platform.dx;
+        player.vy = 0;
+        player.grounded = true;
+        player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
+        return;
+      }
+    }
+
   }
 
   function performJump(kind) {
@@ -674,24 +719,42 @@
         }
       }
 
-      if (rectsOverlap(player, enemy) && player.invulnerable <= 0) {
+      if (rectsOverlap(player, enemy)) {
+        if (player.starTimer > 0) {
+          defeatEnemy(enemy, "rush");
+          continue;
+        }
+        if (player.invulnerable > 0) continue;
         const playerBottom = player.y + player.h;
         const stomp = player.vy > 120 && playerBottom - enemy.y < 18;
         if (stomp) {
-          enemy.active = false;
           player.vy = -440;
           player.grounded = false;
           player.jumpsLeft = MAX_JUMPS - 1;
           player.dashesLeft = MAX_DASHES;
           player.doubleJumpFlash = 0.2;
-          spawnSpark(enemy.x + enemy.w * 0.5, enemy.y + 12, "#ffd35a", 16);
-          spawnText(enemy.x + enemy.w * 0.5, enemy.y - 8, "Pop");
-          playSound("stomp");
+          defeatEnemy(enemy, "stomp");
         } else {
           hurtPlayer(false);
         }
       }
     }
+  }
+
+  function defeatEnemy(enemy, mode) {
+    enemy.active = false;
+    player.combo = player.comboTimer > 0 ? player.combo + 1 : 1;
+    player.comboTimer = STOMP_COMBO_WINDOW;
+    const bonus = Math.max(0, Math.min(5, player.combo - 1));
+    if (bonus > 0) {
+      game.collected += bonus;
+      game.totalCoins += bonus;
+    }
+    const label = player.combo > 1 ? `Combo x${player.combo}` : mode === "rush" ? "Rush" : "Pop";
+    spawnSpark(enemy.x + enemy.w * 0.5, enemy.y + 12, mode === "rush" ? "#fff35a" : "#ffd35a", 18 + bonus * 2);
+    spawnText(enemy.x + enemy.w * 0.5, enemy.y - 8, bonus > 0 ? `${label} +${bonus}` : label);
+    game.shake = Math.max(game.shake, mode === "rush" ? 5 : 3);
+    playSound(mode === "rush" ? "ring" : "stomp");
   }
 
   function updateCoins(dt) {
@@ -760,6 +823,25 @@
         playSound("win");
       }
     }
+
+    for (const star of world.stars) {
+      if (star.collected) continue;
+      star.anim += dt;
+      const starRect = { x: star.x - 18, y: star.y - 18, w: 36, h: 36 };
+      if (rectsOverlap(player, starRect)) {
+        star.collected = true;
+        player.starTimer = STAR_POWER_TIME;
+        player.invulnerable = Math.max(player.invulnerable, 0.45);
+        player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
+        player.doubleJumpFlash = 0.8;
+        game.shake = Math.max(game.shake, 6);
+        spawnSpark(star.x, star.y, "#fff35a", 30);
+        spawnText(star.x, star.y - 16, "Star rush");
+        showGameMessage("Star rush");
+        playSound("win");
+      }
+    }
   }
 
   function updatePickupsAndGoals() {
@@ -820,6 +902,7 @@
 
     drawDecorBack();
     drawTiles();
+    drawMovingPlatforms();
     drawCheckpointsAndGoal();
     drawCoins();
     drawShardsAndRings();
@@ -1062,6 +1145,36 @@
       const pulse = 1 + Math.sin(relic.anim * 8 + relic.phase) * 0.06;
       drawAssetOrRelic(relic.x, relic.y + bob, 42 * pulse);
     }
+
+    for (const star of world.stars) {
+      if (star.collected) continue;
+      if (star.x < game.cameraX - 60 || star.x > game.cameraX + view.w + 60) continue;
+      const bob = Math.sin(star.anim * 4.6 + star.phase) * 5;
+      const pulse = 1 + Math.sin(star.anim * 9 + star.phase) * 0.08;
+      drawAssetOrStar(star.x, star.y + bob, 42 * pulse, star.anim);
+    }
+  }
+
+  function drawMovingPlatforms() {
+    for (const platform of world.platforms) {
+      if (platform.x + platform.w < game.cameraX - 90 || platform.x > game.cameraX + view.w + 90) continue;
+      ctx.save();
+      ctx.fillStyle = "rgba(72, 38, 0, 0.2)";
+      ctx.fillRect(Math.round(platform.x + 4), Math.round(platform.y + platform.h + 5), Math.round(platform.w - 8), 5);
+      for (let x = 0; x < platform.w; x += TILE) {
+        const w = Math.min(TILE, platform.w - x);
+        if (!drawImportedFrame(ASSET_MAP.tileAsset, ASSET_MAP.tileFrames.P, platform.x + x, platform.y, w, platform.h + 10)) {
+          ctx.fillStyle = "#9c5c2a";
+          ctx.fillRect(platform.x + x, platform.y, w, platform.h);
+          ctx.fillStyle = "#ffd35a";
+          ctx.fillRect(platform.x + x + 3, platform.y + 3, Math.max(2, w - 6), 3);
+        }
+      }
+      ctx.fillStyle = "#ffd35a";
+      ctx.fillRect(Math.round(platform.x + 8), Math.round(platform.y + 4), 5, 5);
+      ctx.fillRect(Math.round(platform.x + platform.w - 13), Math.round(platform.y + 4), 5, 5);
+      ctx.restore();
+    }
   }
 
   function drawAssetOrRing(x, y, size, alpha) {
@@ -1111,6 +1224,33 @@
     ctx.fillRect(x - 12, y - 10, 24, 22);
     ctx.fillStyle = "#ffd35a";
     ctx.fillRect(x - 5, y - 4, 10, 10);
+  }
+
+  function drawAssetOrStar(x, y, size, anim) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.sin(anim * 5) * 0.1);
+    const r1 = size * 0.48;
+    const r2 = size * 0.22;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i += 1) {
+      const r = i % 2 === 0 ? r1 : r2;
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "#fff35a";
+    ctx.strokeStyle = "#a85f00";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fill();
+    ctx.fillStyle = "#fffbe2";
+    ctx.fillRect(-4, -10, 3, 3);
+    ctx.fillRect(7, -10, 3, 3);
+    ctx.restore();
   }
 
   function drawEnemies() {
@@ -1333,6 +1473,7 @@
   }
 
   function hurtPlayer(fall) {
+    if (player.starTimer > 0 && !fall) return;
     if (player.invulnerable > 0 && !fall) return;
     game.lives -= 1;
     player.hurtPulse = 0.45;
@@ -1417,6 +1558,8 @@
     hudLives.textContent = `Lives ${game.lives}`;
     hudAir.textContent = `Air ${player.jumpsLeft}`;
     hudDash.textContent = `Dash ${player.dashesLeft}`;
+    hudPower.textContent =
+      player.starTimer > 0 ? `Star ${Math.ceil(player.starTimer)}` : player.combo > 1 ? `Combo x${player.combo}` : "Power 0";
     hudTime.textContent = `Time ${Math.floor(game.time).toString().padStart(3, "0")}`;
   }
 
@@ -1542,6 +1685,12 @@
     ].forEach(([x, y]) => set(x, y, "R"));
 
     [
+      [64, 8],
+      [111, 6],
+      [190, 5],
+    ].forEach(([x, y]) => set(x, y, "T"));
+
+    [
       [6, 13, "a"],
       [15, 13, "f"],
       [26, 14, "v"],
@@ -1576,6 +1725,11 @@
 
     const bonusCoins = tiles.reduce((sum, line) => sum + line.filter((ch) => ch === "Q").length, 0);
     const parsed = parseObjects(tiles);
+    const platforms = [
+      movingPlatform(44, 12, 4, 66, 0, 1.15, 0.1),
+      movingPlatform(92, 10, 3, 0, 54, 1.35, 1.4),
+      movingPlatform(200, 9, 4, 72, 0, 1.05, 2.1),
+    ];
     return {
       tiles,
       coins: parsed.coins,
@@ -1583,6 +1737,8 @@
       shards: parsed.shards,
       rings: parsed.rings,
       relics: parsed.relics,
+      stars: parsed.stars,
+      platforms,
       enemies: parsed.enemies,
       checkpoints: parsed.checkpoints,
       plants: parsed.plants,
@@ -1594,11 +1750,33 @@
     };
   }
 
+  function movingPlatform(tileX, tileY, tileW, moveX, moveY, speed, phase) {
+    const baseX = tileX * TILE;
+    const baseY = tileY * TILE;
+    return {
+      baseX,
+      baseY,
+      x: baseX,
+      y: baseY,
+      prevX: baseX,
+      prevY: baseY,
+      w: tileW * TILE,
+      h: 18,
+      moveX,
+      moveY,
+      speed,
+      phase,
+      dx: 0,
+      dy: 0,
+    };
+  }
+
   function parseObjects(tiles) {
     const coins = [];
     const shards = [];
     const rings = [];
     const relics = [];
+    const stars = [];
     const enemies = [];
     const checkpoints = [];
     const plants = [];
@@ -1632,6 +1810,15 @@
             collected: false,
             anim: 0,
             phase: relics.length * 0.71,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "T") {
+          stars.push({
+            x: x * TILE + TILE * 0.5,
+            y: y * TILE + TILE * 0.5,
+            collected: false,
+            anim: 0,
+            phase: stars.length * 0.83,
           });
           tiles[y][x] = ".";
         } else if (ch === "O") {
@@ -1692,7 +1879,7 @@
       }
     }
 
-    return { coins, shards, rings, relics, enemies, checkpoints, plants, goal };
+    return { coins, shards, rings, relics, stars, enemies, checkpoints, plants, goal };
   }
 
   function createTileAtlas() {

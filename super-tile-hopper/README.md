@@ -35,6 +35,9 @@ Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons fuer links/rechts, Dash/S
 - Platformer-Physik mit Coyote-Time, Jump-Buffer, variablem Sprung, Triple-Jump, Air-Dash, Gegner-Stomp, Respawn und lokalem Sound
 - Relic-Pickups als riskantere Nebenroute; jedes Relic gibt einen kurzen Boost und ein Bonusleben
 - Aero-Ringe, Sky-Shards und Stomps laden jetzt Air-Jumps und Dash wieder auf
+- Star-Rush-Pickups geben kurzzeitig mehr Tempo und Schutz gegen Gegnerkontakt
+- Bewegliche Lift-Plattformen oeffnen neue Timing-Routen ueber groessere Luecken
+- Stomp-Combo-Boni belohnen mehrere Gegner-Treffer kurz hintereinander mit Bonus-Coins
 
 ## Assets neu bauen
 
