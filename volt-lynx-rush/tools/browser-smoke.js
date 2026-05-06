@@ -119,8 +119,6 @@ async function run() {
         minFrameMs: Math.min(...frames)
       };
     });
-    await page.click("#assetButton");
-    await page.waitForTimeout(180);
     await page.screenshot({ path: screenshot, timeout: 20000 });
 
     const state = await page.evaluate((perf) => {
@@ -139,24 +137,22 @@ async function run() {
         if (r + g + b > 64) lit += 1;
         if (Math.max(r, g, b) - Math.min(r, g, b) > 18) colorSpread += 1;
       }
-      const assetImages = [...document.querySelectorAll(".asset-panel img")].map((img) => ({
-        src: img.getAttribute("src"),
-        complete: img.complete,
-        width: img.naturalWidth
-      }));
       const resources = performance.getEntriesByType("resource").map((entry) => entry.name);
       return {
         ...window.__voltLynxDebug.getState(),
         perf,
         overlayHidden: !document.querySelector("#overlay").classList.contains("overlay--visible"),
-        assetPanelOpen: document.querySelector("#assetPanel").classList.contains("is-open"),
+        assetMapUiAbsent:
+          !document.querySelector("#assetButton") &&
+          !document.querySelector("#overlayAssetButton") &&
+          !document.querySelector("#assetPanel"),
         hudHoops: document.querySelector("#hudHoops").textContent,
         hudScore: document.querySelector("#hudScore").textContent,
         hudSpeed: document.querySelector("#hudSpeed").textContent,
         boostWidth: document.querySelector("#hudBoost").style.width,
         audioButtonVisible: Boolean(document.querySelector("#audioButton").getBoundingClientRect().width > 0),
-        assetImages,
         importedResources: resources.filter((name) => name.includes("/assets/imported/")).length,
+        slicedResources: resources.filter((name) => name.includes("/assets/sliced/")).length,
         bgmLoaded: resources.some((name) => name.includes("needle-meadow-sprint.mp3")),
         canvasWidth: canvas.width,
         canvasHeight: canvas.height,
@@ -206,7 +202,7 @@ async function run() {
       errors.responses.length === 0 &&
       state.mode === "playing" &&
       state.overlayHidden &&
-      state.assetPanelOpen &&
+      state.assetMapUiAbsent &&
       state.assetMapLoaded &&
       state.atlasReady &&
       state.slicesReady &&
@@ -214,6 +210,7 @@ async function run() {
       state.mode7TextureReady &&
       Object.values(state.importedGraphicsReady).every(Boolean) &&
       state.importedResources >= 3 &&
+      state.slicedResources >= 30 &&
       state.audioButtonVisible &&
       state.audio.bgmSrc.includes("needle-meadow-sprint.mp3") &&
       state.audio.bgmReady &&
@@ -222,8 +219,6 @@ async function run() {
       state.ringsRemaining <= 80 &&
       Number(state.hudScore) >= 0 &&
       Number(state.hudSpeed) >= 0 &&
-      state.assetImages.length === 5 &&
-      state.assetImages.every((image) => image.complete && image.width > 0) &&
       state.canvasWidth === 1280 &&
       state.canvasHeight === 720 &&
       state.alpha > 6000 &&
