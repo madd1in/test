@@ -37,46 +37,51 @@
     originalBackground: "assets/original/gfx/original-background-map.png",
     hdAtlas: "assets/imagen-hd/gfx/hd-imagen-atlas.png",
     hdAtlasRaw: "assets/imagen-hd/gfx/hd-imagen-atlas.png",
+    mascotAtlas: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
+    mascotAtlasRaw: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
   const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
+  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas"]);
   const ASSET_MAP = {
-    tileAsset: "hdAtlas",
-    spriteAsset: "hdAtlas",
-    backgroundAsset: "hdAtlasRaw",
-    backgroundFrame: [30, 690, 1474, 302],
+    tileAsset: "mascotAtlas",
+    spriteAsset: "mascotAtlas",
+    backgroundAsset: "mascotAtlasRaw",
+    backgroundFrame: [14, 656, 1226, 574],
     tileFrames: {
-      G: [40, 36, 138, 102],
-      D: [185, 36, 110, 102],
-      B: [963, 35, 100, 104],
-      Q: [754, 35, 96, 104],
-      U: [1072, 36, 92, 102],
-      P: [518, 36, 118, 103],
-      S: [855, 36, 98, 104],
+      G: [14, 96, 112, 126],
+      D: [127, 96, 108, 126],
+      B: [237, 96, 102, 114],
+      Q: [340, 96, 104, 114],
+      U: [445, 96, 110, 114],
+      P: [554, 116, 116, 82],
+      S: [678, 96, 110, 118],
     },
     playerFrames: {
-      idle: [49, 174, 78, 119],
-      run0: [175, 174, 88, 120],
-      run1: [304, 174, 92, 120],
-      jump: [694, 172, 108, 120],
-      fall: [826, 164, 108, 128],
-      hurt: [563, 174, 104, 120],
+      idle: [14, 250, 151, 204],
+      run0: [170, 250, 151, 204],
+      run1: [324, 250, 151, 204],
+      jump: [480, 250, 146, 204],
+      fall: [629, 250, 154, 204],
+      hurt: [787, 250, 149, 204],
+      triple: [939, 250, 153, 204],
+      dash: [1097, 250, 144, 204],
     },
     enemyFrames: [
-      [35, 342, 160, 176],
-      [257, 330, 172, 188],
-      [470, 348, 125, 170],
-      [616, 325, 188, 195],
+      [684, 484, 128, 152],
+      [815, 484, 140, 152],
+      [963, 484, 136, 152],
+      [684, 484, 128, 152],
     ],
     objectFrames: {
-      gem: [862, 337, 58, 78],
-      portal: [829, 439, 105, 104],
-      chest: [48, 572, 87, 88],
-      heart: [1398, 445, 86, 88],
-      coin0: [1115, 460, 59, 62],
-      coin1: [1207, 460, 60, 62],
-      coin2: [1304, 460, 54, 62],
-      coin3: [1115, 460, 59, 62],
+      gem: [324, 484, 106, 152],
+      portal: [1126, 484, 116, 152],
+      chest: [553, 484, 128, 152],
+      heart: [438, 484, 108, 152],
+      coin0: [14, 484, 106, 152],
+      coin1: [124, 484, 90, 152],
+      coin2: [214, 484, 106, 152],
+      coin3: [124, 484, 90, 152],
     },
   };
   const AUDIO_PATHS = {
@@ -92,17 +97,19 @@
     bump: "assets/audio/bump.wav",
     checkpoint: "assets/imported/audio/workspace-gate.wav",
     win: "assets/imported/audio/workspace-gate.wav",
-    bgm: "assets/imported/audio/workspace-theme.wav",
+    bgm: "assets/downloads/audio/sky-garden-relay.mp3",
   };
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
+  const gameShell = document.querySelector(".game-shell");
   const overlay = document.getElementById("overlay");
   const overlayKicker = document.getElementById("overlayKicker");
   const overlayTitle = document.getElementById("overlayTitle");
   const overlayText = document.getElementById("overlayText");
   const primaryButton = document.getElementById("primaryButton");
   const pauseButton = document.getElementById("pauseButton");
+  const fullscreenButton = document.getElementById("fullscreenButton");
   const restartButton = document.getElementById("restartButton");
   const hudCoins = document.getElementById("hudCoins");
   const hudShards = document.getElementById("hudShards");
@@ -173,6 +180,8 @@
       image.addEventListener("load", () => {
         if (BLACK_KEY_GRAPHICS.has(key)) {
           imageAssets[key] = keyBlackToAlpha(image);
+        } else if (FRAME_KEY_GRAPHICS.has(key)) {
+          imageAssets[key] = keyFramesToAlpha(image, atlasFramesForKey(key));
         } else if (LIGHT_KEY_GRAPHICS.has(key)) {
           imageAssets[key] = keyLightToAlpha(image);
         }
@@ -193,7 +202,17 @@
     bgmTrack = new Audio(AUDIO_PATHS.bgm);
     bgmTrack.preload = "auto";
     bgmTrack.loop = true;
-    bgmTrack.volume = 0.24;
+    bgmTrack.volume = 0.2;
+  }
+
+  function atlasFramesForKey(key) {
+    if (key !== ASSET_MAP.tileAsset && key !== ASSET_MAP.spriteAsset) return [];
+    return [
+      ...Object.values(ASSET_MAP.tileFrames),
+      ...Object.values(ASSET_MAP.playerFrames),
+      ...ASSET_MAP.enemyFrames,
+      ...Object.values(ASSET_MAP.objectFrames),
+    ].filter(Boolean);
   }
 
   function keyBlackToAlpha(image) {
@@ -244,6 +263,75 @@
     } catch {
       return image;
     }
+  }
+
+  function keyFramesToAlpha(image, frames) {
+    const w = image.naturalWidth || image.width;
+    const h = image.naturalHeight || image.height;
+    const keyed = document.createElement("canvas");
+    keyed.width = w;
+    keyed.height = h;
+    const k = keyed.getContext("2d");
+    k.imageSmoothingEnabled = false;
+    k.drawImage(image, 0, 0);
+    try {
+      const pixels = k.getImageData(0, 0, w, h);
+      const data = pixels.data;
+      for (const frame of frames) floodClearFrameBackground(data, w, h, frame);
+      k.putImageData(pixels, 0, 0);
+      return keyed;
+    } catch {
+      return image;
+    }
+  }
+
+  function floodClearFrameBackground(data, imageW, imageH, frame) {
+    const x0 = Math.max(0, Math.floor(frame[0]));
+    const y0 = Math.max(0, Math.floor(frame[1]));
+    const x1 = Math.min(imageW, Math.ceil(frame[0] + frame[2]));
+    const y1 = Math.min(imageH, Math.ceil(frame[1] + frame[3]));
+    const fw = x1 - x0;
+    const fh = y1 - y0;
+    if (fw <= 0 || fh <= 0) return;
+
+    const seen = new Uint8Array(fw * fh);
+    const stack = [];
+    const push = (x, y) => {
+      const lx = x - x0;
+      const ly = y - y0;
+      const local = ly * fw + lx;
+      if (seen[local]) return;
+      seen[local] = 1;
+      const i = (y * imageW + x) * 4;
+      if (!isImagenSheetBackground(data, i)) return;
+      data[i + 3] = 0;
+      stack.push([x, y]);
+    };
+
+    for (let x = x0; x < x1; x += 1) {
+      push(x, y0);
+      push(x, y1 - 1);
+    }
+    for (let y = y0 + 1; y < y1 - 1; y += 1) {
+      push(x0, y);
+      push(x1 - 1, y);
+    }
+
+    while (stack.length) {
+      const [x, y] = stack.pop();
+      if (x > x0) push(x - 1, y);
+      if (x < x1 - 1) push(x + 1, y);
+      if (y > y0) push(x, y - 1);
+      if (y < y1 - 1) push(x, y + 1);
+    }
+  }
+
+  function isImagenSheetBackground(data, i) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const spread = Math.max(r, g, b) - Math.min(r, g, b);
+    return r > 226 && g > 218 && b > 198 && spread < 58;
   }
 
   function isImageReady(asset) {
@@ -333,10 +421,29 @@
       unlockAudio();
       togglePause();
     });
+    fullscreenButton?.addEventListener("click", () => {
+      unlockAudio();
+      toggleFullscreen();
+    });
+    document.addEventListener("fullscreenchange", syncFullscreenButton);
     restartButton.addEventListener("click", () => {
       unlockAudio();
       newRun(true);
     });
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenEnabled) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+      return;
+    }
+    const target = gameShell || document.documentElement;
+    target.requestFullscreen?.({ navigationUI: "hide" }).catch(() => {});
+  }
+
+  function syncFullscreenButton() {
+    fullscreenButton?.classList.toggle("is-active", Boolean(document.fullscreenElement));
   }
 
   function newRun(startPlaying) {
@@ -1025,7 +1132,9 @@
 
     let frame = "heroIdle";
     if (player.hurtPulse > 0) frame = "heroHurt";
+    else if (player.dashTimer > 0) frame = "heroDash";
     else if (!player.grounded && player.vy < 0) frame = "heroJump";
+    else if (!player.grounded && player.jumpsLeft === 0) frame = "heroTriple";
     else if (!player.grounded) frame = "heroFall";
     else if (Math.abs(player.vx) > 24) frame = Math.floor(player.anim * 12) % 2 === 0 ? "heroRun0" : "heroRun1";
 
@@ -1035,17 +1144,16 @@
       drawAssetOrRing(player.x + player.w * 0.5, player.y + player.h * 0.55, size, alpha);
     }
     const importedFrame =
-      frame === "heroRun0"
-        ? ASSET_MAP.playerFrames.run0
-        : frame === "heroRun1"
-          ? ASSET_MAP.playerFrames.run1
-          : frame === "heroJump"
-            ? ASSET_MAP.playerFrames.jump
-            : frame === "heroFall"
-              ? ASSET_MAP.playerFrames.fall
-              : frame === "heroHurt"
-                ? ASSET_MAP.playerFrames.hurt
-                : ASSET_MAP.playerFrames.idle;
+      {
+        heroRun0: ASSET_MAP.playerFrames.run0,
+        heroRun1: ASSET_MAP.playerFrames.run1,
+        heroDash: ASSET_MAP.playerFrames.dash,
+        heroTriple: ASSET_MAP.playerFrames.triple,
+        heroJump: ASSET_MAP.playerFrames.jump,
+        heroFall: ASSET_MAP.playerFrames.fall,
+        heroHurt: ASSET_MAP.playerFrames.hurt,
+        heroIdle: ASSET_MAP.playerFrames.idle,
+      }[frame] || ASSET_MAP.playerFrames.idle;
     if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, player.x - 17, player.y - 38, 58, 76, player.facing < 0)) {
       return;
     }

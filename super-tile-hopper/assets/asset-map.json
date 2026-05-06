@@ -1,8 +1,42 @@
 {
-  "version": 4,
-  "description": "Super Tile Hopper asset map. Version 4 uses a new Imagen HD atlas as the active tileset, sprite map, item map, and background band; original generated PNGs and imported workspace assets remain available as fallbacks.",
-  "activeGraphicsProfile": "imagen-hd",
+  "version": 5,
+  "description": "Super Tile Hopper asset map. Version 5 adds a cleaner original mascot-platformer Imagen atlas with fixed frame cells, a raw background band, and a BGM imported from the local Downloads folder.",
+  "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
+    "mascotImagenAtlas": {
+      "path": "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0f51da78b6a6c1070169faf15c119c8191809d806c039886e9.png",
+      "frameSize": [1254, 1254],
+      "frameKey": true,
+      "frames": {
+        "grass": [14, 96, 112, 126],
+        "dirt": [127, 96, 108, 126],
+        "brick": [237, 96, 102, 114],
+        "bonus": [340, 96, 104, 114],
+        "used": [445, 96, 110, 114],
+        "woodPlatform": [554, 116, 116, 82],
+        "spring": [678, 96, 110, 118],
+        "heroIdle": [14, 250, 151, 204],
+        "heroRun0": [170, 250, 151, 204],
+        "heroRun1": [324, 250, 151, 204],
+        "heroJump": [480, 250, 146, 204],
+        "heroFall": [629, 250, 154, 204],
+        "heroHurt": [787, 250, 149, 204],
+        "heroTriple": [939, 250, 153, 204],
+        "heroDash": [1097, 250, 144, 204],
+        "enemyBeetle": [684, 484, 128, 152],
+        "enemySnail": [815, 484, 140, 152],
+        "enemyCloud": [963, 484, 136, 152],
+        "gem": [324, 484, 106, 152],
+        "portal": [1126, 484, 116, 152],
+        "chest": [553, 484, 128, 152],
+        "heart": [438, 484, 108, 152],
+        "coin0": [14, 484, 106, 152],
+        "coin1": [124, 484, 90, 152],
+        "coin2": [214, 484, 106, 152],
+        "backgroundBand": [14, 656, 1226, 574]
+      }
+    },
     "hdImagenAtlas": {
       "path": "assets/imagen-hd/gfx/hd-imagen-atlas.png",
       "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_09edf5ac657438ab0169fae4e3837c81919effa261ee9ae50a.png",
@@ -156,6 +190,10 @@
   },
   "audio": {
     "bgm": {
+      "path": "assets/downloads/audio/sky-garden-relay.mp3",
+      "source": "C:/Users/User/Downloads/Sky Garden Relay (1).mp3"
+    },
+    "workspaceBgm": {
       "path": "assets/imported/audio/workspace-theme.wav",
       "source": "../glimmerwald-quest/assets/audio/glimmerwald-theme.wav"
     },

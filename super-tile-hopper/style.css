@@ -1,16 +1,18 @@
 :root {
-  color-scheme: dark;
-  --ink: #171a21;
-  --paper: #fff7dc;
-  --panel: rgba(24, 28, 40, 0.76);
-  --panel-strong: rgba(17, 20, 30, 0.9);
-  --sky: #70b9ff;
-  --mint: #54d682;
-  --gold: #ffd35a;
-  --coral: #ff6f61;
-  --blue: #2f6fd6;
-  --shadow: rgba(0, 0, 0, 0.28);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: light;
+  --ink: #33210b;
+  --cream: #fff8df;
+  --cream-2: #ffeaa6;
+  --red: #e73b30;
+  --red-dark: #a91f1b;
+  --sky: #69c7ff;
+  --blue: #2077d8;
+  --green: #32b85a;
+  --gold: #ffd238;
+  --orange: #ff9f2f;
+  --outline: rgba(64, 34, 6, 0.82);
+  --shadow: rgba(88, 42, 0, 0.3);
+  font-family: "Trebuchet MS", "Arial Rounded MT Bold", "Segoe UI", system-ui, sans-serif;
 }
 
 * {
@@ -27,10 +29,12 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow: hidden;
+  color: var(--ink);
   background:
-    linear-gradient(180deg, rgba(255, 247, 220, 0.55), rgba(255, 247, 220, 0) 22%),
-    linear-gradient(135deg, #6fc6ff 0%, #92de9d 48%, #f8c763 100%);
-  color: var(--paper);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 25%),
+    linear-gradient(135deg, #6bc7ff 0%, #91e770 52%, #ffd15b 100%);
+  overscroll-behavior: none;
+  user-select: none;
 }
 
 button {
@@ -38,10 +42,11 @@ button {
   color: inherit;
   font: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:focus-visible {
-  outline: 3px solid #fff;
+  outline: 3px solid #ffffff;
   outline-offset: 3px;
 }
 
@@ -51,7 +56,8 @@ button:focus-visible {
   height: 100vh;
   min-width: 320px;
   overflow: hidden;
-  background: #73bdff;
+  background: #73caff;
+  touch-action: none;
 }
 
 #game {
@@ -63,6 +69,7 @@ button:focus-visible {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background: var(--sky);
+  touch-action: none;
 }
 
 .hud {
@@ -72,53 +79,81 @@ button:focus-visible {
   right: max(12px, env(safe-area-inset-right));
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(140px, max-content) minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+  align-items: start;
   gap: 10px;
   pointer-events: none;
 }
 
 .hud__brand,
-.hud__stats,
+.hud__stats span,
 .hud__buttons button,
 .overlay__panel,
 .touch-pad__button {
-  box-shadow: 0 12px 34px var(--shadow);
-}
-
-.hud__brand,
-.hud__stats {
-  min-height: 42px;
-  border: 2px solid rgba(255, 255, 255, 0.38);
-  background: var(--panel);
-  backdrop-filter: blur(8px);
+  border: 3px solid var(--outline);
+  box-shadow:
+    inset 0 -5px 0 rgba(110, 55, 0, 0.16),
+    0 8px 0 rgba(95, 43, 0, 0.22),
+    0 14px 28px var(--shadow);
 }
 
 .hud__brand {
+  min-height: 46px;
   display: grid;
   place-items: center;
   padding: 0 14px;
   border-radius: 8px;
-  color: #fff7dc;
-  font-weight: 900;
-  letter-spacing: 0;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff584c, var(--red));
+  font-weight: 950;
   text-transform: uppercase;
   white-space: nowrap;
+  text-shadow: 0 2px 0 var(--red-dark);
 }
 
 .hud__stats {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: clamp(8px, 2vw, 22px);
-  padding: 0 14px;
+  gap: 8px;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.hud__stats span {
+  min-height: 34px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 10px;
   border-radius: 8px;
+  color: #3a2300;
+  background: linear-gradient(180deg, #fff7c7, var(--gold));
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+#hudShards,
+#hudAir {
+  background: linear-gradient(180deg, #dffbff, #70d9ff);
+}
+
+#hudRelics,
+#hudDash {
+  background: linear-gradient(180deg, #e7ffd1, #7ce35f);
+}
+
+#hudLives {
+  background: linear-gradient(180deg, #ffd5d0, #ff6c62);
   color: #ffffff;
-  font-size: clamp(0.78rem, 1.3vw, 0.98rem);
-  font-weight: 800;
-  line-height: 1.05;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  text-shadow: 0 2px 0 var(--red-dark);
+}
+
+#hudTime {
+  background: linear-gradient(180deg, #ffffff, #ffe29c);
 }
 
 .hud__buttons {
@@ -129,26 +164,36 @@ button:focus-visible {
 }
 
 .hud__buttons button {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: var(--panel-strong);
-  border: 2px solid rgba(255, 255, 255, 0.34);
-  transition: transform 140ms ease, background 140ms ease;
+  color: #ffffff;
+  background: linear-gradient(180deg, #5aadff, var(--blue));
+  transition: transform 120ms ease, filter 120ms ease;
 }
 
 .hud__buttons button:hover,
 .touch-pad__button:hover,
 .overlay__panel button:hover {
   transform: translateY(-1px);
+  filter: saturate(1.08);
+}
+
+.hud__buttons button:active,
+.hud__buttons button.is-active,
+.touch-pad__button.is-active {
+  transform: translateY(4px);
+  box-shadow:
+    inset 0 3px 0 rgba(0, 0, 0, 0.12),
+    0 4px 0 rgba(95, 43, 0, 0.24);
 }
 
 .hud__buttons svg,
 .touch-pad__button svg {
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
   fill: currentColor;
 }
 
@@ -162,8 +207,10 @@ button:focus-visible {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(11, 18, 30, 0.32), rgba(11, 18, 30, 0.56));
-  transition: opacity 180ms ease, visibility 180ms ease;
+  background:
+    radial-gradient(circle at center, rgba(255, 251, 211, 0.58), rgba(87, 181, 255, 0.28) 48%, rgba(45, 124, 214, 0.42)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(48, 123, 199, 0.3));
+  transition: opacity 160ms ease, visibility 160ms ease;
 }
 
 .overlay--visible {
@@ -173,50 +220,52 @@ button:focus-visible {
 }
 
 .overlay__panel {
-  width: min(460px, calc(100vw - 36px));
+  width: min(462px, calc(100vw - 36px));
   border-radius: 8px;
-  padding: clamp(20px, 5vw, 34px);
-  border: 2px solid rgba(255, 255, 255, 0.38);
-  background: rgba(18, 24, 36, 0.86);
+  padding: 28px;
+  background: linear-gradient(180deg, #fffaf0, #ffe78f);
   text-align: center;
-  backdrop-filter: blur(10px);
 }
 
 .overlay__kicker {
   margin: 0 0 10px;
-  color: var(--gold);
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0;
+  color: var(--blue);
+  font-size: 0.86rem;
+  font-weight: 950;
   text-transform: uppercase;
 }
 
 .overlay__panel h1 {
   margin: 0;
-  color: #fff7dc;
-  font-size: clamp(2rem, 7vw, 4.8rem);
-  line-height: 0.92;
-  letter-spacing: 0;
-  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  color: var(--red);
+  font-size: 3.8rem;
+  line-height: 0.95;
+  text-shadow:
+    0 3px 0 #ffffff,
+    0 6px 0 rgba(91, 42, 0, 0.22);
 }
 
 .overlay__panel p:not(.overlay__kicker) {
   margin: 16px auto 22px;
   max-width: 34ch;
-  color: rgba(255, 255, 255, 0.88);
-  line-height: 1.45;
+  color: #583500;
+  font-weight: 800;
+  line-height: 1.42;
 }
 
 .overlay__panel button {
-  min-width: 148px;
-  min-height: 46px;
+  min-width: 150px;
+  min-height: 48px;
   padding: 0 22px;
+  border: 3px solid var(--outline);
   border-radius: 8px;
-  background: linear-gradient(180deg, #ffd867, #ff9f3c);
-  color: #3a2200;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff675d, var(--red));
   font-weight: 950;
   text-transform: uppercase;
-  box-shadow: inset 0 -4px 0 rgba(127, 65, 0, 0.22), 0 12px 20px rgba(0, 0, 0, 0.24);
+  box-shadow:
+    inset 0 -5px 0 rgba(92, 26, 12, 0.2),
+    0 8px 0 rgba(95, 43, 0, 0.24);
 }
 
 .touch-pad {
@@ -236,31 +285,25 @@ button:focus-visible {
 }
 
 .touch-pad__button {
-  width: 58px;
-  height: 58px;
+  width: 66px;
+  height: 66px;
   display: grid;
   place-items: center;
   border-radius: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.42);
-  background: rgba(18, 24, 36, 0.7);
-  color: #fff7dc;
-  backdrop-filter: blur(8px);
+  color: #ffffff;
+  background: linear-gradient(180deg, #5fb7ff, var(--blue));
   pointer-events: auto;
   touch-action: none;
-  transition: transform 140ms ease, background 140ms ease;
+  transition: transform 120ms ease, filter 120ms ease;
 }
 
 .touch-pad__button--jump {
-  background: rgba(255, 142, 64, 0.82);
+  background: linear-gradient(180deg, #ff7468, var(--red));
 }
 
 .touch-pad__button--run {
-  background: rgba(47, 111, 214, 0.78);
-}
-
-.touch-pad__button.is-active {
-  transform: translateY(2px);
-  background: rgba(255, 255, 255, 0.24);
+  color: #3d2600;
+  background: linear-gradient(180deg, #fff188, var(--gold));
 }
 
 @media (pointer: coarse), (max-width: 760px) {
@@ -269,8 +312,8 @@ button:focus-visible {
   }
 
   .hud {
-    grid-template-columns: 1fr auto;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
   }
 
   .hud__brand {
@@ -278,27 +321,48 @@ button:focus-visible {
   }
 
   .hud__stats {
-    min-height: 38px;
     justify-content: flex-start;
-    overflow: hidden;
-    gap: 6px 10px;
-    font-size: 0.72rem;
+    gap: 6px;
+  }
+
+  .hud__stats span {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 0.7rem;
+  }
+
+  .hud__buttons {
+    gap: 6px;
   }
 
   .hud__buttons button {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .overlay__panel h1 {
+    font-size: 2.7rem;
   }
 }
 
 @media (max-width: 420px) {
-  .hud__stats {
-    gap: 7px;
-    padding: 0 10px;
+  .hud__stats span {
+    min-height: 28px;
+    padding: 0 7px;
+    font-size: 0.64rem;
+  }
+
+  .hud__buttons button {
+    width: 38px;
+    height: 38px;
   }
 
   .touch-pad__button {
-    width: 52px;
-    height: 52px;
+    width: 58px;
+    height: 58px;
+  }
+
+  .overlay__panel {
+    padding: 22px;
   }
 }

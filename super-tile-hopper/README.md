@@ -13,8 +13,9 @@ Oeffne `index.html` direkt im Browser.
 - Space, Pfeil hoch oder W: springen, in der Luft zweimal nachsetzen fuer Triple-Jump
 - P oder Escape: Pause
 - R: Neustart
+- Vollbild-Button im HUD: Fullscreen umschalten
 
-Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons.
+Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons fuer links/rechts, Dash/Sprint und Sprung.
 
 ## Inhalt
 
@@ -23,9 +24,11 @@ Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons.
 - Lokale WAV-Assets fuer SFX und eine kleine geloopte BGM
 - Asset-Map unter `assets/asset-map.json` fuer neue Original-Atlanten plus importierte Fallbacks
 - Neues Imagen-HD-Atlasblatt unter `assets/imagen-hd/gfx/hd-imagen-atlas.png`
+- Neues sauberer gerastertes Mascot-Platformer-Imagen-Atlasblatt unter `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png`
 - Neue Original-PNG-Maps fuer Tileset, Sprite-Sheet und Background
 - Importierte Imagen-Grafikmaps bleiben als Fallback im Projekt
 - Importierte Workspace-Audioquellen fuer BGM, Pickup, Gate, Hit und Hurt
+- BGM aus dem lokalen Downloads-Ordner unter `assets/downloads/audio/sky-garden-relay.mp3`
 - Tile-Atlas fuer Gras, Erde, Bricks, Bonus-Blocks, Plattformen und Sprungfedern
 - Handgebautes Tilemap-Level mit Luecken, Hoehenwechseln, Coins, Sky-Shards, Aero-Ringen, Gegnern, Checkpoint und Ziel
 - Parallax-Hintergrund mit Sonne, Wolken, Bergen und Huegeln
@@ -52,4 +55,4 @@ Die importierten Dateien liegen unter `assets/imported/`. Sie wurden aus lokalen
 - `glimmerwald-quest/assets/...` fuer Imagen-Tiles, Charaktere, Gegner, Objekte und WAV-Sounds
 - `pixel-plumber-platformer/assets/bg_cloud_bank.png` fuer einen zusaetzlichen Wolkenlayer
 
-Die aktuell aktive Grafik liegt unter `assets/original/gfx/` und wird aus `tools/build-original-png-assets.js` erzeugt.
+Die aktuell aktive Grafik nutzt `assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png` mit frameweiser Freistellung. Die Original-PNG-Maps unter `assets/original/gfx/` bleiben als robuste Fallbacks erhalten.
