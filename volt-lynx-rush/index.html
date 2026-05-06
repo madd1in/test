@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Volt Lynx Rush</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Volt Lynx Rush">
+      <section class="game-shell">
+        <div class="hud" aria-live="polite">
+          <div class="hud__group">
+            <span class="hud__pill"><b id="hudHoops">0</b> hoops</span>
+            <span class="hud__pill"><b id="hudScore">0</b> score</span>
+            <span class="hud__pill"><b id="hudTime">0.0</b>s</span>
+          </div>
+          <div class="boost" aria-label="Boost energy">
+            <div id="hudBoost" class="boost__fill"></div>
+          </div>
+          <div class="hud__group hud__group--right">
+            <span class="hud__pill"><b id="hudSpeed">0</b> km/h</span>
+            <button id="assetButton" class="icon-button" type="button" aria-label="Asset Map">A</button>
+            <button id="audioButton" class="icon-button" type="button" aria-label="Audio">M</button>
+            <button id="restartButton" class="icon-button" type="button" aria-label="Restart">R</button>
+            <button id="pauseButton" class="icon-button" type="button" aria-label="Pause">P</button>
+          </div>
+        </div>
+
+        <canvas id="game" width="1280" height="720" aria-label="Volt Lynx Rush playfield"></canvas>
+
+        <div id="overlay" class="overlay overlay--visible">
+          <div class="overlay__panel">
+            <p class="eyebrow">Original speed platformer</p>
+            <h1>Volt Lynx Rush</h1>
+            <p class="overlay__copy">Sammle Hoops, nutze Springs, halte Speed und jage durch die Loop-Rails.</p>
+            <div class="overlay__actions">
+              <button id="startButton" class="primary-button" type="button">Start Run</button>
+              <button id="overlayAssetButton" class="secondary-button" type="button">Asset Map</button>
+            </div>
+          </div>
+        </div>
+
+        <aside id="assetPanel" class="asset-panel" aria-hidden="true">
+          <div class="asset-panel__bar">
+            <h2>Asset Map</h2>
+            <button id="closeAssetButton" class="icon-button" type="button" aria-label="Close">X</button>
+          </div>
+          <div class="asset-panel__grid">
+            <figure>
+              <img src="assets/asset-map.svg" alt="SVG sprite atlas for Volt Lynx Rush" />
+              <figcaption>Runtime SVG atlas</figcaption>
+            </figure>
+            <figure>
+              <img src="assets/imagen-asset-map-preview.png" alt="Generated visual asset map preview" />
+              <figcaption>Imagegen preview</figcaption>
+            </figure>
+            <figure>
+              <img src="assets/imported/bg-cloud-bank.png" alt="Imported repeatable cloud bank" />
+              <figcaption>Imported cloud layer</figcaption>
+            </figure>
+            <figure>
+              <img src="assets/imported/bg-distant-silhouettes.png" alt="Imported repeatable distant silhouettes" />
+              <figcaption>Imported skyline layer</figcaption>
+            </figure>
+            <figure>
+              <img src="assets/sliced/hero_run_1.png" alt="Sliced Volt Lynx run frame" />
+              <figcaption>Sliced runtime frame</figcaption>
+            </figure>
+          </div>
+        </aside>
+
+        <div class="touch-pad" aria-label="Touch controls">
+          <button class="touch-pad__button" data-action="left" type="button" aria-label="Left">&lt;</button>
+          <button class="touch-pad__button" data-action="right" type="button" aria-label="Right">&gt;</button>
+          <button class="touch-pad__button" data-action="jump" type="button" aria-label="Jump">^</button>
+          <button class="touch-pad__button" data-action="dash" type="button" aria-label="Dash">B</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>

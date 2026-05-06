@@ -1,0 +1,205 @@
+{
+  "source": "asset-map.svg",
+  "frames": {
+    "hero_idle": {
+      "file": "hero_idle.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_run_1": {
+      "file": "hero_run_1.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_run_2": {
+      "file": "hero_run_2.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_run_3": {
+      "file": "hero_run_3.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_run_4": {
+      "file": "hero_run_4.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_jump": {
+      "file": "hero_jump.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_dash": {
+      "file": "hero_dash.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_skid": {
+      "file": "hero_skid.png",
+      "w": 64,
+      "h": 64
+    },
+    "hero_hurt": {
+      "file": "hero_hurt.png",
+      "w": 64,
+      "h": 64
+    },
+    "fx_trail": {
+      "file": "fx_trail.png",
+      "w": 64,
+      "h": 64
+    },
+    "fx_spark": {
+      "file": "fx_spark.png",
+      "w": 64,
+      "h": 64
+    },
+    "fx_burst": {
+      "file": "fx_burst.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_grass": {
+      "file": "tile_grass.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_dirt": {
+      "file": "tile_dirt.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_stone": {
+      "file": "tile_stone.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_slope_up": {
+      "file": "tile_slope_up.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_slope_down": {
+      "file": "tile_slope_down.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_loop": {
+      "file": "tile_loop.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_cave": {
+      "file": "tile_cave.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_rail": {
+      "file": "tile_rail.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_bridge": {
+      "file": "tile_bridge.png",
+      "w": 64,
+      "h": 64
+    },
+    "tile_water": {
+      "file": "tile_water.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_hoop_1": {
+      "file": "item_hoop_1.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_hoop_2": {
+      "file": "item_hoop_2.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_hoop_3": {
+      "file": "item_hoop_3.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_hoop_4": {
+      "file": "item_hoop_4.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_spring": {
+      "file": "item_spring.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_boost": {
+      "file": "item_boost.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_shield": {
+      "file": "item_shield.png",
+      "w": 64,
+      "h": 64
+    },
+    "enemy_drone": {
+      "file": "enemy_drone.png",
+      "w": 64,
+      "h": 64
+    },
+    "hazard_spike": {
+      "file": "hazard_spike.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_checkpoint": {
+      "file": "item_checkpoint.png",
+      "w": 64,
+      "h": 64
+    },
+    "item_goal": {
+      "file": "item_goal.png",
+      "w": 64,
+      "h": 64
+    },
+    "bg_cloud": {
+      "file": "bg_cloud.png",
+      "w": 64,
+      "h": 64
+    },
+    "bg_hill": {
+      "file": "bg_hill.png",
+      "w": 64,
+      "h": 64
+    },
+    "bg_palm": {
+      "file": "bg_palm.png",
+      "w": 64,
+      "h": 64
+    },
+    "bg_crystal": {
+      "file": "bg_crystal.png",
+      "w": 64,
+      "h": 64
+    },
+    "ui_hoop": {
+      "file": "ui_hoop.png",
+      "w": 64,
+      "h": 64
+    },
+    "ui_speed": {
+      "file": "ui_speed.png",
+      "w": 64,
+      "h": 64
+    },
+    "ui_energy": {
+      "file": "ui_energy.png",
+      "w": 64,
+      "h": 64
+    }
+  }
+}
