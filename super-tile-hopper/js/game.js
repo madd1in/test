@@ -44,15 +44,17 @@
     mascotAtlas: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
     mascotAtlasRaw: "assets/imagen-hd/gfx/hd-mascot-platformer-atlas.png",
     cleanGameplayAtlas: "assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png",
+    playfieldTileset: "assets/imagen-hd/gfx/hd-playfield-tileset-imagen.png",
     repeatBackground: "assets/imagen-hd/gfx/hd-repeatable-background-imagen.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
   const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
-  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas"]);
+  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas", "playfieldTileset"]);
   const ASSET_MAP = {
     tileAsset: "mascotAtlas",
     spriteAsset: "mascotAtlas",
     cleanAsset: "cleanGameplayAtlas",
+    playfieldAsset: "playfieldTileset",
     backgroundAsset: "repeatBackground",
     backgroundFrame: null,
     backgroundRepeat: "mirror-x",
@@ -92,6 +94,30 @@
       cloudTile: [540, 149, 456, 213],
       finishFlag: [1141, 13, 277, 486],
       checkpointFlag: [1653, 70, 277, 372],
+    },
+    playfieldFrames: {
+      grass: [52, 68, 408, 376],
+      dirt: [564, 57, 408, 398],
+      brick: [1076, 64, 408, 383],
+      bonus: [1589, 52, 405, 408],
+      used: [101, 564, 310, 408],
+      pipeTop: [553, 639, 430, 258],
+      pipeShaft: [1100, 592, 360, 352],
+      cloudTile: [1580, 653, 424, 230],
+      piranhaUp: [106, 1050, 300, 460],
+      piranhaDown: [577, 1120, 381, 320],
+      flagA: [1115, 1089, 330, 382],
+      flagB: [1627, 1087, 330, 385],
+    },
+    playfieldTileFrames: {
+      G: "grass",
+      D: "dirt",
+      B: "brick",
+      Q: "bonus",
+      U: "used",
+      W: "cloudTile",
+      I: "pipeTop",
+      J: "pipeShaft",
     },
     objectFrames: {
       gem: [324, 484, 106, 152],
@@ -165,7 +191,7 @@
   };
   const screenPointers = new Map();
 
-  const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S", "W"]);
+  const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S", "W", "I", "J"]);
   const decorTiles = new Set(["a", "f", "v", "x"]);
   const keyMap = {
     ArrowLeft: "left",
@@ -245,6 +271,7 @@
 
   function atlasFramesForKey(key) {
     if (key === ASSET_MAP.cleanAsset) return Object.values(ASSET_MAP.cleanFrames);
+    if (key === ASSET_MAP.playfieldAsset) return Object.values(ASSET_MAP.playfieldFrames);
     if (key !== ASSET_MAP.tileAsset && key !== ASSET_MAP.spriteAsset) return [];
     return [
       ...Object.values(ASSET_MAP.tileFrames),
@@ -681,6 +708,7 @@
     updatePlayer(dt);
     if (player.dashBuffer > 0 && tryStartDash()) player.dashBuffer = 0;
     updateEnemies(dt);
+    updatePiranhas(dt);
     updateCoins(dt);
     updateShardsAndRings(dt);
     updatePickupsAndGoals();
@@ -877,7 +905,7 @@
         }
         if (player.invulnerable > 0) continue;
         const playerBottom = player.y + player.h;
-        const stomp = player.vy > 120 && playerBottom - enemy.y < 18;
+        const stomp = player.vy > 120 && playerBottom - enemy.y < 24;
         if (stomp) {
           player.vy = -440;
           player.grounded = false;
@@ -890,6 +918,47 @@
         }
       }
     }
+  }
+
+  function updatePiranhas(dt) {
+    for (const piranha of world.piranhas) {
+      piranha.anim += dt;
+      const hitbox = piranhaHitbox(piranha);
+      if (rectsOverlap(player, hitbox)) {
+        if (player.starTimer > 0) {
+          piranha.stunned = 1.6;
+          spawnSpark(hitbox.x + hitbox.w * 0.5, hitbox.y + hitbox.h * 0.4, "#54d682", 18);
+          spawnText(hitbox.x + hitbox.w * 0.5, hitbox.y - 4, "Chomp");
+          playSound("stomp");
+        } else if (player.invulnerable <= 0) {
+          hurtPlayer(false);
+        }
+      }
+      piranha.stunned = Math.max(0, piranha.stunned - dt);
+    }
+  }
+
+  function piranhaRise(piranha) {
+    if (piranha.stunned > 0) return 0;
+    const cycle = ((piranha.anim + piranha.phase) % 3.1) / 3.1;
+    if (cycle < 0.22) return easeInOut(cycle / 0.22);
+    if (cycle < 0.64) return 1;
+    if (cycle < 0.86) return 1 - easeInOut((cycle - 0.64) / 0.22);
+    return 0;
+  }
+
+  function piranhaHitbox(piranha) {
+    const rise = piranhaRise(piranha);
+    if (rise <= 0.08) {
+      return { x: piranha.x + 18, y: piranha.pipeY, w: 28, h: 0 };
+    }
+    const h = 18 + 34 * rise;
+    return {
+      x: piranha.x + 18,
+      y: piranha.pipeY - h + 4,
+      w: 28,
+      h,
+    };
   }
 
   function defeatEnemy(enemy, mode) {
@@ -1059,7 +1128,7 @@
 
     const shakeX = game && game.shake > 0 ? (Math.random() - 0.5) * game.shake : 0;
     const shakeY = game && game.shake > 0 ? (Math.random() - 0.5) * game.shake : 0;
-    ctx.translate(Math.round(-game.cameraX + shakeX), Math.round(-game.cameraY + shakeY));
+    ctx.translate(-game.cameraX + shakeX, -game.cameraY + shakeY);
 
     drawDecorBack();
     drawTiles();
@@ -1067,6 +1136,7 @@
     drawCheckpointsAndGoal();
     drawCoins();
     drawShardsAndRings();
+    drawPiranhas();
     drawEnemies();
     drawPlayer();
     drawEffects();
@@ -1327,6 +1397,23 @@
   function drawCheckpointsAndGoal() {
     for (const checkpoint of world.checkpoints) {
       if (checkpoint.x < game.cameraX - 80 || checkpoint.x > game.cameraX + view.w + 80) continue;
+      const flagFrame = Math.floor((game.time + checkpoint.phase) * 5) % 2 === 0 ? ASSET_MAP.playfieldFrames.flagA : ASSET_MAP.playfieldFrames.flagB;
+      const flagOffset = Math.sin((game.time + checkpoint.phase) * 5.8) * 2;
+      if (
+        drawImportedFrame(
+          ASSET_MAP.playfieldAsset,
+          flagFrame,
+          checkpoint.x - 7 + flagOffset,
+          checkpoint.y - 4,
+          70,
+          88
+        )
+      ) {
+        if (checkpoint.reached) {
+          drawImportedFrame(ASSET_MAP.spriteAsset, ASSET_MAP.objectFrames.heart, checkpoint.x + 17, checkpoint.y - 14, 30, 30);
+        }
+        continue;
+      }
       if (
         drawImportedFrame(
           ASSET_MAP.cleanAsset,
@@ -1355,6 +1442,11 @@
 
     if (world.goal) {
       const goal = world.goal;
+      const flagFrame = Math.floor(game.time * 5) % 2 === 0 ? ASSET_MAP.playfieldFrames.flagA : ASSET_MAP.playfieldFrames.flagB;
+      const flagOffset = Math.sin(game.time * 6.2) * 3;
+      if (drawImportedFrame(ASSET_MAP.playfieldAsset, flagFrame, goal.x - 7 + flagOffset, goal.y - 70, 98, 142)) {
+        return;
+      }
       if (drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.finishFlag, goal.x - 8, goal.y - 72, 88, 154)) {
         return;
       }
@@ -1519,13 +1611,31 @@
     ctx.restore();
   }
 
+  function drawPiranhas() {
+    for (const piranha of world.piranhas) {
+      if (piranha.x < game.cameraX - 90 || piranha.x > game.cameraX + view.w + 90) continue;
+      const rise = piranhaRise(piranha);
+      const frame = rise > 0.48 ? ASSET_MAP.playfieldFrames.piranhaUp : ASSET_MAP.playfieldFrames.piranhaDown;
+      const y = piranha.pipeY - 54 * rise - 38;
+      const alpha = piranha.stunned > 0 ? 0.35 + Math.sin(game.time * 18) * 0.14 : 1;
+      if (drawImportedFrame(ASSET_MAP.playfieldAsset, frame, piranha.x - 7, y, 78, 102, false, alpha)) {
+        continue;
+      }
+      const hitbox = piranhaHitbox(piranha);
+      ctx.fillStyle = "#d92b37";
+      ctx.fillRect(hitbox.x, hitbox.y, hitbox.w, hitbox.h);
+      ctx.fillStyle = "#fff7dc";
+      ctx.fillRect(hitbox.x + 6, hitbox.y + 6, 8, 8);
+    }
+  }
+
   function drawEnemies() {
     for (const enemy of world.enemies) {
       if (!enemy.active) continue;
       if (enemy.x < game.cameraX - 80 || enemy.x > game.cameraX + view.w + 80) continue;
       const frame = Math.floor(enemy.anim * 8) % 2 === 0 ? "snail0" : "snail1";
       const bob = Math.sin(enemy.anim * 13) * 1.4;
-      if (drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.beetle, enemy.x - 32, enemy.y - 42 + bob, 90, 72, enemy.vx > 0)) {
+      if (drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.beetle, enemy.x - 13, enemy.y - 23 + bob, 62, 50, enemy.vx > 0)) {
         continue;
       }
       const importedFrame = ASSET_MAP.enemyFrames[enemy.kind % ASSET_MAP.enemyFrames.length];
@@ -1605,6 +1715,9 @@
   }
 
   function drawTile(ch, x, y) {
+    const tx = Math.round(x / TILE);
+    const ty = Math.round(y / TILE);
+    if ((ch === "I" || ch === "J") && getTile(tx - 1, ty) === ch) return;
     const frame = tileFrame(ch);
     if (!frame) return;
     ctx.drawImage(tileAtlas, frame.x, frame.y, TILE, TILE, x, y, TILE, TILE);
@@ -1612,6 +1725,19 @@
   }
 
   function drawImportedTile(ch, x, y) {
+    const playfieldKey = ASSET_MAP.playfieldTileFrames[ch];
+    const playfieldFrame = playfieldKey ? ASSET_MAP.playfieldFrames[playfieldKey] : null;
+    if (playfieldFrame) {
+      const tx = Math.round(x / TILE);
+      const ty = Math.round(y / TILE);
+      const pipeSpan = (ch === "I" || ch === "J") && getTile(tx + 1, ty) === ch ? TILE * 2 : TILE;
+      const yOffset = ch === "W" ? -5 : ch === "I" ? -4 : 0;
+      const height = ch === "W" ? TILE + 8 : ch === "I" ? TILE + 7 : TILE;
+      const alpha = ch === "D" || ch === "J" ? 0.98 : 1;
+      if (drawImportedFrame(ASSET_MAP.playfieldAsset, playfieldFrame, x, y + yOffset, pipeSpan, height, false, alpha)) {
+        return;
+      }
+    }
     if (ch === "W" && drawImportedFrame(ASSET_MAP.cleanAsset, ASSET_MAP.cleanFrames.cloudTile, x - 7, y - 6, TILE + 14, TILE + 9)) {
       return;
     }
@@ -1869,6 +1995,7 @@
       stars: parsed.stars,
       platforms,
       enemies: parsed.enemies,
+      piranhas: parsed.piranhas,
       checkpoints: parsed.checkpoints,
       plants: parsed.plants,
       goal: parsed.goal,
@@ -1907,15 +2034,20 @@
         set(from + i, y + dy, "C");
       }
     };
+    const pipeWithPiranha = (x, y) => {
+      row(y, x, x + 1, "I");
+      row(y + 1, x, x + 1, "J");
+      set(x, y - 1, "Y");
+    };
 
-    ground(0, 18, 14);
-    ground(22, 43, 15);
-    ground(49, 66, 13);
-    ground(71, 91, 15);
-    ground(97, 119, 12);
-    ground(125, 146, 14);
-    ground(151, 172, 11);
-    ground(178, 199, 14);
+    ground(0, 20, 14);
+    ground(23, 46, 15);
+    ground(49, 68, 13);
+    ground(72, 94, 15);
+    ground(98, 122, 12);
+    ground(126, 149, 14);
+    ground(153, 175, 11);
+    ground(179, 202, 14);
     ground(205, 231, 13);
 
     row(10, 8, 12, "B");
@@ -1934,6 +2066,9 @@
     row(7, 181, 188, "W");
     row(10, 194, 199, "B");
     row(8, 211, 218, "W");
+    pipeWithPiranha(15, 13);
+    pipeWithPiranha(74, 14);
+    pipeWithPiranha(181, 13);
 
     for (let step = 0; step < 5; step += 1) {
       row(13 - step, 116 + step * 2, 117 + step * 2, "B");
@@ -2066,21 +2201,26 @@
         set(from + i, y + dy, "C");
       }
     };
-    return { tiles, set, ground, row, coins, coinLine, coinArc };
+    const pipeWithPiranha = (x, y) => {
+      row(y, x, x + 1, "I");
+      row(y + 1, x, x + 1, "J");
+      set(x, y - 1, "Y");
+    };
+    return { tiles, set, ground, row, coins, coinLine, coinArc, pipeWithPiranha };
   }
 
   function buildCloudLiftLevel(levelIndex) {
-    const { tiles, set, ground, row, coins, coinLine, coinArc } = createLevelSketch();
+    const { tiles, set, ground, row, coins, coinLine, coinArc, pipeWithPiranha } = createLevelSketch();
 
-    ground(0, 16, 14);
-    ground(24, 36, 15);
-    ground(46, 56, 13);
-    ground(70, 82, 15);
-    ground(94, 104, 12);
-    ground(118, 130, 15);
-    ground(144, 154, 12);
-    ground(168, 182, 15);
-    ground(196, 231, 13);
+    ground(0, 19, 14);
+    ground(23, 39, 15);
+    ground(44, 60, 13);
+    ground(68, 86, 15);
+    ground(92, 108, 12);
+    ground(116, 134, 15);
+    ground(142, 159, 12);
+    ground(166, 187, 15);
+    ground(194, 231, 13);
 
     row(10, 7, 12, "W");
     row(8, 22, 26, "W");
@@ -2093,6 +2233,9 @@
     row(8, 159, 165, "W");
     row(9, 186, 193, "W");
     row(8, 208, 215, "W");
+    row(12, 40, 43, "W");
+    row(11, 109, 115, "W");
+    row(10, 160, 165, "W");
     row(11, 49, 53, "B");
     row(9, 97, 101, "B");
     row(10, 171, 177, "B");
@@ -2102,6 +2245,9 @@
     set(84, 11, "Q");
     set(139, 8, "Q");
     set(219, 9, "Q");
+    pipeWithPiranha(73, 14);
+    pipeWithPiranha(119, 14);
+    pipeWithPiranha(199, 12);
 
     coinArc(6, 7, 8);
     coinLine(22, 26, 6);
@@ -2186,16 +2332,16 @@
   }
 
   function buildFlagRushLevel(levelIndex) {
-    const { tiles, set, ground, row, coins, coinLine, coinArc } = createLevelSketch();
+    const { tiles, set, ground, row, coins, coinLine, coinArc, pipeWithPiranha } = createLevelSketch();
 
-    ground(0, 18, 14);
-    ground(25, 42, 14);
-    ground(50, 66, 15);
-    ground(74, 94, 13);
-    ground(104, 125, 15);
-    ground(136, 154, 12);
-    ground(164, 187, 15);
-    ground(198, 231, 13);
+    ground(0, 20, 14);
+    ground(24, 45, 14);
+    ground(49, 70, 15);
+    ground(73, 98, 13);
+    ground(102, 129, 15);
+    ground(134, 159, 12);
+    ground(162, 190, 15);
+    ground(196, 231, 13);
 
     row(9, 14, 19, "W");
     row(10, 45, 49, "W");
@@ -2204,6 +2350,10 @@
     row(6, 128, 134, "W");
     row(8, 156, 162, "W");
     row(7, 190, 196, "W");
+    row(10, 21, 23, "W");
+    row(12, 46, 48, "W");
+    row(11, 130, 133, "W");
+    row(10, 191, 195, "W");
     row(11, 78, 84, "B");
     row(9, 111, 118, "B");
     row(10, 171, 178, "B");
@@ -2213,6 +2363,10 @@
     set(88, 10, "Q");
     set(133, 5, "Q");
     set(202, 10, "Q");
+    pipeWithPiranha(31, 13);
+    pipeWithPiranha(116, 14);
+    pipeWithPiranha(173, 14);
+    pipeWithPiranha(213, 12);
 
     coinArc(10, 7, 10);
     coinLine(28, 41, 10);
@@ -2330,6 +2484,7 @@
     const relics = [];
     const stars = [];
     const enemies = [];
+    const piranhas = [];
     const checkpoints = [];
     const plants = [];
     let goal = null;
@@ -2384,12 +2539,12 @@
         } else if (ch === "E" || ch === "N") {
           const flip = ch === "N";
           enemies.push({
-            x: x * TILE + 3,
-            y: y * TILE + 8,
-            w: 26,
-            h: 23,
-            homeX: x * TILE + 3,
-            homeY: y * TILE + 8,
+            x: x * TILE - 2,
+            y: y * TILE + 3,
+            w: 36,
+            h: 28,
+            homeX: x * TILE - 2,
+            homeY: y * TILE + 3,
             vx: flip ? 52 : -52,
             vy: 0,
             baseSpeed: 52,
@@ -2398,6 +2553,15 @@
             grounded: false,
             active: true,
             anim: 0,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "Y") {
+          piranhas.push({
+            x: x * TILE,
+            pipeY: (y + 1) * TILE,
+            anim: 0,
+            phase: piranhas.length * 0.67,
+            stunned: 0,
           });
           tiles[y][x] = ".";
         } else if (ch === "K") {
@@ -2409,6 +2573,7 @@
             h: 76,
             spawnX: x * TILE - 28,
             spawnY: y * TILE - 34,
+            phase: checkpoints.length * 0.31,
             reached: false,
           });
           tiles[y][x] = ".";
@@ -2431,7 +2596,7 @@
       }
     }
 
-    return { coins, shards, rings, relics, stars, enemies, checkpoints, plants, goal };
+    return { coins, shards, rings, relics, stars, enemies, piranhas, checkpoints, plants, goal };
   }
 
   function createTileAtlas() {
@@ -2607,6 +2772,8 @@
       P: [5, 0],
       S: [6, 0],
       W: [7, 0],
+      I: [6, 0],
+      J: [4, 0],
       a: [0, 1],
       f: [1, 1],
       v: [0, 1],
@@ -2769,6 +2936,11 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function easeInOut(value) {
+    const t = clamp(value, 0, 1);
+    return t * t * (3 - 2 * t);
   }
 
   function approach(value, target, amount) {

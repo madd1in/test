@@ -1,6 +1,6 @@
 {
-  "version": 9,
-  "description": "Super Tile Hopper asset map. Version 9 adds a cleaned transparent Imagen gameplay atlas for beetle enemies, cloud tiles, checkpoints, and finish flags.",
+  "version": 10,
+  "description": "Super Tile Hopper asset map. Version 10 adds a transparent Imagen playfield tileset with pipes, piranhas, cloud tiles, and animated flag frames.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -49,6 +49,27 @@
         "cloudTile": [540, 149, 456, 213],
         "finishFlag": [1141, 13, 277, 486],
         "checkpointFlag": [1653, 70, 277, 372]
+      }
+    },
+    "playfieldImagenTileset": {
+      "path": "assets/imagen-hd/gfx/hd-playfield-tileset-imagen.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0729913352a074980169fb1f5fb4a08191b4f64738347951a5.png",
+      "frameSize": [2048, 1536],
+      "frameKey": true,
+      "role": "activePlayfieldTileset",
+      "frames": {
+        "grass": [52, 68, 408, 376],
+        "dirt": [564, 57, 408, 398],
+        "brick": [1076, 64, 408, 383],
+        "bonus": [1589, 52, 405, 408],
+        "used": [101, 564, 310, 408],
+        "pipeTop": [553, 639, 430, 258],
+        "pipeShaft": [1100, 592, 360, 352],
+        "cloudTile": [1580, 653, 424, 230],
+        "piranhaUp": [106, 1050, 300, 460],
+        "piranhaDown": [577, 1120, 381, 320],
+        "flagA": [1115, 1089, 330, 382],
+        "flagB": [1627, 1087, 330, 385]
       }
     },
     "repeatableImagenBackground": {
