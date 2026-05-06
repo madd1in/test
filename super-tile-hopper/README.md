@@ -10,7 +10,7 @@ Oeffne `index.html` direkt im Browser.
 
 - Links/Rechts oder A/D: laufen
 - Shift oder K: sprinten
-- Space, Pfeil hoch oder W: springen, in der Luft noch einmal fuer Double-Jump
+- Space, Pfeil hoch oder W: springen, in der Luft zweimal nachsetzen fuer Triple-Jump
 - P oder Escape: Pause
 - R: Neustart
 
@@ -22,13 +22,14 @@ Auf Touch-Geraeten erscheinen eigene On-Screen-Buttons.
 - Lokale SVG-Grafikassets fuer Parallax-Layer, Aero-Ringe und Sky-Shards
 - Lokale WAV-Assets fuer SFX und eine kleine geloopte BGM
 - Asset-Map unter `assets/asset-map.json` fuer neue Original-Atlanten plus importierte Fallbacks
+- Neues Imagen-HD-Atlasblatt unter `assets/imagen-hd/gfx/hd-imagen-atlas.png`
 - Neue Original-PNG-Maps fuer Tileset, Sprite-Sheet und Background
 - Importierte Imagen-Grafikmaps bleiben als Fallback im Projekt
 - Importierte Workspace-Audioquellen fuer BGM, Pickup, Gate, Hit und Hurt
 - Tile-Atlas fuer Gras, Erde, Bricks, Bonus-Blocks, Plattformen und Sprungfedern
 - Handgebautes Tilemap-Level mit Luecken, Hoehenwechseln, Coins, Sky-Shards, Aero-Ringen, Gegnern, Checkpoint und Ziel
 - Parallax-Hintergrund mit Sonne, Wolken, Bergen und Huegeln
-- Platformer-Physik mit Coyote-Time, Jump-Buffer, variablem Sprung, Double-Jump, Gegner-Stomp, Respawn und lokalem Sound
+- Platformer-Physik mit Coyote-Time, Jump-Buffer, variablem Sprung, Triple-Jump, Gegner-Stomp, Respawn und lokalem Sound
 
 ## Assets neu bauen
 

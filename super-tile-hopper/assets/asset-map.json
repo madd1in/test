@@ -1,8 +1,40 @@
 {
-  "version": 3,
-  "description": "Super Tile Hopper asset map. Version 3 uses a completely new original PNG tileset, sprite map, and background map generated inside this project; imported workspace assets remain available as fallbacks.",
-  "activeGraphicsProfile": "original",
+  "version": 4,
+  "description": "Super Tile Hopper asset map. Version 4 uses a new Imagen HD atlas as the active tileset, sprite map, item map, and background band; original generated PNGs and imported workspace assets remain available as fallbacks.",
+  "activeGraphicsProfile": "imagen-hd",
   "graphics": {
+    "hdImagenAtlas": {
+      "path": "assets/imagen-hd/gfx/hd-imagen-atlas.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_09edf5ac657438ab0169fae4e3837c81919effa261ee9ae50a.png",
+      "frameSize": [1536, 1024],
+      "lightKey": true,
+      "frames": {
+        "grass": [40, 36, 138, 102],
+        "dirt": [185, 36, 110, 102],
+        "brick": [963, 35, 100, 104],
+        "bonus": [754, 35, 96, 104],
+        "used": [1072, 36, 92, 102],
+        "woodPlatform": [518, 36, 118, 103],
+        "spring": [855, 36, 98, 104],
+        "heroIdle": [49, 174, 78, 119],
+        "heroRun0": [175, 174, 88, 120],
+        "heroRun1": [304, 174, 92, 120],
+        "heroJump": [694, 172, 108, 120],
+        "heroFall": [826, 164, 108, 128],
+        "heroHurt": [563, 174, 104, 120],
+        "enemyLeaf": [35, 342, 160, 176],
+        "enemyBrute": [257, 330, 172, 188],
+        "enemyWisp": [470, 348, 125, 170],
+        "enemyTreant": [616, 325, 188, 195],
+        "gem": [862, 337, 58, 78],
+        "portal": [829, 439, 105, 104],
+        "heart": [1398, 445, 86, 88],
+        "coin0": [1115, 460, 59, 62],
+        "coin1": [1207, 460, 60, 62],
+        "coin2": [1304, 460, 54, 62],
+        "backgroundBand": [30, 690, 1474, 302]
+      }
+    },
     "originalTiles": {
       "path": "assets/original/gfx/original-tileset.png",
       "source": "tools/build-original-png-assets.js",

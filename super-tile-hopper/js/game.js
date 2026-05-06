@@ -13,8 +13,9 @@
   const FRICTION = 2800;
   const JUMP_SPEED = 690;
   const DOUBLE_JUMP_SPEED = 640;
+  const TRIPLE_JUMP_SPEED = 675;
   const RING_BOOST_SPEED = 760;
-  const MAX_JUMPS = 2;
+  const MAX_JUMPS = 3;
   const COYOTE_TIME = 0.105;
   const JUMP_BUFFER = 0.13;
   const GRAPHIC_PATHS = {
@@ -31,49 +32,54 @@
     originalTiles: "assets/original/gfx/original-tileset.png",
     originalSprites: "assets/original/gfx/original-sprite-map.png",
     originalBackground: "assets/original/gfx/original-background-map.png",
+    hdAtlas: "assets/imagen-hd/gfx/hd-imagen-atlas.png",
+    hdAtlasRaw: "assets/imagen-hd/gfx/hd-imagen-atlas.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
+  const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
   const ASSET_MAP = {
-    tileAsset: "originalTiles",
-    spriteAsset: "originalSprites",
-    backgroundAsset: "originalBackground",
+    tileAsset: "hdAtlas",
+    spriteAsset: "hdAtlas",
+    backgroundAsset: "hdAtlasRaw",
+    backgroundFrame: [30, 690, 1474, 302],
     tileFrames: {
-      G: [0, 0, 64, 64],
-      D: [64, 0, 64, 64],
-      B: [128, 0, 64, 64],
-      Q: [320, 0, 64, 64],
-      U: [256, 0, 64, 64],
-      P: [384, 0, 64, 64],
-      S: [448, 0, 64, 64],
+      G: [40, 36, 138, 102],
+      D: [185, 36, 110, 102],
+      B: [963, 35, 100, 104],
+      Q: [754, 35, 96, 104],
+      U: [1072, 36, 92, 102],
+      P: [518, 36, 118, 103],
+      S: [855, 36, 98, 104],
     },
     playerFrames: {
-      idle: [0, 0, 64, 64],
-      run0: [64, 0, 64, 64],
-      run1: [128, 0, 64, 64],
-      jump: [192, 0, 64, 64],
-      fall: [256, 0, 64, 64],
-      hurt: [320, 0, 64, 64],
+      idle: [49, 174, 78, 119],
+      run0: [175, 174, 88, 120],
+      run1: [304, 174, 92, 120],
+      jump: [694, 172, 108, 120],
+      fall: [826, 164, 108, 128],
+      hurt: [563, 174, 104, 120],
     },
     enemyFrames: [
-      [0, 64, 64, 64],
-      [64, 64, 64, 64],
-      [128, 64, 64, 64],
-      [192, 64, 64, 64],
+      [35, 342, 160, 176],
+      [257, 330, 172, 188],
+      [470, 348, 125, 170],
+      [616, 325, 188, 195],
     ],
     objectFrames: {
-      gem: [256, 64, 64, 64],
-      portal: [320, 64, 64, 64],
-      chest: [384, 64, 64, 64],
-      heart: [448, 64, 64, 64],
-      coin0: [0, 128, 64, 64],
-      coin1: [64, 128, 64, 64],
-      coin2: [128, 128, 64, 64],
-      coin3: [192, 128, 64, 64],
+      gem: [862, 337, 58, 78],
+      portal: [829, 439, 105, 104],
+      chest: [48, 572, 87, 88],
+      heart: [1398, 445, 86, 88],
+      coin0: [1115, 460, 59, 62],
+      coin1: [1207, 460, 60, 62],
+      coin2: [1304, 460, 54, 62],
+      coin3: [1115, 460, 59, 62],
     },
   };
   const AUDIO_PATHS = {
     jump: "assets/audio/jump.wav",
     doubleJump: "assets/audio/double-jump.wav",
+    tripleJump: "assets/audio/double-jump.wav",
     coin: "assets/imported/audio/workspace-pickup.wav",
     shard: "assets/imported/audio/workspace-pickup.wav",
     ring: "assets/imported/audio/workspace-gate.wav",
@@ -161,6 +167,8 @@
       image.addEventListener("load", () => {
         if (BLACK_KEY_GRAPHICS.has(key)) {
           imageAssets[key] = keyBlackToAlpha(image);
+        } else if (LIGHT_KEY_GRAPHICS.has(key)) {
+          imageAssets[key] = keyLightToAlpha(image);
         }
       });
       image.src = src;
@@ -198,6 +206,32 @@
         if (data[i] < 7 && data[i + 1] < 7 && data[i + 2] < 7) {
           data[i + 3] = 0;
         }
+      }
+      k.putImageData(pixels, 0, 0);
+      return keyed;
+    } catch {
+      return image;
+    }
+  }
+
+  function keyLightToAlpha(image) {
+    const w = image.naturalWidth || image.width;
+    const h = image.naturalHeight || image.height;
+    const keyed = document.createElement("canvas");
+    keyed.width = w;
+    keyed.height = h;
+    const k = keyed.getContext("2d");
+    k.imageSmoothingEnabled = false;
+    k.drawImage(image, 0, 0);
+    try {
+      const pixels = k.getImageData(0, 0, w, h);
+      const data = pixels.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const isSheetBackground = r > 232 && g > 226 && b > 212;
+        if (isSheetBackground) data[i + 3] = 0;
       }
       k.putImageData(pixels, 0, 0);
       return keyed;
@@ -442,16 +476,18 @@
 
   function performJump(kind) {
     const isDouble = kind === "double";
-    player.vy = isDouble ? -DOUBLE_JUMP_SPEED : -JUMP_SPEED;
+    const isFinalAirJump = isDouble && player.jumpsLeft === 1;
+    player.vy = isDouble ? (isFinalAirJump ? -TRIPLE_JUMP_SPEED : -DOUBLE_JUMP_SPEED) : -JUMP_SPEED;
     player.grounded = false;
     player.coyote = 0;
     player.jumpBuffer = 0;
     if (isDouble) {
       player.jumpsLeft = Math.max(0, player.jumpsLeft - 1);
-      player.doubleJumpFlash = 0.42;
-      spawnSpark(player.x + player.w * 0.5, player.y + player.h * 0.46, "#9bfff1", 14);
-      popDust(player.x + player.w * 0.5, player.y + player.h, 4);
-      playSound("doubleJump");
+      player.doubleJumpFlash = isFinalAirJump ? 0.65 : 0.42;
+      spawnSpark(player.x + player.w * 0.5, player.y + player.h * 0.46, isFinalAirJump ? "#ffd35a" : "#9bfff1", isFinalAirJump ? 22 : 14);
+      popDust(player.x + player.w * 0.5, player.y + player.h, isFinalAirJump ? 7 : 4);
+      if (isFinalAirJump) showGameMessage("Triple jump");
+      playSound(isFinalAirJump ? "tripleJump" : "doubleJump");
     } else {
       player.jumpsLeft = MAX_JUMPS - 1;
       popDust(player.x + player.w * 0.5, player.y + player.h, 8);
@@ -527,8 +563,10 @@
       if (rectsOverlap(player, shardRect)) {
         shard.collected = true;
         game.shards += 1;
+        player.jumpsLeft = MAX_JUMPS - 1;
+        player.doubleJumpFlash = 0.35;
         spawnSpark(shard.x, shard.y, "#9bfff1", 14);
-        spawnText(shard.x, shard.y - 14, "Shard");
+        spawnText(shard.x, shard.y - 14, "Air +");
         playSound("shard");
         if (game.shards === game.totalShards) showGameMessage("Sky set complete");
       }
@@ -651,6 +689,16 @@
   function drawOriginalBackgroundMap(offset) {
     const image = imageAssets[ASSET_MAP.backgroundAsset];
     if (!isImageReady(image)) return false;
+    if (ASSET_MAP.backgroundFrame) {
+      const [sx, sy, sw, sh] = ASSET_MAP.backgroundFrame;
+      const scale = view.h / sh;
+      const w = sw * scale;
+      const start = -((offset * 0.14) % w + w) % w;
+      for (let x = start - w; x < view.w + w; x += w) {
+        ctx.drawImage(image, sx, sy, sw, sh, Math.round(x), 0, Math.ceil(w), view.h);
+      }
+      return true;
+    }
     const scale = view.h / imageHeight(image);
     const w = imageWidth(image) * scale;
     const start = -((offset * 0.16) % w + w) % w;
@@ -882,7 +930,7 @@
       if (enemy.x < game.cameraX - 80 || enemy.x > game.cameraX + view.w + 80) continue;
       const frame = Math.floor(enemy.anim * 8) % 2 === 0 ? "snail0" : "snail1";
       const importedFrame = ASSET_MAP.enemyFrames[enemy.kind % ASSET_MAP.enemyFrames.length];
-      if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, enemy.x - 17, enemy.y - 30, 62, 62, enemy.vx > 0)) {
+      if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, enemy.x - 22, enemy.y - 42, 72, 78, enemy.vx > 0)) {
         continue;
       }
       drawSprite(frame, enemy.x - 10, enemy.y - 14, 48, 48, enemy.vx > 0);
@@ -916,7 +964,7 @@
               : frame === "heroHurt"
                 ? ASSET_MAP.playerFrames.hurt
                 : ASSET_MAP.playerFrames.idle;
-    if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, player.x - 19, player.y - 24, 62, 62, player.facing < 0)) {
+    if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, player.x - 17, player.y - 38, 58, 76, player.facing < 0)) {
       return;
     }
     drawSprite(frame, player.x - 12, player.y - 13, 48, 48, player.facing < 0);
