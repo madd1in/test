@@ -1,6 +1,6 @@
 {
-  "version": 11,
-  "description": "Super Tile Hopper asset map. Version 11 adds a cleaner Imagen theme/hazard atlas plus per-level BGM tracks.",
+  "version": 12,
+  "description": "Super Tile Hopper asset map. Version 12 adds the Imagen underground boss atlas, Pipeworks Airship level assets, and a local underground BGM track.",
   "activeGraphicsProfile": "mascot-imagen-hd",
   "graphics": {
     "mascotImagenAtlas": {
@@ -91,6 +91,27 @@
         "palaceBlock": [569, 1075, 397, 410],
         "meadowBg": [1084, 1065, 391, 430],
         "caveBg": [1597, 1065, 389, 430]
+      }
+    },
+    "undergroundBossAtlas": {
+      "path": "assets/imagen-hd/gfx/hd-underground-boss-atlas-imagen.png",
+      "source": "C:/Users/User/.codex/generated_images/019dfba9-9e36-7431-91ca-377913f79ccc/ig_0855269006c247c40169fb624178288191b608a4596178e99f.png",
+      "frameSize": [1254, 1254],
+      "frameKey": true,
+      "role": "pipeworksAirshipBossAssets",
+      "frames": {
+        "undergroundBlock": [0, 0, 313, 418],
+        "bonusPipe": [313, 0, 314, 418],
+        "cannonPipe": [627, 0, 313, 418],
+        "megaRocket": [940, 0, 314, 418],
+        "gliderSuit": [0, 418, 313, 418],
+        "airshipHull": [313, 418, 314, 418],
+        "shellBossIdle": [627, 418, 313, 418],
+        "shellBossAttack": [940, 418, 314, 418],
+        "undergroundBg": [0, 836, 313, 418],
+        "airshipBg": [313, 836, 314, 418],
+        "cannonBurst": [627, 836, 313, 418],
+        "pipeValve": [940, 836, 314, 418]
       }
     },
     "repeatableImagenBackground": {
@@ -273,6 +294,10 @@
     "caveBgm": {
       "path": "assets/downloads/audio/pixel-boss-rush.mp3",
       "source": "C:/Users/User/Downloads/Pixel Boss Rush.mp3"
+    },
+    "undergroundBgm": {
+      "path": "assets/downloads/audio/mossy-warp-zone.mp3",
+      "source": "C:/Users/User/Downloads/Mossy Warp Zone.mp3"
     },
     "workspaceBgm": {
       "path": "assets/imported/audio/workspace-theme.wav",

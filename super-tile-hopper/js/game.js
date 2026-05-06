@@ -25,6 +25,10 @@
   const JUMP_BUFFER = 0.13;
   const DASH_BUFFER = 0.18;
   const TOUCH_ZONE_DEADZONE = 16;
+  const GLIDER_POWER_TIME = 14;
+  const PIPE_WARP_COOLDOWN = 0.85;
+  const CANNON_LAUNCH_COOLDOWN = 1.05;
+  const MEGA_ROCKET_SPEED = 230;
   const GRAPHIC_PATHS = {
     bgFar: "assets/gfx/bg-far.svg",
     bgMid: "assets/gfx/bg-mid.svg",
@@ -46,17 +50,19 @@
     cleanGameplayAtlas: "assets/imagen-hd/gfx/hd-clean-gameplay-atlas.png",
     playfieldTileset: "assets/imagen-hd/gfx/hd-playfield-tileset-imagen.png",
     themeHazardAtlas: "assets/imagen-hd/gfx/hd-theme-hazard-atlas-imagen.png",
+    undergroundBossAtlas: "assets/imagen-hd/gfx/hd-underground-boss-atlas-imagen.png",
     repeatBackground: "assets/imagen-hd/gfx/hd-repeatable-background-imagen.png",
   };
   const BLACK_KEY_GRAPHICS = new Set(["importPlayer", "importEnemies", "importObjects"]);
   const LIGHT_KEY_GRAPHICS = new Set(["hdAtlas"]);
-  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas", "playfieldTileset", "themeHazardAtlas"]);
+  const FRAME_KEY_GRAPHICS = new Set(["mascotAtlas", "cleanGameplayAtlas", "playfieldTileset", "themeHazardAtlas", "undergroundBossAtlas"]);
   const ASSET_MAP = {
     tileAsset: "mascotAtlas",
     spriteAsset: "mascotAtlas",
     cleanAsset: "cleanGameplayAtlas",
     playfieldAsset: "playfieldTileset",
     themeAsset: "themeHazardAtlas",
+    undergroundAsset: "undergroundBossAtlas",
     backgroundAsset: "repeatBackground",
     backgroundFrame: null,
     backgroundRepeat: "mirror-x",
@@ -135,6 +141,20 @@
       meadowBg: [1084, 1065, 391, 430],
       caveBg: [1597, 1065, 389, 430],
     },
+    undergroundFrames: {
+      undergroundBlock: [0, 0, 313, 418],
+      bonusPipe: [313, 0, 314, 418],
+      cannonPipe: [627, 0, 313, 418],
+      megaRocket: [940, 0, 314, 418],
+      gliderSuit: [0, 418, 313, 418],
+      airshipHull: [313, 418, 314, 418],
+      shellBossIdle: [627, 418, 313, 418],
+      shellBossAttack: [940, 418, 314, 418],
+      undergroundBg: [0, 836, 313, 418],
+      airshipBg: [313, 836, 314, 418],
+      cannonBurst: [627, 836, 313, 418],
+      pipeValve: [940, 836, 314, 418],
+    },
     objectFrames: {
       gem: [324, 484, 106, 152],
       portal: [1126, 484, 116, 152],
@@ -165,6 +185,7 @@
     { name: "Meadow Gate", theme: "meadow", bgm: "assets/downloads/audio/pixel-quest-parade.mp3" },
     { name: "Cloud Lift Climb", theme: "sky", bgm: "assets/downloads/audio/skygarden-march.mp3" },
     { name: "Flag Rush Gauntlet", theme: "cave", bgm: "assets/downloads/audio/pixel-boss-rush.mp3" },
+    { name: "Pipeworks Airship Siege", theme: "underground", bgm: "assets/downloads/audio/mossy-warp-zone.mp3" },
   ];
 
   const canvas = document.getElementById("game");
@@ -194,19 +215,21 @@
     right: false,
     run: false,
     jump: false,
+    down: false,
     jumpPressed: false,
     dashPressed: false,
   };
-  const keyHolds = { left: false, right: false, run: false, jump: false };
+  const keyHolds = { left: false, right: false, run: false, jump: false, down: false };
   const touchHolds = {
     left: new Set(),
     right: new Set(),
     run: new Set(),
     jump: new Set(),
+    down: new Set(),
   };
   const screenPointers = new Map();
 
-  const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S", "W", "I", "J"]);
+  const solidTiles = new Set(["G", "D", "B", "Q", "U", "P", "S", "W", "I", "J", "A"]);
   const decorTiles = new Set(["a", "f", "v", "x"]);
   const keyMap = {
     ArrowLeft: "left",
@@ -219,6 +242,8 @@
     Space: "jump",
     ArrowUp: "jump",
     KeyW: "jump",
+    ArrowDown: "down",
+    KeyS: "down",
   };
 
   let tileAtlas;
@@ -293,6 +318,7 @@
     if (key === ASSET_MAP.cleanAsset) return Object.values(ASSET_MAP.cleanFrames);
     if (key === ASSET_MAP.playfieldAsset) return Object.values(ASSET_MAP.playfieldFrames);
     if (key === ASSET_MAP.themeAsset) return Object.values(ASSET_MAP.themeFrames);
+    if (key === ASSET_MAP.undergroundAsset) return Object.values(ASSET_MAP.undergroundFrames);
     if (key !== ASSET_MAP.tileAsset && key !== ASSET_MAP.spriteAsset) return [];
     return [
       ...Object.values(ASSET_MAP.tileFrames),
@@ -552,6 +578,7 @@
           startX: event.clientX,
           startY: event.clientY,
           didDash: false,
+          didDown: false,
         });
         pressTouchAction("jump", `screen-${event.pointerId}`);
         if (localY > rect.height * 0.64) bufferDash();
@@ -573,6 +600,15 @@
       } else {
         const dx = event.clientX - pointer.startX;
         const dy = event.clientY - pointer.startY;
+        const downId = `screen-down-${event.pointerId}`;
+        const wantsDown = dy > 42 && Math.abs(dy) > Math.abs(dx) * 1.08;
+        if (wantsDown && !pointer.didDown) {
+          pointer.didDown = true;
+          pressTouchAction("down", downId, false);
+        } else if (!wantsDown && pointer.didDown) {
+          pointer.didDown = false;
+          releaseTouchAction("down", downId, false);
+        }
         if (!pointer.didDash && Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy) * 1.25) {
           pointer.didDash = true;
           pressTouchAction("run", `screen-dash-${event.pointerId}`);
@@ -591,6 +627,7 @@
       } else {
         releaseTouchAction("jump", `screen-${event.pointerId}`);
         releaseTouchAction("run", `screen-dash-${event.pointerId}`, false);
+        releaseTouchAction("down", `screen-down-${event.pointerId}`, false);
       }
       screenPointers.delete(event.pointerId);
     };
@@ -701,6 +738,7 @@
       hurtPulse: 0,
       doubleJumpFlash: 0,
       starTimer: 0,
+      gliderTimer: 0,
       combo: 0,
       comboTimer: 0,
     };
@@ -734,8 +772,13 @@
     if (player.dashBuffer > 0 && tryStartDash()) player.dashBuffer = 0;
     updateEnemies(dt);
     updatePiranhas(dt);
+    updateBonusPipes(dt);
+    updateCannonPipes(dt);
+    updateMegaRockets(dt);
+    updateShellBosses(dt);
     updateCoins(dt);
     updateShardsAndRings(dt);
+    updateSuitPowerups(dt);
     updatePickupsAndGoals();
     updateEffects(dt);
     updateCamera(dt);
@@ -749,6 +792,7 @@
     player.doubleJumpFlash = Math.max(0, player.doubleJumpFlash - dt);
     player.dashTimer = Math.max(0, player.dashTimer - dt);
     player.starTimer = Math.max(0, player.starTimer - dt);
+    player.gliderTimer = Math.max(0, player.gliderTimer - dt);
     player.comboTimer = Math.max(0, player.comboTimer - dt);
     if (player.comboTimer <= 0) player.combo = 0;
     if (player.grounded) {
@@ -759,7 +803,8 @@
     player.jumpBuffer = Math.max(0, player.jumpBuffer - dt);
 
     const direction = Number(input.right) - Number(input.left);
-    const targetSpeed = player.starTimer > 0 ? RUN_SPEED + 86 : input.run ? RUN_SPEED : WALK_SPEED;
+    const hasGlider = player.gliderTimer > 0;
+    const targetSpeed = player.starTimer > 0 ? RUN_SPEED + 86 : hasGlider && !player.grounded ? RUN_SPEED + 42 : input.run ? RUN_SPEED : WALK_SPEED;
     const accel = player.grounded ? GROUND_ACCEL : AIR_ACCEL;
     const previousY = player.y;
     if (player.dashTimer > 0) {
@@ -780,9 +825,14 @@
       }
     }
 
+    const gliding = hasGlider && input.jump && !player.grounded && player.vy > 35 && player.dashTimer <= 0;
     const gravityBoost = !input.jump && player.vy < 0 ? 1.55 : 1;
-    const gravityScale = player.dashTimer > 0 ? 0.18 : gravityBoost;
-    player.vy = Math.min(MAX_FALL, player.vy + GRAVITY * gravityScale * dt);
+    const gravityScale = gliding ? 0.24 : player.dashTimer > 0 ? 0.18 : gravityBoost;
+    const fallCap = gliding ? 245 : MAX_FALL;
+    player.vy = Math.min(fallCap, player.vy + GRAVITY * gravityScale * dt);
+    if (gliding && direction !== 0) {
+      player.vx = clamp(player.vx + direction * AIR_ACCEL * 0.18 * dt, -RUN_SPEED - 58, RUN_SPEED + 58);
+    }
 
     moveWithTiles(player, player.vx * dt, 0, {
       onHorizontalHit: () => {
@@ -986,6 +1036,153 @@
     };
   }
 
+  function updateBonusPipes(dt) {
+    for (const pipe of world.bonusPipes) {
+      pipe.cooldown = Math.max(0, pipe.cooldown - dt);
+      if (!pipe.target || pipe.cooldown > 0) continue;
+      if (!rectsOverlap(player, pipe)) continue;
+      const wantsWarp = input.down || input.run || (player.grounded && Math.abs(player.vx) < 18 && player.y + player.h <= pipe.pipeY + 8);
+      if (!wantsWarp) continue;
+      for (const otherPipe of world.bonusPipes) otherPipe.cooldown = PIPE_WARP_COOLDOWN;
+      spawnSpark(player.x + player.w * 0.5, player.y + player.h * 0.5, "#54d682", 16);
+      player.x = pipe.target.spawnX;
+      player.y = pipe.target.spawnY;
+      player.vx = 0;
+      player.vy = -150;
+      player.grounded = false;
+      player.coyote = 0;
+      player.jumpsLeft = MAX_JUMPS - 1;
+      player.dashesLeft = MAX_DASHES;
+      player.invulnerable = Math.max(player.invulnerable, 0.35);
+      game.cameraX = clamp(player.x - view.w * 0.35, 0, Math.max(0, world.width - view.w));
+      game.cameraY = clamp(player.y - view.h * 0.55, 0, Math.max(0, world.height - view.h));
+      spawnSpark(player.x + player.w * 0.5, player.y + player.h * 0.8, "#9bfff1", 24);
+      showGameMessage("Pipe bonus");
+      playSound("ring");
+      return;
+    }
+  }
+
+  function updateCannonPipes(dt) {
+    for (const cannon of world.cannonPipes) {
+      cannon.anim += dt;
+      cannon.cooldown = Math.max(0, cannon.cooldown - dt);
+      if (cannon.cooldown > 0 || !rectsOverlap(player, cannon)) continue;
+      cannon.cooldown = CANNON_LAUNCH_COOLDOWN;
+      player.x = cannon.x + 18;
+      player.y = cannon.y - player.h + 22;
+      player.vx = 675;
+      player.vy = -820;
+      player.grounded = false;
+      player.coyote = 0;
+      player.jumpsLeft = MAX_JUMPS - 1;
+      player.dashesLeft = MAX_DASHES;
+      player.doubleJumpFlash = 0.56;
+      game.shake = Math.max(game.shake, 8);
+      spawnSpark(cannon.x + cannon.w * 0.68, cannon.y + cannon.h * 0.28, "#fff0a6", 28);
+      showGameMessage("Cannon launch");
+      playSound("spring");
+    }
+  }
+
+  function updateMegaRockets(dt) {
+    for (const rocket of world.megaRockets) {
+      if (!rocket.active) continue;
+      rocket.anim += dt;
+      rocket.x += rocket.vx * dt;
+      if (rocket.life != null) rocket.life -= dt;
+      if (rocket.life != null && rocket.life <= 0) {
+        rocket.active = false;
+        continue;
+      }
+      if (rocket.x < rocket.minX || rocket.x > rocket.maxX) {
+        if (rocket.oneShot) {
+          rocket.active = false;
+        } else {
+          rocket.x = rocket.homeX + randomRange(0, 120);
+        }
+      }
+      const hitbox = megaRocketHitbox(rocket);
+      if (!rectsOverlap(player, hitbox)) continue;
+      if (player.starTimer > 0) {
+        rocket.active = false;
+        spawnSpark(hitbox.x + hitbox.w * 0.5, hitbox.y + hitbox.h * 0.5, "#fff35a", 28);
+        spawnText(hitbox.x + hitbox.w * 0.5, hitbox.y - 8, "Boom");
+        playSound("stomp");
+      } else if (player.invulnerable <= 0) {
+        hurtPlayer(false);
+      }
+    }
+    world.megaRockets = world.megaRockets.filter((rocket) => rocket.active || !rocket.oneShot);
+  }
+
+  function megaRocketHitbox(rocket) {
+    return { x: rocket.x + 16, y: rocket.y + 13, w: 72, h: 30 };
+  }
+
+  function updateShellBosses(dt) {
+    for (const boss of world.bosses) {
+      if (!boss.active) continue;
+      boss.anim += dt;
+      boss.invulnerable = Math.max(0, boss.invulnerable - dt);
+      boss.attackTimer -= dt;
+      boss.x += boss.vx * dt;
+      if (boss.x < boss.minX || boss.x > boss.maxX) {
+        boss.x = clamp(boss.x, boss.minX, boss.maxX);
+        boss.vx *= -1;
+      }
+      boss.y = boss.homeY + Math.sin(boss.anim * 2.4) * 7;
+      boss.facing = player.x < boss.x ? -1 : 1;
+      if (boss.attackTimer <= 0) {
+        boss.attackTimer = 1.45 + Math.random() * 0.85;
+        world.megaRockets.push({
+          x: boss.x + (boss.facing < 0 ? -64 : boss.w + 16),
+          y: boss.y + 16,
+          homeX: boss.x + (boss.facing < 0 ? -64 : boss.w + 16),
+          minX: boss.x - 740,
+          maxX: boss.x + 740,
+          vx: boss.facing * MEGA_ROCKET_SPEED,
+          active: true,
+          oneShot: true,
+          life: 3.6,
+          anim: 0,
+        });
+        spawnSpark(boss.x + boss.w * 0.5, boss.y + 18, "#9bfff1", 10);
+      }
+      if (!rectsOverlap(player, boss)) continue;
+      const stomp = player.vy > 120 && player.y + player.h - boss.y < 28;
+      if ((stomp || player.starTimer > 0) && boss.invulnerable <= 0) {
+        damageShellBoss(boss, stomp ? "stomp" : "rush");
+      } else if (player.invulnerable <= 0 && boss.invulnerable <= 0) {
+        hurtPlayer(false);
+      }
+    }
+  }
+
+  function damageShellBoss(boss, mode) {
+    boss.hp -= player.starTimer > 0 ? 2 : 1;
+    boss.invulnerable = 0.55;
+    player.vy = -520;
+    player.grounded = false;
+    player.jumpsLeft = MAX_JUMPS - 1;
+    player.dashesLeft = MAX_DASHES;
+    player.doubleJumpFlash = 0.35;
+    boss.vx = Math.abs(boss.vx) * (player.x < boss.x ? 1 : -1);
+    game.shake = Math.max(game.shake, mode === "rush" ? 9 : 6);
+    spawnSpark(boss.x + boss.w * 0.5, boss.y + boss.h * 0.35, "#ffd35a", 26);
+    spawnText(boss.x + boss.w * 0.5, boss.y - 10, boss.hp > 0 ? `Boss ${boss.hp}` : "Boss clear");
+    playSound("stomp");
+    if (boss.hp <= 0) {
+      boss.active = false;
+      world.megaRockets.forEach((rocket) => {
+        if (rocket.oneShot) rocket.active = false;
+      });
+      spawnSpark(boss.x + boss.w * 0.5, boss.y + boss.h * 0.5, "#54d682", 42);
+      showGameMessage("Airship clear");
+      playSound("win");
+    }
+  }
+
   function defeatEnemy(enemy, mode) {
     enemy.active = false;
     player.combo = player.comboTimer > 0 ? player.combo + 1 : 1;
@@ -1089,6 +1286,25 @@
     }
   }
 
+  function updateSuitPowerups(dt) {
+    for (const suit of world.suitPowerups) {
+      if (suit.collected) continue;
+      suit.anim += dt;
+      const suitRect = { x: suit.x - 19, y: suit.y - 22, w: 38, h: 44 };
+      if (rectsOverlap(player, suitRect)) {
+        suit.collected = true;
+        player.gliderTimer = GLIDER_POWER_TIME;
+        player.jumpsLeft = MAX_JUMPS - 1;
+        player.dashesLeft = MAX_DASHES;
+        player.doubleJumpFlash = 0.52;
+        spawnSpark(suit.x, suit.y, "#d69a4d", 28);
+        spawnText(suit.x, suit.y - 16, "Glider suit");
+        showGameMessage("Hold jump to glide");
+        playSound("win");
+      }
+    }
+  }
+
   function updatePickupsAndGoals() {
     for (const checkpoint of world.checkpoints) {
       if (checkpoint.reached) continue;
@@ -1103,6 +1319,11 @@
     }
 
     if (world.goal && rectsOverlap(player, world.goal)) {
+      if (world.bosses.some((boss) => boss.active)) {
+        showGameMessage("Boss zuerst");
+        player.vx = -Math.abs(player.vx || 160);
+        return;
+      }
       const nextLevel = game.levelIndex + 1;
       const hasNextLevel = nextLevel < LEVELS.length;
       game.mode = hasNextLevel ? "levelclear" : "win";
@@ -1158,11 +1379,15 @@
     drawDecorBack();
     drawTiles();
     drawMovingPlatforms();
+    drawBonusPipes();
+    drawCannonPipes();
     drawCheckpointsAndGoal();
     drawCoins();
     drawShardsAndRings();
     drawPiranhas();
+    drawMegaRockets();
     drawEnemies();
+    drawShellBosses();
     drawPlayer();
     drawEffects();
     drawDecorFront();
@@ -1219,6 +1444,15 @@
       const frame = ASSET_MAP.themeFrames.caveBg;
       const size = view.h * 0.42;
       drawImportedFrame(ASSET_MAP.themeAsset, frame, view.w - size * 0.88, view.h - size * 0.82, size, size, false, 0.34);
+    } else if (theme === "underground") {
+      const shade = ctx.createLinearGradient(0, 0, 0, view.h);
+      shade.addColorStop(0, "rgba(10, 28, 39, 0.34)");
+      shade.addColorStop(0.5, "rgba(15, 80, 64, 0.2)");
+      shade.addColorStop(1, "rgba(7, 16, 20, 0.42)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, view.w, view.h);
+      drawUndergroundThemePanel(offset, ASSET_MAP.undergroundFrames.undergroundBg, view.h * 0.42, view.h * 0.58, 0.11, 0.5);
+      drawUndergroundThemePanel(offset + 260, ASSET_MAP.undergroundFrames.airshipBg, 22, view.h * 0.46, 0.04, 0.32);
     } else {
       const warm = ctx.createLinearGradient(0, 0, 0, view.h);
       warm.addColorStop(0, "rgba(255, 246, 185, 0.1)");
@@ -1226,6 +1460,18 @@
       ctx.fillStyle = warm;
       ctx.fillRect(0, 0, view.w, view.h);
     }
+    ctx.restore();
+  }
+
+  function drawUndergroundThemePanel(offset, frame, y, h, speed, alpha) {
+    const image = imageAssets[ASSET_MAP.undergroundAsset];
+    if (!isImageReady(image) || !frame) return;
+    const scale = h / frame[3];
+    const w = frame[2] * scale;
+    const start = -((offset * speed) % w + w) % w;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawBackgroundTiles(image, start, w, h, "mirror-x", frame, y);
     ctx.restore();
   }
 
@@ -1584,6 +1830,73 @@
       const pulse = 1 + Math.sin(star.anim * 9 + star.phase) * 0.08;
       drawAssetOrStar(star.x, star.y + bob, 42 * pulse, star.anim);
     }
+
+    for (const suit of world.suitPowerups) {
+      if (suit.collected) continue;
+      if (suit.x < game.cameraX - 70 || suit.x > game.cameraX + view.w + 70) continue;
+      const bob = Math.sin(suit.anim * 4.2 + suit.phase) * 5;
+      const pulse = 1 + Math.sin(suit.anim * 7.1 + suit.phase) * 0.05;
+      if (drawImportedFrame(ASSET_MAP.undergroundAsset, ASSET_MAP.undergroundFrames.gliderSuit, suit.x - 25, suit.y - 29 + bob, 50 * pulse, 58 * pulse)) continue;
+      ctx.fillStyle = "#d69a4d";
+      ctx.fillRect(suit.x - 14, suit.y - 12 + bob, 28, 24);
+      ctx.fillStyle = "#7a4c24";
+      ctx.fillRect(suit.x + 10, suit.y - 2 + bob, 16, 8);
+    }
+  }
+
+  function drawBonusPipes() {
+    for (const pipe of world.bonusPipes) {
+      if (pipe.x < game.cameraX - 90 || pipe.x > game.cameraX + view.w + 90) continue;
+      const glow = pipe.cooldown > 0 ? 0.2 : 0.44 + Math.sin(game.time * 5 + pipe.phase) * 0.08;
+      drawImportedFrame(ASSET_MAP.undergroundAsset, ASSET_MAP.undergroundFrames.pipeValve, pipe.x + 16, pipe.pipeY - 58, 34, 48, false, glow);
+    }
+  }
+
+  function drawCannonPipes() {
+    for (const cannon of world.cannonPipes) {
+      if (cannon.x < game.cameraX - 120 || cannon.x > game.cameraX + view.w + 120) continue;
+      const kick = cannon.cooldown > CANNON_LAUNCH_COOLDOWN - 0.18 ? Math.sin(cannon.anim * 36) * 3 : 0;
+      drawImportedFrame(ASSET_MAP.undergroundAsset, ASSET_MAP.undergroundFrames.cannonPipe, cannon.x - kick, cannon.y - 18 + kick, 84, 86);
+      if (cannon.cooldown > CANNON_LAUNCH_COOLDOWN - 0.28) {
+        drawImportedFrame(ASSET_MAP.undergroundAsset, ASSET_MAP.undergroundFrames.cannonBurst, cannon.x + 42, cannon.y - 24, 74, 74, false, 0.62);
+      }
+    }
+  }
+
+  function drawMegaRockets() {
+    for (const rocket of world.megaRockets) {
+      if (!rocket.active) continue;
+      if (rocket.x < game.cameraX - 150 || rocket.x > game.cameraX + view.w + 150) continue;
+      const bob = Math.sin(rocket.anim * 18) * 1.8;
+      if (drawImportedFrame(ASSET_MAP.undergroundAsset, ASSET_MAP.undergroundFrames.megaRocket, rocket.x, rocket.y - 8 + bob, 116, 58, rocket.vx > 0)) {
+        continue;
+      }
+      const hitbox = megaRocketHitbox(rocket);
+      ctx.fillStyle = "#1b1f2b";
+      ctx.fillRect(hitbox.x - 12, hitbox.y - 9, hitbox.w + 24, hitbox.h + 18);
+      ctx.fillStyle = "#ff8a2f";
+      ctx.fillRect(hitbox.x - 28, hitbox.y + 7, 22, 16);
+    }
+  }
+
+  function drawShellBosses() {
+    for (const boss of world.bosses) {
+      if (!boss.active) continue;
+      if (boss.x < game.cameraX - 120 || boss.x > game.cameraX + view.w + 120) continue;
+      const attacking = boss.attackTimer < 0.42;
+      const frame = attacking ? ASSET_MAP.undergroundFrames.shellBossAttack : ASSET_MAP.undergroundFrames.shellBossIdle;
+      const alpha = boss.invulnerable > 0 ? 0.52 + Math.sin(game.time * 28) * 0.22 : 1;
+      if (!drawImportedFrame(ASSET_MAP.undergroundAsset, frame, boss.x - 18, boss.y - 30, 92, 96, boss.facing > 0, alpha)) {
+        ctx.fillStyle = "#54d682";
+        ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+      }
+      ctx.fillStyle = "rgba(20, 14, 8, 0.45)";
+      ctx.fillRect(boss.x - 3, boss.y - 17, 62, 7);
+      ctx.fillStyle = "#ff6f61";
+      ctx.fillRect(boss.x - 3, boss.y - 17, Math.max(0, 62 * (boss.hp / boss.maxHp)), 7);
+      ctx.fillStyle = "#fff7dc";
+      ctx.fillRect(boss.x - 3, boss.y - 19, 62, 2);
+    }
   }
 
   function drawMovingPlatforms() {
@@ -1615,6 +1928,9 @@
     }
     if (world.theme === "cave") {
       return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.caveBlock, yOffset: -1, h: 24 };
+    }
+    if (world.theme === "underground") {
+      return { asset: ASSET_MAP.undergroundAsset, frame: ASSET_MAP.undergroundFrames.airshipHull, yOffset: -4, h: 30 };
     }
     return { asset: ASSET_MAP.tileAsset, frame: ASSET_MAP.tileFrames.P, yOffset: 0, h: 28 };
   }
@@ -1774,9 +2090,21 @@
         heroIdle: ASSET_MAP.playerFrames.idle,
       }[frame] || ASSET_MAP.playerFrames.idle;
     if (drawImportedFrame(ASSET_MAP.spriteAsset, importedFrame, player.x - 17, player.y - 38, 58, 76, player.facing < 0)) {
+      drawGliderSuitAccent();
       return;
     }
     drawSprite(frame, player.x - 12, player.y - 13, 48, 48, player.facing < 0);
+    drawGliderSuitAccent();
+  }
+
+  function drawGliderSuitAccent() {
+    if (player.gliderTimer <= 0) return;
+    const alpha = clamp(player.gliderTimer / GLIDER_POWER_TIME, 0.35, 0.88);
+    const x = player.facing > 0 ? player.x - 25 : player.x + player.w - 6;
+    const y = player.y - 8 + Math.sin(player.anim * 8) * 1.5;
+    if (drawImportedFrame(ASSET_MAP.undergroundAsset, ASSET_MAP.undergroundFrames.gliderSuit, x, y, 38, 43, player.facing < 0, alpha)) return;
+    ctx.fillStyle = `rgba(214, 154, 77, ${alpha})`;
+    ctx.fillRect(x + 4, y + 14, 24, 10);
   }
 
   function drawEffects() {
@@ -1818,7 +2146,10 @@
     const ty = Math.round(y / TILE);
     if ((ch === "I" || ch === "J") && getTile(tx - 1, ty) === ch) return;
     const frame = tileFrame(ch);
-    if (!frame) return;
+    if (!frame) {
+      drawImportedTile(ch, x, y);
+      return;
+    }
     ctx.drawImage(tileAtlas, frame.x, frame.y, TILE, TILE, x, y, TILE, TILE);
     drawImportedTile(ch, x, y);
   }
@@ -1868,8 +2199,13 @@
   function themeTileFrame(ch) {
     const theme = world?.theme || "meadow";
     if (ch === "W") return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.cloudBlock };
+    if (ch === "A") return { asset: ASSET_MAP.undergroundAsset, frame: ASSET_MAP.undergroundFrames.airshipHull, alpha: 0.98 };
+    if (theme === "underground" && ch === "I") return { asset: ASSET_MAP.undergroundAsset, frame: ASSET_MAP.undergroundFrames.bonusPipe };
     if (ch === "I") return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.pipeTop };
     if (ch === "J") return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.pipeShaft, alpha: 0.98 };
+    if (theme === "underground" && (ch === "G" || ch === "D" || ch === "B" || ch === "U" || ch === "P")) {
+      return { asset: ASSET_MAP.undergroundAsset, frame: ASSET_MAP.undergroundFrames.undergroundBlock, alpha: ch === "D" ? 0.94 : 1 };
+    }
     if (theme === "sky" && (ch === "G" || ch === "D" || ch === "B" || ch === "U")) {
       return { asset: ASSET_MAP.themeAsset, frame: ASSET_MAP.themeFrames.palaceBlock, alpha: ch === "D" ? 0.94 : 1 };
     }
@@ -2087,7 +2423,13 @@
     hudAir.textContent = `Air ${player.jumpsLeft}`;
     hudDash.textContent = `Dash ${player.dashesLeft}`;
     hudPower.textContent =
-      player.starTimer > 0 ? `Star ${Math.ceil(player.starTimer)}` : player.combo > 1 ? `Combo x${player.combo}` : "Power 0";
+      player.starTimer > 0
+        ? `Star ${Math.ceil(player.starTimer)}`
+        : player.gliderTimer > 0
+          ? `Suit ${Math.ceil(player.gliderTimer)}`
+          : player.combo > 1
+            ? `Combo x${player.combo}`
+            : "Power 0";
     hudTime.textContent = `Time ${Math.floor(game.time).toString().padStart(3, "0")}`;
   }
 
@@ -2097,6 +2439,7 @@
     input.right = false;
     input.run = false;
     input.jump = false;
+    input.down = false;
     input.dashPressed = false;
     Object.keys(keyHolds).forEach((action) => {
       keyHolds[action] = false;
@@ -2109,6 +2452,7 @@
   function finishLevel(tiles, platforms, start, levelIndex) {
     const bonusCoins = tiles.reduce((sum, line) => sum + line.filter((ch) => ch === "Q").length, 0);
     const parsed = parseObjects(tiles);
+    linkBonusPipes(parsed.bonusPipes);
     const level = LEVELS[levelIndex] || LEVELS[0];
     return {
       levelIndex,
@@ -2124,6 +2468,11 @@
       platforms,
       enemies: parsed.enemies,
       piranhas: parsed.piranhas,
+      bonusPipes: parsed.bonusPipes,
+      cannonPipes: parsed.cannonPipes,
+      megaRockets: parsed.megaRockets,
+      suitPowerups: parsed.suitPowerups,
+      bosses: parsed.bosses,
       checkpoints: parsed.checkpoints,
       plants: parsed.plants,
       goal: parsed.goal,
@@ -2134,9 +2483,23 @@
     };
   }
 
+  function linkBonusPipes(pipes) {
+    if (pipes.length < 2) return;
+    for (let i = 0; i < pipes.length; i += 1) {
+      const target = pipes[(i + 1) % pipes.length];
+      pipes[i].target = {
+        x: target.x,
+        y: target.y,
+        spawnX: target.x + TILE * 0.5,
+        spawnY: target.pipeY - 46,
+      };
+    }
+  }
+
   function buildWorld(levelIndex = 0) {
     if (levelIndex === 1) return buildCloudLiftLevel(levelIndex);
     if (levelIndex === 2) return buildFlagRushLevel(levelIndex);
+    if (levelIndex === 3) return buildPipeworksAirshipLevel(levelIndex);
     const tiles = Array.from({ length: MAP_ROWS }, () => Array(MAP_COLS).fill("."));
     const set = (x, y, ch) => {
       if (x >= 0 && x < MAP_COLS && y >= 0 && y < MAP_ROWS) tiles[y][x] = ch;
@@ -2581,6 +2944,152 @@
     return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
   }
 
+  function buildPipeworksAirshipLevel(levelIndex) {
+    const { tiles, set, ground, row, coins, coinLine, coinArc, pipeWithPiranha } = createLevelSketch();
+    const bonusPipe = (x, y) => {
+      row(y, x, x + 1, "I");
+      row(y + 1, x, x + 1, "J");
+      set(x, y - 1, "Z");
+    };
+    const cannonPipe = (x, y) => set(x, y, "V");
+    const megaRocket = (x, y) => set(x, y, "L");
+    const airship = (from, to, y) => {
+      row(y, from, to, "A");
+      for (let x = from + 4; x <= to; x += 8) set(x, y - 1, "A");
+    };
+
+    ground(0, 24, 14);
+    ground(28, 43, 15);
+    ground(46, 78, 15);
+    ground(82, 108, 13);
+    ground(112, 130, 15);
+    ground(134, 143, 14);
+    ground(207, 231, 13);
+    airship(145, 171, 12);
+    airship(175, 205, 11);
+
+    row(8, 45, 78, "B");
+    row(11, 30, 34, "B");
+    row(10, 55, 61, "B");
+    row(11, 70, 76, "B");
+    row(9, 92, 98, "B");
+    row(8, 115, 121, "B");
+    row(9, 150, 158, "A");
+    row(8, 184, 192, "A");
+    row(10, 198, 204, "A");
+    set(66, 14, "S");
+    set(137, 13, "S");
+    set(32, 10, "Q");
+    set(58, 9, "Q");
+    set(95, 8, "Q");
+    set(188, 7, "Q");
+
+    bonusPipe(18, 13);
+    bonusPipe(49, 14);
+    bonusPipe(75, 14);
+    bonusPipe(100, 12);
+    pipeWithPiranha(36, 14);
+    pipeWithPiranha(88, 12);
+    pipeWithPiranha(119, 14);
+    pipeWithPiranha(216, 12);
+    cannonPipe(126, 12);
+    cannonPipe(184, 9);
+    megaRocket(140, 8);
+    megaRocket(168, 6);
+    megaRocket(214, 8);
+
+    coinLine(5, 10, 11);
+    coinArc(27, 10, 8);
+    coinLine(50, 55, 12);
+    coinArc(57, 8, 9);
+    coinLine(69, 75, 9);
+    coinArc(87, 7, 9);
+    coinLine(115, 121, 6);
+    coinArc(136, 9, 8);
+    coinLine(149, 157, 7);
+    coinArc(176, 6, 10);
+    coinLine(196, 203, 8);
+    coinArc(211, 7, 10);
+    coins([
+      [21, 10],
+      [40, 11],
+      [65, 11],
+      [101, 9],
+      [129, 10],
+      [160, 8],
+      [190, 6],
+      [222, 8],
+    ]);
+
+    [
+      [31, 9],
+      [63, 8],
+      [103, 8],
+      [146, 9],
+      [183, 6],
+      [207, 8],
+    ].forEach(([x, y]) => set(x, y, "O"));
+    [
+      [52, 11],
+      [72, 8],
+      [97, 7],
+      [121, 6],
+      [152, 7],
+      [187, 5],
+      [219, 6],
+    ].forEach(([x, y]) => set(x, y, "M"));
+    [
+      [59, 7],
+      [158, 6],
+      [202, 7],
+    ].forEach(([x, y]) => set(x, y, "R"));
+    [
+      [57, 11],
+      [154, 8],
+    ].forEach(([x, y]) => set(x, y, "H"));
+    [
+      [91, 8],
+      [198, 6],
+    ].forEach(([x, y]) => set(x, y, "T"));
+    [
+      [22, 13],
+      [38, 14],
+      [70, 14],
+      [93, 12],
+      [116, 14],
+      [151, 11],
+      [164, 11],
+      [181, 10],
+      [218, 12],
+    ].forEach(([x, y], index) => set(x, y, index % 2 === 0 ? "E" : "N"));
+    [
+      [6, 13, "x"],
+      [19, 13, "f"],
+      [35, 14, "v"],
+      [52, 14, "a"],
+      [76, 14, "f"],
+      [99, 12, "x"],
+      [122, 14, "v"],
+      [146, 11, "f"],
+      [178, 10, "a"],
+      [205, 10, "v"],
+      [226, 12, "f"],
+    ].forEach(([x, y, ch]) => set(x, y, ch));
+
+    set(106, 11, "K");
+    set(180, 9, "K");
+    set(194, 10, "X");
+    set(226, 11, "F");
+
+    const platforms = [
+      movingPlatform(41, 12, 4, 40, 0, 0.95, 0.3),
+      movingPlatform(110, 11, 4, 0, 50, 1.05, 1.5),
+      movingPlatform(132, 10, 4, 44, 0, 1.0, 2.2),
+      movingPlatform(170, 9, 4, 36, 0, 1.18, 0.7),
+    ];
+    return finishLevel(tiles, platforms, { x: 76, y: 14 * TILE - 34 }, levelIndex);
+  }
+
   function movingPlatform(tileX, tileY, tileW, moveX, moveY, speed, phase) {
     const baseX = tileX * TILE;
     const baseY = tileY * TILE;
@@ -2610,6 +3119,11 @@
     const stars = [];
     const enemies = [];
     const piranhas = [];
+    const bonusPipes = [];
+    const cannonPipes = [];
+    const megaRockets = [];
+    const suitPowerups = [];
+    const bosses = [];
     const checkpoints = [];
     const plants = [];
     let goal = null;
@@ -2689,6 +3203,71 @@
             stunned: 0,
           });
           tiles[y][x] = ".";
+        } else if (ch === "Z") {
+          bonusPipes.push({
+            x: x * TILE,
+            y: (y + 1) * TILE - 36,
+            pipeY: (y + 1) * TILE,
+            w: TILE * 2,
+            h: 46,
+            cooldown: 0,
+            phase: bonusPipes.length * 0.41,
+            target: null,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "V") {
+          cannonPipes.push({
+            x: x * TILE - 10,
+            y: y * TILE - 12,
+            w: 74,
+            h: 64,
+            cooldown: 0,
+            anim: 0,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "L") {
+          const homeX = x * TILE;
+          megaRockets.push({
+            x: homeX + megaRockets.length * 46,
+            y: y * TILE,
+            homeX,
+            minX: Math.max(0, homeX - 620),
+            maxX: Math.min(MAP_COLS * TILE, homeX + 160),
+            vx: -MEGA_ROCKET_SPEED,
+            active: true,
+            oneShot: false,
+            anim: megaRockets.length * 0.33,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "H") {
+          suitPowerups.push({
+            x: x * TILE + TILE * 0.5,
+            y: y * TILE + TILE * 0.5,
+            collected: false,
+            anim: 0,
+            phase: suitPowerups.length * 0.64,
+          });
+          tiles[y][x] = ".";
+        } else if (ch === "X") {
+          bosses.push({
+            x: x * TILE - 12,
+            y: y * TILE - 52,
+            homeY: y * TILE - 52,
+            w: 56,
+            h: 60,
+            homeX: x * TILE - 12,
+            minX: x * TILE - 116,
+            maxX: x * TILE + 84,
+            vx: -74,
+            hp: 5,
+            maxHp: 5,
+            active: true,
+            invulnerable: 0,
+            attackTimer: 1.1,
+            anim: 0,
+            facing: -1,
+          });
+          tiles[y][x] = ".";
         } else if (ch === "K") {
           checkpoints.push({
             id: `k-${x}-${y}`,
@@ -2721,7 +3300,7 @@
       }
     }
 
-    return { coins, shards, rings, relics, stars, enemies, piranhas, checkpoints, plants, goal };
+    return { coins, shards, rings, relics, stars, enemies, piranhas, bonusPipes, cannonPipes, megaRockets, suitPowerups, bosses, checkpoints, plants, goal };
   }
 
   function createTileAtlas() {
@@ -2899,6 +3478,7 @@
       W: [7, 0],
       I: [6, 0],
       J: [4, 0],
+      A: [5, 0],
       a: [0, 1],
       f: [1, 1],
       v: [0, 1],
