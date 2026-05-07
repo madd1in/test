@@ -73,6 +73,7 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   if (!html.includes('type="module" src="js/game.js"')) throw new Error("Game module script tag missing");
   if (!html.includes("moveStick") || !html.includes("cameraStick")) throw new Error("Mobile joystick markup missing");
+  if (!html.includes("fullscreenButton")) throw new Error("Fullscreen toggle markup missing");
 
   const vendorSize = fs.statSync(path.join(root, "assets", "vendor", "three.module.js")).size;
   if (vendorSize < 1000000) throw new Error("Three.js vendor file looks truncated");
