@@ -300,16 +300,22 @@ const materials = {
   hero: materialFromTexture("hero_cloth", 0xffffff, 1, 1, { roughness: 0.68 }),
   skin: new THREE.MeshStandardMaterial({ color: 0xffcf9f, roughness: 0.65 }),
   cap: new THREE.MeshStandardMaterial({ color: 0x2a70ff, roughness: 0.58 }),
+  heroBadge: new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.32, emissive: 0x5a3400, emissiveIntensity: 0.18 }),
+  heroCape: new THREE.MeshStandardMaterial({ color: 0x79d4a8, roughness: 0.54, emissive: 0x06311e, emissiveIntensity: 0.08, side: THREE.DoubleSide }),
   shoe: new THREE.MeshStandardMaterial({ color: 0x27313a, roughness: 0.7 }),
   glove: new THREE.MeshStandardMaterial({ color: 0xfff8e8, roughness: 0.62 }),
   belt: new THREE.MeshStandardMaterial({ color: 0x17232c, roughness: 0.58 }),
   hair: new THREE.MeshStandardMaterial({ color: 0x5b3928, roughness: 0.72 }),
   cheek: new THREE.MeshStandardMaterial({ color: 0xf49b8d, roughness: 0.7, transparent: true, opacity: 0.72 }),
   heroAccent: new THREE.MeshStandardMaterial({ color: 0x79d4a8, roughness: 0.5, emissive: 0x052c1a, emissiveIntensity: 0.06 }),
+  mouth: new THREE.MeshBasicMaterial({ color: 0x5b3928 }),
   eye: new THREE.MeshStandardMaterial({ color: 0x111820, roughness: 0.4 }),
   enemy: materialFromTexture("enemy_skin", 0xffffff, 1, 1, { roughness: 0.66 }),
+  enemyAccent: new THREE.MeshStandardMaterial({ color: 0x6a5cff, roughness: 0.54, emissive: 0x130a47, emissiveIntensity: 0.16 }),
+  enemyBlush: new THREE.MeshStandardMaterial({ color: 0xff9aa2, roughness: 0.62, transparent: true, opacity: 0.72 }),
   snapStem: new THREE.MeshStandardMaterial({ color: 0x1f8b5d, roughness: 0.72 }),
   snapHead: new THREE.MeshStandardMaterial({ color: 0xf1725f, roughness: 0.62, emissive: 0x2a0500, emissiveIntensity: 0.08 }),
+  snapSpot: new THREE.MeshStandardMaterial({ color: 0xfff7ad, roughness: 0.5, emissive: 0x3a2200, emissiveIntensity: 0.06 }),
   snapMouth: new THREE.MeshBasicMaterial({ color: 0x180c12, side: THREE.DoubleSide }),
   tooth: new THREE.MeshStandardMaterial({ color: 0xfff4d5, roughness: 0.5 }),
   pipe: new THREE.MeshStandardMaterial({ color: 0x2dbf83, roughness: 0.42, metalness: 0.02, emissive: 0x063b23, emissiveIntensity: 0.06 }),
@@ -318,6 +324,7 @@ const materials = {
   crusherFace: new THREE.MeshBasicMaterial({ color: 0x2e3b44 }),
   rocket: new THREE.MeshStandardMaterial({ color: 0x202b34, roughness: 0.45, metalness: 0.12 }),
   rocketNose: new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.38, emissive: 0x4a2500, emissiveIntensity: 0.12 }),
+  rocketFin: new THREE.MeshStandardMaterial({ color: 0xf1725f, roughness: 0.42, emissive: 0x3a0800, emissiveIntensity: 0.1 }),
   rocketFlame: new THREE.MeshBasicMaterial({ color: 0xf1725f, transparent: true, opacity: 0.88 }),
   spinnerCore: new THREE.MeshStandardMaterial({ color: 0x6a5cff, roughness: 0.38, emissive: 0x171064, emissiveIntensity: 0.28 }),
   spinnerSpark: new THREE.MeshBasicMaterial({ color: 0x9ee8ff, transparent: true, opacity: 0.86 }),
@@ -911,6 +918,19 @@ function createBouncerEnemy(def) {
   const eyeB = eyeA.clone();
   eyeA.position.set(-0.18, 0.66, -0.5);
   eyeB.position.set(0.18, 0.66, -0.5);
+  const glintA = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 5), materials.tooth);
+  const glintB = glintA.clone();
+  glintA.position.set(-0.2, 0.69, -0.56);
+  glintB.position.set(0.16, 0.69, -0.56);
+  const blushA = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 5), materials.enemyBlush);
+  const blushB = blushA.clone();
+  blushA.position.set(-0.31, 0.49, -0.5);
+  blushB.position.set(0.31, 0.49, -0.5);
+  blushA.scale.set(1.35, 0.42, 0.28);
+  blushB.scale.copy(blushA.scale);
+  const crest = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.34, reducedGpuMode ? 8 : 12), materials.enemyAccent);
+  crest.position.set(0, 1.0, -0.06);
+  crest.rotation.x = -0.22;
 
   const footMaterial = new THREE.MeshStandardMaterial({ color: 0x4e2d77, roughness: 0.66 });
   const footA = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), footMaterial);
@@ -919,7 +939,7 @@ function createBouncerEnemy(def) {
   footB.position.set(0.32, 0.12, -0.18);
   footA.scale.set(1.4, 0.45, 0.8);
   footB.scale.copy(footA.scale);
-  group.add(body, eyeA, eyeB, footA, footB);
+  group.add(body, eyeA, eyeB, glintA, glintB, blushA, blushB, crest, footA, footB);
   group.position.set(def.x, def.y, def.z);
   scene.add(group);
 
@@ -959,6 +979,15 @@ function createSnapFlowerEnemy(def) {
   lip.position.copy(mouth.position);
   lip.scale.set(1.18, 0.58, 1);
   lip.rotation.x = Math.PI / 2;
+  const spotA = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), materials.snapSpot);
+  const spotB = spotA.clone();
+  const spotC = spotA.clone();
+  spotA.position.set(-0.22, 1.78, -0.27);
+  spotB.position.set(0.24, 1.7, -0.3);
+  spotC.position.set(0.02, 1.92, -0.08);
+  spotA.scale.set(1.2, 0.45, 0.72);
+  spotB.scale.copy(spotA.scale);
+  spotC.scale.set(0.95, 0.42, 0.68);
   const toothCount = reducedGpuMode ? 4 : 6;
   for (let i = 0; i < toothCount; i += 1) {
     const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 6), materials.tooth);
@@ -966,7 +995,7 @@ function createSnapFlowerEnemy(def) {
     tooth.rotation.x = Math.PI;
     group.add(tooth);
   }
-  group.add(stem, leafA, leafB, head, mouth, lip);
+  group.add(stem, leafA, leafB, head, mouth, lip, spotA, spotB, spotC);
   group.position.set(def.x, def.y, def.z);
   group.rotation.y = def.yaw ?? 0;
   scene.add(group);
@@ -1000,7 +1029,15 @@ function createCrusherEnemy(def) {
   eyeB.position.set(0.48, 0.24, -((def.d ?? 2.7) * 0.5 + 0.024));
   const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.04), materials.crusherFace);
   mouth.position.set(0, -0.42, -((def.d ?? 2.7) * 0.5 + 0.025));
-  group.add(body, eyeA, eyeB, mouth);
+  const browA = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.055), materials.tooth);
+  const browB = browA.clone();
+  browA.position.set(-0.48, 0.43, -((def.d ?? 2.7) * 0.5 + 0.036));
+  browB.position.set(0.48, 0.43, -((def.d ?? 2.7) * 0.5 + 0.036));
+  browA.rotation.z = -0.14;
+  browB.rotation.z = 0.14;
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), materials.heroBadge);
+  gem.position.set(0, 0.18, -((def.d ?? 2.7) * 0.5 + 0.045));
+  group.add(body, eyeA, eyeB, mouth, browA, browB, gem);
   if (!reducedGpuMode) {
     for (let i = 0; i < 4; i += 1) {
       const chip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.04), materials.tooth);
@@ -1049,7 +1086,16 @@ function createRocketEnemy(def) {
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.42, 12), materials.rocketFlame.clone());
   flame.rotation.z = Math.PI / 2;
   flame.position.x = -0.58;
-  projectile.add(body, nose, eyeA, eyeB, flame);
+  const finA = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.34, 3), materials.rocketFin);
+  const finB = finA.clone();
+  finA.position.set(-0.24, 0.29, 0);
+  finB.position.set(-0.24, -0.29, 0);
+  finA.rotation.z = Math.PI;
+  finB.rotation.z = 0;
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.018, 5, reducedGpuMode ? 14 : 20), materials.dashArrow.clone());
+  stripe.rotation.y = Math.PI / 2;
+  stripe.position.x = 0.05;
+  projectile.add(body, nose, eyeA, eyeB, finA, finB, stripe, flame);
   projectile.visible = false;
   group.add(projectile);
   group.position.set(def.x, def.y, def.z);
@@ -1077,6 +1123,9 @@ function createSpinnerEnemy(def) {
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.1, 8), materials.flagPole);
   core.position.y = 0.64;
   mast.position.y = 0.36;
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.024, 6, reducedGpuMode ? 18 : 28), materials.spinnerSpark.clone());
+  halo.position.y = 0.64;
+  halo.rotation.x = Math.PI / 2;
   const orbiters = [];
   const count = def.count ?? 3;
   for (let i = 0; i < count; i += 1) {
@@ -1084,7 +1133,7 @@ function createSpinnerEnemy(def) {
     orbiters.push(orbiter);
     group.add(orbiter);
   }
-  group.add(mast, core);
+  group.add(mast, core, halo);
   group.position.set(def.x, def.y, def.z);
   scene.add(group);
   enemyItems.push({
@@ -1092,6 +1141,7 @@ function createSpinnerEnemy(def) {
     type: "spinner",
     group,
     orbiters,
+    halo,
     baseX: def.x,
     baseY: def.y,
     baseZ: def.z,
@@ -1126,6 +1176,13 @@ function createPlayer() {
   const brim = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.09, 0.22), materials.cap);
   brim.position.set(0, 1.67, -0.32);
   brim.castShadow = enableShadows;
+  const capBand = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.022, 6, reducedGpuMode ? 18 : 26), materials.heroAccent);
+  capBand.position.set(0, 1.66, -0.02);
+  capBand.rotation.x = Math.PI / 2;
+  capBand.scale.set(1.08, 0.7, 1);
+  const capGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.08, 0), materials.heroBadge);
+  capGem.position.set(0, 1.7, -0.43);
+  capGem.rotation.z = 0.42;
 
   const hair = new THREE.Mesh(new THREE.SphereGeometry(0.36, reducedGpuMode ? 14 : 20, reducedGpuMode ? 8 : 12), materials.hair);
   hair.position.set(0, 1.46, 0.08);
@@ -1146,16 +1203,41 @@ function createPlayer() {
   cheekB.position.set(0.22, 1.44, -0.32);
   cheekA.scale.set(1.3, 0.52, 0.32);
   cheekB.scale.copy(cheekA.scale);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), materials.skin);
+  nose.position.set(0, 1.46, -0.39);
+  nose.scale.set(0.9, 0.82, 1.15);
+  const smile = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.026, 0.018), materials.mouth);
+  smile.position.set(0, 1.36, -0.382);
+  smile.rotation.x = -0.08;
+  const earA = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 6), materials.skin);
+  const earB = earA.clone();
+  earA.position.set(-0.35, 1.48, -0.03);
+  earB.position.set(0.35, 1.48, -0.03);
+  earA.scale.set(0.5, 1, 0.72);
+  earB.scale.copy(earA.scale);
 
   const belt = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.035, 8, reducedGpuMode ? 18 : 28), materials.belt);
   belt.position.y = 0.86;
   belt.rotation.x = Math.PI / 2;
   belt.scale.set(1.02, 0.78, 1);
+  const badge = new THREE.Mesh(new THREE.OctahedronGeometry(0.115, 0), materials.heroBadge);
+  badge.position.set(0, 1.09, -0.43);
+  badge.rotation.set(0.25, 0.1, 0.72);
 
   const scarf = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.22, 3, 1), materials.heroAccent);
   scarf.position.set(0.38, 1.22, 0.08);
   scarf.rotation.set(0.18, -0.38, -0.4);
   scarf.castShadow = enableShadows;
+  const capeShape = new THREE.Shape();
+  capeShape.moveTo(-0.34, 0.28);
+  capeShape.quadraticCurveTo(0, 0.42, 0.34, 0.28);
+  capeShape.lineTo(0.25, -0.26);
+  capeShape.quadraticCurveTo(0, -0.42, -0.25, -0.26);
+  capeShape.closePath();
+  const cape = new THREE.Mesh(new THREE.ShapeGeometry(capeShape), materials.heroCape);
+  cape.position.set(0, 0.96, 0.43);
+  cape.rotation.set(-0.18, 0, 0);
+  cape.castShadow = enableShadows;
 
   const shoeA = new THREE.Mesh(new THREE.SphereGeometry(0.18, reducedGpuMode ? 9 : 12, reducedGpuMode ? 6 : 8), materials.shoe);
   const shoeB = shoeA.clone();
@@ -1198,14 +1280,22 @@ function createPlayer() {
     hair,
     cap,
     brim,
+    capBand,
+    capGem,
     eyeA,
     eyeB,
     glintA,
     glintB,
     cheekA,
     cheekB,
+    nose,
+    smile,
+    earA,
+    earB,
     belt,
+    badge,
     scarf,
+    cape,
     shoeA,
     shoeB,
     armA,
@@ -1215,7 +1305,7 @@ function createPlayer() {
     wingA,
     wingB,
   );
-  group.userData = { body, shoeA, shoeB, armA, armB, handA, handB, shadow, wingA, wingB, scarf };
+  group.userData = { body, shoeA, shoeB, armA, armB, handA, handB, shadow, wingA, wingB, scarf, cape, badge, capGem };
   scene.add(group);
   return group;
 }
@@ -1693,6 +1783,9 @@ function animatePlayer(dt, horizontalSpeed) {
   const wingA = playerGroup.userData.wingA;
   const wingB = playerGroup.userData.wingB;
   const scarf = playerGroup.userData.scarf;
+  const cape = playerGroup.userData.cape;
+  const badge = playerGroup.userData.badge;
+  const capGem = playerGroup.userData.capGem;
   const swing = Math.sin(t) * 0.35 * stride;
   shoeA.position.z = -0.12 + swing * 0.18;
   shoeB.position.z = -0.12 - swing * 0.18;
@@ -1702,6 +1795,10 @@ function animatePlayer(dt, horizontalSpeed) {
   handB.position.z = -0.04 - swing * 0.08;
   scarf.rotation.z = -0.4 + Math.sin(game.time * 7.5) * (player.grounded ? 0.035 : 0.11);
   scarf.rotation.y = -0.38 + clamp(Math.hypot(player.vel.x, player.vel.z) / RUN_SPEED, 0, 1) * 0.18;
+  cape.rotation.x = -0.18 - clamp(Math.hypot(player.vel.x, player.vel.z) / RUN_SPEED, 0, 1) * 0.16 + Math.sin(game.time * 8) * 0.035;
+  cape.rotation.z = Math.sin(game.time * 6.5) * (player.grounded ? 0.035 : 0.08);
+  badge.rotation.y += dt * 1.8;
+  capGem.rotation.y -= dt * 1.4;
 
   const squash = player.grounded ? 1 : clamp(1 + player.vel.y * 0.015, 0.88, 1.12);
   playerGroup.scale.y = damp(playerGroup.scale.y, squash, 12, dt);
@@ -1970,6 +2067,8 @@ function updateSpinnerEnemy(enemy, dt) {
   const count = enemy.orbiters.length;
   const radius = enemy.radius ?? 2.15;
   enemy.group.rotation.y = enemy.angle * 0.25;
+  enemy.halo.rotation.z += dt * 2.5;
+  enemy.halo.scale.setScalar(1 + Math.sin(game.time * 6 + (enemy.phase ?? 0)) * 0.08);
   for (let i = 0; i < count; i += 1) {
     const angle = enemy.angle + i * TAU / count;
     const orbiter = enemy.orbiters[i];
