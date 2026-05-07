@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Star Spring 64</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="game" aria-label="Star Spring 64"></canvas>
+
+    <div id="hud" class="hud" aria-live="polite">
+      <div class="stat-row">
+        <div class="chip"><span>Sterne</span><strong id="starText">0/8</strong></div>
+        <div class="chip"><span>Muenzen</span><strong id="coinText">0</strong></div>
+        <div class="chip"><span>Sprung</span><strong id="jumpText">2/2</strong></div>
+        <div class="chip"><span>Zeit</span><strong id="timeText">0:00</strong></div>
+      </div>
+      <div class="status-row">
+        <div class="health" aria-label="Energie">
+          <span id="healthA"></span>
+          <span id="healthB"></span>
+          <span id="healthC"></span>
+        </div>
+        <div id="objectiveText" class="objective">Sterne sammeln</div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button id="pauseButton" type="button">Pause</button>
+      <button id="soundButton" type="button">Sound</button>
+      <button id="resetButton" type="button">Neu</button>
+    </div>
+
+    <div id="menu" class="modal">
+      <div class="modal-panel">
+        <p class="eyebrow">Original 3D Platformer</p>
+        <h1>Star Spring 64</h1>
+        <p class="blurb">Sammle Sternsplitter, oeffne das Himmelstor und bleib auf den Inseln.</p>
+        <div class="menu-actions">
+          <button id="startButton" type="button">Start</button>
+          <button id="menuSoundButton" type="button">Sound an</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="finish" class="modal hidden">
+      <div class="modal-panel">
+        <p class="eyebrow">Himmelstor offen</p>
+        <h2 id="finishTitle">Geschafft</h2>
+        <p id="finishStats" class="blurb">0 Sterne, 0 Muenzen</p>
+        <div class="menu-actions">
+          <button id="againButton" type="button">Nochmal</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="touchControls" class="touch-controls" aria-hidden="true">
+      <div id="moveStick" class="stick move-stick">
+        <div class="stick-ring"><div class="stick-knob"></div></div>
+      </div>
+      <button id="jumpTouch" class="jump-touch" type="button">Jump</button>
+      <div id="cameraStick" class="stick camera-stick">
+        <div class="stick-ring"><div class="stick-knob"></div></div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script type="module" src="js/game.js"></script>
+  </body>
+</html>
