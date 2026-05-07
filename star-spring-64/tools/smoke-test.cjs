@@ -28,14 +28,15 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
 
 (async () => {
   const level = await import(pathToFileURL(path.join(root, "js", "level.js")));
-  if (level.PLATFORMS.length < 37) throw new Error("Expected an expanded multi-zone platform level");
+  if (level.PLATFORMS.length < 41) throw new Error("Expected an expanded multi-zone platform level");
   if (level.STARS.length < level.LEVEL_TARGET_STARS) throw new Error("Star target mismatch");
   if (level.LEVEL_TARGET_STARS > 10) throw new Error("Assist target should stay approachable");
   if (!level.PLATFORMS.some((platform) => platform.moving)) throw new Error("Expected moving platforms");
   if (level.SPRINGS.length < 8) throw new Error("Expected spring pads");
+  if (!Array.isArray(level.DASH_PADS) || level.DASH_PADS.length < 6) throw new Error("Expected dash pads");
   if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 8) throw new Error("Expected boost rings");
   if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 6) throw new Error("Expected wind columns");
-  if (level.ENEMIES.length < 11) throw new Error("Expected enemies");
+  if (level.ENEMIES.length < 15) throw new Error("Expected enemies");
   const enemyTypes = new Set(level.ENEMIES.map((enemy) => enemy.type || "bouncer"));
   for (const type of ["bouncer", "snapFlower", "crusher", "rocket", "spinner"]) {
     if (!enemyTypes.has(type)) throw new Error(`Expected enemy type ${type}`);
@@ -90,7 +91,7 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   if (!gameSource.includes("checkpointSolid") || !gameSource.includes("saveCheckpoint(solid")) {
     throw new Error("Checkpoint should track the landed platform, not just coordinates");
   }
-  for (const token of ["ASSIST_RESCUE_DROP = assistMode ? 8.75", "ASSIST_LANDING_GRACE", "hasReachableLandingBelow", "fallRescueTimer"]) {
+  for (const token of ["ASSIST_RESCUE_DROP = assistMode ? 13.5", "ASSIST_LANDING_GRACE", "hasReachableLandingBelow", "fallRescueTimer", "updateDashPads", "createDashPad"]) {
     if (!gameSource.includes(token)) throw new Error(`Missing robust rescue/checkpoint token: ${token}`);
   }
   if (gameSource.includes("player.pos.z < player.checkpoint.z - 8")) {
