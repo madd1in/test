@@ -113,9 +113,9 @@ const COIN_MAGNET_RANGE = assistMode ? 4.8 : 0;
 const ASSIST_LEDGE_MARGIN = assistMode ? PLAYER_RADIUS * 2.35 : PLAYER_RADIUS * 1.2;
 const ASSIST_STEP_UP_HEIGHT = assistMode ? 0.85 : 0.14;
 const ASSIST_LANDING_GRACE = assistMode ? 1.15 : 0.12;
-const ASSIST_RESCUE_DROP = assistMode ? 13.5 : 2.35;
-const ASSIST_RESCUE_DELAY = assistMode ? 0.55 : 0;
-const RESPAWN_Y = -14;
+const ASSIST_RESCUE_DROP = assistMode ? 18.5 : 2.35;
+const ASSIST_RESCUE_DELAY = assistMode ? 0.72 : 0;
+const RESPAWN_Y = -28;
 const TAU = Math.PI * 2;
 
 const solids = [];

@@ -92,7 +92,7 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
     throw new Error("Checkpoint should track the landed platform, not just coordinates");
   }
   for (const token of [
-    "ASSIST_RESCUE_DROP = assistMode ? 13.5",
+    "ASSIST_RESCUE_DROP = assistMode ? 18.5",
     "ASSIST_LANDING_GRACE",
     "hasReachableLandingBelow",
     "fallRescueTimer",
