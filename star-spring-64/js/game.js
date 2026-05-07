@@ -110,6 +110,7 @@ const GLIDE_GRAVITY_SCALE = 0.34;
 const STAR_MAGNET_RANGE = assistMode ? 3.4 : 0;
 const COIN_MAGNET_RANGE = assistMode ? 4.8 : 0;
 const ASSIST_LEDGE_MARGIN = assistMode ? PLAYER_RADIUS * 1.75 : PLAYER_RADIUS * 1.2;
+const ASSIST_RESCUE_DROP = 2.35;
 const RESPAWN_Y = -14;
 const TAU = Math.PI * 2;
 
@@ -290,8 +291,24 @@ const materials = {
   skin: new THREE.MeshStandardMaterial({ color: 0xffcf9f, roughness: 0.65 }),
   cap: new THREE.MeshStandardMaterial({ color: 0x2a70ff, roughness: 0.58 }),
   shoe: new THREE.MeshStandardMaterial({ color: 0x27313a, roughness: 0.7 }),
+  glove: new THREE.MeshStandardMaterial({ color: 0xfff8e8, roughness: 0.62 }),
+  belt: new THREE.MeshStandardMaterial({ color: 0x17232c, roughness: 0.58 }),
+  hair: new THREE.MeshStandardMaterial({ color: 0x5b3928, roughness: 0.72 }),
+  cheek: new THREE.MeshStandardMaterial({ color: 0xf49b8d, roughness: 0.7, transparent: true, opacity: 0.72 }),
+  heroAccent: new THREE.MeshStandardMaterial({ color: 0x79d4a8, roughness: 0.5, emissive: 0x052c1a, emissiveIntensity: 0.06 }),
   eye: new THREE.MeshStandardMaterial({ color: 0x111820, roughness: 0.4 }),
   enemy: materialFromTexture("enemy_skin", 0xffffff, 1, 1, { roughness: 0.66 }),
+  snapStem: new THREE.MeshStandardMaterial({ color: 0x1f8b5d, roughness: 0.72 }),
+  snapHead: new THREE.MeshStandardMaterial({ color: 0xf1725f, roughness: 0.62, emissive: 0x2a0500, emissiveIntensity: 0.08 }),
+  snapMouth: new THREE.MeshBasicMaterial({ color: 0x180c12, side: THREE.DoubleSide }),
+  tooth: new THREE.MeshStandardMaterial({ color: 0xfff4d5, roughness: 0.5 }),
+  pipe: new THREE.MeshStandardMaterial({ color: 0x2dbf83, roughness: 0.42, metalness: 0.02, emissive: 0x063b23, emissiveIntensity: 0.06 }),
+  pipeDark: new THREE.MeshBasicMaterial({ color: 0x0d4a35 }),
+  crusher: new THREE.MeshStandardMaterial({ color: 0x8a96a1, roughness: 0.9, metalness: 0.02 }),
+  crusherFace: new THREE.MeshBasicMaterial({ color: 0x2e3b44 }),
+  rocket: new THREE.MeshStandardMaterial({ color: 0x202b34, roughness: 0.45, metalness: 0.12 }),
+  rocketNose: new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.38, emissive: 0x4a2500, emissiveIntensity: 0.12 }),
+  rocketFlame: new THREE.MeshBasicMaterial({ color: 0xf1725f, transparent: true, opacity: 0.88 }),
   springTop: materialFromTexture("spring_pad", 0xffffff, 1, 1, {
     roughness: 0.44,
     emissive: 0x331000,
@@ -700,6 +717,51 @@ function createCrystal(def) {
   scene.add(group);
 }
 
+function createPipe(def) {
+  const group = new THREE.Group();
+  const height = def.height ?? 0.9;
+  const radius = 0.52 * def.scale;
+  const segments = reducedGpuMode ? 18 : 28;
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.92, height, segments), materials.pipe);
+  shaft.position.y = height * 0.5;
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.18, radius * 1.18, 0.24 * def.scale, segments), materials.pipe);
+  rim.position.y = height + 0.12 * def.scale;
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.72, radius * 0.72, 0.025, segments), materials.pipeDark);
+  hole.position.y = height + 0.255 * def.scale;
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(radius * 1.19, 0.025 * def.scale, 6, reducedGpuMode ? 22 : 36), materials.heroAccent);
+  stripe.position.y = height + 0.25 * def.scale;
+  stripe.rotation.x = Math.PI / 2;
+  group.add(shaft, rim, hole, stripe);
+  group.position.set(def.x, def.y, def.z);
+  group.rotation.y = def.yaw ?? 0;
+  group.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = enableShadows;
+      child.receiveShadow = enableShadows;
+    }
+  });
+  scene.add(group);
+}
+
+function createStoneCluster(def) {
+  const group = new THREE.Group();
+  const offsets = [
+    [-0.35, 0, 0, 0.42],
+    [0.24, 0.03, -0.18, 0.34],
+    [0.08, 0.18, 0.28, 0.28],
+  ];
+  for (const [x, y, z, size] of offsets) {
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(size * def.scale, 0), materials.crusher);
+    rock.position.set(x * def.scale, y * def.scale + size * def.scale * 0.55, z * def.scale);
+    rock.rotation.set(Math.sin(x * 7), Math.sin(z * 5), Math.cos((x + z) * 3));
+    rock.castShadow = enableShadows;
+    rock.receiveShadow = enableShadows;
+    group.add(rock);
+  }
+  group.position.set(def.x, def.y, def.z);
+  scene.add(group);
+}
+
 function createArch(def) {
   const group = new THREE.Group();
   const columnGeometry = new THREE.CylinderGeometry(0.28, 0.34, 3.2, 16);
@@ -724,6 +786,23 @@ function createArch(def) {
 }
 
 function createEnemy(def) {
+  const type = def.type || "bouncer";
+  if (type === "snapFlower") {
+    createSnapFlowerEnemy(def);
+    return;
+  }
+  if (type === "crusher") {
+    createCrusherEnemy(def);
+    return;
+  }
+  if (type === "rocket") {
+    createRocketEnemy(def);
+    return;
+  }
+  createBouncerEnemy(def);
+}
+
+function createBouncerEnemy(def) {
   const group = new THREE.Group();
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.62, reducedGpuMode ? 16 : 24, reducedGpuMode ? 10 : 16), materials.enemy);
   body.scale.set(1, 0.78, 1);
@@ -748,10 +827,147 @@ function createEnemy(def) {
 
   enemyItems.push({
     ...def,
+    type: "bouncer",
     group,
     baseX: def.x,
+    baseY: def.y,
     baseZ: def.z,
     angle: Math.random() * TAU,
+    defeated: false,
+    hitCooldown: 0,
+  });
+}
+
+function createSnapFlowerEnemy(def) {
+  const group = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.4, reducedGpuMode ? 8 : 12), materials.snapStem);
+  stem.position.y = 0.78;
+  stem.castShadow = enableShadows;
+  const leafA = new THREE.Mesh(new THREE.SphereGeometry(0.22, reducedGpuMode ? 8 : 12, 7), materials.leaf);
+  const leafB = leafA.clone();
+  leafA.position.set(-0.22, 0.42, 0.06);
+  leafB.position.set(0.24, 0.62, -0.04);
+  leafA.scale.set(1.45, 0.36, 0.82);
+  leafB.scale.set(1.25, 0.34, 0.72);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.52, reducedGpuMode ? 16 : 24, reducedGpuMode ? 10 : 16), materials.snapHead);
+  head.position.y = 1.55;
+  head.scale.set(1.05, 0.82, 0.92);
+  head.castShadow = enableShadows;
+  const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.31, reducedGpuMode ? 16 : 24), materials.snapMouth);
+  mouth.position.set(0, 1.55, -0.48);
+  mouth.scale.set(1.22, 0.62, 1);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.025, 6, reducedGpuMode ? 20 : 32), materials.tooth);
+  lip.position.copy(mouth.position);
+  lip.scale.set(1.18, 0.58, 1);
+  lip.rotation.x = Math.PI / 2;
+  const toothCount = reducedGpuMode ? 4 : 6;
+  for (let i = 0; i < toothCount; i += 1) {
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 6), materials.tooth);
+    tooth.position.set((i - (toothCount - 1) * 0.5) * 0.1, 1.76 - Math.abs(i - toothCount * 0.5) * 0.012, -0.5);
+    tooth.rotation.x = Math.PI;
+    group.add(tooth);
+  }
+  group.add(stem, leafA, leafB, head, mouth, lip);
+  group.position.set(def.x, def.y, def.z);
+  group.rotation.y = def.yaw ?? 0;
+  scene.add(group);
+  enemyItems.push({
+    ...def,
+    type: "snapFlower",
+    group,
+    head,
+    mouth,
+    lip,
+    baseX: def.x,
+    baseY: def.y,
+    baseZ: def.z,
+    angle: def.phase ?? 0,
+    defeated: false,
+    hitCooldown: 0,
+  });
+}
+
+function createCrusherEnemy(def) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(def.w ?? 2.7, def.h ?? 2.5, def.d ?? 2.7),
+    materials.crusher,
+  );
+  body.castShadow = enableShadows;
+  body.receiveShadow = enableShadows;
+  const eyeA = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.04), materials.crusherFace);
+  const eyeB = eyeA.clone();
+  eyeA.position.set(-0.48, 0.24, -((def.d ?? 2.7) * 0.5 + 0.024));
+  eyeB.position.set(0.48, 0.24, -((def.d ?? 2.7) * 0.5 + 0.024));
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.04), materials.crusherFace);
+  mouth.position.set(0, -0.42, -((def.d ?? 2.7) * 0.5 + 0.025));
+  group.add(body, eyeA, eyeB, mouth);
+  if (!reducedGpuMode) {
+    for (let i = 0; i < 4; i += 1) {
+      const chip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.04), materials.tooth);
+      chip.position.set(-0.34 + i * 0.22, -0.62, -((def.d ?? 2.7) * 0.5 + 0.035));
+      group.add(chip);
+    }
+  }
+  group.position.set(def.x, def.y, def.z);
+  scene.add(group);
+  enemyItems.push({
+    ...def,
+    type: "crusher",
+    group,
+    body,
+    baseX: def.x,
+    baseY: def.y,
+    baseZ: def.z,
+    angle: 0,
+    defeated: false,
+    hitCooldown: 0,
+  });
+}
+
+function createRocketEnemy(def) {
+  const group = new THREE.Group();
+  const launcher = new THREE.Group();
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.2, reducedGpuMode ? 14 : 22), materials.pipe);
+  barrel.rotation.z = Math.PI / 2;
+  const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.24, reducedGpuMode ? 14 : 22), materials.pipeDark);
+  muzzle.rotation.z = Math.PI / 2;
+  muzzle.position.x = 0.68;
+  launcher.add(barrel, muzzle);
+  launcher.rotation.y = -(def.yaw ?? 0);
+  group.add(launcher);
+
+  const projectile = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.62, reducedGpuMode ? 5 : 7, reducedGpuMode ? 10 : 14), materials.rocket);
+  body.rotation.z = Math.PI / 2;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.29, 0.38, reducedGpuMode ? 12 : 18), materials.rocketNose);
+  nose.rotation.z = -Math.PI / 2;
+  nose.position.x = 0.5;
+  const eyeA = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 6), materials.tooth);
+  const eyeB = eyeA.clone();
+  eyeA.position.set(0.18, 0.11, -0.23);
+  eyeB.position.set(0.18, -0.11, -0.23);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.42, 12), materials.rocketFlame.clone());
+  flame.rotation.z = Math.PI / 2;
+  flame.position.x = -0.58;
+  projectile.add(body, nose, eyeA, eyeB, flame);
+  projectile.visible = false;
+  group.add(projectile);
+  group.position.set(def.x, def.y, def.z);
+  scene.add(group);
+  enemyItems.push({
+    ...def,
+    type: "rocket",
+    group,
+    projectile,
+    flame,
+    forward: new THREE.Vector3(Math.sin(def.yaw ?? 0), 0, Math.cos(def.yaw ?? 0)).normalize(),
+    baseX: def.x,
+    baseY: def.y,
+    baseZ: def.z,
+    travel: 0,
+    fireTimer: def.phase ?? 0,
     defeated: false,
     hitCooldown: 0,
   });
@@ -783,10 +999,35 @@ function createPlayer() {
   brim.position.set(0, 1.67, -0.32);
   brim.castShadow = enableShadows;
 
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.36, reducedGpuMode ? 14 : 20, reducedGpuMode ? 8 : 12), materials.hair);
+  hair.position.set(0, 1.46, 0.08);
+  hair.scale.set(0.95, 0.5, 0.86);
+  hair.castShadow = enableShadows;
+
   const eyeA = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), materials.eye);
   const eyeB = eyeA.clone();
   eyeA.position.set(-0.13, 1.52, -0.34);
   eyeB.position.set(0.13, 1.52, -0.34);
+  const glintA = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 5), materials.tooth);
+  const glintB = glintA.clone();
+  glintA.position.set(-0.145, 1.535, -0.374);
+  glintB.position.set(0.115, 1.535, -0.374);
+  const cheekA = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), materials.cheek);
+  const cheekB = cheekA.clone();
+  cheekA.position.set(-0.22, 1.44, -0.32);
+  cheekB.position.set(0.22, 1.44, -0.32);
+  cheekA.scale.set(1.3, 0.52, 0.32);
+  cheekB.scale.copy(cheekA.scale);
+
+  const belt = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.035, 8, reducedGpuMode ? 18 : 28), materials.belt);
+  belt.position.y = 0.86;
+  belt.rotation.x = Math.PI / 2;
+  belt.scale.set(1.02, 0.78, 1);
+
+  const scarf = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.22, 3, 1), materials.heroAccent);
+  scarf.position.set(0.38, 1.22, 0.08);
+  scarf.rotation.set(0.18, -0.38, -0.4);
+  scarf.castShadow = enableShadows;
 
   const shoeA = new THREE.Mesh(new THREE.SphereGeometry(0.18, reducedGpuMode ? 9 : 12, reducedGpuMode ? 6 : 8), materials.shoe);
   const shoeB = shoeA.clone();
@@ -806,6 +1047,12 @@ function createPlayer() {
   armB.rotation.z = 0.35;
   armA.castShadow = enableShadows;
   armB.castShadow = enableShadows;
+  const handA = new THREE.Mesh(new THREE.SphereGeometry(0.12, reducedGpuMode ? 8 : 12, reducedGpuMode ? 6 : 8), materials.glove);
+  const handB = handA.clone();
+  handA.position.set(-0.6, 0.58, -0.04);
+  handB.position.set(0.6, 0.58, -0.04);
+  handA.scale.set(1, 0.82, 1);
+  handB.scale.copy(handA.scale);
 
   const wingA = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.32), materials.glideWing.clone());
   const wingB = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.32), materials.glideWing.clone());
@@ -816,8 +1063,31 @@ function createPlayer() {
   wingA.visible = false;
   wingB.visible = false;
 
-  group.add(shadow, body, head, cap, brim, eyeA, eyeB, shoeA, shoeB, armA, armB, wingA, wingB);
-  group.userData = { body, shoeA, shoeB, armA, armB, shadow, wingA, wingB };
+  group.add(
+    shadow,
+    body,
+    head,
+    hair,
+    cap,
+    brim,
+    eyeA,
+    eyeB,
+    glintA,
+    glintB,
+    cheekA,
+    cheekB,
+    belt,
+    scarf,
+    shoeA,
+    shoeB,
+    armA,
+    armB,
+    handA,
+    handB,
+    wingA,
+    wingB,
+  );
+  group.userData = { body, shoeA, shoeB, armA, armB, handA, handB, shadow, wingA, wingB, scarf };
   scene.add(group);
   return group;
 }
@@ -858,6 +1128,8 @@ function buildWorld() {
     if (decor.type === "flower") createFlowerPatch(decor);
     if (decor.type === "flag") createFlag(decor);
     if (decor.type === "crystal") createCrystal(decor);
+    if (decor.type === "pipe") createPipe(decor);
+    if (decor.type === "stone") createStoneCluster(decor);
     if (decor.type === "arch") createArch(decor);
   }
   for (const enemy of ENEMIES) createEnemy(enemy);
@@ -1179,8 +1451,9 @@ function updatePlayer(dt, move) {
   resolveVertical(previousY);
   if (player.grounded) player.gliding = false;
 
-  if (player.pos.y < RESPAWN_Y) {
-    damagePlayer(new THREE.Vector3(0, 0, 1), true);
+  const rescueY = assistMode ? Math.max(RESPAWN_Y, player.checkpoint.y - ASSIST_RESCUE_DROP) : RESPAWN_Y;
+  if (player.pos.y < rescueY) {
+    damagePlayer(tmpVec2.set(0, 0, 1), true);
   }
 
   const horizontalSpeed = Math.hypot(player.vel.x, player.vel.z);
@@ -1201,14 +1474,21 @@ function animatePlayer(dt, horizontalSpeed) {
   const shoeB = playerGroup.userData.shoeB;
   const armA = playerGroup.userData.armA;
   const armB = playerGroup.userData.armB;
+  const handA = playerGroup.userData.handA;
+  const handB = playerGroup.userData.handB;
   const shadow = playerGroup.userData.shadow;
   const wingA = playerGroup.userData.wingA;
   const wingB = playerGroup.userData.wingB;
+  const scarf = playerGroup.userData.scarf;
   const swing = Math.sin(t) * 0.35 * stride;
   shoeA.position.z = -0.12 + swing * 0.18;
   shoeB.position.z = -0.12 - swing * 0.18;
   armA.rotation.x = swing;
   armB.rotation.x = -swing;
+  handA.position.z = -0.04 + swing * 0.08;
+  handB.position.z = -0.04 - swing * 0.08;
+  scarf.rotation.z = -0.4 + Math.sin(game.time * 7.5) * (player.grounded ? 0.035 : 0.11);
+  scarf.rotation.y = -0.38 + clamp(Math.hypot(player.vel.x, player.vel.z) / RUN_SPEED, 0, 1) * 0.18;
 
   const squash = player.grounded ? 1 : clamp(1 + player.vel.y * 0.015, 0.88, 1.12);
   playerGroup.scale.y = damp(playerGroup.scale.y, squash, 12, dt);
@@ -1355,47 +1635,123 @@ function updateCollectibles(dt) {
 
 function updateEnemies(dt) {
   for (const enemy of enemyItems) {
-    if (enemy.defeated) continue;
     enemy.hitCooldown = Math.max(0, enemy.hitCooldown - dt);
-    enemy.angle += dt * enemy.speed;
-
-    const toPlayer = tmpVec.set(player.pos.x - enemy.group.position.x, 0, player.pos.z - enemy.group.position.z);
-    const distToPlayer = toPlayer.length();
-    let targetX = enemy.baseX + Math.cos(enemy.angle) * enemy.radius;
-    let targetZ = enemy.baseZ + Math.sin(enemy.angle * 0.8) * enemy.radius;
-    if (distToPlayer < 6.2) {
-      targetX = damp(targetX, player.pos.x, 0.95, dt);
-      targetZ = damp(targetZ, player.pos.z, 0.95, dt);
-    }
-
-    enemy.group.position.x = damp(enemy.group.position.x, targetX, 3.1, dt);
-    enemy.group.position.z = damp(enemy.group.position.z, targetZ, 3.1, dt);
-    enemy.group.position.y = enemy.y + Math.abs(Math.sin(enemy.angle * 2.2)) * 0.18;
-    enemy.group.rotation.y = Math.atan2(enemy.group.position.x - player.pos.x, enemy.group.position.z - player.pos.z);
-
-    const dx = player.pos.x - enemy.group.position.x;
-    const dz = player.pos.z - enemy.group.position.z;
-    const dist = Math.hypot(dx, dz);
-    const dy = player.pos.y - enemy.group.position.y;
-    if (dist < 1.05 && Math.abs(dy) < 1.35) {
-      if (player.vel.y < -2 && dy > 0.35) {
-        enemy.defeated = true;
-        enemy.group.visible = false;
-        player.vel.y = 8.6;
-        player.airJumpsUsed = 0;
-        game.coins += 3;
-        audio.play("bounce", 0.7);
-        spawnBurst(enemy.group.position, 0xf1725f, 16);
-        showToast("Treffer");
-      } else if (enemy.hitCooldown <= 0) {
-        enemy.hitCooldown = 1.2;
-        tmpVec2.set(dx, 0, dz);
-        if (tmpVec2.lengthSq() < 0.01) tmpVec2.set(0, 0, 1);
-        tmpVec2.normalize();
-        damagePlayer(tmpVec2, false);
-      }
-    }
+    if (enemy.defeated && enemy.type !== "crusher" && enemy.type !== "rocket") continue;
+    if (enemy.type === "snapFlower") updateSnapFlowerEnemy(enemy, dt);
+    else if (enemy.type === "crusher") updateCrusherEnemy(enemy, dt);
+    else if (enemy.type === "rocket") updateRocketEnemy(enemy, dt);
+    else updateBouncerEnemy(enemy, dt);
   }
+}
+
+function updateBouncerEnemy(enemy, dt) {
+  enemy.angle += dt * enemy.speed;
+  const toPlayer = tmpVec.set(player.pos.x - enemy.group.position.x, 0, player.pos.z - enemy.group.position.z);
+  const distToPlayer = toPlayer.length();
+  let targetX = enemy.baseX + Math.cos(enemy.angle) * enemy.radius;
+  let targetZ = enemy.baseZ + Math.sin(enemy.angle * 0.8) * enemy.radius;
+  if (distToPlayer < 6.2) {
+    targetX = damp(targetX, player.pos.x, 0.95, dt);
+    targetZ = damp(targetZ, player.pos.z, 0.95, dt);
+  }
+
+  enemy.group.position.x = damp(enemy.group.position.x, targetX, 3.1, dt);
+  enemy.group.position.z = damp(enemy.group.position.z, targetZ, 3.1, dt);
+  enemy.group.position.y = enemy.baseY + Math.abs(Math.sin(enemy.angle * 2.2)) * 0.18;
+  enemy.group.rotation.y = Math.atan2(enemy.group.position.x - player.pos.x, enemy.group.position.z - player.pos.z);
+  handleEnemyContact(enemy, enemy.group.position.x, enemy.group.position.y, enemy.group.position.z, 1.05, 1.35, true, 0xf1725f);
+}
+
+function updateSnapFlowerEnemy(enemy, dt) {
+  enemy.angle += dt * (enemy.speed ?? 1);
+  const dx = player.pos.x - enemy.baseX;
+  const dz = player.pos.z - enemy.baseZ;
+  const near = Math.hypot(dx, dz) < 4.8;
+  const pulse = (Math.sin(enemy.angle * 2.2) + 1) * 0.5;
+  const rise = near ? 1 : pulse;
+  enemy.group.position.y = damp(enemy.group.position.y, enemy.baseY + rise * 0.82, near ? 8.5 : 3.8, dt);
+  enemy.group.rotation.y = Math.atan2(enemy.group.position.x - player.pos.x, enemy.group.position.z - player.pos.z);
+  const bite = 0.72 + rise * 0.34 + Math.sin(game.time * 10) * 0.035;
+  enemy.head.scale.set(1.05, bite, 0.92);
+  enemy.mouth.scale.set(1.22, 0.48 + rise * 0.38, 1);
+  enemy.lip.scale.set(1.18, 0.5 + rise * 0.32, 1);
+  handleEnemyContact(enemy, enemy.group.position.x, enemy.group.position.y + 1.48, enemy.group.position.z, 1.05, 1.25, true, 0xf1725f);
+}
+
+function updateCrusherEnemy(enemy, dt) {
+  enemy.angle += dt * (enemy.speed ?? 0.75);
+  const phase = (enemy.angle + (enemy.phase ?? 0)) % 1;
+  const warning = phase > 0.48 && phase < 0.62;
+  const falling = phase >= 0.62 && phase < 0.78;
+  const rising = phase >= 0.9;
+  let dropAmount = 0;
+  if (falling) dropAmount = THREE.MathUtils.smoothstep((phase - 0.62) / 0.16, 0, 1);
+  else if (phase >= 0.78 && phase < 0.9) dropAmount = 1;
+  else if (rising) dropAmount = 1 - THREE.MathUtils.smoothstep((phase - 0.9) / 0.1, 0, 1);
+  enemy.group.position.y = enemy.baseY - dropAmount * (enemy.drop ?? 3.4);
+  enemy.group.rotation.z = warning ? Math.sin(game.time * 32) * 0.035 : 0;
+  if (dropAmount > 0.72) {
+    handleEnemyContact(enemy, enemy.group.position.x, enemy.group.position.y, enemy.group.position.z, (enemy.w ?? 2.7) * 0.54, (enemy.h ?? 2.5) * 0.68, false, 0x8a96a1);
+  }
+}
+
+function updateRocketEnemy(enemy, dt) {
+  enemy.fireTimer -= dt;
+  if (enemy.fireTimer <= 0 || enemy.travel > (enemy.range ?? 22)) {
+    enemy.travel = 0;
+    enemy.fireTimer = 2.25 + (enemy.phase ?? 0) * 0.25;
+    enemy.projectile.visible = true;
+    enemy.projectile.position.set(0, 0, 0);
+    enemy.projectile.rotation.y = -(enemy.yaw ?? 0);
+    if (!reducedGpuMode) spawnBurst(enemy.group.position, 0xf1725f, 6);
+  }
+  if (!enemy.projectile.visible) return;
+  enemy.travel += dt * (enemy.speed ?? 9);
+  enemy.projectile.position.set(
+    enemy.forward.x * enemy.travel,
+    Math.sin(game.time * 8 + enemy.phase) * 0.06,
+    enemy.forward.z * enemy.travel,
+  );
+  enemy.flame.scale.setScalar(0.8 + Math.sin(game.time * 18) * 0.18);
+  const worldX = enemy.baseX + enemy.projectile.position.x;
+  const worldY = enemy.baseY + enemy.projectile.position.y;
+  const worldZ = enemy.baseZ + enemy.projectile.position.z;
+  const hit = handleEnemyContact(enemy, worldX, worldY, worldZ, 0.82, 0.9, true, 0xffd166, false);
+  if (hit === "stomped") {
+    enemy.projectile.visible = false;
+    enemy.travel = enemy.range ?? 22;
+    spawnBurst(tmpVec.set(worldX, worldY, worldZ), 0xffd166, 12);
+  }
+}
+
+function handleEnemyContact(enemy, x, y, z, radius, height, stompable, color, hideOnStomp = true) {
+  const dx = player.pos.x - x;
+  const dz = player.pos.z - z;
+  const dist = Math.hypot(dx, dz);
+  const dy = player.pos.y - y;
+  if (dist >= radius || Math.abs(dy) >= height) return false;
+  if (stompable && player.vel.y < -2 && dy > 0.3) {
+    if (hideOnStomp) {
+      enemy.defeated = true;
+      enemy.group.visible = false;
+    }
+    player.vel.y = enemy.type === "snapFlower" ? 9.4 : 8.6;
+    player.airJumpsUsed = 0;
+    game.coins += enemy.type === "rocket" ? 1 : 3;
+    audio.play("bounce", 0.7);
+    spawnBurst(tmpVec.set(x, y, z), color, enemy.type === "rocket" ? 10 : 16);
+    showToast(enemy.type === "rocket" ? "Rocket Bounce" : "Treffer");
+    return "stomped";
+  }
+  if (enemy.hitCooldown <= 0) {
+    enemy.hitCooldown = enemy.type === "crusher" ? 1.6 : 1.2;
+    tmpVec2.set(dx, 0, dz);
+    if (tmpVec2.lengthSq() < 0.01) tmpVec2.set(0, 0, 1);
+    tmpVec2.normalize();
+    damagePlayer(tmpVec2, false);
+    return "hurt";
+  }
+  return true;
 }
 
 function damagePlayer(direction, hardReset) {
@@ -1684,6 +2040,15 @@ function resetRun(keepRunning = false) {
     enemy.defeated = false;
     enemy.group.visible = true;
     enemy.group.position.set(enemy.x, enemy.y, enemy.z);
+    enemy.hitCooldown = 0;
+    enemy.angle = enemy.type === "bouncer" ? Math.random() * TAU : (enemy.phase ?? 0);
+    if (enemy.type === "crusher") enemy.angle = 0;
+    if (enemy.type === "rocket") {
+      enemy.travel = 0;
+      enemy.fireTimer = enemy.phase ?? 0;
+      enemy.projectile.visible = false;
+      enemy.projectile.position.set(0, 0, 0);
+    }
   }
   for (const ring of boostRingItems) {
     ring.cooldown = 0;
