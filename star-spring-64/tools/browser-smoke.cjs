@@ -81,18 +81,34 @@ async function runViewport(browser, name, viewport, mobile = false) {
   });
   page.on("pageerror", (error) => errors.push(error.message));
 
-  const targetUrl = `${smokeUrl}${smokeUrl.includes("?") ? "&" : "?"}mute=1`;
+  const targetUrl = `${smokeUrl}${smokeUrl.includes("?") ? "&" : "?"}mute=1&capture=1`;
   await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.waitForLoadState("load", { timeout: 30000 }).catch(() => {});
   await page.waitForSelector("#game");
-  await page.click("#startButton");
+  await page.waitForSelector("#startButton");
+  await page.evaluate(() => document.getElementById("startButton").click());
   await page.waitForTimeout(350);
   await page.keyboard.down("KeyW");
   await page.keyboard.press("Space");
   await page.waitForTimeout(180);
   await page.keyboard.press("Space");
+  await page.waitForTimeout(180);
+  await page.keyboard.press("Space");
   await page.waitForTimeout(720);
   await page.keyboard.up("KeyW");
+  const fpsEstimate = await page.evaluate(() => new Promise((resolve) => {
+    let last = performance.now();
+    let total = 0;
+    let frames = 0;
+    function step(now) {
+      total += now - last;
+      last = now;
+      frames += 1;
+      if (frames >= 45) resolve(Math.round(1000 / (total / frames)));
+      else requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }));
 
   const metrics = await page.evaluate(() => {
     const canvas = document.getElementById("game");
@@ -119,19 +135,26 @@ async function runViewport(browser, name, viewport, mobile = false) {
       jumpText: document.getElementById("jumpText").textContent,
     };
   });
+  metrics.fpsEstimate = fpsEstimate;
 
   if (errors.length) throw new Error(`${name} console errors: ${errors.join(" | ")}`);
   if (!metrics.webgl) throw new Error(`${name} WebGL context missing`);
   if (!metrics.menuHidden) throw new Error(`${name} menu did not close`);
   if (mobile && !metrics.touchVisible) throw new Error(`${name} touch controls are hidden`);
-  if (!/^[0-2]\/2$/.test(metrics.jumpText)) throw new Error(`${name} double jump HUD is invalid`);
+  if (!/^[0-3]\/3$/.test(metrics.jumpText)) throw new Error(`${name} triple jump HUD is invalid`);
+  if (metrics.fpsEstimate < 18) throw new Error(`${name} FPS estimate too low: ${metrics.fpsEstimate}`);
   if (!metrics.pixels.some((pixel) => pixel[3] > 0 && (pixel[0] + pixel[1] + pixel[2]) > 8)) {
     throw new Error(`${name} canvas pixel check looks blank`);
   }
 
   const screenshotPath = path.join(root, `browser-smoke-${name}.png`);
-  await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 60000 });
-  await page.close();
+  try {
+    await page.screenshot({ path: screenshotPath, fullPage: false, timeout: 10000 });
+  } catch {
+    const canvasPng = await page.evaluate(() => document.getElementById("game").toDataURL("image/png").split(",")[1]);
+    fs.writeFileSync(screenshotPath, Buffer.from(canvasPng, "base64"));
+  }
+  await page.close({ runBeforeUnload: false });
   return { name, screenshotPath, metrics };
 }
 
@@ -156,8 +179,11 @@ async function runViewport(browser, name, viewport, mobile = false) {
     args: ["--allow-file-access-from-files"],
   });
   try {
+    console.log(`Browser smoke URL ${smokeUrl}`);
     const desktop = await runViewport(browser, "desktop", { width: 1280, height: 720 });
+    console.log("Desktop viewport passed");
     const mobile = await runViewport(browser, "mobile", { width: 390, height: 844 }, true);
+    console.log("Mobile viewport passed");
     console.log("Browser smoke test passed");
     console.log(JSON.stringify({ desktop, mobile }, null, 2));
   } finally {

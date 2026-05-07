@@ -10,6 +10,7 @@ import {
   SPRINGS,
   START,
   STARS,
+  WIND_COLUMNS,
 } from "./level.js";
 
 const canvas = document.getElementById("game");
@@ -46,17 +47,23 @@ if (urlParams.get("touch") === "1") {
   document.body.classList.add("force-touch");
 }
 const mutedByUrl = urlParams.get("mute") === "1";
+const captureMode = urlParams.get("capture") === "1";
+const qualityMode = urlParams.get("quality") || "auto";
+const reducedGpuMode = qualityMode !== "high" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 760);
+const maxPixelRatio = captureMode ? 2 : qualityMode === "high" ? 1.65 : reducedGpuMode ? 1.05 : 1.35;
+const enableDynamicLights = qualityMode === "high" || (!reducedGpuMode && window.innerWidth >= 900);
+const enableShadows = qualityMode !== "low" && !reducedGpuMode;
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
   alpha: false,
-  preserveDrawingBuffer: true,
+  preserveDrawingBuffer: captureMode,
   powerPreference: "high-performance",
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio));
+renderer.shadowMap.enabled = enableShadows;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 if ("toneMapping" in renderer && THREE.ACESFilmicToneMapping) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
@@ -90,7 +97,8 @@ const ACCEL_AIR = 18;
 const FRICTION = 13;
 const JUMP_SPEED = 11.2;
 const DOUBLE_JUMP_SPEED = 10.6;
-const MAX_AIR_JUMPS = 1;
+const TRIPLE_JUMP_SPEED = 12.4;
+const MAX_AIR_JUMPS = 2;
 const COYOTE_TIME = 0.12;
 const RESPAWN_Y = -14;
 const TAU = Math.PI * 2;
@@ -101,9 +109,12 @@ const starItems = [];
 const coinItems = [];
 const springItems = [];
 const boostRingItems = [];
+const windColumnItems = [];
 const enemyItems = [];
 const particles = [];
 const keys = new Set();
+const MAX_PARTICLES = reducedGpuMode ? 58 : 96;
+const particleGeometry = new THREE.SphereGeometry(1, 6, 4);
 
 const player = {
   pos: new THREE.Vector3(START.x, START.y, START.z),
@@ -284,6 +295,20 @@ const materials = {
     transparent: true,
     opacity: 0.86,
   }),
+  wind: new THREE.MeshBasicMaterial({
+    color: 0xd8fbff,
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }),
+  crystal: new THREE.MeshStandardMaterial({
+    color: 0x8df4ff,
+    roughness: 0.22,
+    metalness: 0.04,
+    emissive: 0x1166aa,
+    emissiveIntensity: 0.36,
+  }),
   portalClosed: new THREE.MeshStandardMaterial({
     color: 0x44566d,
     roughness: 0.45,
@@ -306,8 +331,8 @@ function addLights() {
 
   const sun = new THREE.DirectionalLight(0xfff4cf, 3.2);
   sun.position.set(-23, 42, 25);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.castShadow = enableShadows;
+  sun.shadow.mapSize.set(reducedGpuMode ? 512 : 1024, reducedGpuMode ? 512 : 1024);
   sun.shadow.camera.left = -65;
   sun.shadow.camera.right = 65;
   sun.shadow.camera.top = 55;
@@ -375,8 +400,8 @@ function createPlatform(def) {
     [sideMaterial, sideMaterial, topMaterial, materials.islandUnderside, sideMaterial, sideMaterial],
   );
   mesh.position.set(def.x, def.y, def.z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  mesh.castShadow = enableShadows;
+  mesh.receiveShadow = enableShadows;
   mesh.name = `platform-${def.id}`;
   scene.add(mesh);
 
@@ -394,8 +419,8 @@ function createPlatform(def) {
   skirt.position.set(def.x, def.y - def.h * 0.5 - Math.max(def.w, def.d) * 0.08, def.z);
   skirt.rotation.y = Math.PI / 4;
   skirt.scale.set(def.w / Math.max(def.w, def.d), 1, def.d / Math.max(def.w, def.d));
-  skirt.castShadow = true;
-  skirt.receiveShadow = true;
+  skirt.castShadow = enableShadows;
+  skirt.receiveShadow = enableShadows;
   scene.add(skirt);
 
   const solid = {
@@ -423,9 +448,12 @@ function createBoostRing(def) {
     new THREE.TorusGeometry(0.78, 0.025, 8, 44),
     new THREE.MeshBasicMaterial({ color: 0xfff7ad, transparent: true, opacity: 0.78 }),
   );
-  const light = new THREE.PointLight(0x79e9ff, 0.9, 7);
-  ring.castShadow = true;
-  group.add(ring, inner, light);
+  ring.castShadow = enableShadows;
+  group.add(ring, inner);
+  if (enableDynamicLights) {
+    const light = new THREE.PointLight(0x79e9ff, 0.55, 6);
+    group.add(light);
+  }
   group.position.set(def.x, def.y, def.z);
   group.rotation.y = def.yaw;
   scene.add(group);
@@ -437,6 +465,35 @@ function createBoostRing(def) {
     cooldown: 0,
     forward: new THREE.Vector3(Math.sin(def.yaw), 0, Math.cos(def.yaw)).normalize(),
   });
+}
+
+function createWindColumn(def) {
+  const group = new THREE.Group();
+  const column = new THREE.Mesh(
+    new THREE.CylinderGeometry(def.radius, def.radius * 0.74, def.height, 28, 1, true),
+    materials.wind.clone(),
+  );
+  column.position.y = def.height * 0.5;
+  const rings = [];
+  for (let i = 0; i < 4; i += 1) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(def.radius * (0.72 + i * 0.07), 0.025, 8, 36),
+      new THREE.MeshBasicMaterial({
+        color: i % 2 ? 0xffffff : 0x9ee8ff,
+        transparent: true,
+        opacity: 0.58,
+        depthWrite: false,
+      }),
+    );
+    ring.position.y = 0.8 + i * (def.height - 1.6) / 3;
+    ring.rotation.x = Math.PI / 2;
+    rings.push(ring);
+    group.add(ring);
+  }
+  group.add(column);
+  group.position.set(def.x, def.y, def.z);
+  scene.add(group);
+  windColumnItems.push({ ...def, group, column, rings, cooldown: 0 });
 }
 
 function createSpring(def) {
@@ -561,8 +618,26 @@ function createFlag(def) {
   group.add(pole, cloth);
   group.position.set(def.x, def.y, def.z);
   group.traverse((child) => {
-    if (child.isMesh) child.castShadow = true;
+    if (child.isMesh) child.castShadow = enableShadows;
   });
+  scene.add(group);
+}
+
+function createCrystal(def) {
+  const group = new THREE.Group();
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), materials.crystal);
+  crystal.position.y = 0.65 * def.scale;
+  crystal.scale.set(0.7 * def.scale, 1.35 * def.scale, 0.7 * def.scale);
+  crystal.castShadow = enableShadows;
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.34 * def.scale, 0.44 * def.scale, 0.18 * def.scale, 6),
+    materials.islandUnderside,
+  );
+  base.position.y = 0.09 * def.scale;
+  base.castShadow = enableShadows;
+  group.add(crystal, base);
+  group.position.set(def.x, def.y, def.z);
+  group.rotation.y = Math.sin(def.z) * 0.8;
   scene.add(group);
 }
 
@@ -683,6 +758,7 @@ function buildWorld() {
   for (const platform of PLATFORMS) createPlatform(platform);
   for (const spring of SPRINGS) createSpring(spring);
   for (const ring of BOOST_RINGS) createBoostRing(ring);
+  for (const wind of WIND_COLUMNS) createWindColumn(wind);
   STARS.forEach(createStar);
   COINS.forEach(createCoin);
   for (const decor of DECOR) {
@@ -690,6 +766,7 @@ function buildWorld() {
     if (decor.type === "cloud") createCloud(decor);
     if (decor.type === "flower") createFlowerPatch(decor);
     if (decor.type === "flag") createFlag(decor);
+    if (decor.type === "crystal") createCrystal(decor);
     if (decor.type === "arch") createArch(decor);
   }
   for (const enemy of ENEMIES) createEnemy(enemy);
@@ -935,15 +1012,16 @@ function updatePlayer(dt, move) {
   }
 
   const canGroundJump = player.grounded || player.coyote > 0;
-  const canDoubleJump = !canGroundJump && player.airJumpsUsed < MAX_AIR_JUMPS;
-  if (player.jumpQueued && player.jumpBuffer > 0 && (canGroundJump || canDoubleJump)) {
-    if (canDoubleJump) {
+  const canAirJump = !canGroundJump && player.airJumpsUsed < MAX_AIR_JUMPS;
+  if (player.jumpQueued && player.jumpBuffer > 0 && (canGroundJump || canAirJump)) {
+    if (canAirJump) {
       player.airJumpsUsed += 1;
-      player.vel.y = Math.max(player.vel.y, DOUBLE_JUMP_SPEED);
-      player.vel.x += desired.x * 2.4;
-      player.vel.z += desired.z * 2.4;
-      spawnBurst(tmpVec2.set(player.pos.x, player.pos.y + 0.72, player.pos.z), 0x9ee8ff, 14);
-      showToast("Double Jump");
+      const isTriple = player.airJumpsUsed >= 2;
+      player.vel.y = Math.max(player.vel.y, isTriple ? TRIPLE_JUMP_SPEED : DOUBLE_JUMP_SPEED);
+      player.vel.x += desired.x * (isTriple ? 3.6 : 2.4);
+      player.vel.z += desired.z * (isTriple ? 3.6 : 2.4);
+      spawnBurst(tmpVec2.set(player.pos.x, player.pos.y + 0.72, player.pos.z), isTriple ? 0xffd166 : 0x9ee8ff, isTriple ? 18 : 12);
+      showToast(isTriple ? "Triple Jump" : "Double Jump");
     } else {
       player.vel.y = JUMP_SPEED;
       player.airJumpsUsed = 0;
@@ -1041,6 +1119,36 @@ function updateBoostRings(dt, active = true) {
       audio.play("bounce", 0.58);
       spawnBurst(ring.group.position, 0x9ee8ff, 18);
       showToast("Sky Ring");
+    }
+  }
+}
+
+function updateWindColumns(dt, active = true) {
+  for (const wind of windColumnItems) {
+    wind.cooldown = Math.max(0, wind.cooldown - dt);
+    wind.column.rotation.y += dt * 0.42;
+    for (let i = 0; i < wind.rings.length; i += 1) {
+      const ring = wind.rings[i];
+      ring.rotation.z += dt * (0.8 + i * 0.35);
+      ring.position.y += dt * (0.9 + i * 0.18);
+      if (ring.position.y > wind.height) ring.position.y = 0.55;
+      ring.material.opacity = 0.42 + Math.sin(game.time * 3 + i) * 0.12;
+    }
+
+    const dx = player.pos.x - wind.x;
+    const dz = player.pos.z - wind.z;
+    const localY = player.pos.y - wind.y;
+    const inside = Math.hypot(dx, dz) < wind.radius && localY > -0.25 && localY < wind.height;
+    if (active && inside) {
+      player.vel.y = Math.max(player.vel.y, wind.power * (1 - Math.min(0.45, localY / wind.height * 0.25)));
+      player.vel.x += (-dz / Math.max(0.01, wind.radius)) * dt * 1.4;
+      player.vel.z += (dx / Math.max(0.01, wind.radius)) * dt * 1.4;
+      player.airJumpsUsed = Math.min(player.airJumpsUsed, 1);
+      if (wind.cooldown <= 0) {
+        wind.cooldown = 1.2;
+        showToast("Wind Lift");
+        spawnBurst(tmpVec.set(wind.x, player.pos.y + 0.6, wind.z), 0xd8fbff, 8);
+      }
     }
   }
 }
@@ -1147,7 +1255,6 @@ function respawnPlayer() {
   player.groundSolid = null;
   player.coyote = 0;
   player.airJumpsUsed = 0;
-  player.airJumpsUsed = 0;
 }
 
 function updateGoal(dt) {
@@ -1180,13 +1287,19 @@ function spawnAmbientPortalSpark(dt, origin) {
 }
 
 function spawnParticle(position, color, velocity, life, size) {
+  if (particles.length >= MAX_PARTICLES) {
+    const oldest = particles.shift();
+    scene.remove(oldest.mesh);
+    oldest.mesh.material.dispose();
+  }
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(size, 8, 6),
+    particleGeometry,
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 }),
   );
   mesh.position.copy(position);
+  mesh.scale.setScalar(size);
   scene.add(mesh);
-  particles.push({ mesh, velocity: velocity.clone(), life, maxLife: life });
+  particles.push({ mesh, velocity: velocity.clone(), life, maxLife: life, size });
 }
 
 function spawnBurst(position, color, count) {
@@ -1211,10 +1324,9 @@ function updateParticles(dt) {
     particle.mesh.position.addScaledVector(particle.velocity, dt);
     const alpha = clamp(particle.life / particle.maxLife, 0, 1);
     particle.mesh.material.opacity = alpha;
-    particle.mesh.scale.setScalar(0.5 + alpha * 0.8);
+    particle.mesh.scale.setScalar(particle.size * (0.5 + alpha * 0.8));
     if (particle.life <= 0) {
       scene.remove(particle.mesh);
-      particle.mesh.geometry.dispose();
       particle.mesh.material.dispose();
       particles.splice(i, 1);
     }
@@ -1254,8 +1366,8 @@ function updateCamera(dt, move) {
 function updateHud() {
   ui.starText.textContent = `${game.stars}/${LEVEL_TARGET_STARS}`;
   ui.coinText.textContent = String(game.coins);
-  const jumpsReady = player.grounded ? 2 : Math.max(0, 1 - player.airJumpsUsed);
-  ui.jumpText.textContent = `${jumpsReady}/2`;
+  const jumpsReady = player.grounded ? 3 : Math.max(0, 2 - player.airJumpsUsed);
+  ui.jumpText.textContent = `${jumpsReady}/3`;
   ui.timeText.textContent = formatTime(game.time);
   for (let i = 0; i < ui.health.length; i += 1) {
     ui.health[i].classList.toggle("empty", i >= player.health);
@@ -1325,6 +1437,9 @@ function resetRun(keepRunning = false) {
     ring.cooldown = 0;
     ring.group.scale.setScalar(1);
     ring.ring.material.opacity = 0.86;
+  }
+  for (const wind of windColumnItems) {
+    wind.cooldown = 0;
   }
 
   ui.finish.classList.add("hidden");
@@ -1404,6 +1519,7 @@ function frame() {
     updatePlayer(dt, move);
     updateSprings(dt);
     updateBoostRings(dt);
+    updateWindColumns(dt);
     updateCollectibles(dt);
     updateEnemies(dt);
     updateGoal(dt);
@@ -1414,6 +1530,7 @@ function frame() {
   } else {
     updateMovingPlatforms(game.time);
     updateBoostRings(dt, false);
+    updateWindColumns(dt, false);
     updateParticles(dt);
     updateCamera(dt, { x: 0, y: 0, length: 0 });
     updateToast(dt);

@@ -3,6 +3,17 @@
 Originaler 3D-Platformer fuer den Browser mit lokal generierten Textur- und Audio-Assets.
 Die aktuelle BGM nutzt `assets/audio/downloads-bgm.mp3`, kopiert aus `C:\Users\User\Downloads\Sky Garden Relay.mp3`.
 
+## Gameplay
+
+- Triple-Jump: Bodenjump plus zwei Air-Jumps, mit staerkerem dritten Sprung.
+- Sky Rings: geben Vorwaerts-Boost und frischen Air-Jumps auf.
+- Wind Lifts: tragen dich nach oben und retten schnelle Routen zwischen Inseln.
+
+## Performance
+
+Normaler Spielbetrieb nutzt reduzierte Renderkosten: gekappte Pixelratio, keine teuren Capture-Buffer und reduzierte dynamische Lichter auf Mobile.
+Der Browser-Smoke-Test startet mit `?capture=1`, damit Canvas-Pixel pruefbar bleiben.
+
 ## Start
 
 ```powershell

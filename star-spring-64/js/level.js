@@ -77,6 +77,12 @@ export const BOOST_RINGS = [
   { id: "ring-gate", x: -11, y: 11.0, z: -90, yaw: -1.15, power: 13 },
 ];
 
+export const WIND_COLUMNS = [
+  { id: "wind-step", x: -1, y: 1.7, z: -17, radius: 1.8, height: 7.5, power: 7.5 },
+  { id: "wind-bowl", x: 12, y: 4.2, z: -50, radius: 2.0, height: 8.5, power: 8.2 },
+  { id: "wind-gate", x: -16, y: 8.6, z: -88, radius: 2.1, height: 7.2, power: 7.8 },
+];
+
 export const ENEMIES = [
   { id: "bouncer-a", x: 18, y: 4.4, z: -45, radius: 5, speed: 1.2 },
   { id: "bouncer-b", x: -28, y: 8.1, z: -76, radius: 4, speed: 1.45 },
@@ -97,5 +103,8 @@ export const DECOR = [
   { type: "flower", x: -25, y: 7.92, z: -73, scale: 0.9 },
   { type: "flag", x: -4, y: 0.8, z: -5, scale: 1.0 },
   { type: "flag", x: -28, y: 7.8, z: -72, scale: 0.9 },
+  { type: "crystal", x: 4, y: 1.05, z: -8, scale: 0.75 },
+  { type: "crystal", x: 20, y: 4.2, z: -40, scale: 0.85 },
+  { type: "crystal", x: -19, y: 9.4, z: -96, scale: 1.0 },
   { type: "arch", x: -22, y: 9.8, z: -101, scale: 1 },
 ];
