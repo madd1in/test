@@ -1,7 +1,7 @@
-export const LEVEL_TARGET_STARS = 6;
+export const LEVEL_TARGET_STARS = 10;
 
 export const START = { x: 0, y: 1.08, z: 2 };
-export const GOAL = { x: -22, y: 9.8, z: -92 };
+export const GOAL = { x: -8, y: 14.2, z: -160 };
 
 export const PLATFORMS = [
   { id: "home", x: 0, y: 0, z: 0, w: 15, h: 1.2, d: 15, texture: "grass_tile" },
@@ -19,6 +19,16 @@ export const PLATFORMS = [
   { id: "bonus-a", x: 29, y: 5.8, z: -34, w: 6, h: 0.75, d: 6, texture: "cloud_tile" },
   { id: "bonus-b", x: 37, y: 7.2, z: -43, w: 7, h: 0.75, d: 7, texture: "grass_tile" },
   { id: "bonus-c", x: 30, y: 8.4, z: -55, w: 6, h: 0.75, d: 6, texture: "brick_tile" },
+
+  { id: "pipe-garden", x: -24, y: 9.2, z: -111, w: 15.5, h: 1.1, d: 15.5, texture: "grass_tile" },
+  { id: "tube-hop", x: -9, y: 9.7, z: -121, w: 7.2, h: 0.75, d: 7.2, texture: "cloud_tile", moving: { axis: "x", distance: 7, speed: 0.5 } },
+  { id: "orchard-side", x: -38, y: 10.7, z: -125, w: 9.4, h: 0.9, d: 9.4, texture: "flower_tile" },
+  { id: "crusher-approach", x: 4, y: 10.6, z: -132, w: 18, h: 0.8, d: 5.8, texture: "brick_tile" },
+  { id: "crusher-safe-a", x: 15, y: 11.1, z: -141, w: 7.4, h: 0.75, d: 7.4, texture: "cliff_tile" },
+  { id: "rocket-run", x: -6, y: 11.9, z: -145, w: 9.4, h: 0.7, d: 14.5, texture: "cloud_tile" },
+  { id: "rocket-side", x: -22, y: 12.4, z: -147, w: 7.2, h: 0.7, d: 7.2, texture: "brick_tile" },
+  { id: "final-garden", x: -8, y: 13.1, z: -160, w: 18, h: 1.2, d: 16, texture: "flower_tile" },
+  { id: "sky-cache", x: 9, y: 14.1, z: -166, w: 6.8, h: 0.75, d: 6.8, texture: "cloud_tile" },
 ];
 
 export const STARS = [
@@ -30,6 +40,12 @@ export const STARS = [
   { id: "star-tower", x: -28, y: 8.9, z: -76 },
   { id: "star-bonus", x: 37, y: 8.9, z: -43 },
   { id: "star-gate", x: -22, y: 10.6, z: -97 },
+  { id: "star-pipe", x: -28, y: 11.0, z: -113 },
+  { id: "star-orchard", x: -38, y: 12.3, z: -125 },
+  { id: "star-crusher", x: 7, y: 12.2, z: -132 },
+  { id: "star-rocket-side", x: -22, y: 13.8, z: -147 },
+  { id: "star-final", x: -8, y: 14.9, z: -160 },
+  { id: "star-cache", x: 9, y: 15.6, z: -166 },
 ];
 
 export const COINS = [
@@ -61,6 +77,25 @@ export const COINS = [
   { x: 33, y: 8.4, z: -40 },
   { x: 37, y: 8.6, z: -43 },
   { x: 30, y: 9.6, z: -55 },
+  { x: -27, y: 10.5, z: -107 },
+  { x: -24, y: 10.6, z: -111 },
+  { x: -20, y: 10.6, z: -115 },
+  { x: -12, y: 10.9, z: -121 },
+  { x: -38, y: 12.0, z: -122 },
+  { x: -42, y: 12.0, z: -126 },
+  { x: -34, y: 12.0, z: -128 },
+  { x: -1, y: 11.9, z: -132 },
+  { x: 4, y: 11.9, z: -132 },
+  { x: 9, y: 11.9, z: -132 },
+  { x: 15, y: 12.4, z: -141 },
+  { x: -6, y: 13.1, z: -140 },
+  { x: -6, y: 13.2, z: -145 },
+  { x: -6, y: 13.3, z: -150 },
+  { x: -22, y: 13.7, z: -147 },
+  { x: -12, y: 14.4, z: -156 },
+  { x: -8, y: 14.5, z: -160 },
+  { x: -4, y: 14.4, z: -164 },
+  { x: 9, y: 15.4, z: -166 },
 ];
 
 export const SPRINGS = [
@@ -68,6 +103,9 @@ export const SPRINGS = [
   { x: 18, y: 4.3, z: -52, power: 15 },
   { x: -8, y: 6.8, z: -66, power: 14 },
   { x: 30, y: 9.0, z: -55, power: 17 },
+  { x: -23, y: 9.9, z: -119, power: 15.5 },
+  { x: 15, y: 11.6, z: -141, power: 14 },
+  { x: 5, y: 13.7, z: -161, power: 16 },
 ];
 
 export const BOOST_RINGS = [
@@ -75,18 +113,30 @@ export const BOOST_RINGS = [
   { id: "ring-bowl", x: 11, y: 7.0, z: -55, yaw: -0.55, power: 12 },
   { id: "ring-lift", x: -17, y: 9.0, z: -68, yaw: 0.85, power: 11 },
   { id: "ring-gate", x: -11, y: 11.0, z: -90, yaw: -1.15, power: 13 },
+  { id: "ring-pipe", x: -20, y: 12.6, z: -119, yaw: -0.95, power: 12 },
+  { id: "ring-rocket", x: -11, y: 14.8, z: -151, yaw: -0.35, power: 13 },
+  { id: "ring-cache", x: 4, y: 16.2, z: -165, yaw: 0.7, power: 10 },
 ];
 
 export const WIND_COLUMNS = [
   { id: "wind-step", x: -1, y: 1.7, z: -17, radius: 1.8, height: 7.5, power: 7.5 },
   { id: "wind-bowl", x: 12, y: 4.2, z: -50, radius: 2.0, height: 8.5, power: 8.2 },
   { id: "wind-gate", x: -16, y: 8.6, z: -88, radius: 2.1, height: 7.2, power: 7.8 },
+  { id: "wind-orchard", x: -34, y: 11.2, z: -124, radius: 2.2, height: 7.8, power: 7.6 },
+  { id: "wind-cache", x: 5, y: 13.5, z: -164, radius: 1.9, height: 7.4, power: 8.0 },
 ];
 
 export const ENEMIES = [
-  { id: "bouncer-a", x: 18, y: 4.4, z: -45, radius: 4.2, speed: 0.78 },
-  { id: "bouncer-b", x: -28, y: 8.1, z: -76, radius: 3.4, speed: 0.92 },
-  { id: "bouncer-c", x: 35, y: 8.0, z: -43, radius: 3.4, speed: 0.74 },
+  { id: "bouncer-a", type: "bouncer", x: 18, y: 4.4, z: -45, radius: 4.2, speed: 0.78 },
+  { id: "bouncer-b", type: "bouncer", x: -28, y: 8.1, z: -76, radius: 3.4, speed: 0.92 },
+  { id: "bouncer-c", type: "bouncer", x: 35, y: 8.0, z: -43, radius: 3.4, speed: 0.74 },
+  { id: "snap-a", type: "snapFlower", x: -28, y: 9.85, z: -108, speed: 1.25, phase: 0.1 },
+  { id: "snap-b", type: "snapFlower", x: -19, y: 9.85, z: -115, speed: 1.05, phase: 1.9 },
+  { id: "snap-c", type: "snapFlower", x: -39, y: 11.25, z: -127, speed: 1.15, phase: 0.8 },
+  { id: "crusher-a", type: "crusher", x: -1, y: 14.0, z: -132, w: 2.7, h: 2.5, d: 2.7, drop: 3.45, speed: 0.75, phase: 0.0 },
+  { id: "crusher-b", type: "crusher", x: 7, y: 14.0, z: -132, w: 2.9, h: 2.6, d: 2.9, drop: 3.45, speed: 0.75, phase: 0.55 },
+  { id: "rocket-a", type: "rocket", x: -24, y: 13.0, z: -143, yaw: 1.15, speed: 10.0, range: 23, phase: 0.0 },
+  { id: "rocket-b", type: "rocket", x: 8, y: 13.2, z: -151, yaw: -1.45, speed: 9.4, range: 24, phase: 1.15 },
 ];
 
 export const DECOR = [
@@ -95,16 +145,33 @@ export const DECOR = [
   { type: "tree", x: 15, y: 4.2, z: -41, scale: 1.0 },
   { type: "tree", x: 23, y: 4.2, z: -53, scale: 0.9 },
   { type: "tree", x: -31, y: 7.9, z: -80, scale: 0.9 },
+  { type: "tree", x: -29, y: 9.85, z: -116, scale: 0.95 },
+  { type: "tree", x: -35, y: 11.25, z: -122, scale: 0.8 },
   { type: "cloud", x: 14, y: 10, z: -19, scale: 1.4 },
   { type: "cloud", x: -34, y: 13, z: -50, scale: 1.7 },
   { type: "cloud", x: 44, y: 11, z: -61, scale: 1.3 },
+  { type: "cloud", x: -18, y: 17, z: -134, scale: 1.4 },
+  { type: "cloud", x: 17, y: 18, z: -165, scale: 1.6 },
   { type: "flower", x: 2, y: 0.72, z: 4, scale: 1.0 },
   { type: "flower", x: 16, y: 4.12, z: -49, scale: 1.1 },
   { type: "flower", x: -25, y: 7.92, z: -73, scale: 0.9 },
+  { type: "flower", x: -27, y: 9.85, z: -105, scale: 1.0 },
+  { type: "flower", x: -12, y: 13.7, z: -156, scale: 1.2 },
   { type: "flag", x: -4, y: 0.8, z: -5, scale: 1.0 },
   { type: "flag", x: -28, y: 7.8, z: -72, scale: 0.9 },
+  { type: "flag", x: -8, y: 13.7, z: -154, scale: 1.05 },
   { type: "crystal", x: 4, y: 1.05, z: -8, scale: 0.75 },
   { type: "crystal", x: 20, y: 4.2, z: -40, scale: 0.85 },
   { type: "crystal", x: -19, y: 9.4, z: -96, scale: 1.0 },
-  { type: "arch", x: -22, y: 9.8, z: -101, scale: 1 },
+  { type: "crystal", x: 16, y: 11.6, z: -139, scale: 0.9 },
+  { type: "crystal", x: 7, y: 13.7, z: -166, scale: 0.85 },
+  { type: "pipe", x: -28, y: 9.85, z: -108, scale: 1.0, height: 0.95 },
+  { type: "pipe", x: -19, y: 9.85, z: -115, scale: 1.0, height: 0.95 },
+  { type: "pipe", x: -39, y: 11.25, z: -127, scale: 0.9, height: 0.85 },
+  { type: "pipe", x: -24, y: 12.75, z: -143, scale: 0.75, height: 0.8, yaw: 1.15 },
+  { type: "pipe", x: 8, y: 12.95, z: -151, scale: 0.75, height: 0.8, yaw: -1.45 },
+  { type: "stone", x: 0, y: 11.05, z: -128, scale: 1.0 },
+  { type: "stone", x: 10, y: 11.05, z: -136, scale: 0.9 },
+  { type: "stone", x: -15, y: 13.7, z: -160, scale: 0.8 },
+  { type: "arch", x: -8, y: 14.2, z: -169, scale: 1.08 },
 ];

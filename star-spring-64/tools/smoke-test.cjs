@@ -28,14 +28,19 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
 
 (async () => {
   const level = await import(pathToFileURL(path.join(root, "js", "level.js")));
-  if (level.PLATFORMS.length < 12) throw new Error("Expected a multi-platform level");
+  if (level.PLATFORMS.length < 22) throw new Error("Expected a multi-zone platform level");
   if (level.STARS.length < level.LEVEL_TARGET_STARS) throw new Error("Star target mismatch");
-  if (level.LEVEL_TARGET_STARS > 6) throw new Error("Assist target should stay approachable");
+  if (level.LEVEL_TARGET_STARS > 10) throw new Error("Assist target should stay approachable");
   if (!level.PLATFORMS.some((platform) => platform.moving)) throw new Error("Expected moving platforms");
-  if (level.SPRINGS.length < 3) throw new Error("Expected spring pads");
-  if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 4) throw new Error("Expected boost rings");
-  if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 3) throw new Error("Expected wind columns");
-  if (level.ENEMIES.length < 2) throw new Error("Expected enemies");
+  if (level.SPRINGS.length < 6) throw new Error("Expected spring pads");
+  if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 7) throw new Error("Expected boost rings");
+  if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 5) throw new Error("Expected wind columns");
+  if (level.ENEMIES.length < 9) throw new Error("Expected enemies");
+  const enemyTypes = new Set(level.ENEMIES.map((enemy) => enemy.type || "bouncer"));
+  for (const type of ["bouncer", "snapFlower", "crusher", "rocket"]) {
+    if (!enemyTypes.has(type)) throw new Error(`Expected enemy type ${type}`);
+  }
+  if (!level.DECOR.some((decor) => decor.type === "pipe")) throw new Error("Expected pipe decor");
 
   const ids = new Set();
   for (const platform of level.PLATFORMS) {
