@@ -28,19 +28,21 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
 
 (async () => {
   const level = await import(pathToFileURL(path.join(root, "js", "level.js")));
-  if (level.PLATFORMS.length < 22) throw new Error("Expected a multi-zone platform level");
+  if (level.PLATFORMS.length < 29) throw new Error("Expected an expanded multi-zone platform level");
   if (level.STARS.length < level.LEVEL_TARGET_STARS) throw new Error("Star target mismatch");
   if (level.LEVEL_TARGET_STARS > 10) throw new Error("Assist target should stay approachable");
   if (!level.PLATFORMS.some((platform) => platform.moving)) throw new Error("Expected moving platforms");
-  if (level.SPRINGS.length < 6) throw new Error("Expected spring pads");
-  if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 7) throw new Error("Expected boost rings");
-  if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 5) throw new Error("Expected wind columns");
-  if (level.ENEMIES.length < 9) throw new Error("Expected enemies");
+  if (level.SPRINGS.length < 8) throw new Error("Expected spring pads");
+  if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 8) throw new Error("Expected boost rings");
+  if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 6) throw new Error("Expected wind columns");
+  if (level.ENEMIES.length < 11) throw new Error("Expected enemies");
   const enemyTypes = new Set(level.ENEMIES.map((enemy) => enemy.type || "bouncer"));
-  for (const type of ["bouncer", "snapFlower", "crusher", "rocket"]) {
+  for (const type of ["bouncer", "snapFlower", "crusher", "rocket", "spinner"]) {
     if (!enemyTypes.has(type)) throw new Error(`Expected enemy type ${type}`);
   }
   if (!level.DECOR.some((decor) => decor.type === "pipe")) throw new Error("Expected pipe decor");
+  if (!level.DECOR.some((decor) => decor.type === "lantern")) throw new Error("Expected lantern decor");
+  if (!level.DECOR.some((decor) => decor.type === "ribbon")) throw new Error("Expected sky ribbon decor");
 
   const ids = new Set();
   for (const platform of level.PLATFORMS) {
@@ -79,6 +81,14 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   if (!html.includes('type="module" src="js/game.js"')) throw new Error("Game module script tag missing");
   if (!html.includes("moveStick") || !html.includes("cameraStick")) throw new Error("Mobile joystick markup missing");
   if (!html.includes("fullscreenButton")) throw new Error("Fullscreen toggle markup missing");
+
+  const gameSource = fs.readFileSync(path.join(root, "js", "game.js"), "utf8");
+  if (!gameSource.includes("checkpointSolid") || !gameSource.includes("saveCheckpoint(solid")) {
+    throw new Error("Checkpoint should track the landed platform, not just coordinates");
+  }
+  if (gameSource.includes("player.pos.z < player.checkpoint.z - 8")) {
+    throw new Error("Old z-only checkpoint progression check should not return");
+  }
 
   const vendorSize = fs.statSync(path.join(root, "assets", "vendor", "three.module.js")).size;
   if (vendorSize < 1000000) throw new Error("Three.js vendor file looks truncated");

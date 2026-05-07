@@ -150,6 +150,9 @@ const player = {
   gliding: false,
   health: 3,
   checkpoint: new THREE.Vector3(START.x, START.y, START.z),
+  checkpointLocal: new THREE.Vector3(),
+  checkpointSolid: null,
+  checkpointId: "start",
 };
 
 const game = {
@@ -161,6 +164,7 @@ const game = {
   coins: 0,
   toastTimer: 0,
   hudTimer: 0,
+  checkpointPulse: 0,
 };
 
 const cameraState = {
@@ -309,6 +313,8 @@ const materials = {
   rocket: new THREE.MeshStandardMaterial({ color: 0x202b34, roughness: 0.45, metalness: 0.12 }),
   rocketNose: new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.38, emissive: 0x4a2500, emissiveIntensity: 0.12 }),
   rocketFlame: new THREE.MeshBasicMaterial({ color: 0xf1725f, transparent: true, opacity: 0.88 }),
+  spinnerCore: new THREE.MeshStandardMaterial({ color: 0x6a5cff, roughness: 0.38, emissive: 0x171064, emissiveIntensity: 0.28 }),
+  spinnerSpark: new THREE.MeshBasicMaterial({ color: 0x9ee8ff, transparent: true, opacity: 0.86 }),
   springTop: materialFromTexture("spring_pad", 0xffffff, 1, 1, {
     roughness: 0.44,
     emissive: 0x331000,
@@ -323,6 +329,7 @@ const materials = {
   flowerPetal: new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.6, emissive: 0x3a2200, emissiveIntensity: 0.08 }),
   flagPole: new THREE.MeshStandardMaterial({ color: 0x33414a, roughness: 0.5, metalness: 0.08 }),
   flagCloth: new THREE.MeshStandardMaterial({ color: 0xf1725f, roughness: 0.68, side: THREE.DoubleSide }),
+  lanternGlow: new THREE.MeshBasicMaterial({ color: 0xfff7ad, transparent: true, opacity: 0.82 }),
   boostRing: new THREE.MeshStandardMaterial({
     color: 0x9ee8ff,
     roughness: 0.2,
@@ -343,6 +350,20 @@ const materials = {
     color: 0x79d4a8,
     transparent: true,
     opacity: 0.72,
+    depthWrite: false,
+    fog: false,
+  }),
+  checkpoint: new THREE.MeshBasicMaterial({
+    color: 0x79d4a8,
+    transparent: true,
+    opacity: 0.58,
+    depthWrite: false,
+    fog: false,
+  }),
+  checkpointCore: new THREE.MeshBasicMaterial({
+    color: 0xfff7ad,
+    transparent: true,
+    opacity: 0.7,
     depthWrite: false,
     fog: false,
   }),
@@ -493,6 +514,7 @@ function createPlatform(def) {
     mesh,
     edge,
     skirt,
+    routeIndex: solids.length,
     baseX: def.x,
     baseY: def.y,
     baseZ: def.z,
@@ -699,6 +721,29 @@ function createFlag(def) {
   scene.add(group);
 }
 
+function createLantern(def) {
+  const group = new THREE.Group();
+  const scale = def.scale ?? 1;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * scale, 0.05 * scale, 1.4 * scale, 8), materials.flagPole);
+  pole.position.y = 0.7 * scale;
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.7 * scale, 0.045 * scale, 0.045 * scale), materials.flagPole);
+  arm.position.set(0.24 * scale, 1.32 * scale, 0);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.2 * scale, reducedGpuMode ? 10 : 16, reducedGpuMode ? 7 : 10), materials.lanternGlow.clone());
+  bulb.position.set(0.58 * scale, 1.12 * scale, 0);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.48 * scale, reducedGpuMode ? 10 : 16, reducedGpuMode ? 7 : 10), materials.lanternGlow.clone());
+  halo.position.copy(bulb.position);
+  halo.material.opacity = reducedGpuMode ? 0.14 : 0.22;
+  group.add(pole, arm, halo, bulb);
+  if (enableDynamicLights) {
+    const light = new THREE.PointLight(0xffe7a0, 0.42, 6);
+    light.position.copy(bulb.position);
+    group.add(light);
+  }
+  group.position.set(def.x, def.y, def.z);
+  group.rotation.y = def.yaw ?? 0;
+  scene.add(group);
+}
+
 function createCrystal(def) {
   const group = new THREE.Group();
   const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), materials.crystal);
@@ -785,6 +830,23 @@ function createArch(def) {
   scene.userData.portal = group;
 }
 
+function createSkyRibbon(def) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(def.w ?? 30, def.h ?? 3, 3, 1),
+    new THREE.MeshBasicMaterial({
+      color: def.color ?? 0x9ee8ff,
+      transparent: true,
+      opacity: reducedGpuMode ? 0.11 : 0.2,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  mesh.position.set(def.x, def.y, def.z);
+  mesh.rotation.set(def.pitch ?? -0.12, def.yaw ?? 0, def.roll ?? 0);
+  scene.add(mesh);
+}
+
 function createEnemy(def) {
   const type = def.type || "bouncer";
   if (type === "snapFlower") {
@@ -797,6 +859,10 @@ function createEnemy(def) {
   }
   if (type === "rocket") {
     createRocketEnemy(def);
+    return;
+  }
+  if (type === "spinner") {
+    createSpinnerEnemy(def);
     return;
   }
   createBouncerEnemy(def);
@@ -973,6 +1039,36 @@ function createRocketEnemy(def) {
   });
 }
 
+function createSpinnerEnemy(def) {
+  const group = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.34, reducedGpuMode ? 12 : 18, reducedGpuMode ? 8 : 12), materials.spinnerCore);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.1, 8), materials.flagPole);
+  core.position.y = 0.64;
+  mast.position.y = 0.36;
+  const orbiters = [];
+  const count = def.count ?? 3;
+  for (let i = 0; i < count; i += 1) {
+    const orbiter = new THREE.Mesh(new THREE.SphereGeometry(0.22, reducedGpuMode ? 9 : 14, reducedGpuMode ? 6 : 9), materials.spinnerSpark.clone());
+    orbiters.push(orbiter);
+    group.add(orbiter);
+  }
+  group.add(mast, core);
+  group.position.set(def.x, def.y, def.z);
+  scene.add(group);
+  enemyItems.push({
+    ...def,
+    type: "spinner",
+    group,
+    orbiters,
+    baseX: def.x,
+    baseY: def.y,
+    baseZ: def.z,
+    angle: def.phase ?? 0,
+    defeated: false,
+    hitCooldown: 0,
+  });
+}
+
 function createPlayer() {
   const group = new THREE.Group();
 
@@ -1112,6 +1208,23 @@ function createGuideArrow() {
 
 const guideArrow = createGuideArrow();
 
+function createCheckpointBeacon() {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.035, 6, reducedGpuMode ? 22 : 36), materials.checkpoint.clone());
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.18, 0.75, reducedGpuMode ? 8 : 12), materials.checkpointCore.clone());
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, reducedGpuMode ? 8 : 12, reducedGpuMode ? 6 : 8), materials.checkpointCore.clone());
+  ring.rotation.x = Math.PI / 2;
+  core.position.y = 0.38;
+  cap.position.y = 0.86;
+  group.add(ring, core, cap);
+  group.visible = false;
+  group.userData = { ring, core, cap };
+  scene.add(group);
+  return group;
+}
+
+const checkpointBeacon = createCheckpointBeacon();
+
 function buildWorld() {
   addLights();
   addSkyAndWater();
@@ -1127,10 +1240,12 @@ function buildWorld() {
     if (decor.type === "cloud") createCloud(decor);
     if (decor.type === "flower") createFlowerPatch(decor);
     if (decor.type === "flag") createFlag(decor);
+    if (decor.type === "lantern") createLantern(decor);
     if (decor.type === "crystal") createCrystal(decor);
     if (decor.type === "pipe") createPipe(decor);
     if (decor.type === "stone") createStoneCluster(decor);
     if (decor.type === "arch") createArch(decor);
+    if (decor.type === "ribbon") createSkyRibbon(decor);
   }
   for (const enemy of ENEMIES) createEnemy(enemy);
 }
@@ -1295,6 +1410,7 @@ function updateMovingPlatforms(totalTime) {
     solid.skirt.position.x = solid.x;
     solid.skirt.position.z = solid.z;
     solid.skirt.position.y = solid.y - solid.h * 0.5 - Math.max(solid.w, solid.d) * 0.08;
+    if (player.checkpointSolid === solid) syncCheckpointPosition();
   }
 }
 
@@ -1359,9 +1475,48 @@ function resolveVertical(previousY) {
 }
 
 function updateCheckpoint(solid) {
-  if (solid.moving) return;
-  if (player.pos.z < player.checkpoint.z - 8 || player.pos.y > player.checkpoint.y + 1.2) {
-    player.checkpoint.set(player.pos.x, topOf(solid) + 0.18, player.pos.z);
+  const changedPlatform = player.checkpointId !== solid.id;
+  const distanceFromCheckpoint = player.checkpoint.distanceTo(tmpVec.set(player.pos.x, topOf(solid) + 0.18, player.pos.z));
+  if (!changedPlatform && distanceFromCheckpoint < 3.2) return;
+  saveCheckpoint(solid, player.pos.x, player.pos.z, changedPlatform && game.running);
+}
+
+function saveCheckpoint(solid, worldX, worldZ, announce = false) {
+  player.checkpointSolid = solid;
+  player.checkpointId = solid.id;
+  player.checkpointLocal.set(
+    clamp(worldX - solid.x, -solid.w * 0.5 + PLAYER_RADIUS * 1.6, solid.w * 0.5 - PLAYER_RADIUS * 1.6),
+    0,
+    clamp(worldZ - solid.z, -solid.d * 0.5 + PLAYER_RADIUS * 1.6, solid.d * 0.5 - PLAYER_RADIUS * 1.6),
+  );
+  syncCheckpointPosition();
+  game.checkpointPulse = 1.15;
+  if (announce) showToast("Checkpoint");
+}
+
+function syncCheckpointPosition() {
+  const solid = player.checkpointSolid;
+  if (!solid) return;
+  player.checkpoint.set(
+    solid.x + player.checkpointLocal.x,
+    topOf(solid) + 0.18,
+    solid.z + player.checkpointLocal.z,
+  );
+}
+
+function findStartSolid() {
+  return solids.find((solid) => solid.id === "home") || solids[0] || null;
+}
+
+function resetCheckpointToStart() {
+  const startSolid = findStartSolid();
+  if (startSolid) {
+    saveCheckpoint(startSolid, START.x, START.z, false);
+  } else {
+    player.checkpointSolid = null;
+    player.checkpointId = "start";
+    player.checkpointLocal.set(0, 0, 0);
+    player.checkpoint.set(START.x, START.y, START.z);
   }
 }
 
@@ -1640,6 +1795,7 @@ function updateEnemies(dt) {
     if (enemy.type === "snapFlower") updateSnapFlowerEnemy(enemy, dt);
     else if (enemy.type === "crusher") updateCrusherEnemy(enemy, dt);
     else if (enemy.type === "rocket") updateRocketEnemy(enemy, dt);
+    else if (enemy.type === "spinner") updateSpinnerEnemy(enemy, dt);
     else updateBouncerEnemy(enemy, dt);
   }
 }
@@ -1724,6 +1880,30 @@ function updateRocketEnemy(enemy, dt) {
   }
 }
 
+function updateSpinnerEnemy(enemy, dt) {
+  enemy.angle += dt * (enemy.speed ?? 1.2);
+  const count = enemy.orbiters.length;
+  const radius = enemy.radius ?? 2.15;
+  enemy.group.rotation.y = enemy.angle * 0.25;
+  for (let i = 0; i < count; i += 1) {
+    const angle = enemy.angle + i * TAU / count;
+    const orbiter = enemy.orbiters[i];
+    orbiter.position.set(Math.cos(angle) * radius, 0.62 + Math.sin(angle * 2) * 0.12, Math.sin(angle) * radius);
+    orbiter.scale.setScalar(0.88 + Math.sin(game.time * 7 + i) * 0.12);
+    handleEnemyContact(
+      enemy,
+      enemy.baseX + orbiter.position.x,
+      enemy.baseY + orbiter.position.y,
+      enemy.baseZ + orbiter.position.z,
+      0.62,
+      0.8,
+      true,
+      0x9ee8ff,
+      false,
+    );
+  }
+}
+
 function handleEnemyContact(enemy, x, y, z, radius, height, stompable, color, hideOnStomp = true) {
   const dx = player.pos.x - x;
   const dz = player.pos.z - z;
@@ -1778,6 +1958,7 @@ function damagePlayer(direction, hardReset) {
 }
 
 function respawnPlayer() {
+  syncCheckpointPosition();
   player.pos.copy(player.checkpoint);
   player.pos.y += 0.45;
   player.vel.set(0, 1, 0);
@@ -1849,6 +2030,20 @@ function updateGuideArrow() {
   );
   guideArrow.rotation.y = Math.atan2(dx, dz);
   guideArrow.scale.setScalar(1 + Math.sin(game.time * 6.5) * 0.07);
+}
+
+function updateCheckpointBeacon(dt) {
+  syncCheckpointPosition();
+  checkpointBeacon.visible = Boolean(player.checkpointSolid) && game.running && !game.completed;
+  if (!checkpointBeacon.visible) return;
+  game.checkpointPulse = Math.max(0, game.checkpointPulse - dt);
+  const pulse = 1 + game.checkpointPulse * 0.55 + Math.sin(game.time * 5.5) * 0.08;
+  checkpointBeacon.position.set(player.checkpoint.x, player.checkpoint.y + 0.06, player.checkpoint.z);
+  checkpointBeacon.rotation.y += dt * 1.4;
+  checkpointBeacon.userData.ring.scale.setScalar(pulse);
+  checkpointBeacon.userData.ring.material.opacity = 0.38 + game.checkpointPulse * 0.28;
+  checkpointBeacon.userData.core.material.opacity = 0.44 + game.checkpointPulse * 0.22;
+  checkpointBeacon.userData.cap.material.opacity = 0.58 + game.checkpointPulse * 0.18;
 }
 
 function spawnAmbientPortalSpark(dt, origin) {
@@ -2011,7 +2206,7 @@ function resetRun(keepRunning = false) {
   player.pos.set(START.x, START.y, START.z);
   player.vel.set(0, 0, 0);
   player.heading = Math.PI;
-  player.checkpoint.set(START.x, START.y, START.z);
+  resetCheckpointToStart();
   player.grounded = false;
   player.groundSolid = null;
   player.jumpQueued = false;
@@ -2058,7 +2253,9 @@ function resetRun(keepRunning = false) {
   for (const wind of windColumnItems) {
     wind.cooldown = 0;
   }
+  game.checkpointPulse = 0;
   guideArrow.visible = false;
+  checkpointBeacon.visible = false;
 
   ui.finish.classList.add("hidden");
   ui.menu.classList.toggle("hidden", keepRunning);
@@ -2214,6 +2411,7 @@ function frame() {
     updateEnemies(dt);
     updateGoal(dt);
     updateGuideArrow();
+    updateCheckpointBeacon(dt);
     updateParticles(dt);
     updateCamera(dt, move);
     updateToast(dt);
@@ -2227,6 +2425,7 @@ function frame() {
     updateBoostRings(dt, false);
     updateWindColumns(dt, false);
     guideArrow.visible = false;
+    checkpointBeacon.visible = false;
     updateParticles(dt);
     updateCamera(dt, { x: 0, y: 0, length: 0 });
     updateToast(dt);

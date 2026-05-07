@@ -10,9 +10,11 @@ Die aktuelle BGM nutzt `assets/audio/downloads-bgm.mp3`, kopiert aus `C:\Users\U
 - Sky Rings: geben Vorwaerts-Boost und frischen Air-Jumps auf.
 - Wind Lifts: tragen dich nach oben und retten schnelle Routen zwischen Inseln.
 - Zielpfeil: ein schwebender In-World-Marker zeigt zum naechsten Stern oder zum offenen Tor.
+- Checkpoint-Beacon: jede gelandete Insel speichert jetzt sauber den Ruecksetzpunkt, auch wenn die Route seitlich oder ueber Moving-Islands laeuft.
 - Vollbild-Toggle: Button oben rechts oder Taste `F`.
-- Neue Zonen: Pipe Garden, Crusher Causeway, Rocket Run und Final Garden erweitern den Kurs auf 24 Plattform-Inseln.
-- Neue originale Gegner-Archetypen: Bouncer, Snap Flowers aus Roehren, Stone Crushers und Rocket Orbs.
+- Neue Zonen: Pipe Garden, Lantern Walk, Crusher Causeway, Rocket Run und Final Garden erweitern den Kurs auf 29 Plattform-Inseln.
+- Neue originale Gegner-Archetypen: Bouncer, Snap Flowers aus Roehren, Spark Spinners, Stone Crushers und Rocket Orbs.
+- Mehr Variety: Sky-Ribbons, Laternen, extra Sternrouten und sichere Zwischeninsel vor dem Gate machen den Kurs lesbarer.
 - Der Held hat jetzt mehr Character-Details: Haare, Wangen, Handschuhe, Guertel, Schal, Glanzlichter und Glide-Fluegel.
 - Assist ist standardmaessig an: Ziel sind 10 Sterne, Plattformen sind grosszuegiger, Muenzen ziehen staerker an, eine Muenze kann einen Treffer abfangen, und Abstuerze springen direkt zum letzten Checkpoint zurueck.
 
