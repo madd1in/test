@@ -23,6 +23,7 @@ const ui = {
   soundButton: document.getElementById("soundButton"),
   menuSoundButton: document.getElementById("menuSoundButton"),
   pauseButton: document.getElementById("pauseButton"),
+  fullscreenButton: document.getElementById("fullscreenButton"),
   resetButton: document.getElementById("resetButton"),
   starText: document.getElementById("starText"),
   coinText: document.getElementById("coinText"),
@@ -930,6 +931,10 @@ window.addEventListener("keydown", (event) => {
     player.jumpHeld = true;
     if (!wasDown) queueJump();
   }
+  if (event.code === "KeyF" && !event.repeat) {
+    event.preventDefault();
+    toggleFullscreen();
+  }
   if (event.code === "KeyP") togglePause();
   if (event.code === "KeyR") resetRun(true);
 });
@@ -1729,10 +1734,75 @@ function syncPauseButton() {
   ui.pauseButton.textContent = game.paused ? "Weiter" : "Pause";
 }
 
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+}
+
+function fullscreenSupported() {
+  const root = document.documentElement;
+  return Boolean(
+    document.fullscreenEnabled ||
+      document.webkitFullscreenEnabled ||
+      document.msFullscreenEnabled ||
+      root.requestFullscreen ||
+      root.webkitRequestFullscreen ||
+      root.msRequestFullscreen,
+  );
+}
+
+function syncFullscreenButton() {
+  if (!fullscreenSupported()) {
+    ui.fullscreenButton.textContent = "Vollbild";
+    ui.fullscreenButton.disabled = true;
+    return;
+  }
+  ui.fullscreenButton.disabled = false;
+  ui.fullscreenButton.textContent = getFullscreenElement() ? "Fenster" : "Vollbild";
+}
+
+async function enterFullscreen() {
+  const root = document.documentElement;
+  if (root.requestFullscreen) {
+    try {
+      return await root.requestFullscreen({ navigationUI: "hide" });
+    } catch (error) {
+      if (error instanceof TypeError) return root.requestFullscreen();
+      throw error;
+    }
+  }
+  if (root.webkitRequestFullscreen) return root.webkitRequestFullscreen();
+  if (root.msRequestFullscreen) return root.msRequestFullscreen();
+  throw new Error("Fullscreen unavailable");
+}
+
+async function exitFullscreen() {
+  if (document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  if (document.msExitFullscreen) return document.msExitFullscreen();
+  throw new Error("Fullscreen unavailable");
+}
+
+async function toggleFullscreen() {
+  if (!fullscreenSupported()) {
+    showToast("Vollbild nicht verfuegbar");
+    return;
+  }
+  try {
+    if (getFullscreenElement()) await exitFullscreen();
+    else await enterFullscreen();
+  } catch {
+    showToast("Vollbild blockiert");
+  } finally {
+    syncFullscreenButton();
+    window.setTimeout(resize, 120);
+  }
+}
+
 ui.startButton.addEventListener("click", startGame);
 ui.againButton.addEventListener("click", startGame);
 ui.resetButton.addEventListener("click", () => resetRun(true));
 ui.pauseButton.addEventListener("click", togglePause);
+ui.fullscreenButton.addEventListener("click", toggleFullscreen);
 ui.soundButton.addEventListener("click", () => audio.setEnabled(!audio.enabled));
 ui.menuSoundButton.addEventListener("click", () => audio.setEnabled(!audio.enabled));
 
@@ -1747,8 +1817,12 @@ function resize() {
 }
 
 window.addEventListener("resize", resize);
+document.addEventListener("fullscreenchange", syncFullscreenButton);
+document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
+document.addEventListener("MSFullscreenChange", syncFullscreenButton);
 resize();
 syncSoundButtons();
+syncFullscreenButton();
 resetRun(false);
 
 function frame() {

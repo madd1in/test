@@ -10,6 +10,7 @@ Die aktuelle BGM nutzt `assets/audio/downloads-bgm.mp3`, kopiert aus `C:\Users\U
 - Sky Rings: geben Vorwaerts-Boost und frischen Air-Jumps auf.
 - Wind Lifts: tragen dich nach oben und retten schnelle Routen zwischen Inseln.
 - Zielpfeil: ein schwebender In-World-Marker zeigt zum naechsten Stern oder zum offenen Tor.
+- Vollbild-Toggle: Button oben rechts oder Taste `F`.
 - Assist ist standardmaessig an: Ziel sind 6 Sterne, Plattformen sind grosszuegiger, Gegner sind langsamer, Muenzen ziehen staerker an, eine Muenze kann einen Treffer abfangen, und Abstuerze springen direkt zum letzten Checkpoint zurueck.
 
 ## Performance
