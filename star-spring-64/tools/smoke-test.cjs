@@ -28,7 +28,7 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
 
 (async () => {
   const level = await import(pathToFileURL(path.join(root, "js", "level.js")));
-  if (level.PLATFORMS.length < 29) throw new Error("Expected an expanded multi-zone platform level");
+  if (level.PLATFORMS.length < 37) throw new Error("Expected an expanded multi-zone platform level");
   if (level.STARS.length < level.LEVEL_TARGET_STARS) throw new Error("Star target mismatch");
   if (level.LEVEL_TARGET_STARS > 10) throw new Error("Assist target should stay approachable");
   if (!level.PLATFORMS.some((platform) => platform.moving)) throw new Error("Expected moving platforms");
@@ -43,6 +43,10 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   if (!level.DECOR.some((decor) => decor.type === "pipe")) throw new Error("Expected pipe decor");
   if (!level.DECOR.some((decor) => decor.type === "lantern")) throw new Error("Expected lantern decor");
   if (!level.DECOR.some((decor) => decor.type === "ribbon")) throw new Error("Expected sky ribbon decor");
+  if (!level.PLATFORMS.some((platform) => platform.id.includes("cloud-catch"))) throw new Error("Expected catch-cloud safety platforms");
+  if (!level.PLATFORMS.some((platform) => platform.id.includes("rescue-cloud") || platform.id.includes("cloud-lane"))) {
+    throw new Error("Expected rescue cloud lanes");
+  }
 
   const ids = new Set();
   for (const platform of level.PLATFORMS) {
@@ -85,6 +89,9 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   const gameSource = fs.readFileSync(path.join(root, "js", "game.js"), "utf8");
   if (!gameSource.includes("checkpointSolid") || !gameSource.includes("saveCheckpoint(solid")) {
     throw new Error("Checkpoint should track the landed platform, not just coordinates");
+  }
+  for (const token of ["ASSIST_RESCUE_DROP = assistMode ? 8.75", "ASSIST_LANDING_GRACE", "hasReachableLandingBelow", "fallRescueTimer"]) {
+    if (!gameSource.includes(token)) throw new Error(`Missing robust rescue/checkpoint token: ${token}`);
   }
   if (gameSource.includes("player.pos.z < player.checkpoint.z - 8")) {
     throw new Error("Old z-only checkpoint progression check should not return");

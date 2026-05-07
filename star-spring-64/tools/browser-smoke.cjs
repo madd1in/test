@@ -109,6 +109,18 @@ async function runViewport(browser, name, viewport, mobile = false) {
     }
     requestAnimationFrame(step);
   }));
+  const postMoveToast = await page.evaluate(() => {
+    const toast = document.getElementById("toast");
+    return {
+      hidden: toast.classList.contains("hidden"),
+      text: toast.textContent || "",
+    };
+  });
+  if (!postMoveToast.hidden && /Safe Return/i.test(postMoveToast.text)) {
+    throw new Error(`${name} triggered Safe Return during opening movement`);
+  }
+  await page.evaluate(() => document.getElementById("resetButton").click());
+  await page.waitForTimeout(260);
 
   const metrics = await page.evaluate(() => {
     const canvas = document.getElementById("game");
