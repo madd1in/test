@@ -2,6 +2,7 @@ import * as THREE from "../assets/vendor/three.module.js";
 import {
   BOOST_RINGS,
   COINS,
+  DASH_PADS,
   DECOR,
   ENEMIES,
   GOAL,
@@ -122,6 +123,7 @@ const movingSolids = [];
 const starItems = [];
 const coinItems = [];
 const springItems = [];
+const dashPadItems = [];
 const boostRingItems = [];
 const windColumnItems = [];
 const enemyItems = [];
@@ -319,6 +321,8 @@ const materials = {
   rocketFlame: new THREE.MeshBasicMaterial({ color: 0xf1725f, transparent: true, opacity: 0.88 }),
   spinnerCore: new THREE.MeshStandardMaterial({ color: 0x6a5cff, roughness: 0.38, emissive: 0x171064, emissiveIntensity: 0.28 }),
   spinnerSpark: new THREE.MeshBasicMaterial({ color: 0x9ee8ff, transparent: true, opacity: 0.86 }),
+  dashPad: new THREE.MeshStandardMaterial({ color: 0x243f5c, roughness: 0.34, metalness: 0.08, emissive: 0x092843, emissiveIntensity: 0.18 }),
+  dashArrow: new THREE.MeshBasicMaterial({ color: 0xfff7ad, transparent: true, opacity: 0.9 }),
   springTop: materialFromTexture("spring_pad", 0xffffff, 1, 1, {
     roughness: 0.44,
     emissive: 0x331000,
@@ -599,6 +603,30 @@ function createSpring(def) {
   group.position.set(def.x, def.y + 0.13, def.z);
   scene.add(group);
   springItems.push({ ...def, group, cooldown: 0 });
+}
+
+function createDashPad(def) {
+  const group = new THREE.Group();
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.9, 0.1, reducedGpuMode ? 16 : 24), materials.dashPad);
+  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.62, 3), materials.dashArrow.clone());
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.035, 0.62), materials.dashArrow.clone());
+  pad.position.y = 0.02;
+  arrow.position.set(0, 0.105, -0.34);
+  arrow.rotation.x = -Math.PI / 2;
+  tail.position.set(0, 0.105, 0.18);
+  group.add(pad, tail, arrow);
+  group.position.set(def.x, def.y, def.z);
+  group.rotation.y = def.yaw ?? Math.PI;
+  scene.add(group);
+  dashPadItems.push({
+    ...def,
+    group,
+    pad,
+    arrow,
+    tail,
+    cooldown: 0,
+    forward: new THREE.Vector3(Math.sin(def.yaw ?? Math.PI), 0, Math.cos(def.yaw ?? Math.PI)).normalize(),
+  });
 }
 
 function createStar(def) {
@@ -1235,6 +1263,7 @@ function buildWorld() {
 
   for (const platform of PLATFORMS) createPlatform(platform);
   for (const spring of SPRINGS) createSpring(spring);
+  for (const pad of DASH_PADS) createDashPad(pad);
   for (const ring of BOOST_RINGS) createBoostRing(ring);
   for (const wind of WIND_COLUMNS) createWindColumn(wind);
   STARS.forEach(createStar);
@@ -1710,6 +1739,33 @@ function updateSprings(dt) {
       player.springCooldown = 0.35;
       audio.play("bounce", 0.58);
       spawnBurst(spring.group.position, 0xffd166, 12);
+    }
+  }
+}
+
+function updateDashPads(dt, active = true) {
+  for (const pad of dashPadItems) {
+    pad.cooldown = Math.max(0, pad.cooldown - dt);
+    const ready = pad.cooldown <= 0;
+    const pulse = 0.86 + Math.sin(game.time * 8 + pad.x) * 0.08;
+    pad.group.scale.setScalar(ready ? pulse : 0.92);
+    pad.arrow.material.opacity = ready ? 0.72 + Math.sin(game.time * 9 + pad.z) * 0.16 : 0.3;
+    pad.tail.material.opacity = pad.arrow.material.opacity * 0.74;
+    const dx = player.pos.x - pad.x;
+    const dz = player.pos.z - pad.z;
+    const dist = Math.hypot(dx, dz);
+    if (active && ready && dist < 1.22 && Math.abs(player.pos.y - pad.y) < 1.05) {
+      pad.cooldown = 0.9;
+      player.vel.x = pad.forward.x * (pad.power ?? 12);
+      player.vel.z = pad.forward.z * (pad.power ?? 12);
+      player.vel.y = Math.max(player.vel.y, pad.lift ?? 4.8);
+      player.grounded = false;
+      player.groundSolid = null;
+      player.coyote = 0;
+      player.airJumpsUsed = 0;
+      audio.play("bounce", 0.5);
+      spawnBurst(pad.group.position, 0xfff7ad, reducedGpuMode ? 8 : 14);
+      showToast("Dash Pad");
     }
   }
 }
@@ -2284,6 +2340,10 @@ function resetRun(keepRunning = false) {
   for (const wind of windColumnItems) {
     wind.cooldown = 0;
   }
+  for (const pad of dashPadItems) {
+    pad.cooldown = 0;
+    pad.group.scale.setScalar(1);
+  }
   game.checkpointPulse = 0;
   guideArrow.visible = false;
   checkpointBeacon.visible = false;
@@ -2436,6 +2496,7 @@ function frame() {
     const move = getMoveInput();
     updatePlayer(dt, move);
     updateSprings(dt);
+    updateDashPads(dt);
     updateBoostRings(dt);
     updateWindColumns(dt);
     updateCollectibles(dt);
@@ -2453,6 +2514,7 @@ function frame() {
     }
   } else {
     updateMovingPlatforms(game.time);
+    updateDashPads(dt, false);
     updateBoostRings(dt, false);
     updateWindColumns(dt, false);
     guideArrow.visible = false;

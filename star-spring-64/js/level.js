@@ -1,7 +1,7 @@
 export const LEVEL_TARGET_STARS = 10;
 
 export const START = { x: 0, y: 1.08, z: 2 };
-export const GOAL = { x: -8, y: 14.2, z: -160 };
+export const GOAL = { x: 2, y: 17.45, z: -198 };
 
 export const PLATFORMS = [
   { id: "home", x: 0, y: 0, z: 0, w: 15, h: 1.2, d: 15, texture: "grass_tile" },
@@ -42,6 +42,10 @@ export const PLATFORMS = [
   { id: "observatory-perch", x: 18, y: 14.6, z: -158, w: 7, h: 0.75, d: 7, texture: "brick_tile" },
   { id: "final-garden", x: -8, y: 13.1, z: -160, w: 18, h: 1.2, d: 16, texture: "flower_tile" },
   { id: "sky-cache", x: 9, y: 14.1, z: -166, w: 6.8, h: 0.75, d: 6.8, texture: "cloud_tile" },
+  { id: "aurora-bridge", x: -3, y: 14.0, z: -175, w: 15, h: 0.75, d: 7.4, texture: "cloud_tile" },
+  { id: "prism-rise", x: 8, y: 14.8, z: -184, w: 8.2, h: 0.75, d: 8.2, texture: "brick_tile" },
+  { id: "comet-loop", x: -8, y: 15.5, z: -190, w: 8.2, h: 0.75, d: 8.2, texture: "grass_tile", moving: { axis: "x", distance: 5.8, speed: 0.46 } },
+  { id: "stargate-terrace", x: 2, y: 16.2, z: -198, w: 18, h: 1.1, d: 14, texture: "flower_tile" },
 ];
 
 export const STARS = [
@@ -63,6 +67,9 @@ export const STARS = [
   { id: "star-final", x: -8, y: 14.9, z: -160 },
   { id: "star-observatory", x: 18, y: 16.0, z: -158 },
   { id: "star-cache", x: 9, y: 15.6, z: -166 },
+  { id: "star-aurora", x: -3, y: 15.35, z: -175 },
+  { id: "star-prism", x: 8, y: 16.15, z: -184 },
+  { id: "star-stargate", x: 2, y: 17.75, z: -198 },
 ];
 
 export const COINS = [
@@ -137,6 +144,14 @@ export const COINS = [
   { x: -8, y: 14.5, z: -160 },
   { x: -4, y: 14.4, z: -164 },
   { x: 9, y: 15.4, z: -166 },
+  { x: -8, y: 15.25, z: -172 },
+  { x: -3, y: 15.35, z: -175 },
+  { x: 3, y: 15.25, z: -178 },
+  { x: 8, y: 16.1, z: -184 },
+  { x: -8, y: 16.75, z: -190 },
+  { x: -2, y: 17.45, z: -198 },
+  { x: 2, y: 17.5, z: -198 },
+  { x: 6, y: 17.45, z: -198 },
 ];
 
 export const SPRINGS = [
@@ -153,6 +168,16 @@ export const SPRINGS = [
   { x: 3, y: 12.4, z: -146, power: 14.5 },
   { x: -3, y: 12.8, z: -154, power: 13.5 },
   { x: 5, y: 13.7, z: -161, power: 16 },
+  { x: -3, y: 14.55, z: -175, power: 14.5 },
+];
+
+export const DASH_PADS = [
+  { id: "dash-starter", x: 0, y: 1.0, z: -9, yaw: Math.PI, power: 12, lift: 5.4 },
+  { id: "dash-bowl", x: 15, y: 4.15, z: -44, yaw: Math.PI, power: 12.4, lift: 4.8 },
+  { id: "dash-gate", x: -12, y: 8.82, z: -90, yaw: -Math.PI * 0.55, power: 13.2, lift: 5.2 },
+  { id: "dash-lantern", x: 6, y: 10.42, z: -119, yaw: -Math.PI * 0.72, power: 12.6, lift: 5.0 },
+  { id: "dash-final", x: -4, y: 13.74, z: -160, yaw: Math.PI, power: 13.5, lift: 5.6 },
+  { id: "dash-aurora", x: -3, y: 14.45, z: -175, yaw: -Math.PI * 0.72, power: 12.8, lift: 5.3 },
 ];
 
 export const BOOST_RINGS = [
@@ -164,6 +189,7 @@ export const BOOST_RINGS = [
   { id: "ring-lantern", x: 3, y: 12.2, z: -122, yaw: -0.65, power: 11 },
   { id: "ring-rocket", x: -11, y: 14.8, z: -151, yaw: -0.35, power: 13 },
   { id: "ring-cache", x: 4, y: 16.2, z: -165, yaw: 0.7, power: 10 },
+  { id: "ring-aurora", x: 1, y: 17.1, z: -188, yaw: -0.72, power: 12 },
 ];
 
 export const WIND_COLUMNS = [
@@ -173,6 +199,7 @@ export const WIND_COLUMNS = [
   { id: "wind-lantern", x: 8, y: 10.3, z: -122, radius: 1.8, height: 7.2, power: 7.7 },
   { id: "wind-orchard", x: -34, y: 11.2, z: -124, radius: 2.2, height: 7.8, power: 7.6 },
   { id: "wind-cache", x: 5, y: 13.5, z: -164, radius: 1.9, height: 7.4, power: 8.0 },
+  { id: "wind-aurora", x: -1, y: 14.0, z: -181, radius: 2.0, height: 7.4, power: 7.9 },
 ];
 
 export const ENEMIES = [
@@ -185,10 +212,12 @@ export const ENEMIES = [
   { id: "spinner-a", type: "spinner", x: -12, y: 8.95, z: -92, radius: 2.15, speed: 1.35, phase: 0.2, count: 3 },
   { id: "spinner-b", type: "spinner", x: 14, y: 11.2, z: -127, radius: 1.9, speed: 1.55, phase: 1.1, count: 4 },
   { id: "spinner-c", type: "spinner", x: 18, y: 15.05, z: -158, radius: 1.65, speed: 1.7, phase: 2.0, count: 3 },
+  { id: "spinner-d", type: "spinner", x: 2, y: 16.8, z: -198, radius: 2.2, speed: 1.35, phase: 1.6, count: 4 },
   { id: "crusher-a", type: "crusher", x: -1, y: 14.0, z: -132, w: 2.7, h: 2.5, d: 2.7, drop: 3.45, speed: 0.75, phase: 0.0 },
   { id: "crusher-b", type: "crusher", x: 7, y: 14.0, z: -132, w: 2.9, h: 2.6, d: 2.9, drop: 3.45, speed: 0.75, phase: 0.55 },
   { id: "rocket-a", type: "rocket", x: -24, y: 13.0, z: -143, yaw: 1.15, speed: 10.0, range: 23, phase: 0.0 },
   { id: "rocket-b", type: "rocket", x: 8, y: 13.2, z: -151, yaw: -1.45, speed: 9.4, range: 24, phase: 1.15 },
+  { id: "rocket-c", type: "rocket", x: -6, y: 15.8, z: -185, yaw: 1.0, speed: 9.2, range: 21, phase: 0.8 },
 ];
 
 export const DECOR = [
@@ -217,6 +246,8 @@ export const DECOR = [
   { type: "lantern", x: 18, y: 11.2, z: -130, scale: 0.82, yaw: 0.9 },
   { type: "lantern", x: 0, y: 12.4, z: -148, scale: 0.8, yaw: -0.25 },
   { type: "lantern", x: 18, y: 15.0, z: -161, scale: 0.78, yaw: 0.15 },
+  { type: "lantern", x: -5, y: 14.45, z: -176, scale: 0.78, yaw: -0.4 },
+  { type: "lantern", x: 6, y: 16.75, z: -199, scale: 0.82, yaw: 0.45 },
   { type: "crystal", x: 4, y: 1.05, z: -8, scale: 0.75 },
   { type: "crystal", x: 20, y: 4.2, z: -40, scale: 0.85 },
   { type: "crystal", x: -19, y: 9.4, z: -96, scale: 1.0 },
@@ -233,4 +264,6 @@ export const DECOR = [
   { type: "arch", x: -8, y: 14.2, z: -169, scale: 1.08 },
   { type: "ribbon", x: -6, y: 31, z: -82, w: 58, h: 3.6, yaw: -0.35, pitch: -0.14, roll: 0.12, color: 0x79d4a8 },
   { type: "ribbon", x: 18, y: 28, z: -132, w: 42, h: 2.8, yaw: 0.45, pitch: -0.18, roll: -0.16, color: 0xffd166 },
+  { type: "ribbon", x: 2, y: 33, z: -188, w: 46, h: 3.2, yaw: -0.18, pitch: -0.12, roll: 0.2, color: 0xd8fbff },
+  { type: "arch", x: 2, y: 17.35, z: -202, scale: 1.12 },
 ];
