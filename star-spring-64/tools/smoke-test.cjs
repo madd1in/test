@@ -91,7 +91,19 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   if (!gameSource.includes("checkpointSolid") || !gameSource.includes("saveCheckpoint(solid")) {
     throw new Error("Checkpoint should track the landed platform, not just coordinates");
   }
-  for (const token of ["ASSIST_RESCUE_DROP = assistMode ? 13.5", "ASSIST_LANDING_GRACE", "hasReachableLandingBelow", "fallRescueTimer", "updateDashPads", "createDashPad"]) {
+  for (const token of [
+    "ASSIST_RESCUE_DROP = assistMode ? 18.5",
+    "ASSIST_LANDING_GRACE",
+    "hasReachableLandingBelow",
+    "fallRescueTimer",
+    "updateDashPads",
+    "createDashPad",
+    "heroBadge",
+    "heroCape",
+    "enemyBlush",
+    "snapSpot",
+    "rocketFin",
+  ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing robust rescue/checkpoint token: ${token}`);
   }
   if (gameSource.includes("player.pos.z < player.checkpoint.z - 8")) {

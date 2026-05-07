@@ -14,9 +14,9 @@ Die aktuelle BGM nutzt `assets/audio/downloads-bgm.mp3`, kopiert aus `C:\Users\U
 - Checkpoint-Beacon: jede gelandete Insel speichert jetzt sauber den Ruecksetzpunkt, auch wenn die Route seitlich oder ueber Moving-Islands laeuft.
 - Vollbild-Toggle: Button oben rechts oder Taste `F`.
 - Neue Zonen: Pipe Garden, Lantern Walk, Crusher Causeway, Rocket Run, Aurora Crossing und Stargate Terrace erweitern den Kurs auf 41 Plattform-Inseln.
-- Neue originale Gegner-Archetypen: Bouncer, Snap Flowers aus Roehren, Spark Spinners, Stone Crushers und Rocket Orbs.
+- Neue originale Gegner-Archetypen: Bouncer, Snap Flowers aus Roehren, Spark Spinners, Stone Crushers und Rocket Orbs mit verbesserten Augen, Glanzlichtern, Spots, Fins und Silhouetten.
 - Mehr Variety: Sky-Ribbons, Laternen, Dash-Pad-Lines, Rescue-Cloud-Lanes, Catch-Clouds, extra Sternrouten und sichere Zwischeninseln machen den Kurs lesbarer.
-- Der Held hat jetzt mehr Character-Details: Haare, Wangen, Handschuhe, Guertel, Schal, Glanzlichter und Glide-Fluegel.
+- Der Held hat jetzt mehr Character-Details: Haare, Ohren, Nase, Smile, Stern-Badge, Cap-Gem, Cape, Handschuhe, Guertel, Schal, Glanzlichter und Glide-Fluegel.
 - Assist ist standardmaessig an: Ziel sind 10 Sterne, Plattformen sind grosszuegiger, Muenzen ziehen staerker an, eine Muenze kann einen Treffer abfangen, und Abstuerze springen direkt zum letzten Checkpoint zurueck.
 
 ## Performance
