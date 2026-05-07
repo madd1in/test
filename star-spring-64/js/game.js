@@ -109,8 +109,11 @@ const GLIDE_FALL_SPEED = reducedGpuMode ? -7.1 : -8.2;
 const GLIDE_GRAVITY_SCALE = 0.34;
 const STAR_MAGNET_RANGE = assistMode ? 3.4 : 0;
 const COIN_MAGNET_RANGE = assistMode ? 4.8 : 0;
-const ASSIST_LEDGE_MARGIN = assistMode ? PLAYER_RADIUS * 1.75 : PLAYER_RADIUS * 1.2;
-const ASSIST_RESCUE_DROP = 2.35;
+const ASSIST_LEDGE_MARGIN = assistMode ? PLAYER_RADIUS * 2.35 : PLAYER_RADIUS * 1.2;
+const ASSIST_STEP_UP_HEIGHT = assistMode ? 0.85 : 0.14;
+const ASSIST_LANDING_GRACE = assistMode ? 1.15 : 0.12;
+const ASSIST_RESCUE_DROP = assistMode ? 8.75 : 2.35;
+const ASSIST_RESCUE_DELAY = assistMode ? 0.34 : 0;
 const RESPAWN_Y = -14;
 const TAU = Math.PI * 2;
 
@@ -146,6 +149,7 @@ const player = {
   airJumpsUsed: 0,
   springCooldown: 0,
   damageCooldown: 0,
+  fallRescueTimer: 0,
   glideSparkTimer: 0,
   gliding: false,
   health: 3,
@@ -1420,6 +1424,8 @@ function resolveHorizontal() {
     const bottom = bottomOf(solid);
     if (player.pos.y < bottom - 0.1 || player.pos.y > top + PLAYER_HEIGHT * 0.85) continue;
     if (player.pos.y >= top - 0.04) continue;
+    const stepUp = top - player.pos.y;
+    if (assistMode && stepUp > -0.08 && stepUp <= ASSIST_STEP_UP_HEIGHT && player.vel.y <= 1.5) continue;
 
     const dx = player.pos.x - solid.x;
     const dz = player.pos.z - solid.z;
@@ -1438,8 +1444,6 @@ function resolveHorizontal() {
 }
 
 function resolveVertical(previousY) {
-  const wasGrounded = player.grounded;
-  const previousGround = player.groundSolid;
   player.grounded = false;
   player.groundSolid = null;
 
@@ -1450,7 +1454,9 @@ function resolveVertical(previousY) {
     const insideX = Math.abs(player.pos.x - solid.x) <= solid.w * 0.5 + ASSIST_LEDGE_MARGIN;
     const insideZ = Math.abs(player.pos.z - solid.z) <= solid.d * 0.5 + ASSIST_LEDGE_MARGIN;
     if (!insideX || !insideZ) continue;
-    if (player.vel.y <= 0 && previousY >= top - 0.08 && player.pos.y <= top + 0.04 && top > bestTop) {
+    const crossedTop = previousY >= top - ASSIST_LANDING_GRACE && player.pos.y <= top + 0.1;
+    const closeToTop = assistMode && player.pos.y >= top - ASSIST_LANDING_GRACE && player.pos.y <= top + 0.22;
+    if (player.vel.y <= 0 && (crossedTop || closeToTop) && top > bestTop) {
       bestTop = top;
       bestSolid = solid;
     }
@@ -1468,10 +1474,23 @@ function resolveVertical(previousY) {
     player.groundSolid = bestSolid;
     player.coyote = COYOTE_TIME;
     player.airJumpsUsed = 0;
-    if (!wasGrounded || previousGround !== bestSolid) {
-      updateCheckpoint(bestSolid);
-    }
+    player.fallRescueTimer = 0;
+    updateCheckpoint(bestSolid);
   }
+}
+
+function hasReachableLandingBelow(rescueY) {
+  if (!assistMode || player.vel.y > 2.2) return false;
+  for (const solid of solids) {
+    const top = topOf(solid);
+    if (top < rescueY - 1.2) continue;
+    const insideX = Math.abs(player.pos.x - solid.x) <= solid.w * 0.5 + ASSIST_LEDGE_MARGIN + 0.45;
+    const insideZ = Math.abs(player.pos.z - solid.z) <= solid.d * 0.5 + ASSIST_LEDGE_MARGIN + 0.45;
+    if (!insideX || !insideZ) continue;
+    const verticalGap = player.pos.y - top;
+    if (verticalGap >= -ASSIST_LANDING_GRACE && verticalGap <= ASSIST_RESCUE_DROP + 2.4) return true;
+  }
+  return false;
 }
 
 function updateCheckpoint(solid) {
@@ -1604,10 +1623,20 @@ function updatePlayer(dt, move) {
   resolveHorizontal();
   player.pos.y += player.vel.y * dt;
   resolveVertical(previousY);
-  if (player.grounded) player.gliding = false;
+  if (player.grounded) {
+    player.gliding = false;
+    player.fallRescueTimer = 0;
+  }
 
   const rescueY = assistMode ? Math.max(RESPAWN_Y, player.checkpoint.y - ASSIST_RESCUE_DROP) : RESPAWN_Y;
-  if (player.pos.y < rescueY) {
+  const landingStillPossible = hasReachableLandingBelow(rescueY);
+  if (!player.grounded && player.pos.y < rescueY && !landingStillPossible) {
+    player.fallRescueTimer += dt;
+  } else if (player.pos.y >= rescueY || landingStillPossible) {
+    player.fallRescueTimer = 0;
+  }
+  if (player.fallRescueTimer > ASSIST_RESCUE_DELAY) {
+    player.fallRescueTimer = 0;
     damagePlayer(tmpVec2.set(0, 0, 1), true);
   }
 
@@ -1966,6 +1995,7 @@ function respawnPlayer() {
   player.groundSolid = null;
   player.coyote = 0;
   player.airJumpsUsed = 0;
+  player.fallRescueTimer = 0;
   player.gliding = false;
   snapCameraToPlayer();
 }
@@ -2213,6 +2243,7 @@ function resetRun(keepRunning = false) {
   player.jumpHeld = false;
   player.jumpBuffer = 0;
   player.airJumpsUsed = 0;
+  player.fallRescueTimer = 0;
   player.glideSparkTimer = 0;
   player.gliding = false;
   player.coyote = 0;
