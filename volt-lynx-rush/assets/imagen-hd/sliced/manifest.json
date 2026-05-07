@@ -1,0 +1,175 @@
+{
+  "source": "volt-lynx-hd-tile-sprite-map.png",
+  "frames": {
+    "hd_tile_grass_a": {
+      "file": "hd_tile_grass_a.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_grass_b": {
+      "file": "hd_tile_grass_b.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_grass_c": {
+      "file": "hd_tile_grass_c.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_grass_d": {
+      "file": "hd_tile_grass_d.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_slope_up": {
+      "file": "hd_tile_slope_up.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_slope_down": {
+      "file": "hd_tile_slope_down.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_half_left": {
+      "file": "hd_tile_half_left.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_half_right": {
+      "file": "hd_tile_half_right.png",
+      "w": 64,
+      "h": 64
+    },
+    "hd_tile_water": {
+      "file": "hd_tile_water.png",
+      "w": 262,
+      "h": 80
+    },
+    "hd_tile_stone": {
+      "file": "hd_tile_stone.png",
+      "w": 68,
+      "h": 82
+    },
+    "hd_tile_cave_purple": {
+      "file": "hd_tile_cave_purple.png",
+      "w": 92,
+      "h": 92
+    },
+    "hd_tile_cave_blue": {
+      "file": "hd_tile_cave_blue.png",
+      "w": 88,
+      "h": 62
+    },
+    "hd_tile_neon_panel": {
+      "file": "hd_tile_neon_panel.png",
+      "w": 90,
+      "h": 78
+    },
+    "hd_tile_neon_round": {
+      "file": "hd_tile_neon_round.png",
+      "w": 88,
+      "h": 88
+    },
+    "hd_bridge": {
+      "file": "hd_bridge.png",
+      "w": 92,
+      "h": 58
+    },
+    "hd_gate": {
+      "file": "hd_gate.png",
+      "w": 116,
+      "h": 66
+    },
+    "hd_palm_tall": {
+      "file": "hd_palm_tall.png",
+      "w": 92,
+      "h": 170
+    },
+    "hd_palm_wide": {
+      "file": "hd_palm_wide.png",
+      "w": 98,
+      "h": 176
+    },
+    "hd_loop_full": {
+      "file": "hd_loop_full.png",
+      "w": 262,
+      "h": 260
+    },
+    "hd_rail_curve": {
+      "file": "hd_rail_curve.png",
+      "w": 178,
+      "h": 198
+    },
+    "hd_rail_wave": {
+      "file": "hd_rail_wave.png",
+      "w": 292,
+      "h": 160
+    },
+    "hd_speed_arrows_cyan": {
+      "file": "hd_speed_arrows_cyan.png",
+      "w": 100,
+      "h": 46
+    },
+    "hd_speed_arrows_orange": {
+      "file": "hd_speed_arrows_orange.png",
+      "w": 102,
+      "h": 46
+    },
+    "hd_boost_pad_cyan": {
+      "file": "hd_boost_pad_cyan.png",
+      "w": 116,
+      "h": 74
+    },
+    "hd_boost_pad_orange": {
+      "file": "hd_boost_pad_orange.png",
+      "w": 118,
+      "h": 74
+    },
+    "hd_metal_platform": {
+      "file": "hd_metal_platform.png",
+      "w": 130,
+      "h": 68
+    },
+    "hd_drone_a": {
+      "file": "hd_drone_a.png",
+      "w": 78,
+      "h": 78
+    },
+    "hd_drone_b": {
+      "file": "hd_drone_b.png",
+      "w": 78,
+      "h": 78
+    },
+    "hd_fx_spark": {
+      "file": "hd_fx_spark.png",
+      "w": 110,
+      "h": 72
+    },
+    "hd_fx_dust": {
+      "file": "hd_fx_dust.png",
+      "w": 88,
+      "h": 60
+    },
+    "hd_bg_coast": {
+      "file": "hd_bg_coast.png",
+      "w": 326,
+      "h": 278
+    },
+    "hd_bg_cave": {
+      "file": "hd_bg_cave.png",
+      "w": 326,
+      "h": 278
+    },
+    "hd_bg_neon": {
+      "file": "hd_bg_neon.png",
+      "w": 286,
+      "h": 278
+    },
+    "hd_bg_sunset": {
+      "file": "hd_bg_sunset.png",
+      "w": 450,
+      "h": 278
+    }
+  }
+}

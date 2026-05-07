@@ -117,6 +117,30 @@
     mistBands: loadImage("assets/imported/bg-mist-bands.png")
   };
 
+  const hdImages = new Map();
+  let hdManifestLoaded = false;
+  let hdReady = false;
+  let hdFramesLoaded = 0;
+  let hdFrameCount = 0;
+
+  function loadHdFrames(manifest) {
+    hdImages.clear();
+    hdManifestLoaded = true;
+    hdReady = false;
+    hdFramesLoaded = 0;
+    hdFrameCount = Object.keys(manifest.frames || {}).length;
+    for (const name of Object.keys(manifest.frames || {})) {
+      const image = new Image();
+      image.addEventListener("load", () => {
+        hdFramesLoaded += 1;
+        hdReady = hdFramesLoaded >= hdFrameCount;
+        mode7TextureReady = false;
+      });
+      image.src = `assets/imagen-hd/sliced/${name}.png`;
+      hdImages.set(name, image);
+    }
+  }
+
   const mode7Texture = document.createElement("canvas");
   mode7Texture.width = 256;
   mode7Texture.height = 256;
@@ -152,6 +176,13 @@
       assetMap = DEFAULT_ASSET_MAP;
       loadSlicedFrames(assetMap);
     });
+
+  fetch("assets/imagen-hd/sliced/manifest.json", { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((manifest) => {
+      if (manifest && manifest.frames) loadHdFrames(manifest);
+    })
+    .catch(() => {});
 
   function imageReady(image) {
     return Boolean(image && image.complete && image.naturalWidth > 0);
@@ -244,7 +275,15 @@
     { x: 2660, w: 520, y1: 610, y2: 532, slope: "up" },
     { x: 3180, w: 700, y: 532, tile: "tile_cave" },
     { x: 3880, w: 460, y1: 532, y2: 600, slope: "down" },
-    { x: 4340, w: 1200, y: 600, tile: "tile_grass" }
+    { x: 4340, w: 820, y: 600, tile: "tile_grass" },
+    { x: 5160, w: 520, y1: 600, y2: 500, slope: "up" },
+    { x: 5680, w: 640, y: 500, tile: "tile_grass" },
+    { x: 6320, w: 430, y1: 500, y2: 632, slope: "down" },
+    { x: 6750, w: 780, y: 632, tile: "tile_cave" },
+    { x: 7530, w: 470, y1: 632, y2: 548, slope: "up" },
+    { x: 8000, w: 700, y: 548, tile: "tile_cave" },
+    { x: 8700, w: 390, y1: 548, y2: 608, slope: "down" },
+    { x: 9090, w: 880, y: 608, tile: "tile_grass" }
   ];
 
   const platforms = [
@@ -253,15 +292,25 @@
     { x: 2290, y: 464, w: 260 },
     { x: 3380, y: 374, w: 290 },
     { x: 4100, y: 430, w: 260 },
-    { x: 4740, y: 388, w: 240 }
+    { x: 4740, y: 388, w: 240 },
+    { x: 5320, y: 338, w: 250 },
+    { x: 5840, y: 302, w: 260 },
+    { x: 6460, y: 436, w: 280 },
+    { x: 7040, y: 476, w: 300 },
+    { x: 7800, y: 356, w: 250 },
+    { x: 8280, y: 300, w: 290 },
+    { x: 8840, y: 410, w: 270 },
+    { x: 9300, y: 352, w: 260 }
   ];
 
   const loops = [
     { x: 1770, y: 330, w: 360, h: 250, used: false },
-    { x: 3600, y: 282, w: 340, h: 260, used: false }
+    { x: 3600, y: 282, w: 340, h: 260, used: false },
+    { x: 6120, y: 242, w: 390, h: 280, used: false },
+    { x: 8150, y: 290, w: 350, h: 250, used: false }
   ];
 
-  const levelWidth = 5350;
+  const levelWidth = 9820;
   const input = {
     left: false,
     right: false,
@@ -291,7 +340,7 @@
     enemies: [],
     spikes: [],
     checkpoints: [],
-    goal: { x: 5140, y: 486, w: 82, h: 108 }
+    goal: { x: 9580, y: 494, w: 82, h: 108 }
   };
 
   const player = {
@@ -333,34 +382,68 @@
     addHoopArc(3840, 430, 8, 42, 60);
     addHoopArc(4380, 520, 10, 44, 42);
     addHoopArc(4840, 330, 8, 42, 50);
+    addHoopArc(5360, 300, 9, 42, 58);
+    addHoopArc(5840, 420, 11, 40, 70);
+    addHoopArc(6400, 452, 9, 44, 44);
+    addHoopArc(7000, 565, 12, 40, 58);
+    addHoopArc(7600, 432, 9, 42, 76);
+    addHoopArc(8200, 280, 10, 40, 52);
+    addHoopArc(8750, 462, 9, 44, 48);
+    addHoopArc(9300, 320, 8, 42, 52);
 
     state.springs.push(
       { x: 1080, y: 480, used: 0 },
       { x: 2520, y: 574, used: 0 },
       { x: 4020, y: 565, used: 0 },
-      { x: 4680, y: 558, used: 0 }
+      { x: 4680, y: 558, used: 0 },
+      { x: 5480, y: 464, used: 0 },
+      { x: 6760, y: 596, used: 0 },
+      { x: 7420, y: 596, used: 0 },
+      { x: 8920, y: 570, used: 0 }
     );
     state.boosts.push(
       { x: 610, y: 520, collected: false },
       { x: 1505, y: 455, collected: false },
       { x: 3060, y: 536, collected: false },
-      { x: 4250, y: 540, collected: false }
+      { x: 4250, y: 540, collected: false },
+      { x: 5600, y: 438, collected: false },
+      { x: 6170, y: 450, collected: false },
+      { x: 7350, y: 570, collected: false },
+      { x: 8460, y: 494, collected: false },
+      { x: 9180, y: 548, collected: false }
     );
-    state.shields.push({ x: 1315, y: 302, collected: false }, { x: 3490, y: 320, collected: false });
+    state.shields.push(
+      { x: 1315, y: 302, collected: false },
+      { x: 3490, y: 320, collected: false },
+      { x: 5900, y: 248, collected: false },
+      { x: 8320, y: 246, collected: false }
+    );
     state.enemies.push(
       { x: 1430, y: 438, baseY: 438, vx: 80, t: 0, defeated: false },
       { x: 2360, y: 520, baseY: 520, vx: -90, t: 1.2, defeated: false },
       { x: 3740, y: 454, baseY: 454, vx: 70, t: 0.4, defeated: false },
-      { x: 4550, y: 508, baseY: 508, vx: -80, t: 1.9, defeated: false }
+      { x: 4550, y: 508, baseY: 508, vx: -80, t: 1.9, defeated: false },
+      { x: 6030, y: 420, baseY: 420, vx: 95, t: 1.1, defeated: false },
+      { x: 6920, y: 548, baseY: 548, vx: -105, t: 0.6, defeated: false },
+      { x: 7900, y: 475, baseY: 475, vx: 85, t: 2.1, defeated: false },
+      { x: 8660, y: 414, baseY: 414, vx: -90, t: 0.2, defeated: false },
+      { x: 9320, y: 520, baseY: 520, vx: 110, t: 1.6, defeated: false }
     );
     state.spikes.push(
       { x: 1960, y: 558 },
       { x: 3210, y: 480 },
-      { x: 4440, y: 548 }
+      { x: 4440, y: 548 },
+      { x: 6340, y: 448 },
+      { x: 7180, y: 580 },
+      { x: 8040, y: 498 },
+      { x: 9100, y: 556 }
     );
     state.checkpoints.push(
       { x: 2180, y: 496, reached: false },
-      { x: 3980, y: 486, reached: false }
+      { x: 3980, y: 486, reached: false },
+      { x: 5920, y: 456, reached: false },
+      { x: 7700, y: 502, reached: false },
+      { x: 9150, y: 548, reached: false }
     );
     loops.forEach((loop) => {
       loop.used = false;
@@ -546,6 +629,22 @@
     ctx.restore();
   }
 
+  function drawHdFrame(name, x, y, w, h, options = {}) {
+    const image = hdImages.get(name);
+    if (!imageReady(image)) return false;
+    ctx.save();
+    if (options.alpha !== undefined) ctx.globalAlpha = options.alpha;
+    if (options.blend) ctx.globalCompositeOperation = options.blend;
+    if (options.clip) {
+      ctx.beginPath();
+      ctx.rect(options.clip.x, options.clip.y, options.clip.w, options.clip.h);
+      ctx.clip();
+    }
+    ctx.drawImage(image, x, y, w, h);
+    ctx.restore();
+    return true;
+  }
+
   function groundYAt(x) {
     for (const segment of terrain) {
       if (x >= segment.x && x <= segment.x + segment.w) {
@@ -713,7 +812,7 @@
       enemy.t += dt;
       enemy.x += enemy.vx * dt;
       enemy.y = enemy.baseY + Math.sin(enemy.t * 3.4) * 16;
-      if (enemy.x < 1260 || enemy.x > 4760) enemy.vx *= -1;
+      if (enemy.x < 1260 || enemy.x > levelWidth - 360) enemy.vx *= -1;
     }
     collectItems();
     hitEnemies();
@@ -969,12 +1068,17 @@
     if (mode7TextureReady) return true;
     if (!atlasReady && !slicesReady) return false;
     mode7Ctx.clearRect(0, 0, mode7Texture.width, mode7Texture.height);
-    const repeatTiles = ["tile_grass", "tile_dirt", "tile_cave", "tile_rail"];
+    const repeatTiles = hdReady
+      ? ["hd_tile_grass_a", "hd_tile_grass_b", "hd_tile_cave_purple", "hd_tile_neon_panel"]
+      : ["tile_grass", "tile_dirt", "tile_cave", "tile_rail"];
     for (let y = 0; y < 256; y += 64) {
       for (let x = 0; x < 256; x += 64) {
         const tile = repeatTiles[((x / 64) + (y / 64)) % repeatTiles.length];
+        const hdImage = hdImages.get(tile);
         const slicedImage = sliceImages.get(tile);
-        if (imageReady(slicedImage)) {
+        if (imageReady(hdImage)) {
+          mode7Ctx.drawImage(hdImage, x, y, 64, 64);
+        } else if (imageReady(slicedImage)) {
           mode7Ctx.drawImage(slicedImage, x, y, 64, 64);
         } else if (atlasReady) {
           const f = frame(tile);
@@ -1019,6 +1123,7 @@
     const importedSkyline = drawRepeatingImage(importedImages.silhouettes, 286, 1024, 256, 0.2, 0.36);
     const importedMist = drawRepeatingImage(importedImages.mistBands, 246, 1024, 240, 0.34, 0.32);
     const importedClouds = drawRepeatingImage(importedImages.cloudBank, 78, 1024, 150, 0.12, 0.72);
+    drawHdBackdrops();
     for (let i = -1; i < 15; i += 1) {
       const x = i * 420 + 80 - cam * 0.14;
       if (!importedClouds) drawFrame("bg_cloud", x, 72 + Math.sin(i) * 22, 118, 72, { alpha: 0.9 });
@@ -1043,20 +1148,40 @@
     }
   }
 
+  function drawHdBackdrops() {
+    if (!hdReady) return;
+    const panels = [
+      ["hd_bg_coast", 160, 282, 640, 300, 0.42],
+      ["hd_bg_cave", 3000, 258, 720, 320, 0.46],
+      ["hd_bg_neon", 6500, 252, 640, 320, 0.44],
+      ["hd_bg_sunset", 8580, 260, 780, 320, 0.44]
+    ];
+    for (const [name, x, y, w, h, alpha] of panels) {
+      if (x + w < state.cameraX - 160 || x > state.cameraX + WIDTH + 160) continue;
+      drawHdFrame(name, x, y, w, h, { alpha });
+    }
+  }
+
   function drawTerrain() {
     for (const segment of terrain) {
       if (segment.x + segment.w < state.cameraX - 120 || segment.x > state.cameraX + WIDTH + 160) continue;
       if (segment.slope) {
         const topFrame = segment.slope === "up" ? "tile_slope_up" : "tile_slope_down";
+        const hdFrame = segment.slope === "up" ? "hd_tile_slope_up" : "hd_tile_slope_down";
         for (let x = segment.x; x < segment.x + segment.w; x += 64) {
           const ground = groundYAt(x + 32);
           drawFrame(topFrame, x, ground - 64, 64, 64);
+          drawHdFrame(hdFrame, x, ground - 64, 64, 64, { alpha: 0.78 });
           for (let y = ground; y < HEIGHT + 128; y += 64) drawFrame("tile_dirt", x, y, 64, 64);
         }
         continue;
       }
       for (let x = Math.floor(segment.x / 64) * 64; x < segment.x + segment.w; x += 64) {
         drawFrame(segment.tile || "tile_grass", x, segment.y - 64, 64, 64);
+        const tileIndex = Math.abs(Math.floor(x / 64)) % 4;
+        const grassHd = ["hd_tile_grass_a", "hd_tile_grass_b", "hd_tile_grass_c", "hd_tile_grass_d"][tileIndex];
+        const caveHd = tileIndex % 2 === 0 ? "hd_tile_cave_purple" : "hd_tile_cave_blue";
+        drawHdFrame(segment.tile === "tile_cave" ? caveHd : grassHd, x, segment.y - 64, 64, 64, { alpha: 0.76 });
         for (let y = segment.y; y < HEIGHT + 128; y += 64) {
           drawFrame(segment.tile === "tile_cave" ? "tile_cave" : "tile_dirt", x, y, 64, 64);
         }
@@ -1065,6 +1190,7 @@
     for (let x = -128; x < levelWidth + 128; x += 64) {
       if (x < state.cameraX - 160 || x > state.cameraX + WIDTH + 160) continue;
       drawFrame("tile_water", x, 668, 64, 64, { alpha: 0.82 });
+      if (x % 256 === 0) drawHdFrame("hd_tile_water", x, 638, 262, 80, { alpha: 0.5 });
     }
   }
 
@@ -1073,6 +1199,7 @@
       if (platform.x + platform.w < state.cameraX - 90 || platform.x > state.cameraX + WIDTH + 90) continue;
       for (let x = platform.x; x < platform.x + platform.w; x += 64) {
         drawFrame("tile_bridge", x, platform.y - 28, 64, 64);
+        drawHdFrame("hd_bridge", x - 8, platform.y - 36, 74, 46, { alpha: 0.58 });
       }
     }
   }
@@ -1112,7 +1239,10 @@
       drawFrame(frameName, ring.x - 22, ring.y - 24, 44, 48);
     }
     for (const boost of state.boosts) {
-      if (!boost.collected) drawFrame("item_boost", boost.x - 8, boost.y - 8, 58, 58);
+      if (!boost.collected) {
+        drawHdFrame(Math.floor(boost.x / 400) % 2 ? "hd_boost_pad_orange" : "hd_boost_pad_cyan", boost.x - 34, boost.y - 24, 104, 58, { alpha: 0.66 });
+        drawFrame("item_boost", boost.x - 8, boost.y - 8, 58, 58);
+      }
     }
     for (const shield of state.shields) {
       if (!shield.collected) drawFrame("item_shield", shield.x - 8, shield.y - 8, 58, 58);
@@ -1131,6 +1261,7 @@
   function drawEnemies() {
     for (const enemy of state.enemies) {
       if (enemy.defeated || enemy.x < state.cameraX - 80 || enemy.x > state.cameraX + WIDTH + 80) continue;
+      drawHdFrame(Math.floor(enemy.x / 500) % 2 ? "hd_drone_b" : "hd_drone_a", enemy.x - 39, enemy.y - 39, 78, 78, { alpha: 0.5 });
       drawFrame("enemy_drone", enemy.x - 32, enemy.y - 32, 64, 64);
       drawFrame("fx_spark", enemy.x - 22, enemy.y - 46 + Math.sin(state.time * 8) * 4, 44, 44, { alpha: 0.46 });
     }
@@ -1253,6 +1384,11 @@
       score: state.score,
       hoops: state.hoops,
       cameraX: state.cameraX,
+      levelWidth,
+      goalX: state.goal.x,
+      totalRings: state.rings.length,
+      totalCheckpoints: state.checkpoints.length,
+      totalLoops: loops.length,
       player: {
         x: player.x,
         y: player.y,
@@ -1268,6 +1404,10 @@
       slicesReady,
       sliceFramesLoaded,
       sliceFrameCount,
+      hdManifestLoaded,
+      hdReady,
+      hdFramesLoaded,
+      hdFrameCount,
       mode7TextureReady,
       importedGraphicsReady: Object.fromEntries(
         Object.entries(importedImages).map(([key, image]) => [key, imageReady(image)])
