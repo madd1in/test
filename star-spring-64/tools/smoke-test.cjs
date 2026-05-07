@@ -33,6 +33,7 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
   if (!level.PLATFORMS.some((platform) => platform.moving)) throw new Error("Expected moving platforms");
   if (level.SPRINGS.length < 3) throw new Error("Expected spring pads");
   if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 4) throw new Error("Expected boost rings");
+  if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 3) throw new Error("Expected wind columns");
   if (level.ENEMIES.length < 2) throw new Error("Expected enemies");
 
   const ids = new Set();
