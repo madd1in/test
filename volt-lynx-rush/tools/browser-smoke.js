@@ -90,6 +90,7 @@ async function run() {
     await page.waitForFunction(() => window.__voltLynxDebug, null, { timeout: 10000 });
     await page.waitForFunction(() => window.__voltLynxDebug.getState().atlasReady, null, { timeout: 10000 });
     await page.waitForFunction(() => window.__voltLynxDebug.getState().slicesReady, null, { timeout: 10000 });
+    await page.waitForFunction(() => window.__voltLynxDebug.getState().hdReady, null, { timeout: 10000 });
     await page.waitForFunction(
       () => Object.values(window.__voltLynxDebug.getState().importedGraphicsReady).every(Boolean),
       null,
@@ -153,6 +154,7 @@ async function run() {
         audioButtonVisible: Boolean(document.querySelector("#audioButton").getBoundingClientRect().width > 0),
         importedResources: resources.filter((name) => name.includes("/assets/imported/")).length,
         slicedResources: resources.filter((name) => name.includes("/assets/sliced/")).length,
+        hdResources: resources.filter((name) => name.includes("/assets/imagen-hd/sliced/")).length,
         bgmLoaded: resources.some((name) => name.includes("needle-meadow-sprint.mp3")),
         canvasWidth: canvas.width,
         canvasHeight: canvas.height,
@@ -207,16 +209,24 @@ async function run() {
       state.atlasReady &&
       state.slicesReady &&
       state.sliceFramesLoaded === state.sliceFrameCount &&
+      state.hdManifestLoaded &&
+      state.hdReady &&
+      state.hdFramesLoaded === state.hdFrameCount &&
       state.mode7TextureReady &&
       Object.values(state.importedGraphicsReady).every(Boolean) &&
       state.importedResources >= 3 &&
       state.slicedResources >= 30 &&
+      state.hdResources >= 30 &&
+      state.levelWidth >= 9500 &&
+      state.totalLoops >= 4 &&
+      state.totalCheckpoints >= 5 &&
+      state.totalRings >= 140 &&
       state.audioButtonVisible &&
       state.audio.bgmSrc.includes("needle-meadow-sprint.mp3") &&
       state.audio.bgmReady &&
       state.player.x > 260 &&
       state.player.boost >= 0 &&
-      state.ringsRemaining <= 80 &&
+      state.ringsRemaining <= state.totalRings &&
       Number(state.hudScore) >= 0 &&
       Number(state.hudSpeed) >= 0 &&
       state.canvasWidth === 1280 &&
