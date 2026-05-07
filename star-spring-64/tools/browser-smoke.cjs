@@ -71,7 +71,7 @@ function listen(server) {
 async function runViewport(browser, name, viewport, mobile = false) {
   const page = await browser.newPage({
     viewport,
-    deviceScaleFactor: mobile ? 2 : 1,
+    deviceScaleFactor: 1,
     isMobile: mobile,
     hasTouch: mobile,
   });
