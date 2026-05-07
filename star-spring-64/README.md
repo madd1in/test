@@ -8,10 +8,11 @@ Die aktuelle BGM nutzt `assets/audio/downloads-bgm.mp3`, kopiert aus `C:\Users\U
 - Triple-Jump: Bodenjump plus zwei Air-Jumps, mit staerkerem dritten Sprung.
 - Sky Rings: geben Vorwaerts-Boost und frischen Air-Jumps auf.
 - Wind Lifts: tragen dich nach oben und retten schnelle Routen zwischen Inseln.
+- Assist ist standardmaessig an: Ziel sind 6 Sterne, Plattformen sind grosszuegiger, Gegner sind langsamer, und eine Muenze kann einen Treffer abfangen.
 
 ## Performance
 
-Normaler Spielbetrieb nutzt reduzierte Renderkosten: gekappte Pixelratio, keine teuren Capture-Buffer und reduzierte dynamische Lichter auf Mobile.
+Normaler Spielbetrieb nutzt reduzierte Renderkosten: stark gekappte Mobile-Pixelratio, keine teuren Capture-Buffer, Shadowmaps nur in `?quality=high`, reduzierte dynamische Lichter, weniger Partikel und adaptives `Smooth Mode`-Downscaling.
 Der Browser-Smoke-Test startet mit `?capture=1`, damit Canvas-Pixel pruefbar bleiben.
 
 ## Start
