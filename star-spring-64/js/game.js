@@ -939,7 +939,8 @@ function createBouncerEnemy(def) {
   footB.position.set(0.32, 0.12, -0.18);
   footA.scale.set(1.4, 0.45, 0.8);
   footB.scale.copy(footA.scale);
-  group.add(body, eyeA, eyeB, glintA, glintB, blushA, blushB, crest, footA, footB);
+  group.add(body, eyeA, eyeB, crest, footA, footB);
+  if (!reducedGpuMode) group.add(glintA, glintB, blushA, blushB);
   group.position.set(def.x, def.y, def.z);
   scene.add(group);
 
@@ -995,7 +996,8 @@ function createSnapFlowerEnemy(def) {
     tooth.rotation.x = Math.PI;
     group.add(tooth);
   }
-  group.add(stem, leafA, leafB, head, mouth, lip, spotA, spotB, spotC);
+  group.add(stem, leafA, leafB, head, mouth, lip);
+  if (!reducedGpuMode) group.add(spotA, spotB, spotC);
   group.position.set(def.x, def.y, def.z);
   group.rotation.y = def.yaw ?? 0;
   scene.add(group);
@@ -1037,7 +1039,8 @@ function createCrusherEnemy(def) {
   browB.rotation.z = 0.14;
   const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), materials.heroBadge);
   gem.position.set(0, 0.18, -((def.d ?? 2.7) * 0.5 + 0.045));
-  group.add(body, eyeA, eyeB, mouth, browA, browB, gem);
+  group.add(body, eyeA, eyeB, mouth);
+  if (!reducedGpuMode) group.add(browA, browB, gem);
   if (!reducedGpuMode) {
     for (let i = 0; i < 4; i += 1) {
       const chip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.04), materials.tooth);
@@ -1095,7 +1098,8 @@ function createRocketEnemy(def) {
   const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.018, 5, reducedGpuMode ? 14 : 20), materials.dashArrow.clone());
   stripe.rotation.y = Math.PI / 2;
   stripe.position.x = 0.05;
-  projectile.add(body, nose, eyeA, eyeB, finA, finB, stripe, flame);
+  projectile.add(body, nose, eyeA, eyeB, flame);
+  if (!reducedGpuMode) projectile.add(finA, finB, stripe);
   projectile.visible = false;
   group.add(projectile);
   group.position.set(def.x, def.y, def.z);
