@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><filter id="n"><feTurbulence baseFrequency=".028" numOctaves="4" seed="13"/><feColorMatrix values=".18 .54 .10 0 0 .08 .40 .12 0 0 .04 .25 .08 0 0 0 0 0 1 0"/></filter></defs>
+<rect width="512" height="512" fill="#6bc179"/>
+<rect width="512" height="512" filter="url(#n)" opacity=".45"/>
+<g opacity=".42" stroke="#e5f7a0" stroke-width="5" stroke-linecap="round">
+<path d="M31 428c55-19 105-21 151 0s92 20 151-3 101-20 148 4"/>
+<path d="M-4 155c60 23 116 22 167-2s102-21 155 2 104 22 164-2"/>
+</g>
+<g fill="#f8df65" opacity=".88"><circle cx="92" cy="89" r="7"/><circle cx="398" cy="151" r="5"/><circle cx="243" cy="363" r="6"/><circle cx="449" cy="407" r="8"/></g>
+</svg>

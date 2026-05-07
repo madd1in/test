@@ -1,0 +1,12 @@
+{
+  "name": "star-spring-64",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An original browser 3D collectathon platformer with local generated textures and audio.",
+  "scripts": {
+    "assets": "node tools/build-assets.cjs",
+    "serve": "node tools/serve.cjs",
+    "check": "node tools/smoke-test.cjs"
+  }
+}
