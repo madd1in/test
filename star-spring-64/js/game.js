@@ -50,8 +50,9 @@ const mutedByUrl = urlParams.get("mute") === "1";
 const captureMode = urlParams.get("capture") === "1";
 const qualityMode = urlParams.get("quality") || "auto";
 const assistMode = urlParams.get("assist") !== "0";
-const reducedGpuMode = qualityMode !== "high" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 760);
-const maxPixelRatio = captureMode ? (reducedGpuMode ? 0.85 : 1.15) : qualityMode === "high" ? 1.5 : reducedGpuMode ? 0.8 : 1.1;
+const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+const reducedGpuMode = qualityMode !== "high" && (coarsePointer || window.innerWidth < 760);
+const maxPixelRatio = captureMode ? (reducedGpuMode ? 0.74 : 1.08) : qualityMode === "high" ? 1.45 : reducedGpuMode ? 0.72 : 1.05;
 const enableDynamicLights = qualityMode === "high" || (!reducedGpuMode && window.innerWidth >= 900);
 const enableShadows = qualityMode === "high" && !reducedGpuMode;
 
@@ -84,6 +85,7 @@ const textureLoader = new THREE.TextureLoader();
 
 const tmpVec = new THREE.Vector3();
 const tmpVec2 = new THREE.Vector3();
+const tmpVec3 = new THREE.Vector3();
 const tmpForward = new THREE.Vector3();
 const tmpRight = new THREE.Vector3();
 const tmpColor = new THREE.Color();
@@ -102,6 +104,11 @@ const DOUBLE_JUMP_SPEED = 11.6;
 const TRIPLE_JUMP_SPEED = 13.8;
 const MAX_AIR_JUMPS = 2;
 const COYOTE_TIME = 0.22;
+const GLIDE_FALL_SPEED = reducedGpuMode ? -7.1 : -8.2;
+const GLIDE_GRAVITY_SCALE = 0.34;
+const STAR_MAGNET_RANGE = assistMode ? 3.4 : 0;
+const COIN_MAGNET_RANGE = assistMode ? 4.8 : 0;
+const ASSIST_LEDGE_MARGIN = assistMode ? PLAYER_RADIUS * 1.75 : PLAYER_RADIUS * 1.2;
 const RESPAWN_Y = -14;
 const TAU = Math.PI * 2;
 
@@ -132,10 +139,13 @@ const player = {
   groundSolid: null,
   coyote: 0,
   jumpQueued: false,
+  jumpHeld: false,
   jumpBuffer: 0,
   airJumpsUsed: 0,
   springCooldown: 0,
   damageCooldown: 0,
+  glideSparkTimer: 0,
+  gliding: false,
   health: 3,
   checkpoint: new THREE.Vector3(START.x, START.y, START.z),
 };
@@ -304,6 +314,28 @@ const materials = {
     transparent: true,
     opacity: 0.86,
   }),
+  guide: new THREE.MeshBasicMaterial({
+    color: 0xfff7ad,
+    transparent: true,
+    opacity: 0.84,
+    depthWrite: false,
+    fog: false,
+  }),
+  guideCore: new THREE.MeshBasicMaterial({
+    color: 0x79d4a8,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+    fog: false,
+  }),
+  glideWing: new THREE.MeshBasicMaterial({
+    color: 0xfff7ad,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    fog: false,
+  }),
   wind: new THREE.MeshBasicMaterial({
     color: 0xd8fbff,
     transparent: true,
@@ -362,7 +394,7 @@ function addLights() {
 }
 
 function addSkyAndWater() {
-  const skyGeometry = new THREE.SphereGeometry(120, 32, 18);
+  const skyGeometry = new THREE.SphereGeometry(120, reducedGpuMode ? 20 : 32, reducedGpuMode ? 10 : 18);
   const skyMaterial = new THREE.MeshBasicMaterial({
     color: 0xd7f7ff,
     side: THREE.BackSide,
@@ -373,7 +405,7 @@ function addSkyAndWater() {
   scene.add(sky);
 
   const sun = new THREE.Mesh(
-    new THREE.CircleGeometry(8, 48),
+    new THREE.CircleGeometry(8, reducedGpuMode ? 28 : 48),
     new THREE.MeshBasicMaterial({ color: 0xfff2a6, transparent: true, opacity: 0.86, fog: false }),
   );
   sun.position.set(-54, 56, -100);
@@ -381,7 +413,7 @@ function addSkyAndWater() {
   scene.add(sun);
 
   const horizon = new THREE.Mesh(
-    new THREE.RingGeometry(66, 70, 96),
+    new THREE.RingGeometry(66, 70, reducedGpuMode ? 56 : 96),
     new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, side: THREE.DoubleSide, fog: false }),
   );
   horizon.position.set(0, -2.5, -55);
@@ -514,8 +546,8 @@ function createWindColumn(def) {
 
 function createSpring(def) {
   const group = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.08, 0.26, 32), materials.springSide);
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.94, 1.02, 0.12, 32), materials.springTop);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.08, 0.26, reducedGpuMode ? 20 : 32), materials.springSide);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.94, 1.02, 0.12, reducedGpuMode ? 20 : 32), materials.springTop);
   top.position.y = 0.2;
   base.castShadow = enableShadows;
   top.castShadow = enableShadows;
@@ -527,9 +559,9 @@ function createSpring(def) {
 
 function createStar(def) {
   const group = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 1), materials.gold);
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, reducedGpuMode ? 0 : 1), materials.gold);
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.52, 0.055, 10, 32),
+    new THREE.TorusGeometry(0.52, 0.055, reducedGpuMode ? 7 : 10, reducedGpuMode ? 20 : 32),
     new THREE.MeshStandardMaterial({
       color: 0xfff7ad,
       roughness: 0.3,
@@ -547,7 +579,7 @@ function createStar(def) {
 
 function createCoin(def, index) {
   const mesh = new THREE.Mesh(
-    new THREE.TorusGeometry(0.34, 0.075, 10, 28),
+    new THREE.TorusGeometry(0.34, 0.075, reducedGpuMode ? 7 : 10, reducedGpuMode ? 18 : 28),
     new THREE.MeshStandardMaterial({
       color: 0xffd166,
       roughness: 0.25,
@@ -692,7 +724,7 @@ function createArch(def) {
 
 function createEnemy(def) {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.62, 24, 16), materials.enemy);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.62, reducedGpuMode ? 16 : 24, reducedGpuMode ? 10 : 16), materials.enemy);
   body.scale.set(1, 0.78, 1);
   body.position.y = 0.52;
   body.castShadow = enableShadows;
@@ -727,21 +759,21 @@ function createEnemy(def) {
 function createPlayer() {
   const group = new THREE.Group();
 
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.62, 24), materials.blobShadow);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.62, reducedGpuMode ? 18 : 24), materials.blobShadow);
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.035;
   shadow.scale.set(1.25, 1, 1);
 
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 18), materials.hero);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, reducedGpuMode ? 18 : 24, reducedGpuMode ? 12 : 18), materials.hero);
   body.position.y = 0.82;
   body.scale.set(0.86, 1.08, 0.72);
   body.castShadow = enableShadows;
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 16), materials.skin);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, reducedGpuMode ? 18 : 24, reducedGpuMode ? 12 : 16), materials.skin);
   head.position.y = 1.48;
   head.castShadow = enableShadows;
 
-  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.35, 24), materials.cap);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.35, reducedGpuMode ? 18 : 24), materials.cap);
   cap.position.y = 1.82;
   cap.rotation.x = -0.08;
   cap.castShadow = enableShadows;
@@ -755,7 +787,7 @@ function createPlayer() {
   eyeA.position.set(-0.13, 1.52, -0.34);
   eyeB.position.set(0.13, 1.52, -0.34);
 
-  const shoeA = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), materials.shoe);
+  const shoeA = new THREE.Mesh(new THREE.SphereGeometry(0.18, reducedGpuMode ? 9 : 12, reducedGpuMode ? 6 : 8), materials.shoe);
   const shoeB = shoeA.clone();
   shoeA.position.set(-0.22, 0.12, -0.12);
   shoeB.position.set(0.22, 0.12, -0.12);
@@ -774,13 +806,40 @@ function createPlayer() {
   armA.castShadow = enableShadows;
   armB.castShadow = enableShadows;
 
-  group.add(shadow, body, head, cap, brim, eyeA, eyeB, shoeA, shoeB, armA, armB);
-  group.userData = { body, shoeA, shoeB, armA, armB, shadow };
+  const wingA = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.32), materials.glideWing.clone());
+  const wingB = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.32), materials.glideWing.clone());
+  wingA.position.set(-0.58, 1.08, 0.16);
+  wingB.position.set(0.58, 1.08, 0.16);
+  wingA.rotation.set(0.2, -0.58, -0.18);
+  wingB.rotation.set(0.2, 0.58, 0.18);
+  wingA.visible = false;
+  wingB.visible = false;
+
+  group.add(shadow, body, head, cap, brim, eyeA, eyeB, shoeA, shoeB, armA, armB, wingA, wingB);
+  group.userData = { body, shoeA, shoeB, armA, armB, shadow, wingA, wingB };
   scene.add(group);
   return group;
 }
 
 const playerGroup = createPlayer();
+
+function createGuideArrow() {
+  const group = new THREE.Group();
+  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.68, 3), materials.guide.clone());
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.76), materials.guide.clone());
+  const core = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.025, 6, 22), materials.guideCore.clone());
+  arrow.rotation.x = Math.PI / 2;
+  arrow.position.z = 0.42;
+  tail.position.z = -0.12;
+  core.rotation.x = Math.PI / 2;
+  core.position.y = -0.03;
+  group.add(arrow, tail, core);
+  group.visible = false;
+  scene.add(group);
+  return group;
+}
+
+const guideArrow = createGuideArrow();
 
 function buildWorld() {
   addLights();
@@ -864,10 +923,12 @@ function queueJump() {
 }
 
 window.addEventListener("keydown", (event) => {
+  const wasDown = keys.has(event.code);
   keys.add(event.code);
   if (event.code === "Space") {
     event.preventDefault();
-    queueJump();
+    player.jumpHeld = true;
+    if (!wasDown) queueJump();
   }
   if (event.code === "KeyP") togglePause();
   if (event.code === "KeyR") resetRun(true);
@@ -875,11 +936,25 @@ window.addEventListener("keydown", (event) => {
 
 window.addEventListener("keyup", (event) => {
   keys.delete(event.code);
+  if (event.code === "Space") player.jumpHeld = false;
 });
 
 ui.jumpTouch.addEventListener("pointerdown", (event) => {
   event.preventDefault();
+  player.jumpHeld = true;
   queueJump();
+  ui.jumpTouch.setPointerCapture?.(event.pointerId);
+});
+
+function releaseTouchJump(event) {
+  event.preventDefault();
+  player.jumpHeld = false;
+}
+
+ui.jumpTouch.addEventListener("pointerup", releaseTouchJump);
+ui.jumpTouch.addEventListener("pointercancel", releaseTouchJump);
+ui.jumpTouch.addEventListener("lostpointercapture", () => {
+  player.jumpHeld = false;
 });
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -979,8 +1054,8 @@ function resolveVertical(previousY) {
   let bestSolid = null;
   for (const solid of solids) {
     const top = topOf(solid);
-    const insideX = Math.abs(player.pos.x - solid.x) <= solid.w * 0.5 + PLAYER_RADIUS * 1.2;
-    const insideZ = Math.abs(player.pos.z - solid.z) <= solid.d * 0.5 + PLAYER_RADIUS * 1.2;
+    const insideX = Math.abs(player.pos.x - solid.x) <= solid.w * 0.5 + ASSIST_LEDGE_MARGIN;
+    const insideZ = Math.abs(player.pos.z - solid.z) <= solid.d * 0.5 + ASSIST_LEDGE_MARGIN;
     if (!insideX || !insideZ) continue;
     if (player.vel.y <= 0 && previousY >= top - 0.08 && player.pos.y <= top + 0.04 && top > bestTop) {
       bestTop = top;
@@ -990,6 +1065,10 @@ function resolveVertical(previousY) {
 
   if (bestSolid) {
     player.pos.y = bestTop;
+    if (assistMode) {
+      player.pos.x = clamp(player.pos.x, bestSolid.x - bestSolid.w * 0.5 - PLAYER_RADIUS * 0.35, bestSolid.x + bestSolid.w * 0.5 + PLAYER_RADIUS * 0.35);
+      player.pos.z = clamp(player.pos.z, bestSolid.z - bestSolid.d * 0.5 - PLAYER_RADIUS * 0.35, bestSolid.z + bestSolid.d * 0.5 + PLAYER_RADIUS * 0.35);
+    }
     if (player.vel.y < -10) audio.play("land", 0.45);
     player.vel.y = 0;
     player.grounded = true;
@@ -1066,7 +1145,26 @@ function updatePlayer(dt, move) {
   }
   if (player.jumpBuffer <= 0) player.jumpQueued = false;
 
-  player.vel.y = Math.max(MAX_FALL_SPEED, player.vel.y + GRAVITY * dt);
+  const canGlide = assistMode && player.jumpHeld && !player.grounded && player.vel.y < -1.4;
+  const gravityScale = canGlide ? GLIDE_GRAVITY_SCALE : 1;
+  const fallLimit = canGlide ? GLIDE_FALL_SPEED : MAX_FALL_SPEED;
+  player.vel.y = Math.max(fallLimit, player.vel.y + GRAVITY * dt * gravityScale);
+  player.gliding = canGlide;
+  if (canGlide && move.length > 0.08) {
+    player.vel.x += desired.x * 2.1 * dt;
+    player.vel.z += desired.z * 2.1 * dt;
+  }
+  player.glideSparkTimer = Math.max(0, player.glideSparkTimer - dt);
+  if (canGlide && !reducedGpuMode && player.glideSparkTimer <= 0) {
+    player.glideSparkTimer = 0.16;
+    spawnParticle(
+      tmpVec2.set(player.pos.x, player.pos.y + 0.9, player.pos.z),
+      0xfff7ad,
+      new THREE.Vector3((Math.random() - 0.5) * 0.9, -0.25, (Math.random() - 0.5) * 0.9),
+      0.42,
+      0.055,
+    );
+  }
 
   const previousY = player.pos.y;
   player.pos.x += player.vel.x * dt;
@@ -1074,6 +1172,7 @@ function updatePlayer(dt, move) {
   resolveHorizontal();
   player.pos.y += player.vel.y * dt;
   resolveVertical(previousY);
+  if (player.grounded) player.gliding = false;
 
   if (player.pos.y < RESPAWN_Y) {
     damagePlayer(new THREE.Vector3(0, 0, 1), true);
@@ -1098,6 +1197,8 @@ function animatePlayer(dt, horizontalSpeed) {
   const armA = playerGroup.userData.armA;
   const armB = playerGroup.userData.armB;
   const shadow = playerGroup.userData.shadow;
+  const wingA = playerGroup.userData.wingA;
+  const wingB = playerGroup.userData.wingB;
   const swing = Math.sin(t) * 0.35 * stride;
   shoeA.position.z = -0.12 + swing * 0.18;
   shoeB.position.z = -0.12 - swing * 0.18;
@@ -1110,6 +1211,17 @@ function animatePlayer(dt, horizontalSpeed) {
   playerGroup.scale.z = playerGroup.scale.x;
   shadow.material.opacity = player.grounded ? 0.2 : 0.08;
   shadow.scale.setScalar(player.grounded ? 1.2 : 0.82);
+
+  const wingOpacity = damp(wingA.material.opacity, player.gliding ? 0.64 : 0, 10, dt);
+  wingA.material.opacity = wingOpacity;
+  wingB.material.opacity = wingOpacity;
+  wingA.visible = wingOpacity > 0.02;
+  wingB.visible = wingOpacity > 0.02;
+  if (wingA.visible || wingB.visible) {
+    const flutter = Math.sin(game.time * 12) * 0.08;
+    wingA.rotation.z = -0.2 - flutter;
+    wingB.rotation.z = 0.2 + flutter;
+  }
 }
 
 function updateSprings(dt) {
@@ -1187,14 +1299,28 @@ function updateWindColumns(dt, active = true) {
   }
 }
 
+function pullTowardPlayer(object, range, collectHeight, dt, strength) {
+  const target = tmpVec.set(player.pos.x, player.pos.y + collectHeight, player.pos.z);
+  const offset = tmpVec2.copy(target).sub(object.position);
+  const distance = offset.length();
+  if (distance > 0.02 && distance < range) {
+    const pull = 1 - Math.exp(-strength * dt * (1.2 + (range - distance) / range));
+    object.position.addScaledVector(offset, pull);
+    return object.position.distanceTo(target);
+  }
+  return distance;
+}
+
 function updateCollectibles(dt) {
   for (const star of starItems) {
     if (star.collected) continue;
     star.group.rotation.y += dt * 2.2;
     star.group.rotation.x = Math.sin(game.time * 2.5 + star.x) * 0.18;
     star.group.position.y = star.y + Math.sin(game.time * 3 + star.z) * 0.12;
-    const distance = star.group.position.distanceTo(tmpVec.set(player.pos.x, player.pos.y + 0.8, player.pos.z));
-    if (distance < 1.2) {
+    const distance = assistMode
+      ? pullTowardPlayer(star.group, STAR_MAGNET_RANGE, 0.8, dt, 7.8)
+      : star.group.position.distanceTo(tmpVec.set(player.pos.x, player.pos.y + 0.8, player.pos.z));
+    if (distance < (assistMode ? 1.55 : 1.2)) {
       star.collected = true;
       star.group.visible = false;
       game.stars += 1;
@@ -1209,8 +1335,10 @@ function updateCollectibles(dt) {
     coin.mesh.rotation.y += dt * 4.4;
     coin.mesh.rotation.x = Math.PI / 2 + Math.sin(game.time * 3.1 + coin.x) * 0.2;
     coin.mesh.position.y = coin.y + Math.sin(game.time * 4 + coin.z) * 0.08;
-    const distance = coin.mesh.position.distanceTo(tmpVec.set(player.pos.x, player.pos.y + 0.72, player.pos.z));
-    if (distance < 0.85) {
+    const distance = assistMode
+      ? pullTowardPlayer(coin.mesh, COIN_MAGNET_RANGE, 0.72, dt, 9.4)
+      : coin.mesh.position.distanceTo(tmpVec.set(player.pos.x, player.pos.y + 0.72, player.pos.z));
+    if (distance < (assistMode ? 1.08 : 0.85)) {
       coin.collected = true;
       coin.mesh.visible = false;
       game.coins += 1;
@@ -1268,7 +1396,9 @@ function updateEnemies(dt) {
 function damagePlayer(direction, hardReset) {
   if (!hardReset && player.damageCooldown > 0) return;
   player.damageCooldown = 1.45;
-  if (!hardReset && assistMode && game.coins > 0) {
+  if (hardReset && assistMode) {
+    showToast("Safe Return");
+  } else if (!hardReset && assistMode && game.coins > 0) {
     game.coins = Math.max(0, game.coins - 1);
     showToast("Coin Save");
   } else {
@@ -1294,6 +1424,8 @@ function respawnPlayer() {
   player.groundSolid = null;
   player.coyote = 0;
   player.airJumpsUsed = 0;
+  player.gliding = false;
+  snapCameraToPlayer();
 }
 
 function updateGoal(dt) {
@@ -1315,8 +1447,51 @@ function updateGoal(dt) {
   }
 }
 
+function updateGuideArrow() {
+  if (!assistMode || !game.running || game.completed) {
+    guideArrow.visible = false;
+    return;
+  }
+
+  let target = null;
+  let bestDistance = Infinity;
+  if (game.stars >= LEVEL_TARGET_STARS) {
+    target = GOAL;
+  } else {
+    for (const star of starItems) {
+      if (star.collected) continue;
+      const dx = star.group.position.x - player.pos.x;
+      const dz = star.group.position.z - player.pos.z;
+      const distance = dx * dx + dz * dz;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        target = star.group.position;
+      }
+    }
+  }
+  if (!target) target = GOAL;
+
+  const dx = target.x - player.pos.x;
+  const dz = target.z - player.pos.z;
+  const distance = Math.hypot(dx, dz);
+  if (distance < 1.8) {
+    guideArrow.visible = false;
+    return;
+  }
+
+  const guideDistance = clamp(distance * 0.16, 2.2, 5.2);
+  guideArrow.visible = true;
+  guideArrow.position.set(
+    player.pos.x + dx / distance * guideDistance,
+    player.pos.y + 1.12 + Math.sin(game.time * 5) * 0.08,
+    player.pos.z + dz / distance * guideDistance,
+  );
+  guideArrow.rotation.y = Math.atan2(dx, dz);
+  guideArrow.scale.setScalar(1 + Math.sin(game.time * 6.5) * 0.07);
+}
+
 function spawnAmbientPortalSpark(dt, origin) {
-  if (Math.random() > dt * 7) return;
+  if (Math.random() > dt * (reducedGpuMode ? 3.5 : 7)) return;
   const pos = tmpVec.set(
     origin.x + (Math.random() - 0.5) * 4,
     origin.y + 1 + Math.random() * 2.4,
@@ -1372,7 +1547,30 @@ function updateParticles(dt) {
   }
 }
 
+function getCameraTarget() {
+  const portraitView = window.innerHeight > window.innerWidth;
+  const mobileCamera = reducedGpuMode || portraitView;
+  return tmpVec.set(player.pos.x, player.pos.y + (mobileCamera ? 0.85 : 1.15), player.pos.z);
+}
+
+function snapCameraToPlayer() {
+  const portraitView = window.innerHeight > window.innerWidth;
+  const mobileCamera = reducedGpuMode || portraitView;
+  const distance = Math.max(cameraState.distance, mobileCamera ? 10.8 : 9.2);
+  const target = getCameraTarget();
+  const horizontal = Math.cos(cameraState.pitch) * distance;
+  const offset = tmpVec2.set(
+    Math.sin(cameraState.yaw) * horizontal,
+    Math.sin(cameraState.pitch) * distance + (mobileCamera ? 1.35 : 1.6),
+    Math.cos(cameraState.yaw) * horizontal,
+  );
+  camera.position.copy(target).add(offset);
+  camera.lookAt(target);
+}
+
 function updateCamera(dt, move) {
+  const portraitView = window.innerHeight > window.innerWidth;
+  const mobileCamera = reducedGpuMode || portraitView;
   if (cameraStick.active || Math.abs(cameraStick.x) > 0.04 || Math.abs(cameraStick.y) > 0.04) {
     cameraState.yaw -= cameraStick.x * 2.45 * dt;
     cameraState.pitch = clamp(cameraState.pitch + cameraStick.y * 1.28 * dt, 0.18, 0.88);
@@ -1388,17 +1586,18 @@ function updateCamera(dt, move) {
     cameraState.yaw = lerpAngle(cameraState.yaw, desiredYaw, 1 - Math.exp(-1.6 * dt));
   }
 
-  const targetDistance = 9.2 + clamp(horizontalSpeed / RUN_SPEED, 0, 1) * 1.8;
-  cameraState.distance = damp(cameraState.distance, targetDistance, 2.5, dt);
-  const target = tmpVec.set(player.pos.x, player.pos.y + 1.15, player.pos.z);
+  const airborneBonus = player.grounded ? 0 : clamp(Math.abs(player.vel.y) / TRIPLE_JUMP_SPEED, 0, 1) * (mobileCamera ? 2.4 : 1.5);
+  const targetDistance = (mobileCamera ? 10.6 : 9.2) + clamp(horizontalSpeed / RUN_SPEED, 0, 1) * (mobileCamera ? 1.8 : 1.8) + airborneBonus;
+  cameraState.distance = damp(cameraState.distance, targetDistance, mobileCamera ? 3.9 : 2.5, dt);
+  const target = getCameraTarget();
   const horizontal = Math.cos(cameraState.pitch) * cameraState.distance;
   const offset = tmpVec2.set(
     Math.sin(cameraState.yaw) * horizontal,
-    Math.sin(cameraState.pitch) * cameraState.distance + 1.6,
+    Math.sin(cameraState.pitch) * cameraState.distance + (mobileCamera ? 1.35 : 1.6),
     Math.cos(cameraState.yaw) * horizontal,
   );
-  const ideal = target.clone().add(offset);
-  camera.position.lerp(ideal, 1 - Math.exp(-8 * dt));
+  const ideal = tmpVec3.copy(target).add(offset);
+  camera.position.lerp(ideal, 1 - Math.exp((player.grounded ? -8 : -13) * dt));
   camera.lookAt(target);
 }
 
@@ -1454,6 +1653,12 @@ function resetRun(keepRunning = false) {
   player.checkpoint.set(START.x, START.y, START.z);
   player.grounded = false;
   player.groundSolid = null;
+  player.jumpQueued = false;
+  player.jumpHeld = false;
+  player.jumpBuffer = 0;
+  player.airJumpsUsed = 0;
+  player.glideSparkTimer = 0;
+  player.gliding = false;
   player.coyote = 0;
   cameraState.yaw = Math.PI;
   cameraState.pitch = 0.48;
@@ -1463,10 +1668,12 @@ function resetRun(keepRunning = false) {
   for (const star of starItems) {
     star.collected = false;
     star.group.visible = true;
+    star.group.position.set(star.x, star.y, star.z);
   }
   for (const coin of coinItems) {
     coin.collected = false;
     coin.mesh.visible = true;
+    coin.mesh.position.set(coin.x, coin.y, coin.z);
   }
   for (const enemy of enemyItems) {
     enemy.defeated = false;
@@ -1481,6 +1688,7 @@ function resetRun(keepRunning = false) {
   for (const wind of windColumnItems) {
     wind.cooldown = 0;
   }
+  guideArrow.visible = false;
 
   ui.finish.classList.add("hidden");
   ui.menu.classList.toggle("hidden", keepRunning);
@@ -1566,6 +1774,7 @@ function frame() {
     updateCollectibles(dt);
     updateEnemies(dt);
     updateGoal(dt);
+    updateGuideArrow();
     updateParticles(dt);
     updateCamera(dt, move);
     updateToast(dt);
@@ -1578,6 +1787,7 @@ function frame() {
     updateMovingPlatforms(game.time);
     updateBoostRings(dt, false);
     updateWindColumns(dt, false);
+    guideArrow.visible = false;
     updateParticles(dt);
     updateCamera(dt, { x: 0, y: 0, length: 0 });
     updateToast(dt);
@@ -1596,10 +1806,11 @@ function updatePerformanceBudget(dt) {
   perf.elapsed += dt;
   perf.totalDt += dt;
   perf.samples += 1;
-  if (perf.elapsed < 2.5 || perf.samples < 80) return;
+  if (perf.elapsed < 1.4 || perf.samples < 45) return;
   const averageDt = perf.totalDt / perf.samples;
-  if (averageDt > 0.025 && activePixelRatio > 0.66) {
-    activePixelRatio = Math.max(0.66, activePixelRatio * (reducedGpuMode ? 0.72 : 0.82));
+  const floor = reducedGpuMode ? 0.58 : 0.66;
+  if (averageDt > (reducedGpuMode ? 0.021 : 0.024) && activePixelRatio > floor) {
+    activePixelRatio = Math.max(floor, activePixelRatio * (reducedGpuMode ? 0.68 : 0.8));
     renderer.setPixelRatio(activePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     perf.adjusted = true;

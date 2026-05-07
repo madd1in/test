@@ -6,9 +6,11 @@ Die aktuelle BGM nutzt `assets/audio/downloads-bgm.mp3`, kopiert aus `C:\Users\U
 ## Gameplay
 
 - Triple-Jump: Bodenjump plus zwei Air-Jumps, mit staerkerem dritten Sprung.
+- Glide-Assist: Jump halten bremst den Fall und gibt mehr Kontrolle in der Luft.
 - Sky Rings: geben Vorwaerts-Boost und frischen Air-Jumps auf.
 - Wind Lifts: tragen dich nach oben und retten schnelle Routen zwischen Inseln.
-- Assist ist standardmaessig an: Ziel sind 6 Sterne, Plattformen sind grosszuegiger, Gegner sind langsamer, und eine Muenze kann einen Treffer abfangen.
+- Zielpfeil: ein schwebender In-World-Marker zeigt zum naechsten Stern oder zum offenen Tor.
+- Assist ist standardmaessig an: Ziel sind 6 Sterne, Plattformen sind grosszuegiger, Gegner sind langsamer, Muenzen ziehen staerker an, eine Muenze kann einen Treffer abfangen, und Abstuerze springen direkt zum letzten Checkpoint zurueck.
 
 ## Performance
 
