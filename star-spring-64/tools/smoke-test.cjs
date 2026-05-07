@@ -28,11 +28,13 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
 
 (async () => {
   const level = await import(pathToFileURL(path.join(root, "js", "level.js")));
-  if (level.PLATFORMS.length < 41) throw new Error("Expected an expanded multi-zone platform level");
+  if (level.PLATFORMS.length < 43) throw new Error("Expected an expanded multi-zone platform level");
+  if (level.STARS.length < 22) throw new Error("Expected expanded star routes");
   if (level.STARS.length < level.LEVEL_TARGET_STARS) throw new Error("Star target mismatch");
   if (level.LEVEL_TARGET_STARS > 10) throw new Error("Assist target should stay approachable");
   if (!level.PLATFORMS.some((platform) => platform.moving)) throw new Error("Expected moving platforms");
   if (level.SPRINGS.length < 8) throw new Error("Expected spring pads");
+  if (!Array.isArray(level.PRISM_CHARMS) || level.PRISM_CHARMS.length < 6) throw new Error("Expected prism shield charms");
   if (!Array.isArray(level.DASH_PADS) || level.DASH_PADS.length < 6) throw new Error("Expected dash pads");
   if (!Array.isArray(level.BOOST_RINGS) || level.BOOST_RINGS.length < 8) throw new Error("Expected boost rings");
   if (!Array.isArray(level.WIND_COLUMNS) || level.WIND_COLUMNS.length < 6) throw new Error("Expected wind columns");
@@ -103,6 +105,10 @@ for (const file of ["js/game.js", "js/level.js", "tools/build-assets.cjs", "tool
     "enemyBlush",
     "snapSpot",
     "rocketFin",
+    "createPrismCharm",
+    "updatePrismCharms",
+    "prismShield",
+    "prismAura",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing robust rescue/checkpoint token: ${token}`);
   }

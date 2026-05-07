@@ -44,6 +44,8 @@ export const PLATFORMS = [
   { id: "sky-cache", x: 9, y: 14.1, z: -166, w: 6.8, h: 0.75, d: 6.8, texture: "cloud_tile" },
   { id: "aurora-bridge", x: -3, y: 14.0, z: -175, w: 15, h: 0.75, d: 7.4, texture: "cloud_tile" },
   { id: "prism-rise", x: 8, y: 14.8, z: -184, w: 8.2, h: 0.75, d: 8.2, texture: "brick_tile" },
+  { id: "prism-nest", x: 24, y: 15.55, z: -178, w: 7.2, h: 0.75, d: 7.2, texture: "cloud_tile" },
+  { id: "echo-ledge", x: 21, y: 16.25, z: -191, w: 7.4, h: 0.75, d: 7.4, texture: "brick_tile" },
   { id: "comet-loop", x: -8, y: 15.5, z: -190, w: 8.2, h: 0.75, d: 8.2, texture: "grass_tile", moving: { axis: "x", distance: 5.8, speed: 0.46 } },
   { id: "stargate-terrace", x: 2, y: 16.2, z: -198, w: 18, h: 1.1, d: 14, texture: "flower_tile" },
 ];
@@ -69,6 +71,7 @@ export const STARS = [
   { id: "star-cache", x: 9, y: 15.6, z: -166 },
   { id: "star-aurora", x: -3, y: 15.35, z: -175 },
   { id: "star-prism", x: 8, y: 16.15, z: -184 },
+  { id: "star-echo", x: 21, y: 17.6, z: -191 },
   { id: "star-stargate", x: 2, y: 17.75, z: -198 },
 ];
 
@@ -148,6 +151,9 @@ export const COINS = [
   { x: -3, y: 15.35, z: -175 },
   { x: 3, y: 15.25, z: -178 },
   { x: 8, y: 16.1, z: -184 },
+  { x: 20, y: 16.9, z: -178 },
+  { x: 24, y: 16.9, z: -178 },
+  { x: 21, y: 17.55, z: -191 },
   { x: -8, y: 16.75, z: -190 },
   { x: -2, y: 17.45, z: -198 },
   { x: 2, y: 17.5, z: -198 },
@@ -171,6 +177,15 @@ export const SPRINGS = [
   { x: -3, y: 14.55, z: -175, power: 14.5 },
 ];
 
+export const PRISM_CHARMS = [
+  { id: "prism-bonus", x: 37, y: 9.3, z: -43 },
+  { id: "prism-orchard", x: -38, y: 12.85, z: -125 },
+  { id: "prism-observatory", x: 18, y: 16.35, z: -158 },
+  { id: "prism-nest", x: 24, y: 16.9, z: -178 },
+  { id: "prism-echo", x: 21, y: 17.65, z: -191 },
+  { id: "prism-stargate", x: 2, y: 18.15, z: -198 },
+];
+
 export const DASH_PADS = [
   { id: "dash-starter", x: 0, y: 1.0, z: -9, yaw: Math.PI, power: 12, lift: 5.4 },
   { id: "dash-bowl", x: 15, y: 4.15, z: -44, yaw: Math.PI, power: 12.4, lift: 4.8 },
@@ -178,6 +193,7 @@ export const DASH_PADS = [
   { id: "dash-lantern", x: 6, y: 10.42, z: -119, yaw: -Math.PI * 0.72, power: 12.6, lift: 5.0 },
   { id: "dash-final", x: -4, y: 13.74, z: -160, yaw: Math.PI, power: 13.5, lift: 5.6 },
   { id: "dash-aurora", x: -3, y: 14.45, z: -175, yaw: -Math.PI * 0.72, power: 12.8, lift: 5.3 },
+  { id: "dash-prism-nest", x: 8, y: 15.25, z: -184, yaw: 1.15, power: 12.4, lift: 5.2 },
 ];
 
 export const BOOST_RINGS = [
@@ -190,6 +206,7 @@ export const BOOST_RINGS = [
   { id: "ring-rocket", x: -11, y: 14.8, z: -151, yaw: -0.35, power: 13 },
   { id: "ring-cache", x: 4, y: 16.2, z: -165, yaw: 0.7, power: 10 },
   { id: "ring-aurora", x: 1, y: 17.1, z: -188, yaw: -0.72, power: 12 },
+  { id: "ring-echo", x: 18, y: 18.2, z: -185, yaw: 0.85, power: 11 },
 ];
 
 export const WIND_COLUMNS = [
@@ -213,6 +230,7 @@ export const ENEMIES = [
   { id: "spinner-b", type: "spinner", x: 14, y: 11.2, z: -127, radius: 1.9, speed: 1.55, phase: 1.1, count: 4 },
   { id: "spinner-c", type: "spinner", x: 18, y: 15.05, z: -158, radius: 1.65, speed: 1.7, phase: 2.0, count: 3 },
   { id: "spinner-d", type: "spinner", x: 2, y: 16.8, z: -198, radius: 2.2, speed: 1.35, phase: 1.6, count: 4 },
+  { id: "spinner-e", type: "spinner", x: 21, y: 16.8, z: -191, radius: 1.7, speed: 1.45, phase: 0.4, count: 3 },
   { id: "crusher-a", type: "crusher", x: -1, y: 14.0, z: -132, w: 2.7, h: 2.5, d: 2.7, drop: 3.45, speed: 0.75, phase: 0.0 },
   { id: "crusher-b", type: "crusher", x: 7, y: 14.0, z: -132, w: 2.9, h: 2.6, d: 2.9, drop: 3.45, speed: 0.75, phase: 0.55 },
   { id: "rocket-a", type: "rocket", x: -24, y: 13.0, z: -143, yaw: 1.15, speed: 10.0, range: 23, phase: 0.0 },
@@ -248,6 +266,8 @@ export const DECOR = [
   { type: "lantern", x: 18, y: 15.0, z: -161, scale: 0.78, yaw: 0.15 },
   { type: "lantern", x: -5, y: 14.45, z: -176, scale: 0.78, yaw: -0.4 },
   { type: "lantern", x: 6, y: 16.75, z: -199, scale: 0.82, yaw: 0.45 },
+  { type: "lantern", x: 24, y: 16.0, z: -181, scale: 0.74, yaw: 0.2 },
+  { type: "lantern", x: 18, y: 16.7, z: -191, scale: 0.72, yaw: -0.35 },
   { type: "crystal", x: 4, y: 1.05, z: -8, scale: 0.75 },
   { type: "crystal", x: 20, y: 4.2, z: -40, scale: 0.85 },
   { type: "crystal", x: -19, y: 9.4, z: -96, scale: 1.0 },
