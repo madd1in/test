@@ -14,6 +14,28 @@ FRAME_W = 320
 FRAME_H = 256
 FRAMES = 16
 
+# The Imagen source has good character poses, but it did not honor an exact
+# 8x2 slot grid. These boxes are hand-picked from the source atlas so the
+# runtime strip contains whole silhouettes instead of detached spell fragments.
+FRAME_BOXES = [
+    (8, 54, 216, 404),
+    (214, 54, 438, 404),
+    (436, 54, 658, 404),
+    (662, 54, 882, 404),
+    (896, 54, 1110, 404),
+    (1116, 54, 1324, 404),
+    (1334, 66, 1548, 408),
+    (1560, 70, 1774, 410),
+    (0, 452, 232, 838),
+    (238, 448, 452, 838),
+    (470, 436, 700, 838),
+    (470, 436, 700, 838),
+    (690, 566, 1048, 842),
+    (1040, 584, 1354, 842),
+    (1338, 594, 1774, 842),
+    (1338, 594, 1774, 842),
+]
+
 
 def remove_green_key(img: Image.Image) -> Image.Image:
     rgba = img.convert("RGBA")
@@ -32,66 +54,10 @@ def remove_green_key(img: Image.Image) -> Image.Image:
     return rgba
 
 
-def component_boxes(img: Image.Image) -> list[tuple[int, int, int, int]]:
-    alpha = img.getchannel("A")
-    w, h = alpha.size
-    mask = bytearray(1 if v > 12 else 0 for v in alpha.tobytes())
-    seen = bytearray(w * h)
-    boxes: list[tuple[int, int, int, int, int]] = []
-
-    for y in range(h):
-        for x in range(w):
-            i = y * w + x
-            if not mask[i] or seen[i]:
-                continue
-            stack = [(x, y)]
-            seen[i] = 1
-            x0 = x1 = x
-            y0 = y1 = y
-            count = 0
-            while stack:
-                cx, cy = stack.pop()
-                count += 1
-                x0 = min(x0, cx)
-                x1 = max(x1, cx)
-                y0 = min(y0, cy)
-                y1 = max(y1, cy)
-                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
-                    if 0 <= nx < w and 0 <= ny < h:
-                        ni = ny * w + nx
-                        if mask[ni] and not seen[ni]:
-                            seen[ni] = 1
-                            stack.append((nx, ny))
-            if count > 12000:
-                boxes.append((count, x0, y0, x1 + 1, y1 + 1))
-
-    if len(boxes) < 8:
-        raise SystemExit(f"Expected several boss components, found {len(boxes)}")
-
-    # The source image has reliable character silhouettes but not a perfect slot grid.
-    # Sort by visual rows, then x, and duplicate the last dash poses to fill 16 frames.
-    boxes = sorted(boxes, key=lambda b: b[0], reverse=True)[:16]
-    top_cut = img.height * 0.48
-    top = sorted([b for b in boxes if (b[2] + b[4]) / 2 < top_cut], key=lambda b: b[1])
-    bottom = sorted([b for b in boxes if (b[2] + b[4]) / 2 >= top_cut], key=lambda b: b[1])
-    ordered = top + bottom
-    while len(ordered) < FRAMES:
-      ordered.append(ordered[-1])
-    return [(b[1], b[2], b[3], b[4]) for b in ordered[:FRAMES]]
-
-
 def extract_frames(atlas: Image.Image) -> list[Image.Image]:
     keyed = remove_green_key(atlas)
     frames = []
-    for x0, y0, x1, y1 in component_boxes(keyed):
-        pad_x = round((x1 - x0) * 0.18)
-        pad_y = round((y1 - y0) * 0.08)
-        box = (
-            max(0, x0 - pad_x),
-            max(0, y0 - pad_y),
-            min(keyed.width, x1 + pad_x),
-            min(keyed.height, y1 + pad_y),
-        )
+    for box in FRAME_BOXES:
         crop = keyed.crop(box)
         crop = ImageEnhance.Contrast(crop).enhance(1.04)
         crop = ImageEnhance.Color(crop).enhance(1.03)
@@ -108,7 +74,7 @@ def normalize(frames: list[Image.Image]) -> list[Image.Image]:
 
     max_w = max(box[2] - box[0] for box in boxes)
     max_h = max(box[3] - box[1] for box in boxes)
-    scale = min((FRAME_W * 0.92) / max_w, (FRAME_H * 0.93) / max_h)
+    scale = min((FRAME_W * 0.96) / max_w, (FRAME_H * 0.96) / max_h, 0.78)
     normalized = []
 
     for frame in frames:
@@ -120,8 +86,46 @@ def normalize(frames: list[Image.Image]) -> list[Image.Image]:
             x = (FRAME_W - body.width) // 2
             y = FRAME_H - body.height - 5
             canvas.alpha_composite(body, (x, y))
-        normalized.append(canvas)
+        normalized.append(drop_small_components(canvas))
     return normalized
+
+
+def drop_small_components(img: Image.Image, min_pixels: int = 900) -> Image.Image:
+    alpha = img.getchannel("A")
+    w, h = alpha.size
+    mask = bytearray(1 if v > 16 else 0 for v in alpha.tobytes())
+    seen = bytearray(w * h)
+    keep = bytearray(w * h)
+
+    for y in range(h):
+        for x in range(w):
+            i = y * w + x
+            if not mask[i] or seen[i]:
+                continue
+            stack = [(x, y)]
+            seen[i] = 1
+            component = []
+            while stack:
+                cx, cy = stack.pop()
+                ci = cy * w + cx
+                component.append(ci)
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    if 0 <= nx < w and 0 <= ny < h:
+                        ni = ny * w + nx
+                        if mask[ni] and not seen[ni]:
+                            seen[ni] = 1
+                            stack.append((nx, ny))
+            if len(component) >= min_pixels:
+                for ci in component:
+                    keep[ci] = 1
+
+    out = img.copy()
+    px = out.load()
+    for y in range(h):
+        for x in range(w):
+            if not keep[y * w + x]:
+                px[x, y] = (0, 0, 0, 0)
+    return out
 
 
 def main() -> None:

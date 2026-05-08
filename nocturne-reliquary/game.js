@@ -3297,7 +3297,7 @@
 
   function bossFrameIndex(boss) {
     if (boss.state === "cast") return 6 + Math.floor(game.time * 12) % 6;
-    if (boss.state === "dash") return 12 + Math.floor(game.time * 16) % 2;
+    if (boss.state === "dash") return 12 + Math.floor(game.time * 16) % 4;
     return Math.floor(game.time * 6) % 6;
   }
 
