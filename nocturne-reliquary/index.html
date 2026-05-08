@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nocturne Reliquary</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app" class="shell">
+      <canvas id="game" width="960" height="540" aria-label="Nocturne Reliquary game canvas"></canvas>
+
+      <section id="hud" class="hud" aria-live="polite">
+        <div class="hud-left">
+          <div class="brandline">
+            <span class="crest"></span>
+            <span>Nocturne Reliquary</span>
+          </div>
+          <div class="meter hp"><span id="hpFill"></span></div>
+          <div class="meter mp"><span id="mpFill"></span></div>
+          <div class="meter exp"><span id="expFill"></span></div>
+          <div class="hud-stats">
+            <span class="stat-chip" id="levelChip">Lv 1</span>
+            <span class="stat-chip" id="heartsChip">&#9829; 0</span>
+            <span class="stat-chip" id="subChip">Dagger</span>
+            <span class="stat-chip objective-chip" id="objectiveChip">Next: Moon Sigil</span>
+            <span class="stat-chip compass-chip" id="compassChip">→ Gallery</span>
+          </div>
+        </div>
+        <div class="hud-center">
+          <div id="roomName" class="room-name">Gate Hall</div>
+          <div id="statusLine" class="status-line">Waking the reliquary...</div>
+        </div>
+        <div class="hud-right">
+          <button id="mobileButton" class="icon-button" type="button" aria-label="Toggle mobile controls">MOB</button>
+          <button id="fullscreenButton" class="icon-button" type="button" aria-label="Toggle fullscreen">FS</button>
+          <button id="mapButton" class="icon-button" type="button" aria-label="Toggle map">MAP</button>
+          <button id="muteButton" class="icon-button" type="button" aria-label="Toggle audio">VOL</button>
+        </div>
+      </section>
+
+      <section id="titlePanel" class="title-panel">
+        <div class="title-inner">
+          <p class="kicker">A new gothic action quest</p>
+          <h1>Nocturne Reliquary</h1>
+          <p class="subtitle">Hunt relics through a moonlocked castle and break the crimson rite.</p>
+          <div class="title-actions">
+            <button id="startButton" class="primary-button" type="button">Begin</button>
+            <button id="continueButton" class="secondary-button" type="button">Continue</button>
+          </div>
+          <div id="loadState" class="load-state">Loading local assets...</div>
+        </div>
+      </section>
+
+      <section id="mapPanel" class="map-panel" hidden>
+        <div class="map-head">
+          <h2>Castle Map</h2>
+          <button id="closeMapButton" class="icon-button" type="button" aria-label="Close map">X</button>
+        </div>
+        <div class="objective-block">
+          <div class="objective-label">What to do next</div>
+          <div id="objectiveLine" class="objective-line"></div>
+          <ul id="sideObjectiveList" class="side-objectives"></ul>
+        </div>
+        <div class="stats-block">
+          <div class="objective-label">Hunter stats</div>
+          <div id="statsList" class="stats-list"></div>
+        </div>
+        <div id="mapGrid" class="map-grid"></div>
+        <div id="relicList" class="relic-list"></div>
+      </section>
+
+      <section id="touchControls" class="touch-controls" aria-label="Touch controls">
+        <div class="touch-cluster">
+          <button data-touch="left" data-glyph="&#9664;" type="button" aria-label="Move left"></button>
+          <button data-touch="right" data-glyph="&#9654;" type="button" aria-label="Move right"></button>
+          <button data-touch="up" data-glyph="&#9650;" type="button" aria-label="Move up"></button>
+        </div>
+        <div class="touch-cluster">
+          <button data-touch="jump" data-glyph="&#10548;" type="button" aria-label="Jump"></button>
+          <button data-touch="attack" data-glyph="&#9585;" type="button" aria-label="Attack"></button>
+          <button data-touch="dash" data-glyph="&#8811;" type="button" aria-label="Dash"></button>
+          <button data-touch="backdash" data-glyph="&#8810;" type="button" aria-label="Backdash"></button>
+          <button data-touch="subweapon" data-glyph="&#9876;" type="button" aria-label="Sub-Weapon"></button>
+          <button data-touch="interact" data-glyph="&#10026;" type="button" aria-label="Interact"></button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
