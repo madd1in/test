@@ -73,10 +73,17 @@
     bgOssuary: "assets/generated/bg_imagen_ossuary_hd.png",
     bgAqueduct: "assets/generated/bg_imagen_aqueduct_hd.png",
     bgLoft: "assets/generated/bg_imagen_loft_hd.png",
+    bgForest: "assets/generated/bg_imagen_forest_opening_hd.png",
+    bgCastleGarden: "assets/generated/bg_imagen_castle_garden_hd.png",
     paraArches: "assets/generated/para_imagen_arches_hd.png",
     paraMachinery: "assets/generated/para_imagen_machinery_hd.png",
     paraMist: "assets/generated/para_imagen_mist_roses_hd.png",
-    paraCrystals: "assets/generated/para_imagen_crystals_hd.png"
+    paraCrystals: "assets/generated/para_imagen_crystals_hd.png",
+    paraForest: "assets/generated/para_imagen_forest_canopy_hd.png",
+    paraStatues: "assets/generated/para_imagen_castle_statues_hd.png",
+    introTiles: "assets/generated/tiles_imagen_intro_props.png",
+    itemIcons: "assets/generated/items_imagen_hd.png",
+    portcullis: "assets/generated/sprite_imagen_portcullis.png"
   };
 
   const AUDIO = {
@@ -127,6 +134,10 @@
 
   const TILE_SET = "imagen-hd-platforms-v1";
   const TILE_SOURCE_SIZE = 256;
+  const INTRO_TILE_SET = "imagen-intro-props-v1";
+  const INTRO_TILE_SOURCE_SIZE = 256;
+  const ITEM_ICON_SET = "imagen-items-hd-v1";
+  const ITEM_ICON_SIZE = 128;
   const TILE_DRAW_SIZE = 48;
   const PLATFORM_TILE_CELLS = {
     gold: [0, 0],
@@ -135,6 +146,33 @@
     green: [0, 1],
     red: [1, 1],
     trim: [2, 1]
+  };
+  const INTRO_TILE_CELLS = {
+    forest: [0, 0],
+    gardenStone: [1, 0],
+    statue: [2, 0],
+    portcullis: [3, 0],
+    root: [0, 1],
+    rose: [1, 1],
+    pillar: [2, 1],
+    ivy: [3, 1]
+  };
+  const ITEM_ICON_CELLS = {
+    doubleJump: [0, 0],
+    dash: [1, 0],
+    moonSigil: [2, 0],
+    heartVessel: [3, 0],
+    familiarBat: [0, 1],
+    ringOfArdor: [1, 1],
+    batCloak: [2, 1],
+    wraithArmor: [3, 1],
+    phoenixPendant: [0, 2],
+    subAxe: [1, 2],
+    subHolyWater: [2, 2],
+    heart: [3, 2],
+    bigHeart: [3, 2],
+    smallHp: [3, 2],
+    smallMp: [2, 2]
   };
 
   window.__NOCTURNE_TUNING_INFO = {
@@ -145,10 +183,15 @@
     spriteSet: "stable-v4",
     backgroundSet: "imagen-hd-roomfill-v3",
     parallaxSet: "imagen-parallax-v1",
+    introParallaxSet: "imagen-intro-parallax-v1",
+    mode7Set: "background-stretch-mode7-v1",
     tileSet: TILE_SET,
+    introTileSet: INTRO_TILE_SET,
+    itemSet: ITEM_ICON_SET,
     tileSourceSize: TILE_SOURCE_SIZE,
     tileDrawSize: TILE_DRAW_SIZE,
-    roomSet: "expanded-16-hd",
+    roomSet: "forest-garden-expanded-18-hd",
+    introSet: "forest-garden-portcullis-v1",
     mobileTouch: "large-hit-targets-v2",
     difficulty: "mercy-pass"
   };
@@ -378,6 +421,11 @@
   function nextObjective() {
     const s = game.save;
     if (s.bossDefeated) return "Rite broken — explore freely or start a new run.";
+    if (!s.visited.gate) {
+      if (game.roomId === "forest") return "Leave the Moonwood and follow the lantern path to the castle garden.";
+      if (game.roomId === "courtyard") return "Cross the statue garden. The old portcullis will wake as you pass.";
+      return "Reach Gate Hall through the forest approach.";
+    }
     const target = nextObjectiveRoom();
     const inTarget = target === game.roomId;
     if (!s.moonSigil) {
@@ -396,6 +444,7 @@
   function nextObjectiveRoom() {
     const s = game.save;
     if (s.bossDefeated) return null;
+    if (!s.visited.gate) return "gate";
     if (!s.moonSigil) return "gallery";
     if (!s.relics.dash) return "tower";
     return "throne";
@@ -449,12 +498,64 @@
   function objectiveShort() {
     const s = game.save;
     if (s.bossDefeated) return "Free roam";
+    if (!s.visited.gate) return "Next: Castle Gate";
     if (!s.moonSigil) return "Next: Moon Sigil";
     if (!s.relics.dash) return "Next: Mist Dash";
     return "Next: Crimson Reliquary";
   }
 
   const rooms = {
+    forest: {
+      name: "Moonwood Verge",
+      grid: [-2, 1],
+      bg: "bgForest",
+      mid: null,
+      para: ["paraForest", "paraMist"],
+      music: "explore",
+      palette: "green",
+      spawn: { x: 96, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "forest"),
+        p(140, 392, 170, 28, "root"),
+        p(384, 332, 176, 28, "forest")
+      ],
+      doors: [
+        d(922, 340, 38, 120, "courtyard", 54, 330, "right")
+      ],
+      enemies: [
+        e("batW1", "bat", 384, 228, 260, 560),
+        e("zW1", "zombie", 672, 386, 570, 820)
+      ],
+      items: [
+        item("forestHeart", "bigHeart", 492, 300)
+      ]
+    },
+    courtyard: {
+      name: "Castle Garden",
+      grid: [-1, 1],
+      bg: "bgCastleGarden",
+      mid: null,
+      para: ["paraStatues", "paraMist"],
+      music: "explore",
+      palette: "green",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "gardenStone"),
+        p(152, 386, 170, 28, "rose"),
+        p(392, 326, 168, 28, "gardenStone")
+      ],
+      doors: [
+        d(0, 340, 38, 120, "forest", 1346, 330, "left"),
+        d(922, 340, 38, 120, "gate", 54, 330, "right")
+      ],
+      enemies: [
+        e("knG1", "knight", 456, 376, 320, 700),
+        e("gG1", "gargoyle", 760, 214, 620, 980)
+      ],
+      items: [
+        item("gardenWater", "subHolyWater", 654, 296)
+      ]
+    },
     gate: {
       name: "Gate Hall",
       grid: [0, 1],
@@ -471,6 +572,7 @@
         p(386, 156, 120, 24, "trim")
       ],
       doors: [
+        d(0, 340, 38, 120, "courtyard", 1346, 330, "left"),
         d(922, 340, 38, 120, "gallery", 54, 330, "right"),
         d(424, 460, 112, 30, "crypt", 462, 72, "down"),
         d(180, 100, 100, 56, "library", 200, 380, "up")
@@ -915,6 +1017,8 @@
   function enhanceRoomFlow() {
     const rightShift = LONG_ROOM_WIDTH - W;
     const bridgePlatforms = {
+      forest: [p(822, 398, 158, 28, "root"), p(1078, 350, 182, 28, "forest")],
+      courtyard: [p(820, 384, 170, 28, "gardenStone"), p(1088, 322, 190, 28, "rose")],
       gate: [p(902, 402, 156, 28, "stone"), p(1138, 344, 168, 28, "gold")],
       gallery: [p(842, 386, 158, 28, "red"), p(1084, 334, 178, 28, "stone")],
       chapel: [p(846, 348, 160, 28, "blue"), p(1098, 286, 178, 28, "stone")],
@@ -969,6 +1073,7 @@
   generateCandles();
   installShrines();
   installClimbAids();
+  installIntroSequence();
 
   function installShrines() {
     rooms.gate.shrine = { x: 760, y: 438 };
@@ -1034,6 +1139,21 @@
     rooms.crypt.platforms.push(
       p(420, 80, 130, 22, "green")
     );
+  }
+
+  function installIntroSequence() {
+    rooms.courtyard.portcullis = {
+      x: 946,
+      y: 238,
+      w: 132,
+      h: 230,
+      triggerX: 780,
+      releaseX: 1040,
+      progress: 0,
+      target: 0,
+      cycled: false,
+      reopened: false
+    };
   }
 
   function generateCandles() {
@@ -1116,6 +1236,17 @@
     keys: Array.from(keysDown),
     touches: Array.from(touchDown),
     touchJumpHold: Number((game.touchJumpHold || 0).toFixed(2)),
+    visuals: game.room ? {
+      bg: game.room.bg,
+      parallax: parallaxKeysForRoom(game.room).slice(),
+      mode7: Boolean(game.room.bg && images[game.room.bg])
+    } : null,
+    introGate: game.room && game.room.portcullis ? {
+      progress: Number(game.room.portcullis.progress.toFixed(2)),
+      target: game.room.portcullis.target,
+      cycled: Boolean(game.room.portcullis.cycled),
+      reopened: Boolean(game.room.portcullis.reopened)
+    } : null,
     hp: Math.round(player.hp)
   });
   window.__NOCTURNE_TEST_INPUT = (action, down) => {
@@ -1128,6 +1259,16 @@
     game.mode = "playing";
     dom.titlePanel.hidden = true;
     enterRoom(roomId, { x, y }, false);
+    return true;
+  };
+  window.__NOCTURNE_TEST_PLACE_PLAYER = (x, y) => {
+    player.x = x;
+    player.y = y;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = false;
+    placePlayerAtSpawn(game.room, { x, y });
+    updateCamera(true);
     return true;
   };
 
@@ -1175,9 +1316,9 @@
   function resetRun(fromSave) {
     const saved = fromSave ? readSave() : null;
     const base = saved || {
-      roomId: "gate",
-      x: rooms.gate.spawn.x,
-      y: rooms.gate.spawn.y,
+      roomId: "forest",
+      x: rooms.forest.spawn.x,
+      y: rooms.forest.spawn.y,
       hp: 112,
       mp: 48,
       save: {
@@ -1355,6 +1496,7 @@
     game.bossBanner = null;
     game.roomTransitionCooldown = 0.18;
     game.lastSafeSpot = { roomId, x: player.x, y: player.y };
+    resetRoomPortcullis(room);
     game.projectiles.length = 0;
     if (game.familiar) {
       game.familiar.x = player.x - 30;
@@ -1388,6 +1530,15 @@
     updateHud();
     updateMapPanel();
     if (autosave) writeSave();
+  }
+
+  function resetRoomPortcullis(room) {
+    if (!room || !room.portcullis) return;
+    const gate = room.portcullis;
+    gate.progress = 0;
+    gate.target = 0;
+    gate.cycled = false;
+    gate.reopened = false;
   }
 
   function createEnemy(def) {
@@ -1500,6 +1651,7 @@
     updateFlames(step, dt);
     updateShrines();
     updateDoors();
+    updateIntroPortcullis(dt);
     updateBossBanner(dt);
     updateDamageTexts(dt);
     updateFamiliar(step, dt);
@@ -2536,6 +2688,38 @@
     }
   }
 
+  function updateIntroPortcullis(dt) {
+    const gate = game.room && game.room.portcullis;
+    if (!gate) return;
+    const cx = player.x + player.w / 2;
+
+    if (!gate.cycled && cx > gate.triggerX) {
+      gate.cycled = true;
+      gate.target = 1;
+      message("The castle portcullis drops behind you.");
+      playSound("gate", 0.42);
+      burst(gate.x + gate.w / 2, gate.y + gate.h, "#f0bf61", 18);
+    }
+
+    if (gate.cycled && !gate.reopened && cx > gate.releaseX) {
+      gate.reopened = true;
+      gate.target = 0;
+      message("The old gate rises again.");
+      playSound("gate", 0.36);
+      burst(gate.x + gate.w / 2, gate.y + 24, "#cfeacc", 18);
+    }
+
+    if (gate.reopened && cx < gate.triggerX - 180) {
+      gate.cycled = false;
+      gate.reopened = false;
+      gate.target = 0;
+    }
+
+    const speed = gate.target > gate.progress ? 4.8 : 3.8;
+    gate.progress += (gate.target - gate.progress) * Math.min(1, dt * speed);
+    if (Math.abs(gate.progress - gate.target) < 0.01) gate.progress = gate.target;
+  }
+
   function doorOpen(door) {
     if (!door.lock) return true;
     if (door.lock === "moonGate") return game.save.moonSigil && game.save.relics.dash;
@@ -2820,6 +3004,7 @@
     ctx.save();
     ctx.translate(-Math.round(game.cameraX), -Math.round(game.cameraY));
     drawDoors();
+    drawRoomMechanics();
     drawShrine();
     drawCandles();
     drawFlames();
@@ -2902,6 +3087,7 @@
 
   function parallaxKeysForRoom(room) {
     if (!room) return ["paraArches", "paraMist"];
+    if (room.para) return room.para;
     if (room.bg === "bgClock" || room.bg === "bgBelltower" || room.bg === "bgLoft") return ["paraMachinery", "paraArches"];
     if (room.bg === "bgCavern" || room.bg === "bgAqueduct") return ["paraCrystals", "paraMist"];
     if (room.bg === "bgCrypt" || room.bg === "bgOssuary" || room.bg === "bgGarden") return ["paraMist", "paraArches"];
@@ -2922,24 +3108,23 @@
   }
 
   function drawPlatformInto(cx, solid) {
-    const tile = platformTileCell(solid);
+    const source = platformTileSource(solid);
     cx.fillStyle = platformBaseFill(solid.type);
     cx.fillRect(solid.x, solid.y, solid.w, solid.h);
-    const tiles = images.tiles;
-    if (tiles && tiles.width) {
-      const sx0 = tile[0] * TILE_SOURCE_SIZE;
-      const sy0 = tile[1] * TILE_SOURCE_SIZE;
+    if (source.img && source.img.width) {
+      const sx0 = source.cell[0] * source.size;
+      const sy0 = source.cell[1] * source.size;
       cx.save();
       cx.globalAlpha = solid.type === "trim" ? 0.96 : 0.92;
       cx.imageSmoothingEnabled = true;
       for (let x = solid.x; x < solid.x + solid.w; x += TILE_DRAW_SIZE) {
         for (let y = solid.y; y < solid.y + solid.h; y += TILE_DRAW_SIZE) {
           cx.drawImage(
-            tiles,
+            source.img,
             sx0,
             sy0,
-            TILE_SOURCE_SIZE,
-            TILE_SOURCE_SIZE,
+            source.size,
+            source.size,
             x,
             y,
             Math.min(TILE_DRAW_SIZE, solid.x + solid.w - x),
@@ -2952,11 +3137,20 @@
     drawPlatformBevel(cx, solid);
   }
 
+  function platformTileSource(solid) {
+    if (INTRO_TILE_CELLS[solid.type] && images.introTiles && images.introTiles.width) {
+      return { img: images.introTiles, cell: INTRO_TILE_CELLS[solid.type], size: INTRO_TILE_SOURCE_SIZE };
+    }
+    return { img: images.tiles, cell: platformTileCell(solid), size: TILE_SOURCE_SIZE };
+  }
+
   function platformTileCell(solid) {
     return PLATFORM_TILE_CELLS[solid.type] || PLATFORM_TILE_CELLS.gold;
   }
 
   function platformBaseFill(type) {
+    if (type === "forest" || type === "root") return "rgba(10, 24, 16, 0.82)";
+    if (type === "gardenStone" || type === "rose") return "rgba(25, 31, 24, 0.82)";
     if (type === "green") return "rgba(12, 28, 18, 0.78)";
     if (type === "red") return "rgba(34, 10, 15, 0.80)";
     if (type === "blue") return "rgba(9, 18, 37, 0.80)";
@@ -2979,6 +3173,8 @@
   }
 
   function drawArchitecture(room) {
+    if (room.bg === "bgForest" || room.bg === "bgCastleGarden") return;
+
     const chain = images.chain;
     const lamp = images.lamp;
     if (!chain || !lamp || !images.tiles) return;
@@ -2996,6 +3192,77 @@
       drawTileCell(accentTile[0], accentTile[1], x + 44, 138, 64, 64);
     }
     ctx.globalAlpha = 1;
+  }
+
+  function drawForestArchitecture(room) {
+    ctx.save();
+    ctx.globalAlpha = 0.48;
+    for (let x = -40; x < roomWidth(room) + 120; x += 170) {
+      const sway = Math.sin(game.time * 0.8 + x * 0.03) * 3;
+      ctx.fillStyle = "rgba(9, 13, 12, 0.82)";
+      ctx.fillRect(x + sway, 58, 34, 430);
+      ctx.fillStyle = "rgba(24, 39, 27, 0.68)";
+      ctx.fillRect(x + 24 + sway, 90, 18, 330);
+      drawIntroTileCell("ivy", x - 18 + sway, 114, 88, 116, 0.34);
+    }
+    ctx.globalAlpha = 1;
+    for (let x = 180; x < roomWidth(room); x += 320) {
+      ctx.strokeStyle = "rgba(92, 75, 48, 0.72)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, 110);
+      ctx.lineTo(x, 208);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255, 183, 88, 0.75)";
+      ctx.shadowColor = "#ffae3a";
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.ellipse(x, 220 + Math.sin(game.time * 2 + x) * 2, 8, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+
+  function drawCastleGardenArchitecture(room) {
+    ctx.save();
+    const gate = room.portcullis;
+    if (gate) {
+      drawIntroTileCell("pillar", gate.x - 84, gate.y + 20, 72, gate.h + 64, 0.82);
+      drawIntroTileCell("pillar", gate.x + gate.w + 12, gate.y + 20, 72, gate.h + 64, 0.82);
+      ctx.fillStyle = "rgba(15, 12, 10, 0.78)";
+      ctx.fillRect(gate.x - 76, gate.y - 18, gate.w + 152, 30);
+      ctx.strokeStyle = "rgba(244, 211, 139, 0.42)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(gate.x - 74, gate.y - 16, gate.w + 148, 28);
+    }
+
+    const statueXs = [230, 560, 1240];
+    for (const x of statueXs) {
+      drawIntroTileCell("statue", x - 34, 292 + Math.sin(game.time + x) * 1.2, 86, 176, 0.88);
+      drawIntroTileCell("rose", x - 76, 438, 120, 42, 0.78);
+    }
+    ctx.restore();
+  }
+
+  function drawIntroTileCell(type, x, y, w, h, alpha = 1) {
+    const cell = INTRO_TILE_CELLS[type];
+    const img = images.introTiles;
+    if (!cell || !img || !img.width) return;
+    const old = ctx.globalAlpha;
+    ctx.globalAlpha = old * alpha;
+    ctx.drawImage(
+      img,
+      cell[0] * INTRO_TILE_SOURCE_SIZE,
+      cell[1] * INTRO_TILE_SOURCE_SIZE,
+      INTRO_TILE_SOURCE_SIZE,
+      INTRO_TILE_SOURCE_SIZE,
+      x,
+      y,
+      w,
+      h
+    );
+    ctx.globalAlpha = old;
   }
 
   function drawPlatform(solid) {
@@ -3020,6 +3287,39 @@
       }
     }
     ctx.globalAlpha = 1;
+  }
+
+  function drawRoomMechanics() {
+    const gate = game.room && game.room.portcullis;
+    if (!gate) return;
+    drawPortcullis(gate);
+  }
+
+  function drawPortcullis(gate) {
+    const img = images.portcullis;
+    const openLift = gate.h * 0.74;
+    const y = gate.y - openLift * (1 - gate.progress);
+    ctx.save();
+    ctx.shadowColor = "#050408";
+    ctx.shadowBlur = 12;
+    if (img && img.width) {
+      ctx.drawImage(img, gate.x, y, gate.w, gate.h);
+    } else {
+      ctx.fillStyle = "rgba(18, 18, 22, 0.9)";
+      ctx.fillRect(gate.x, y, gate.w, gate.h);
+      ctx.strokeStyle = "rgba(215, 198, 160, 0.72)";
+      for (let x = gate.x + 12; x < gate.x + gate.w; x += 18) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + gate.h);
+        ctx.stroke();
+      }
+    }
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(244, 211, 139, 0.34)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(gate.x - 4, gate.y - 4, gate.w + 8, gate.h + 8);
+    ctx.restore();
   }
 
   function drawLockBadge(door) {
@@ -3126,6 +3426,8 @@
         ctx.globalAlpha = 1;
       }
 
+      if (drawPickupIcon(drop, y, color, isRelic)) continue;
+
       ctx.shadowColor = color;
       ctx.shadowBlur = isRelic ? 32 : 20;
       ctx.fillStyle = color;
@@ -3136,6 +3438,41 @@
       ctx.fillStyle = "#08080d";
       ctx.fillRect(drop.x + 8, y + 8, 12, 12);
     }
+  }
+
+  function drawPickupIcon(drop, y, color, isRelic) {
+    const cell = ITEM_ICON_CELLS[drop.type];
+    const img = images.itemIcons;
+    if (!cell || !img || !img.width) return false;
+    const size = isRelic ? 44 : Math.max(28, Math.min(36, Math.max(drop.w, drop.h) + 10));
+    const cx = drop.x + drop.w / 2;
+    const cy = y + drop.h / 2;
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = isRelic ? 28 : 18;
+    ctx.drawImage(
+      img,
+      cell[0] * ITEM_ICON_SIZE,
+      cell[1] * ITEM_ICON_SIZE,
+      ITEM_ICON_SIZE,
+      ITEM_ICON_SIZE,
+      cx - size / 2,
+      cy - size / 2,
+      size,
+      size
+    );
+    ctx.shadowBlur = 0;
+    if (isRelic) {
+      const pulse = 0.5 + 0.5 * Math.sin(game.time * 4);
+      ctx.globalAlpha = 0.34 + pulse * 0.16;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.62, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return true;
   }
 
   function drawProjectiles() {
@@ -3909,6 +4246,6 @@
   document.addEventListener("fullscreenchange", updateFullscreenButton);
 
   loadAssets();
-  enterRoom("gate", rooms.gate.spawn, false);
+  enterRoom("forest", rooms.forest.spawn, false);
   requestAnimationFrame(loop);
 })();

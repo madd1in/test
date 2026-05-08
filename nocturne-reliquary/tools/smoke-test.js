@@ -105,6 +105,18 @@ async function browserSmoke() {
   }
 
   const transitionStates = [];
+  transitionStates.push(await transitionProbe("forest to castle garden", () => {
+    window.__NOCTURNE_TEST_TELEPORT("forest", 1370, 352);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "courtyard"));
+  transitionStates.push(await transitionProbe("castle garden back to forest", () => {
+    window.__NOCTURNE_TEST_TELEPORT("courtyard", 60, 360);
+    window.__NOCTURNE_TEST_INPUT("left", true);
+  }, "forest"));
+  transitionStates.push(await transitionProbe("castle garden to gate hall", () => {
+    window.__NOCTURNE_TEST_TELEPORT("courtyard", 1370, 352);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "gate"));
   transitionStates.push(await transitionProbe("tower to belltower", () => {
     window.__NOCTURNE_TEST_TELEPORT("tower", 1370, 352);
     window.__NOCTURNE_TEST_INPUT("right", true);
@@ -137,6 +149,16 @@ async function browserSmoke() {
     window.__NOCTURNE_TEST_TELEPORT("library", 1370, 330);
     window.__NOCTURNE_TEST_INPUT("right", true);
   }, "archive"));
+
+  await page.evaluate(() => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    window.__NOCTURNE_TEST_TELEPORT("courtyard", 790, 352);
+  });
+  await page.waitForTimeout(650);
+  const portcullisDropState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
+  await page.evaluate(() => window.__NOCTURNE_TEST_PLACE_PLAYER(1060, 352));
+  await page.waitForTimeout(650);
+  const portcullisReopenState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
 
   await page.evaluate(() => {
     window.__NOCTURNE_TEST_TELEPORT("gate", 190, 352);
@@ -190,7 +212,7 @@ async function browserSmoke() {
 
   await browser.close();
   server.close();
-  return { url, state, movementState, transitionStates, mobileJumpStart, mobileJumpState, consoleErrors, pageErrors, badResponses };
+  return { url, state, movementState, transitionStates, portcullisDropState, portcullisReopenState, mobileJumpStart, mobileJumpState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -230,12 +252,24 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.spriteSet === "stable-v4", "sprites should use the stable pre-reference-slice sheets");
   assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v3", "Imagen HD room-fill backgrounds should be wired");
   assert(result.state.tuningInfo.parallaxSet === "imagen-parallax-v1", "Imagen parallax overlays should be wired");
+  assert(result.state.tuningInfo.introParallaxSet === "imagen-intro-parallax-v1", "Imagen intro parallax overlays should be wired");
+  assert(result.state.tuningInfo.mode7Set === "background-stretch-mode7-v1", "Mode7/stretch background fill should be wired");
   assert(result.state.tuningInfo.tileSet === "imagen-hd-platforms-v1", "Imagen HD platform tiles should be wired");
+  assert(result.state.tuningInfo.introTileSet === "imagen-intro-props-v1", "Imagen intro tile props should be wired");
+  assert(result.state.tuningInfo.itemSet === "imagen-items-hd-v1", "Imagen item icon sheet should be wired");
   assert(result.state.tuningInfo.tileSourceSize === 256, "platform tile source cells should be HD 256px");
   assert(result.state.tuningInfo.tileDrawSize === 48, "platform collision draw tiles should stay gameplay-sized");
-  assert(result.state.tuningInfo.roomSet === "expanded-16-hd", "expanded HD room set should be wired");
+  assert(result.state.tuningInfo.roomSet === "forest-garden-expanded-18-hd", "forest/garden expanded HD room set should be wired");
+  assert(result.state.tuningInfo.introSet === "forest-garden-portcullis-v1", "forest/garden portcullis intro should be wired");
   assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v2", "mobile touch tuning should include larger hit targets");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
+  assert(result.movementState.visuals && result.movementState.visuals.bg === "bgForest", "new run should open in the forest room");
+  assert(result.movementState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
+  assert(result.movementState.visuals.mode7, "forest opening should use stretched/Mode7 background fill");
+  assert(result.portcullisDropState.introGate && result.portcullisDropState.introGate.progress > 0.2, `portcullis should drop after crossing trigger: ${JSON.stringify(result.portcullisDropState)}`);
+  assert(result.portcullisDropState.visuals && result.portcullisDropState.visuals.parallax.includes("paraStatues"), "castle garden should use statue parallax elements");
+  assert(result.portcullisDropState.visuals.mode7, "castle garden should use stretched/Mode7 background fill");
+  assert(result.portcullisReopenState.introGate && result.portcullisReopenState.introGate.reopened && result.portcullisReopenState.introGate.target === 0, `portcullis should reopen after passing: ${JSON.stringify(result.portcullisReopenState)}`);
   assert(result.mobileJumpState.playerY < result.mobileJumpStart.playerY - 35, `mobile tap jump should climb high enough: ${JSON.stringify({ before: result.mobileJumpStart, after: result.mobileJumpState })}`);
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
