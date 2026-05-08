@@ -2,13 +2,14 @@
   "id": "storm-lights",
   "title": "Storm Lights",
   "theme": "storm",
-  "length": 7800,
+  "length": 15600,
   "medals": {
-    "gold": 31.8,
-    "silver": 39.4,
-    "bronze": 50.3
+    "gold": 63.7,
+    "silver": 78.8,
+    "bronze": 100.6
   },
   "gravity": 1610,
+  "perspective": true,
   "start": {
     "x": 140,
     "y": 470
@@ -162,17 +163,131 @@
       "id": 20
     },
     {
-      "x": 7800,
-      "y": 500,
-      "type": "finish",
+      "x": 7660,
+      "y": 505,
+      "type": "dirt",
       "marker": null,
       "id": 21
+    },
+    {
+      "x": 8115,
+      "y": 548,
+      "type": "boost",
+      "marker": null,
+      "id": 22
+    },
+    {
+      "x": 8665,
+      "y": 548,
+      "type": "dirt",
+      "marker": null,
+      "id": 23
+    },
+    {
+      "x": 9310,
+      "y": 548,
+      "type": "ramp",
+      "marker": null,
+      "id": 24
+    },
+    {
+      "x": 9670,
+      "y": 509,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 25
+    },
+    {
+      "x": 10125,
+      "y": 479,
+      "type": "mud",
+      "marker": null,
+      "id": 26
+    },
+    {
+      "x": 10675,
+      "y": 486,
+      "type": "dirt",
+      "marker": null,
+      "id": 27
+    },
+    {
+      "x": 11320,
+      "y": 521,
+      "type": "dirt",
+      "marker": null,
+      "id": 28
+    },
+    {
+      "x": 11680,
+      "y": 548,
+      "type": "dirt",
+      "marker": null,
+      "id": 29
+    },
+    {
+      "x": 12135,
+      "y": 548,
+      "type": "dirt",
+      "marker": null,
+      "id": 30
+    },
+    {
+      "x": 12685,
+      "y": 512,
+      "type": "ramp",
+      "marker": null,
+      "id": 31
+    },
+    {
+      "x": 13330,
+      "y": 458,
+      "type": "dirt",
+      "marker": null,
+      "id": 32
+    },
+    {
+      "x": 13690,
+      "y": 425,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 33
+    },
+    {
+      "x": 14145,
+      "y": 436,
+      "type": "dirt",
+      "marker": null,
+      "id": 34
+    },
+    {
+      "x": 14695,
+      "y": 482,
+      "type": "dirt",
+      "marker": null,
+      "id": 35
+    },
+    {
+      "x": 15340,
+      "y": 530,
+      "type": "mud",
+      "marker": null,
+      "id": 36
+    },
+    {
+      "x": 15600,
+      "y": 505,
+      "type": "finish",
+      "marker": null,
+      "id": 37
     }
   ],
   "checkpoints": [
     2160,
     4260,
-    6460
+    6460,
+    9670,
+    13690
   ],
   "zones": [
     {
@@ -194,6 +309,66 @@
       "x": 5660,
       "w": 320,
       "type": "mud"
+    },
+    {
+      "x": 7100,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 7720,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 8550,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 9170,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 10000,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 10620,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 11450,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 12070,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 12900,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 13520,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 14350,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 14970,
+      "w": 290,
+      "type": "draft"
     }
   ],
   "hazards": [
@@ -208,6 +383,22 @@
     {
       "x": 5920,
       "kind": "cone"
+    },
+    {
+      "x": 8200,
+      "kind": "cone"
+    },
+    {
+      "x": 10050,
+      "kind": "hay"
+    },
+    {
+      "x": 11900,
+      "kind": "barrel"
+    },
+    {
+      "x": 13750,
+      "kind": "rock_cluster"
     }
   ],
   "pickups": [
@@ -221,6 +412,26 @@
     },
     {
       "x": 6680,
+      "kind": "heat_pickup"
+    },
+    {
+      "x": 7600,
+      "kind": "wrench"
+    },
+    {
+      "x": 9320,
+      "kind": "heat_pickup"
+    },
+    {
+      "x": 11040,
+      "kind": "clock"
+    },
+    {
+      "x": 12760,
+      "kind": "wrench"
+    },
+    {
+      "x": 14480,
       "kind": "heat_pickup"
     }
   ],
@@ -256,6 +467,54 @@
     {
       "x": 3720,
       "kind": "camera"
+    },
+    {
+      "x": 7000,
+      "kind": "banner"
+    },
+    {
+      "x": 7690,
+      "kind": "lamp"
+    },
+    {
+      "x": 8380,
+      "kind": "scrub"
+    },
+    {
+      "x": 9070,
+      "kind": "pine"
+    },
+    {
+      "x": 9760,
+      "kind": "flag"
+    },
+    {
+      "x": 10450,
+      "kind": "arrow_sign"
+    },
+    {
+      "x": 11140,
+      "kind": "camera"
+    },
+    {
+      "x": 11830,
+      "kind": "banner"
+    },
+    {
+      "x": 12520,
+      "kind": "lamp"
+    },
+    {
+      "x": 13210,
+      "kind": "scrub"
+    },
+    {
+      "x": 13900,
+      "kind": "pine"
+    },
+    {
+      "x": 14590,
+      "kind": "flag"
     }
   ],
   "tileLayers": [
@@ -263,7 +522,7 @@
       "name": "sky",
       "tileWidth": 256,
       "tileHeight": 144,
-      "columns": 9,
+      "columns": 16,
       "rows": 2,
       "parallax": 0.08,
       "offsetY": 0,
@@ -277,7 +536,14 @@
           "dust_haze",
           "night_ridge",
           "cloud_long",
-          "dust_haze"
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge"
         ],
         [
           "night_ridge",
@@ -288,7 +554,14 @@
           "dust_haze",
           "night_ridge",
           "cloud_long",
-          "dust_haze"
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge"
         ]
       ]
     },
@@ -296,7 +569,7 @@
       "name": "far",
       "tileWidth": 256,
       "tileHeight": 144,
-      "columns": 15,
+      "columns": 27,
       "rows": 2,
       "parallax": 0.18,
       "offsetY": 130,
@@ -316,9 +589,33 @@
           "bridge_back",
           "night_ridge",
           "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
           "bridge_back"
         ],
         [
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
           "night_ridge",
           "mesa_far",
           "bridge_back",
@@ -341,7 +638,7 @@
       "name": "near",
       "tileWidth": 256,
       "tileHeight": 144,
-      "columns": 25,
+      "columns": 43,
       "rows": 2,
       "parallax": 0.34,
       "offsetY": 265,
@@ -371,9 +668,45 @@
           "mesa_near",
           "scrubland",
           "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
           "mesa_near"
         ],
         [
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
           "mesa_near",
           "scrubland",
           "grandstand",

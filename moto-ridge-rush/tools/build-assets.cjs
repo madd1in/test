@@ -15,7 +15,8 @@ const dirs = {
   backgrounds: path.join(root, "assets", "backgrounds"),
   fx: path.join(root, "assets", "fx"),
   ui: path.join(root, "assets", "ui"),
-  maps: path.join(root, "assets", "maps")
+  maps: path.join(root, "assets", "maps"),
+  audio: path.join(root, "assets", "audio")
 };
 
 for (const dir of Object.values(dirs)) {
@@ -76,6 +77,42 @@ async function writePng(file, markup) {
 
 function writeJson(file, data) {
   fs.writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`);
+}
+
+async function buildImagenHdAssets(manifest) {
+  const tileSource = path.join(root, "assets", "source", "imagen-hd-mode7-tile-map.png");
+  const backgroundSource = path.join(root, "assets", "source", "imagen-hd-background-strips.png");
+  if (fs.existsSync(tileSource)) {
+    const file = "imagen-hd-mode7-tiles.png";
+    await sharp(tileSource).resize(1536, 1024, { fit: "fill" }).png().toFile(path.join(dirs.tiles, file));
+    const names = [
+      "packed_dirt", "tire_grooves", "dust_shoulder", "gravel", "wet_mud", "cracked_clay", "teal_boost", "hazard_stripe",
+      "ramp_lip", "banked_berm", "bridge_plank", "metal_grate", "finish", "checkpoint", "dark_fill", "sand_wash",
+      "canyon_edge", "pine_edge", "storm_asphalt", "oil_slick", "jump_marker", "deep_ruts", "cracked_asphalt", "barrier",
+      "grass_edge", "red_clay", "ocher_dust", "black_shadow", "teal_lane", "coral_lane", "white_lane", "worn_dirt"
+    ];
+    const frames = {};
+    names.forEach((name, index) => {
+      frames[name] = { x: (index % 8) * 192, y: Math.floor(index / 8) * 256, w: 192, h: 256 };
+    });
+    manifest.images.mode7Tiles = { file: `assets/tiles/${file}`, frameWidth: 192, frameHeight: 256, columns: 8, rows: 4, frames };
+  }
+  if (fs.existsSync(backgroundSource)) {
+    const file = "imagen-hd-background-strips.png";
+    await sharp(backgroundSource).resize(1920, 960, { fit: "fill" }).png().toFile(path.join(dirs.backgrounds, file));
+    manifest.images.hdBackgrounds = {
+      file: `assets/backgrounds/${file}`,
+      frameWidth: 1920,
+      frameHeight: 320,
+      columns: 1,
+      rows: 3,
+      frames: {
+        canyon: { x: 0, y: 0, w: 1920, h: 320 },
+        pine: { x: 0, y: 320, w: 1920, h: 320 },
+        storm: { x: 0, y: 640, w: 1920, h: 320 }
+      }
+    };
+  }
 }
 
 function seeded(seed) {
@@ -435,7 +472,48 @@ function makeTileLayer(name, tileNames, columns, rows, parallax, offsetY) {
   return { name, tileWidth: 256, tileHeight: 144, columns, rows, parallax, offsetY, data };
 }
 
+function extendPoints(points, length, theme) {
+  const extended = points.slice();
+  const last = extended[extended.length - 1];
+  if (last && last[2] === "finish") extended.pop();
+  const base = theme === "pine" ? 492 : theme === "storm" ? 505 : 500;
+  let x = extended[extended.length - 1][0];
+  let stepIndex = 0;
+  while (x < length - 520) {
+    x += 360 + (stepIndex % 4) * 95;
+    const wave = Math.sin(stepIndex * 0.9) * 54 + Math.sin(stepIndex * 0.37) * 28;
+    const y = Math.max(378, Math.min(548, base + wave));
+    let type = "dirt";
+    if (stepIndex % 8 === 4) type = "checkpoint";
+    else if (stepIndex % 7 === 3) type = "ramp";
+    else if (stepIndex % 9 === 1) type = "boost";
+    else if (stepIndex % 10 === 5) type = "mud";
+    extended.push([Math.min(x, length - 260), y, type]);
+    stepIndex += 1;
+  }
+  extended.push([length, base, "finish"]);
+  return extended;
+}
+
+function extendZones(zones, length) {
+  const out = zones.slice();
+  for (let x = 7100; x < length - 800; x += 1450) {
+    out.push({ x, w: 340, type: x % 2900 === 0 ? "mud" : "boost" });
+    out.push({ x: x + 620, w: 290, type: "draft" });
+  }
+  return out;
+}
+
+function extendObjects(objects, length, kinds, start, spacing) {
+  const out = objects.slice();
+  for (let x = start; x < length - 600; x += spacing) {
+    out.push({ x, kind: kinds[Math.floor(x / spacing) % kinds.length] });
+  }
+  return out;
+}
+
 function buildLevel(id, title, theme, length, points, zones, hazards, pickups, decorations) {
+  const routePoints = extendPoints(points, length, theme);
   const columns = Math.ceil(length / 256) + 8;
   const gold = Math.round((length / 245) * 10) / 10;
   const silver = Math.round((length / 198) * 10) / 10;
@@ -447,13 +525,14 @@ function buildLevel(id, title, theme, length, points, zones, hazards, pickups, d
     length,
     medals: { gold, silver, bronze },
     gravity: theme === "storm" ? 1610 : 1530,
-    start: { x: 140, y: points[0][1] - 52 },
-    track: makeTrack(points),
-    checkpoints: points.filter((p) => p[2] === "checkpoint" || p[3] === "checkpoint").map((p) => p[0]),
-    zones,
-    hazards,
-    pickups,
-    decorations,
+    perspective: true,
+    start: { x: 140, y: routePoints[0][1] - 52 },
+    track: makeTrack(routePoints),
+    checkpoints: routePoints.filter((p) => p[2] === "checkpoint" || p[3] === "checkpoint").map((p) => p[0]),
+    zones: extendZones(zones, length),
+    hazards: extendObjects(hazards, length, ["cone", "hay", "barrel", "rock_cluster"], 8200, 1850),
+    pickups: extendObjects(pickups, length, ["clock", "wrench", "heat_pickup"], 7600, 1720),
+    decorations: extendObjects(decorations, length, ["flag", "arrow_sign", "camera", "banner", "lamp", "scrub", "pine"], 7000, 690),
     tileLayers: [
       makeTileLayer("sky", theme === "pine" ? ["sky_clear", "cloud_soft", "cloud_long"] : theme === "storm" ? ["night_ridge", "cloud_long", "dust_haze"] : ["sky_clear", "sunset_sky", "cloud_soft"], Math.ceil(columns * 0.22), 2, 0.08, 0),
       makeTileLayer("far", theme === "pine" ? ["pine_ridge", "mesa_far", "cloud_soft"] : theme === "storm" ? ["night_ridge", "mesa_far", "bridge_back"] : ["mesa_far", "dust_haze", "cloud_long"], Math.ceil(columns * 0.38), 2, 0.18, 130),
@@ -467,7 +546,7 @@ function buildMaps() {
     "canyon-run",
     "Canyon Run",
     "canyon",
-    6500,
+    12800,
     [
       [0, 520], [420, 520], [760, 492], [1080, 492, "boost"], [1320, 540, "ramp"], [1580, 452], [1840, 462, "checkpoint"], [2140, 500],
       [2500, 500, "mud"], [2860, 462], [3180, 448, "ramp"], [3420, 390], [3700, 462, "checkpoint"], [4100, 512], [4420, 512, "boost"],
@@ -498,7 +577,7 @@ function buildMaps() {
     "pine-switchbacks",
     "Pine Switchbacks",
     "pine",
-    7200,
+    14200,
     [
       [0, 510], [480, 510], [830, 470], [1160, 528, "mud"], [1460, 528], [1740, 458, "ramp"], [2040, 438, "checkpoint"],
       [2360, 478], [2760, 438], [3110, 438, "boost"], [3420, 505], [3740, 500], [4080, 455, "checkpoint"], [4440, 432, "ramp"],
@@ -528,7 +607,7 @@ function buildMaps() {
     "storm-lights",
     "Storm Lights",
     "storm",
-    7800,
+    15600,
     [
       [0, 522], [500, 522], [870, 480], [1180, 480, "boost"], [1480, 545], [1840, 430, "ramp"], [2160, 414, "checkpoint"],
       [2480, 475], [2850, 538, "mud"], [3220, 494], [3560, 438, "ramp"], [3900, 405], [4260, 462, "checkpoint"], [4620, 520],
@@ -567,14 +646,25 @@ async function main() {
     sourceImages: [
       "assets/source/imagen-bike-rider-source.png",
       "assets/source/imagen-terrain-tiles-source.png",
-      "assets/source/imagen-fx-objects-source.png"
+      "assets/source/imagen-fx-objects-source.png",
+      "assets/source/imagen-hd-mode7-tile-map.png",
+      "assets/source/imagen-hd-background-strips.png"
     ],
-    images: {}
+    images: {},
+    audio: {
+      bgm: "assets/audio/ridge-bgm.wav",
+      jump: "assets/audio/jump.wav",
+      land: "assets/audio/land.wav",
+      pickup: "assets/audio/pickup.wav",
+      crash: "assets/audio/crash.wav",
+      finish: "assets/audio/finish.wav"
+    }
   };
 
   await buildBikeSheet(manifest);
   await buildTerrainSheet(manifest);
   await buildBackgroundSheet(manifest);
+  await buildImagenHdAssets(manifest);
   await buildDecorSheet(manifest);
   await buildFxSheet(manifest);
   await buildUiSheet(manifest);

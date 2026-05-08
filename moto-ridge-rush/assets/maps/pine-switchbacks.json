@@ -2,13 +2,14 @@
   "id": "pine-switchbacks",
   "title": "Pine Switchbacks",
   "theme": "pine",
-  "length": 7200,
+  "length": 14200,
   "medals": {
-    "gold": 29.4,
-    "silver": 36.4,
-    "bronze": 46.5
+    "gold": 58,
+    "silver": 71.7,
+    "bronze": 91.6
   },
   "gravity": 1530,
+  "perspective": true,
   "start": {
     "x": 140,
     "y": 458
@@ -155,17 +156,124 @@
       "id": 19
     },
     {
-      "x": 7200,
-      "y": 500,
-      "type": "finish",
+      "x": 6870,
+      "y": 492,
+      "type": "dirt",
       "marker": null,
       "id": 20
+    },
+    {
+      "x": 7325,
+      "y": 544,
+      "type": "boost",
+      "marker": null,
+      "id": 21
+    },
+    {
+      "x": 7875,
+      "y": 548,
+      "type": "dirt",
+      "marker": null,
+      "id": 22
+    },
+    {
+      "x": 8520,
+      "y": 540,
+      "type": "ramp",
+      "marker": null,
+      "id": 23
+    },
+    {
+      "x": 8880,
+      "y": 496,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 24
+    },
+    {
+      "x": 9335,
+      "y": 466,
+      "type": "mud",
+      "marker": null,
+      "id": 25
+    },
+    {
+      "x": 9885,
+      "y": 473,
+      "type": "dirt",
+      "marker": null,
+      "id": 26
+    },
+    {
+      "x": 10530,
+      "y": 508,
+      "type": "dirt",
+      "marker": null,
+      "id": 27
+    },
+    {
+      "x": 10890,
+      "y": 540,
+      "type": "dirt",
+      "marker": null,
+      "id": 28
+    },
+    {
+      "x": 11345,
+      "y": 539,
+      "type": "dirt",
+      "marker": null,
+      "id": 29
+    },
+    {
+      "x": 11895,
+      "y": 499,
+      "type": "ramp",
+      "marker": null,
+      "id": 30
+    },
+    {
+      "x": 12540,
+      "y": 445,
+      "type": "dirt",
+      "marker": null,
+      "id": 31
+    },
+    {
+      "x": 12900,
+      "y": 412,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 32
+    },
+    {
+      "x": 13355,
+      "y": 423,
+      "type": "dirt",
+      "marker": null,
+      "id": 33
+    },
+    {
+      "x": 13905,
+      "y": 469,
+      "type": "dirt",
+      "marker": null,
+      "id": 34
+    },
+    {
+      "x": 14200,
+      "y": 492,
+      "type": "finish",
+      "marker": null,
+      "id": 35
     }
   ],
   "checkpoints": [
     2040,
     4080,
-    6150
+    6150,
+    8880,
+    12900
   ],
   "zones": [
     {
@@ -182,6 +290,56 @@
       "x": 5320,
       "w": 340,
       "type": "mud"
+    },
+    {
+      "x": 7100,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 7720,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 8550,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 9170,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 10000,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 10620,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 11450,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 12070,
+      "w": 290,
+      "type": "draft"
+    },
+    {
+      "x": 12900,
+      "w": 340,
+      "type": "boost"
+    },
+    {
+      "x": 13520,
+      "w": 290,
+      "type": "draft"
     }
   ],
   "hazards": [
@@ -196,6 +354,18 @@
     {
       "x": 5960,
       "kind": "cone"
+    },
+    {
+      "x": 8200,
+      "kind": "cone"
+    },
+    {
+      "x": 10050,
+      "kind": "hay"
+    },
+    {
+      "x": 11900,
+      "kind": "barrel"
     }
   ],
   "pickups": [
@@ -210,6 +380,22 @@
     {
       "x": 6400,
       "kind": "heat_pickup"
+    },
+    {
+      "x": 7600,
+      "kind": "wrench"
+    },
+    {
+      "x": 9320,
+      "kind": "heat_pickup"
+    },
+    {
+      "x": 11040,
+      "kind": "clock"
+    },
+    {
+      "x": 12760,
+      "kind": "wrench"
     }
   ],
   "decorations": [
@@ -244,6 +430,46 @@
     {
       "x": 4700,
       "kind": "scrub"
+    },
+    {
+      "x": 7000,
+      "kind": "banner"
+    },
+    {
+      "x": 7690,
+      "kind": "lamp"
+    },
+    {
+      "x": 8380,
+      "kind": "scrub"
+    },
+    {
+      "x": 9070,
+      "kind": "pine"
+    },
+    {
+      "x": 9760,
+      "kind": "flag"
+    },
+    {
+      "x": 10450,
+      "kind": "arrow_sign"
+    },
+    {
+      "x": 11140,
+      "kind": "camera"
+    },
+    {
+      "x": 11830,
+      "kind": "banner"
+    },
+    {
+      "x": 12520,
+      "kind": "lamp"
+    },
+    {
+      "x": 13210,
+      "kind": "scrub"
     }
   ],
   "tileLayers": [
@@ -251,12 +477,18 @@
       "name": "sky",
       "tileWidth": 256,
       "tileHeight": 144,
-      "columns": 9,
+      "columns": 15,
       "rows": 2,
       "parallax": 0.08,
       "offsetY": 0,
       "data": [
         [
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
           "sky_clear",
           "cloud_soft",
           "cloud_long",
@@ -276,6 +508,12 @@
           "cloud_long",
           "sky_clear",
           "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
           "cloud_long"
         ]
       ]
@@ -284,7 +522,7 @@
       "name": "far",
       "tileWidth": 256,
       "tileHeight": 144,
-      "columns": 15,
+      "columns": 25,
       "rows": 2,
       "parallax": 0.18,
       "offsetY": 130,
@@ -304,7 +542,17 @@
           "cloud_soft",
           "pine_ridge",
           "mesa_far",
-          "cloud_soft"
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge"
         ],
         [
           "pine_ridge",
@@ -321,7 +569,17 @@
           "cloud_soft",
           "pine_ridge",
           "mesa_far",
-          "cloud_soft"
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge"
         ]
       ]
     },
@@ -329,7 +587,7 @@
       "name": "near",
       "tileWidth": 256,
       "tileHeight": 144,
-      "columns": 23,
+      "columns": 40,
       "rows": 2,
       "parallax": 0.34,
       "offsetY": 265,
@@ -357,7 +615,24 @@
           "scrubland",
           "bridge_back",
           "pine_ridge",
-          "scrubland"
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge"
         ],
         [
           "pine_ridge",
@@ -382,7 +657,24 @@
           "scrubland",
           "bridge_back",
           "pine_ridge",
-          "scrubland"
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge"
         ]
       ]
     }

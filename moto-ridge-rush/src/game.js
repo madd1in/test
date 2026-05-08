@@ -36,6 +36,33 @@
     let engineGain = null;
     let noiseBuffer = null;
     let enabled = false;
+    let media = {};
+    let bgm = null;
+    const clipVolumes = {
+      bgm: 0.34,
+      jump: 0.48,
+      land: 0.42,
+      pickup: 0.56,
+      crash: 0.5,
+      finish: 0.62
+    };
+
+    function load(audioManifest) {
+      media = {};
+      bgm = null;
+      if (!audioManifest || typeof Audio === "undefined") return;
+      for (const [name, src] of Object.entries(audioManifest)) {
+        const clip = new Audio(src);
+        clip.preload = "auto";
+        clip.volume = clipVolumes[name] || 0.46;
+        if (name === "bgm") {
+          clip.loop = true;
+          bgm = clip;
+        } else {
+          media[name] = clip;
+        }
+      }
+    }
 
     function ensure() {
       if (context) return context;
@@ -54,6 +81,7 @@
       if (!ctx) return;
       enabled = true;
       if (ctx.state === "suspended") ctx.resume();
+      startBgm();
       if (!engineOsc) {
         engineOsc = ctx.createOscillator();
         engineOsc.type = "sawtooth";
@@ -83,23 +111,47 @@
 
     function playEvent(event) {
       if (!enabled || !ensure()) return;
-      if (event.type === "pickup") blip(720, 0.08, "triangle", 0.14);
+      if (event.type === "pickup") {
+        playClip("pickup");
+        blip(720, 0.08, "triangle", 0.14);
+      }
       if (event.type === "checkpoint") blip(520, 0.11, "square", 0.12);
+      if (event.type === "jump") playClip("jump");
+      if (event.type === "land") playClip("land");
+      if (event.type === "bump") {
+        playClip("land");
+        thud(0.12, 0.14);
+      }
       if (event.type === "stunt") {
         blip(640, 0.08, "triangle", 0.13);
         setTimeout(() => blip(900, 0.08, "triangle", 0.1), 70);
       }
       if (event.type === "boost") whoosh(0.16, 0.12);
       if (event.type === "crash") {
+        playClip("crash");
         thud();
         burstNoise(0.18, 0.18);
       }
       if (event.type === "finish") {
+        playClip("finish");
         blip(540, 0.12, "triangle", 0.16);
         setTimeout(() => blip(720, 0.12, "triangle", 0.14), 95);
         setTimeout(() => blip(960, 0.18, "triangle", 0.12), 190);
       }
       if (event.type === "overheat") burstNoise(0.12, 0.14);
+    }
+
+    function startBgm() {
+      if (!bgm || !enabled) return;
+      bgm.play().catch(() => {});
+    }
+
+    function playClip(name) {
+      const clip = media[name];
+      if (!clip || !enabled) return;
+      const instance = clip.cloneNode(true);
+      instance.volume = clip.volume;
+      instance.play().catch(() => {});
     }
 
     function blip(freq, duration, type, gainValue) {
@@ -132,18 +184,18 @@
       source.stop(context.currentTime + duration + 0.02);
     }
 
-    function thud() {
+    function thud(duration = 0.2, gainValue = 0.18) {
       const osc = context.createOscillator();
       const gain = context.createGain();
       osc.type = "sine";
       osc.frequency.setValueAtTime(96, context.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(38, context.currentTime + 0.18);
-      gain.gain.setValueAtTime(0.18, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.2);
+      osc.frequency.exponentialRampToValueAtTime(38, context.currentTime + duration * 0.9);
+      gain.gain.setValueAtTime(gainValue, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
       osc.connect(gain);
       gain.connect(master);
       osc.start();
-      osc.stop(context.currentTime + 0.22);
+      osc.stop(context.currentTime + duration + 0.02);
     }
 
     function burstNoise(duration, gainValue) {
@@ -169,7 +221,7 @@
       return buffer;
     }
 
-    return { unlock, update, playEvent };
+    return { load, unlock, update, playEvent };
   }
 
   async function loadJson(url) {
@@ -328,6 +380,7 @@
     input = MotoRidge.createInput();
     audio = createAudio();
     assets = await loadAssets();
+    audio.load(assets.manifest.audio);
     renderer = MotoRidge.createRenderer(canvas, assets);
     buildMenu();
     startButton.addEventListener("click", startSelectedLevel);
