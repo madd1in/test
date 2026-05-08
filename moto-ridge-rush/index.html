@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Moto Ridge Rush</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <canvas id="game" width="1280" height="720" aria-label="Moto Ridge Rush game canvas"></canvas>
+
+      <section id="menu" class="menu" aria-label="Main menu">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <h1>Moto Ridge Rush</h1>
+        </div>
+        <div id="levelButtons" class="level-grid"></div>
+        <button id="startButton" class="primary-btn" type="button">Start</button>
+      </section>
+
+      <section id="hud" class="hud" aria-label="Race status">
+        <div class="hud-cluster">
+          <div class="metric"><span class="metric-icon time-icon"></span><span id="timeValue">0.00</span></div>
+          <div class="metric"><span class="metric-icon speed-icon"></span><span id="speedValue">0</span></div>
+          <div class="metric"><span class="metric-icon checkpoint-icon"></span><span id="checkpointValue">0/0</span></div>
+        </div>
+        <div class="heat-wrap" aria-label="Engine heat">
+          <span class="metric-icon heat-icon"></span>
+          <div class="heat-bar"><span id="heatFill"></span></div>
+        </div>
+      </section>
+
+      <section id="finishPanel" class="finish-panel" hidden>
+        <h2>Finish</h2>
+        <p id="finishTime">0.00</p>
+        <button id="againButton" class="primary-btn" type="button">Again</button>
+      </section>
+
+      <nav id="touchControls" class="touch-controls" aria-label="Touch controls">
+        <button type="button" data-action="brake" aria-label="Brake">&lt;</button>
+        <button type="button" data-action="leanBack" aria-label="Lean back">^</button>
+        <button type="button" data-action="leanForward" aria-label="Lean forward">v</button>
+        <button type="button" data-action="throttle" aria-label="Throttle">&gt;</button>
+        <button type="button" data-action="hop" aria-label="Hop">+</button>
+        <button type="button" data-action="turbo" aria-label="Turbo">*</button>
+      </nav>
+    </main>
+
+    <script src="src/input.js"></script>
+    <script src="src/simulation.js"></script>
+    <script src="src/renderer.js"></script>
+    <script src="src/game.js"></script>
+  </body>
+</html>

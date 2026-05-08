@@ -1,0 +1,386 @@
+{
+  "id": "canyon-run",
+  "title": "Canyon Run",
+  "theme": "canyon",
+  "length": 6500,
+  "gravity": 1530,
+  "start": {
+    "x": 140,
+    "y": 468
+  },
+  "track": [
+    {
+      "x": 0,
+      "y": 520,
+      "type": "dirt",
+      "marker": null,
+      "id": 0
+    },
+    {
+      "x": 420,
+      "y": 520,
+      "type": "dirt",
+      "marker": null,
+      "id": 1
+    },
+    {
+      "x": 760,
+      "y": 492,
+      "type": "dirt",
+      "marker": null,
+      "id": 2
+    },
+    {
+      "x": 1080,
+      "y": 492,
+      "type": "boost",
+      "marker": null,
+      "id": 3
+    },
+    {
+      "x": 1320,
+      "y": 540,
+      "type": "ramp",
+      "marker": null,
+      "id": 4
+    },
+    {
+      "x": 1580,
+      "y": 452,
+      "type": "dirt",
+      "marker": null,
+      "id": 5
+    },
+    {
+      "x": 1840,
+      "y": 462,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 6
+    },
+    {
+      "x": 2140,
+      "y": 500,
+      "type": "dirt",
+      "marker": null,
+      "id": 7
+    },
+    {
+      "x": 2500,
+      "y": 500,
+      "type": "mud",
+      "marker": null,
+      "id": 8
+    },
+    {
+      "x": 2860,
+      "y": 462,
+      "type": "dirt",
+      "marker": null,
+      "id": 9
+    },
+    {
+      "x": 3180,
+      "y": 448,
+      "type": "ramp",
+      "marker": null,
+      "id": 10
+    },
+    {
+      "x": 3420,
+      "y": 390,
+      "type": "dirt",
+      "marker": null,
+      "id": 11
+    },
+    {
+      "x": 3700,
+      "y": 462,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 12
+    },
+    {
+      "x": 4100,
+      "y": 512,
+      "type": "dirt",
+      "marker": null,
+      "id": 13
+    },
+    {
+      "x": 4420,
+      "y": 512,
+      "type": "boost",
+      "marker": null,
+      "id": 14
+    },
+    {
+      "x": 4740,
+      "y": 474,
+      "type": "dirt",
+      "marker": null,
+      "id": 15
+    },
+    {
+      "x": 5060,
+      "y": 500,
+      "type": "mud",
+      "marker": null,
+      "id": 16
+    },
+    {
+      "x": 5350,
+      "y": 432,
+      "type": "ramp",
+      "marker": null,
+      "id": 17
+    },
+    {
+      "x": 5640,
+      "y": 410,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 18
+    },
+    {
+      "x": 6020,
+      "y": 500,
+      "type": "dirt",
+      "marker": null,
+      "id": 19
+    },
+    {
+      "x": 6500,
+      "y": 500,
+      "type": "finish",
+      "marker": null,
+      "id": 20
+    }
+  ],
+  "checkpoints": [
+    1840,
+    3700,
+    5640
+  ],
+  "zones": [
+    {
+      "x": 1040,
+      "w": 260,
+      "type": "boost"
+    },
+    {
+      "x": 2380,
+      "w": 320,
+      "type": "mud"
+    },
+    {
+      "x": 4340,
+      "w": 260,
+      "type": "boost"
+    },
+    {
+      "x": 4930,
+      "w": 270,
+      "type": "mud"
+    }
+  ],
+  "hazards": [
+    {
+      "x": 1560,
+      "kind": "cone"
+    },
+    {
+      "x": 2900,
+      "kind": "hay"
+    },
+    {
+      "x": 5180,
+      "kind": "barrel"
+    }
+  ],
+  "pickups": [
+    {
+      "x": 2220,
+      "kind": "clock"
+    },
+    {
+      "x": 3850,
+      "kind": "wrench"
+    },
+    {
+      "x": 5800,
+      "kind": "heat_pickup"
+    }
+  ],
+  "decorations": [
+    {
+      "x": 820,
+      "kind": "arrow_sign"
+    },
+    {
+      "x": 1840,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 3700,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 5640,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 6420,
+      "kind": "finish_left"
+    },
+    {
+      "x": 6470,
+      "kind": "finish_right"
+    },
+    {
+      "x": 1220,
+      "kind": "scrub"
+    },
+    {
+      "x": 3320,
+      "kind": "rock_cluster"
+    },
+    {
+      "x": 4560,
+      "kind": "flag"
+    }
+  ],
+  "tileLayers": [
+    {
+      "name": "sky",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 8,
+      "rows": 2,
+      "parallax": 0.08,
+      "offsetY": 0,
+      "data": [
+        [
+          "sky_clear",
+          "sunset_sky",
+          "cloud_soft",
+          "sky_clear",
+          "sunset_sky",
+          "cloud_soft",
+          "sky_clear",
+          "sunset_sky"
+        ],
+        [
+          "sky_clear",
+          "sunset_sky",
+          "cloud_soft",
+          "sky_clear",
+          "sunset_sky",
+          "cloud_soft",
+          "sky_clear",
+          "sunset_sky"
+        ]
+      ]
+    },
+    {
+      "name": "far",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 13,
+      "rows": 2,
+      "parallax": 0.18,
+      "offsetY": 130,
+      "data": [
+        [
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far"
+        ],
+        [
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far",
+          "dust_haze",
+          "cloud_long",
+          "mesa_far"
+        ]
+      ]
+    },
+    {
+      "name": "near",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 22,
+      "rows": 2,
+      "parallax": 0.34,
+      "offsetY": 265,
+      "data": [
+        [
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near"
+        ],
+        [
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near"
+        ]
+      ]
+    }
+  ]
+}

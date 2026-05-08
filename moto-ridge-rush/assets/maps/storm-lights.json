@@ -1,0 +1,401 @@
+{
+  "id": "storm-lights",
+  "title": "Storm Lights",
+  "theme": "storm",
+  "length": 7800,
+  "gravity": 1610,
+  "start": {
+    "x": 140,
+    "y": 470
+  },
+  "track": [
+    {
+      "x": 0,
+      "y": 522,
+      "type": "dirt",
+      "marker": null,
+      "id": 0
+    },
+    {
+      "x": 500,
+      "y": 522,
+      "type": "dirt",
+      "marker": null,
+      "id": 1
+    },
+    {
+      "x": 870,
+      "y": 480,
+      "type": "dirt",
+      "marker": null,
+      "id": 2
+    },
+    {
+      "x": 1180,
+      "y": 480,
+      "type": "boost",
+      "marker": null,
+      "id": 3
+    },
+    {
+      "x": 1480,
+      "y": 545,
+      "type": "dirt",
+      "marker": null,
+      "id": 4
+    },
+    {
+      "x": 1840,
+      "y": 430,
+      "type": "ramp",
+      "marker": null,
+      "id": 5
+    },
+    {
+      "x": 2160,
+      "y": 414,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 6
+    },
+    {
+      "x": 2480,
+      "y": 475,
+      "type": "dirt",
+      "marker": null,
+      "id": 7
+    },
+    {
+      "x": 2850,
+      "y": 538,
+      "type": "mud",
+      "marker": null,
+      "id": 8
+    },
+    {
+      "x": 3220,
+      "y": 494,
+      "type": "dirt",
+      "marker": null,
+      "id": 9
+    },
+    {
+      "x": 3560,
+      "y": 438,
+      "type": "ramp",
+      "marker": null,
+      "id": 10
+    },
+    {
+      "x": 3900,
+      "y": 405,
+      "type": "dirt",
+      "marker": null,
+      "id": 11
+    },
+    {
+      "x": 4260,
+      "y": 462,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 12
+    },
+    {
+      "x": 4620,
+      "y": 520,
+      "type": "dirt",
+      "marker": null,
+      "id": 13
+    },
+    {
+      "x": 5040,
+      "y": 498,
+      "type": "boost",
+      "marker": null,
+      "id": 14
+    },
+    {
+      "x": 5400,
+      "y": 454,
+      "type": "dirt",
+      "marker": null,
+      "id": 15
+    },
+    {
+      "x": 5750,
+      "y": 528,
+      "type": "mud",
+      "marker": null,
+      "id": 16
+    },
+    {
+      "x": 6120,
+      "y": 448,
+      "type": "ramp",
+      "marker": null,
+      "id": 17
+    },
+    {
+      "x": 6460,
+      "y": 420,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 18
+    },
+    {
+      "x": 6840,
+      "y": 470,
+      "type": "dirt",
+      "marker": null,
+      "id": 19
+    },
+    {
+      "x": 7300,
+      "y": 500,
+      "type": "dirt",
+      "marker": null,
+      "id": 20
+    },
+    {
+      "x": 7800,
+      "y": 500,
+      "type": "finish",
+      "marker": null,
+      "id": 21
+    }
+  ],
+  "checkpoints": [
+    2160,
+    4260,
+    6460
+  ],
+  "zones": [
+    {
+      "x": 1100,
+      "w": 280,
+      "type": "boost"
+    },
+    {
+      "x": 2780,
+      "w": 350,
+      "type": "mud"
+    },
+    {
+      "x": 4960,
+      "w": 300,
+      "type": "boost"
+    },
+    {
+      "x": 5660,
+      "w": 320,
+      "type": "mud"
+    }
+  ],
+  "hazards": [
+    {
+      "x": 1540,
+      "kind": "barrel"
+    },
+    {
+      "x": 3300,
+      "kind": "hay"
+    },
+    {
+      "x": 5920,
+      "kind": "cone"
+    }
+  ],
+  "pickups": [
+    {
+      "x": 2360,
+      "kind": "clock"
+    },
+    {
+      "x": 4500,
+      "kind": "wrench"
+    },
+    {
+      "x": 6680,
+      "kind": "heat_pickup"
+    }
+  ],
+  "decorations": [
+    {
+      "x": 720,
+      "kind": "lamp"
+    },
+    {
+      "x": 2160,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 4260,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 6460,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 7730,
+      "kind": "finish_left"
+    },
+    {
+      "x": 7780,
+      "kind": "finish_right"
+    },
+    {
+      "x": 5050,
+      "kind": "flag"
+    },
+    {
+      "x": 3720,
+      "kind": "camera"
+    }
+  ],
+  "tileLayers": [
+    {
+      "name": "sky",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 9,
+      "rows": 2,
+      "parallax": 0.08,
+      "offsetY": 0,
+      "data": [
+        [
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze"
+        ],
+        [
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze",
+          "night_ridge",
+          "cloud_long",
+          "dust_haze"
+        ]
+      ]
+    },
+    {
+      "name": "far",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 15,
+      "rows": 2,
+      "parallax": 0.18,
+      "offsetY": 130,
+      "data": [
+        [
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back"
+        ],
+        [
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back",
+          "night_ridge",
+          "mesa_far",
+          "bridge_back"
+        ]
+      ]
+    },
+    {
+      "name": "near",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 25,
+      "rows": 2,
+      "parallax": 0.34,
+      "offsetY": 265,
+      "data": [
+        [
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near"
+        ],
+        [
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near",
+          "scrubland",
+          "grandstand",
+          "mesa_near"
+        ]
+      ]
+    }
+  ]
+}
