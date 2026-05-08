@@ -1,6 +1,7 @@
 """Process Imagegen HD intro assets into runtime game sheets.
 
 Sources are generated bitmap assets kept under assets/source:
+  imagen_title_screen_hd_20260508.png
   imagen_intro_forest_opening_20260508.png
   imagen_intro_castle_garden_20260508.png
   imagen_intro_parallax_atlas_20260508.png
@@ -24,6 +25,7 @@ TILE = 256
 ICON = 128
 PORTCULLIS_SIZE = (512, 768)
 
+SRC_TITLE = SOURCE / "imagen_title_screen_hd_20260508.png"
 SRC_FOREST = SOURCE / "imagen_intro_forest_opening_20260508.png"
 SRC_GARDEN = SOURCE / "imagen_intro_castle_garden_20260508.png"
 SRC_PARALLAX = SOURCE / "imagen_intro_parallax_atlas_20260508.png"
@@ -121,6 +123,7 @@ def trim_alpha(img: Image.Image, pad=10) -> Image.Image:
 
 def write_backgrounds() -> None:
     targets = [
+        (SRC_TITLE, "bg_imagen_title_screen_hd.png"),
         (SRC_FOREST, "bg_imagen_forest_opening_hd.png"),
         (SRC_GARDEN, "bg_imagen_castle_garden_hd.png"),
     ]

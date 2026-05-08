@@ -57,6 +57,7 @@
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
+    titleBg: "assets/generated/bg_imagen_title_screen_hd.png",
     bgGate: "assets/generated/bg_imagen_gate_hd.png",
     midGate: "assets/generated/bg_stage1_mid_tiled.png",
     bgClock: "assets/generated/bg_imagen_clock_hd.png",
@@ -184,6 +185,7 @@
     backgroundSet: "imagen-hd-roomfill-v3",
     parallaxSet: "imagen-parallax-v1",
     introParallaxSet: "imagen-intro-parallax-v1",
+    titleScreenSet: "imagen-title-mode7-parallax-v1",
     mode7Set: "background-stretch-mode7-v1",
     tileSet: TILE_SET,
     introTileSet: INTRO_TILE_SET,
@@ -253,6 +255,7 @@
     boss: null,
     bossBanner: null,
     time: 0,
+    titleTime: 0,
     shake: 0,
     cameraX: 0,
     cameraY: 0,
@@ -1241,6 +1244,7 @@
       parallax: parallaxKeysForRoom(game.room).slice(),
       mode7: Boolean(game.room.bg && images[game.room.bg])
     } : null,
+    titleVisuals: titleVisuals(),
     introGate: game.room && game.room.portcullis ? {
       progress: Number(game.room.portcullis.progress.toFixed(2)),
       target: game.room.portcullis.target,
@@ -1257,7 +1261,7 @@
   window.__NOCTURNE_TEST_TELEPORT = (roomId, x, y) => {
     if (!rooms[roomId]) return false;
     game.mode = "playing";
-    dom.titlePanel.hidden = true;
+    hideTitlePanel();
     enterRoom(roomId, { x, y }, false);
     return true;
   };
@@ -1310,7 +1314,17 @@
   function renderTitle(title, subtitle) {
     dom.title.textContent = title;
     dom.subtitle.textContent = subtitle;
+    showTitlePanel();
+  }
+
+  function showTitlePanel() {
     dom.titlePanel.hidden = false;
+    document.body.classList.add("title-active");
+  }
+
+  function hideTitlePanel() {
+    dom.titlePanel.hidden = true;
+    document.body.classList.remove("title-active");
   }
 
   function resetRun(fromSave) {
@@ -1368,7 +1382,7 @@
     game.message = "";
     game.messageTimer = 0;
     game.mode = "playing";
-    dom.titlePanel.hidden = true;
+    hideTitlePanel();
     enterRoom(base.roomId || "gate", { x: player.x, y: player.y }, false);
     ensureFamiliar();
     playSound("ui");
@@ -1601,6 +1615,7 @@
   }
 
   function update(dt) {
+    game.titleTime = (game.titleTime || 0) + dt;
     if (game.mode !== "playing") {
       clearJust();
       return;
@@ -3000,6 +3015,12 @@
     const shakeY = game.shake ? (Math.random() - 0.5) * game.shake * 4 : 0;
     ctx.save();
     ctx.translate(shakeX, shakeY);
+    if (game.mode !== "playing") {
+      drawTitleScene();
+      drawVignette();
+      ctx.restore();
+      return;
+    }
     drawRoom();
     ctx.save();
     ctx.translate(-Math.round(game.cameraX), -Math.round(game.cameraY));
@@ -3020,6 +3041,124 @@
     drawBossHud();
     drawVignette();
     drawBossBanner();
+    ctx.restore();
+  }
+
+  function titleParallaxKeys() {
+    return ["paraForest", "paraStatues", "paraMist"];
+  }
+
+  function titleVisuals() {
+    return {
+      bg: "titleBg",
+      parallax: titleParallaxKeys(),
+      mode7: Boolean(images.titleBg && images.titleBg.width),
+      animated: true
+    };
+  }
+
+  function drawTitleScene() {
+    const t = game.titleTime || game.time || 0;
+    const bg = images.titleBg && images.titleBg.width ? images.titleBg : images.bgForest;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    drawTitleImageLayer(bg, t, 0.11, 1, 1.08, -8);
+    drawTitleImageLayer(images.paraForest, t, 0.22, 0.28, 1.14, -18);
+    drawTitleMoonHaze(t);
+    drawTitleMode7Floor(bg, t);
+    drawTitleImageLayer(images.paraStatues, t, -0.16, 0.30, 1.10, 12);
+    drawTitleImageLayer(images.paraMist, t, 0.42, 0.46, 1.18, 30);
+    drawTitleFireflies(t);
+    ctx.fillStyle = "rgba(5, 4, 8, 0.20)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    ctx.imageSmoothingEnabled = false;
+  }
+
+  function drawTitleImageLayer(img, t, speed, alpha, scale = 1.08, yOffset = 0) {
+    if (!img || !img.width) {
+      if (alpha >= 0.99) {
+        ctx.fillStyle = "#050408";
+        ctx.fillRect(0, 0, W, H);
+      }
+      return;
+    }
+    const driftX = Math.sin(t * speed * 2.7) * 18;
+    const driftY = Math.cos(t * speed * 1.9) * 8 + yOffset;
+    const dw = W * scale;
+    const dh = H * scale;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    drawCover(img, (W - dw) / 2 + driftX, (H - dh) / 2 + driftY, dw, dh);
+    ctx.restore();
+  }
+
+  function drawTitleMode7Floor(img, t) {
+    if (!img || !img.width) return;
+    const startY = Math.round(H * 0.56);
+    const sourceY = Math.round(img.height * 0.58);
+    const sourceH = Math.max(2, img.height - sourceY);
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    for (let y = startY; y < H; y += 3) {
+      const p = (y - startY) / Math.max(1, H - startY);
+      const ease = p * p;
+      const sy = Math.min(img.height - 2, sourceY + Math.round(sourceH * ease));
+      const sliceH = Math.max(1, Math.min(3 + Math.round(p * 9), img.height - sy));
+      const extra = 54 + p * 260;
+      const wave = Math.sin(t * 0.9 + y * 0.034) * (4 + p * 22);
+      const crawl = Math.sin(t * 0.28 + p * 2.4) * 14;
+      ctx.drawImage(
+        img,
+        0,
+        sy,
+        img.width,
+        sliceH,
+        -extra + wave + crawl,
+        y,
+        W + extra * 2,
+        4
+      );
+    }
+    const sheen = ctx.createLinearGradient(0, startY, 0, H);
+    sheen.addColorStop(0, "rgba(112, 184, 198, 0.00)");
+    sheen.addColorStop(0.42, "rgba(112, 184, 198, 0.08)");
+    sheen.addColorStop(1, "rgba(244, 211, 139, 0.14)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, startY, W, H - startY);
+    ctx.restore();
+  }
+
+  function drawTitleMoonHaze(t) {
+    ctx.save();
+    ctx.globalAlpha = 0.18 + Math.sin(t * 0.7) * 0.04;
+    const haze = ctx.createLinearGradient(0, 0, W, H);
+    haze.addColorStop(0, "rgba(112, 184, 198, 0.20)");
+    haze.addColorStop(0.5, "rgba(255, 237, 190, 0.08)");
+    haze.addColorStop(1, "rgba(185, 53, 50, 0.12)");
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  function drawTitleFireflies(t) {
+    ctx.save();
+    for (let i = 0; i < 42; i += 1) {
+      const seed = i * 17.31;
+      const x = (seed * 37 + Math.sin(t * 0.45 + seed) * 42 + t * (8 + (i % 5))) % (W + 80) - 40;
+      const y = 74 + ((seed * 23) % 360) + Math.sin(t * 0.8 + seed * 0.4) * 22;
+      const pulse = 0.45 + 0.55 * Math.sin(t * 2.4 + seed);
+      const warm = i % 4 === 0;
+      ctx.globalAlpha = 0.18 + pulse * 0.42;
+      ctx.shadowColor = warm ? "#d74236" : "#f4d38b";
+      ctx.shadowBlur = 9 + pulse * 12;
+      ctx.fillStyle = warm ? "#d74236" : "#f4d38b";
+      ctx.beginPath();
+      ctx.arc(x, y, 1.4 + pulse * 1.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 

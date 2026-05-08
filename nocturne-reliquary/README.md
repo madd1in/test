@@ -41,6 +41,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Horizontal camera rooms are about one and a half screens wide for better flow
 - Vertical camera rooms are taller than one screen
 - Sprite sheets use the stable pre-reference-slice versions
+- Imagegen HD animated title scene with parallax overlays, fireflies, and Mode7-style foreground stretch
 - Imagen HD 1920x1080 backgrounds across the main castle, branches, and new expansion rooms
 - New Imagegen HD intro approach: Moonwood Verge into Castle Garden before Gate Hall
 - Castle Garden includes statue/rose HD assets and an animated portcullis that drops and rises after passage

@@ -80,6 +80,36 @@ async function browserSmoke() {
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__NOCTURNE_READY === true, null, { timeout: 90000 });
+
+  async function canvasProbe() {
+    return page.evaluate(() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let lit = 0;
+      let alpha = 0;
+      let checksum = 0;
+      for (let i = 0; i < data.length; i += 96) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        if (a > 0) alpha += 1;
+        if (r + g + b > 35) lit += 1;
+        checksum = (checksum + r * 3 + g * 5 + b * 7 + a * 11 + i) % 1000000007;
+      }
+      return { lit, alpha, checksum };
+    });
+  }
+
+  await page.waitForTimeout(260);
+  const titleFrameA = await canvasProbe();
+  const titleState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
+  const titleHudDisplay = await page.evaluate(() => getComputedStyle(document.getElementById("hud")).display);
+  await page.waitForTimeout(640);
+  const titleFrameB = await canvasProbe();
+  const titleFrameDelta = Math.abs(titleFrameB.checksum - titleFrameA.checksum);
+
   await page.click("#startButton");
   await page.waitForTimeout(900);
   await page.keyboard.press("KeyJ");
@@ -212,7 +242,7 @@ async function browserSmoke() {
 
   await browser.close();
   server.close();
-  return { url, state, movementState, transitionStates, portcullisDropState, portcullisReopenState, mobileJumpStart, mobileJumpState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, movementState, transitionStates, portcullisDropState, portcullisReopenState, mobileJumpStart, mobileJumpState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -235,6 +265,13 @@ async function browserSmoke() {
   assert(result.consoleErrors.length === 0, `console errors: ${result.consoleErrors.join("; ")}`);
   assert(result.badResponses.length === 0, `bad responses: ${result.badResponses.join("; ")}`);
   assert(result.state.ready, "game never became ready");
+  assert(result.titleState.mode === "title", `title scene should render before begin: ${JSON.stringify(result.titleState)}`);
+  assert(result.titleState.titleVisuals && result.titleState.titleVisuals.bg === "titleBg", "title screen should use the Imagegen HD title background");
+  assert(result.titleState.titleVisuals.parallax.includes("paraForest") && result.titleState.titleVisuals.parallax.includes("paraMist"), "title screen should expose parallax layers");
+  assert(result.titleState.titleVisuals.mode7, "title screen should expose Mode7/stretch visuals");
+  assert(result.titleHudDisplay === "none", `HUD should be hidden behind the title screen: ${result.titleHudDisplay}`);
+  assert(result.titleFrameA.lit > 1800 && result.titleFrameB.lit > 1800, `title canvas appears too dark: ${JSON.stringify({ before: result.titleFrameA, after: result.titleFrameB })}`);
+  assert(result.titleFrameDelta > 0, `title canvas should animate between frames: ${JSON.stringify({ before: result.titleFrameA, after: result.titleFrameB })}`);
   assert(result.state.titleHidden, "title did not hide after begin");
   assert(result.state.frameInfo.playerFrameW === 128, "player frame width should be 128");
   assert(result.state.frameInfo.playerFrames === 24, "player frame count should be 24");
@@ -253,6 +290,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v3", "Imagen HD room-fill backgrounds should be wired");
   assert(result.state.tuningInfo.parallaxSet === "imagen-parallax-v1", "Imagen parallax overlays should be wired");
   assert(result.state.tuningInfo.introParallaxSet === "imagen-intro-parallax-v1", "Imagen intro parallax overlays should be wired");
+  assert(result.state.tuningInfo.titleScreenSet === "imagen-title-mode7-parallax-v1", "Imagegen HD title screen should be wired");
   assert(result.state.tuningInfo.mode7Set === "background-stretch-mode7-v1", "Mode7/stretch background fill should be wired");
   assert(result.state.tuningInfo.tileSet === "imagen-hd-platforms-v1", "Imagen HD platform tiles should be wired");
   assert(result.state.tuningInfo.introTileSet === "imagen-intro-props-v1", "Imagen intro tile props should be wired");

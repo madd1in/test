@@ -70,6 +70,11 @@ button {
   pointer-events: none;
 }
 
+body.title-active .hud,
+body.title-active .touch-controls {
+  display: none;
+}
+
 .hud-left,
 .hud-center,
 .hud-right {
@@ -322,10 +327,31 @@ button:focus-visible {
   inset: 0;
   display: grid;
   place-items: center;
+  z-index: 3;
   background:
-    linear-gradient(180deg, rgba(5, 4, 8, 0.18), rgba(5, 4, 8, 0.82)),
-    radial-gradient(circle at 50% 45%, rgba(185, 53, 50, 0.14), transparent 28rem);
+    linear-gradient(180deg, rgba(5, 4, 8, 0.08), rgba(5, 4, 8, 0.64)),
+    linear-gradient(90deg, rgba(112, 184, 198, 0.08), transparent 36%, rgba(185, 53, 50, 0.08));
   pointer-events: auto;
+  overflow: hidden;
+}
+
+.title-panel::before,
+.title-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.title-panel::before {
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px);
+  opacity: 0.18;
+}
+
+.title-panel::after {
+  background: linear-gradient(100deg, transparent 0%, rgba(244, 211, 139, 0.10) 48%, transparent 62%);
+  transform: translateX(-120%);
+  animation: title-sweep 8s ease-in-out infinite;
 }
 
 .title-panel[hidden] {
@@ -333,6 +359,8 @@ button:focus-visible {
 }
 
 .title-inner {
+  position: relative;
+  z-index: 1;
   width: min(90vw, 720px);
   text-align: center;
   padding: 24px;
@@ -353,6 +381,7 @@ h1 {
   line-height: 0.95;
   font-weight: 700;
   color: #fff0cf;
+  animation: title-glow 4.8s ease-in-out infinite;
 }
 
 .subtitle {
@@ -374,6 +403,29 @@ h1 {
   margin-top: 16px;
   color: #c6bcae;
   font-size: 13px;
+}
+
+@keyframes title-sweep {
+  0%,
+  48% {
+    transform: translateX(-120%);
+  }
+  70% {
+    transform: translateX(120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes title-glow {
+  0%,
+  100% {
+    text-shadow: 0 3px 0 #000, 0 0 18px rgba(185, 53, 50, 0.34);
+  }
+  50% {
+    text-shadow: 0 3px 0 #000, 0 0 26px rgba(244, 211, 139, 0.46);
+  }
 }
 
 .map-panel {
