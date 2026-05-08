@@ -53,7 +53,7 @@
     boss: "assets/generated/boss_sheet_anim.png",
     projectile: "assets/generated/projectile_sheet.png",
     whip: "assets/generated/whip_sheet.png",
-    tiles: "assets/generated/ai_tileset_16bit.png",
+    tiles: "assets/generated/tiles_imagen_hd_platforms.png",
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
@@ -116,6 +116,19 @@
     upKeys: KEYMAP.up.slice(),
     feel: ["jumpBuffer", "downWhipPogo"]
   };
+
+  const TILE_SET = "imagen-hd-platforms-v1";
+  const TILE_SOURCE_SIZE = 256;
+  const TILE_DRAW_SIZE = 48;
+  const PLATFORM_TILE_CELLS = {
+    gold: [0, 0],
+    stone: [1, 0],
+    blue: [2, 0],
+    green: [0, 1],
+    red: [1, 1],
+    trim: [2, 1]
+  };
+
   window.__NOCTURNE_TUNING_INFO = {
     roomFlow: "horizontalCamera",
     longRoomWidth: LONG_ROOM_WIDTH,
@@ -123,6 +136,9 @@
     whipSideReach: WHIP_SIDE_REACH,
     spriteSet: "stable-v4",
     backgroundSet: "imagen-hd-roomfill-v2",
+    tileSet: TILE_SET,
+    tileSourceSize: TILE_SOURCE_SIZE,
+    tileDrawSize: TILE_DRAW_SIZE,
     difficulty: "mercy-pass"
   };
 
@@ -2736,28 +2752,67 @@
     c.width = roomWidth(room);
     c.height = roomHeight(room);
     const cx = c.getContext("2d");
-    cx.imageSmoothingEnabled = false;
+    cx.imageSmoothingEnabled = true;
     for (const solid of room.platforms) drawPlatformInto(cx, solid);
     room.__platformLayer = c;
     return c;
   }
 
   function drawPlatformInto(cx, solid) {
-    const tile = solid.type === "green" ? [0, 4] : solid.type === "red" ? [0, 5] : solid.type === "blue" ? [4, 5] : solid.type === "trim" ? [5, 0] : solid.type === "stone" ? [1, 0] : [0, 0];
-    cx.fillStyle = solid.type === "trim" ? "rgba(44, 36, 38, 0.84)" : "rgba(20, 20, 24, 0.88)";
+    const tile = platformTileCell(solid);
+    cx.fillStyle = platformBaseFill(solid.type);
     cx.fillRect(solid.x, solid.y, solid.w, solid.h);
     const tiles = images.tiles;
-    if (tiles) {
-      const sx0 = tile[0] * 64;
-      const sy0 = tile[1] * 64;
-      for (let x = solid.x; x < solid.x + solid.w; x += 48) {
-        for (let y = solid.y; y < solid.y + solid.h; y += 48) {
-          cx.drawImage(tiles, sx0, sy0, 64, 64, x, y, Math.min(48, solid.x + solid.w - x), Math.min(48, solid.y + solid.h - y));
+    if (tiles && tiles.width) {
+      const sx0 = tile[0] * TILE_SOURCE_SIZE;
+      const sy0 = tile[1] * TILE_SOURCE_SIZE;
+      cx.save();
+      cx.globalAlpha = solid.type === "trim" ? 0.96 : 0.92;
+      cx.imageSmoothingEnabled = true;
+      for (let x = solid.x; x < solid.x + solid.w; x += TILE_DRAW_SIZE) {
+        for (let y = solid.y; y < solid.y + solid.h; y += TILE_DRAW_SIZE) {
+          cx.drawImage(
+            tiles,
+            sx0,
+            sy0,
+            TILE_SOURCE_SIZE,
+            TILE_SOURCE_SIZE,
+            x,
+            y,
+            Math.min(TILE_DRAW_SIZE, solid.x + solid.w - x),
+            Math.min(TILE_DRAW_SIZE, solid.y + solid.h - y)
+          );
         }
       }
+      cx.restore();
     }
-    cx.fillStyle = "rgba(244, 211, 139, 0.16)";
-    cx.fillRect(solid.x, solid.y, solid.w, 2);
+    drawPlatformBevel(cx, solid);
+  }
+
+  function platformTileCell(solid) {
+    return PLATFORM_TILE_CELLS[solid.type] || PLATFORM_TILE_CELLS.gold;
+  }
+
+  function platformBaseFill(type) {
+    if (type === "green") return "rgba(12, 28, 18, 0.78)";
+    if (type === "red") return "rgba(34, 10, 15, 0.80)";
+    if (type === "blue") return "rgba(9, 18, 37, 0.80)";
+    if (type === "trim") return "rgba(18, 17, 20, 0.84)";
+    if (type === "stone") return "rgba(18, 19, 23, 0.80)";
+    return "rgba(29, 23, 16, 0.78)";
+  }
+
+  function drawPlatformBevel(cx, solid) {
+    const top = solid.type === "blue" ? "rgba(166, 214, 255, 0.24)" : solid.type === "green" ? "rgba(203, 244, 162, 0.20)" : solid.type === "red" ? "rgba(255, 142, 134, 0.20)" : "rgba(255, 225, 160, 0.22)";
+    cx.fillStyle = top;
+    cx.fillRect(solid.x, solid.y, solid.w, 3);
+    cx.fillStyle = "rgba(255, 255, 255, 0.06)";
+    cx.fillRect(solid.x, solid.y + 3, solid.w, 2);
+    cx.fillStyle = "rgba(0, 0, 0, 0.34)";
+    cx.fillRect(solid.x, solid.y + solid.h - 5, solid.w, 5);
+    cx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    cx.fillRect(solid.x, solid.y, 2, solid.h);
+    cx.fillRect(solid.x + solid.w - 2, solid.y, 2, solid.h);
   }
 
   function drawArchitecture(room) {
@@ -2771,30 +2826,22 @@
       ctx.drawImage(lamp, x - 18, 170 + Math.sin(game.time * 1.7 + x) * 3, 42, 42);
     }
     ctx.globalAlpha = room.palette === "green" ? 0.18 : 0.14;
+    const trimTile = PLATFORM_TILE_CELLS.trim;
+    const accentTile = room.palette === "green" ? PLATFORM_TILE_CELLS.green : room.palette === "blue" ? PLATFORM_TILE_CELLS.blue : room.palette === "red" ? PLATFORM_TILE_CELLS.red : PLATFORM_TILE_CELLS.stone;
     for (let x = -40; x < roomWidth(room) + 80; x += 112) {
-      drawTileCell(3, 0, x, 76, 64, 64);
-      drawTileCell(3, 1, x + 44, 138, 64, 64);
+      drawTileCell(trimTile[0], trimTile[1], x, 76, 64, 64);
+      drawTileCell(accentTile[0], accentTile[1], x + 44, 138, 64, 64);
     }
     ctx.globalAlpha = 1;
   }
 
   function drawPlatform(solid) {
-    const tile = solid.type === "green" ? [0, 4] : solid.type === "red" ? [0, 5] : solid.type === "blue" ? [4, 5] : solid.type === "trim" ? [5, 0] : solid.type === "stone" ? [1, 0] : [0, 0];
-    ctx.fillStyle = solid.type === "trim" ? "rgba(44, 36, 38, 0.84)" : "rgba(20, 20, 24, 0.88)";
-    ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
-    if (!images.tiles) return;
-    for (let x = solid.x; x < solid.x + solid.w; x += 48) {
-      for (let y = solid.y; y < solid.y + solid.h; y += 48) {
-        drawTileCell(tile[0], tile[1], x, y, Math.min(48, solid.x + solid.w - x), Math.min(48, solid.y + solid.h - y));
-      }
-    }
-    ctx.fillStyle = "rgba(244, 211, 139, 0.16)";
-    ctx.fillRect(solid.x, solid.y, solid.w, 2);
+    drawPlatformInto(ctx, solid);
   }
 
-  function drawTileCell(cx, cy, x, y, w, h) {
+  function drawTileCell(tileX, tileY, x, y, w, h) {
     if (!images.tiles) return;
-    ctx.drawImage(images.tiles, cx * 64, cy * 64, 64, 64, x, y, w, h);
+    ctx.drawImage(images.tiles, tileX * TILE_SOURCE_SIZE, tileY * TILE_SOURCE_SIZE, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE, x, y, w, h);
   }
 
   function drawDoors() {

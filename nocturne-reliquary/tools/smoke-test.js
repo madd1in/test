@@ -193,6 +193,9 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
   assert(result.state.tuningInfo.spriteSet === "stable-v4", "sprites should use the stable pre-reference-slice sheets");
   assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v2", "Imagen HD room-fill backgrounds should be wired");
+  assert(result.state.tuningInfo.tileSet === "imagen-hd-platforms-v1", "Imagen HD platform tiles should be wired");
+  assert(result.state.tuningInfo.tileSourceSize === 256, "platform tile source cells should be HD 256px");
+  assert(result.state.tuningInfo.tileDrawSize === 48, "platform collision draw tiles should stay gameplay-sized");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");

@@ -43,6 +43,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Sprite sheets use the stable pre-reference-slice versions
 - Imagen HD 1920x1080 backgrounds for the Belltower, Library, Cavern, and Drowned Rose Garden
 - Backgrounds are stretched to the full room plane with a lightweight Mode7-style floor fill
+- Imagen HD 256px platform tiles replace the old 64px sheet and stay mapped to the collision-sized 48px grid
 - Safer room exits use expanded trigger zones, spawn settling, transition cooldowns, and last-safe-ground recovery
 - Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
 - Aerial whip stalls descent briefly for safer mid-air attacks
@@ -51,6 +52,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Reproducible slicing for the raw player and whip PNGs in `tools/slice-local-assets.py`
 - Reproducible high-resolution backdrop generation in `tools/build-gothic-backgrounds.py`
 - Reproducible Imagen atlas cropping in `tools/build-imagen-hd-backgrounds.py`
+- Reproducible Imagen platform-tile cropping in `tools/build-imagen-hd-tiles.py`
 - Local BGM and SFX
 - Save/continue through `localStorage`
 - Boss finale in the Crimson Reliquary
