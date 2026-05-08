@@ -8,6 +8,7 @@ import {
   GOAL,
   LEVEL_TARGET_STARS,
   PLATFORMS,
+  PRISM_CHARMS,
   SPRINGS,
   START,
   STARS,
@@ -122,6 +123,7 @@ const solids = [];
 const movingSolids = [];
 const starItems = [];
 const coinItems = [];
+const prismCharmItems = [];
 const springItems = [];
 const dashPadItems = [];
 const boostRingItems = [];
@@ -153,6 +155,7 @@ const player = {
   damageCooldown: 0,
   fallRescueTimer: 0,
   glideSparkTimer: 0,
+  prismShield: 0,
   gliding: false,
   health: 3,
   checkpoint: new THREE.Vector3(START.x, START.y, START.z),
@@ -308,6 +311,20 @@ const materials = {
   hair: new THREE.MeshStandardMaterial({ color: 0x5b3928, roughness: 0.72 }),
   cheek: new THREE.MeshStandardMaterial({ color: 0xf49b8d, roughness: 0.7, transparent: true, opacity: 0.72 }),
   heroAccent: new THREE.MeshStandardMaterial({ color: 0x79d4a8, roughness: 0.5, emissive: 0x052c1a, emissiveIntensity: 0.06 }),
+  prismCharm: new THREE.MeshStandardMaterial({
+    color: 0xd8fbff,
+    roughness: 0.25,
+    metalness: 0.06,
+    emissive: 0x2ad6ff,
+    emissiveIntensity: 0.45,
+  }),
+  prismAura: new THREE.MeshBasicMaterial({
+    color: 0xd8fbff,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    fog: false,
+  }),
   mouth: new THREE.MeshBasicMaterial({ color: 0x5b3928 }),
   eye: new THREE.MeshStandardMaterial({ color: 0x111820, roughness: 0.4 }),
   enemy: materialFromTexture("enemy_skin", 0xffffff, 1, 1, { roughness: 0.66 }),
@@ -671,6 +688,32 @@ function createCoin(def, index) {
   mesh.castShadow = enableShadows;
   scene.add(mesh);
   coinItems.push({ ...def, id: `coin-${index}`, mesh, collected: false });
+}
+
+function createPrismCharm(def) {
+  const group = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 0), materials.prismCharm);
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.48, 0.036, reducedGpuMode ? 6 : 8, reducedGpuMode ? 18 : 28),
+    new THREE.MeshBasicMaterial({
+      color: 0xd8fbff,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.66, 0.018, 5, reducedGpuMode ? 20 : 32),
+    materials.prismAura.clone(),
+  );
+  ring.rotation.x = Math.PI / 2;
+  halo.rotation.y = Math.PI / 2;
+  core.castShadow = enableShadows;
+  group.add(core, ring, halo);
+  group.position.set(def.x, def.y, def.z);
+  scene.add(group);
+  prismCharmItems.push({ ...def, group, core, ring, halo, collected: false });
 }
 
 function createTree(def) {
@@ -1277,7 +1320,30 @@ function createPlayer() {
   wingA.visible = false;
   wingB.visible = false;
 
+  const shieldAura = new THREE.Mesh(
+    new THREE.SphereGeometry(0.78, reducedGpuMode ? 14 : 22, reducedGpuMode ? 8 : 14),
+    materials.prismAura.clone(),
+  );
+  shieldAura.position.y = 0.88;
+  shieldAura.scale.set(0.92, 1.18, 0.92);
+  shieldAura.visible = false;
+  const shieldRingA = new THREE.Mesh(
+    new THREE.TorusGeometry(0.72, 0.024, 5, reducedGpuMode ? 22 : 34),
+    materials.prismAura.clone(),
+  );
+  const shieldRingB = shieldRingA.clone();
+  shieldRingB.material = shieldRingA.material.clone();
+  shieldRingA.position.y = 0.88;
+  shieldRingB.position.y = 0.88;
+  shieldRingA.rotation.x = Math.PI / 2;
+  shieldRingB.rotation.z = Math.PI / 2;
+  shieldRingA.visible = false;
+  shieldRingB.visible = false;
+
   group.add(
+    shieldAura,
+    shieldRingA,
+    shieldRingB,
     shadow,
     body,
     head,
@@ -1309,7 +1375,25 @@ function createPlayer() {
     wingA,
     wingB,
   );
-  group.userData = { body, shoeA, shoeB, armA, armB, handA, handB, shadow, wingA, wingB, scarf, cape, badge, capGem };
+  group.userData = {
+    body,
+    shoeA,
+    shoeB,
+    armA,
+    armB,
+    handA,
+    handB,
+    shadow,
+    wingA,
+    wingB,
+    scarf,
+    cape,
+    badge,
+    capGem,
+    shieldAura,
+    shieldRingA,
+    shieldRingB,
+  };
   scene.add(group);
   return group;
 }
@@ -1362,6 +1446,7 @@ function buildWorld() {
   for (const wind of WIND_COLUMNS) createWindColumn(wind);
   STARS.forEach(createStar);
   COINS.forEach(createCoin);
+  PRISM_CHARMS.forEach(createPrismCharm);
   for (const decor of DECOR) {
     if (decor.type === "tree") createTree(decor);
     if (decor.type === "cloud") createCloud(decor);
@@ -1790,6 +1875,9 @@ function animatePlayer(dt, horizontalSpeed) {
   const cape = playerGroup.userData.cape;
   const badge = playerGroup.userData.badge;
   const capGem = playerGroup.userData.capGem;
+  const shieldAura = playerGroup.userData.shieldAura;
+  const shieldRingA = playerGroup.userData.shieldRingA;
+  const shieldRingB = playerGroup.userData.shieldRingB;
   const swing = Math.sin(t) * 0.35 * stride;
   shoeA.position.z = -0.12 + swing * 0.18;
   shoeB.position.z = -0.12 - swing * 0.18;
@@ -1820,6 +1908,21 @@ function animatePlayer(dt, horizontalSpeed) {
     const flutter = Math.sin(game.time * 12) * 0.08;
     wingA.rotation.z = -0.2 - flutter;
     wingB.rotation.z = 0.2 + flutter;
+  }
+
+  const shieldTarget = player.prismShield > 0 ? (player.prismShield > 1 ? 0.2 : 0.13) : 0;
+  const shieldOpacity = damp(shieldAura.material.opacity, shieldTarget, 12, dt);
+  shieldAura.material.opacity = shieldOpacity;
+  shieldRingA.material.opacity = Math.min(0.78, shieldOpacity * 4.2);
+  shieldRingB.material.opacity = shieldRingA.material.opacity * 0.82;
+  shieldAura.visible = shieldOpacity > 0.015;
+  shieldRingA.visible = shieldAura.visible;
+  shieldRingB.visible = shieldAura.visible;
+  if (shieldAura.visible) {
+    const shieldScale = 1 + Math.sin(game.time * 7.5) * 0.035 + player.prismShield * 0.035;
+    shieldAura.scale.set(0.92 * shieldScale, 1.18 * shieldScale, 0.92 * shieldScale);
+    shieldRingA.rotation.z += dt * (1.9 + player.prismShield * 0.35);
+    shieldRingB.rotation.y -= dt * (1.4 + player.prismShield * 0.25);
   }
 }
 
@@ -1970,6 +2073,34 @@ function updateCollectibles(dt) {
       game.coins += 1;
       audio.play("pickup", 0.42);
       spawnBurst(coin.mesh.position, 0xfff0a4, 8);
+    }
+  }
+}
+
+function updatePrismCharms(dt, active = true) {
+  for (const charm of prismCharmItems) {
+    if (charm.collected) continue;
+    charm.group.rotation.y += dt * 1.8;
+    charm.core.rotation.x += dt * 1.25;
+    charm.ring.rotation.z -= dt * 2.4;
+    charm.halo.rotation.x += dt * 0.9;
+    charm.group.position.y = charm.y + Math.sin(game.time * 3.4 + charm.x) * 0.14;
+    charm.core.scale.setScalar(0.92 + Math.sin(game.time * 5.5 + charm.z) * 0.08);
+    charm.halo.material.opacity = 0.22 + Math.sin(game.time * 4.2 + charm.x) * 0.08;
+    charm.halo.scale.setScalar(0.92 + Math.sin(game.time * 4.7 + charm.z) * 0.1);
+
+    if (!active) continue;
+    const distance = assistMode
+      ? pullTowardPlayer(charm.group, 4.2, 0.82, dt, 7.2)
+      : charm.group.position.distanceTo(tmpVec.set(player.pos.x, player.pos.y + 0.82, player.pos.z));
+    if (distance < (assistMode ? 1.38 : 1.06)) {
+      charm.collected = true;
+      charm.group.visible = false;
+      player.prismShield = Math.min(2, player.prismShield + 1);
+      game.coins += 3;
+      audio.play("star", 0.58);
+      spawnBurst(charm.group.position, 0xd8fbff, 18);
+      showToast(player.prismShield > 1 ? "Prism Shield x2" : "Prism Shield");
     }
   }
 }
@@ -2125,8 +2256,13 @@ function handleEnemyContact(enemy, x, y, z, radius, height, stompable, color, hi
 function damagePlayer(direction, hardReset) {
   if (!hardReset && player.damageCooldown > 0) return;
   player.damageCooldown = 1.45;
+  let shielded = false;
   if (hardReset && assistMode) {
     showToast("Safe Return");
+  } else if (!hardReset && player.prismShield > 0) {
+    player.prismShield -= 1;
+    shielded = true;
+    showToast("Prism Save");
   } else if (!hardReset && assistMode && game.coins > 0) {
     game.coins = Math.max(0, game.coins - 1);
     showToast("Coin Save");
@@ -2136,8 +2272,12 @@ function damagePlayer(direction, hardReset) {
   player.vel.x = direction.x * 7.5;
   player.vel.z = direction.z * 7.5;
   player.vel.y = 6.5;
-  audio.play("hurt", 0.62);
-  spawnBurst(tmpVec.set(player.pos.x, player.pos.y + 0.8, player.pos.z), 0xf1725f, 10);
+  audio.play(shielded ? "bounce" : "hurt", shielded ? 0.56 : 0.62);
+  spawnBurst(
+    tmpVec.set(player.pos.x, player.pos.y + 0.8, player.pos.z),
+    shielded ? 0xd8fbff : 0xf1725f,
+    shielded ? 14 : 10,
+  );
 
   if (hardReset || player.health <= 0) {
     if (player.health <= 0) player.health = 3;
@@ -2404,6 +2544,7 @@ function resetRun(keepRunning = false) {
   player.airJumpsUsed = 0;
   player.fallRescueTimer = 0;
   player.glideSparkTimer = 0;
+  player.prismShield = 0;
   player.gliding = false;
   player.coyote = 0;
   cameraState.yaw = Math.PI;
@@ -2420,6 +2561,11 @@ function resetRun(keepRunning = false) {
     coin.collected = false;
     coin.mesh.visible = true;
     coin.mesh.position.set(coin.x, coin.y, coin.z);
+  }
+  for (const charm of prismCharmItems) {
+    charm.collected = false;
+    charm.group.visible = true;
+    charm.group.position.set(charm.x, charm.y, charm.z);
   }
   for (const enemy of enemyItems) {
     enemy.defeated = false;
@@ -2603,6 +2749,7 @@ function frame() {
     updateBoostRings(dt);
     updateWindColumns(dt);
     updateCollectibles(dt);
+    updatePrismCharms(dt);
     updateEnemies(dt);
     updateGoal(dt);
     updateGuideArrow();
@@ -2620,6 +2767,7 @@ function frame() {
     updateDashPads(dt, false);
     updateBoostRings(dt, false);
     updateWindColumns(dt, false);
+    updatePrismCharms(dt, false);
     guideArrow.visible = false;
     checkpointBeacon.visible = false;
     updateParticles(dt);
