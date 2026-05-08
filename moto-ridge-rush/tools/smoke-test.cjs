@@ -18,7 +18,8 @@ const types = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".png": "image/png"
+  ".png": "image/png",
+  ".wav": "audio/wav"
 };
 
 function createServer() {
@@ -58,7 +59,7 @@ async function run() {
   const browser = await chromium.launch({ headless: true, executablePath });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
-    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
+    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => window.__MOTO_RIDGE_READY === true);
     await page.click("#startButton");
     await page.keyboard.down("ArrowRight");
@@ -80,7 +81,7 @@ async function run() {
     }
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-    await mobile.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
+    await mobile.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
     await mobile.waitForFunction(() => window.__MOTO_RIDGE_READY === true);
     await mobile.tap("#startButton");
     await mobile.locator('[data-action="throttle"]').dispatchEvent("pointerdown", { pointerId: 1, pointerType: "touch", isPrimary: true, buttons: 1 });

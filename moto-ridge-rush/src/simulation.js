@@ -174,7 +174,7 @@
     const groundY = ground.y - 35;
     bike.throttleActive = throttle > 0;
     bike.brakeActive = brake > 0;
-    bike.turboActive = turbo > 0 || (zone && zone.type === "boost");
+    bike.turboActive = turbo > 0 || (zone && (zone.type === "boost" || zone.type === "draft"));
     bike.zoneType = zone ? zone.type : null;
 
     if (bike.grounded && input.wasPressed("hop")) {
@@ -182,13 +182,15 @@
       bike.grounded = false;
       bike.airborneTime = 0;
       spawnFx(state, "dust", bike.x - 22, ground.y + 6, 0.75);
+      state.events.push({ type: "jump" });
     }
 
     const slopeDrag = Math.sin(ground.angle) * 680;
-    const mudDrag = zone && zone.type === "mud" ? 0.54 : 1;
-    const boostForce = zone && zone.type === "boost" ? 840 : 0;
+    const mudDrag = zone && zone.type === "mud" ? 0.7 : 1;
+    const boostForce = zone && zone.type === "boost" ? 960 : 0;
+    const draftForce = zone && zone.type === "draft" ? 260 : 0;
     const heatPenalty = bike.overheat > 0 ? 0.35 : 1;
-    const accel = (throttle * 760 + turbo * 620 + boostForce) * mudDrag * heatPenalty;
+    const accel = (throttle * 790 + turbo * 660 + boostForce + draftForce) * mudDrag * heatPenalty;
     const brakeForce = brake * 760;
 
     bike.heat = clamp(bike.heat + (throttle * 0.055 + turbo * 0.19 - 0.075) * dt, 0, 1.08);
@@ -203,8 +205,8 @@
 
     if (bike.grounded) {
       bike.vx += (accel - brakeForce - slopeDrag) * dt;
-      bike.vx *= Math.pow(zone && zone.type === "mud" ? 0.78 : 0.92, dt);
-      bike.vx = clamp(bike.vx, -220, turbo ? 980 : 820);
+      bike.vx *= Math.pow(zone && zone.type === "mud" ? 0.84 : 0.94, dt);
+      bike.vx = clamp(bike.vx, -220, turbo || (zone && zone.type === "boost") ? 1120 : 930);
       bike.x += bike.vx * dt;
       const nextGround = sampleTrack(level, bike.x);
       bike.y = nextGround.y - 35;
@@ -239,11 +241,17 @@
         bike.grounded = true;
         bike.airborneTime = 0;
         bike.angle = approachAngle(bike.angle, landingGround.angle, 0.75);
-        bike.vx *= hardLanding ? 0.38 : 0.86;
+        bike.vx *= hardLanding ? 0.64 : 0.88;
         bike.vy = 0;
         spawnFx(state, hardLanding ? "spark" : "dust", bike.x - 14, landingGround.y + 3, hardLanding ? 1.1 : 0.85);
-        if (hardLanding) crash(state, "landing");
-        else if (state.race.trickReady && airtime > 0.42) {
+        if (hardLanding) {
+          bike.invincible = Math.max(bike.invincible, 0.55);
+          state.camera.shake = Math.max(state.camera.shake, 6);
+          state.events.push({ type: "bump", reason: "landing" });
+        } else {
+          state.events.push({ type: "land" });
+        }
+        if (!hardLanding && state.race.trickReady && airtime > 0.42) {
           const points = Math.round(80 + airtime * 190 + Math.abs(bike.vx) * 0.08);
           state.race.score += points;
           state.events.push({ type: "stunt", points });
@@ -316,7 +324,12 @@
       if (state.race.hazardsHit.has(hazard.x)) continue;
       if (Math.abs(bike.x - hazard.x) < 34 && bike.grounded && bike.invincible <= 0) {
         state.race.hazardsHit.add(hazard.x);
-        crash(state, hazard.kind);
+        bike.vx *= hazard.kind === "barrel" ? 0.66 : 0.76;
+        bike.heat = clamp(bike.heat + 0.05, 0, 1);
+        bike.invincible = Math.max(bike.invincible, 0.65);
+        state.camera.shake = Math.max(state.camera.shake, 6);
+        state.events.push({ type: "bump", reason: hazard.kind });
+        spawnFx(state, "spark", bike.x + 18, bike.y - 12, 0.82);
       }
     }
   }

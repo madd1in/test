@@ -2,7 +2,7 @@
   "name": "moto-ridge-rush",
   "version": "1.0.0",
   "private": true,
-  "description": "Original browser motocross arcade game with generated sprite sheets and tile maps.",
+  "description": "Original pseudo-3D browser motocross game with generated sprite sheets, HD tile maps, and local audio.",
   "scripts": {
     "build:assets": "node tools/build-assets.cjs",
     "serve": "node tools/serve.cjs",

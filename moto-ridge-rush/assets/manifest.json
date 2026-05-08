@@ -1,9 +1,11 @@
 {
-  "generatedAt": "2026-05-08T06:37:41.280Z",
+  "generatedAt": "2026-05-08T07:40:55.157Z",
   "sourceImages": [
     "assets/source/imagen-bike-rider-source.png",
     "assets/source/imagen-terrain-tiles-source.png",
-    "assets/source/imagen-fx-objects-source.png"
+    "assets/source/imagen-fx-objects-source.png",
+    "assets/source/imagen-hd-mode7-tile-map.png",
+    "assets/source/imagen-hd-background-strips.png"
   ],
   "images": {
     "bike": {
@@ -646,6 +648,234 @@
         }
       }
     },
+    "mode7Tiles": {
+      "file": "assets/tiles/imagen-hd-mode7-tiles.png",
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "columns": 8,
+      "rows": 4,
+      "frames": {
+        "packed_dirt": {
+          "x": 0,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "tire_grooves": {
+          "x": 192,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "dust_shoulder": {
+          "x": 384,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "gravel": {
+          "x": 576,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "wet_mud": {
+          "x": 768,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "cracked_clay": {
+          "x": 960,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "teal_boost": {
+          "x": 1152,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "hazard_stripe": {
+          "x": 1344,
+          "y": 0,
+          "w": 192,
+          "h": 256
+        },
+        "ramp_lip": {
+          "x": 0,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "banked_berm": {
+          "x": 192,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "bridge_plank": {
+          "x": 384,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "metal_grate": {
+          "x": 576,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "finish": {
+          "x": 768,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "checkpoint": {
+          "x": 960,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "dark_fill": {
+          "x": 1152,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "sand_wash": {
+          "x": 1344,
+          "y": 256,
+          "w": 192,
+          "h": 256
+        },
+        "canyon_edge": {
+          "x": 0,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "pine_edge": {
+          "x": 192,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "storm_asphalt": {
+          "x": 384,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "oil_slick": {
+          "x": 576,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "jump_marker": {
+          "x": 768,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "deep_ruts": {
+          "x": 960,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "cracked_asphalt": {
+          "x": 1152,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "barrier": {
+          "x": 1344,
+          "y": 512,
+          "w": 192,
+          "h": 256
+        },
+        "grass_edge": {
+          "x": 0,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "red_clay": {
+          "x": 192,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "ocher_dust": {
+          "x": 384,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "black_shadow": {
+          "x": 576,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "teal_lane": {
+          "x": 768,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "coral_lane": {
+          "x": 960,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "white_lane": {
+          "x": 1152,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        },
+        "worn_dirt": {
+          "x": 1344,
+          "y": 768,
+          "w": 192,
+          "h": 256
+        }
+      }
+    },
+    "hdBackgrounds": {
+      "file": "assets/backgrounds/imagen-hd-background-strips.png",
+      "frameWidth": 1920,
+      "frameHeight": 320,
+      "columns": 1,
+      "rows": 3,
+      "frames": {
+        "canyon": {
+          "x": 0,
+          "y": 0,
+          "w": 1920,
+          "h": 320
+        },
+        "pine": {
+          "x": 0,
+          "y": 320,
+          "w": 1920,
+          "h": 320
+        },
+        "storm": {
+          "x": 0,
+          "y": 640,
+          "w": 1920,
+          "h": 320
+        }
+      }
+    },
     "decor": {
       "file": "assets/sprites/decor-objects.png",
       "frameWidth": 96,
@@ -1188,26 +1418,34 @@
       }
     }
   },
+  "audio": {
+    "bgm": "assets/audio/ridge-bgm.wav",
+    "jump": "assets/audio/jump.wav",
+    "land": "assets/audio/land.wav",
+    "pickup": "assets/audio/pickup.wav",
+    "crash": "assets/audio/crash.wav",
+    "finish": "assets/audio/finish.wav"
+  },
   "levels": [
     {
       "id": "canyon-run",
       "title": "Canyon Run",
       "file": "assets/maps/canyon-run.json",
-      "length": 6500,
+      "length": 12800,
       "theme": "canyon"
     },
     {
       "id": "pine-switchbacks",
       "title": "Pine Switchbacks",
       "file": "assets/maps/pine-switchbacks.json",
-      "length": 7200,
+      "length": 14200,
       "theme": "pine"
     },
     {
       "id": "storm-lights",
       "title": "Storm Lights",
       "file": "assets/maps/storm-lights.json",
-      "length": 7800,
+      "length": 15600,
       "theme": "storm"
     }
   ]
