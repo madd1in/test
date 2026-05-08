@@ -96,7 +96,7 @@
   const KEYMAP = {
     left: ["ArrowLeft", "KeyA"],
     right: ["ArrowRight", "KeyD"],
-    up: ["KeyW"],
+    up: ["KeyW", "ArrowUp"],
     down: ["ArrowDown", "KeyS"],
     jump: ["ArrowUp", "Space", "KeyZ"],
     attack: ["KeyJ", "KeyX"],
