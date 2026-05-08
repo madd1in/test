@@ -50,25 +50,33 @@
   const IMG = {
     player: "assets/generated/player_sheet_anim.png",
     enemy: "assets/generated/enemy_sheet_clean.png",
-    boss: "assets/generated/boss_sheet_anim.png",
+    boss: "assets/generated/boss_sheet_hd_16.png",
     projectile: "assets/generated/projectile_sheet.png",
     whip: "assets/generated/whip_sheet.png",
     tiles: "assets/generated/tiles_imagen_hd_platforms.png",
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
-    bgGate: "assets/generated/bg_gothic_hall.png",
+    bgGate: "assets/generated/bg_imagen_gate_hd.png",
     midGate: "assets/generated/bg_stage1_mid_tiled.png",
-    bgClock: "assets/generated/bg_gothic_stairs.png",
+    bgClock: "assets/generated/bg_imagen_clock_hd.png",
     midClock: "assets/generated/bg_stage2_mid_tiled.png",
-    bgCrypt: "assets/generated/bg_gothic_dungeon.png",
+    bgCrypt: "assets/generated/bg_imagen_crypt_hd.png",
     midCrypt: "assets/generated/bg_stage3_mid_tiled.png",
-    bgThrone: "assets/generated/bg_gothic_cathedral.png",
+    bgThrone: "assets/generated/bg_imagen_reliquary_hd.png",
     midThrone: "assets/generated/bg_stage5_mid_tiled.png",
     bgLibrary: "assets/generated/bg_imagen_library_hd.png",
     bgCavern: "assets/generated/bg_imagen_cavern_hd.png",
     bgBelltower: "assets/generated/bg_imagen_belltower_hd.png",
-    bgGarden: "assets/generated/bg_imagen_garden_hd.png"
+    bgGarden: "assets/generated/bg_imagen_garden_hd.png",
+    bgArchive: "assets/generated/bg_imagen_archive_hd.png",
+    bgOssuary: "assets/generated/bg_imagen_ossuary_hd.png",
+    bgAqueduct: "assets/generated/bg_imagen_aqueduct_hd.png",
+    bgLoft: "assets/generated/bg_imagen_loft_hd.png",
+    paraArches: "assets/generated/para_imagen_arches_hd.png",
+    paraMachinery: "assets/generated/para_imagen_machinery_hd.png",
+    paraMist: "assets/generated/para_imagen_mist_roses_hd.png",
+    paraCrystals: "assets/generated/para_imagen_crystals_hd.png"
   };
 
   const AUDIO = {
@@ -135,10 +143,13 @@
     longRoomHeight: LONG_ROOM_HEIGHT,
     whipSideReach: WHIP_SIDE_REACH,
     spriteSet: "stable-v4",
-    backgroundSet: "imagen-hd-roomfill-v2",
+    backgroundSet: "imagen-hd-roomfill-v3",
+    parallaxSet: "imagen-parallax-v1",
     tileSet: TILE_SET,
     tileSourceSize: TILE_SOURCE_SIZE,
     tileDrawSize: TILE_DRAW_SIZE,
+    roomSet: "expanded-16-hd",
+    mobileTouch: "down-button-full-jump-v1",
     difficulty: "mercy-pass"
   };
 
@@ -148,7 +159,10 @@
     playerFrames: 24,
     whipFrameW: 192,
     whipFrameH: 72,
-    whipFrames: 8
+    whipFrames: 8,
+    bossFrameW: 320,
+    bossFrameH: 256,
+    bossFrames: 16
   };
   window.__NOCTURNE_FRAME_INFO = SPRITES;
 
@@ -203,6 +217,7 @@
     cameraTargetY: 0,
     roomTransitionCooldown: 0,
     lastSafeSpot: null,
+    touchJumpHold: 0,
     muted: false,
     mobileMode: false,
     message: "",
@@ -586,7 +601,8 @@
         p(700, 214, 142, 28, "stone")
       ],
       doors: [
-        d(0, 340, 38, 120, "crypt", 856, 330, "left")
+        d(0, 340, 38, 120, "crypt", 856, 330, "left"),
+        d(922, 340, 38, 120, "ossuary", 54, 330, "right")
       ],
       enemies: [
         e("sk3", "skeleton", 230, 290, 160, 380),
@@ -596,6 +612,33 @@
       items: [
         item("graveBoots", "doubleJump", 766, 170),
         item("batCloak", "batCloak", 240, 340)
+      ]
+    },
+    ossuary: {
+      name: "Saint's Ossuary",
+      grid: [1, 3],
+      bg: "bgOssuary",
+      mid: "midCrypt",
+      music: "explore",
+      palette: "green",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "green"),
+        p(122, 382, 156, 28, "stone"),
+        p(346, 312, 160, 28, "green"),
+        p(596, 244, 174, 28, "stone"),
+        p(720, 142, 150, 24, "trim")
+      ],
+      doors: [
+        d(0, 340, 38, 120, "catacomb", 856, 330, "left")
+      ],
+      enemies: [
+        e("sk6", "skeleton", 210, 298, 120, 380),
+        e("bp4", "bonepillar", 646, 144, 560, 760),
+        e("bw3", "boneWraith", 808, 232, 700, 900)
+      ],
+      items: [
+        item("ossuaryRelic", "bigHeart", 752, 112)
       ]
     },
     clock: {
@@ -699,7 +742,8 @@
         p(380, 180, 200, 24, "trim")
       ],
       doors: [
-        d(190, 440, 100, 56, "gate", 462, 380, "down")
+        d(190, 440, 100, 56, "gate", 462, 380, "down"),
+        d(922, 340, 38, 120, "archive", 54, 330, "right")
       ],
       enemies: [
         e("sk4", "skeleton", 200, 296, 130, 380),
@@ -708,6 +752,33 @@
       ],
       items: [
         item("librRose", "heartVessel", 460, 144)
+      ]
+    },
+    archive: {
+      name: "Moonlit Archives",
+      grid: [0, 3],
+      bg: "bgArchive",
+      mid: "midGate",
+      music: "explore",
+      palette: "gold",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "gold"),
+        p(120, 392, 152, 28, "stone"),
+        p(362, 326, 180, 28, "gold"),
+        p(628, 260, 166, 28, "stone"),
+        p(430, 162, 190, 24, "trim")
+      ],
+      doors: [
+        d(0, 340, 38, 120, "library", 856, 330, "left")
+      ],
+      enemies: [
+        e("sk5", "skeleton", 218, 306, 120, 420),
+        e("wi4", "witch", 522, 238, 400, 730),
+        e("ph5", "phantom", 754, 188, 650, 900)
+      ],
+      items: [
+        item("archiveMoon", "bigHeart", 506, 126)
       ]
     },
     belltower: {
@@ -727,7 +798,8 @@
         p(290, 156, 200, 24, "trim")
       ],
       doors: [
-        d(0, 320, 38, 140, "tower", 1346, 360, "left")
+        d(0, 320, 38, 140, "tower", 1346, 360, "left"),
+        d(922, 320, 38, 140, "loft", 54, 360, "right")
       ],
       enemies: [
         e("bw2", "bellWraith", 540, 200, 220, 800),
@@ -736,6 +808,33 @@
       ],
       items: [
         item("bellRose", "heartVessel", 372, 124)
+      ]
+    },
+    loft: {
+      name: "Star Bell Loft",
+      grid: [4, 0],
+      bg: "bgLoft",
+      mid: "midClock",
+      music: "clock",
+      palette: "gold",
+      spawn: { x: 80, y: 360 },
+      platforms: [
+        p(0, 468, 960, 72, "gold"),
+        p(140, 392, 142, 24, "stone"),
+        p(346, 322, 150, 24, "gold"),
+        p(578, 246, 154, 24, "stone"),
+        p(772, 172, 138, 24, "trim")
+      ],
+      doors: [
+        d(0, 320, 38, 140, "belltower", 1346, 360, "left")
+      ],
+      enemies: [
+        e("bat5", "bat", 246, 260, 140, 500),
+        e("ph6", "phantom", 560, 176, 430, 760),
+        e("g4", "gargoyle", 822, 88, 720, 910)
+      ],
+      items: [
+        item("loftCache", "smallMp", 804, 140)
       ]
     },
     cavern: {
@@ -755,7 +854,8 @@
         p(820, 196, 130, 22, "stone")
       ],
       doors: [
-        d(160, 0, 100, 56, "garden", 264, 392, "up")
+        d(160, 0, 100, 56, "garden", 264, 392, "up"),
+        d(922, 320, 38, 140, "aqueduct", 54, 330, "right")
       ],
       enemies: [
         e("med4", "medusa", 360, 220, 280, 540),
@@ -765,6 +865,33 @@
       ],
       items: [
         item("brookCrystal", "phoenixPendant", 880, 168)
+      ]
+    },
+    aqueduct: {
+      name: "Astral Aqueduct",
+      grid: [4, 2],
+      bg: "bgAqueduct",
+      mid: "midCrypt",
+      music: "explore",
+      palette: "blue",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(118, 384, 152, 24, "stone"),
+        p(336, 326, 152, 24, "blue"),
+        p(572, 268, 168, 24, "stone"),
+        p(782, 202, 150, 24, "blue")
+      ],
+      doors: [
+        d(0, 320, 38, 140, "cavern", 1346, 330, "left")
+      ],
+      enemies: [
+        e("med5", "medusa", 250, 296, 120, 450),
+        e("ph7", "phantom", 560, 190, 430, 780),
+        e("r3", "reaper", 804, 116, 700, 900)
+      ],
+      items: [
+        item("aquaHeart", "heartVessel", 822, 170)
       ]
     }
   };
@@ -793,12 +920,16 @@
       chapel: [p(846, 348, 160, 28, "blue"), p(1098, 286, 178, 28, "stone")],
       crypt: [p(846, 378, 164, 28, "green"), p(1118, 306, 184, 28, "stone")],
       catacomb: [p(884, 390, 166, 28, "green"), p(1120, 322, 176, 28, "stone")],
+      ossuary: [p(858, 386, 168, 28, "green"), p(1114, 306, 176, 28, "stone")],
       clock: [p(864, 380, 158, 28, "blue"), p(1090, 300, 172, 28, "stone")],
       tower: [p(872, 352, 162, 28, "gold"), p(1108, 270, 170, 28, "stone")],
       garden: [p(854, 384, 164, 28, "green"), p(1126, 318, 184, 28, "stone")],
       library: [p(880, 380, 160, 28, "trim"), p(1130, 308, 170, 28, "stone")],
+      archive: [p(872, 382, 168, 28, "gold"), p(1110, 304, 176, 28, "stone")],
       belltower: [p(870, 372, 160, 28, "gold"), p(1100, 296, 170, 28, "stone")],
-      cavern: [p(880, 376, 160, 28, "blue"), p(1130, 308, 170, 28, "stone")]
+      loft: [p(860, 374, 166, 28, "gold"), p(1102, 298, 174, 28, "stone")],
+      cavern: [p(880, 376, 160, 28, "blue"), p(1130, 308, 170, 28, "stone")],
+      aqueduct: [p(866, 382, 166, 28, "blue"), p(1112, 312, 176, 28, "stone")]
     };
 
     for (const [id, room] of Object.entries(rooms)) {
@@ -978,10 +1109,13 @@
     playerX: Math.round(player.x),
     playerVx: Number(player.vx.toFixed(2)),
     playerY: Math.round(player.y),
+    playerVy: Number(player.vy.toFixed(2)),
+    onGround: Boolean(player.onGround),
     transitionCooldown: Number((game.roomTransitionCooldown || 0).toFixed(2)),
     lastSafe: game.lastSafeSpot ? { ...game.lastSafeSpot } : null,
     keys: Array.from(keysDown),
     touches: Array.from(touchDown),
+    touchJumpHold: Number((game.touchJumpHold || 0).toFixed(2)),
     hp: Math.round(player.hp)
   });
   window.__NOCTURNE_TEST_INPUT = (action, down) => {
@@ -1290,7 +1424,7 @@
       h: 128,
       vx: -0.45,
       vy: 0,
-      row: 5,
+      row: 0,
       hp: 150,
       maxHp: 150,
       facing: -1,
@@ -1302,7 +1436,9 @@
   }
 
   function actionDown(action) {
-    return KEYMAP[action].some((code) => keysDown.has(code)) || touchDown.has(action);
+    const keyHeld = KEYMAP[action].some((code) => keysDown.has(code));
+    const touchHeld = touchDown.has(action) || (action === "jump" && game.touchJumpHold > 0);
+    return keyHeld || touchHeld;
   }
 
   function actionJust(action) {
@@ -1325,6 +1461,7 @@
     game.shake = Math.max(0, game.shake - dt * 10);
     game.roomTransitionCooldown = Math.max(0, game.roomTransitionCooldown - dt);
     game.messageTimer = Math.max(0, game.messageTimer - dt);
+    game.touchJumpHold = Math.max(0, (game.touchJumpHold || 0) - dt);
     player.invuln = Math.max(0, player.invuln - dt);
     player.attackTimer = Math.max(0, player.attackTimer - dt);
     player.dashCooldown = Math.max(0, player.dashCooldown - dt);
@@ -2730,19 +2867,45 @@
     const rh = roomHeight(room);
     ctx.save();
     ctx.imageSmoothingEnabled = true;
-    ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
 
-    drawStretchPlane(bg, 0, 0, rw, rh);
+    drawParallaxPlane(bg, cameraX, cameraY, rw, rh, 0.28, 0.18, 1);
+    drawParallaxElements(room, cameraX, cameraY, rw, rh, 0);
 
     if (mid && mid.width) {
-      ctx.globalAlpha = 0.26;
-      drawStretchPlane(mid, 0, 0, rw, rh);
-      ctx.globalAlpha = 1;
+      drawParallaxPlane(mid, cameraX, cameraY, rw, rh, 0.48, 0.32, 0.24);
     }
 
-    drawMode7Floor(room, bg, rw, rh);
+    drawMode7Floor(room, bg, rw, rh, cameraX, cameraY);
+    drawParallaxElements(room, cameraX, cameraY, rw, rh, 1);
     ctx.restore();
     ctx.imageSmoothingEnabled = false;
+  }
+
+  function drawParallaxPlane(img, cameraX, cameraY, rw, rh, speedX, speedY, alpha = 1) {
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(-Math.round(cameraX * speedX), -Math.round(cameraY * speedY));
+    drawStretchPlane(img, 0, 0, rw, rh);
+    ctx.restore();
+  }
+
+  function drawParallaxElements(room, cameraX, cameraY, rw, rh, pass) {
+    const keys = parallaxKeysForRoom(room);
+    const key = keys[pass];
+    const img = key && images[key];
+    if (!img || !img.width) return;
+    const speed = pass === 0 ? 0.42 : 0.68;
+    const vertical = pass === 0 ? 0.22 : 0.48;
+    const alpha = pass === 0 ? 0.34 : 0.48;
+    drawParallaxPlane(img, cameraX, cameraY, rw, rh, speed, vertical, alpha);
+  }
+
+  function parallaxKeysForRoom(room) {
+    if (!room) return ["paraArches", "paraMist"];
+    if (room.bg === "bgClock" || room.bg === "bgBelltower" || room.bg === "bgLoft") return ["paraMachinery", "paraArches"];
+    if (room.bg === "bgCavern" || room.bg === "bgAqueduct") return ["paraCrystals", "paraMist"];
+    if (room.bg === "bgCrypt" || room.bg === "bgOssuary" || room.bg === "bgGarden") return ["paraMist", "paraArches"];
+    return ["paraArches", "paraMist"];
   }
 
   function getPlatformLayer(room) {
@@ -3127,9 +3290,15 @@
   function drawBoss() {
     const boss = game.boss;
     if (!boss) return;
-    const frame = boss.state === "dash" ? 2 : boss.state === "cast" ? 1 : Math.floor(game.time * 4) % 2;
+    const frame = bossFrameIndex(boss);
     const alpha = boss.hurt > 0 ? 0.6 : 1;
-    drawSheetFrame(images.boss, frame, boss.row, 300, 240, boss.x + boss.w / 2, boss.y + boss.h + 12, 236, 188, boss.facing < 0, alpha);
+    drawSheetFrame(images.boss, frame, boss.row, SPRITES.bossFrameW, SPRITES.bossFrameH, boss.x + boss.w / 2, boss.y + boss.h + 14, 252, 202, boss.facing < 0, alpha);
+  }
+
+  function bossFrameIndex(boss) {
+    if (boss.state === "cast") return 6 + Math.floor(game.time * 12) % 6;
+    if (boss.state === "dash") return 12 + Math.floor(game.time * 16) % 2;
+    return Math.floor(game.time * 6) % 6;
   }
 
   function drawPlayer() {
@@ -3287,12 +3456,14 @@
     ctx.drawImage(img, 0, 0, img.width, img.height, x, y, w, h);
   }
 
-  function drawMode7Floor(room, img, rw, rh) {
+  function drawMode7Floor(room, img, rw, rh, cameraX = 0, cameraY = 0) {
     if (!img || !img.width) return;
     const startY = Math.round(rh * 0.62);
     const sourceY = Math.round(img.height * 0.58);
     const sourceH = Math.max(1, img.height - sourceY);
     const isImagen = IMG[room.bg] && IMG[room.bg].includes("bg_imagen");
+    ctx.save();
+    ctx.translate(-Math.round(cameraX * 0.82), -Math.round(cameraY * 0.72));
     ctx.globalAlpha = isImagen ? 0.34 : 0.22;
     for (let y = startY; y < rh; y += 3) {
       const t = (y - startY) / Math.max(1, rh - startY);
@@ -3312,7 +3483,7 @@
         4
       );
     }
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   function burst(x, y, color, count) {
@@ -3460,10 +3631,18 @@
       }
     }
     dom.mapGrid.innerHTML = "";
-    const grid = Array.from({ length: 12 }, () => null);
+    const coords = Object.values(rooms).map((room) => room.grid);
+    const minX = Math.min(...coords.map(([gx]) => gx));
+    const maxX = Math.max(...coords.map(([gx]) => gx));
+    const minY = Math.min(...coords.map(([, gy]) => gy));
+    const maxY = Math.max(...coords.map(([, gy]) => gy));
+    const cols = maxX - minX + 1;
+    const rows = maxY - minY + 1;
+    dom.mapGrid.style.setProperty("--map-cols", String(cols));
+    const grid = Array.from({ length: cols * rows }, () => null);
     for (const [id, room] of Object.entries(rooms)) {
       const [gx, gy] = room.grid;
-      grid[gy * 4 + gx] = { id, room };
+      grid[(gy - minY) * cols + (gx - minX)] = { id, room };
     }
     const targetRoom = nextObjectiveRoom();
     for (const slot of grid) {
@@ -3612,6 +3791,11 @@
     touchDown.delete("down");
   }
 
+  function triggerTouchJump() {
+    justPressed.add("touch:jump");
+    game.touchJumpHold = Math.max(game.touchJumpHold || 0, 0.2);
+  }
+
   function beginSwipe(event) {
     if (event.pointerType === "mouse" && !game.mobileMode) return;
     swipe.id = event.pointerId;
@@ -3636,7 +3820,7 @@
       touchDown.add(dx > 0 ? "right" : "left");
     }
     if (dy < -42 && !swipe.jumpSent) {
-      justPressed.add("touch:jump");
+      triggerTouchJump();
       touchDown.add("up");
       swipe.jumpSent = true;
     } else if (dy > 52) {
@@ -3652,7 +3836,8 @@
     if (travel < 16 && game.mode === "playing") {
       const rect = canvas.getBoundingClientRect();
       const localX = event.clientX - rect.left;
-      justPressed.add(localX > rect.width * 0.48 ? "touch:attack" : "touch:jump");
+      if (localX > rect.width * 0.48) justPressed.add("touch:attack");
+      else triggerTouchJump();
     }
     swipe.id = null;
     clearSwipeMovement();
@@ -3700,6 +3885,7 @@
       event.preventDefault();
       touchDown.add(action);
       justPressed.add(`touch:${action}`);
+      if (action === "jump") game.touchJumpHold = Math.max(game.touchJumpHold || 0, 0.2);
       try {
         button.setPointerCapture(event.pointerId);
       } catch {}

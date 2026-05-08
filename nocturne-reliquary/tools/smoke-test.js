@@ -121,6 +121,34 @@ async function browserSmoke() {
     window.__NOCTURNE_TEST_TELEPORT("garden", 230, 352);
     window.__NOCTURNE_TEST_INPUT("down", true);
   }, "cavern"));
+  transitionStates.push(await transitionProbe("belltower right to loft", () => {
+    window.__NOCTURNE_TEST_TELEPORT("belltower", 1370, 360);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "loft"));
+  transitionStates.push(await transitionProbe("loft left to belltower", () => {
+    window.__NOCTURNE_TEST_TELEPORT("loft", 60, 360);
+    window.__NOCTURNE_TEST_INPUT("left", true);
+  }, "belltower"));
+  transitionStates.push(await transitionProbe("cavern right to aqueduct", () => {
+    window.__NOCTURNE_TEST_TELEPORT("cavern", 1370, 330);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "aqueduct"));
+  transitionStates.push(await transitionProbe("library right to archive", () => {
+    window.__NOCTURNE_TEST_TELEPORT("library", 1370, 330);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "archive"));
+
+  await page.evaluate(() => {
+    window.__NOCTURNE_TEST_TELEPORT("gate", 190, 352);
+    if (!document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
+  });
+  await page.waitForTimeout(240);
+  const mobileJumpStart = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
+  const canvasBox = await page.locator("#game").boundingBox();
+  assert(canvasBox, "canvas box missing for mobile jump probe");
+  await page.mouse.click(canvasBox.x + canvasBox.width * 0.25, canvasBox.y + canvasBox.height * 0.82);
+  await page.waitForTimeout(360);
+  const mobileJumpState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
 
   const state = await page.evaluate(() => {
     const canvas = document.getElementById("game");
@@ -146,6 +174,7 @@ async function browserSmoke() {
       debugState: window.__NOCTURNE_DEBUG_STATE(),
       hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
       hasMobile: Boolean(document.getElementById("mobileButton")),
+      hasTouchDown: Boolean(document.querySelector('#touchControls button[data-touch="down"]')),
       touchButtonText: Array.from(document.querySelectorAll("#touchControls button"), (button) => button.textContent.trim()).join(""),
       touchUserSelect: getComputedStyle(document.querySelector("#touchControls button")).userSelect,
       touchWebkitUserSelect: getComputedStyle(document.querySelector("#touchControls button")).webkitUserSelect,
@@ -157,7 +186,7 @@ async function browserSmoke() {
 
   await browser.close();
   server.close();
-  return { url, state, movementState, transitionStates, consoleErrors, pageErrors, badResponses };
+  return { url, state, movementState, transitionStates, mobileJumpStart, mobileJumpState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -185,18 +214,25 @@ async function browserSmoke() {
   assert(result.state.frameInfo.playerFrames === 24, "player frame count should be 24");
   assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
   assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
+  assert(result.state.frameInfo.bossFrameW === 320, "boss frame width should be 320");
+  assert(result.state.frameInfo.bossFrames === 16, "boss should use the HD 16-frame strip");
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
   assert(result.state.inputInfo.upKeys.includes("KeyW"), "W should trigger up/door control");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
+  assert(result.state.hasTouchDown, "mobile controls should include a down/crouch button");
   assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
   assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");
   assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
   assert(result.state.tuningInfo.spriteSet === "stable-v4", "sprites should use the stable pre-reference-slice sheets");
-  assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v2", "Imagen HD room-fill backgrounds should be wired");
+  assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v3", "Imagen HD room-fill backgrounds should be wired");
+  assert(result.state.tuningInfo.parallaxSet === "imagen-parallax-v1", "Imagen parallax overlays should be wired");
   assert(result.state.tuningInfo.tileSet === "imagen-hd-platforms-v1", "Imagen HD platform tiles should be wired");
   assert(result.state.tuningInfo.tileSourceSize === 256, "platform tile source cells should be HD 256px");
   assert(result.state.tuningInfo.tileDrawSize === 48, "platform collision draw tiles should stay gameplay-sized");
+  assert(result.state.tuningInfo.roomSet === "expanded-16-hd", "expanded HD room set should be wired");
+  assert(result.state.tuningInfo.mobileTouch === "down-button-full-jump-v1", "mobile touch tuning should include down button and full tap jump");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
+  assert(result.mobileJumpState.playerY < result.mobileJumpStart.playerY - 35, `mobile tap jump should climb high enough: ${JSON.stringify({ before: result.mobileJumpStart, after: result.mobileJumpState })}`);
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");

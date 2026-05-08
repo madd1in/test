@@ -24,7 +24,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Hint / What to do next: H or /
 - Map: Tab or I
 - Audio: M
-- Mobile: use the on-screen buttons or swipe on the canvas
+- Mobile: use the on-screen buttons (including Down for crouch/doors) or swipe on the canvas
 - Fullscreen: FS button
 
 ## Game Shape
@@ -41,9 +41,11 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Horizontal camera rooms are about one and a half screens wide for better flow
 - Vertical camera rooms are taller than one screen
 - Sprite sheets use the stable pre-reference-slice versions
-- Imagen HD 1920x1080 backgrounds for the Belltower, Library, Cavern, and Drowned Rose Garden
-- Backgrounds are stretched to the full room plane with a lightweight Mode7-style floor fill
+- Imagen HD 1920x1080 backgrounds across the main castle, branches, and new expansion rooms
+- Backgrounds use slower parallax scrolling, alpha overlay layers, and a lightweight Mode7-style floor fill
 - Imagen HD 256px platform tiles replace the old 64px sheet and stay mapped to the collision-sized 48px grid
+- Four new optional rooms: Moonlit Archives, Saint's Ossuary, Astral Aqueduct, and Star Bell Loft
+- Lord Veyr uses a new Imagen-derived 16-frame HD boss strip
 - Safer room exits use expanded trigger zones, spawn settling, transition cooldowns, and last-safe-ground recovery
 - Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
 - Aerial whip stalls descent briefly for safer mid-air attacks
@@ -53,6 +55,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Reproducible high-resolution backdrop generation in `tools/build-gothic-backgrounds.py`
 - Reproducible Imagen atlas cropping in `tools/build-imagen-hd-backgrounds.py`
 - Reproducible Imagen platform-tile cropping in `tools/build-imagen-hd-tiles.py`
+- Reproducible Imagen expansion, parallax, and boss processing in `tools/build-imagen-hd-expansion.py`, `tools/build-imagen-hd-parallax.py`, and `tools/build-imagen-hd-boss.py`
 - Local BGM and SFX
 - Save/continue through `localStorage`
 - Boss finale in the Crimson Reliquary

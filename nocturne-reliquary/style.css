@@ -408,7 +408,7 @@ h1 {
 
 .map-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--map-cols, 4), minmax(0, 1fr));
   gap: 5px;
 }
 
@@ -462,6 +462,7 @@ h1 {
 }
 
 .touch-controls {
+  --touch-size: 54px;
   position: absolute;
   inset: auto 0 14px 0;
   display: none;
@@ -486,9 +487,36 @@ h1 {
   justify-content: flex-start;
 }
 
+.movement-pad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--touch-size));
+  grid-template-rows: repeat(2, var(--touch-size));
+  gap: 6px;
+  align-items: center;
+}
+
+.movement-pad button[data-touch="up"] {
+  grid-column: 2;
+}
+
+.movement-pad button[data-touch="left"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.movement-pad button[data-touch="down"] {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.movement-pad button[data-touch="right"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+
 .touch-controls button {
-  width: 54px;
-  height: 54px;
+  width: var(--touch-size);
+  height: var(--touch-size);
   border: 1px solid rgba(247, 234, 210, 0.24);
   border-radius: 50%;
   background: rgba(5, 4, 8, 0.7);
@@ -536,6 +564,7 @@ body.mobile-mode .touch-controls {
 
 @media (pointer: coarse) {
   .touch-controls {
+    --touch-size: 58px;
     display: flex;
   }
 
@@ -554,10 +583,6 @@ body.mobile-mode .touch-controls {
     padding: 0 8px;
   }
 
-  .touch-controls button {
-    width: 58px;
-    height: 58px;
-  }
 }
 
 @media (max-width: 640px) {
