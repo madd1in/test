@@ -178,6 +178,10 @@ async function browserSmoke() {
       touchButtonText: Array.from(document.querySelectorAll("#touchControls button"), (button) => button.textContent.trim()).join(""),
       touchUserSelect: getComputedStyle(document.querySelector("#touchControls button")).userSelect,
       touchWebkitUserSelect: getComputedStyle(document.querySelector("#touchControls button")).webkitUserSelect,
+      touchButtonMinSize: Math.min(...Array.from(document.querySelectorAll("#touchControls button"), (button) => {
+        const rect = button.getBoundingClientRect();
+        return Math.min(rect.width, rect.height);
+      })),
       lit,
       alpha,
       hpTransform: document.getElementById("hpFill").style.transform
@@ -230,13 +234,14 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.tileSourceSize === 256, "platform tile source cells should be HD 256px");
   assert(result.state.tuningInfo.tileDrawSize === 48, "platform collision draw tiles should stay gameplay-sized");
   assert(result.state.tuningInfo.roomSet === "expanded-16-hd", "expanded HD room set should be wired");
-  assert(result.state.tuningInfo.mobileTouch === "down-button-full-jump-v1", "mobile touch tuning should include down button and full tap jump");
+  assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v2", "mobile touch tuning should include larger hit targets");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
   assert(result.mobileJumpState.playerY < result.mobileJumpStart.playerY - 35, `mobile tap jump should climb high enough: ${JSON.stringify({ before: result.mobileJumpStart, after: result.mobileJumpState })}`);
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
   assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
+  assert(result.state.touchButtonMinSize >= 64, `touch buttons should be at least 64px: ${result.state.touchButtonMinSize}`);
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);

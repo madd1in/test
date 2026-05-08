@@ -462,12 +462,14 @@ h1 {
 }
 
 .touch-controls {
-  --touch-size: 54px;
+  --touch-size: 64px;
+  --touch-gap: 8px;
   position: absolute;
-  inset: auto 0 14px 0;
+  inset: auto 0 max(14px, env(safe-area-inset-bottom)) 0;
   display: none;
   justify-content: space-between;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
   pointer-events: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -476,10 +478,10 @@ h1 {
 
 .touch-cluster {
   display: flex;
-  gap: 6px;
+  gap: var(--touch-gap);
   pointer-events: auto;
   flex-wrap: wrap;
-  max-width: 60vw;
+  max-width: calc(var(--touch-size) * 3 + var(--touch-gap) * 2);
   justify-content: flex-end;
 }
 
@@ -491,7 +493,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, var(--touch-size));
   grid-template-rows: repeat(2, var(--touch-size));
-  gap: 6px;
+  gap: var(--touch-gap);
   align-items: center;
 }
 
@@ -517,6 +519,9 @@ h1 {
 .touch-controls button {
   width: var(--touch-size);
   height: var(--touch-size);
+  min-width: var(--touch-size);
+  min-height: var(--touch-size);
+  box-sizing: border-box;
   border: 1px solid rgba(247, 234, 210, 0.24);
   border-radius: 50%;
   background: rgba(5, 4, 8, 0.7);
@@ -564,7 +569,7 @@ body.mobile-mode .touch-controls {
 
 @media (pointer: coarse) {
   .touch-controls {
-    --touch-size: 58px;
+    --touch-size: 68px;
     display: flex;
   }
 
@@ -583,6 +588,25 @@ body.mobile-mode .touch-controls {
     padding: 0 8px;
   }
 
+}
+
+@media (max-width: 520px) {
+  .touch-controls {
+    --touch-size: 64px;
+    --touch-gap: 5px;
+    gap: 8px;
+    padding: 0 max(6px, env(safe-area-inset-right)) 0 max(6px, env(safe-area-inset-left));
+  }
+
+  .touch-cluster:not(.movement-pad) {
+    max-width: calc(var(--touch-size) * 2 + var(--touch-gap));
+  }
+}
+
+@media (max-width: 380px) {
+  .touch-controls {
+    --touch-size: 62px;
+  }
 }
 
 @media (max-width: 640px) {

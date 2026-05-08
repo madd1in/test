@@ -149,7 +149,7 @@
     tileSourceSize: TILE_SOURCE_SIZE,
     tileDrawSize: TILE_DRAW_SIZE,
     roomSet: "expanded-16-hd",
-    mobileTouch: "down-button-full-jump-v1",
+    mobileTouch: "large-hit-targets-v2",
     difficulty: "mercy-pass"
   };
 
