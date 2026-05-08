@@ -122,7 +122,7 @@
     longRoomHeight: LONG_ROOM_HEIGHT,
     whipSideReach: WHIP_SIDE_REACH,
     spriteSet: "stable-v4",
-    backgroundSet: "procedural-gothic-v1",
+    backgroundSet: "imagen-hd-roomfill-v2",
     difficulty: "mercy-pass"
   };
 
@@ -2691,10 +2691,7 @@
     const mid = images[room.mid];
     const cameraX = game.cameraX || 0;
     const cameraY = game.cameraY || 0;
-    drawCover(bg, -cameraX * 0.08, -cameraY * 0.06, W + 120, H + 90);
-    ctx.globalAlpha = 0.48;
-    drawCover(mid, Math.sin(game.time * 0.12) * 8 - cameraX * 0.22, -cameraY * 0.12, W + 260, H + 140);
-    ctx.globalAlpha = 1;
+    drawRoomBackground(room, bg, mid, cameraX, cameraY);
 
     const tone = room.palette === "red" ? "rgba(105, 18, 28, 0.20)" : room.palette === "green" ? "rgba(24, 86, 53, 0.18)" : room.palette === "blue" ? "rgba(31, 75, 115, 0.18)" : "rgba(111, 79, 30, 0.16)";
     ctx.fillStyle = tone;
@@ -2710,6 +2707,26 @@
       for (const solid of room.platforms) drawPlatform(solid);
     }
     ctx.restore();
+  }
+
+  function drawRoomBackground(room, bg, mid, cameraX, cameraY) {
+    const rw = roomWidth(room);
+    const rh = roomHeight(room);
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
+
+    drawStretchPlane(bg, 0, 0, rw, rh);
+
+    if (mid && mid.width) {
+      ctx.globalAlpha = 0.26;
+      drawStretchPlane(mid, 0, 0, rw, rh);
+      ctx.globalAlpha = 1;
+    }
+
+    drawMode7Floor(room, bg, rw, rh);
+    ctx.restore();
+    ctx.imageSmoothingEnabled = false;
   }
 
   function getPlatformLayer(room) {
@@ -3212,6 +3229,43 @@
     const dw = img.width * scale;
     const dh = img.height * scale;
     ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  }
+
+  function drawStretchPlane(img, x, y, w, h) {
+    if (!img || !img.width) {
+      ctx.fillStyle = "#08080d";
+      ctx.fillRect(x, y, w, h);
+      return;
+    }
+    ctx.drawImage(img, 0, 0, img.width, img.height, x, y, w, h);
+  }
+
+  function drawMode7Floor(room, img, rw, rh) {
+    if (!img || !img.width) return;
+    const startY = Math.round(rh * 0.62);
+    const sourceY = Math.round(img.height * 0.58);
+    const sourceH = Math.max(1, img.height - sourceY);
+    const isImagen = IMG[room.bg] && IMG[room.bg].includes("bg_imagen");
+    ctx.globalAlpha = isImagen ? 0.34 : 0.22;
+    for (let y = startY; y < rh; y += 3) {
+      const t = (y - startY) / Math.max(1, rh - startY);
+      const ease = t * t;
+      const sy = sourceY + Math.min(sourceH - 1, Math.round(sourceH * ease));
+      const sliceH = Math.max(2, Math.round(2 + t * 7));
+      const extra = 70 + t * 210;
+      ctx.drawImage(
+        img,
+        0,
+        sy,
+        img.width,
+        Math.min(sliceH, img.height - sy),
+        -extra,
+        y,
+        rw + extra * 2,
+        4
+      );
+    }
+    ctx.globalAlpha = 1;
   }
 
   function burst(x, y, color, count) {

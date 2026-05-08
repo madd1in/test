@@ -42,6 +42,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Vertical camera rooms are taller than one screen
 - Sprite sheets use the stable pre-reference-slice versions
 - Imagen HD 1920x1080 backgrounds for the Belltower, Library, Cavern, and Drowned Rose Garden
+- Backgrounds are stretched to the full room plane with a lightweight Mode7-style floor fill
 - Safer room exits use expanded trigger zones, spawn settling, transition cooldowns, and last-safe-ground recovery
 - Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
 - Aerial whip stalls descent briefly for safer mid-air attacks
