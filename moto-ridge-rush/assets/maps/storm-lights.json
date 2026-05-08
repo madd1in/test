@@ -3,6 +3,11 @@
   "title": "Storm Lights",
   "theme": "storm",
   "length": 7800,
+  "medals": {
+    "gold": 31.8,
+    "silver": 39.4,
+    "bronze": 50.3
+  },
   "gravity": 1610,
   "start": {
     "x": 140,

@@ -3,6 +3,11 @@
   "title": "Pine Switchbacks",
   "theme": "pine",
   "length": 7200,
+  "medals": {
+    "gold": 29.4,
+    "silver": 36.4,
+    "bronze": 46.5
+  },
   "gravity": 1530,
   "start": {
     "x": 140,

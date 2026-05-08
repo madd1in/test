@@ -3,6 +3,11 @@
   "title": "Canyon Run",
   "theme": "canyon",
   "length": 6500,
+  "medals": {
+    "gold": 26.5,
+    "silver": 32.8,
+    "bronze": 41.9
+  },
   "gravity": 1530,
   "start": {
     "x": 140,
