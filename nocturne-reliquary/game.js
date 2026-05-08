@@ -65,9 +65,10 @@
     midCrypt: "assets/generated/bg_stage3_mid_tiled.png",
     bgThrone: "assets/generated/bg_gothic_cathedral.png",
     midThrone: "assets/generated/bg_stage5_mid_tiled.png",
-    bgLibrary: "assets/generated/bg_gothic_library.png",
-    bgCavern: "assets/generated/bg_gothic_cavern.png",
-    bgBelltower: "assets/generated/bg_gothic_belltower.png"
+    bgLibrary: "assets/generated/bg_imagen_library_hd.png",
+    bgCavern: "assets/generated/bg_imagen_cavern_hd.png",
+    bgBelltower: "assets/generated/bg_imagen_belltower_hd.png",
+    bgGarden: "assets/generated/bg_imagen_garden_hd.png"
   };
 
   const AUDIO = {
@@ -184,6 +185,8 @@
     cameraY: 0,
     cameraTargetX: 0,
     cameraTargetY: 0,
+    roomTransitionCooldown: 0,
+    lastSafeSpot: null,
     muted: false,
     mobileMode: false,
     message: "",
@@ -639,7 +642,7 @@
     garden: {
       name: "Drowned Rose Garden",
       grid: [2, 2],
-      bg: "bgGate",
+      bg: "bgGarden",
       mid: "midGate",
       music: "explore",
       palette: "green",
@@ -958,6 +961,9 @@
     cameraY: Math.round(game.cameraY),
     playerX: Math.round(player.x),
     playerVx: Number(player.vx.toFixed(2)),
+    playerY: Math.round(player.y),
+    transitionCooldown: Number((game.roomTransitionCooldown || 0).toFixed(2)),
+    lastSafe: game.lastSafeSpot ? { ...game.lastSafeSpot } : null,
     keys: Array.from(keysDown),
     touches: Array.from(touchDown),
     hp: Math.round(player.hp)
@@ -966,6 +972,13 @@
     if (!KEYMAP[action]) return;
     if (down) touchDown.add(action);
     else touchDown.delete(action);
+  };
+  window.__NOCTURNE_TEST_TELEPORT = (roomId, x, y) => {
+    if (!rooms[roomId]) return false;
+    game.mode = "playing";
+    dom.titlePanel.hidden = true;
+    enterRoom(roomId, { x, y }, false);
+    return true;
   };
 
   function loadImage(key, src) {
@@ -1146,13 +1159,29 @@
     }
   }
 
+  function placePlayerAtSpawn(room, spawn) {
+    const rw = roomWidth(room);
+    const rh = roomHeight(room);
+    player.x = clamp(spawn.x, -8, rw - player.w + 8);
+    player.y = clamp(spawn.y, -24, rh - player.h + 8);
+
+    const centerX = player.x + player.w / 2;
+    const bottom = player.y + player.h;
+    for (const solid of room.platforms) {
+      if (centerX < solid.x - 8 || centerX > solid.x + solid.w + 8) continue;
+      if (bottom >= solid.y - 8 && bottom <= solid.y + Math.max(28, solid.h)) {
+        player.y = solid.y - player.h;
+        break;
+      }
+    }
+  }
+
   function enterRoom(roomId, spawn, autosave = true) {
     const room = rooms[roomId] || rooms.gate;
     game.roomId = roomId;
     game.room = room;
     game.save.visited[roomId] = true;
-    player.x = spawn.x;
-    player.y = spawn.y;
+    placePlayerAtSpawn(room, spawn);
     player.vx = 0;
     player.vy = 0;
     player.onGround = false;
@@ -1174,6 +1203,8 @@
     game.flames = [];
     game.damageTexts = [];
     game.bossBanner = null;
+    game.roomTransitionCooldown = 0.18;
+    game.lastSafeSpot = { roomId, x: player.x, y: player.y };
     game.projectiles.length = 0;
     if (game.familiar) {
       game.familiar.x = player.x - 30;
@@ -1276,6 +1307,7 @@
     game.time += dt;
     game.save.timePlayed = (game.save.timePlayed || 0) + dt;
     game.shake = Math.max(0, game.shake - dt * 10);
+    game.roomTransitionCooldown = Math.max(0, game.roomTransitionCooldown - dt);
     game.messageTimer = Math.max(0, game.messageTimer - dt);
     player.invuln = Math.max(0, player.invuln - dt);
     player.attackTimer = Math.max(0, player.attackTimer - dt);
@@ -1487,6 +1519,9 @@
     player.mp = Math.min(player.maxMp, player.mp + dt * mpRegen);
     player.stepWasGrounded = player.onGround;
     moveEntity(player, step, true);
+    if (player.onGround && player.y < roomHeight() - player.h + 12) {
+      game.lastSafeSpot = { roomId: game.roomId, x: player.x, y: player.y };
+    }
 
     if (!player.stepWasGrounded && player.onGround) {
       playSound("land", 0.3);
@@ -1494,13 +1529,33 @@
     }
 
     if (player.y > roomHeight() + 80) {
-      hurtPlayer(14);
-      const spawn = game.room.spawn;
-      player.x = spawn.x;
-      player.y = spawn.y;
-      player.vx = 0;
-      player.vy = 0;
+      recoverFromVoid();
     }
+  }
+
+  function recoverFromVoid() {
+    const cx = player.x + player.w / 2;
+    const downDoor = game.room.doors.find((door) =>
+      door.side === "down" &&
+      doorOpen(door) &&
+      cx >= door.x - 96 &&
+      cx <= door.x + door.w + 96
+    );
+    if (downDoor) {
+      enterRoom(downDoor.to, downDoor.spawn);
+      return;
+    }
+
+    hurtPlayer(14);
+    if (game.mode !== "playing") return;
+    const safe = game.lastSafeSpot && game.lastSafeSpot.roomId === game.roomId
+      ? game.lastSafeSpot
+      : game.room.spawn;
+    placePlayerAtSpawn(game.room, safe);
+    player.vx = 0;
+    player.vy = 0;
+    player.invuln = Math.max(player.invuln, 0.9);
+    message("Moon tether caught you.");
   }
 
   function playerMelee() {
@@ -2273,6 +2328,31 @@
     }
   }
 
+  function doorTriggerBox(door) {
+    if (door.side === "left") return { x: -54, y: door.y - 42, w: door.w + 78, h: door.h + 84 };
+    if (door.side === "right") return { x: door.x - 24, y: door.y - 42, w: door.w + 78, h: door.h + 84 };
+    if (door.side === "up") return { x: door.x - 44, y: door.y - 24, w: door.w + 88, h: door.h + 56 };
+    if (door.side === "down") return { x: door.x - 44, y: door.y - 18, w: door.w + 88, h: door.h + 60 };
+    return door;
+  }
+
+  function doorIntent(door) {
+    if (door.side === "left") return actionDown("left") || player.x <= door.x + door.w + 8;
+    if (door.side === "right") return actionDown("right") || player.x + player.w >= door.x - 8;
+    if (door.side === "up") return actionDown("up");
+    if (door.side === "down") return actionDown("down");
+    return true;
+  }
+
+  function nudgeFromDoor(door) {
+    if (door.side === "left") player.x = Math.max(player.x, door.x + door.w + 8);
+    else if (door.side === "right") player.x = Math.min(player.x, door.x - player.w - 8);
+    else if (door.side === "up") player.y = door.y + door.h + 8;
+    else if (door.side === "down") player.y = door.y - player.h - 8;
+    player.vx = 0;
+    player.vy = 0;
+  }
+
   function updateDoors() {
     // Proactive nudge: if player lingers near a locked door, repeat the hint.
     game.lockNudgeTimer = Math.max(0, (game.lockNudgeTimer || 0) - 1 / 60);
@@ -2287,13 +2367,13 @@
       }
     }
 
+    if (game.roomTransitionCooldown > 0) return;
+
     for (const door of game.room.doors) {
-      if (!rectsOverlap(player, door)) continue;
-      if ((door.side === "up" && !actionDown("up")) || (door.side === "down" && !actionDown("down"))) continue;
+      if (!rectsOverlap(player, doorTriggerBox(door)) || !doorIntent(door)) continue;
       if (!doorOpen(door)) {
         message(lockMessage(door.lock));
-        player.x += door.side === "right" ? -6 : door.side === "left" ? 6 : 0;
-        player.y += door.side === "up" ? 6 : door.side === "down" ? -6 : 0;
+        nudgeFromDoor(door);
         return;
       }
       burst(player.x + player.w / 2, player.y + player.h / 2, "#eac36f", 18);

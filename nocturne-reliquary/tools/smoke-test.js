@@ -90,6 +90,38 @@ async function browserSmoke() {
   await page.evaluate(() => window.__NOCTURNE_TEST_INPUT("right", false));
   await page.waitForTimeout(500);
 
+  async function transitionProbe(name, setup, expectedRoom) {
+    await page.evaluate(() => {
+      for (const action of ["left", "right", "up", "down"]) {
+        window.__NOCTURNE_TEST_INPUT(action, false);
+      }
+    });
+    await page.evaluate(setup);
+    await page.waitForTimeout(1400);
+    const probe = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
+    assert(probe.room === expectedRoom, `${name} expected ${expectedRoom}: ${JSON.stringify(probe)}`);
+    assert(probe.playerY < probe.roomHeight, `${name} left player below room: ${JSON.stringify(probe)}`);
+    return probe;
+  }
+
+  const transitionStates = [];
+  transitionStates.push(await transitionProbe("tower to belltower", () => {
+    window.__NOCTURNE_TEST_TELEPORT("tower", 1370, 352);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "belltower"));
+  transitionStates.push(await transitionProbe("belltower to tower", () => {
+    window.__NOCTURNE_TEST_TELEPORT("belltower", 60, 360);
+    window.__NOCTURNE_TEST_INPUT("left", true);
+  }, "tower"));
+  transitionStates.push(await transitionProbe("belltower falling left exit", () => {
+    window.__NOCTURNE_TEST_TELEPORT("belltower", -8, 210);
+    window.__NOCTURNE_TEST_INPUT("left", true);
+  }, "tower"));
+  transitionStates.push(await transitionProbe("garden down to cavern", () => {
+    window.__NOCTURNE_TEST_TELEPORT("garden", 230, 352);
+    window.__NOCTURNE_TEST_INPUT("down", true);
+  }, "cavern"));
+
   const state = await page.evaluate(() => {
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -125,7 +157,7 @@ async function browserSmoke() {
 
   await browser.close();
   server.close();
-  return { url, state, movementState, consoleErrors, pageErrors, badResponses };
+  return { url, state, movementState, transitionStates, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -154,7 +186,7 @@ async function browserSmoke() {
   assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
   assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
-  assert(!result.state.inputInfo.upKeys.includes("ArrowUp"), "ArrowUp should not be reserved for up doors");
+  assert(result.state.inputInfo.upKeys.includes("KeyW"), "W should trigger up/door control");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
   assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
   assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");

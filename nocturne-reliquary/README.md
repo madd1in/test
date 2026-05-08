@@ -33,7 +33,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Relic-gated progression: Grave Boots, Mist Dash, Moon Sigil
 - Grave Boots upgrade double jump into Triple Moonstep
 - Moon Sigil turns the spell into a three-way moon arc
-- ArrowUp is dedicated to jump, while W keeps up-door control clean
+- W and ArrowUp can trigger up-door control; Space/Z remain clean jump-only options
 - Jump buffering and short-hop release make platforming sharper
 - Wider whip hitboxes line up better with the visible whip arc
 - Down-whip in the air bounces off enemies as a Moon pogo
@@ -41,13 +41,15 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Horizontal camera rooms are about one and a half screens wide for better flow
 - Vertical camera rooms are taller than one screen
 - Sprite sheets use the stable pre-reference-slice versions
-- Procedural 1440x720 gothic backdrops replace the coarse poster crops
+- Imagen HD 1920x1080 backgrounds for the Belltower, Library, Cavern, and Drowned Rose Garden
+- Safer room exits use expanded trigger zones, spawn settling, transition cooldowns, and last-safe-ground recovery
 - Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
 - Aerial whip stalls descent briefly for safer mid-air attacks
 - Moon chain combo rewards quick kills with extra MP
 - Local sprite-sheet animation for player, enemies, boss, projectiles, and whip
 - Reproducible slicing for the raw player and whip PNGs in `tools/slice-local-assets.py`
 - Reproducible high-resolution backdrop generation in `tools/build-gothic-backgrounds.py`
+- Reproducible Imagen atlas cropping in `tools/build-imagen-hd-backgrounds.py`
 - Local BGM and SFX
 - Save/continue through `localStorage`
 - Boss finale in the Crimson Reliquary
