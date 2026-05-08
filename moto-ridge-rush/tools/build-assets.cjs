@@ -437,11 +437,15 @@ function makeTileLayer(name, tileNames, columns, rows, parallax, offsetY) {
 
 function buildLevel(id, title, theme, length, points, zones, hazards, pickups, decorations) {
   const columns = Math.ceil(length / 256) + 8;
+  const gold = Math.round((length / 245) * 10) / 10;
+  const silver = Math.round((length / 198) * 10) / 10;
+  const bronze = Math.round((length / 155) * 10) / 10;
   return {
     id,
     title,
     theme,
     length,
+    medals: { gold, silver, bronze },
     gravity: theme === "storm" ? 1610 : 1530,
     start: { x: 140, y: points[0][1] - 52 },
     track: makeTrack(points),

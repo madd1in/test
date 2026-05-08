@@ -130,6 +130,19 @@ h2 {
   text-transform: uppercase;
 }
 
+.secondary-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border-radius: 8px;
+  background: rgba(21, 24, 34, 0.72);
+  border: 1px solid rgba(247, 244, 232, 0.22);
+  color: #f7f4e8;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 .hud {
   position: absolute;
   inset: 16px 16px auto;
@@ -201,6 +214,64 @@ h2 {
   background: linear-gradient(90deg, #2fb7a5, #f7b955 58%, #f05d49);
 }
 
+.score-metric {
+  color: #f7b955;
+}
+
+.race-progress {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: min(440px, calc(100vw - 36px));
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(16, 18, 25, 0.54);
+  border: 1px solid rgba(247, 244, 232, 0.18);
+  overflow: visible;
+  pointer-events: none;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+}
+
+.race-progress span:first-child {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2fb7a5, #f7b955, #f05d49);
+}
+
+#progressBike {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 24px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 6px 10px 10px 6px;
+  background:
+    radial-gradient(circle at 25% 78%, #17120f 0 18%, transparent 19%),
+    radial-gradient(circle at 78% 78%, #17120f 0 18%, transparent 19%),
+    linear-gradient(135deg, #f7f4e8 0 45%, #2fb7a5 46% 72%, #f05d49 73%);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(16, 18, 25, 0.66);
+  border: 1px solid rgba(247, 244, 232, 0.18);
+  color: #f7b955;
+  font-weight: 900;
+  text-transform: uppercase;
+  pointer-events: none;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+}
+
 .finish-panel {
   color: #f7f4e8;
   text-shadow: 0 5px 18px rgba(0, 0, 0, 0.35);
@@ -210,6 +281,17 @@ h2 {
   margin: 10px 0 16px;
   font-size: clamp(40px, 9vw, 88px);
   font-weight: 900;
+}
+
+.finish-details {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(16, 18, 25, 0.62);
+  border: 1px solid rgba(247, 244, 232, 0.16);
+  font-weight: 800;
 }
 
 .touch-controls {
@@ -240,6 +322,14 @@ h2 {
   display: none;
 }
 
+.race-progress {
+  display: none;
+}
+
+.is-racing .race-progress {
+  display: block;
+}
+
 .is-finished #hud {
   opacity: 0.25;
 }
@@ -263,5 +353,9 @@ h2 {
 
   .touch-controls {
     display: grid;
+  }
+
+  .race-progress {
+    bottom: 94px;
   }
 }

@@ -11,6 +11,8 @@ An original side-scrolling motocross arcade game inspired by classic dirt-bike r
 - Turbo: `Shift`
 - Restart: `R`
 
+Clean jumps award stunt points. Pickups add score, turbo heats the bike, and each track has gold, silver, and bronze target times saved locally in the browser.
+
 ## Project Notes
 
 - `assets/source/` contains the three AI-generated source boards used as visual direction.

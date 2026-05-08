@@ -60,6 +60,10 @@
         finished: false,
         time: 0,
         best: getBest(level.id),
+        bestScore: getBestScore(level.id),
+        medal: getMedal(level.id),
+        score: 0,
+        trickReady: false,
         pickups: new Set(),
         hazardsHit: new Set()
       },
@@ -84,6 +88,44 @@
       if (!current || time < current) localStorage.setItem(`moto-ridge-best-${id}`, String(time));
     } catch {
       // Ignore storage failures; gameplay should not depend on it.
+    }
+  }
+
+  function getBestScore(id) {
+    try {
+      const raw = localStorage.getItem(`moto-ridge-score-${id}`);
+      return raw ? Number(raw) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function setBestScore(id, score) {
+    try {
+      const current = getBestScore(id);
+      if (score > current) localStorage.setItem(`moto-ridge-score-${id}`, String(score));
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
+  function getMedal(id) {
+    try {
+      return localStorage.getItem(`moto-ridge-medal-${id}`) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function setMedal(id, medal) {
+    const order = { "": 0, bronze: 1, silver: 2, gold: 3 };
+    try {
+      const current = getMedal(id);
+      if ((order[medal] || 0) > (order[current] || 0)) {
+        localStorage.setItem(`moto-ridge-medal-${id}`, medal);
+      }
+    } catch {
+      // Ignore storage failures.
     }
   }
 
@@ -154,6 +196,7 @@
       bike.overheat = 1.25;
       bike.heat = 1;
       state.camera.shake = Math.max(state.camera.shake, 4);
+      state.events.push({ type: "overheat" });
     }
     bike.overheat = Math.max(0, bike.overheat - dt);
     if (bike.overheat > 0) bike.heat = clamp(bike.heat - 0.18 * dt, 0, 1);
@@ -173,6 +216,7 @@
       if (Math.abs(nextGround.angle) > 0.36 && bike.vx > 520) {
         bike.vy = -Math.abs(bike.vx) * 0.22;
         bike.grounded = false;
+        state.race.trickReady = true;
       }
     } else {
       bike.airborneTime += dt;
@@ -189,7 +233,8 @@
       const landingY = landingGround.y - 35;
       if (bike.y >= landingY && bike.vy > 0) {
         const angleDelta = Math.abs(normalizeAngle(bike.angle - landingGround.angle));
-        const hardLanding = bike.vy > 840 || angleDelta > 0.78;
+        const hardLanding = bike.vy > 1250 || angleDelta > 1.35;
+        const airtime = bike.airborneTime;
         bike.y = landingY;
         bike.grounded = true;
         bike.airborneTime = 0;
@@ -198,6 +243,12 @@
         bike.vy = 0;
         spawnFx(state, hardLanding ? "spark" : "dust", bike.x - 14, landingGround.y + 3, hardLanding ? 1.1 : 0.85);
         if (hardLanding) crash(state, "landing");
+        else if (state.race.trickReady && airtime > 0.42) {
+          const points = Math.round(80 + airtime * 190 + Math.abs(bike.vx) * 0.08);
+          state.race.score += points;
+          state.events.push({ type: "stunt", points });
+        }
+        state.race.trickReady = false;
       }
     }
 
@@ -283,6 +334,8 @@
         if (pickup.kind === "clock") state.race.time = Math.max(0, state.race.time - 3.5);
         if (pickup.kind === "wrench") bike.invincible = Math.max(bike.invincible, 2.2);
         if (pickup.kind === "heat_pickup") bike.heat = clamp(bike.heat - 0.42, 0, 1);
+        state.race.score += pickup.kind === "clock" ? 350 : 250;
+        state.events.push({ type: "pickup", kind: pickup.kind });
         spawnFx(state, "confetti", pickup.x, ground.y - 85, 0.9);
       }
     }
@@ -304,10 +357,23 @@
       state.race.finished = true;
       state.race.running = false;
       setBest(state.level.id, state.race.time);
+      setBestScore(state.level.id, state.race.score);
+      const medal = calculateMedal(state.level, state.race.time);
+      state.race.finishMedal = medal;
+      setMedal(state.level.id, medal);
       state.race.best = getBest(state.level.id);
+      state.race.bestScore = getBestScore(state.level.id);
+      state.race.medal = getMedal(state.level.id);
       spawnFx(state, "confetti", bike.x + 40, bike.y - 70, 1.5);
       state.events.push({ type: "finish", time: state.race.time });
     }
+  }
+
+  function calculateMedal(level, time) {
+    if (!level.medals) return "bronze";
+    if (time <= level.medals.gold) return "gold";
+    if (time <= level.medals.silver) return "silver";
+    return "bronze";
   }
 
   function emitRollingFx(state, active, zone) {
@@ -316,7 +382,9 @@
     state.randomSeed = (state.randomSeed * 1664525 + 1013904223) >>> 0;
     if (state.randomSeed % 5 !== 0) return;
     const ground = sampleTrack(state.level, bike.x - 22);
-    spawnFx(state, zone && zone.type === "boost" ? "turbo" : "dust", bike.x - 34, ground.y + 4, zone && zone.type === "boost" ? 0.7 : 0.45);
+    const boost = zone && zone.type === "boost";
+    spawnFx(state, boost ? "turbo" : "dust", bike.x - 34, ground.y + 4, boost ? 0.7 : 0.45);
+    if (boost && state.randomSeed % 23 === 0) state.events.push({ type: "boost" });
   }
 
   function spawnFx(state, kind, x, y, scale) {

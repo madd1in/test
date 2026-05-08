@@ -6,19 +6,28 @@
   const startButton = document.querySelector("#startButton");
   const againButton = document.querySelector("#againButton");
   const finishPanel = document.querySelector("#finishPanel");
+  const finishMedal = document.querySelector("#finishMedal");
   const finishTime = document.querySelector("#finishTime");
+  const finishDetails = document.querySelector("#finishDetails");
+  const nextButton = document.querySelector("#nextButton");
   const timeValue = document.querySelector("#timeValue");
   const speedValue = document.querySelector("#speedValue");
   const checkpointValue = document.querySelector("#checkpointValue");
+  const scoreValue = document.querySelector("#scoreValue");
   const heatFill = document.querySelector("#heatFill");
+  const progressFill = document.querySelector("#progressFill");
+  const progressBike = document.querySelector("#progressBike");
+  const toast = document.querySelector("#toast");
 
   let input;
   let renderer;
+  let audio;
   let assets;
   let state;
   let selectedLevel = 0;
   let lastTime = 0;
   let paused = false;
+  let toastTimer = 0;
 
   async function loadJson(url) {
     const response = await fetch(url, { cache: "no-store" });
@@ -52,7 +61,10 @@
       const button = document.createElement("button");
       button.type = "button";
       button.setAttribute("aria-pressed", String(index === selectedLevel));
-      button.innerHTML = `<strong>${level.title}</strong><span>${Math.round(level.length / 100) / 10} km</span>`;
+      const best = getStoredNumber(`moto-ridge-best-${level.id}`);
+      const medal = getStoredString(`moto-ridge-medal-${level.id}`);
+      const suffix = best ? `${best.toFixed(2)}s` : `${Math.round(level.length / 100) / 10} km`;
+      button.innerHTML = `<strong>${level.title}</strong><span>${formatMedal(medal)} ${suffix}</span>`;
       button.addEventListener("click", () => {
         selectedLevel = index;
         buildMenu();
@@ -62,10 +74,13 @@
   }
 
   function startSelectedLevel() {
+    audio.unlock();
     const level = assets.levels[selectedLevel];
     state = MotoRidge.Simulation.createState(level);
     window.__MOTO_RIDGE_DEBUG.state = state;
     finishPanel.hidden = true;
+    toast.hidden = true;
+    toastTimer = 0;
     document.body.classList.add("is-racing");
     document.body.classList.remove("is-finished");
     input.clear("restart");
@@ -74,8 +89,14 @@
   function showFinish() {
     if (!state || !state.race.finished || !finishPanel.hidden) return;
     finishPanel.hidden = false;
+    finishMedal.textContent = formatMedal(state.race.finishMedal || "bronze", true);
     finishTime.textContent = `${state.race.time.toFixed(2)}s`;
+    const best = state.race.best ? `${state.race.best.toFixed(2)}s` : "--";
+    const score = state.race.score;
+    const bestScore = state.race.bestScore || score;
+    finishDetails.innerHTML = `<span>Best ${best}</span><span>Score ${score}</span><span>Top Score ${bestScore}</span>`;
     document.body.classList.add("is-finished");
+    buildMenu();
   }
 
   function updateHud() {
@@ -85,7 +106,58 @@
     timeValue.textContent = state.race.time.toFixed(2);
     speedValue.textContent = String(Math.max(0, Math.round(Math.abs(bike.vx) * 0.18)));
     checkpointValue.textContent = `${bike.checkpointIndex}/${checkpoints}`;
+    scoreValue.textContent = String(state.race.score);
     heatFill.style.width = `${Math.round(MotoRidge.Simulation.clamp(bike.heat, 0, 1) * 100)}%`;
+    const progress = MotoRidge.Simulation.clamp(bike.x / state.level.length, 0, 1);
+    progressFill.style.width = `${Math.round(progress * 100)}%`;
+    progressBike.style.left = `${Math.round(progress * 100)}%`;
+    updateToast();
+  }
+
+  function processEvents(events) {
+    for (const event of events) {
+      audio.playEvent(event);
+      if (event.type === "pickup") showToast(event.kind.replace("_", " "));
+      if (event.type === "checkpoint") showToast(`Checkpoint ${event.index}`);
+      if (event.type === "stunt") showToast(`Stunt +${event.points}`);
+      if (event.type === "overheat") showToast("Overheat");
+      if (event.type === "crash") showToast("Crash");
+    }
+  }
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.hidden = false;
+    toastTimer = 1.15;
+  }
+
+  function updateToast() {
+    if (toast.hidden) return;
+    toastTimer -= 1 / 60;
+    if (toastTimer <= 0) toast.hidden = true;
+  }
+
+  function getStoredNumber(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? Number(raw) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function getStoredString(key) {
+    try {
+      return localStorage.getItem(key) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function formatMedal(medal, title) {
+    const labels = { gold: "Gold", silver: "Silver", bronze: "Bronze" };
+    if (!medal) return title ? "Finish" : "";
+    return title ? `${labels[medal] || "Bronze"} Finish` : labels[medal] || "";
   }
 
   function loop(time) {
@@ -96,6 +168,8 @@
 
     if (state && !paused) {
       MotoRidge.Simulation.updateState(state, input, dt);
+      processEvents(state.events);
+      audio.update(state);
       renderer.draw(state, time);
       updateHud();
       showFinish();
@@ -109,14 +183,16 @@
 
   async function boot() {
     input = MotoRidge.createInput();
+    audio = MotoRidge.createAudio();
     assets = await loadAssets();
     renderer = MotoRidge.createRenderer(canvas, assets);
     buildMenu();
     startButton.addEventListener("click", startSelectedLevel);
-    againButton.addEventListener("click", () => {
-      state = null;
-      finishPanel.hidden = true;
-      document.body.classList.remove("is-racing", "is-finished");
+    againButton.addEventListener("click", startSelectedLevel);
+    nextButton.addEventListener("click", () => {
+      selectedLevel = (selectedLevel + 1) % assets.levels.length;
+      buildMenu();
+      startSelectedLevel();
     });
     window.__MOTO_RIDGE_READY = true;
     window.__MOTO_RIDGE_DEBUG = {

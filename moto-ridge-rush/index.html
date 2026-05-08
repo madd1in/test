@@ -24,6 +24,7 @@
           <div class="metric"><span class="metric-icon time-icon"></span><span id="timeValue">0.00</span></div>
           <div class="metric"><span class="metric-icon speed-icon"></span><span id="speedValue">0</span></div>
           <div class="metric"><span class="metric-icon checkpoint-icon"></span><span id="checkpointValue">0/0</span></div>
+          <div class="metric score-metric"><span id="scoreValue">0</span></div>
         </div>
         <div class="heat-wrap" aria-label="Engine heat">
           <span class="metric-icon heat-icon"></span>
@@ -31,10 +32,19 @@
         </div>
       </section>
 
+      <section id="raceProgress" class="race-progress" aria-label="Race progress">
+        <span id="progressFill"></span>
+        <span id="progressBike"></span>
+      </section>
+
+      <section id="toast" class="toast" hidden></section>
+
       <section id="finishPanel" class="finish-panel" hidden>
-        <h2>Finish</h2>
+        <h2 id="finishMedal">Finish</h2>
         <p id="finishTime">0.00</p>
+        <div id="finishDetails" class="finish-details"></div>
         <button id="againButton" class="primary-btn" type="button">Again</button>
+        <button id="nextButton" class="secondary-btn" type="button">Next</button>
       </section>
 
       <nav id="touchControls" class="touch-controls" aria-label="Touch controls">
@@ -48,6 +58,7 @@
     </main>
 
     <script src="src/input.js"></script>
+    <script src="src/audio.js"></script>
     <script src="src/simulation.js"></script>
     <script src="src/renderer.js"></script>
     <script src="src/game.js"></script>
