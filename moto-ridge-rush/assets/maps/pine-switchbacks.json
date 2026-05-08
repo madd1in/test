@@ -1,0 +1,385 @@
+{
+  "id": "pine-switchbacks",
+  "title": "Pine Switchbacks",
+  "theme": "pine",
+  "length": 7200,
+  "gravity": 1530,
+  "start": {
+    "x": 140,
+    "y": 458
+  },
+  "track": [
+    {
+      "x": 0,
+      "y": 510,
+      "type": "dirt",
+      "marker": null,
+      "id": 0
+    },
+    {
+      "x": 480,
+      "y": 510,
+      "type": "dirt",
+      "marker": null,
+      "id": 1
+    },
+    {
+      "x": 830,
+      "y": 470,
+      "type": "dirt",
+      "marker": null,
+      "id": 2
+    },
+    {
+      "x": 1160,
+      "y": 528,
+      "type": "mud",
+      "marker": null,
+      "id": 3
+    },
+    {
+      "x": 1460,
+      "y": 528,
+      "type": "dirt",
+      "marker": null,
+      "id": 4
+    },
+    {
+      "x": 1740,
+      "y": 458,
+      "type": "ramp",
+      "marker": null,
+      "id": 5
+    },
+    {
+      "x": 2040,
+      "y": 438,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 6
+    },
+    {
+      "x": 2360,
+      "y": 478,
+      "type": "dirt",
+      "marker": null,
+      "id": 7
+    },
+    {
+      "x": 2760,
+      "y": 438,
+      "type": "dirt",
+      "marker": null,
+      "id": 8
+    },
+    {
+      "x": 3110,
+      "y": 438,
+      "type": "boost",
+      "marker": null,
+      "id": 9
+    },
+    {
+      "x": 3420,
+      "y": 505,
+      "type": "dirt",
+      "marker": null,
+      "id": 10
+    },
+    {
+      "x": 3740,
+      "y": 500,
+      "type": "dirt",
+      "marker": null,
+      "id": 11
+    },
+    {
+      "x": 4080,
+      "y": 455,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 12
+    },
+    {
+      "x": 4440,
+      "y": 432,
+      "type": "ramp",
+      "marker": null,
+      "id": 13
+    },
+    {
+      "x": 4720,
+      "y": 382,
+      "type": "dirt",
+      "marker": null,
+      "id": 14
+    },
+    {
+      "x": 5070,
+      "y": 480,
+      "type": "dirt",
+      "marker": null,
+      "id": 15
+    },
+    {
+      "x": 5400,
+      "y": 520,
+      "type": "mud",
+      "marker": null,
+      "id": 16
+    },
+    {
+      "x": 5780,
+      "y": 460,
+      "type": "dirt",
+      "marker": null,
+      "id": 17
+    },
+    {
+      "x": 6150,
+      "y": 442,
+      "type": "checkpoint",
+      "marker": null,
+      "id": 18
+    },
+    {
+      "x": 6510,
+      "y": 500,
+      "type": "dirt",
+      "marker": null,
+      "id": 19
+    },
+    {
+      "x": 7200,
+      "y": 500,
+      "type": "finish",
+      "marker": null,
+      "id": 20
+    }
+  ],
+  "checkpoints": [
+    2040,
+    4080,
+    6150
+  ],
+  "zones": [
+    {
+      "x": 1120,
+      "w": 300,
+      "type": "mud"
+    },
+    {
+      "x": 3040,
+      "w": 320,
+      "type": "boost"
+    },
+    {
+      "x": 5320,
+      "w": 340,
+      "type": "mud"
+    }
+  ],
+  "hazards": [
+    {
+      "x": 980,
+      "kind": "rock_cluster"
+    },
+    {
+      "x": 3530,
+      "kind": "hay"
+    },
+    {
+      "x": 5960,
+      "kind": "cone"
+    }
+  ],
+  "pickups": [
+    {
+      "x": 2520,
+      "kind": "clock"
+    },
+    {
+      "x": 4220,
+      "kind": "wrench"
+    },
+    {
+      "x": 6400,
+      "kind": "heat_pickup"
+    }
+  ],
+  "decorations": [
+    {
+      "x": 520,
+      "kind": "pine"
+    },
+    {
+      "x": 2040,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 4080,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 6150,
+      "kind": "checkpoint"
+    },
+    {
+      "x": 7130,
+      "kind": "finish_left"
+    },
+    {
+      "x": 7180,
+      "kind": "finish_right"
+    },
+    {
+      "x": 1600,
+      "kind": "flag"
+    },
+    {
+      "x": 4700,
+      "kind": "scrub"
+    }
+  ],
+  "tileLayers": [
+    {
+      "name": "sky",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 9,
+      "rows": 2,
+      "parallax": 0.08,
+      "offsetY": 0,
+      "data": [
+        [
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long"
+        ],
+        [
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long",
+          "sky_clear",
+          "cloud_soft",
+          "cloud_long"
+        ]
+      ]
+    },
+    {
+      "name": "far",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 15,
+      "rows": 2,
+      "parallax": 0.18,
+      "offsetY": 130,
+      "data": [
+        [
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft"
+        ],
+        [
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft",
+          "pine_ridge",
+          "mesa_far",
+          "cloud_soft"
+        ]
+      ]
+    },
+    {
+      "name": "near",
+      "tileWidth": 256,
+      "tileHeight": 144,
+      "columns": 23,
+      "rows": 2,
+      "parallax": 0.34,
+      "offsetY": 265,
+      "data": [
+        [
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland"
+        ],
+        [
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland",
+          "bridge_back",
+          "pine_ridge",
+          "scrubland"
+        ]
+      ]
+    }
+  ]
+}
