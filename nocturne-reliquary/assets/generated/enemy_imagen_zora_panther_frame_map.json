@@ -1,0 +1,90 @@
+{
+  "version": "zora-panther-hd-24f-v2",
+  "image": "enemy_imagen_zora_panther_sheet.png",
+  "source": "imagen_zora_panther_hd_sheet_20260509.png",
+  "frameWidth": 256,
+  "frameHeight": 192,
+  "framesPerRow": 24,
+  "animations": {
+    "zora": {
+      "row": 0,
+      "frames": 24,
+      "fps": 12,
+      "idle": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "run": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "attack": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "anchor": "bottom-center"
+    },
+    "blackPanther": {
+      "row": 1,
+      "frames": 24,
+      "fps": 18,
+      "run": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "lunge": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "recover": [
+        20,
+        21,
+        22,
+        23
+      ],
+      "anchor": "bottom-center"
+    }
+  }
+}

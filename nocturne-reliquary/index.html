@@ -2,9 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Nocturne Reliquary</title>
     <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Pirata+One&family=MedievalSharp&family=UnifrakturCook:wght@700&display=swap" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -19,6 +22,14 @@
           </div>
           <div class="meter hp"><span id="hpFill"></span></div>
           <div class="meter mp"><span id="mpFill"></span></div>
+          <div class="meter exp"><span id="expFill"></span></div>
+          <div class="hud-stats">
+            <span class="stat-chip" id="levelChip">Lv 1</span>
+            <span class="stat-chip" id="heartsChip">&#9829; 0</span>
+            <span class="stat-chip" id="subChip">Dagger</span>
+            <span class="stat-chip objective-chip" id="objectiveChip">Next: Moon Sigil</span>
+            <span class="stat-chip compass-chip" id="compassChip">→ Gallery</span>
+          </div>
         </div>
         <div class="hud-center">
           <div id="roomName" class="room-name">Gate Hall</div>
@@ -50,20 +61,33 @@
           <h2>Castle Map</h2>
           <button id="closeMapButton" class="icon-button" type="button" aria-label="Close map">X</button>
         </div>
+        <div class="objective-block">
+          <div class="objective-label">What to do next</div>
+          <div id="objectiveLine" class="objective-line"></div>
+          <ul id="sideObjectiveList" class="side-objectives"></ul>
+        </div>
+        <div class="stats-block">
+          <div class="objective-label">Hunter stats</div>
+          <div id="statsList" class="stats-list"></div>
+        </div>
         <div id="mapGrid" class="map-grid"></div>
         <div id="relicList" class="relic-list"></div>
       </section>
 
       <section id="touchControls" class="touch-controls" aria-label="Touch controls">
-        <div class="touch-cluster">
-          <button data-touch="left" data-glyph="&#9664;" type="button" aria-label="Move left"></button>
-          <button data-touch="right" data-glyph="&#9654;" type="button" aria-label="Move right"></button>
+        <div class="touch-cluster movement-pad">
           <button data-touch="up" data-glyph="&#9650;" type="button" aria-label="Move up"></button>
+          <button data-touch="left" data-glyph="&#9664;" type="button" aria-label="Move left"></button>
+          <button data-touch="down" data-glyph="&#9660;" type="button" aria-label="Crouch or move down"></button>
+          <button data-touch="right" data-glyph="&#9654;" type="button" aria-label="Move right"></button>
         </div>
         <div class="touch-cluster">
           <button data-touch="jump" data-glyph="&#10548;" type="button" aria-label="Jump"></button>
           <button data-touch="attack" data-glyph="&#9585;" type="button" aria-label="Attack"></button>
           <button data-touch="dash" data-glyph="&#8811;" type="button" aria-label="Dash"></button>
+          <button data-touch="backdash" data-glyph="&#8810;" type="button" aria-label="Backdash"></button>
+          <button data-touch="subweapon" data-glyph="&#9876;" type="button" aria-label="Sub-Weapon"></button>
+          <button data-touch="interact" data-glyph="&#10026;" type="button" aria-label="Interact"></button>
         </div>
       </section>
     </main>
