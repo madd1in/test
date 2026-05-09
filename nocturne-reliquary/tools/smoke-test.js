@@ -65,6 +65,12 @@ async function closeBrowser(browser) {
   }
 }
 
+async function closeServer(server) {
+  if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
+  if (typeof server.closeAllConnections === "function") server.closeAllConnections();
+  await new Promise((resolve) => server.close(() => resolve()));
+}
+
 function watchPage(page, consoleErrors, pageErrors, badResponses) {
   page.on("console", (msg) => {
     if (msg.type() === "error") consoleErrors.push(msg.text());
@@ -145,10 +151,14 @@ async function browserSmoke() {
 
   await page.click("#startButton");
   await page.waitForTimeout(900);
+  const newRunState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
   await page.keyboard.press("KeyJ");
   await page.keyboard.press("ArrowUp");
-  await page.evaluate(() => window.__NOCTURNE_TEST_INPUT("right", true));
-  await page.waitForTimeout(3200);
+  await page.evaluate(() => {
+    window.__NOCTURNE_TEST_TELEPORT("forest", 640, 352);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  });
+  await page.waitForTimeout(900);
   const movementState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
   await page.evaluate(() => window.__NOCTURNE_TEST_INPUT("right", false));
   await page.waitForTimeout(500);
@@ -216,6 +226,10 @@ async function browserSmoke() {
     window.__NOCTURNE_TEST_TELEPORT("garden", 230, 352);
     window.__NOCTURNE_TEST_INPUT("down", true);
   }, "cavern"));
+  transitionStates.push(await transitionProbe("cavern down to sapphire grotto", () => {
+    window.__NOCTURNE_TEST_TELEPORT("cavern", 620, 352);
+    window.__NOCTURNE_TEST_INPUT("down", true);
+  }, "cavernDepths"));
   transitionStates.push(await transitionProbe("belltower right to loft", () => {
     window.__NOCTURNE_TEST_TELEPORT("belltower", 1370, 360);
     window.__NOCTURNE_TEST_INPUT("right", true);
@@ -240,10 +254,83 @@ async function browserSmoke() {
     window.__NOCTURNE_TEST_TELEPORT("cavern", 1370, 330);
     window.__NOCTURNE_TEST_INPUT("right", true);
   }, "aqueduct"));
+  transitionStates.push(await transitionProbe("sapphire grotto right to aqueduct", () => {
+    window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 1370, 330);
+    window.__NOCTURNE_TEST_INPUT("right", true);
+  }, "aqueduct"));
   transitionStates.push(await transitionProbe("library right to archive", () => {
     window.__NOCTURNE_TEST_TELEPORT("library", 1370, 330);
     window.__NOCTURNE_TEST_INPUT("right", true);
   }, "archive"));
+
+  const grottoMechanicProbe = await page.evaluate(async () => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 360, 260);
+    window.__NOCTURNE_TEST_CLEAR_ROOM_THREATS();
+    window.__NOCTURNE_TEST_ALIGN_GROTTO_RIDE(392);
+    window.__NOCTURNE_TEST_INPUT("down", true);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    let state = window.__NOCTURNE_DEBUG_STATE();
+    const ride = state.grotto.platform;
+    window.__NOCTURNE_TEST_SET_PLAYER_RAW(ride.x + 44, ride.y - 116, true);
+    const carryStart = window.__NOCTURNE_DEBUG_STATE();
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const carryEnd = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_INPUT("down", false);
+
+    state = window.__NOCTURNE_DEBUG_STATE();
+    const gate = state.grotto.duckGates[0];
+    window.__NOCTURNE_TEST_ALIGN_GROTTO_RIDE(gate.x + gate.w / 2 - 44);
+    const platform = window.__NOCTURNE_DEBUG_STATE().grotto.platform;
+    window.__NOCTURNE_TEST_SET_PLAYER_RAW(gate.x + gate.w / 2 - 21, platform.y - 116, true);
+    const noDuckStart = window.__NOCTURNE_DEBUG_STATE();
+    await new Promise((resolve) => setTimeout(resolve, 460));
+    const noDuckEnd = window.__NOCTURNE_DEBUG_STATE();
+
+    window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 360, 260);
+    window.__NOCTURNE_TEST_CLEAR_ROOM_THREATS();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    state = window.__NOCTURNE_DEBUG_STATE();
+    const duckGate = state.grotto.duckGates[0];
+    window.__NOCTURNE_TEST_ALIGN_GROTTO_RIDE(duckGate.x + duckGate.w / 2 - 44);
+    const duckPlatform = window.__NOCTURNE_DEBUG_STATE().grotto.platform;
+    window.__NOCTURNE_TEST_INPUT("down", true);
+    window.__NOCTURNE_TEST_SET_PLAYER_RAW(duckGate.x + duckGate.w / 2 - 21, duckPlatform.y - 116, true);
+    const duckStart = window.__NOCTURNE_DEBUG_STATE();
+    await new Promise((resolve) => setTimeout(resolve, 460));
+    const duckEnd = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_INPUT("down", false);
+
+    return { carryStart, carryEnd, noDuckStart, noDuckEnd, duckStart, duckEnd };
+  });
+
+  const enemyVisibilityProbe = await page.evaluate(async () => {
+    window.__NOCTURNE_TEST_SET_KILLED("gate", "gatePanther1", true);
+    window.__NOCTURNE_TEST_TELEPORT("gate", 120, 330);
+    await new Promise((resolve) => setTimeout(resolve, 160));
+    const gate = window.__NOCTURNE_DEBUG_STATE();
+
+    window.__NOCTURNE_TEST_SET_KILLED("cavernDepths", "zg1", true);
+    window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 180, 82);
+    await new Promise((resolve) => setTimeout(resolve, 160));
+    const grotto = window.__NOCTURNE_DEBUG_STATE();
+
+    window.__NOCTURNE_TEST_SET_KILLED("gate", "gatePanther1", false);
+    window.__NOCTURNE_TEST_SET_KILLED("cavernDepths", "zg1", false);
+    return { gate, grotto };
+  });
+
+  const chestVisualProbe = await page.evaluate(async () => {
+    window.__NOCTURNE_TEST_SET_CHEST_OPENED("vault", "vault_axe_chest", false);
+    window.__NOCTURNE_TEST_TELEPORT("vault", 650, 352);
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    const closed = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_SET_CHEST_OPENED("vault", "vault_axe_chest", true);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    const opened = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_SET_CHEST_OPENED("vault", "vault_axe_chest", false);
+    return { closed, opened };
+  });
 
   await page.evaluate(() => {
     for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
@@ -286,6 +373,7 @@ async function browserSmoke() {
       titleHidden: document.getElementById("titlePanel").hidden,
       room: document.getElementById("roomName").textContent,
       frameInfo: window.__NOCTURNE_FRAME_INFO,
+      enemyFrameMap: window.__NOCTURNE_ENEMY_FRAME_MAP,
       inputInfo: window.__NOCTURNE_INPUT_INFO,
       tuningInfo: window.__NOCTURNE_TUNING_INFO,
       debugState: window.__NOCTURNE_DEBUG_STATE(),
@@ -339,20 +427,42 @@ async function browserSmoke() {
   });
   await mobilePage.click("#startButton");
   await mobilePage.waitForTimeout(700);
-  const mobileStartState = await mobilePage.evaluate(() => ({
-    debug: window.__NOCTURNE_DEBUG_STATE(),
-    bodyMobile: document.body.classList.contains("mobile-mode"),
-    titleHidden: document.getElementById("titlePanel").hidden,
-    touchDisplay: getComputedStyle(document.getElementById("touchControls")).display,
-    appHeight: Math.round(document.getElementById("app").getBoundingClientRect().height),
-    viewportHeight: window.innerHeight,
-    fullscreen: Boolean(document.fullscreenElement || document.webkitFullscreenElement)
-  }));
+  const mobileStartState = await mobilePage.evaluate(() => {
+    const objectiveChip = document.getElementById("objectiveChip");
+    const compassChip = document.getElementById("compassChip");
+    const objectiveRect = objectiveChip.getBoundingClientRect();
+    const compassRect = compassChip.getBoundingClientRect();
+    return {
+      debug: window.__NOCTURNE_DEBUG_STATE(),
+      bodyMobile: document.body.classList.contains("mobile-mode"),
+      titleHidden: document.getElementById("titlePanel").hidden,
+      touchDisplay: getComputedStyle(document.getElementById("touchControls")).display,
+      objectiveDisplay: getComputedStyle(objectiveChip).display,
+      objectiveText: objectiveChip.textContent,
+      objectiveRect: {
+        width: Math.round(objectiveRect.width),
+        height: Math.round(objectiveRect.height),
+        top: Math.round(objectiveRect.top),
+        left: Math.round(objectiveRect.left)
+      },
+      compassDisplay: getComputedStyle(compassChip).display,
+      compassText: compassChip.textContent,
+      compassRect: {
+        width: Math.round(compassRect.width),
+        height: Math.round(compassRect.height),
+        top: Math.round(compassRect.top),
+        left: Math.round(compassRect.left)
+      },
+      appHeight: Math.round(document.getElementById("app").getBoundingClientRect().height),
+      viewportHeight: window.innerHeight,
+      fullscreen: Boolean(document.fullscreenElement || document.webkitFullscreenElement)
+    };
+  });
   await mobileContext.close();
 
   await closeBrowser(browser);
-  server.close();
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, movementState, transitionStates, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  await closeServer(server);
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -365,6 +475,21 @@ async function browserSmoke() {
   assert(gameJs.includes("Nocturne Reliquary"), "game title missing in JS");
   assert(indexHtml.includes("canvas"), "canvas missing in HTML");
   assert(!gameJs.includes('playSound("gate"'), "room-transition gate/gong SFX should stay removed");
+  const enemyFrameMapPath = path.join(root, "assets/generated/enemy_imagen_zora_panther_frame_map.json");
+  assert(fs.existsSync(enemyFrameMapPath), "zora/panther enemy frame map JSON missing");
+  const enemyFrameMap = JSON.parse(fs.readFileSync(enemyFrameMapPath, "utf8"));
+  assert(enemyFrameMap.version === "zora-panther-hd-24f-v2", "zora/panther frame map version mismatch");
+  assert(enemyFrameMap.animations.zora.frames === 24 && enemyFrameMap.animations.blackPanther.frames === 24, "zora/panther frame map should expose 24 frames each");
+  const questBossMapPath = path.join(root, "assets/generated/enemy_imagen_quest_minibosses_frame_map.json");
+  assert(fs.existsSync(questBossMapPath), "quest mini-boss frame map JSON missing");
+  const questBossMap = JSON.parse(fs.readFileSync(questBossMapPath, "utf8"));
+  assert(questBossMap.version === "quest-seal-minibosses-hd-24f-v1", "quest mini-boss frame map version mismatch");
+  assert(
+    questBossMap.animations.tideWarden.frames === 24 &&
+    questBossMap.animations.starWarden.frames === 24 &&
+    questBossMap.animations.inkWarden.frames === 24,
+    "quest mini-boss frame map should expose 24 frames each"
+  );
 
   const paths = new Set(Array.from(gameJs.matchAll(/"assets\/[^"]+"/g), (match) => match[0].slice(1, -1)));
   for (const asset of paths) {
@@ -390,9 +515,15 @@ async function browserSmoke() {
   assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
   assert(result.state.frameInfo.bossFrameW === 320, "boss frame width should be 320");
   assert(result.state.frameInfo.bossFrames === 16, "boss should use the HD 16-frame strip");
+  assert(result.state.frameInfo.enemyExtFrameW === 256 && result.state.frameInfo.enemyExtFrameH === 192 && result.state.frameInfo.enemyExtFrames === 24, "extended zora/panther enemy HD frames should be wired");
+  assert(result.state.frameInfo.questBossFrameW === 320 && result.state.frameInfo.questBossFrameH === 256 && result.state.frameInfo.questBossFrames === 24, "quest mini-boss HD frames should be wired");
+  assert(result.state.frameInfo.chestFrameW === 192 && result.state.frameInfo.chestFrameH === 192 && result.state.frameInfo.chestFrames === 4, "HD treasure chest sheet should expose four 192px frames");
+  assert(result.state.enemyFrameMap.zora.frames === 24 && result.state.enemyFrameMap.blackPanther.frames === 24, "runtime enemy frame map should expose 24-frame zora and panther rows");
+  assert(result.state.enemyFrameMap.tideWarden.frames === 24 && result.state.enemyFrameMap.starWarden.frames === 24 && result.state.enemyFrameMap.inkWarden.frames === 24, "runtime enemy frame map should expose 24-frame quest mini-boss rows");
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
   assert(result.state.inputInfo.upKeys.includes("KeyW"), "W should trigger up/door control");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
+  assert(result.state.inputInfo.mobileStart === "manual-fullscreen-button", "mobile start should not auto-toggle fullscreen");
   assert(result.state.hasTouchDown, "mobile controls should include a down/crouch button");
   assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
   assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");
@@ -412,20 +543,62 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.introSet === "castlevania-drawbridge-v2", "Castlevania-style drawbridge intro should be wired");
   assert(result.state.tuningInfo.drawbridgeTileSet === "imagen-existing-root-trim-v1", "drawbridge should use existing Imagen HD tile sheets");
   assert(result.state.tuningInfo.drawbridgeChainSet === "existing-fg-chain-rotated-v1", "drawbridge chains should use the existing chain asset");
+  assert(result.state.tuningInfo.drawbridgeAnchorSet === "imagen-trim-anchor-plates-v1", "drawbridge anchors should use existing Imagen HD trim tiles");
+  assert(result.state.tuningInfo.drawbridgePerf === "cached-deck-chain-mode7-v2", "drawbridge deck, chains, and Mode7 floor should be cached for performance");
+  assert(result.state.tuningInfo.cavernSection === "sapphire-grotto-zora-v1", "new cavern section should be wired");
+  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-spikes-v1", "sapphire grotto moving raft and duck spikes should be wired");
+  assert(result.state.tuningInfo.enemyVisibility === "panther-zora-rim-respawn-v1", "zora and panther visibility tuning should be wired");
+  assert(result.state.tuningInfo.chestSet === "hd-treasure-chests-v1", "HD treasure chest tuning should be wired");
+  assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-miniboss-v1", "quest seal route should force the new sections into progression");
+  assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
+  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1", "zora/panther plus quest mini-boss HD frame map tuning should be wired");
   assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v3-readable-fonts", "mobile touch tuning should include readable-font touch targets");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
-  assert(result.state.tuningInfo.mobileStartFullscreen === "start-tap-default-v1", "mobile start fullscreen tuning should be wired");
+  assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
+  assert(result.state.tuningInfo.progressRoute === "full-castle-survey-v1", "full-map survey route should be wired");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
-  assert(result.movementState.visuals && result.movementState.visuals.bg === "bgForest", "new run should open in the forest room");
-  assert(result.movementState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
-  assert(result.movementState.visuals.mode7, "forest opening should use stretched/Mode7 background fill");
+  assert(result.newRunState.visuals && result.newRunState.visuals.bg === "bgForest", "new run should open in the forest room");
+  assert(result.newRunState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
+  assert(result.newRunState.visuals.mode7, "forest opening should use stretched/Mode7 background fill");
   assert(result.drawbridgeRaisedState.introBridge && result.drawbridgeRaisedState.introBridge.progress > 0.45 && result.drawbridgeRaisedState.introBridge.target === 1, `drawbridge should raise after crossing trigger: ${JSON.stringify(result.drawbridgeRaisedState)}`);
+  assert(result.drawbridgeRaisedState.drawbridgeCache && result.drawbridgeRaisedState.drawbridgeCache.deck && result.drawbridgeRaisedState.drawbridgeCache.anchor && result.drawbridgeRaisedState.drawbridgeCache.chains > 0 && result.drawbridgeRaisedState.drawbridgeCache.mode7 > 0 && result.drawbridgeRaisedState.drawbridgeCache.backgrounds > 0 && result.drawbridgeRaisedState.drawbridgeCache.scenery > 0, `drawbridge cached render layers should be active: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
+  assert(result.drawbridgeRaisedState.drawbridgeCache.chains <= 2, `drawbridge should reuse stable chain strips instead of producing per-frame canvases: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
   assert(result.drawbridgeRaisedState.visuals && result.drawbridgeRaisedState.visuals.parallax.includes("paraStatues"), "castle garden should use statue parallax elements");
   assert(result.drawbridgeRaisedState.visuals.mode7, "castle garden should use stretched/Mode7 background fill");
   assert(result.drawbridgeLoweringState.introBridge && result.drawbridgeLoweringState.introBridge.target === 0 && result.drawbridgeLoweringState.introBridge.progress < result.drawbridgeRaisedState.introBridge.progress, `drawbridge should lower for return path: ${JSON.stringify(result.drawbridgeLoweringState)}`);
   assert(result.mobileJumpState.playerY < result.mobileJumpStart.playerY - 35, `mobile tap jump should climb high enough: ${JSON.stringify({ before: result.mobileJumpStart, after: result.mobileJumpState })}`);
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
+  const grottoState = result.transitionStates.find((entry) => entry.room === "cavernDepths");
+  assert(grottoState && grottoState.visuals.bg === "bgCavernDepths", `sapphire grotto should use the new cavern depths background: ${JSON.stringify(grottoState)}`);
+  assert(grottoState.visuals.parallax.includes("paraCavernSpires") && grottoState.visuals.parallax.includes("paraCavernMist"), `sapphire grotto should use new parallax layers: ${JSON.stringify(grottoState.visuals)}`);
+  assert(grottoState.visuals.mode7, "sapphire grotto should use stretched/Mode7 background fill");
+  assert(grottoState.enemyTypes.includes("zora"), `sapphire grotto should spawn zora waterspout enemies: ${JSON.stringify(grottoState.enemyTypes)}`);
+  assert(grottoState.enemyTypes.includes("tideWarden"), `sapphire grotto should spawn the Tide Warden quest mini-boss: ${JSON.stringify(grottoState.enemyTypes)}`);
+  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3, `sapphire grotto should expose moving raft and three duck gates: ${JSON.stringify(grottoState.grotto)}`);
+  const carryOffsetStart = result.grottoMechanicProbe.carryStart.playerX - result.grottoMechanicProbe.carryStart.grotto.platform.x;
+  const carryOffsetEnd = result.grottoMechanicProbe.carryEnd.playerX - result.grottoMechanicProbe.carryEnd.grotto.platform.x;
+  assert(Math.abs(carryOffsetEnd - carryOffsetStart) <= 18, `moving grotto raft should carry the player: ${JSON.stringify(result.grottoMechanicProbe)}`);
+  assert(result.grottoMechanicProbe.noDuckEnd.hp < result.grottoMechanicProbe.noDuckStart.hp, `standing under grotto spikes should hurt: ${JSON.stringify(result.grottoMechanicProbe.noDuckEnd)}`);
+  assert(result.grottoMechanicProbe.duckEnd.grotto.ducking && result.grottoMechanicProbe.duckEnd.hp === result.grottoMechanicProbe.duckStart.hp, `ducking should clear the low grotto spikes without damage: ${JSON.stringify(result.grottoMechanicProbe.duckEnd)}`);
+  assert(result.enemyVisibilityProbe.gate.enemyTypes.includes("blackPanther"), `black panther should respawn even if a regular kill was saved: ${JSON.stringify(result.enemyVisibilityProbe.gate.enemyTypes)}`);
+  assert(result.enemyVisibilityProbe.grotto.enemyTypes.includes("zora"), `zora should respawn even if a regular kill was saved: ${JSON.stringify(result.enemyVisibilityProbe.grotto.enemyTypes)}`);
+  const visiblePanther = result.enemyVisibilityProbe.gate.featuredEnemies.find((enemy) => enemy.type === "blackPanther");
+  const visibleZora = result.enemyVisibilityProbe.grotto.featuredEnemies.find((enemy) => enemy.type === "zora");
+  assert(visiblePanther && visiblePanther.x < 620 && visiblePanther.dw >= 200, `black panther should be readable in the first Gate Hall screen: ${JSON.stringify(result.enemyVisibilityProbe.gate.featuredEnemies)}`);
+  assert(visibleZora && visibleZora.x < 620 && visibleZora.dw >= 140, `zora should be readable in the first Sapphire Grotto screen: ${JSON.stringify(result.enemyVisibilityProbe.grotto.featuredEnemies)}`);
+  const closedChest = result.chestVisualProbe.closed.chests.find((chest) => chest.id === "vault_axe_chest");
+  const openedChest = result.chestVisualProbe.opened.chests.find((chest) => chest.id === "vault_axe_chest");
+  assert(closedChest && !closedChest.opened && closedChest.asset && closedChest.frameW === 192 && closedChest.drawW >= 70, `closed vault chest should use the HD chest sheet: ${JSON.stringify(result.chestVisualProbe.closed.chests)}`);
+  assert(openedChest && openedChest.opened && openedChest.asset && openedChest.frames === 4, `opened vault chest should use the HD open-frame sheet: ${JSON.stringify(result.chestVisualProbe.opened.chests)}`);
+  const archiveState = result.transitionStates.find((entry) => entry.room === "archive");
+  assert(archiveState && archiveState.enemyTypes.includes("inkWarden"), `Moonlit Archives should spawn the Ink Warden quest mini-boss: ${JSON.stringify(archiveState && archiveState.enemyTypes)}`);
+  const observatoryState = result.transitionStates.find((entry) => entry.room === "observatory");
+  assert(observatoryState && observatoryState.enemyTypes.includes("starWarden"), `Starfall Observatory should spawn the Star Warden quest mini-boss: ${JSON.stringify(observatoryState && observatoryState.enemyTypes)}`);
+  assert(result.state.debugState.enemyTypes.includes("blackPanther"), `Gate Hall should spawn the black panther enemy: ${JSON.stringify(result.state.debugState.enemyTypes)}`);
+  assert(result.state.debugState.survey && result.state.debugState.survey.total >= 24, `survey debug state should include the full castle route plus grotto: ${JSON.stringify(result.state.debugState.survey)}`);
+  assert(result.state.debugState.questSeals && result.state.debugState.questSeals.total === 3, `debug state should expose the three quest seals: ${JSON.stringify(result.state.debugState.questSeals)}`);
+  assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 24, "debug state should expose extended enemy frame counts");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
   assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
   assert(result.state.touchButtonMinSize >= 64, `touch buttons should be at least 64px: ${result.state.touchButtonMinSize}`);
@@ -444,10 +617,16 @@ async function browserSmoke() {
   assert(result.mobileStartState.titleHidden, `mobile start should hide title: ${JSON.stringify(result.mobileStartState)}`);
   assert(result.mobileStartState.bodyMobile, `mobile start should keep mobile controls armed: ${JSON.stringify(result.mobileStartState)}`);
   assert(result.mobileStartState.touchDisplay === "flex", `mobile touch controls should appear after start: ${result.mobileStartState.touchDisplay}`);
-  assert(result.mobileStartState.debug.mobileStartFullscreenAttempted >= 1, `mobile start should request fullscreen from the start tap: ${JSON.stringify(result.mobileStartState.debug)}`);
+  assert(result.mobileStartState.debug.mobileStartFullscreenAttempted === 0, `mobile start should not auto-request fullscreen: ${JSON.stringify(result.mobileStartState.debug)}`);
+  assert(!result.mobileStartState.fullscreen && !result.mobileStartState.debug.fullscreen, `mobile start should stay in browser mode until FS is tapped: ${JSON.stringify(result.mobileStartState)}`);
+  assert(result.mobileStartState.objectiveDisplay !== "none", `mobile objective tracker should be visible: ${JSON.stringify(result.mobileStartState)}`);
+  assert(result.mobileStartState.objectiveRect.width > 90 && result.mobileStartState.objectiveRect.height >= 18, `mobile objective tracker should have readable bounds: ${JSON.stringify(result.mobileStartState.objectiveRect)}`);
+  assert(result.mobileStartState.objectiveText.includes("Next:") || result.mobileStartState.objectiveText.includes("Item:") || result.mobileStartState.objectiveText.includes("Seal"), `mobile objective tracker should name the next goal: ${result.mobileStartState.objectiveText}`);
+  assert(result.mobileStartState.compassDisplay !== "none" && result.mobileStartState.compassRect.width > 70, `mobile compass tracker should stay visible: ${JSON.stringify(result.mobileStartState)}`);
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);
   assert(result.state.room.length > 0, "room label missing");
   console.log(JSON.stringify({ ok: true, ...result }, null, 2));
+  process.exit(0);
 })().catch((error) => {
   console.error(error);
   process.exit(1);

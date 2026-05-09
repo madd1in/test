@@ -50,6 +50,8 @@
   const IMG = {
     player: "assets/generated/player_sheet_anim.png",
     enemy: "assets/generated/enemy_sheet_clean.png",
+    enemyExt: "assets/generated/enemy_imagen_zora_panther_sheet.png",
+    enemyQuest: "assets/generated/enemy_imagen_quest_minibosses_sheet.png",
     boss: "assets/generated/boss_sheet_hd_16.png",
     projectile: "assets/generated/projectile_sheet.png",
     whip: "assets/generated/whip_sheet.png",
@@ -68,6 +70,7 @@
     midThrone: "assets/generated/bg_stage5_mid_tiled.png",
     bgLibrary: "assets/generated/bg_imagen_library_hd.png",
     bgCavern: "assets/generated/bg_imagen_cavern_hd.png",
+    bgCavernDepths: "assets/generated/bg_imagen_cavern_depths_hd.png",
     bgBelltower: "assets/generated/bg_imagen_belltower_hd.png",
     bgGarden: "assets/generated/bg_imagen_garden_hd.png",
     bgArchive: "assets/generated/bg_imagen_archive_hd.png",
@@ -80,11 +83,15 @@
     paraMachinery: "assets/generated/para_imagen_machinery_hd.png",
     paraMist: "assets/generated/para_imagen_mist_roses_hd.png",
     paraCrystals: "assets/generated/para_imagen_crystals_hd.png",
+    paraCavernSpires: "assets/generated/para_imagen_cavern_spires_hd.png",
+    paraCavernMist: "assets/generated/para_imagen_cavern_mist_hd.png",
     paraForest: "assets/generated/para_imagen_forest_canopy_hd.png",
     paraStatues: "assets/generated/para_imagen_castle_statues_hd.png",
     introTiles: "assets/generated/tiles_imagen_intro_props.png",
     itemIcons: "assets/generated/items_imagen_hd.png",
-    portcullis: "assets/generated/sprite_imagen_portcullis.png"
+    questIcons: "assets/generated/items_imagen_quest_seals.png",
+    portcullis: "assets/generated/sprite_imagen_portcullis.png",
+    chests: "assets/generated/props_hd_treasure_chests.png"
   };
 
   const AUDIO = {
@@ -131,7 +138,7 @@
     jumpKeys: KEYMAP.jump.slice(),
     upKeys: KEYMAP.up.slice(),
     feel: ["jumpBuffer", "downWhipPogo"],
-    mobileStart: "tap-requests-fullscreen"
+    mobileStart: "manual-fullscreen-button"
   };
 
   const TILE_SET = "imagen-hd-platforms-v1";
@@ -176,6 +183,21 @@
     smallHp: [3, 2],
     smallMp: [2, 2]
   };
+  const QUEST_ICON_CELLS = {
+    tideSeal: [0, 0],
+    starSeal: [1, 0],
+    inkSeal: [2, 0]
+  };
+  const QUEST_SEALS = [
+    { type: "inkSeal", label: "Ink Seal", room: "archive", roomName: "Moonlit Archives", hint: "push east from the Forgotten Library and break the Archive Warden." },
+    { type: "starSeal", label: "Astral Lens", room: "observatory", roomName: "Starfall Observatory", hint: "clear the Bell Loft route into Starfall Observatory." },
+    { type: "tideSeal", label: "Tide Sigil", room: "cavernDepths", roomName: "Sapphire Grotto", hint: "drop through Crystal Cavern and defeat the Tide Warden." }
+  ];
+  const QUEST_SEAL_SITES = {
+    inkSeal: { room: "archive", enemyId: "inkWarden1", x: 1160, y: 232 },
+    starSeal: { room: "observatory", enemyId: "starWarden1", x: 1186, y: 154 },
+    tideSeal: { room: "cavernDepths", enemyId: "tideWarden1", x: 1190, y: 266 }
+  };
 
   window.__NOCTURNE_TUNING_INFO = {
     roomFlow: "horizontalCamera",
@@ -197,9 +219,21 @@
     introSet: "castlevania-drawbridge-v2",
     drawbridgeTileSet: "imagen-existing-root-trim-v1",
     drawbridgeChainSet: "existing-fg-chain-rotated-v1",
+    drawbridgeAnchorSet: "imagen-trim-anchor-plates-v1",
+    drawbridgePerf: "cached-deck-chain-mode7-v2",
+    cavernSection: "sapphire-grotto-zora-v1",
+    grottoMechanic: "moving-water-raft-duck-spikes-v1",
+    enemyVisibility: "panther-zora-rim-respawn-v1",
+    chestSet: "hd-treasure-chests-v1",
+    questSealRoute: "archive-observatory-grotto-miniboss-v1",
+    questSealSet: "imagen-quest-seals-hd-v1",
+    enemyFrameMap: "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1",
+    enemyExtFrames: 24,
+    questBossFrames: 24,
     mobileTouch: "large-hit-targets-v3-readable-fonts",
     mobileFont: "compact-cinzel-v1",
-    mobileStartFullscreen: "start-tap-default-v1",
+    mobileStartFullscreen: "manual-fs-button-v1",
+    progressRoute: "full-castle-survey-v1",
     difficulty: "mercy-pass"
   };
 
@@ -212,7 +246,16 @@
     whipFrames: 8,
     bossFrameW: 320,
     bossFrameH: 256,
-    bossFrames: 16
+    bossFrames: 16,
+    enemyExtFrameW: 256,
+    enemyExtFrameH: 192,
+    enemyExtFrames: 24,
+    questBossFrameW: 320,
+    questBossFrameH: 256,
+    questBossFrames: 24,
+    chestFrameW: 192,
+    chestFrameH: 192,
+    chestFrames: 4
   };
   window.__NOCTURNE_FRAME_INFO = SPRITES;
 
@@ -229,8 +272,72 @@
     witch: { row: 9, hp: 34, w: 48, h: 88, dw: 86, dh: 126, speed: 0.34, damage: 7, ai: "witch" },
     boneWraith: { row: 4, hp: 220, w: 64, h: 130, dw: 128, dh: 184, speed: 0.7, damage: 12, ai: "wraith", mini: true, banner: "Bone Wraith", subtitle: "Catacomb Warden" },
     bellWraith: { row: 6, hp: 320, w: 70, h: 134, dw: 134, dh: 188, speed: 0.55, damage: 14, ai: "wraith", mini: true, banner: "Bell Wraith", subtitle: "Tower Sentinel" },
-    drowned: { row: 0, hp: 36, w: 44, h: 86, dw: 86, dh: 122, speed: 0.74, damage: 8, ai: "walker" }
+    inkWarden: { row: 2, hp: 260, w: 64, h: 126, dw: 170, dh: 216, speed: 0.5, damage: 13, ai: "wraith", mini: true, sprite: "inkWarden", questSeal: "inkSeal", banner: "Archive Warden", subtitle: "Keeper of the Ink Seal" },
+    starWarden: { row: 1, hp: 300, w: 70, h: 132, dw: 180, dh: 224, speed: 0.52, damage: 14, ai: "wraith", mini: true, sprite: "starWarden", questSeal: "starSeal", banner: "Star Warden", subtitle: "Keeper of the Astral Lens" },
+    tideWarden: { row: 0, hp: 320, w: 72, h: 132, dw: 184, dh: 226, speed: 0.55, damage: 14, ai: "wraith", mini: true, sprite: "tideWarden", questSeal: "tideSeal", banner: "Tide Warden", subtitle: "Keeper of the Tide Sigil" },
+    drowned: { row: 0, hp: 36, w: 44, h: 86, dw: 86, dh: 122, speed: 0.74, damage: 8, ai: "walker" },
+    zora: { row: 0, hp: 48, w: 52, h: 84, dw: 150, dh: 178, speed: 0.38, damage: 9, ai: "zora", sprite: "zora", readable: "cyan" },
+    blackPanther: { row: 1, hp: 58, w: 88, h: 54, dw: 214, dh: 126, speed: 4.2, damage: 11, ai: "panther", sprite: "blackPanther", readable: "gold" }
   };
+
+  const ENEMY_FRAME_MAP = {
+    zora: {
+      image: "enemyExt",
+      row: 0,
+      frameW: 256,
+      frameH: 192,
+      frames: 24,
+      fps: 12,
+      idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      recover: [8, 9, 10, 11, 12, 13, 14, 15],
+      attack: [16, 17, 18, 19, 20, 21, 22, 23]
+    },
+    blackPanther: {
+      image: "enemyExt",
+      row: 1,
+      frameW: 256,
+      frameH: 192,
+      frames: 24,
+      fps: 18,
+      run: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      lunge: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+      recover: [20, 21, 22, 23]
+    },
+    tideWarden: {
+      image: "enemyQuest",
+      row: 0,
+      frameW: 320,
+      frameH: 256,
+      frames: 24,
+      fps: 12,
+      idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      cast: [8, 9, 10, 11, 12, 13, 14, 15],
+      recover: [16, 17, 18, 19, 20, 21, 22, 23]
+    },
+    starWarden: {
+      image: "enemyQuest",
+      row: 1,
+      frameW: 320,
+      frameH: 256,
+      frames: 24,
+      fps: 12,
+      idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      cast: [8, 9, 10, 11, 12, 13, 14, 15],
+      recover: [16, 17, 18, 19, 20, 21, 22, 23]
+    },
+    inkWarden: {
+      image: "enemyQuest",
+      row: 2,
+      frameW: 320,
+      frameH: 256,
+      frames: 24,
+      fps: 13,
+      idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      cast: [8, 9, 10, 11, 12, 13, 14, 15],
+      recover: [16, 17, 18, 19, 20, 21, 22, 23]
+    }
+  };
+  window.__NOCTURNE_ENEMY_FRAME_MAP = ENEMY_FRAME_MAP;
 
   const images = {};
   const keysDown = new Set();
@@ -241,6 +348,11 @@
   let activeMusic = null;
   let musicKey = null;
   let cachedVignette = null;
+  const drawbridgeRenderCache = { deck: null, chains: new Map(), anchor: null };
+  const mode7FloorCache = new Map();
+  const roomBackgroundCache = new Map();
+  const roomSceneryCache = new Map();
+  const perfStats = { enabled: false, update: [], draw: [], frame: [] };
   const sfxPool = {};
   const SFX_POOL_SIZE = 3;
   const hudCache = { hp: -1, mp: -1, exp: -1, level: -1, hearts: -1, sub: "", room: "", status: "", objective: "", compass: "" };
@@ -283,6 +395,7 @@
       killed: {},
       relics: { doubleJump: false, dash: false },
       moonSigil: false,
+      questSeals: { inkSeal: false, starSeal: false, tideSeal: false },
       bossDefeated: false,
       maxHp: 112,
       maxMp: 48,
@@ -481,6 +594,87 @@
     if (player.chargeFlash > 0) player.chargeFlash = Math.max(0, player.chargeFlash - dt);
   }
 
+  const SURVEY_ROOM_ROUTE = [
+    "forest", "courtyard", "armory", "library", "vault", "archive",
+    "gate", "moat", "crypt", "catacomb", "ossuary",
+    "gallery", "clock", "tower", "belltower", "loft", "observatory",
+    "aqueduct", "cavern", "cavernDepths", "garden", "chapel", "antechamber", "sanctum"
+  ];
+
+  const ROOM_ROUTE_HINTS = {
+    forest: "start from the Moonwood path.",
+    courtyard: "cross the drawbridge from Moonwood Verge.",
+    armory: "take the upper garden hatch in Castle Garden.",
+    library: "go right from the Candlelit Armory or climb up from Gate Hall.",
+    vault: "find the hidden upper exit inside the Forgotten Library.",
+    archive: "push east from the Forgotten Library.",
+    gate: "return through the castle's central hall.",
+    moat: "drop through Castle Garden into the culvert.",
+    crypt: "go east from the Moat or down from Gate Hall.",
+    catacomb: "push east from the Lower Crypt.",
+    ossuary: "continue east from the Bone Bell Catacomb.",
+    gallery: "head east from Gate Hall.",
+    clock: "climb the upper exit in the Silver Portrait Gallery.",
+    tower: "push right from Clockwork Rise.",
+    belltower: "go right from Moon Chain Tower.",
+    loft: "ride the belltower route to its right exit.",
+    observatory: "continue east from the Bell Loft.",
+    aqueduct: "drop down from Starfall Observatory.",
+    cavern: "go left from the Aqueduct or down from the Rose Garden.",
+    cavernDepths: "drop through the lower fissure in Crystal Cavern.",
+    garden: "climb up from the Cavern or descend from Moon Chain Tower.",
+    chapel: "go right from the Drowned Rose Garden.",
+    antechamber: "drop through the lower Chapel passage.",
+    sanctum: "push right through the Crimson Antechamber."
+  };
+
+  function surveyRoomIds() {
+    return SURVEY_ROOM_ROUTE.filter((id) => rooms[id]);
+  }
+
+  function surveyProgress() {
+    const ids = surveyRoomIds();
+    let visited = 0;
+    let next = null;
+    for (const id of ids) {
+      if (game.save.visited[id]) visited += 1;
+      else if (!next) next = id;
+    }
+    return { visited, total: ids.length, next, done: !next };
+  }
+
+  function allSurveyRoomsVisited() {
+    return surveyProgress().done;
+  }
+
+  function roomDisplayName(roomId) {
+    return rooms[roomId] ? rooms[roomId].name : roomId;
+  }
+
+  function roomRouteHint(roomId) {
+    return ROOM_ROUTE_HINTS[roomId] || "follow the compass from your current room.";
+  }
+
+  function questSealMeta(type) {
+    return QUEST_SEALS.find((seal) => seal.type === type) || null;
+  }
+
+  function questSealProgress() {
+    const owned = game.save.questSeals || {};
+    const found = QUEST_SEALS.filter((seal) => owned[seal.type]).length;
+    const next = QUEST_SEALS.find((seal) => !owned[seal.type]) || null;
+    return { found, total: QUEST_SEALS.length, next, done: found === QUEST_SEALS.length };
+  }
+
+  function allQuestSealsClaimed() {
+    return questSealProgress().done;
+  }
+
+  function questSealLabel(type) {
+    const meta = questSealMeta(type);
+    return meta ? meta.label : "Reliquary Seal";
+  }
+
   function nextObjective() {
     const s = game.save;
     if (s.bossDefeated) return "Rite broken — explore freely or start a new run.";
@@ -491,6 +685,24 @@
     }
     const target = nextObjectiveRoom();
     const inTarget = target === game.roomId;
+    if (s.moonSigil && s.relics.dash) {
+      const survey = surveyProgress();
+      if (!survey.done) {
+        const name = roomDisplayName(survey.next);
+        if (survey.next === game.roomId) {
+          return `Castle survey ${survey.visited}/${survey.total}: chart ${name}, then follow the next compass step.`;
+        }
+        return `Castle survey ${survey.visited}/${survey.total}: chart ${name} - ${roomRouteHint(survey.next)}`;
+      }
+      const seals = questSealProgress();
+      if (!seals.done) {
+        if (seals.next.room === game.roomId) {
+          return `${seals.next.label} is here - defeat its mini-boss and claim the seal.`;
+        }
+        return `Reliquary seals ${seals.found}/${seals.total}: ${seals.next.label} - ${seals.next.hint}`;
+      }
+      return "Full survey and all three seals complete. Return to Ashen Chapel - the moon-gate opens to the Crimson Reliquary.";
+    }
     if (!s.moonSigil) {
       return inTarget
         ? "Moon Sigil is in this room — follow the golden beacon."
@@ -501,6 +713,8 @@
         ? "Walk right + HOLD jump (↑/Space) to clear each step. 8 stairs to the gold beacon."
         : "Climb to the Moon Chain Tower for Mist Dash (Gallery → Clockwork Rise → Tower).";
     }
+    const seals = questSealProgress();
+    if (!seals.done) return `Claim the three Reliquary seals. Next: ${seals.next.label} in ${seals.next.roomName}.`;
     return "Return to Ashen Chapel — the moon-gate now opens to the Crimson Reliquary.";
   }
 
@@ -510,6 +724,10 @@
     if (!s.visited.gate) return "gate";
     if (!s.moonSigil) return "gallery";
     if (!s.relics.dash) return "tower";
+    const survey = surveyProgress();
+    if (!survey.done) return survey.next;
+    const seals = questSealProgress();
+    if (!seals.done) return seals.next.room;
     return "throne";
   }
 
@@ -551,6 +769,14 @@
   function sideObjectives() {
     const s = game.save;
     const out = [];
+    const survey = surveyProgress();
+    if (!survey.done) {
+      out.push(`Castle survey: ${survey.visited}/${survey.total} rooms. Next: ${roomDisplayName(survey.next)} - ${roomRouteHint(survey.next)}`);
+    }
+    const seals = questSealProgress();
+    if (!seals.done) {
+      out.push(`Reliquary seals: ${seals.found}/${seals.total}. Next: ${seals.next.label} - ${seals.next.hint}`);
+    }
     if (!s.relics.doubleJump) out.push("Optional: Grave Boots (Triple Moonstep) wait in the Bone Bell Catacomb (Crypt → east).");
     if (!s.collected || !s.collected["garden:bloodRose"]) out.push("Optional: a Blood Rose in the Drowned Rose Garden raises Max HP.");
     if (!s.visited.armory) out.push("Optional: Candlelit Armory links the garden, library, and early loot route.");
@@ -565,8 +791,12 @@
     const s = game.save;
     if (s.bossDefeated) return "Free roam";
     if (!s.visited.gate) return "Next: Castle Gate";
-    if (!s.moonSigil) return "Next: Moon Sigil";
-    if (!s.relics.dash) return "Next: Mist Dash";
+    if (!s.moonSigil) return "Item: Moon Sigil";
+    if (!s.relics.dash) return "Item: Mist Dash";
+    const survey = surveyProgress();
+    if (!survey.done) return `Map ${survey.visited}/${survey.total}: ${roomDisplayName(survey.next)}`;
+    const seals = questSealProgress();
+    if (!seals.done) return `Seal ${seals.found + 1}/${seals.total}: ${seals.next.label}`;
     return "Next: Crimson Reliquary";
   }
 
@@ -714,7 +944,8 @@
       ],
       enemies: [
         e("z1", "zombie", 602, 386, 510, 760),
-        e("bat1", "bat", 720, 195, 650, 850)
+        e("bat1", "bat", 720, 195, 650, 850),
+        e("gatePanther1", "blackPanther", 520, 414, 410, 560)
       ],
       items: [
         item("ringOfArdor", "ringOfArdor", 416, 130)
@@ -1107,7 +1338,8 @@
       enemies: [
         e("sk5", "skeleton", 218, 306, 120, 420),
         e("wi4", "witch", 522, 238, 400, 730),
-        e("ph5", "phantom", 754, 188, 650, 900)
+        e("ph5", "phantom", 754, 188, 650, 900),
+        e("inkWarden1", "inkWarden", 760, 204, 610, 900)
       ],
       items: [
         item("archiveMoon", "bigHeart", 506, 126)
@@ -1193,7 +1425,8 @@
       enemies: [
         e("obWi1", "witch", 490, 210, 350, 720),
         e("obPh1", "phantom", 720, 138, 580, 900),
-        e("obG1", "gargoyle", 880, 92, 760, 980)
+        e("obG1", "gargoyle", 880, 92, 760, 980),
+        e("starWarden1", "starWarden", 780, 128, 650, 940)
       ],
       items: [
         item("starBellShard", "bigHeart", 820, 148)
@@ -1220,16 +1453,59 @@
       ],
       doors: [
         d(160, 0, 100, 56, "garden", 264, 392, "up"),
-        d(922, 320, 38, 140, "aqueduct", 54, 330, "right")
+        d(922, 320, 38, 140, "aqueduct", 54, 330, "right"),
+        d(566, 440, 112, 56, "cavernDepths", 180, 82, "down")
       ],
       enemies: [
         e("med4", "medusa", 360, 220, 280, 540),
         e("ph4", "phantom", 600, 180, 480, 800),
         e("g3", "gargoyle", 720, 246, 580, 870),
-        e("r2", "reaper", 200, 158, 120, 380)
+        e("r2", "reaper", 200, 158, 120, 380),
+        e("cz1", "zora", 520, 308, 420, 560)
       ],
       items: [
         item("brookCrystal", "phoenixPendant", 880, 168)
+      ]
+    },
+    cavernDepths: {
+      name: "Sapphire Grotto",
+      grid: [4, 3],
+      bg: "bgCavernDepths",
+      mid: null,
+      music: "explore",
+      palette: "blue",
+      para: ["paraCavernSpires", "paraCavernMist"],
+      grottoRide: { x1: 318, x2: 1078, y: 398, w: 156, h: 22, waterY: 414, speed: 0.72 },
+      duckGates: [
+        { x: 520, y: 246, w: 108, h: 124 },
+        { x: 762, y: 238, w: 122, h: 132 },
+        { x: 998, y: 252, w: 118, h: 118 }
+      ],
+      spawn: { x: 180, y: 82 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(104, 394, 156, 24, "stone"),
+        p(336, 342, 148, 24, "blue"),
+        p(556, 288, 154, 24, "stone"),
+        p(766, 238, 154, 24, "blue"),
+        p(432, 156, 214, 22, "trim")
+      ],
+      doors: [
+        d(144, 0, 120, 56, "cavern", 610, 360, "up"),
+        d(922, 320, 38, 140, "aqueduct", 104, 330, "right")
+      ],
+      enemies: [
+        e("zg1", "zora", 220, 310, 120, 420),
+        e("zg2", "zora", 540, 204, 420, 560),
+        e("zg3", "zora", 910, 284, 820, 1120),
+        e("zgDrowned", "drowned", 500, 392, 420, 860),
+        e("tideWarden1", "tideWarden", 780, 214, 650, 940)
+      ],
+      items: [
+        item("grottoHeart", "bigHeart", 590, 126)
+      ],
+      chests: [
+        { id: "grotto_water", x: 1160, y: 270, loot: "subHolyWater" }
       ]
     },
     aqueduct: {
@@ -1300,6 +1576,7 @@
       loft: [p(860, 374, 166, 28, "gold"), p(1102, 298, 174, 28, "stone")],
       observatory: [p(854, 374, 166, 28, "blue"), p(1106, 294, 174, 28, "gold")],
       cavern: [p(880, 376, 160, 28, "blue"), p(1130, 308, 170, 28, "stone")],
+      cavernDepths: [p(874, 374, 164, 28, "blue"), p(1116, 300, 176, 28, "stone")],
       aqueduct: [p(866, 382, 166, 28, "blue"), p(1112, 312, 176, 28, "stone")],
       antechamber: [p(880, 376, 160, 28, "red"), p(1130, 308, 170, 28, "stone")],
       sanctum: [p(880, 388, 160, 28, "blue"), p(1130, 320, 170, 28, "stone")]
@@ -1371,6 +1648,11 @@
     if (rooms.cavern) {
       rooms.cavern.chests = [
         { id: "cv_heart", x: 780, y: 220, loot: "heartCache" }
+      ];
+    }
+    if (rooms.cavernDepths) {
+      rooms.cavernDepths.chests = [
+        { id: "grotto_water", x: 1160, y: 270, loot: "subHolyWater" }
       ];
     }
     if (rooms.archive) {
@@ -1552,6 +1834,19 @@
     playerY: Math.round(player.y),
     playerVy: Number(player.vy.toFixed(2)),
     onGround: Boolean(player.onGround),
+    enemyTypes: game.enemies.map((enemy) => enemy.type),
+    featuredEnemies: game.enemies
+      .filter((enemy) => enemy.type === "blackPanther" || enemy.type === "zora")
+      .map((enemy) => ({
+        id: enemy.id,
+        type: enemy.type,
+        x: Math.round(enemy.x),
+        y: Math.round(enemy.y),
+        w: enemy.w,
+        h: enemy.h,
+        dw: enemy.cfg.dw,
+        dh: enemy.cfg.dh
+      })),
     transitionCooldown: Number((game.roomTransitionCooldown || 0).toFixed(2)),
     lastSafe: game.lastSafeSpot ? { ...game.lastSafeSpot } : null,
     keys: Array.from(keysDown),
@@ -1562,6 +1857,35 @@
     fullscreen: Boolean(fullscreenElement()),
     mobileStartFullscreenAttempted: game.mobileStartFullscreenAttempted,
     mobileStartFullscreenBlocked: Boolean(game.mobileStartFullscreenBlocked),
+    survey: surveyProgress(),
+    questSeals: questSealProgress(),
+    grotto: grottoDebugState(),
+    chests: (game.chests || []).map((chest) => ({
+      id: chest.id,
+      x: Math.round(chest.x),
+      y: Math.round(chest.y),
+      opened: Boolean(chest.opened),
+      asset: Boolean(images.chests && images.chests.width),
+      frameW: SPRITES.chestFrameW,
+      frameH: SPRITES.chestFrameH,
+      frames: SPRITES.chestFrames,
+      drawW: 76,
+      drawH: 58
+    })),
+    drawbridgeCache: {
+      deck: Boolean(drawbridgeRenderCache.deck),
+      chains: drawbridgeRenderCache.chains.size,
+      anchor: Boolean(drawbridgeRenderCache.anchor),
+      mode7: mode7FloorCache.size,
+      backgrounds: roomBackgroundCache.size,
+      scenery: roomSceneryCache.size
+    },
+    enemyFrameMap: {
+      version: "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1",
+      zoraFrames: ENEMY_FRAME_MAP.zora.frames,
+      pantherFrames: ENEMY_FRAME_MAP.blackPanther.frames,
+      questBossFrames: ENEMY_FRAME_MAP.tideWarden.frames
+    },
     visuals: game.room ? {
       bg: game.room.bg,
       parallax: parallaxKeysForRoom(game.room).slice(),
@@ -1607,6 +1931,64 @@
     updateCamera(true);
     return true;
   };
+  window.__NOCTURNE_TEST_SET_PLAYER_RAW = (x, y, onGround = false) => {
+    game.mode = "playing";
+    player.hp = Math.max(player.hp, player.maxHp || 112);
+    player.x = x;
+    player.y = y;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = Boolean(onGround);
+    player.invuln = 0;
+    updateCamera(true);
+    return true;
+  };
+  window.__NOCTURNE_TEST_ALIGN_GROTTO_RIDE = (targetX) => {
+    const ride = game.room && game.room.grottoRide;
+    if (!ride) return null;
+    const span = Math.max(1, ride.x2 - ride.x1);
+    const phase = clamp((targetX - ride.x1) / span, 0.02, 0.98);
+    const s = clamp(phase * 2 - 1, -0.98, 0.98);
+    let t = Math.asin(s) / ride.speed;
+    if (t < 0) t += (Math.PI * 2) / ride.speed;
+    game.time = t;
+    updateCamera(true);
+    return grottoDebugState();
+  };
+  window.__NOCTURNE_TEST_CLEAR_ROOM_THREATS = () => {
+    game.enemies.length = 0;
+    game.projectiles.length = 0;
+    game.flames.length = 0;
+    game.boss = null;
+    player.invuln = 0;
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_KILLED = (roomId, enemyId, killed = true) => {
+    if (!game.save.killed) game.save.killed = {};
+    const key = `${roomId}:${enemyId}`;
+    if (killed) game.save.killed[key] = true;
+    else delete game.save.killed[key];
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_CHEST_OPENED = (roomId, chestId, opened = true) => {
+    if (!game.save.openedChests) game.save.openedChests = {};
+    const key = `${roomId}:${chestId}`;
+    if (opened) game.save.openedChests[key] = true;
+    else delete game.save.openedChests[key];
+    if (game.roomId === roomId && game.chests) {
+      const chest = game.chests.find((candidate) => candidate.id === chestId);
+      if (chest) chest.opened = Boolean(opened);
+    }
+    return true;
+  };
+  window.__NOCTURNE_PERF_RESET = () => {
+    perfStats.enabled = true;
+    perfStats.update.length = 0;
+    perfStats.draw.length = 0;
+    perfStats.frame.length = 0;
+    return true;
+  };
+  window.__NOCTURNE_PERF_STATS = () => perfSummary();
 
   function loadImage(key, src) {
     return new Promise((resolve) => {
@@ -1626,6 +2008,8 @@
       done += 1;
       dom.loadState.textContent = `Loading local assets ${done}/${entries.length}`;
     }));
+    dom.loadState.textContent = "Preparing drawbridge cache";
+    warmDrawbridgePerformanceCaches();
     game.loaded = true;
     window.__NOCTURNE_READY = true;
     game.mode = "title";
@@ -1633,6 +2017,21 @@
     dom.startButton.disabled = false;
     dom.continueButton.disabled = !hasSave();
     renderTitle("Nocturne Reliquary", "Hunt relics through a moonlocked castle and break the crimson rite.");
+  }
+
+  function warmDrawbridgePerformanceCaches() {
+    const room = rooms.courtyard;
+    if (!room || !room.drawbridge) return;
+    const bg = images[room.bg];
+    if (bg && bg.width) {
+      getMode7FloorLayer(room, bg, roomWidth(room), roomHeight(room), isOutdoorRoom(room));
+      getRoomBackgroundViewportLayer(room, bg, images[room.mid], 480, 96, roomWidth(room), roomHeight(room), isOutdoorRoom(room));
+    }
+    getDrawbridgeDeckLayer(room.drawbridge);
+    getDrawbridgeChainStrip(520, 13);
+    getDrawbridgeAnchorPlate();
+    getPlatformLayer(room);
+    getRoomSceneryViewportLayer(room, 480, 96);
   }
 
   function hasSave() {
@@ -1673,6 +2072,7 @@
         killed: {},
         relics: { doubleJump: false, dash: false },
         moonSigil: false,
+        questSeals: { inkSeal: false, starSeal: false, tideSeal: false },
         bossDefeated: false,
         maxHp: 112,
         maxMp: 48
@@ -1741,6 +2141,11 @@
         dash: Boolean(save.relics && save.relics.dash)
       },
       moonSigil: Boolean(save.moonSigil),
+      questSeals: {
+        inkSeal: Boolean(save.questSeals && save.questSeals.inkSeal),
+        starSeal: Boolean(save.questSeals && save.questSeals.starSeal),
+        tideSeal: Boolean(save.questSeals && save.questSeals.tideSeal)
+      },
       bossDefeated: Boolean(save.bossDefeated),
       maxHp: clamp(save.maxHp || 112, 112, 240),
       maxMp: clamp(save.maxMp || 48, 48, 200),
@@ -1826,11 +2231,12 @@
     player.coyote = 0;
     player.jumpBuffer = 0;
     game.enemies = room.enemies
-      .filter((def) => !game.save.killed[`${roomId}:${def.id}`])
+      .filter((def) => !enemyKillPersists(def) || !game.save.killed[`${roomId}:${def.id}`])
       .map(createEnemy);
     game.pickups = room.items
       .filter((def) => !game.save.collected[`${roomId}:${def.id}`])
       .map((def) => ({ ...def, bob: Math.random() * 10 }));
+    syncQuestSealPickups(roomId);
     // Candles respawn on every room enter (SOTN-style); only persist subweapon drops once collected.
     game.candles = (room.candles || []).map((c) => ({
       x: c.x, y: c.y, drop: c.drop, id: c.id,
@@ -1923,8 +2329,57 @@
       cooldown: 0.6 + Math.random() * 1.4,
       phase: Math.random() * Math.PI * 2,
       hurt: 0,
-      lunge: 0
+      lunge: 0,
+      attackWindup: 0
     };
+  }
+
+  function enemyKillPersists(enemyOrDef) {
+    const cfg = enemyOrDef && (enemyOrDef.cfg || ENEMY_TYPES[enemyOrDef.type]);
+    return Boolean(cfg && cfg.mini);
+  }
+
+  function syncQuestSealPickups(roomId) {
+    for (const seal of QUEST_SEALS) {
+      const site = QUEST_SEAL_SITES[seal.type];
+      if (!site || site.room !== roomId) continue;
+      if (game.save.questSeals && game.save.questSeals[seal.type]) continue;
+      if (!game.save.killed[`${roomId}:${site.enemyId}`]) continue;
+      if (game.pickups.some((drop) => drop.type === seal.type)) continue;
+      game.pickups.push({
+        id: `${seal.type}_reward`,
+        type: seal.type,
+        x: site.x,
+        y: site.y,
+        w: 36,
+        h: 36,
+        bob: Math.random() * 10
+      });
+    }
+  }
+
+  function spawnQuestSealReward(enemy) {
+    const sealType = enemy.cfg && enemy.cfg.questSeal;
+    if (!sealType || (game.save.questSeals && game.save.questSeals[sealType])) return false;
+    const site = QUEST_SEAL_SITES[sealType] || {};
+    const x = site.x ?? (enemy.x + enemy.w / 2 - 18);
+    const y = site.y ?? (enemy.y + enemy.h / 2 - 18);
+    game.pickups.push({
+      id: `${sealType}_reward`,
+      type: sealType,
+      x,
+      y,
+      w: 36,
+      h: 36,
+      bob: 0,
+      fall: true,
+      vx: 0,
+      vy: -4.8,
+      fallLife: 18
+    });
+    const label = questSealLabel(sealType);
+    message(`${enemy.cfg.banner || "Mini-Boss"} falls - ${label} revealed!`);
+    return true;
   }
 
   function createBoss() {
@@ -2003,7 +2458,9 @@
       return;
     }
 
+    updateGrottoMovingPlatform(dt);
     updatePlayer(step, dt);
+    updateGrottoDuckGates(dt);
     updateEnemies(step, dt);
     updateBoss(step, dt);
     updateProjectiles(step, dt);
@@ -2023,6 +2480,107 @@
     updateCamera(false);
     updateHud();
     clearJust();
+  }
+
+  function grottoRidePlatform(room = game.room, t = game.time) {
+    if (!room || !room.grottoRide) return null;
+    const ride = room.grottoRide;
+    const span = ride.x2 - ride.x1;
+    const phase = 0.5 + Math.sin(t * ride.speed) * 0.5;
+    const bob = Math.sin(t * 1.35 + 0.6) * 4;
+    return {
+      x: ride.x1 + span * phase,
+      y: ride.y + bob,
+      w: ride.w,
+      h: ride.h,
+      type: "blue",
+      moving: true,
+      grottoRide: true
+    };
+  }
+
+  function entityStandingOnPlatform(ent, platform) {
+    if (!platform) return false;
+    const bottom = ent.y + ent.h;
+    const horizontal = ent.x + ent.w > platform.x + 10 && ent.x < platform.x + platform.w - 10;
+    return horizontal && bottom >= platform.y - 8 && bottom <= platform.y + Math.max(16, platform.h + 8) && ent.vy >= -1.2;
+  }
+
+  function playerIsDucking() {
+    return actionDown("down") && player.onGround && player.dashTimer <= 0 && player.backdashTimer <= 0;
+  }
+
+  function playerStandingHeadBox() {
+    return {
+      x: player.x + 6,
+      y: player.y + 8,
+      w: player.w - 12,
+      h: 68
+    };
+  }
+
+  function grottoDebugState(room = game.room) {
+    if (!room || !room.grottoRide) return null;
+    const platform = grottoRidePlatform(room);
+    return {
+      platform: platform ? {
+        x: Math.round(platform.x),
+        y: Math.round(platform.y),
+        w: Math.round(platform.w),
+        h: Math.round(platform.h)
+      } : null,
+      waterY: room.grottoRide.waterY,
+      ducking: playerIsDucking(),
+      duckGates: (room.duckGates || []).map((gate) => ({
+        x: gate.x,
+        y: gate.y,
+        w: gate.w,
+        h: gate.h
+      }))
+    };
+  }
+
+  function updateGrottoMovingPlatform(dt) {
+    const room = game.room;
+    if (!room || !room.grottoRide) return;
+    const prev = grottoRidePlatform(room, Math.max(0, game.time - dt));
+    const current = grottoRidePlatform(room, game.time);
+    const riding = entityStandingOnPlatform(player, prev) || entityStandingOnPlatform(player, current);
+    if (!riding) return;
+
+    player.x += current.x - prev.x;
+    player.y += current.y - prev.y;
+    player.onGround = true;
+    player.coyote = Math.max(player.coyote, 0.12);
+    if (!game.grottoRideHinted) {
+      game.grottoRideHinted = true;
+      message("Hold Down to duck under the sapphire teeth.");
+    }
+  }
+
+  function updateGrottoDuckGates(dt) {
+    const room = game.room;
+    game.grottoDuckHitTimer = Math.max(0, (game.grottoDuckHitTimer || 0) - dt);
+    if (!room || !room.duckGates) return;
+
+    const headBox = playerStandingHeadBox();
+    const gate = room.duckGates.find((entry) => rectsOverlap(headBox, entry));
+    if (!gate) return;
+
+    if (playerIsDucking()) {
+      game.grottoDuckClearTimer = 0.35;
+      return;
+    }
+
+    const dir = (player.x + player.w / 2) < (gate.x + gate.w / 2) ? -1 : 1;
+    player.x += dir * 6;
+    player.vx = dir * Math.max(2.2, Math.abs(player.vx) * 0.45);
+    if (game.grottoDuckHitTimer <= 0) {
+      game.grottoDuckHitTimer = 0.62;
+      hurtPlayer(7);
+      message("Duck under the sapphire teeth.");
+      burst(player.x + player.w / 2, player.y + 24, "#8ff8ff", 12);
+    }
   }
 
   function updatePlayer(step, dt) {
@@ -2456,11 +3014,25 @@
     }
   }
 
+  function containEnemyPatrol(enemy) {
+    if (!Number.isFinite(enemy.min) || !Number.isFinite(enemy.max)) return;
+    if (enemy.x < enemy.min) {
+      enemy.x = enemy.min;
+      enemy.vx = Math.abs(enemy.vx || enemy.cfg.speed * 0.5);
+      enemy.facing = 1;
+    } else if (enemy.x > enemy.max) {
+      enemy.x = enemy.max;
+      enemy.vx = -Math.abs(enemy.vx || enemy.cfg.speed * 0.5);
+      enemy.facing = -1;
+    }
+  }
+
   function updateEnemies(step, dt) {
     const playerCenterX = player.x + player.w / 2;
     for (const enemy of game.enemies) {
       enemy.cooldown -= dt;
       enemy.hurt = Math.max(0, enemy.hurt - dt);
+      enemy.attackWindup = Math.max(0, (enemy.attackWindup || 0) - dt);
       const cfg = enemy.cfg;
       const center = enemy.x + enemy.w / 2;
       enemy.facing = playerCenterX > center ? 1 : -1;
@@ -2501,10 +3073,12 @@
         if (enemy.cooldown <= 0) {
           if (Math.abs(dist) < 220 && Math.random() < 0.6) {
             enemy.lunge = 0.5;
+            enemy.attackWindup = 0.5;
             enemy.cooldown = 2.2;
             burst(enemy.x + enemy.w / 2, enemy.y + 24, "#bfa0ff", 14);
             playSound("bossRoar", 0.18);
           } else {
+            enemy.attackWindup = 0.72;
             for (const angle of [-0.18, 0, 0.18]) {
               const sp = 4.6;
               game.projectiles.push({
@@ -2522,6 +3096,45 @@
             enemy.cooldown = 1.7;
           }
         }
+      } else if (cfg.ai === "zora") {
+        enemy.vy += GRAVITY * step;
+        const patrol = Math.sin(game.time * 1.8 + enemy.phase) * cfg.speed;
+        enemy.vx += (patrol - enemy.vx) * 0.04 * step;
+        enemy.vx = clamp(enemy.vx, -cfg.speed, cfg.speed);
+        if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
+        moveEntity(enemy, step, false);
+        containEnemyPatrol(enemy);
+        if (enemy.cooldown <= 0 && Math.abs(player.x - enemy.x) < 620) {
+          enemy.attackWindup = 0.72;
+          shootEnemy(enemy, 5.2, "#8ff8ff", cfg.damage, { w: 22, h: 12, yMul: 0.34 });
+          burst(enemy.x + enemy.w / 2 + enemy.facing * 18, enemy.y + enemy.h * 0.35, "#8ff8ff", 9);
+          enemy.cooldown = 2.15 + Math.random() * 0.6;
+        }
+      } else if (cfg.ai === "panther") {
+        enemy.vy += GRAVITY * step;
+        const dist = playerCenterX - center;
+        const hunt = Math.abs(dist) < 520;
+        const dir = hunt ? Math.sign(dist || enemy.facing) : Math.sign(enemy.vx || 1);
+        const targetSpeed = hunt ? cfg.speed : cfg.speed * 0.48;
+        if (enemy.lunge > 0) {
+          enemy.lunge -= dt;
+          enemy.vx = enemy.facing * cfg.speed * 1.7;
+        } else {
+          enemy.vx += dir * 0.18 * step;
+          enemy.vx = clamp(enemy.vx, -targetSpeed, targetSpeed);
+          if (enemy.onGround && hunt && Math.abs(dist) < 260 && enemy.cooldown <= 0) {
+            enemy.facing = dir;
+            enemy.lunge = 0.42;
+            enemy.attackWindup = 0.55;
+            enemy.vx = dir * cfg.speed * 1.85;
+            enemy.vy = -5.8;
+            enemy.cooldown = 1.6;
+            burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#1d2540", 10);
+          }
+        }
+        if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
+        moveEntity(enemy, step, false);
+        containEnemyPatrol(enemy);
       } else if (cfg.ai === "leaper") {
         enemy.vy += GRAVITY * step;
         if (enemy.onGround && enemy.cooldown <= 0) {
@@ -2551,6 +3164,7 @@
         if (player.invuln > 0.4) {
           // Apply status effect on contact based on enemy type
           if (enemy.type === "drowned") applyPoison(4.5);
+          else if (enemy.type === "zora") applySlow(1.8);
           else if (enemy.type === "witch") applyCurse(3.5);
           else if (enemy.type === "medusa") applySlow(3.0);
         }
@@ -2558,19 +3172,21 @@
     }
   }
 
-  function shootEnemy(enemy, speed, color) {
+  function shootEnemy(enemy, speed, color, damage = 6, opts = {}) {
     const dx = player.x + player.w / 2 - (enemy.x + enemy.w / 2);
     const dy = player.y + player.h / 2 - (enemy.y + enemy.h / 2);
     const len = Math.max(1, Math.hypot(dx, dy));
+    const w = opts.w || 16;
+    const h = opts.h || 16;
     game.projectiles.push({
       from: "enemy",
       x: enemy.x + enemy.w / 2,
-      y: enemy.y + enemy.h * 0.38,
-      w: 16,
-      h: 16,
+      y: enemy.y + enemy.h * (opts.yMul || 0.38),
+      w,
+      h,
       vx: (dx / len) * speed,
       vy: (dy / len) * speed,
-      damage: 6,
+      damage,
       life: 2.2,
       color
     });
@@ -3044,43 +3660,67 @@
   function drawChests() {
     if (!game.chests || game.chests.length === 0) return;
     for (const chest of game.chests) {
-      const x = chest.x;
-      const y = chest.y;
-      // Body
-      ctx.fillStyle = "#3a2415";
-      ctx.fillRect(x, y, 36, 28);
-      // Wood planks
+      if (!drawHdChest(chest)) drawFallbackChest(chest);
+    }
+  }
+
+  function drawHdChest(chest) {
+    const sheet = images.chests;
+    if (!sheet || !sheet.width) return false;
+    const shimmer = Math.floor(game.time * 2.4 + chest.x * 0.01) % 2;
+    const frame = chest.opened ? 2 + shimmer : shimmer;
+    const drawW = 76;
+    const drawH = 58;
+    const x = chest.x + 18 - drawW / 2;
+    const y = chest.y + 28 - drawH;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(
+      sheet,
+      frame * SPRITES.chestFrameW,
+      0,
+      SPRITES.chestFrameW,
+      SPRITES.chestFrameH,
+      x,
+      y,
+      drawW,
+      drawH
+    );
+    ctx.restore();
+    return true;
+  }
+
+  function drawFallbackChest(chest) {
+    const x = chest.x;
+    const y = chest.y;
+    ctx.fillStyle = "#3a2415";
+    ctx.fillRect(x, y, 36, 28);
+    ctx.fillStyle = "#5a3820";
+    ctx.fillRect(x + 2, y + 2, 32, 24);
+    ctx.fillStyle = "#181210";
+    ctx.fillRect(x + 1, y + 9, 34, 3);
+    ctx.fillRect(x + 1, y + 18, 34, 3);
+    ctx.fillRect(x + 16, y, 4, 28);
+    if (chest.opened) {
+      ctx.fillStyle = "#1a0e08";
+      ctx.fillRect(x + 4, y + 14, 28, 12);
       ctx.fillStyle = "#5a3820";
-      ctx.fillRect(x + 2, y + 2, 32, 24);
-      // Iron bands
-      ctx.fillStyle = "#181210";
-      ctx.fillRect(x + 1, y + 9, 34, 3);
-      ctx.fillRect(x + 1, y + 18, 34, 3);
-      ctx.fillRect(x + 16, y, 4, 28);
-      // Lid line / lock
-      if (chest.opened) {
-        // Open: tilted lid + empty interior
-        ctx.fillStyle = "#1a0e08";
-        ctx.fillRect(x + 4, y + 14, 28, 12);
-        ctx.fillStyle = "#5a3820";
-        ctx.beginPath();
-        ctx.moveTo(x, y - 6);
-        ctx.lineTo(x + 36, y - 6);
-        ctx.lineTo(x + 30, y + 8);
-        ctx.lineTo(x + 6, y + 8);
-        ctx.closePath();
-        ctx.fill();
-      } else {
-        // Closed: gold lock + glow
-        const pulse = 0.5 + 0.5 * Math.sin(game.time * 3);
-        ctx.shadowColor = "#ffd065";
-        ctx.shadowBlur = 10 * pulse;
-        ctx.fillStyle = "#d1a84d";
-        ctx.fillRect(x + 14, y + 12, 8, 6);
-        ctx.fillStyle = "#7a5a1e";
-        ctx.fillRect(x + 16, y + 14, 4, 2);
-        ctx.shadowBlur = 0;
-      }
+      ctx.beginPath();
+      ctx.moveTo(x, y - 6);
+      ctx.lineTo(x + 36, y - 6);
+      ctx.lineTo(x + 30, y + 8);
+      ctx.lineTo(x + 6, y + 8);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      const pulse = 0.5 + 0.5 * Math.sin(game.time * 3);
+      ctx.shadowColor = "#ffd065";
+      ctx.shadowBlur = 10 * pulse;
+      ctx.fillStyle = "#d1a84d";
+      ctx.fillRect(x + 14, y + 12, 8, 6);
+      ctx.fillStyle = "#7a5a1e";
+      ctx.fillRect(x + 16, y + 14, 4, 2);
+      ctx.shadowBlur = 0;
     }
   }
 
@@ -3460,7 +4100,7 @@
 
   function doorOpen(door) {
     if (!door.lock) return true;
-    if (door.lock === "moonGate") return game.save.moonSigil && game.save.relics.dash;
+    if (door.lock === "moonGate") return game.save.moonSigil && game.save.relics.dash && allSurveyRoomsVisited() && allQuestSealsClaimed();
     return true;
   }
 
@@ -3476,6 +4116,16 @@
         return "Locked. Missing Mist Dash — claim it in the Moon Chain Tower (Gallery → Clockwork Rise → Tower).";
       }
     }
+    if (lock === "moonGate") {
+      const survey = surveyProgress();
+      if (!survey.done) {
+        return `Locked. Castle survey incomplete (${survey.visited}/${survey.total}). Next: ${roomDisplayName(survey.next)} - ${roomRouteHint(survey.next)}`;
+      }
+      const seals = questSealProgress();
+      if (!seals.done) {
+        return `Locked. Reliquary seals incomplete (${seals.found}/${seals.total}). Next: ${seals.next.label} - ${seals.next.hint}`;
+      }
+    }
     return "Sealed";
   }
 
@@ -3484,7 +4134,13 @@
       const need = [];
       if (!game.save.moonSigil) need.push("Moon Sigil");
       if (!game.save.relics.dash) need.push("Mist Dash");
-      if (need.length === 0) return "";
+      if (need.length === 0) {
+        const survey = surveyProgress();
+        if (!survey.done) return `LOCKED - survey ${survey.visited}/${survey.total}`;
+        const seals = questSealProgress();
+        if (!seals.done) return `LOCKED - seals ${seals.found}/${seals.total}`;
+        return "";
+      }
       return `LOCKED — need ${need.join(" + ")}`;
     }
     return "LOCKED";
@@ -3494,6 +4150,10 @@
     if (lock === "moonGate") {
       if (!game.save.moonSigil) return "gallery";
       if (!game.save.relics.dash) return "tower";
+      const survey = surveyProgress();
+      if (!survey.done) return survey.next;
+      const seals = questSealProgress();
+      if (!seals.done) return seals.next.room;
     }
     return null;
   }
@@ -3518,6 +4178,15 @@
       game.save.moonSigil = true;
       message("Moon Sigil recovered");
       burst(drop.x, drop.y, "#f2cb68", 30);
+      persist = true;
+      mapNeedsUpdate = true;
+    } else if (QUEST_ICON_CELLS[drop.type]) {
+      if (!game.save.questSeals) game.save.questSeals = {};
+      game.save.questSeals[drop.type] = true;
+      const seals = questSealProgress();
+      message(`${questSealLabel(drop.type)} claimed (${seals.found}/${seals.total})`);
+      const color = drop.type === "tideSeal" ? "#42dfff" : drop.type === "starSeal" ? "#ffd56a" : "#bca8ff";
+      burst(drop.x, drop.y, color, 42);
       persist = true;
       mapNeedsUpdate = true;
     } else if (drop.type === "heartVessel") {
@@ -3604,7 +4273,9 @@
     }
     playSound("enemyHit", 0.42);
     if (enemy.hp <= 0) {
-      game.save.killed[`${game.roomId}:${enemy.id}`] = true;
+      if (enemyKillPersists(enemy)) {
+        game.save.killed[`${game.roomId}:${enemy.id}`] = true;
+      }
       game.save.kills = (game.save.kills || 0) + 1;
       game.enemies = game.enemies.filter((other) => other !== enemy);
       player.combo += 1;
@@ -3617,7 +4288,7 @@
       playSound(isMini ? "bossDie" : "enemyDie", isMini ? 0.55 : 0.45);
       if (isMini) {
         game.shake = Math.max(game.shake, 1.6);
-        message(`${enemy.cfg.banner || "Mini-Boss"} falls!`);
+        if (!spawnQuestSealReward(enemy)) message(`${enemy.cfg.banner || "Mini-Boss"} falls!`);
       }
       const reward = xpReward(enemy) * (isMini ? 4 : 1);
       grantExp(reward, enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
@@ -3731,6 +4402,38 @@
   function message(text) {
     game.message = text;
     game.messageTimer = 2.1;
+  }
+
+  function recordPerfSample(type, value) {
+    if (!perfStats.enabled) return;
+    const list = perfStats[type];
+    list.push(value);
+    if (list.length > 180) list.shift();
+  }
+
+  function perfPercentile(values, pct) {
+    if (!values.length) return 0;
+    const sorted = values.slice().sort((a, b) => a - b);
+    return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * pct))];
+  }
+
+  function perfBlockSummary(values) {
+    if (!values.length) return { avg: 0, p95: 0, max: 0, samples: 0 };
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return {
+      avg: Number((total / values.length).toFixed(2)),
+      p95: Number(perfPercentile(values, 0.95).toFixed(2)),
+      max: Number(Math.max(...values).toFixed(2)),
+      samples: values.length
+    };
+  }
+
+  function perfSummary() {
+    return {
+      update: perfBlockSummary(perfStats.update),
+      draw: perfBlockSummary(perfStats.draw),
+      frame: perfBlockSummary(perfStats.frame)
+    };
   }
 
   function draw() {
@@ -3900,16 +4603,86 @@
     ctx.fillStyle = tone;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.save();
-    ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
-    drawArchitecture(room);
-    const layer = getPlatformLayer(room);
-    if (layer) {
-      ctx.drawImage(layer, 0, 0);
+    const scenery = getRoomSceneryViewportLayer(room, cameraX, cameraY);
+    if (scenery) {
+      ctx.drawImage(scenery, 0, 0);
     } else {
-      for (const solid of room.platforms) drawPlatform(solid);
+      ctx.save();
+      ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
+      drawArchitecture(room);
+      const layer = getPlatformLayer(room);
+      if (layer) {
+        const sx = clamp(Math.round(cameraX), 0, Math.max(0, layer.width - W));
+        const sy = clamp(Math.round(cameraY), 0, Math.max(0, layer.height - H));
+        const sw = Math.min(W, layer.width - sx);
+        const sh = Math.min(H, layer.height - sy);
+        ctx.drawImage(layer, sx, sy, sw, sh, sx, sy, sw, sh);
+      } else {
+        for (const solid of room.platforms) drawPlatform(solid);
+      }
+      ctx.restore();
     }
-    ctx.restore();
+  }
+
+  function getRoomSceneryViewportLayer(room, cameraX, cameraY) {
+    if (!room || !room.drawbridge) return null;
+    const bucketX = Math.round(cameraX / 16) * 16;
+    const bucketY = Math.round(cameraY / 16) * 16;
+    const tileKey = images.introTiles && images.introTiles.width ? `${images.introTiles.width}x${images.introTiles.height}` : "none";
+    const platformKey = images.tiles && images.tiles.width ? `${images.tiles.width}x${images.tiles.height}` : "none";
+    const key = `${room.name}:${tileKey}:${platformKey}:${bucketX},${bucketY}`;
+    if (roomSceneryCache.has(key)) return roomSceneryCache.get(key);
+    if (roomSceneryCache.size > 10) roomSceneryCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = W;
+    layer.height = H;
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+    g.save();
+    g.translate(-bucketX, -bucketY);
+    drawCastleGardenSceneryTo(g, room);
+    const platforms = getPlatformLayer(room);
+    if (platforms) {
+      const sx = clamp(bucketX, 0, Math.max(0, platforms.width - W));
+      const sy = clamp(bucketY, 0, Math.max(0, platforms.height - H));
+      const sw = Math.min(W, platforms.width - sx);
+      const sh = Math.min(H, platforms.height - sy);
+      g.drawImage(platforms, sx, sy, sw, sh, sx, sy, sw, sh);
+    }
+    g.restore();
+    roomSceneryCache.set(key, layer);
+    return layer;
+  }
+
+  function drawCastleGardenSceneryTo(target, room) {
+    const bridge = room.drawbridge;
+    if (bridge) {
+      const waterY = bridge.y + 22;
+      const moat = target.createLinearGradient(0, waterY, 0, roomHeight(room));
+      moat.addColorStop(0, "rgba(9, 45, 61, 0.82)");
+      moat.addColorStop(0.42, "rgba(5, 18, 27, 0.94)");
+      moat.addColorStop(1, "rgba(2, 5, 8, 0.98)");
+      target.fillStyle = moat;
+      target.fillRect(bridge.x - 16, waterY, bridge.w + 40, roomHeight(room) - waterY);
+      target.fillStyle = "rgba(173, 222, 230, 0.15)";
+      for (let x = bridge.x; x < bridge.x + bridge.w; x += 46) {
+        target.fillRect(x, waterY + 18, 26, 2);
+      }
+      drawIntroTileCellTo(target, "pillar", bridge.x - 82, bridge.y - 152, 76, 238, 0.82);
+      drawIntroTileCellTo(target, "pillar", bridge.x + bridge.w + 10, bridge.y - 150, 76, 238, 0.76);
+      target.fillStyle = "rgba(15, 12, 10, 0.78)";
+      target.fillRect(bridge.x - 82, bridge.y - 164, bridge.w + 168, 30);
+      target.strokeStyle = "rgba(244, 211, 139, 0.42)";
+      target.lineWidth = 2;
+      target.strokeRect(bridge.x - 80, bridge.y - 162, bridge.w + 164, 28);
+    }
+
+    const statueXs = [230, 560, 1240];
+    for (const x of statueXs) {
+      drawIntroTileCellTo(target, "statue", x - 34, 292, 86, 176, 0.88);
+      drawIntroTileCellTo(target, "rose", x - 76, 438, 120, 42, 0.78);
+    }
   }
 
   function drawRoomBackground(room, bg, mid, cameraX, cameraY) {
@@ -3918,6 +4691,14 @@
     const outdoor = isOutdoorRoom(room);
     ctx.save();
     ctx.imageSmoothingEnabled = true;
+
+    const cached = getRoomBackgroundViewportLayer(room, bg, mid, cameraX, cameraY, rw, rh, outdoor);
+    if (cached) {
+      ctx.drawImage(cached, 0, 0);
+      ctx.restore();
+      ctx.imageSmoothingEnabled = false;
+      return;
+    }
 
     // 1) Sky gradient (outdoor only) - dawn/twilight tint above horizon
     if (outdoor) {
@@ -3948,6 +4729,77 @@
 
     ctx.restore();
     ctx.imageSmoothingEnabled = false;
+  }
+
+  function getRoomBackgroundViewportLayer(room, bg, mid, cameraX, cameraY, rw, rh, outdoor) {
+    if (!room || !room.drawbridge || !bg || !bg.width) return null;
+    const bucketX = Math.round(cameraX / 16) * 16;
+    const bucketY = Math.round(cameraY / 16) * 16;
+    const midKey = mid && mid.width ? `${mid.width}x${mid.height}` : "none";
+    const paraKey = parallaxKeysForRoom(room).join(",");
+    const key = `${room.name}:${room.bg}:${bg.width}x${bg.height}:${midKey}:${paraKey}:${rw}x${rh}:${bucketX},${bucketY}:${outdoor ? "out" : "in"}`;
+    if (roomBackgroundCache.has(key)) return roomBackgroundCache.get(key);
+    if (roomBackgroundCache.size > 10) roomBackgroundCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = W;
+    layer.height = H;
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+
+    if (outdoor) drawSkyGradientTo(g, room, rh);
+    drawParallaxPlaneTo(g, bg, bucketX, bucketY, rw, rh, outdoor ? 0.16 : 0.28, outdoor ? 0.10 : 0.18, 1);
+    drawParallaxElementsTo(g, room, bucketX, bucketY, rw, rh, 0);
+    if (mid && mid.width) {
+      drawParallaxPlaneTo(g, mid, bucketX, bucketY, rw, rh, 0.48, 0.32, 0.24);
+    }
+    drawMode7FloorTo(g, room, bg, rw, rh, bucketX, bucketY, outdoor);
+    drawParallaxElementsTo(g, room, bucketX, bucketY, rw, rh, 1);
+    if (outdoor) drawNearForegroundParallaxTo(g, room, bucketX, bucketY, rw, rh);
+
+    roomBackgroundCache.set(key, layer);
+    return layer;
+  }
+
+  function drawSkyGradientTo(target, room, rh) {
+    const horizon = rh * 0.62;
+    const grad = target.createLinearGradient(0, 0, 0, horizon);
+    const palette = room.palette;
+    if (palette === "green") {
+      grad.addColorStop(0, "#0e1530");
+      grad.addColorStop(0.55, "#3a1d3c");
+      grad.addColorStop(1, "#7e3a32");
+    } else if (palette === "gold") {
+      grad.addColorStop(0, "#1a0e1a");
+      grad.addColorStop(0.55, "#54213a");
+      grad.addColorStop(1, "#8a4424");
+    } else {
+      grad.addColorStop(0, "#0a0a18");
+      grad.addColorStop(1, "#3a1d36");
+    }
+    target.fillStyle = grad;
+    target.fillRect(0, 0, W, Math.min(H, horizon));
+
+    if (!room.__moonX) {
+      room.__moonX = 120 + Math.random() * (W - 240);
+      room.__moonY = 60 + Math.random() * 50;
+    }
+    const mx = room.__moonX;
+    const my = room.__moonY;
+    const halo = target.createRadialGradient(mx, my, 6, mx, my, 90);
+    halo.addColorStop(0, "rgba(244, 224, 180, 0.65)");
+    halo.addColorStop(0.4, "rgba(244, 211, 139, 0.25)");
+    halo.addColorStop(1, "rgba(244, 211, 139, 0)");
+    target.fillStyle = halo;
+    target.fillRect(mx - 100, my - 100, 200, 200);
+    target.fillStyle = "#fff5dd";
+    target.beginPath();
+    target.arc(mx, my, 24, 0, Math.PI * 2);
+    target.fill();
+    target.fillStyle = "rgba(20, 18, 32, 0.35)";
+    target.beginPath();
+    target.arc(mx + 8, my - 4, 22, 0, Math.PI * 2);
+    target.fill();
   }
 
   function isOutdoorRoom(room) {
@@ -4023,12 +4875,45 @@
     ctx.fillRect(0, rh - 80, rw, 80);
   }
 
+  function drawNearForegroundParallaxTo(target, room, cameraX, cameraY, rw, rh) {
+    const keys = parallaxKeysForRoom(room);
+    const img = images[keys[0]];
+    if (img && img.width) {
+      target.save();
+      target.globalAlpha = 0.32;
+      target.translate(-Math.round(cameraX * 0.92), -Math.round(cameraY * 0.85));
+      const bandH = Math.round(rh * 0.34);
+      target.drawImage(img, 0, 0, img.width, img.height, 0, rh - bandH, rw, bandH);
+      target.restore();
+    }
+    const grad = target.createLinearGradient(0, rh - 80, 0, rh);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.55)");
+    target.fillStyle = grad;
+    target.fillRect(0, rh - 80, rw, 80);
+  }
+
   function drawParallaxPlane(img, cameraX, cameraY, rw, rh, speedX, speedY, alpha = 1) {
     ctx.save();
     ctx.globalAlpha *= alpha;
     ctx.translate(-Math.round(cameraX * speedX), -Math.round(cameraY * speedY));
     drawStretchPlane(img, 0, 0, rw, rh);
     ctx.restore();
+  }
+
+  function drawParallaxPlaneTo(target, img, cameraX, cameraY, rw, rh, speedX, speedY, alpha = 1) {
+    if (!img || !img.width) {
+      if (alpha >= 0.99) {
+        target.fillStyle = "#08080d";
+        target.fillRect(0, 0, W, H);
+      }
+      return;
+    }
+    target.save();
+    target.globalAlpha *= alpha;
+    target.translate(-Math.round(cameraX * speedX), -Math.round(cameraY * speedY));
+    target.drawImage(img, 0, 0, img.width, img.height, 0, 0, rw, rh);
+    target.restore();
   }
 
   function drawParallaxElements(room, cameraX, cameraY, rw, rh, pass) {
@@ -4040,6 +4925,17 @@
     const vertical = pass === 0 ? 0.22 : 0.48;
     const alpha = pass === 0 ? 0.34 : 0.48;
     drawParallaxPlane(img, cameraX, cameraY, rw, rh, speed, vertical, alpha);
+  }
+
+  function drawParallaxElementsTo(target, room, cameraX, cameraY, rw, rh, pass) {
+    const keys = parallaxKeysForRoom(room);
+    const key = keys[pass];
+    const img = key && images[key];
+    if (!img || !img.width) return;
+    const speed = pass === 0 ? 0.42 : 0.68;
+    const vertical = pass === 0 ? 0.22 : 0.48;
+    const alpha = pass === 0 ? 0.34 : 0.48;
+    drawParallaxPlaneTo(target, img, cameraX, cameraY, rw, rh, speed, vertical, alpha);
   }
 
   function parallaxKeysForRoom(room) {
@@ -4233,6 +5129,26 @@
     ctx.globalAlpha = old;
   }
 
+  function drawIntroTileCellTo(target, type, x, y, w, h, alpha = 1) {
+    const cell = INTRO_TILE_CELLS[type];
+    const img = images.introTiles;
+    if (!cell || !img || !img.width) return;
+    const old = target.globalAlpha;
+    target.globalAlpha = old * alpha;
+    target.drawImage(
+      img,
+      cell[0] * INTRO_TILE_SOURCE_SIZE,
+      cell[1] * INTRO_TILE_SOURCE_SIZE,
+      INTRO_TILE_SOURCE_SIZE,
+      INTRO_TILE_SOURCE_SIZE,
+      x,
+      y,
+      w,
+      h
+    );
+    target.globalAlpha = old;
+  }
+
   function drawPlatform(solid) {
     drawPlatformInto(ctx, solid);
   }
@@ -4282,10 +5198,108 @@
   }
 
   function drawRoomMechanics() {
+    if (game.room && game.room.grottoRide) drawGrottoMechanics(game.room);
     const bridge = game.room && game.room.drawbridge;
     if (bridge) drawDrawbridge(bridge);
     const gate = game.room && game.room.portcullis;
     if (gate) drawPortcullis(gate);
+  }
+
+  function drawGrottoMechanics(room) {
+    const ride = room.grottoRide;
+    if (!ride) return;
+    drawGrottoWater(room, ride);
+    for (let i = 0; i < (room.duckGates || []).length; i += 1) {
+      drawGrottoDuckGate(room.duckGates[i], i);
+    }
+    const platform = grottoRidePlatform(room);
+    if (platform) drawGrottoRidePlatform(platform);
+  }
+
+  function drawGrottoWater(room, ride) {
+    const waterTop = ride.waterY + Math.sin(game.time * 1.2) * 3;
+    const waterBottom = Math.min(roomHeight(room), 468);
+    const grad = ctx.createLinearGradient(0, waterTop, 0, waterBottom);
+    grad.addColorStop(0, "rgba(92, 218, 255, 0.16)");
+    grad.addColorStop(0.45, "rgba(17, 80, 116, 0.30)");
+    grad.addColorStop(1, "rgba(4, 24, 42, 0.48)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(160, waterTop, roomWidth(room) - 260, waterBottom - waterTop + 8);
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#7ee8ff";
+    ctx.shadowBlur = 8;
+    for (let i = 0; i < 5; i += 1) {
+      const y = waterTop + 8 + i * 14;
+      ctx.globalAlpha = 0.32 - i * 0.035;
+      ctx.strokeStyle = i % 2 ? "rgba(190, 250, 255, 0.46)" : "rgba(94, 222, 255, 0.42)";
+      ctx.beginPath();
+      for (let x = 178; x < roomWidth(room) - 80; x += 18) {
+        const yy = y + Math.sin(game.time * (2.2 + i * 0.12) + x * 0.035 + i) * (2.2 + i * 0.35);
+        if (x === 178) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawGrottoRidePlatform(platform) {
+    ctx.save();
+    ctx.shadowColor = "#7ee8ff";
+    ctx.shadowBlur = 12;
+    drawPlatformInto(ctx, platform);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = "rgba(190, 250, 255, 0.22)";
+    for (let x = platform.x + 10; x < platform.x + platform.w - 10; x += 28) {
+      ctx.fillRect(x, platform.y + platform.h + 5 + Math.sin(game.time * 4 + x) * 2, 18, 2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawGrottoDuckGate(gate, index) {
+    const teeth = Math.max(3, Math.floor(gate.w / 30));
+    ctx.save();
+    ctx.shadowColor = "#07101c";
+    ctx.shadowBlur = 5;
+    for (let i = 0; i < teeth; i += 1) {
+      const x0 = gate.x + (i / teeth) * gate.w;
+      const x1 = gate.x + ((i + 1) / teeth) * gate.w;
+      const mid = (x0 + x1) / 2 + Math.sin(index * 1.7 + i) * 4;
+      const tip = gate.y + gate.h - (i % 2) * 18;
+      const grad = ctx.createLinearGradient(mid, gate.y, mid, tip);
+      grad.addColorStop(0, "rgba(8, 16, 28, 0.98)");
+      grad.addColorStop(0.58, "rgba(28, 58, 82, 0.94)");
+      grad.addColorStop(1, "rgba(142, 236, 255, 0.82)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(x0 - 5, gate.y);
+      ctx.lineTo(x1 + 5, gate.y);
+      ctx.lineTo(mid, tip);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(190, 250, 255, 0.26)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 0.64;
+    ctx.fillStyle = "rgba(45, 126, 156, 0.28)";
+    for (let x = gate.x - 6; x < gate.x + gate.w + 8; x += 34) {
+      const h = 28 + ((x + index * 13) % 24);
+      ctx.beginPath();
+      ctx.moveTo(x, 468);
+      ctx.lineTo(x + 16, 468 - h);
+      ctx.lineTo(x + 32, 468);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   function drawDrawbridge(bridge) {
@@ -4298,7 +5312,7 @@
     ctx.translate(bridge.hingeX, bridge.hingeY);
     ctx.rotate(angle);
     ctx.shadowColor = "#050408";
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 8;
     if (!drawDrawbridgeHdDeck(bridge, localX)) {
       const grad = ctx.createLinearGradient(0, -bridge.h, bridge.w, bridge.h);
       grad.addColorStop(0, "#4c321f");
@@ -4318,31 +5332,19 @@
     const farY = bridge.hingeY + Math.sin(angle) * farVector;
     const pivotRight = bridge.hingeX > bridge.x + bridge.w / 2;
     ctx.save();
+    const anchors = [];
     for (const dy of [-22, -8]) {
-      drawChainBetween(
-        bridge.hingeX + (pivotRight ? 12 : -12),
-        bridge.hingeY - 162 + dy * 0.1,
-        farX + (pivotRight ? 10 : -10),
-        farY + dy,
-        13,
-        0.76
-      );
+      const x1 = bridge.hingeX + (pivotRight ? 12 : -12);
+      const y1 = bridge.hingeY - 162 + dy * 0.1;
+      const x2 = farX + (pivotRight ? 10 : -10);
+      const y2 = farY + dy;
+      drawChainBetween(x1, y1, x2, y2, 13, 0.76);
+      anchors.push({ x1, y1, x2, y2, angle: Math.atan2(y2 - y1, x2 - x1) });
     }
-
-    ctx.shadowColor = "#050408";
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = "rgba(244, 211, 139, 0.58)";
-    ctx.beginPath();
-    ctx.arc(bridge.hingeX + 4, bridge.hingeY - 4, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(15, 12, 10, 0.78)";
-    ctx.beginPath();
-    ctx.arc(farX, farY - 1, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(244, 211, 139, 0.45)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+    for (const a of anchors) {
+      drawDrawbridgeAnchorPlate(a.x1, a.y1, a.angle, 0.86);
+      drawDrawbridgeAnchorPlate(a.x2, a.y2, angle, 0.74);
+    }
     ctx.restore();
   }
 
@@ -4356,8 +5358,9 @@
     ctx.translate(x1, y1);
     ctx.rotate(Math.atan2(dy, dx));
     ctx.shadowColor = "#050408";
-    ctx.shadowBlur = 10;
-    if (!img || !img.width) {
+    ctx.shadowBlur = 2;
+    const strip = getDrawbridgeChainStrip(length, width);
+    if (!img || !img.width || !strip) {
       ctx.strokeStyle = "rgba(166, 148, 104, 0.74)";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -4368,68 +5371,101 @@
       return;
     }
 
+    ctx.beginPath();
+    ctx.rect(0, -strip.height / 2, length, strip.height);
+    ctx.clip();
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(strip, 0, -strip.height / 2);
+    ctx.restore();
+  }
+
+  function getDrawbridgeChainStrip(length, width) {
+    const img = images.chain;
+    if (!img || !img.width) return null;
+    const cacheW = Math.max(720, Math.ceil(length / 240) * 240);
+    const cacheH = Math.ceil(width * 1.65 + 4);
+    const key = `${cacheW}x${cacheH}:${img.width}x${img.height}`;
+    if (drawbridgeRenderCache.chains.has(key)) return drawbridgeRenderCache.chains.get(key);
+    if (drawbridgeRenderCache.chains.size > 8) drawbridgeRenderCache.chains.clear();
+    const c = document.createElement("canvas");
+    c.width = cacheW;
+    c.height = cacheH;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
     const crops = [
       { x: 8, y: 28, w: 34, h: 64 },
       { x: 55, y: 32, w: 33, h: 60 }
     ];
     const step = 15;
-    ctx.beginPath();
-    ctx.rect(0, -width * 0.55, length, width * 1.1);
-    ctx.clip();
-    ctx.globalAlpha *= alpha;
-    ctx.filter = "brightness(1.28) contrast(1.08)";
-    for (let x = -6, i = 0; x < length + step; x += step, i += 1) {
+    g.filter = "brightness(1.28) contrast(1.08)";
+    for (let x = -6, i = 0; x < cacheW + step; x += step, i += 1) {
       const crop = crops[i % crops.length];
-      const tileLen = Math.min(24, Math.max(15, length - x + 8));
-      ctx.save();
-      ctx.translate(x + tileLen / 2, 0);
-      ctx.rotate(-Math.PI / 2);
-      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -width / 2, -tileLen / 2, width, tileLen);
-      ctx.restore();
+      const tileLen = 22;
+      g.save();
+      g.translate(x + tileLen / 2, cacheH / 2);
+      g.rotate(-Math.PI / 2);
+      g.drawImage(img, crop.x, crop.y, crop.w, crop.h, -width / 2, -tileLen / 2, width, tileLen);
+      g.restore();
     }
-    ctx.filter = "none";
-    ctx.restore();
+    g.filter = "none";
+    drawbridgeRenderCache.chains.set(key, c);
+    return c;
   }
 
   function drawDrawbridgeHdDeck(bridge, localX) {
-    const intro = images.introTiles;
-    if (!intro || !intro.width) return false;
-    const root = INTRO_TILE_CELLS.root;
-    const plankW = 58;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(localX, -bridge.h, bridge.w, bridge.h);
-    ctx.clip();
-    ctx.fillStyle = "rgba(34, 21, 13, 0.96)";
-    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
-    ctx.globalAlpha *= 0.98;
-    for (let x = localX, i = 0; x < localX + bridge.w; x += plankW, i += 1) {
-      const w = Math.min(plankW + 1, localX + bridge.w - x);
-      const sx = root[0] * INTRO_TILE_SOURCE_SIZE + 10 + (i % 4) * 12;
-      const sy = root[1] * INTRO_TILE_SOURCE_SIZE + 64 + (i % 2) * 12;
-      ctx.drawImage(intro, sx, sy, 188, 132, x, -bridge.h, w, bridge.h);
-      ctx.fillStyle = i % 2 ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 220, 150, 0.08)";
-      ctx.fillRect(x, -bridge.h, 2, bridge.h);
-    }
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.fillStyle = "rgba(136, 76, 30, 0.38)";
-    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
-    ctx.globalCompositeOperation = "source-over";
-    const glaze = ctx.createLinearGradient(localX, -bridge.h, localX, 0);
-    glaze.addColorStop(0, "rgba(244, 211, 139, 0.18)");
-    glaze.addColorStop(0.45, "rgba(255, 255, 255, 0.04)");
-    glaze.addColorStop(1, "rgba(0, 0, 0, 0.42)");
-    ctx.fillStyle = glaze;
-    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
-    ctx.restore();
-
-    for (let x = localX + 72; x < localX + bridge.w - 22; x += 112) {
-      drawDrawbridgeTileBand(x, -bridge.h + 1, 12, bridge.h - 4, 0.68);
-    }
+    const layer = getDrawbridgeDeckLayer(bridge);
+    if (!layer) return false;
+    ctx.drawImage(layer, localX, -bridge.h);
     return true;
   }
 
+  function getDrawbridgeDeckLayer(bridge) {
+    const intro = images.introTiles;
+    if (!intro || !intro.width) return null;
+    const tileKey = images.tiles && images.tiles.width ? `${images.tiles.width}x${images.tiles.height}` : "none";
+    const key = `${Math.round(bridge.w)}x${Math.round(bridge.h)}:${intro.width}x${intro.height}:${tileKey}`;
+    if (drawbridgeRenderCache.deck && drawbridgeRenderCache.deck.key === key) return drawbridgeRenderCache.deck.canvas;
+    const layer = document.createElement("canvas");
+    layer.width = Math.ceil(bridge.w);
+    layer.height = Math.ceil(bridge.h);
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    const root = INTRO_TILE_CELLS.root;
+    const plankW = 58;
+    g.fillStyle = "rgba(34, 21, 13, 0.96)";
+    g.fillRect(0, 0, bridge.w, bridge.h);
+    g.globalAlpha = 0.98;
+    for (let x = 0, i = 0; x < bridge.w; x += plankW, i += 1) {
+      const w = Math.min(plankW + 1, bridge.w - x);
+      const sx = root[0] * INTRO_TILE_SOURCE_SIZE + 10 + (i % 4) * 12;
+      const sy = root[1] * INTRO_TILE_SOURCE_SIZE + 64 + (i % 2) * 12;
+      g.drawImage(intro, sx, sy, 188, 132, x, 0, w, bridge.h);
+      g.fillStyle = i % 2 ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 220, 150, 0.08)";
+      g.fillRect(x, 0, 2, bridge.h);
+    }
+    g.globalCompositeOperation = "source-atop";
+    g.fillStyle = "rgba(136, 76, 30, 0.38)";
+    g.fillRect(0, 0, bridge.w, bridge.h);
+    g.globalCompositeOperation = "source-over";
+    const glaze = g.createLinearGradient(0, 0, 0, bridge.h);
+    glaze.addColorStop(0, "rgba(244, 211, 139, 0.18)");
+    glaze.addColorStop(0.45, "rgba(255, 255, 255, 0.04)");
+    glaze.addColorStop(1, "rgba(0, 0, 0, 0.42)");
+    g.fillStyle = glaze;
+    g.fillRect(0, 0, bridge.w, bridge.h);
+
+    for (let x = 72; x < bridge.w - 22; x += 112) {
+      drawDrawbridgeTileBandTo(g, x, 1, 12, bridge.h - 4, 0.68);
+    }
+    drawbridgeRenderCache.deck = { key, canvas: layer };
+    return layer;
+  }
+
   function drawDrawbridgeTileBand(x, y, w, h, alpha = 1) {
+    drawDrawbridgeTileBandTo(ctx, x, y, w, h, alpha);
+  }
+
+  function drawDrawbridgeTileBandTo(targetCtx, x, y, w, h, alpha = 1) {
     const img = images.tiles;
     if (!img || !img.width) return;
     const cell = PLATFORM_TILE_CELLS.trim;
@@ -4437,12 +5473,58 @@
     const sy = cell[1] * TILE_SOURCE_SIZE + 92;
     const sw = TILE_SOURCE_SIZE - 16;
     const sh = 64;
-    ctx.save();
-    ctx.globalAlpha *= alpha;
+    targetCtx.save();
+    targetCtx.globalAlpha *= alpha;
     for (let xx = x; xx < x + w; xx += 64) {
-      ctx.drawImage(img, sx, sy, sw, sh, xx, y, Math.min(64, x + w - xx), h);
+      targetCtx.drawImage(img, sx, sy, sw, sh, xx, y, Math.min(64, x + w - xx), h);
     }
+    targetCtx.restore();
+  }
+
+  function drawDrawbridgeAnchorPlate(x, y, angle, scale = 1) {
+    const plate = getDrawbridgeAnchorPlate();
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
+    ctx.shadowColor = "#050408";
+    ctx.shadowBlur = 3;
+    ctx.drawImage(plate, -plate.width / 2, -plate.height / 2);
     ctx.restore();
+  }
+
+  function getDrawbridgeAnchorPlate() {
+    const img = images.tiles;
+    const key = img && img.width ? `${img.width}x${img.height}` : "fallback";
+    if (drawbridgeRenderCache.anchor && drawbridgeRenderCache.anchor.key === key) return drawbridgeRenderCache.anchor.canvas;
+    const c = document.createElement("canvas");
+    c.width = 52;
+    c.height = 28;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    if (img && img.width) {
+      const cell = PLATFORM_TILE_CELLS.trim;
+      const sx = cell[0] * TILE_SOURCE_SIZE + 34;
+      const sy = cell[1] * TILE_SOURCE_SIZE + 70;
+      g.drawImage(img, sx, sy, 170, 92, 0, 0, c.width, c.height);
+    } else {
+      g.fillStyle = "#9d8254";
+      g.fillRect(0, 0, c.width, c.height);
+    }
+    const glow = g.createLinearGradient(0, 0, c.width, c.height);
+    glow.addColorStop(0, "rgba(255, 225, 145, 0.38)");
+    glow.addColorStop(0.55, "rgba(49, 35, 22, 0.16)");
+    glow.addColorStop(1, "rgba(0, 0, 0, 0.48)");
+    g.fillStyle = glow;
+    g.fillRect(0, 0, c.width, c.height);
+    g.strokeStyle = "rgba(244, 211, 139, 0.72)";
+    g.lineWidth = 2;
+    g.strokeRect(3, 4, c.width - 6, c.height - 8);
+    g.fillStyle = "rgba(18, 12, 9, 0.7)";
+    g.fillRect(10, 8, 5, c.height - 16);
+    g.fillRect(c.width - 15, 8, 5, c.height - 16);
+    drawbridgeRenderCache.anchor = { key, canvas: c };
+    return c;
   }
 
   function drawPortcullis(gate) {
@@ -4537,7 +5619,11 @@
     if (lock === "moonGate") {
       return [
         { label: "Moon Sigil (Gallery)", have: !!game.save.moonSigil },
-        { label: "Mist Dash (Tower)", have: !!game.save.relics.dash }
+        { label: "Mist Dash (Tower)", have: !!game.save.relics.dash },
+        { label: `Castle survey (${surveyProgress().total} rooms)`, have: allSurveyRoomsVisited() },
+        { label: "Ink Seal (Archives)", have: !!(game.save.questSeals && game.save.questSeals.inkSeal) },
+        { label: "Astral Lens (Observatory)", have: !!(game.save.questSeals && game.save.questSeals.starSeal) },
+        { label: "Tide Sigil (Grotto)", have: !!(game.save.questSeals && game.save.questSeals.tideSeal) }
       ];
     }
     return [];
@@ -4548,8 +5634,9 @@
     const inTargetRoom = target === game.roomId;
     for (const drop of game.pickups) {
       const y = drop.y + Math.sin(drop.bob) * 5;
-      const isRelic = drop.type === "doubleJump" || drop.type === "dash" || drop.type === "moonSigil" || drop.type === "heartVessel" || drop.type === "subAxe" || drop.type === "subHolyWater" || drop.type === "familiarBat" || drop.type === "ringOfArdor" || drop.type === "batCloak" || drop.type === "wraithArmor" || drop.type === "phoenixPendant";
-      const color = drop.type === "doubleJump" ? "#8bd7ff" : drop.type === "dash" ? "#d8fff3" : drop.type === "heartVessel" ? "#f05f5b" : drop.type === "moonSigil" ? "#f2cb68" : drop.type === "familiarBat" ? "#bfa0ff" : drop.type === "ringOfArdor" ? "#ff9a3a" : drop.type === "batCloak" ? "#9a7adb" : drop.type === "wraithArmor" ? "#cfeacc" : drop.type === "phoenixPendant" ? "#ffae3a" : "#f2cb68";
+      const isQuestSeal = !!QUEST_ICON_CELLS[drop.type];
+      const isRelic = isQuestSeal || drop.type === "doubleJump" || drop.type === "dash" || drop.type === "moonSigil" || drop.type === "heartVessel" || drop.type === "subAxe" || drop.type === "subHolyWater" || drop.type === "familiarBat" || drop.type === "ringOfArdor" || drop.type === "batCloak" || drop.type === "wraithArmor" || drop.type === "phoenixPendant";
+      const color = drop.type === "doubleJump" ? "#8bd7ff" : drop.type === "dash" ? "#d8fff3" : drop.type === "heartVessel" ? "#f05f5b" : drop.type === "moonSigil" ? "#f2cb68" : drop.type === "tideSeal" ? "#42dfff" : drop.type === "starSeal" ? "#ffd56a" : drop.type === "inkSeal" ? "#bca8ff" : drop.type === "familiarBat" ? "#bfa0ff" : drop.type === "ringOfArdor" ? "#ff9a3a" : drop.type === "batCloak" ? "#9a7adb" : drop.type === "wraithArmor" ? "#cfeacc" : drop.type === "phoenixPendant" ? "#ffae3a" : "#f2cb68";
 
       // Path beacon: tall light column + descending arrow above relics in the target room
       if (inTargetRoom && isRelic) {
@@ -4591,8 +5678,9 @@
   }
 
   function drawPickupIcon(drop, y, color, isRelic) {
-    const cell = ITEM_ICON_CELLS[drop.type];
-    const img = images.itemIcons;
+    const isQuestSeal = !!QUEST_ICON_CELLS[drop.type];
+    const cell = isQuestSeal ? QUEST_ICON_CELLS[drop.type] : ITEM_ICON_CELLS[drop.type];
+    const img = isQuestSeal ? images.questIcons : images.itemIcons;
     if (!cell || !img || !img.width) return false;
     const size = isRelic ? 44 : Math.max(28, Math.min(36, Math.max(drop.w, drop.h) + 10));
     const cx = drop.x + drop.w / 2;
@@ -4761,9 +5849,10 @@
 
   function drawEnemies() {
     for (const enemy of game.enemies) {
-      const frame = Math.floor(game.time * 7 + enemy.phase) % 4;
       const alpha = enemy.hurt > 0 ? 0.55 : 1;
-      drawSheetFrame(images.enemy, frame, enemy.cfg.row, 128, 176, enemy.x + enemy.w / 2, enemy.y + enemy.h, enemy.cfg.dw, enemy.cfg.dh, enemy.facing < 0, alpha);
+      drawFeaturedEnemyBacklight(enemy, alpha);
+      drawEnemySprite(enemy, alpha);
+      drawFeaturedEnemyReadability(enemy, alpha);
       if (enemy.hp < enemy.maxHp) {
         if (enemy.cfg.mini) {
           drawSmallBar(enemy.x - 16, enemy.y - 14, enemy.w + 32, enemy.hp / enemy.maxHp, "#bfa0ff");
@@ -4772,6 +5861,103 @@
         }
       }
     }
+  }
+
+  function isFeaturedVisibleEnemy(enemy) {
+    return enemy && (enemy.type === "blackPanther" || enemy.type === "zora");
+  }
+
+  function drawFeaturedEnemyBacklight(enemy, alpha) {
+    if (!isFeaturedVisibleEnemy(enemy)) return;
+    const cx = enemy.x + enemy.w / 2;
+    const bottom = enemy.y + enemy.h + 8;
+    const w = enemy.type === "blackPanther" ? enemy.cfg.dw * 0.72 : enemy.cfg.dw * 0.54;
+    const h = enemy.type === "blackPanther" ? 22 : 30;
+    const color = enemy.type === "blackPanther" ? "rgba(244, 211, 139, 0.32)" : "rgba(142, 248, 255, 0.32)";
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = enemy.type === "blackPanther" ? "#f4d38b" : "#8ff8ff";
+    ctx.shadowBlur = enemy.type === "blackPanther" ? 18 : 22;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(cx, bottom - 8, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFeaturedEnemyReadability(enemy, alpha) {
+    if (!isFeaturedVisibleEnemy(enemy)) return;
+    const cx = enemy.x + enemy.w / 2;
+    const bottom = enemy.y + enemy.h + 6;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha + 0.12);
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 12;
+    if (enemy.type === "blackPanther") {
+      const dir = enemy.facing < 0 ? -1 : 1;
+      ctx.shadowColor = "#f4d38b";
+      ctx.strokeStyle = "rgba(244, 211, 139, 0.72)";
+      ctx.beginPath();
+      ctx.moveTo(cx - dir * 66, bottom - 78);
+      ctx.quadraticCurveTo(cx - dir * 16, bottom - 116, cx + dir * 58, bottom - 78);
+      ctx.stroke();
+      ctx.fillStyle = "#ffd95a";
+      ctx.shadowBlur = 8;
+      const eyeW = 4;
+      ctx.fillRect(cx + dir * 40 - (dir < 0 ? eyeW : 0), bottom - 72, eyeW, 3);
+      ctx.fillRect(cx + dir * 52 - (dir < 0 ? eyeW : 0), bottom - 73, eyeW, 3);
+    } else {
+      ctx.shadowColor = "#8ff8ff";
+      ctx.strokeStyle = "rgba(142, 248, 255, 0.82)";
+      ctx.beginPath();
+      ctx.moveTo(cx - 34, bottom - 118);
+      ctx.quadraticCurveTo(cx, bottom - 152, cx + 36, bottom - 118);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(142, 248, 255, 0.92)";
+      ctx.beginPath();
+      ctx.arc(cx + enemy.facing * 28, bottom - 94, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawEnemySprite(enemy, alpha) {
+    const meta = ENEMY_FRAME_MAP[enemy.cfg.sprite || enemy.type];
+    if (meta && images[meta.image] && images[meta.image].width) {
+      const frame = enemyAnimationFrame(enemy, meta);
+      drawSheetFrame(
+        images[meta.image],
+        frame,
+        meta.row,
+        meta.frameW,
+        meta.frameH,
+        enemy.x + enemy.w / 2,
+        enemy.y + enemy.h + 6,
+        enemy.cfg.dw,
+        enemy.cfg.dh,
+        enemy.facing < 0,
+        alpha
+      );
+      return;
+    }
+    const frame = Math.floor(game.time * 7 + enemy.phase) % 4;
+    drawSheetFrame(images.enemy, frame, enemy.cfg.row, 128, 176, enemy.x + enemy.w / 2, enemy.y + enemy.h, enemy.cfg.dw, enemy.cfg.dh, enemy.facing < 0, alpha);
+  }
+
+  function enemyAnimationFrame(enemy, meta) {
+    let seq = null;
+    if (enemy.cfg.ai === "zora") {
+      seq = enemy.attackWindup > 0.34 ? meta.attack : enemy.attackWindup > 0 ? meta.recover : meta.idle;
+    } else if (enemy.cfg.ai === "panther") {
+      seq = enemy.lunge > 0 ? meta.lunge : Math.abs(enemy.vx) > enemy.cfg.speed * 0.18 ? meta.run : meta.recover;
+    } else if (meta.cast && meta.recover && meta.idle) {
+      seq = enemy.attackWindup > 0.28 || enemy.lunge > 0 ? meta.cast : enemy.hurt > 0 ? meta.recover : meta.idle;
+    }
+    if (!seq || !seq.length) {
+      return Math.floor(game.time * (meta.fps || 10) + enemy.phase) % meta.frames;
+    }
+    const fps = meta.fps || 10;
+    return seq[Math.floor(game.time * fps + enemy.phase) % seq.length];
   }
 
   function drawBoss() {
@@ -4793,7 +5979,7 @@
     if (player.invuln > 0.62) frame = 11;
     else if (player.attackTimer > 0) frame = 12 + clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * 6), 0, 5);
     else if (!player.onGround) frame = 9;
-    else if (actionDown("down")) frame = 18;
+    else if (playerIsDucking()) frame = 18;
     else if (Math.abs(player.vx) > 0.25) frame = 1 + Math.floor(game.time * 10) % 8;
     else frame = Math.floor(game.time * 2) % 2;
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
@@ -4946,44 +6132,22 @@
   function drawMode7Floor(room, img, rw, rh, cameraX = 0, cameraY = 0, outdoor = false) {
     if (!img || !img.width) return;
     // Outdoor rooms get a higher, more prominent perspective floor
-    const horizonRatio = outdoor ? 0.55 : 0.62;
-    const startY = Math.round(rh * horizonRatio);
-    const sourceY = Math.round(img.height * (outdoor ? 0.62 : 0.58));
-    const sourceH = Math.max(1, img.height - sourceY);
     const isImagen = IMG[room.bg] && IMG[room.bg].includes("bg_imagen");
     const baseAlpha = outdoor ? 0.55 : (isImagen ? 0.34 : 0.22);
-    // Camera-driven horizontal sway gives the floor a "scrolling forward" feel
     const swayX = outdoor ? Math.round(cameraX * 0.35) : Math.round(cameraX * 0.82);
     const swayY = outdoor ? Math.round(cameraY * 0.5) : Math.round(cameraY * 0.72);
+    const layer = getMode7FloorLayer(room, img, rw, rh, outdoor);
+    if (!layer) return;
+
     ctx.save();
     ctx.translate(-swayX, -swayY);
     ctx.globalAlpha = baseAlpha;
-    const stride = outdoor ? 2 : 3;
-    const extraBase = outdoor ? 120 : 70;
-    const extraGain = outdoor ? 360 : 210;
-    const sliceGain = outdoor ? 11 : 7;
-    for (let y = startY; y < rh; y += stride) {
-      const t = (y - startY) / Math.max(1, rh - startY);
-      const ease = t * t;
-      const sy = sourceY + Math.min(sourceH - 1, Math.round(sourceH * ease));
-      const sliceH = Math.max(2, Math.round(2 + t * sliceGain));
-      const extra = extraBase + t * extraGain;
-      // Phase-based horizontal scroll for parallax illusion
-      const scrollX = outdoor ? Math.sin(game.time * 0.5 + t * 4) * 8 : 0;
-      ctx.drawImage(
-        img,
-        0,
-        sy,
-        img.width,
-        Math.min(sliceH, img.height - sy),
-        -extra + scrollX,
-        y,
-        rw + extra * 2,
-        Math.max(2, stride + 1)
-      );
-    }
-    // Soft horizon line glow
+    ctx.drawImage(layer, 0, 0);
+    ctx.restore();
+
     if (outdoor) {
+      const startY = Math.round(rh * 0.55) - Math.round(cameraY * 0.5);
+      ctx.save();
       ctx.globalAlpha = 0.4;
       const horizonGrad = ctx.createLinearGradient(0, startY - 20, 0, startY + 12);
       horizonGrad.addColorStop(0, "rgba(244, 211, 139, 0)");
@@ -4991,8 +6155,81 @@
       horizonGrad.addColorStop(1, "rgba(244, 211, 139, 0)");
       ctx.fillStyle = horizonGrad;
       ctx.fillRect(0, startY - 20, rw, 32);
+      ctx.restore();
     }
-    ctx.restore();
+  }
+
+  function drawMode7FloorTo(target, room, img, rw, rh, cameraX = 0, cameraY = 0, outdoor = false) {
+    if (!img || !img.width) return;
+    const isImagen = IMG[room.bg] && IMG[room.bg].includes("bg_imagen");
+    const baseAlpha = outdoor ? 0.55 : (isImagen ? 0.34 : 0.22);
+    const swayX = outdoor ? Math.round(cameraX * 0.35) : Math.round(cameraX * 0.82);
+    const swayY = outdoor ? Math.round(cameraY * 0.5) : Math.round(cameraY * 0.72);
+    const layer = getMode7FloorLayer(room, img, rw, rh, outdoor);
+    if (!layer) return;
+
+    target.save();
+    target.translate(-swayX, -swayY);
+    target.globalAlpha = baseAlpha;
+    target.drawImage(layer, 0, 0);
+    target.restore();
+
+    if (outdoor) {
+      const startY = Math.round(rh * 0.55) - Math.round(cameraY * 0.5);
+      target.save();
+      target.globalAlpha = 0.4;
+      const horizonGrad = target.createLinearGradient(0, startY - 20, 0, startY + 12);
+      horizonGrad.addColorStop(0, "rgba(244, 211, 139, 0)");
+      horizonGrad.addColorStop(0.7, "rgba(244, 174, 90, 0.55)");
+      horizonGrad.addColorStop(1, "rgba(244, 211, 139, 0)");
+      target.fillStyle = horizonGrad;
+      target.fillRect(0, startY - 20, W, 32);
+      target.restore();
+    }
+  }
+
+  function getMode7FloorLayer(room, img, rw, rh, outdoor) {
+    if (!img || !img.width) return null;
+    const key = `${room.id || room.name}:${room.bg}:${img.width}x${img.height}:${rw}x${rh}:${outdoor ? "out" : "in"}`;
+    if (mode7FloorCache.has(key)) return mode7FloorCache.get(key);
+    if (mode7FloorCache.size > 8) mode7FloorCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = rw;
+    layer.height = rh;
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+
+    const horizonRatio = outdoor ? 0.55 : 0.62;
+    const startY = Math.round(rh * horizonRatio);
+    const sourceY = Math.round(img.height * (outdoor ? 0.62 : 0.58));
+    const sourceH = Math.max(1, img.height - sourceY);
+    const stride = outdoor ? 4 : 5;
+    const extraBase = outdoor ? 120 : 70;
+    const extraGain = outdoor ? 360 : 210;
+    const sliceGain = outdoor ? 11 : 7;
+
+    for (let y = startY; y < rh; y += stride) {
+      const t = (y - startY) / Math.max(1, rh - startY);
+      const ease = t * t;
+      const sy = sourceY + Math.min(sourceH - 1, Math.round(sourceH * ease));
+      const sliceH = Math.max(2, Math.round(2 + t * sliceGain));
+      const extra = extraBase + t * extraGain;
+      g.drawImage(
+        img,
+        0,
+        sy,
+        img.width,
+        Math.min(sliceH, img.height - sy),
+        -extra,
+        y,
+        rw + extra * 2,
+        Math.max(2, stride + 1)
+      );
+    }
+
+    mode7FloorCache.set(key, layer);
+    return layer;
   }
 
   function burst(x, y, color, count) {
@@ -5017,10 +6254,15 @@
   }
 
   function dynamicPlatforms(room = game.room) {
-    if (!room || !room.drawbridge) return [];
-    const bridge = room.drawbridge;
-    if (bridge.progress > 0.35) return [];
-    return [{ x: bridge.x, y: bridge.y, w: bridge.w, h: bridge.h, type: "gardenStone" }];
+    if (!room) return [];
+    const platforms = [];
+    if (room.drawbridge) {
+      const bridge = room.drawbridge;
+      if (bridge.progress <= 0.35) platforms.push({ x: bridge.x, y: bridge.y, w: bridge.w, h: bridge.h, type: "gardenStone" });
+    }
+    const grotto = grottoRidePlatform(room);
+    if (grotto) platforms.push(grotto);
+    return platforms;
   }
 
   function collisionPlatforms(room = game.room) {
@@ -5098,6 +6340,10 @@
     relics.push(game.save.relics.doubleJump ? "Triple Moonstep" : "Double Jump");
     if (game.save.relics.dash) relics.push("Mist Dash");
     if (game.save.moonSigil) relics.push("Moon Sigil");
+    const survey = surveyProgress();
+    if (!survey.done) relics.push(`Map ${survey.visited}/${survey.total}`);
+    const seals = questSealProgress();
+    if (!seals.done) relics.push(`Seals ${seals.found}/${seals.total}`);
     if (player.combo > 1) relics.push(`Chain x${player.combo}`);
     return relics.join(" / ");
   }
@@ -5122,8 +6368,10 @@
       const cur = xpForLevel(player.level);
       const next = xpForLevel(player.level + 1);
       const pct = Math.max(0, Math.min(1, (player.exp - cur) / Math.max(1, next - cur)));
+      const survey = surveyProgress();
       const stats = [
         ["Level", `${player.level} (${Math.round(pct * 100)}% to next)`],
+        ["Map", `${survey.visited} / ${survey.total}`],
         ["XP", `${player.exp} / ${next}`],
         ["HP", `${Math.round(player.hp)} / ${player.maxHp}`],
         ["MP", `${Math.round(player.mp)} / ${player.maxMp}`],
@@ -5183,11 +6431,16 @@
     dom.relicList.innerHTML = "";
     const owned = game.save.ownedSubweapons || {};
     const eq = game.save.equipment || {};
+    const mapSurvey = surveyProgress();
     const chips = [
       `Lv ${player.level || game.save.level || 1}`,
+      `Map ${mapSurvey.visited}/${mapSurvey.total}`,
       game.save.relics.doubleJump && "Grave Boots",
       game.save.relics.dash && "Mist Dash",
       game.save.moonSigil && "Moon Sigil",
+      game.save.questSeals && game.save.questSeals.inkSeal && "Ink Seal",
+      game.save.questSeals && game.save.questSeals.starSeal && "Astral Lens",
+      game.save.questSeals && game.save.questSeals.tideSeal && "Tide Sigil",
       eq.ringOfArdor && "Ring of Ardor",
       eq.batCloak && "Bat Cloak",
       eq.wraithArmor && "Wraith Armor",
@@ -5416,8 +6669,17 @@
   function loop(now) {
     const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
     lastTime = now;
+    const frameStart = perfStats.enabled ? performance.now() : 0;
+    const updateStart = frameStart;
     update(dt);
+    const drawStart = perfStats.enabled ? performance.now() : 0;
+    if (perfStats.enabled) recordPerfSample("update", drawStart - updateStart);
     draw();
+    if (perfStats.enabled) {
+      const frameEnd = performance.now();
+      recordPerfSample("draw", frameEnd - drawStart);
+      recordPerfSample("frame", frameEnd - frameStart);
+    }
     requestAnimationFrame(loop);
   }
 
@@ -5466,8 +6728,8 @@
   }
 
   dom.startButton.disabled = true;
-  async function startFromTitle(fromSave) {
-    await enterMobileStartFullscreen();
+  function startFromTitle(fromSave) {
+    syncMobileDefaults({ silent: true });
     resetRun(fromSave);
   }
 

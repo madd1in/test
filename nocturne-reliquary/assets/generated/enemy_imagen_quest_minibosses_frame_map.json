@@ -1,0 +1,118 @@
+{
+  "version": "quest-seal-minibosses-hd-24f-v1",
+  "image": "enemy_imagen_quest_minibosses_sheet.png",
+  "source": "imagen_quest_minibosses_hd_sheet_20260509.png",
+  "frameWidth": 320,
+  "frameHeight": 256,
+  "framesPerRow": 24,
+  "animations": {
+    "tideWarden": {
+      "row": 0,
+      "frames": 24,
+      "fps": 12,
+      "idle": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "cast": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "recover": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "anchor": "bottom-center"
+    },
+    "starWarden": {
+      "row": 1,
+      "frames": 24,
+      "fps": 12,
+      "idle": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "cast": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "recover": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "anchor": "bottom-center"
+    },
+    "inkWarden": {
+      "row": 2,
+      "frames": 24,
+      "fps": 13,
+      "idle": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "cast": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "recover": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "anchor": "bottom-center"
+    }
+  }
+}
