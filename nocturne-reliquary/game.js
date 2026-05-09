@@ -90,7 +90,8 @@
     introTiles: "assets/generated/tiles_imagen_intro_props.png",
     itemIcons: "assets/generated/items_imagen_hd.png",
     questIcons: "assets/generated/items_imagen_quest_seals.png",
-    portcullis: "assets/generated/sprite_imagen_portcullis.png"
+    portcullis: "assets/generated/sprite_imagen_portcullis.png",
+    chests: "assets/generated/props_hd_treasure_chests.png"
   };
 
   const AUDIO = {
@@ -221,6 +222,9 @@
     drawbridgeAnchorSet: "imagen-trim-anchor-plates-v1",
     drawbridgePerf: "cached-deck-chain-mode7-v2",
     cavernSection: "sapphire-grotto-zora-v1",
+    grottoMechanic: "moving-water-raft-duck-spikes-v1",
+    enemyVisibility: "panther-zora-rim-respawn-v1",
+    chestSet: "hd-treasure-chests-v1",
     questSealRoute: "archive-observatory-grotto-miniboss-v1",
     questSealSet: "imagen-quest-seals-hd-v1",
     enemyFrameMap: "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1",
@@ -248,7 +252,10 @@
     enemyExtFrames: 24,
     questBossFrameW: 320,
     questBossFrameH: 256,
-    questBossFrames: 24
+    questBossFrames: 24,
+    chestFrameW: 192,
+    chestFrameH: 192,
+    chestFrames: 4
   };
   window.__NOCTURNE_FRAME_INFO = SPRITES;
 
@@ -269,8 +276,8 @@
     starWarden: { row: 1, hp: 300, w: 70, h: 132, dw: 180, dh: 224, speed: 0.52, damage: 14, ai: "wraith", mini: true, sprite: "starWarden", questSeal: "starSeal", banner: "Star Warden", subtitle: "Keeper of the Astral Lens" },
     tideWarden: { row: 0, hp: 320, w: 72, h: 132, dw: 184, dh: 226, speed: 0.55, damage: 14, ai: "wraith", mini: true, sprite: "tideWarden", questSeal: "tideSeal", banner: "Tide Warden", subtitle: "Keeper of the Tide Sigil" },
     drowned: { row: 0, hp: 36, w: 44, h: 86, dw: 86, dh: 122, speed: 0.74, damage: 8, ai: "walker" },
-    zora: { row: 0, hp: 48, w: 46, h: 76, dw: 118, dh: 140, speed: 0.38, damage: 9, ai: "zora", sprite: "zora" },
-    blackPanther: { row: 1, hp: 58, w: 78, h: 48, dw: 164, dh: 96, speed: 4.2, damage: 11, ai: "panther", sprite: "blackPanther" }
+    zora: { row: 0, hp: 48, w: 52, h: 84, dw: 150, dh: 178, speed: 0.38, damage: 9, ai: "zora", sprite: "zora", readable: "cyan" },
+    blackPanther: { row: 1, hp: 58, w: 88, h: 54, dw: 214, dh: 126, speed: 4.2, damage: 11, ai: "panther", sprite: "blackPanther", readable: "gold" }
   };
 
   const ENEMY_FRAME_MAP = {
@@ -784,12 +791,12 @@
     const s = game.save;
     if (s.bossDefeated) return "Free roam";
     if (!s.visited.gate) return "Next: Castle Gate";
-    if (!s.moonSigil) return "Next: Moon Sigil";
-    if (!s.relics.dash) return "Next: Mist Dash";
+    if (!s.moonSigil) return "Item: Moon Sigil";
+    if (!s.relics.dash) return "Item: Mist Dash";
     const survey = surveyProgress();
-    if (!survey.done) return `Map ${survey.visited}/${survey.total}`;
+    if (!survey.done) return `Map ${survey.visited}/${survey.total}: ${roomDisplayName(survey.next)}`;
     const seals = questSealProgress();
-    if (!seals.done) return `Seals ${seals.found}/${seals.total}`;
+    if (!seals.done) return `Seal ${seals.found + 1}/${seals.total}: ${seals.next.label}`;
     return "Next: Crimson Reliquary";
   }
 
@@ -938,7 +945,7 @@
       enemies: [
         e("z1", "zombie", 602, 386, 510, 760),
         e("bat1", "bat", 720, 195, 650, 850),
-        e("gatePanther1", "blackPanther", 512, 420, 210, 880)
+        e("gatePanther1", "blackPanther", 520, 414, 410, 560)
       ],
       items: [
         item("ringOfArdor", "ringOfArdor", 416, 130)
@@ -1454,7 +1461,7 @@
         e("ph4", "phantom", 600, 180, 480, 800),
         e("g3", "gargoyle", 720, 246, 580, 870),
         e("r2", "reaper", 200, 158, 120, 380),
-        e("cz1", "zora", 520, 392, 420, 880)
+        e("cz1", "zora", 520, 308, 420, 560)
       ],
       items: [
         item("brookCrystal", "phoenixPendant", 880, 168)
@@ -1468,6 +1475,12 @@
       music: "explore",
       palette: "blue",
       para: ["paraCavernSpires", "paraCavernMist"],
+      grottoRide: { x1: 318, x2: 1078, y: 398, w: 156, h: 22, waterY: 414, speed: 0.72 },
+      duckGates: [
+        { x: 520, y: 246, w: 108, h: 124 },
+        { x: 762, y: 238, w: 122, h: 132 },
+        { x: 998, y: 252, w: 118, h: 118 }
+      ],
       spawn: { x: 180, y: 82 },
       platforms: [
         p(0, 468, 960, 72, "blue"),
@@ -1482,9 +1495,9 @@
         d(922, 320, 38, 140, "aqueduct", 104, 330, "right")
       ],
       enemies: [
-        e("zg1", "zora", 238, 394, 120, 420),
-        e("zg2", "zora", 520, 288, 420, 820),
-        e("zg3", "zora", 540, 392, 500, 900),
+        e("zg1", "zora", 220, 310, 120, 420),
+        e("zg2", "zora", 540, 204, 420, 560),
+        e("zg3", "zora", 910, 284, 820, 1120),
         e("zgDrowned", "drowned", 500, 392, 420, 860),
         e("tideWarden1", "tideWarden", 780, 214, 650, 940)
       ],
@@ -1822,6 +1835,18 @@
     playerVy: Number(player.vy.toFixed(2)),
     onGround: Boolean(player.onGround),
     enemyTypes: game.enemies.map((enemy) => enemy.type),
+    featuredEnemies: game.enemies
+      .filter((enemy) => enemy.type === "blackPanther" || enemy.type === "zora")
+      .map((enemy) => ({
+        id: enemy.id,
+        type: enemy.type,
+        x: Math.round(enemy.x),
+        y: Math.round(enemy.y),
+        w: enemy.w,
+        h: enemy.h,
+        dw: enemy.cfg.dw,
+        dh: enemy.cfg.dh
+      })),
     transitionCooldown: Number((game.roomTransitionCooldown || 0).toFixed(2)),
     lastSafe: game.lastSafeSpot ? { ...game.lastSafeSpot } : null,
     keys: Array.from(keysDown),
@@ -1834,6 +1859,19 @@
     mobileStartFullscreenBlocked: Boolean(game.mobileStartFullscreenBlocked),
     survey: surveyProgress(),
     questSeals: questSealProgress(),
+    grotto: grottoDebugState(),
+    chests: (game.chests || []).map((chest) => ({
+      id: chest.id,
+      x: Math.round(chest.x),
+      y: Math.round(chest.y),
+      opened: Boolean(chest.opened),
+      asset: Boolean(images.chests && images.chests.width),
+      frameW: SPRITES.chestFrameW,
+      frameH: SPRITES.chestFrameH,
+      frames: SPRITES.chestFrames,
+      drawW: 76,
+      drawH: 58
+    })),
     drawbridgeCache: {
       deck: Boolean(drawbridgeRenderCache.deck),
       chains: drawbridgeRenderCache.chains.size,
@@ -1891,6 +1929,56 @@
     player.onGround = false;
     placePlayerAtSpawn(game.room, { x, y });
     updateCamera(true);
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_PLAYER_RAW = (x, y, onGround = false) => {
+    game.mode = "playing";
+    player.hp = Math.max(player.hp, player.maxHp || 112);
+    player.x = x;
+    player.y = y;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = Boolean(onGround);
+    player.invuln = 0;
+    updateCamera(true);
+    return true;
+  };
+  window.__NOCTURNE_TEST_ALIGN_GROTTO_RIDE = (targetX) => {
+    const ride = game.room && game.room.grottoRide;
+    if (!ride) return null;
+    const span = Math.max(1, ride.x2 - ride.x1);
+    const phase = clamp((targetX - ride.x1) / span, 0.02, 0.98);
+    const s = clamp(phase * 2 - 1, -0.98, 0.98);
+    let t = Math.asin(s) / ride.speed;
+    if (t < 0) t += (Math.PI * 2) / ride.speed;
+    game.time = t;
+    updateCamera(true);
+    return grottoDebugState();
+  };
+  window.__NOCTURNE_TEST_CLEAR_ROOM_THREATS = () => {
+    game.enemies.length = 0;
+    game.projectiles.length = 0;
+    game.flames.length = 0;
+    game.boss = null;
+    player.invuln = 0;
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_KILLED = (roomId, enemyId, killed = true) => {
+    if (!game.save.killed) game.save.killed = {};
+    const key = `${roomId}:${enemyId}`;
+    if (killed) game.save.killed[key] = true;
+    else delete game.save.killed[key];
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_CHEST_OPENED = (roomId, chestId, opened = true) => {
+    if (!game.save.openedChests) game.save.openedChests = {};
+    const key = `${roomId}:${chestId}`;
+    if (opened) game.save.openedChests[key] = true;
+    else delete game.save.openedChests[key];
+    if (game.roomId === roomId && game.chests) {
+      const chest = game.chests.find((candidate) => candidate.id === chestId);
+      if (chest) chest.opened = Boolean(opened);
+    }
     return true;
   };
   window.__NOCTURNE_PERF_RESET = () => {
@@ -2143,7 +2231,7 @@
     player.coyote = 0;
     player.jumpBuffer = 0;
     game.enemies = room.enemies
-      .filter((def) => !game.save.killed[`${roomId}:${def.id}`])
+      .filter((def) => !enemyKillPersists(def) || !game.save.killed[`${roomId}:${def.id}`])
       .map(createEnemy);
     game.pickups = room.items
       .filter((def) => !game.save.collected[`${roomId}:${def.id}`])
@@ -2244,6 +2332,11 @@
       lunge: 0,
       attackWindup: 0
     };
+  }
+
+  function enemyKillPersists(enemyOrDef) {
+    const cfg = enemyOrDef && (enemyOrDef.cfg || ENEMY_TYPES[enemyOrDef.type]);
+    return Boolean(cfg && cfg.mini);
   }
 
   function syncQuestSealPickups(roomId) {
@@ -2365,7 +2458,9 @@
       return;
     }
 
+    updateGrottoMovingPlatform(dt);
     updatePlayer(step, dt);
+    updateGrottoDuckGates(dt);
     updateEnemies(step, dt);
     updateBoss(step, dt);
     updateProjectiles(step, dt);
@@ -2385,6 +2480,107 @@
     updateCamera(false);
     updateHud();
     clearJust();
+  }
+
+  function grottoRidePlatform(room = game.room, t = game.time) {
+    if (!room || !room.grottoRide) return null;
+    const ride = room.grottoRide;
+    const span = ride.x2 - ride.x1;
+    const phase = 0.5 + Math.sin(t * ride.speed) * 0.5;
+    const bob = Math.sin(t * 1.35 + 0.6) * 4;
+    return {
+      x: ride.x1 + span * phase,
+      y: ride.y + bob,
+      w: ride.w,
+      h: ride.h,
+      type: "blue",
+      moving: true,
+      grottoRide: true
+    };
+  }
+
+  function entityStandingOnPlatform(ent, platform) {
+    if (!platform) return false;
+    const bottom = ent.y + ent.h;
+    const horizontal = ent.x + ent.w > platform.x + 10 && ent.x < platform.x + platform.w - 10;
+    return horizontal && bottom >= platform.y - 8 && bottom <= platform.y + Math.max(16, platform.h + 8) && ent.vy >= -1.2;
+  }
+
+  function playerIsDucking() {
+    return actionDown("down") && player.onGround && player.dashTimer <= 0 && player.backdashTimer <= 0;
+  }
+
+  function playerStandingHeadBox() {
+    return {
+      x: player.x + 6,
+      y: player.y + 8,
+      w: player.w - 12,
+      h: 68
+    };
+  }
+
+  function grottoDebugState(room = game.room) {
+    if (!room || !room.grottoRide) return null;
+    const platform = grottoRidePlatform(room);
+    return {
+      platform: platform ? {
+        x: Math.round(platform.x),
+        y: Math.round(platform.y),
+        w: Math.round(platform.w),
+        h: Math.round(platform.h)
+      } : null,
+      waterY: room.grottoRide.waterY,
+      ducking: playerIsDucking(),
+      duckGates: (room.duckGates || []).map((gate) => ({
+        x: gate.x,
+        y: gate.y,
+        w: gate.w,
+        h: gate.h
+      }))
+    };
+  }
+
+  function updateGrottoMovingPlatform(dt) {
+    const room = game.room;
+    if (!room || !room.grottoRide) return;
+    const prev = grottoRidePlatform(room, Math.max(0, game.time - dt));
+    const current = grottoRidePlatform(room, game.time);
+    const riding = entityStandingOnPlatform(player, prev) || entityStandingOnPlatform(player, current);
+    if (!riding) return;
+
+    player.x += current.x - prev.x;
+    player.y += current.y - prev.y;
+    player.onGround = true;
+    player.coyote = Math.max(player.coyote, 0.12);
+    if (!game.grottoRideHinted) {
+      game.grottoRideHinted = true;
+      message("Hold Down to duck under the sapphire teeth.");
+    }
+  }
+
+  function updateGrottoDuckGates(dt) {
+    const room = game.room;
+    game.grottoDuckHitTimer = Math.max(0, (game.grottoDuckHitTimer || 0) - dt);
+    if (!room || !room.duckGates) return;
+
+    const headBox = playerStandingHeadBox();
+    const gate = room.duckGates.find((entry) => rectsOverlap(headBox, entry));
+    if (!gate) return;
+
+    if (playerIsDucking()) {
+      game.grottoDuckClearTimer = 0.35;
+      return;
+    }
+
+    const dir = (player.x + player.w / 2) < (gate.x + gate.w / 2) ? -1 : 1;
+    player.x += dir * 6;
+    player.vx = dir * Math.max(2.2, Math.abs(player.vx) * 0.45);
+    if (game.grottoDuckHitTimer <= 0) {
+      game.grottoDuckHitTimer = 0.62;
+      hurtPlayer(7);
+      message("Duck under the sapphire teeth.");
+      burst(player.x + player.w / 2, player.y + 24, "#8ff8ff", 12);
+    }
   }
 
   function updatePlayer(step, dt) {
@@ -2818,6 +3014,19 @@
     }
   }
 
+  function containEnemyPatrol(enemy) {
+    if (!Number.isFinite(enemy.min) || !Number.isFinite(enemy.max)) return;
+    if (enemy.x < enemy.min) {
+      enemy.x = enemy.min;
+      enemy.vx = Math.abs(enemy.vx || enemy.cfg.speed * 0.5);
+      enemy.facing = 1;
+    } else if (enemy.x > enemy.max) {
+      enemy.x = enemy.max;
+      enemy.vx = -Math.abs(enemy.vx || enemy.cfg.speed * 0.5);
+      enemy.facing = -1;
+    }
+  }
+
   function updateEnemies(step, dt) {
     const playerCenterX = player.x + player.w / 2;
     for (const enemy of game.enemies) {
@@ -2894,6 +3103,7 @@
         enemy.vx = clamp(enemy.vx, -cfg.speed, cfg.speed);
         if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
         moveEntity(enemy, step, false);
+        containEnemyPatrol(enemy);
         if (enemy.cooldown <= 0 && Math.abs(player.x - enemy.x) < 620) {
           enemy.attackWindup = 0.72;
           shootEnemy(enemy, 5.2, "#8ff8ff", cfg.damage, { w: 22, h: 12, yMul: 0.34 });
@@ -2924,6 +3134,7 @@
         }
         if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
         moveEntity(enemy, step, false);
+        containEnemyPatrol(enemy);
       } else if (cfg.ai === "leaper") {
         enemy.vy += GRAVITY * step;
         if (enemy.onGround && enemy.cooldown <= 0) {
@@ -3449,43 +3660,67 @@
   function drawChests() {
     if (!game.chests || game.chests.length === 0) return;
     for (const chest of game.chests) {
-      const x = chest.x;
-      const y = chest.y;
-      // Body
-      ctx.fillStyle = "#3a2415";
-      ctx.fillRect(x, y, 36, 28);
-      // Wood planks
+      if (!drawHdChest(chest)) drawFallbackChest(chest);
+    }
+  }
+
+  function drawHdChest(chest) {
+    const sheet = images.chests;
+    if (!sheet || !sheet.width) return false;
+    const shimmer = Math.floor(game.time * 2.4 + chest.x * 0.01) % 2;
+    const frame = chest.opened ? 2 + shimmer : shimmer;
+    const drawW = 76;
+    const drawH = 58;
+    const x = chest.x + 18 - drawW / 2;
+    const y = chest.y + 28 - drawH;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(
+      sheet,
+      frame * SPRITES.chestFrameW,
+      0,
+      SPRITES.chestFrameW,
+      SPRITES.chestFrameH,
+      x,
+      y,
+      drawW,
+      drawH
+    );
+    ctx.restore();
+    return true;
+  }
+
+  function drawFallbackChest(chest) {
+    const x = chest.x;
+    const y = chest.y;
+    ctx.fillStyle = "#3a2415";
+    ctx.fillRect(x, y, 36, 28);
+    ctx.fillStyle = "#5a3820";
+    ctx.fillRect(x + 2, y + 2, 32, 24);
+    ctx.fillStyle = "#181210";
+    ctx.fillRect(x + 1, y + 9, 34, 3);
+    ctx.fillRect(x + 1, y + 18, 34, 3);
+    ctx.fillRect(x + 16, y, 4, 28);
+    if (chest.opened) {
+      ctx.fillStyle = "#1a0e08";
+      ctx.fillRect(x + 4, y + 14, 28, 12);
       ctx.fillStyle = "#5a3820";
-      ctx.fillRect(x + 2, y + 2, 32, 24);
-      // Iron bands
-      ctx.fillStyle = "#181210";
-      ctx.fillRect(x + 1, y + 9, 34, 3);
-      ctx.fillRect(x + 1, y + 18, 34, 3);
-      ctx.fillRect(x + 16, y, 4, 28);
-      // Lid line / lock
-      if (chest.opened) {
-        // Open: tilted lid + empty interior
-        ctx.fillStyle = "#1a0e08";
-        ctx.fillRect(x + 4, y + 14, 28, 12);
-        ctx.fillStyle = "#5a3820";
-        ctx.beginPath();
-        ctx.moveTo(x, y - 6);
-        ctx.lineTo(x + 36, y - 6);
-        ctx.lineTo(x + 30, y + 8);
-        ctx.lineTo(x + 6, y + 8);
-        ctx.closePath();
-        ctx.fill();
-      } else {
-        // Closed: gold lock + glow
-        const pulse = 0.5 + 0.5 * Math.sin(game.time * 3);
-        ctx.shadowColor = "#ffd065";
-        ctx.shadowBlur = 10 * pulse;
-        ctx.fillStyle = "#d1a84d";
-        ctx.fillRect(x + 14, y + 12, 8, 6);
-        ctx.fillStyle = "#7a5a1e";
-        ctx.fillRect(x + 16, y + 14, 4, 2);
-        ctx.shadowBlur = 0;
-      }
+      ctx.beginPath();
+      ctx.moveTo(x, y - 6);
+      ctx.lineTo(x + 36, y - 6);
+      ctx.lineTo(x + 30, y + 8);
+      ctx.lineTo(x + 6, y + 8);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      const pulse = 0.5 + 0.5 * Math.sin(game.time * 3);
+      ctx.shadowColor = "#ffd065";
+      ctx.shadowBlur = 10 * pulse;
+      ctx.fillStyle = "#d1a84d";
+      ctx.fillRect(x + 14, y + 12, 8, 6);
+      ctx.fillStyle = "#7a5a1e";
+      ctx.fillRect(x + 16, y + 14, 4, 2);
+      ctx.shadowBlur = 0;
     }
   }
 
@@ -4038,7 +4273,9 @@
     }
     playSound("enemyHit", 0.42);
     if (enemy.hp <= 0) {
-      game.save.killed[`${game.roomId}:${enemy.id}`] = true;
+      if (enemyKillPersists(enemy)) {
+        game.save.killed[`${game.roomId}:${enemy.id}`] = true;
+      }
       game.save.kills = (game.save.kills || 0) + 1;
       game.enemies = game.enemies.filter((other) => other !== enemy);
       player.combo += 1;
@@ -4961,10 +5198,108 @@
   }
 
   function drawRoomMechanics() {
+    if (game.room && game.room.grottoRide) drawGrottoMechanics(game.room);
     const bridge = game.room && game.room.drawbridge;
     if (bridge) drawDrawbridge(bridge);
     const gate = game.room && game.room.portcullis;
     if (gate) drawPortcullis(gate);
+  }
+
+  function drawGrottoMechanics(room) {
+    const ride = room.grottoRide;
+    if (!ride) return;
+    drawGrottoWater(room, ride);
+    for (let i = 0; i < (room.duckGates || []).length; i += 1) {
+      drawGrottoDuckGate(room.duckGates[i], i);
+    }
+    const platform = grottoRidePlatform(room);
+    if (platform) drawGrottoRidePlatform(platform);
+  }
+
+  function drawGrottoWater(room, ride) {
+    const waterTop = ride.waterY + Math.sin(game.time * 1.2) * 3;
+    const waterBottom = Math.min(roomHeight(room), 468);
+    const grad = ctx.createLinearGradient(0, waterTop, 0, waterBottom);
+    grad.addColorStop(0, "rgba(92, 218, 255, 0.16)");
+    grad.addColorStop(0.45, "rgba(17, 80, 116, 0.30)");
+    grad.addColorStop(1, "rgba(4, 24, 42, 0.48)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(160, waterTop, roomWidth(room) - 260, waterBottom - waterTop + 8);
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#7ee8ff";
+    ctx.shadowBlur = 8;
+    for (let i = 0; i < 5; i += 1) {
+      const y = waterTop + 8 + i * 14;
+      ctx.globalAlpha = 0.32 - i * 0.035;
+      ctx.strokeStyle = i % 2 ? "rgba(190, 250, 255, 0.46)" : "rgba(94, 222, 255, 0.42)";
+      ctx.beginPath();
+      for (let x = 178; x < roomWidth(room) - 80; x += 18) {
+        const yy = y + Math.sin(game.time * (2.2 + i * 0.12) + x * 0.035 + i) * (2.2 + i * 0.35);
+        if (x === 178) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawGrottoRidePlatform(platform) {
+    ctx.save();
+    ctx.shadowColor = "#7ee8ff";
+    ctx.shadowBlur = 12;
+    drawPlatformInto(ctx, platform);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = "rgba(190, 250, 255, 0.22)";
+    for (let x = platform.x + 10; x < platform.x + platform.w - 10; x += 28) {
+      ctx.fillRect(x, platform.y + platform.h + 5 + Math.sin(game.time * 4 + x) * 2, 18, 2);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawGrottoDuckGate(gate, index) {
+    const teeth = Math.max(3, Math.floor(gate.w / 30));
+    ctx.save();
+    ctx.shadowColor = "#07101c";
+    ctx.shadowBlur = 5;
+    for (let i = 0; i < teeth; i += 1) {
+      const x0 = gate.x + (i / teeth) * gate.w;
+      const x1 = gate.x + ((i + 1) / teeth) * gate.w;
+      const mid = (x0 + x1) / 2 + Math.sin(index * 1.7 + i) * 4;
+      const tip = gate.y + gate.h - (i % 2) * 18;
+      const grad = ctx.createLinearGradient(mid, gate.y, mid, tip);
+      grad.addColorStop(0, "rgba(8, 16, 28, 0.98)");
+      grad.addColorStop(0.58, "rgba(28, 58, 82, 0.94)");
+      grad.addColorStop(1, "rgba(142, 236, 255, 0.82)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(x0 - 5, gate.y);
+      ctx.lineTo(x1 + 5, gate.y);
+      ctx.lineTo(mid, tip);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(190, 250, 255, 0.26)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 0.64;
+    ctx.fillStyle = "rgba(45, 126, 156, 0.28)";
+    for (let x = gate.x - 6; x < gate.x + gate.w + 8; x += 34) {
+      const h = 28 + ((x + index * 13) % 24);
+      ctx.beginPath();
+      ctx.moveTo(x, 468);
+      ctx.lineTo(x + 16, 468 - h);
+      ctx.lineTo(x + 32, 468);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   function drawDrawbridge(bridge) {
@@ -5515,7 +5850,9 @@
   function drawEnemies() {
     for (const enemy of game.enemies) {
       const alpha = enemy.hurt > 0 ? 0.55 : 1;
+      drawFeaturedEnemyBacklight(enemy, alpha);
       drawEnemySprite(enemy, alpha);
+      drawFeaturedEnemyReadability(enemy, alpha);
       if (enemy.hp < enemy.maxHp) {
         if (enemy.cfg.mini) {
           drawSmallBar(enemy.x - 16, enemy.y - 14, enemy.w + 32, enemy.hp / enemy.maxHp, "#bfa0ff");
@@ -5524,6 +5861,64 @@
         }
       }
     }
+  }
+
+  function isFeaturedVisibleEnemy(enemy) {
+    return enemy && (enemy.type === "blackPanther" || enemy.type === "zora");
+  }
+
+  function drawFeaturedEnemyBacklight(enemy, alpha) {
+    if (!isFeaturedVisibleEnemy(enemy)) return;
+    const cx = enemy.x + enemy.w / 2;
+    const bottom = enemy.y + enemy.h + 8;
+    const w = enemy.type === "blackPanther" ? enemy.cfg.dw * 0.72 : enemy.cfg.dw * 0.54;
+    const h = enemy.type === "blackPanther" ? 22 : 30;
+    const color = enemy.type === "blackPanther" ? "rgba(244, 211, 139, 0.32)" : "rgba(142, 248, 255, 0.32)";
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = enemy.type === "blackPanther" ? "#f4d38b" : "#8ff8ff";
+    ctx.shadowBlur = enemy.type === "blackPanther" ? 18 : 22;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(cx, bottom - 8, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFeaturedEnemyReadability(enemy, alpha) {
+    if (!isFeaturedVisibleEnemy(enemy)) return;
+    const cx = enemy.x + enemy.w / 2;
+    const bottom = enemy.y + enemy.h + 6;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha + 0.12);
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 12;
+    if (enemy.type === "blackPanther") {
+      const dir = enemy.facing < 0 ? -1 : 1;
+      ctx.shadowColor = "#f4d38b";
+      ctx.strokeStyle = "rgba(244, 211, 139, 0.72)";
+      ctx.beginPath();
+      ctx.moveTo(cx - dir * 66, bottom - 78);
+      ctx.quadraticCurveTo(cx - dir * 16, bottom - 116, cx + dir * 58, bottom - 78);
+      ctx.stroke();
+      ctx.fillStyle = "#ffd95a";
+      ctx.shadowBlur = 8;
+      const eyeW = 4;
+      ctx.fillRect(cx + dir * 40 - (dir < 0 ? eyeW : 0), bottom - 72, eyeW, 3);
+      ctx.fillRect(cx + dir * 52 - (dir < 0 ? eyeW : 0), bottom - 73, eyeW, 3);
+    } else {
+      ctx.shadowColor = "#8ff8ff";
+      ctx.strokeStyle = "rgba(142, 248, 255, 0.82)";
+      ctx.beginPath();
+      ctx.moveTo(cx - 34, bottom - 118);
+      ctx.quadraticCurveTo(cx, bottom - 152, cx + 36, bottom - 118);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(142, 248, 255, 0.92)";
+      ctx.beginPath();
+      ctx.arc(cx + enemy.facing * 28, bottom - 94, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawEnemySprite(enemy, alpha) {
@@ -5584,7 +5979,7 @@
     if (player.invuln > 0.62) frame = 11;
     else if (player.attackTimer > 0) frame = 12 + clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * 6), 0, 5);
     else if (!player.onGround) frame = 9;
-    else if (actionDown("down")) frame = 18;
+    else if (playerIsDucking()) frame = 18;
     else if (Math.abs(player.vx) > 0.25) frame = 1 + Math.floor(game.time * 10) % 8;
     else frame = Math.floor(game.time * 2) % 2;
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
@@ -5859,10 +6254,15 @@
   }
 
   function dynamicPlatforms(room = game.room) {
-    if (!room || !room.drawbridge) return [];
-    const bridge = room.drawbridge;
-    if (bridge.progress > 0.35) return [];
-    return [{ x: bridge.x, y: bridge.y, w: bridge.w, h: bridge.h, type: "gardenStone" }];
+    if (!room) return [];
+    const platforms = [];
+    if (room.drawbridge) {
+      const bridge = room.drawbridge;
+      if (bridge.progress <= 0.35) platforms.push({ x: bridge.x, y: bridge.y, w: bridge.w, h: bridge.h, type: "gardenStone" });
+    }
+    const grotto = grottoRidePlatform(room);
+    if (grotto) platforms.push(grotto);
+    return platforms;
   }
 
   function collisionPlatforms(room = game.room) {
