@@ -44,11 +44,13 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Imagegen HD animated title scene with parallax overlays, fireflies, and Mode7-style foreground stretch
 - Imagen HD 1920x1080 backgrounds across the main castle, branches, and new expansion rooms
 - New Imagegen HD intro approach: Moonwood Verge into Castle Garden before Gate Hall
-- Castle Garden includes statue/rose HD assets and an animated portcullis that drops and rises after passage
+- Castle Garden now uses a Castlevania-style drawbridge: it starts lowered over the moat, then hauls upward behind the player after entry
+- Room-transition gate/gong SFX has been removed; room changes stay visual and movement-led
 - Backgrounds use slower parallax scrolling, alpha overlay layers, and a lightweight Mode7-style floor fill
 - Imagen HD 256px platform tiles replace the old 64px sheet and stay mapped to the collision-sized 48px grid
 - Imagegen HD item icons replace the simple orb pickup placeholders
-- Four new optional rooms: Moonlit Archives, Saint's Ossuary, Astral Aqueduct, and Star Bell Loft
+- Seven optional/loop rooms: Moonlit Archives, Saint's Ossuary, Astral Aqueduct, Star Bell Loft, Candlelit Armory, Moon Moat Culvert, and Starfall Observatory
+- New route complexity: garden-to-armory library loop, moat-to-crypt lower shortcut, and observatory-to-aqueduct high loop
 - Lord Veyr uses a new Imagen-derived 16-frame HD boss strip
 - Safer room exits use expanded trigger zones, spawn settling, transition cooldowns, and last-safe-ground recovery
 - Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
@@ -80,5 +82,11 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Mini-boss "Bone Wraith" patrols the Bone Bell Catacomb, gating the Grave Boots with a banner intro and 4× XP reward
 - Equipment: **Ring of Ardor** (Gate Hall, +22 Luck, crit chance), **Bat Cloak** (Catacomb, +18% jump height), **Wraith Armor** (Clockwork Rise, +4 Defense)
 - Critical hits proc on luck-roll: 1.7× damage, oversized golden popup, screen-shake
+
+## Extra Ideas
+
+- Add one lever room that temporarily lowers the drawbridge for speedrun backtracking
+- Give the Moon Moat a waterline hazard and a relic that lets you cross it cleanly later
+- Turn Starfall Observatory into a telescope puzzle that reveals hidden doors on the map
 
 The game intentionally uses an original name, story, and characters while chasing the gothic exploration feel requested.

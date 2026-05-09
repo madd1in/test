@@ -3,11 +3,17 @@
   --ink: #f7ead2;
   --muted: #b8b2a6;
   --red: #b93532;
+  --red-dark: #6a1820;
   --gold: #d1a84d;
+  --gold-light: #f4d38b;
+  --gold-dark: #7a5a1e;
   --green: #6fb477;
   --cyan: #70b8c6;
   --stone: #202027;
   --black: #050408;
+  --font-heading: "UnifrakturCook", "Cinzel", Georgia, serif;
+  --font-display: "Pirata One", "Cinzel", Georgia, serif;
+  --font-body: "Cinzel", "MedievalSharp", "Trebuchet MS", Georgia, serif;
 }
 
 * {
@@ -26,7 +32,7 @@ body {
     radial-gradient(circle at 75% 70%, rgba(112, 184, 198, 0.12), transparent 30rem),
     linear-gradient(180deg, #0a080d 0%, #0f1015 48%, #050408 100%);
   color: var(--ink);
-  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-body);
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
@@ -94,11 +100,11 @@ body.title-active .touch-controls {
   align-items: center;
   gap: 9px;
   margin-bottom: 7px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0;
-  color: #f4d38b;
-  text-shadow: 0 2px 0 #000;
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--gold-light);
+  text-shadow: 0 2px 0 #000, 0 0 8px rgba(244, 211, 139, 0.45);
 }
 
 .crest {
@@ -112,12 +118,25 @@ body.title-active .touch-controls {
 
 .meter {
   width: min(32vw, 280px);
-  height: 12px;
-  border: 1px solid rgba(247, 234, 210, 0.32);
-  background: rgba(5, 4, 8, 0.72);
+  height: 14px;
+  border: 1px solid rgba(244, 211, 139, 0.55);
+  background: rgba(5, 4, 8, 0.85);
   margin: 5px 0;
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(122, 90, 30, 0.55),
+    0 0 8px rgba(0, 0, 0, 0.7);
+  position: relative;
+}
+
+.meter::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border: 1px solid rgba(122, 90, 30, 0.45);
+  pointer-events: none;
 }
 
 .meter span {
@@ -152,14 +171,17 @@ body.title-active .touch-controls {
 }
 
 .stat-chip {
-  border: 1px solid rgba(247, 234, 210, 0.28);
-  background: rgba(8, 8, 12, 0.78);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 11px;
-  color: #f4d38b;
+  border: 1px solid rgba(244, 211, 139, 0.45);
+  background:
+    linear-gradient(180deg, rgba(36, 22, 10, 0.95), rgba(8, 4, 2, 0.95));
+  border-radius: 2px;
+  padding: 3px 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gold-light);
   text-shadow: 0 1px 0 #000;
-  letter-spacing: 0.4px;
+  letter-spacing: 1.2px;
+  box-shadow: inset 0 0 0 1px rgba(122, 90, 30, 0.5);
 }
 
 .stat-chip#heartsChip {
@@ -197,17 +219,21 @@ body.title-active .touch-controls {
 }
 
 .objective-label {
-  font-size: 10px;
-  letter-spacing: 1.4px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  color: #f4d38b;
-  margin-bottom: 4px;
+  color: var(--gold-light);
+  margin-bottom: 6px;
+  text-shadow: 0 2px 0 #000;
 }
 
 .objective-line {
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: 14px;
   color: #fff5dd;
-  line-height: 1.35;
+  line-height: 1.4;
+  letter-spacing: 0.4px;
 }
 
 .side-objectives {
@@ -264,14 +290,19 @@ body.title-active .touch-controls {
 }
 
 .room-name {
-  font-size: clamp(16px, 2.3vw, 24px);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.8vw, 30px);
   color: #fff4d2;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 0 #000, 0 0 12px rgba(244, 211, 139, 0.4);
 }
 
 .status-line {
-  min-height: 18px;
-  margin-top: 3px;
+  min-height: 20px;
+  margin-top: 4px;
+  font-family: var(--font-body);
   font-size: 13px;
+  letter-spacing: 0.6px;
   color: var(--muted);
 }
 
@@ -279,37 +310,55 @@ body.title-active .touch-controls {
 .primary-button,
 .secondary-button {
   min-height: 38px;
-  border: 1px solid rgba(247, 234, 210, 0.24);
-  background: rgba(14, 14, 18, 0.76);
-  border-radius: 4px;
+  border: 1px solid rgba(244, 211, 139, 0.55);
+  background:
+    linear-gradient(180deg, rgba(36, 22, 10, 0.92), rgba(14, 8, 4, 0.96));
+  border-radius: 2px;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 18px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 90, 30, 0.45),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body);
+  letter-spacing: 1px;
 }
 
 .icon-button {
   min-width: 44px;
   padding: 0 10px;
   font-size: 12px;
-  color: #ffe6a2;
+  color: var(--gold-light);
+  text-shadow: 0 1px 0 #000;
 }
 
 .primary-button,
 .secondary-button {
-  min-width: 132px;
-  padding: 0 18px;
+  min-width: 154px;
+  padding: 0 22px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  letter-spacing: 0;
 }
 
 .primary-button {
-  background: linear-gradient(180deg, #b23b33, #5f1d28);
-  border-color: rgba(255, 199, 103, 0.54);
+  background:
+    linear-gradient(180deg, #c54530 0%, #771d24 60%, #3a0d12 100%);
+  border-color: rgba(244, 211, 139, 0.85);
   color: #fff5dd;
+  text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 200, 130, 0.55);
+}
+
+.primary-button:hover {
+  background:
+    linear-gradient(180deg, #d8553a 0%, #8a242c 60%, #4a121a 100%);
 }
 
 .secondary-button {
-  background: linear-gradient(180deg, #293f45, #151921);
+  background:
+    linear-gradient(180deg, #2c4a52 0%, #142028 60%, #0a0e14 100%);
+  border-color: rgba(112, 184, 198, 0.55);
   color: #d6f6ef;
+  text-shadow: 0 2px 0 #000;
 }
 
 button:disabled {
@@ -329,7 +378,7 @@ button:focus-visible {
   place-items: center;
   z-index: 3;
   background:
-    linear-gradient(180deg, rgba(5, 4, 8, 0.08), rgba(5, 4, 8, 0.64)),
+    linear-gradient(180deg, rgba(5, 4, 8, 0.02), rgba(5, 4, 8, 0.42)),
     linear-gradient(90deg, rgba(112, 184, 198, 0.08), transparent 36%, rgba(185, 53, 50, 0.08));
   pointer-events: auto;
   overflow: hidden;
@@ -361,34 +410,77 @@ button:focus-visible {
 .title-inner {
   position: relative;
   z-index: 1;
-  width: min(90vw, 720px);
+  width: min(92vw, 760px);
   text-align: center;
-  padding: 24px;
+  padding: 32px 36px 36px;
   text-shadow: 0 3px 0 #000;
+  background:
+    linear-gradient(180deg, rgba(20, 12, 6, 0.54), rgba(8, 4, 2, 0.64));
+  backdrop-filter: blur(3px) saturate(1.05);
+  border: 2px solid rgba(244, 211, 139, 0.55);
+  box-shadow:
+    inset 0 0 0 4px rgba(0, 0, 0, 0.54),
+    inset 0 0 0 5px rgba(122, 90, 30, 0.42),
+    0 30px 80px rgba(0, 0, 0, 0.52);
+}
+
+.title-inner::before,
+.title-inner::after {
+  content: "";
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(244, 211, 139, 0.85);
+  background: rgba(120, 30, 32, 0.6);
+  transform: rotate(45deg);
+  box-shadow: 0 0 14px rgba(244, 211, 139, 0.35);
+}
+
+.title-inner::before {
+  top: -16px;
+  left: 50%;
+  margin-left: -14px;
+}
+
+.title-inner::after {
+  bottom: -16px;
+  left: 50%;
+  margin-left: -14px;
 }
 
 .kicker {
   margin: 0 0 8px;
   color: #e8bc5c;
+  font-family: var(--font-display);
+  font-size: clamp(14px, 1.6vw, 20px);
   text-transform: uppercase;
-  letter-spacing: 0;
+  letter-spacing: 6px;
 }
 
 h1 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(48px, 9vw, 104px);
+  font-family: var(--font-heading);
+  font-size: clamp(56px, 11vw, 132px);
   line-height: 0.95;
   font-weight: 700;
   color: #fff0cf;
+  letter-spacing: 2px;
+  text-shadow:
+    0 4px 0 #000,
+    0 0 24px rgba(216, 56, 56, 0.55),
+    0 0 60px rgba(244, 211, 139, 0.35);
   animation: title-glow 4.8s ease-in-out infinite;
 }
 
 .subtitle {
-  max-width: 620px;
-  margin: 16px auto 24px;
+  max-width: 680px;
+  margin: 18px auto 28px;
   color: #d8d0c1;
-  font-size: clamp(16px, 2vw, 20px);
+  font-family: var(--font-body);
+  font-size: clamp(15px, 1.8vw, 19px);
+  font-style: italic;
+  letter-spacing: 0.6px;
+  line-height: 1.45;
 }
 
 .title-actions {
@@ -432,12 +524,16 @@ h1 {
   position: absolute;
   top: 86px;
   right: clamp(10px, 3vw, 32px);
-  width: min(90vw, 390px);
-  padding: 14px;
-  border: 1px solid rgba(247, 234, 210, 0.22);
-  background: rgba(8, 8, 12, 0.9);
-  border-radius: 6px;
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
+  width: min(92vw, 420px);
+  padding: 18px 18px 16px;
+  border: 2px solid rgba(244, 211, 139, 0.55);
+  background:
+    linear-gradient(180deg, rgba(20, 12, 6, 0.94), rgba(6, 4, 2, 0.96));
+  box-shadow:
+    inset 0 0 0 3px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 4px rgba(122, 90, 30, 0.5),
+    0 22px 80px rgba(0, 0, 0, 0.75);
+  font-family: var(--font-body);
 }
 
 .map-panel[hidden] {
@@ -454,8 +550,11 @@ h1 {
 
 .map-head h2 {
   margin: 0;
-  font-size: 18px;
-  color: #f4d38b;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--gold-light);
+  text-shadow: 0 2px 0 #000, 0 0 10px rgba(244, 211, 139, 0.45);
 }
 
 .map-grid {
@@ -505,12 +604,16 @@ h1 {
 }
 
 .relic-chip {
-  border: 1px solid rgba(112, 184, 198, 0.32);
-  background: rgba(17, 41, 47, 0.72);
-  border-radius: 999px;
-  padding: 5px 9px;
-  color: #d9fff4;
+  border: 1px solid rgba(244, 211, 139, 0.45);
+  background:
+    linear-gradient(180deg, rgba(36, 22, 10, 0.92), rgba(8, 4, 2, 0.96));
+  border-radius: 2px;
+  padding: 4px 10px;
+  color: var(--gold-light);
+  font-family: var(--font-body);
   font-size: 12px;
+  letter-spacing: 0.6px;
+  text-shadow: 0 1px 0 #000;
 }
 
 .touch-controls {

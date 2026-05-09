@@ -192,8 +192,8 @@
     itemSet: ITEM_ICON_SET,
     tileSourceSize: TILE_SOURCE_SIZE,
     tileDrawSize: TILE_DRAW_SIZE,
-    roomSet: "forest-garden-expanded-18-hd",
-    introSet: "forest-garden-portcullis-v1",
+    roomSet: "forest-garden-expanded-21-hd",
+    introSet: "castlevania-drawbridge-v2",
     mobileTouch: "large-hit-targets-v2",
     difficulty: "mercy-pass"
   };
@@ -223,7 +223,8 @@
     reaper: { row: 8, hp: 48, w: 54, h: 92, dw: 96, dh: 132, speed: 0.5, damage: 9, ai: "reaper" },
     witch: { row: 9, hp: 34, w: 48, h: 88, dw: 86, dh: 126, speed: 0.34, damage: 7, ai: "witch" },
     boneWraith: { row: 4, hp: 220, w: 64, h: 130, dw: 128, dh: 184, speed: 0.7, damage: 12, ai: "wraith", mini: true, banner: "Bone Wraith", subtitle: "Catacomb Warden" },
-    bellWraith: { row: 6, hp: 320, w: 70, h: 134, dw: 134, dh: 188, speed: 0.55, damage: 14, ai: "wraith", mini: true, banner: "Bell Wraith", subtitle: "Tower Sentinel" }
+    bellWraith: { row: 6, hp: 320, w: 70, h: 134, dw: 134, dh: 188, speed: 0.55, damage: 14, ai: "wraith", mini: true, banner: "Bell Wraith", subtitle: "Tower Sentinel" },
+    drowned: { row: 0, hp: 36, w: 44, h: 86, dw: 86, dh: 122, speed: 0.74, damage: 8, ai: "walker" }
   };
 
   const images = {};
@@ -286,6 +287,7 @@
       exp: 0,
       familiar: null,
       equipment: { ringOfArdor: false, batCloak: false, wraithArmor: false, phoenixPendant: false },
+      openedChests: {},
       crits: 0
     }
   };
@@ -325,7 +327,19 @@
     combo: 0,
     comboTimer: 0,
     score: 0,
-    stepWasGrounded: false
+    stepWasGrounded: false,
+    // Status effects
+    poison: 0,
+    poisonTick: 0,
+    curse: 0,
+    slow: 0,
+    // Charge attack
+    attackHeld: 0,
+    chargeReady: false,
+    chargeFlash: 0,
+    // Charge spell
+    spellHeld: 0,
+    spellChargeReady: false
   };
 
   const SUBWEAPONS = {
@@ -421,12 +435,51 @@
     return Math.round(dmg * 1.7);
   }
 
+  // ===== Status Effects =====
+  function applyPoison(seconds) {
+    if (game.save.equipment && game.save.equipment.wraithArmor && Math.random() < 0.5) return;
+    player.poison = Math.max(player.poison, seconds);
+    player.poisonTick = 0;
+    message("Poisoned!");
+  }
+  function applyCurse(seconds) {
+    if (game.save.equipment && game.save.equipment.ringOfArdor && Math.random() < 0.4) return;
+    player.curse = Math.max(player.curse, seconds);
+    message("Cursed: spells sealed!");
+  }
+  function applySlow(seconds) {
+    player.slow = Math.max(player.slow, seconds);
+  }
+  function cleanseStatus() {
+    player.poison = 0;
+    player.curse = 0;
+    player.slow = 0;
+  }
+  function tickStatusEffects(dt) {
+    if (player.poison > 0) {
+      player.poison = Math.max(0, player.poison - dt);
+      player.poisonTick -= dt;
+      if (player.poisonTick <= 0) {
+        player.poisonTick = 0.7;
+        const dmg = 2;
+        if (player.invuln <= 0) {
+          player.hp = Math.max(1, player.hp - dmg);
+          spawnDamageText(player.x + player.w / 2, player.y + 22, dmg, "#86d8ff");
+          burst(player.x + player.w / 2, player.y + 30, "#7be09a", 4);
+        }
+      }
+    }
+    if (player.curse > 0) player.curse = Math.max(0, player.curse - dt);
+    if (player.slow > 0) player.slow = Math.max(0, player.slow - dt);
+    if (player.chargeFlash > 0) player.chargeFlash = Math.max(0, player.chargeFlash - dt);
+  }
+
   function nextObjective() {
     const s = game.save;
     if (s.bossDefeated) return "Rite broken — explore freely or start a new run.";
     if (!s.visited.gate) {
       if (game.roomId === "forest") return "Leave the Moonwood and follow the lantern path to the castle garden.";
-      if (game.roomId === "courtyard") return "Cross the statue garden. The old portcullis will wake as you pass.";
+      if (game.roomId === "courtyard") return "Cross the lowered drawbridge before the chains haul it up.";
       return "Reach Gate Hall through the forest approach.";
     }
     const target = nextObjectiveRoom();
@@ -493,6 +546,9 @@
     const out = [];
     if (!s.relics.doubleJump) out.push("Optional: Grave Boots (Triple Moonstep) wait in the Bone Bell Catacomb (Crypt → east).");
     if (!s.collected || !s.collected["garden:bloodRose"]) out.push("Optional: a Blood Rose in the Drowned Rose Garden raises Max HP.");
+    if (!s.visited.armory) out.push("Optional: Candlelit Armory links the garden, library, and early loot route.");
+    if (!s.visited.moat) out.push("Optional: Moon Moat Culvert opens a lower shortcut toward the crypt.");
+    if (!s.visited.observatory) out.push("Optional: Starfall Observatory loops the bell tower back toward the aqueduct.");
     if (s.ownedSubweapons && !s.ownedSubweapons.axe) out.push("Tip: smash candles — rare ones drop the War Axe.");
     if (s.ownedSubweapons && !s.ownedSubweapons.holyWater) out.push("Tip: candles can also drop Holy Water.");
     return out;
@@ -513,6 +569,7 @@
       grid: [-2, 1],
       bg: "bgForest",
       mid: null,
+      outdoor: true,
       para: ["paraForest", "paraMist"],
       music: "explore",
       palette: "green",
@@ -538,18 +595,23 @@
       grid: [-1, 1],
       bg: "bgCastleGarden",
       mid: null,
+      outdoor: true,
       para: ["paraStatues", "paraMist"],
       music: "explore",
       palette: "green",
       spawn: { x: 80, y: 330 },
       platforms: [
-        p(0, 468, 960, 72, "gardenStone"),
+        p(0, 468, 610, 72, "gardenStone"),
+        p(580, 468, 380, 72, "gardenStone"),
         p(152, 386, 170, 28, "rose"),
-        p(392, 326, 168, 28, "gardenStone")
+        p(392, 326, 168, 28, "gardenStone"),
+        p(300, 260, 150, 24, "rose")
       ],
       doors: [
         d(0, 340, 38, 120, "forest", 1346, 330, "left"),
-        d(922, 340, 38, 120, "gate", 54, 330, "right")
+        d(922, 340, 38, 120, "gate", 54, 330, "right"),
+        d(372, 0, 104, 56, "armory", 210, 380, "up"),
+        d(244, 440, 104, 56, "moat", 140, 330, "down")
       ],
       enemies: [
         e("knG1", "knight", 456, 376, 320, 700),
@@ -559,11 +621,74 @@
         item("gardenWater", "subHolyWater", 654, 296)
       ]
     },
+    armory: {
+      name: "Candlelit Armory",
+      grid: [-1, 0],
+      bg: "bgLibrary",
+      mid: "midGate",
+      music: "explore",
+      palette: "gold",
+      spawn: { x: 210, y: 380 },
+      platforms: [
+        p(0, 468, 960, 72, "gold"),
+        p(142, 388, 154, 24, "stone"),
+        p(342, 326, 156, 24, "gold"),
+        p(586, 256, 166, 24, "stone"),
+        p(386, 170, 220, 24, "trim")
+      ],
+      doors: [
+        d(190, 440, 110, 56, "courtyard", 420, 120, "down"),
+        d(922, 340, 38, 120, "library", 54, 330, "right")
+      ],
+      enemies: [
+        e("arKn1", "knight", 390, 376, 280, 610),
+        e("arSk1", "skeleton", 650, 190, 540, 820),
+        e("arBat1", "bat", 774, 170, 640, 900)
+      ],
+      items: [
+        item("armoryHearts", "bigHeart", 420, 292)
+      ],
+      chests: [
+        { id: "arm_holywater", x: 690, y: 220, loot: "subHolyWater" }
+      ]
+    },
+    moat: {
+      name: "Moon Moat Culvert",
+      grid: [-1, 2],
+      bg: "bgCavern",
+      mid: "midCrypt",
+      music: "explore",
+      palette: "blue",
+      spawn: { x: 140, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(136, 386, 148, 24, "stone"),
+        p(344, 326, 150, 24, "blue"),
+        p(568, 268, 156, 24, "stone"),
+        p(754, 210, 150, 24, "blue")
+      ],
+      doors: [
+        d(220, 0, 120, 56, "courtyard", 290, 380, "up"),
+        d(922, 340, 38, 120, "crypt", 54, 330, "right")
+      ],
+      enemies: [
+        e("moDr1", "drowned", 232, 372, 120, 420),
+        e("moMed1", "medusa", 536, 222, 430, 760),
+        e("moBat1", "bat", 788, 172, 660, 920)
+      ],
+      items: [
+        item("moatCache", "smallMp", 778, 178)
+      ],
+      chests: [
+        { id: "moat_mana", x: 612, y: 232, loot: "manaPool" }
+      ]
+    },
     gate: {
       name: "Gate Hall",
       grid: [0, 1],
       bg: "bgGate",
       mid: "midGate",
+      outdoor: true,
       music: "explore",
       palette: "gold",
       spawn: { x: 100, y: 330 },
@@ -635,7 +760,8 @@
       doors: [
         d(0, 340, 38, 120, "gallery", 856, 330, "left"),
         d(922, 320, 38, 140, "throne", 68, 326, "right", "moonGate"),
-        d(438, 0, 96, 56, "garden", 460, 372, "up")
+        d(438, 0, 96, 56, "garden", 460, 372, "up"),
+        d(220, 440, 100, 56, "antechamber", 80, 380, "down")
       ],
       enemies: [
         e("ph1", "phantom", 450, 216, 370, 650),
@@ -644,6 +770,96 @@
       ],
       items: [
         item("nightBat", "familiarBat", 600, 200)
+      ]
+    },
+    antechamber: {
+      name: "Crimson Antechamber",
+      grid: [2, 3],
+      bg: "bgThrone",
+      mid: "midThrone",
+      music: "throne",
+      palette: "red",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "red"),
+        p(120, 384, 140, 28, "red"),
+        p(330, 320, 140, 28, "stone"),
+        p(540, 256, 140, 28, "red"),
+        p(750, 200, 140, 28, "stone"),
+        p(370, 140, 200, 24, "trim"),
+        p(180, 220, 110, 22, "stone"),
+        p(190, 160, 130, 22, "trim")
+      ],
+      doors: [
+        d(180, 100, 100, 56, "chapel", 248, 380, "up"),
+        d(922, 340, 38, 120, "sanctum", 60, 330, "right")
+      ],
+      enemies: [
+        e("kn3", "knight", 240, 376, 130, 460),
+        e("ph5", "phantom", 540, 232, 430, 730),
+        e("r3", "reaper", 760, 132, 660, 880)
+      ],
+      items: []
+    },
+    vault: {
+      name: "Forgotten Vault",
+      grid: [-2, 2],
+      bg: "bgArchive",
+      mid: null,
+      music: "explore",
+      palette: "gold",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "gold"),
+        p(140, 384, 130, 22, "gold"),
+        p(330, 320, 130, 22, "stone"),
+        p(540, 256, 130, 22, "gold"),
+        p(360, 168, 200, 24, "trim")
+      ],
+      doors: [
+        d(0, 340, 38, 120, "library", 1346, 380, "left")
+      ],
+      enemies: [
+        e("vk1", "knight", 380, 376, 280, 600),
+        e("vp1", "phantom", 600, 232, 480, 800)
+      ],
+      items: [
+        item("vaultHeart", "heartVessel", 460, 132)
+      ],
+      chests: [
+        { id: "vault_axe_chest", x: 700, y: 432, loot: "subAxe" },
+        { id: "vault_heart_chest", x: 760, y: 432, loot: "heartCache" }
+      ]
+    },
+    sanctum: {
+      name: "Drowned Sanctum",
+      grid: [3, 3],
+      bg: "bgCavern",
+      mid: "midCrypt",
+      music: "explore",
+      palette: "blue",
+      spawn: { x: 60, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(110, 388, 140, 22, "blue"),
+        p(280, 348, 130, 22, "stone"),
+        p(440, 300, 130, 22, "blue"),
+        p(600, 252, 130, 22, "stone"),
+        p(760, 204, 130, 22, "blue"),
+        p(380, 152, 200, 24, "trim"),
+        p(900, 158, 90, 22, "stone")
+      ],
+      doors: [
+        d(0, 340, 38, 120, "antechamber", 856, 326, "left")
+      ],
+      enemies: [
+        e("dr1", "drowned", 240, 372, 110, 420),
+        e("dr2", "drowned", 600, 372, 460, 820),
+        e("med5", "medusa", 580, 198, 460, 800),
+        e("bat5", "bat", 820, 218, 700, 920)
+      ],
+      items: [
+        item("sanctRose", "heartVessel", 460, 116)
       ]
     },
     throne: {
@@ -681,6 +897,7 @@
         p(656, 334, 190, 28, "green")
       ],
       doors: [
+        d(0, 340, 38, 120, "moat", 1346, 330, "left"),
         d(422, 0, 116, 54, "gate", 456, 336, "up"),
         d(922, 340, 38, 120, "catacomb", 54, 330, "right")
       ],
@@ -808,6 +1025,7 @@
       grid: [2, 2],
       bg: "bgGarden",
       mid: "midGate",
+      outdoor: true,
       music: "explore",
       palette: "green",
       spawn: { x: 480, y: 70 },
@@ -848,7 +1066,9 @@
       ],
       doors: [
         d(190, 440, 100, 56, "gate", 462, 380, "down"),
-        d(922, 340, 38, 120, "archive", 54, 330, "right")
+        d(0, 340, 38, 120, "armory", 1346, 330, "left"),
+        d(922, 340, 38, 120, "archive", 54, 330, "right"),
+        d(120, 96, 80, 64, "vault", 80, 380, "up", null, { hidden: true })
       ],
       enemies: [
         e("sk4", "skeleton", 200, 296, 130, 380),
@@ -931,7 +1151,8 @@
         p(772, 172, 138, 24, "trim")
       ],
       doors: [
-        d(0, 320, 38, 140, "belltower", 1346, 360, "left")
+        d(0, 320, 38, 140, "belltower", 1346, 360, "left"),
+        d(922, 320, 38, 140, "observatory", 54, 360, "right")
       ],
       enemies: [
         e("bat5", "bat", 246, 260, 140, 500),
@@ -940,6 +1161,38 @@
       ],
       items: [
         item("loftCache", "smallMp", 804, 140)
+      ]
+    },
+    observatory: {
+      name: "Starfall Observatory",
+      grid: [5, 0],
+      bg: "bgLoft",
+      mid: "midClock",
+      music: "clock",
+      palette: "blue",
+      spawn: { x: 80, y: 360 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(132, 390, 150, 24, "stone"),
+        p(346, 322, 156, 24, "blue"),
+        p(560, 254, 160, 24, "stone"),
+        p(774, 184, 146, 24, "trim"),
+        p(380, 126, 210, 22, "gold")
+      ],
+      doors: [
+        d(0, 320, 38, 140, "loft", 1346, 360, "left"),
+        d(430, 440, 100, 56, "aqueduct", 456, 92, "down")
+      ],
+      enemies: [
+        e("obWi1", "witch", 490, 210, 350, 720),
+        e("obPh1", "phantom", 720, 138, 580, 900),
+        e("obG1", "gargoyle", 880, 92, 760, 980)
+      ],
+      items: [
+        item("starBellShard", "bigHeart", 820, 148)
+      ],
+      chests: [
+        { id: "obs_heart", x: 480, y: 90, loot: "heartCache" }
       ]
     },
     cavern: {
@@ -988,7 +1241,8 @@
         p(782, 202, 150, 24, "blue")
       ],
       doors: [
-        d(0, 320, 38, 140, "cavern", 1346, 330, "left")
+        d(0, 320, 38, 140, "cavern", 1346, 330, "left"),
+        d(430, 0, 100, 56, "observatory", 474, 376, "up")
       ],
       enemies: [
         e("med5", "medusa", 250, 296, 120, 450),
@@ -1005,8 +1259,8 @@
     return { x, y, w, h, type };
   }
 
-  function d(x, y, w, h, to, sx, sy, side, lock) {
-    return { x, y, w, h, to, spawn: { x: sx, y: sy }, side, lock };
+  function d(x, y, w, h, to, sx, sy, side, lock, opts) {
+    return { x, y, w, h, to, spawn: { x: sx, y: sy }, side, lock, hidden: !!(opts && opts.hidden) };
   }
 
   function e(id, type, x, y, min, max) {
@@ -1022,6 +1276,8 @@
     const bridgePlatforms = {
       forest: [p(822, 398, 158, 28, "root"), p(1078, 350, 182, 28, "forest")],
       courtyard: [p(820, 384, 170, 28, "gardenStone"), p(1088, 322, 190, 28, "rose")],
+      armory: [p(842, 384, 158, 28, "gold"), p(1088, 316, 178, 28, "stone")],
+      moat: [p(842, 384, 158, 28, "blue"), p(1092, 316, 178, 28, "stone")],
       gate: [p(902, 402, 156, 28, "stone"), p(1138, 344, 168, 28, "gold")],
       gallery: [p(842, 386, 158, 28, "red"), p(1084, 334, 178, 28, "stone")],
       chapel: [p(846, 348, 160, 28, "blue"), p(1098, 286, 178, 28, "stone")],
@@ -1035,8 +1291,11 @@
       archive: [p(872, 382, 168, 28, "gold"), p(1110, 304, 176, 28, "stone")],
       belltower: [p(870, 372, 160, 28, "gold"), p(1100, 296, 170, 28, "stone")],
       loft: [p(860, 374, 166, 28, "gold"), p(1102, 298, 174, 28, "stone")],
+      observatory: [p(854, 374, 166, 28, "blue"), p(1106, 294, 174, 28, "gold")],
       cavern: [p(880, 376, 160, 28, "blue"), p(1130, 308, 170, 28, "stone")],
-      aqueduct: [p(866, 382, 166, 28, "blue"), p(1112, 312, 176, 28, "stone")]
+      aqueduct: [p(866, 382, 166, 28, "blue"), p(1112, 312, 176, 28, "stone")],
+      antechamber: [p(880, 376, 160, 28, "red"), p(1130, 308, 170, 28, "stone")],
+      sanctum: [p(880, 388, 160, 28, "blue"), p(1130, 320, 170, 28, "stone")]
     };
 
     for (const [id, room] of Object.entries(rooms)) {
@@ -1076,12 +1335,42 @@
   generateCandles();
   installShrines();
   installClimbAids();
+  installChests();
   installIntroSequence();
 
   function installShrines() {
     rooms.gate.shrine = { x: 760, y: 438 };
     rooms.clock.shrine = { x: 820, y: 438 };
     rooms.garden.shrine = { x: 760, y: 438 };
+  }
+
+  function installChests() {
+    // Persistent chests with valuable loot. Hit with whip / spell / charge attack.
+    if (rooms.library) {
+      rooms.library.chests = [
+        { id: "lib_pendant", x: 700, y: 152, loot: "phoenixPendant" }
+      ];
+    }
+    if (rooms.belltower) {
+      rooms.belltower.chests = [
+        { id: "bt_axe", x: 720, y: 196, loot: "subAxe" }
+      ];
+    }
+    if (rooms.sanctum) {
+      rooms.sanctum.chests = [
+        { id: "sct_holyWater", x: 800, y: 176, loot: "subHolyWater" }
+      ];
+    }
+    if (rooms.cavern) {
+      rooms.cavern.chests = [
+        { id: "cv_heart", x: 780, y: 220, loot: "heartCache" }
+      ];
+    }
+    if (rooms.archive) {
+      rooms.archive.chests = [
+        { id: "ar_mana", x: 460, y: 220, loot: "manaPool" }
+      ];
+    }
   }
 
   function installClimbAids() {
@@ -1142,16 +1431,38 @@
     rooms.crypt.platforms.push(
       p(420, 80, 130, 22, "green")
     );
+
+    // === New optional loops ===
+    // Garden-to-armory and moat exits are reachable without demanding perfect
+    // double-jump timing, while still reading as side-route secrets.
+    rooms.courtyard.platforms.push(
+      p(250, 210, 130, 22, "rose"),
+      p(340, 136, 130, 22, "gardenStone")
+    );
+    rooms.moat.platforms.push(
+      p(204, 186, 128, 22, "blue"),
+      p(224, 112, 122, 22, "stone")
+    );
+    rooms.armory.platforms.push(
+      p(1110, 238, 150, 22, "gold"),
+      p(1240, 168, 132, 22, "trim")
+    );
+    rooms.aqueduct.platforms.push(
+      p(390, 190, 130, 22, "blue"),
+      p(430, 116, 124, 22, "stone")
+    );
   }
 
   function installIntroSequence() {
-    rooms.courtyard.portcullis = {
-      x: 946,
-      y: 238,
-      w: 132,
-      h: 230,
-      triggerX: 780,
-      releaseX: 1040,
+    rooms.courtyard.drawbridge = {
+      x: 610,
+      y: 468,
+      w: 450,
+      h: 34,
+      hingeX: 1060,
+      hingeY: 468,
+      triggerX: 1088,
+      resetX: 520,
       progress: 0,
       target: 0,
       cycled: false,
@@ -1250,6 +1561,12 @@
       target: game.room.portcullis.target,
       cycled: Boolean(game.room.portcullis.cycled),
       reopened: Boolean(game.room.portcullis.reopened)
+    } : null,
+    introBridge: game.room && game.room.drawbridge ? {
+      progress: Number(game.room.drawbridge.progress.toFixed(2)),
+      target: game.room.drawbridge.target,
+      cycled: Boolean(game.room.drawbridge.cycled),
+      reopened: Boolean(game.room.drawbridge.reopened)
     } : null,
     hp: Math.round(player.hp)
   });
@@ -1428,7 +1745,8 @@
         wraithArmor: Boolean(save.equipment && save.equipment.wraithArmor),
         phoenixPendant: Boolean(save.equipment && save.equipment.phoenixPendant)
       },
-      crits: Math.max(0, save.crits || 0)
+      crits: Math.max(0, save.crits || 0),
+      openedChests: { ...(save.openedChests || {}) }
     };
   }
 
@@ -1472,7 +1790,7 @@
 
     const centerX = player.x + player.w / 2;
     const bottom = player.y + player.h;
-    for (const solid of room.platforms) {
+    for (const solid of collisionPlatforms(room)) {
       if (centerX < solid.x - 8 || centerX > solid.x + solid.w + 8) continue;
       if (bottom >= solid.y - 8 && bottom <= solid.y + Math.max(28, solid.h)) {
         player.y = solid.y - player.h;
@@ -1508,9 +1826,15 @@
     game.flames = [];
     game.damageTexts = [];
     game.bossBanner = null;
+    game.ambient = [];
+    // Treasure chests: persistent state via game.save.openedChests
+    game.chests = (room.chests || []).map((c) => ({
+      id: c.id, x: c.x, y: c.y, loot: c.loot,
+      opened: !!(game.save.openedChests && game.save.openedChests[`${roomId}:${c.id}`])
+    }));
     game.roomTransitionCooldown = 0.18;
     game.lastSafeSpot = { roomId, x: player.x, y: player.y };
-    resetRoomPortcullis(room);
+    resetRoomIntroMechanics(room);
     game.projectiles.length = 0;
     if (game.familiar) {
       game.familiar.x = player.x - 30;
@@ -1546,13 +1870,21 @@
     if (autosave) writeSave();
   }
 
-  function resetRoomPortcullis(room) {
-    if (!room || !room.portcullis) return;
-    const gate = room.portcullis;
-    gate.progress = 0;
-    gate.target = 0;
-    gate.cycled = false;
-    gate.reopened = false;
+  function resetRoomIntroMechanics(room) {
+    if (room && room.portcullis) {
+      const gate = room.portcullis;
+      gate.progress = 0;
+      gate.target = 0;
+      gate.cycled = false;
+      gate.reopened = false;
+    }
+    if (room && room.drawbridge) {
+      const bridge = room.drawbridge;
+      bridge.progress = 0;
+      bridge.target = 0;
+      bridge.cycled = false;
+      bridge.reopened = false;
+    }
   }
 
   function createEnemy(def) {
@@ -1666,10 +1998,13 @@
     updateFlames(step, dt);
     updateShrines();
     updateDoors();
-    updateIntroPortcullis(dt);
+    updateIntroMechanics(dt);
     updateBossBanner(dt);
     updateDamageTexts(dt);
     updateFamiliar(step, dt);
+    updateChests();
+    tickStatusEffects(dt);
+    updateAmbient(dt);
     updateCamera(false);
     updateHud();
     clearJust();
@@ -1691,7 +2026,8 @@
       if (Math.abs(player.vx) < 0.04) player.vx = 0;
     }
 
-    const maxSpeed = player.dashTimer > 0 ? 10.4 : 4.2;
+    const slowMul = player.slow > 0 ? 0.55 : 1.0;
+    const maxSpeed = (player.dashTimer > 0 ? 10.4 : 4.2) * slowMul;
     player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
 
     if (player.onGround) {
@@ -1764,6 +2100,16 @@
       player.vy += GRAVITY * step;
     }
 
+    // Charge timer: attack button held builds charge after release.
+    if (actionDown("attack") && player.attackTimer <= 0.02) {
+      player.attackHeld += dt;
+      if (!player.chargeReady && player.attackHeld >= 0.6) {
+        player.chargeReady = true;
+        burst(player.x + player.w / 2, player.y + 28, "#ffd065", 8);
+        playSound("ui", 0.18);
+      }
+    }
+
     if (actionJust("attack") && player.attackTimer <= 0.02) {
       player.attackTimer = 0.28;
       player.attackHit = false;
@@ -1775,13 +2121,33 @@
       playSound(Math.random() > 0.5 ? "whip" : "whip2");
     }
 
+    // Release of held attack while charge is ready -> Power Whip
+    if (!actionDown("attack") && player.chargeReady) {
+      player.chargeReady = false;
+      player.attackHeld = 0;
+      player.attackTimer = 0.34;
+      player.attackHit = false;
+      player.attackVariant = "side";
+      player.chargeFlash = 0.4;
+      playSound("whip", 0.55);
+      burst(player.x + player.w / 2, player.y + 30, "#ffd065", 22);
+      // Run the melee right away with charge bonus marker
+      player.attackHit = true;
+      playerMelee(true);
+    } else if (!actionDown("attack")) {
+      player.attackHeld = 0;
+    }
+
     if (player.attackTimer > 0.13 && !player.attackHit) {
       player.attackHit = true;
-      playerMelee();
+      playerMelee(false);
     }
 
     if (actionJust("subweapon") && player.subweaponCooldown <= 0) {
-      if (actionDown("down")) {
+      if (player.curse > 0) {
+        message("Cursed — sub-weapon sealed");
+        playSound("ui", 0.2);
+      } else if (actionDown("down")) {
         cycleSubweapon();
       } else if (actionDown("up") && player.onGround) {
         // Item Crash: 20 hearts for an Ultimate move
@@ -1809,7 +2175,54 @@
       }
     }
 
-    if (actionJust("spell") && player.spellCooldown <= 0) {
+    // Charge-Spell: hold spell key to build a power-cast
+    if (actionDown("spell") && player.spellCooldown <= 0 && player.curse <= 0) {
+      player.spellHeld += dt;
+      if (!player.spellChargeReady && player.spellHeld >= 0.7) {
+        player.spellChargeReady = true;
+        burst(player.x + player.w / 2, player.y + 28, "#78dbe1", 10);
+        playSound("ui", 0.22);
+      }
+    }
+    if (!actionDown("spell") && player.spellChargeReady) {
+      // Release: power-spell with 5-way spread, 2x damage
+      const cost = (game.save.moonSigil ? 14 : 12);
+      if (player.mp >= cost) {
+        player.mp -= cost;
+        player.spellCooldown = 0.55;
+        player.spellChargeReady = false;
+        player.spellHeld = 0;
+        const arcs = [-0.55, -0.28, 0, 0.28, 0.55];
+        for (const arc of arcs) {
+          game.projectiles.push({
+            from: "player",
+            x: player.x + player.w / 2 + player.facing * 28,
+            y: player.y + 42,
+            w: 22,
+            h: 14,
+            vx: player.facing * (8.6 - Math.abs(arc) * 1.4),
+            vy: arc * 7 - 0.2,
+            damage: Math.round((game.save.moonSigil ? 11 : 14) * 2),
+            life: 1.4,
+            color: "#fff5dd"
+          });
+        }
+        burst(player.x + player.w / 2, player.y + 32, "#78dbe1", 26);
+        burst(player.x + player.w / 2, player.y + 32, "#fff5dd", 14);
+        game.shake = Math.max(game.shake, 0.7);
+        message("Lunar Burst");
+        playSound("spell", 0.6);
+      } else {
+        player.spellChargeReady = false;
+        player.spellHeld = 0;
+        message("Not enough MP for Lunar Burst");
+        playSound("ui", 0.2);
+      }
+    } else if (!actionDown("spell")) {
+      player.spellHeld = 0;
+    }
+
+    if (actionJust("spell") && player.spellCooldown <= 0 && player.curse <= 0) {
       const cost = game.save.moonSigil ? 10 : 8;
       if (player.mp >= cost) {
         player.mp -= cost;
@@ -1878,22 +2291,31 @@
     message("Moon tether caught you.");
   }
 
-  function playerMelee() {
+  function playerMelee(charged) {
     const downWhip = player.attackVariant === "down";
+    const reach = charged ? Math.round(WHIP_SIDE_REACH * 1.35) : WHIP_SIDE_REACH;
+    const height = charged ? Math.round(WHIP_SIDE_HEIGHT * 1.25) : WHIP_SIDE_HEIGHT;
     const box = downWhip
       ? { x: player.x - 28, y: player.y + player.h - 10, w: player.w + 56, h: 96 }
       : {
-          x: player.facing > 0 ? player.x + player.w - 10 : player.x - WHIP_SIDE_REACH + 10,
-          y: player.y + 10,
-          w: WHIP_SIDE_REACH,
-          h: WHIP_SIDE_HEIGHT
+          x: player.facing > 0 ? player.x + player.w - 10 : player.x - reach + 10,
+          y: player.y + 10 - (charged ? 10 : 0),
+          w: reach,
+          h: height
         };
     let hits = 0;
     slashParticles(box, downWhip);
+    if (charged) {
+      // Extra particles + screen shake for charge
+      burst(player.x + player.w / 2 + player.facing * 60, player.y + 30, "#ffd065", 14);
+      burst(player.x + player.w / 2 + player.facing * 80, player.y + 40, "#fff5dd", 8);
+      game.shake = Math.max(game.shake, 0.8);
+    }
     const meleeBonus = player.baseDamage * 2;
+    const chargeMul = charged ? 2.0 : 1.0;
     for (const enemy of game.enemies) {
       if (rectsOverlap(box, enemy)) {
-        let dmg = (downWhip ? 22 : 26) + meleeBonus;
+        let dmg = Math.round(((downWhip ? 22 : 26) + meleeBonus) * chargeMul);
         let crit = false;
         if (rollCrit()) { dmg = applyCrit(dmg); crit = true; }
         damageEnemy(enemy, dmg, crit);
@@ -1901,7 +2323,7 @@
       }
     }
     if (game.boss && rectsOverlap(box, game.boss)) {
-      let dmg = (downWhip ? 18 : 20) + meleeBonus;
+      let dmg = Math.round(((downWhip ? 18 : 20) + meleeBonus) * chargeMul);
       let crit = false;
       if (rollCrit()) { dmg = applyCrit(dmg); crit = true; }
       damageBoss(dmg, crit);
@@ -1911,6 +2333,14 @@
       if (!candle.broken && rectsOverlap(box, { x: candle.x - 12, y: candle.y - 18, w: 24, h: 30 })) {
         breakCandle(candle);
         hits += 1;
+      }
+    }
+    // Treasure chests
+    if (game.chests) {
+      for (const chest of game.chests) {
+        if (!chest.opened && rectsOverlap(box, { x: chest.x, y: chest.y, w: 36, h: 28 })) {
+          openChest(chest);
+        }
       }
     }
     if (downWhip && hits > 0) {
@@ -1962,7 +2392,7 @@
     // X-axis: only thick platforms block horizontally. Thin platforms are
     // one-way ledges you can run past freely.
     ent.x += ent.vx * step;
-    for (const solid of game.room.platforms) {
+    for (const solid of collisionPlatforms()) {
       if (solid.h <= 44) continue;
       if (rectsOverlap(ent, solid)) {
         // Resolve based on previous side, not current vx (handles vx==0 cases)
@@ -1982,7 +2412,7 @@
     // Y-axis: thin platforms only land you if you were above last frame and
     // are descending. Thick platforms also block ceilings.
     ent.y += ent.vy * step;
-    for (const solid of game.room.platforms) {
+    for (const solid of collisionPlatforms()) {
       if (!rectsOverlap(ent, solid)) continue;
       const isThin = solid.h <= 44;
       if (isThin) {
@@ -2101,7 +2531,15 @@
         }
       }
 
-      if (rectsOverlap(player, enemy)) hurtPlayer(cfg.damage);
+      if (rectsOverlap(player, enemy)) {
+        hurtPlayer(cfg.damage);
+        if (player.invuln > 0.4) {
+          // Apply status effect on contact based on enemy type
+          if (enemy.type === "drowned") applyPoison(4.5);
+          else if (enemy.type === "witch") applyCurse(3.5);
+          else if (enemy.type === "medusa") applySlow(3.0);
+        }
+      }
     }
   }
 
@@ -2132,29 +2570,63 @@
     boss.hurt = Math.max(0, boss.hurt - dt);
     boss.facing = player.x > boss.x ? 1 : -1;
 
+    // Trigger Phase 2 the first time HP drops below 50%
+    if (!boss.phaseTwo && boss.hp < boss.maxHp * 0.5) {
+      boss.phaseTwo = true;
+      boss.invuln = 0.5;
+      game.shake = 2.0;
+      game.bossBanner = { name: "Lord Veyr", subtitle: "Bloodmoon Frenzy", t: 0, life: 2.6, phase: 2 };
+      burst(boss.x + boss.w / 2, boss.y + boss.h / 2, "#ff5465", 60);
+      burst(boss.x + boss.w / 2, boss.y + boss.h / 2, "#f4d38b", 30);
+      playSound("bossRoar", 0.8);
+      message("Lord Veyr enters Bloodmoon Frenzy!");
+    }
+
+    const fast = boss.phaseTwo;
+    const dashSpeed = fast ? 7.2 : 5.4;
+    const dashDur = fast ? 0.55 : 0.42;
+    const castDur = fast ? 0.58 : 0.74;
+    const restAfterCast = fast ? 0.85 : 1.4;
+    const restAfterDash = fast ? 0.7 : 1.15;
+    const stalkDamping = fast ? 1.6 : 1.1;
+
     if (boss.state === "dash") {
-      boss.vx = boss.facing * 5.4;
+      boss.vx = boss.facing * dashSpeed;
       if (boss.stateTimer <= 0) {
         boss.state = "stalk";
-        boss.cooldown = 1.15;
+        boss.cooldown = restAfterDash;
       }
     } else if (boss.state === "cast") {
       boss.vx *= 0.8;
       if (boss.stateTimer <= 0) {
         boss.state = "stalk";
-        boss.cooldown = 1.4;
+        boss.cooldown = restAfterCast;
       }
     } else {
       boss.vx += boss.facing * 0.035 * step;
-      boss.vx = clamp(boss.vx, -1.1, 1.1);
+      boss.vx = clamp(boss.vx, -stalkDamping, stalkDamping);
       if (boss.cooldown <= 0) {
-        if (boss.hp < boss.maxHp * 0.52 || Math.random() > 0.48) {
-          boss.state = "cast";
-          boss.stateTimer = 0.74;
-          bossVolley(boss);
+        // Phase 2 weights more attacks AND chains volleys
+        if (fast) {
+          if (Math.random() < 0.7) {
+            boss.state = "cast";
+            boss.stateTimer = castDur;
+            bossVolley(boss);
+            // Second volley a beat later
+            setTimeout(() => { if (game.boss === boss) bossVolley(boss); }, 280);
+          } else {
+            boss.state = "dash";
+            boss.stateTimer = dashDur;
+          }
         } else {
-          boss.state = "dash";
-          boss.stateTimer = 0.42;
+          if (boss.hp < boss.maxHp * 0.52 || Math.random() > 0.48) {
+            boss.state = "cast";
+            boss.stateTimer = castDur;
+            bossVolley(boss);
+          } else {
+            boss.state = "dash";
+            boss.stateTimer = dashDur;
+          }
         }
       }
     }
@@ -2163,7 +2635,7 @@
     moveEntity(boss, step, false);
     boss.x = clamp(boss.x, 140, 828);
 
-    if (rectsOverlap(player, boss)) hurtPlayer(boss.state === "dash" ? 14 : 9);
+    if (rectsOverlap(player, boss)) hurtPlayer(boss.state === "dash" ? (fast ? 18 : 14) : (fast ? 12 : 9));
   }
 
   function bossVolley(boss) {
@@ -2222,7 +2694,7 @@
         }
         // Holy water lands and spawns flame puddle
         if (shot.life > 0 && shot.kind === "subweapon" && shot.subType === "holyWater" && shot.flameOnLand) {
-          for (const solid of game.room.platforms) {
+          for (const solid of collisionPlatforms()) {
             if (shot.vy >= 0 && rectsOverlap(shot, solid) && shot.y + shot.h <= solid.y + 18) {
               spawnFlame(shot.x + shot.w / 2 - 22, solid.y - 18);
               shot.life = 0;
@@ -2255,7 +2727,7 @@
         drop.vy = (drop.vy || 0) + 0.42 * step;
         drop.x += (drop.vx || 0) * step;
         drop.y += drop.vy * step;
-        for (const solid of game.room.platforms) {
+        for (const solid of collisionPlatforms()) {
           if (rectsOverlap(drop, solid) && drop.vy >= 0 && drop.y + drop.h <= solid.y + 12) {
             drop.y = solid.y - drop.h;
             drop.vy = 0;
@@ -2420,6 +2892,181 @@
     burst(candle.x, candle.y - 4, "#ff8e3a", 6);
     playSound("pickup", 0.18);
     spawnCandleDrop(candle);
+  }
+
+  // ===== Treasure Chests =====
+  function openChest(chest) {
+    chest.opened = true;
+    if (!game.save.openedChests) game.save.openedChests = {};
+    game.save.openedChests[`${game.roomId}:${chest.id}`] = true;
+    burst(chest.x + 18, chest.y, "#ffd065", 28);
+    burst(chest.x + 18, chest.y, "#fff5dd", 14);
+    game.shake = Math.max(game.shake, 0.6);
+    playSound("heart", 0.45);
+    message(`Treasure! ${chestLootLabel(chest.loot)}`);
+    spawnChestLoot(chest);
+    writeSave();
+  }
+  function chestLootLabel(loot) {
+    if (loot === "subAxe") return "War Axe";
+    if (loot === "subHolyWater") return "Holy Water";
+    if (loot === "phoenixPendant") return "Phoenix Pendant";
+    if (loot === "heartCache") return "Heart Cache (+25 Hearts)";
+    if (loot === "manaPool") return "Mana Pool (+24 MP)";
+    return "Trinket";
+  }
+  function spawnChestLoot(chest) {
+    const loot = chest.loot;
+    if (loot === "heartCache") {
+      player.hearts = Math.min(player.maxHearts, player.hearts + 25);
+      return;
+    }
+    if (loot === "manaPool") {
+      player.mp = Math.min(player.maxMp, player.mp + 24);
+      return;
+    }
+    // Otherwise spawn the corresponding pickup
+    game.pickups.push({
+      id: `chest_${chest.id}_${game.time}`,
+      type: loot,
+      x: chest.x + 4, y: chest.y - 24,
+      w: 28, h: 28,
+      vx: (Math.random() - 0.5) * 1.4,
+      vy: -4.2,
+      bob: 0,
+      fall: true
+    });
+  }
+  function updateChests() { /* chests are static, hits handled via playerMelee */ }
+
+  // ===== Ambient Biome Particles =====
+  function ambientConfig(room) {
+    if (!room) return null;
+    const b = room.bg;
+    if (b === "bgForest") return { kind: "leaf", color: "#7be09a", count: 22, speedX: -0.6, speedY: 0.45 };
+    if (b === "bgCastleGarden" || b === "bgGarden") return { kind: "petal", color: "#ff9ec0", count: 18, speedX: -0.4, speedY: 0.4 };
+    if (b === "bgGate") return { kind: "ash", color: "#d8c89a", count: 14, speedX: -0.3, speedY: 0.3 };
+    if (b === "bgLibrary" || b === "bgArchive") return { kind: "dust", color: "#d8c890", count: 16, speedX: 0.15, speedY: 0.18 };
+    if (b === "bgClock" || b === "bgBelltower" || b === "bgLoft") return { kind: "spark", color: "#ffd065", count: 14, speedX: 0.2, speedY: -0.3 };
+    if (b === "bgCavern" || b === "bgAqueduct") return { kind: "spore", color: "#9af5df", count: 18, speedX: 0.1, speedY: -0.4 };
+    if (b === "bgCrypt" || b === "bgOssuary") return { kind: "mist", color: "#86d8ff", count: 12, speedX: 0.08, speedY: -0.2 };
+    if (b === "bgThrone") return { kind: "ember", color: "#ff5465", count: 16, speedX: -0.1, speedY: -0.4 };
+    return null;
+  }
+  function updateAmbient(dt) {
+    if (!game.ambient) game.ambient = [];
+    const cfg = ambientConfig(game.room);
+    if (!cfg) { game.ambient.length = 0; return; }
+    // Top-up
+    while (game.ambient.length < cfg.count) {
+      game.ambient.push(spawnAmbient(cfg, true));
+    }
+    const arr = game.ambient;
+    let w = 0;
+    const rw = roomWidth();
+    const rh = roomHeight();
+    for (let r = 0; r < arr.length; r += 1) {
+      const a = arr[r];
+      a.life -= dt;
+      a.x += a.vx;
+      a.y += a.vy;
+      a.phase += dt * a.spin;
+      // Gentle horizontal sway
+      a.x += Math.sin(a.phase) * 0.4;
+      // Reset if drifted off room or expired
+      const off = a.x < -40 || a.x > rw + 40 || a.y < -40 || a.y > rh + 40 || a.life <= 0;
+      if (off) {
+        Object.assign(arr[r], spawnAmbient(cfg, false));
+      }
+      arr[w++] = arr[r];
+    }
+    arr.length = w;
+  }
+  function spawnAmbient(cfg, initial) {
+    const rw = roomWidth();
+    const rh = roomHeight();
+    return {
+      kind: cfg.kind,
+      color: cfg.color,
+      x: initial ? Math.random() * rw : (cfg.speedX > 0 ? -20 : rw + 20),
+      y: initial ? Math.random() * rh : (cfg.speedY > 0 ? -20 : rh + 20),
+      vx: cfg.speedX + (Math.random() - 0.5) * 0.4,
+      vy: cfg.speedY + (Math.random() - 0.5) * 0.3,
+      size: 1 + Math.random() * 3,
+      phase: Math.random() * Math.PI * 2,
+      spin: 1.5 + Math.random() * 2.5,
+      life: 6 + Math.random() * 6
+    };
+  }
+  function drawAmbient() {
+    if (!game.ambient || !game.ambient.length) return;
+    for (const a of game.ambient) {
+      ctx.globalAlpha = clamp(a.life / 6, 0, 1) * 0.7;
+      ctx.fillStyle = a.color;
+      if (a.kind === "leaf" || a.kind === "petal") {
+        ctx.beginPath();
+        ctx.ellipse(a.x, a.y, a.size + 1.5, a.size * 0.5, a.phase, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (a.kind === "spark" || a.kind === "ember") {
+        ctx.shadowColor = a.color;
+        ctx.shadowBlur = 6;
+        ctx.fillRect(a.x - 1, a.y - 1, 2, 2);
+        ctx.shadowBlur = 0;
+      } else if (a.kind === "spore") {
+        ctx.shadowColor = a.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else {
+        // dust/ash/mist
+        ctx.fillRect(a.x - 0.5, a.y - 0.5, a.size, a.size);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawChests() {
+    if (!game.chests || game.chests.length === 0) return;
+    for (const chest of game.chests) {
+      const x = chest.x;
+      const y = chest.y;
+      // Body
+      ctx.fillStyle = "#3a2415";
+      ctx.fillRect(x, y, 36, 28);
+      // Wood planks
+      ctx.fillStyle = "#5a3820";
+      ctx.fillRect(x + 2, y + 2, 32, 24);
+      // Iron bands
+      ctx.fillStyle = "#181210";
+      ctx.fillRect(x + 1, y + 9, 34, 3);
+      ctx.fillRect(x + 1, y + 18, 34, 3);
+      ctx.fillRect(x + 16, y, 4, 28);
+      // Lid line / lock
+      if (chest.opened) {
+        // Open: tilted lid + empty interior
+        ctx.fillStyle = "#1a0e08";
+        ctx.fillRect(x + 4, y + 14, 28, 12);
+        ctx.fillStyle = "#5a3820";
+        ctx.beginPath();
+        ctx.moveTo(x, y - 6);
+        ctx.lineTo(x + 36, y - 6);
+        ctx.lineTo(x + 30, y + 8);
+        ctx.lineTo(x + 6, y + 8);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Closed: gold lock + glow
+        const pulse = 0.5 + 0.5 * Math.sin(game.time * 3);
+        ctx.shadowColor = "#ffd065";
+        ctx.shadowBlur = 10 * pulse;
+        ctx.fillStyle = "#d1a84d";
+        ctx.fillRect(x + 14, y + 12, 8, 6);
+        ctx.fillStyle = "#7a5a1e";
+        ctx.fillRect(x + 16, y + 14, 4, 2);
+        ctx.shadowBlur = 0;
+      }
+    }
   }
 
   function spawnCandleDrop(candle) {
@@ -2623,6 +3270,32 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawComboMeter() {
+    if (player.combo <= 1 || player.comboTimer <= 0) return;
+    const pct = clamp(player.comboTimer / 3.0, 0, 1);
+    const cx = player.x + player.w / 2;
+    const y = player.y - 28;
+    const w = 78;
+    const h = 8;
+    ctx.save();
+    ctx.globalAlpha = 0.75 + Math.sin(game.time * 10) * 0.08;
+    ctx.fillStyle = "rgba(9, 4, 8, 0.78)";
+    ctx.fillRect(cx - w / 2 - 6, y - 14, w + 12, 28);
+    ctx.strokeStyle = "rgba(244, 211, 139, 0.72)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx - w / 2 - 6, y - 14, w + 12, 28);
+    ctx.fillStyle = "rgba(215, 66, 54, 0.28)";
+    ctx.fillRect(cx - w / 2, y + 2, w, h);
+    ctx.fillStyle = "#f4d38b";
+    ctx.fillRect(cx - w / 2, y + 2, w * pct, h);
+    ctx.font = "700 12px 'Trebuchet MS', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#fff5dd";
+    ctx.fillText(`CHAIN x${player.combo}`, cx, y - 4);
+    ctx.restore();
+  }
+
   function updateBossBanner(dt) {
     if (!game.bossBanner) return;
     game.bossBanner.t += dt;
@@ -2637,9 +3310,10 @@
         player.hp = player.maxHp;
         player.mp = player.maxMp;
         player.hearts = player.maxHearts;
+        cleanseStatus();
         game.save.lastShrine = { roomId: game.roomId, x: s.x + 10, y: s.y - 14 };
         burst(s.x + 10, s.y - 10, "#f4d38b", 30);
-        message("Save shrine: rested. Powers restored.");
+        message("Save shrine: rested. Powers restored, ailments cleansed.");
         playSound("heart", 0.5);
         writeSave();
       } else if (game.messageTimer <= 0) {
@@ -2697,10 +3371,44 @@
         return;
       }
       burst(player.x + player.w / 2, player.y + player.h / 2, "#eac36f", 18);
-      playSound("gate");
       enterRoom(door.to, door.spawn);
       return;
     }
+  }
+
+  function updateIntroMechanics(dt) {
+    updateDrawbridge(dt);
+    updateIntroPortcullis(dt);
+  }
+
+  function updateDrawbridge(dt) {
+    const bridge = game.room && game.room.drawbridge;
+    if (!bridge) return;
+    const cx = player.x + player.w / 2;
+
+    if (!bridge.cycled && cx > bridge.triggerX) {
+      bridge.cycled = true;
+      bridge.target = 1;
+      message("The drawbridge hauls upward behind you.");
+      playSound("ui", 0.18);
+      burst(bridge.hingeX + 20, bridge.hingeY - 8, "#f0bf61", 20);
+    }
+
+    if (bridge.cycled && !bridge.reopened && bridge.progress > 0.96) {
+      bridge.reopened = true;
+      burst(bridge.hingeX + 10, bridge.hingeY - 120, "#cfeacc", 12);
+    }
+
+    if (bridge.cycled && cx < bridge.resetX) {
+      bridge.cycled = false;
+      bridge.reopened = false;
+      bridge.target = 0;
+      message("The drawbridge lowers for the return path.");
+    }
+
+    const speed = bridge.target > bridge.progress ? 1.25 : 1.55;
+    bridge.progress += (bridge.target - bridge.progress) * Math.min(1, dt * speed);
+    if (Math.abs(bridge.progress - bridge.target) < 0.01) bridge.progress = bridge.target;
   }
 
   function updateIntroPortcullis(dt) {
@@ -2712,7 +3420,7 @@
       gate.cycled = true;
       gate.target = 1;
       message("The castle portcullis drops behind you.");
-      playSound("gate", 0.42);
+      playSound("ui", 0.16);
       burst(gate.x + gate.w / 2, gate.y + gate.h, "#f0bf61", 18);
     }
 
@@ -2720,7 +3428,7 @@
       gate.reopened = true;
       gate.target = 0;
       message("The old gate rises again.");
-      playSound("gate", 0.36);
+      playSound("ui", 0.14);
       burst(gate.x + gate.w / 2, gate.y + 24, "#cfeacc", 18);
     }
 
@@ -3028,6 +3736,9 @@
     drawRoomMechanics();
     drawShrine();
     drawCandles();
+    drawChests();
+    drawAmbient();
+    drawComboMeter();
     drawFlames();
     drawPickups();
     drawProjectiles();
@@ -3189,20 +3900,112 @@
   function drawRoomBackground(room, bg, mid, cameraX, cameraY) {
     const rw = roomWidth(room);
     const rh = roomHeight(room);
+    const outdoor = isOutdoorRoom(room);
     ctx.save();
     ctx.imageSmoothingEnabled = true;
 
-    drawParallaxPlane(bg, cameraX, cameraY, rw, rh, 0.28, 0.18, 1);
+    // 1) Sky gradient (outdoor only) - dawn/twilight tint above horizon
+    if (outdoor) {
+      drawSkyGradient(room, rh);
+    }
+
+    // 2) Far background plane (slowest)
+    drawParallaxPlane(bg, cameraX, cameraY, rw, rh, outdoor ? 0.16 : 0.28, outdoor ? 0.10 : 0.18, 1);
+
+    // 3) First parallax element (mid-far)
     drawParallaxElements(room, cameraX, cameraY, rw, rh, 0);
 
+    // 4) Mid plane (slightly faster)
     if (mid && mid.width) {
       drawParallaxPlane(mid, cameraX, cameraY, rw, rh, 0.48, 0.32, 0.24);
     }
 
-    drawMode7Floor(room, bg, rw, rh, cameraX, cameraY);
+    // 5) Mode 7 perspective floor — strong for outdoor
+    drawMode7Floor(room, bg, rw, rh, cameraX, cameraY, outdoor);
+
+    // 6) Mid parallax element (in front of mode7 floor)
     drawParallaxElements(room, cameraX, cameraY, rw, rh, 1);
+
+    // 7) Near-foreground parallax (fast, layered just behind playfield)
+    if (outdoor) {
+      drawNearForegroundParallax(room, cameraX, cameraY, rw, rh);
+    }
+
     ctx.restore();
     ctx.imageSmoothingEnabled = false;
+  }
+
+  function isOutdoorRoom(room) {
+    if (!room) return false;
+    if (room.outdoor === true) return true;
+    if (room.outdoor === false) return false;
+    const b = room.bg;
+    return b === "bgForest" || b === "bgCastleGarden" || b === "bgGarden" || b === "bgGate";
+  }
+
+  function drawSkyGradient(room, rh) {
+    const horizon = rh * 0.62;
+    const grad = ctx.createLinearGradient(0, 0, 0, horizon);
+    const palette = room.palette;
+    if (palette === "green") {
+      // Forest dawn: deep indigo → mauve → orange
+      grad.addColorStop(0, "#0e1530");
+      grad.addColorStop(0.55, "#3a1d3c");
+      grad.addColorStop(1, "#7e3a32");
+    } else if (palette === "gold") {
+      // Gate dusk: burnt amber sky
+      grad.addColorStop(0, "#1a0e1a");
+      grad.addColorStop(0.55, "#54213a");
+      grad.addColorStop(1, "#8a4424");
+    } else {
+      grad.addColorStop(0, "#0a0a18");
+      grad.addColorStop(1, "#3a1d36");
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, Math.min(H, horizon));
+
+    // Distant moon for outdoor rooms
+    if (!room.__moonX) {
+      room.__moonX = 120 + Math.random() * (W - 240);
+      room.__moonY = 60 + Math.random() * 50;
+    }
+    const mx = room.__moonX;
+    const my = room.__moonY;
+    const halo = ctx.createRadialGradient(mx, my, 6, mx, my, 90);
+    halo.addColorStop(0, "rgba(244, 224, 180, 0.65)");
+    halo.addColorStop(0.4, "rgba(244, 211, 139, 0.25)");
+    halo.addColorStop(1, "rgba(244, 211, 139, 0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(mx - 100, my - 100, 200, 200);
+    ctx.fillStyle = "#fff5dd";
+    ctx.beginPath();
+    ctx.arc(mx, my, 24, 0, Math.PI * 2);
+    ctx.fill();
+    // Moon shadow crescent
+    ctx.fillStyle = "rgba(20, 18, 32, 0.35)";
+    ctx.beginPath();
+    ctx.arc(mx + 8, my - 4, 22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawNearForegroundParallax(room, cameraX, cameraY, rw, rh) {
+    // Fast-scrolling silhouette band along the bottom for depth.
+    const keys = parallaxKeysForRoom(room);
+    const img = images[keys[0]];
+    if (img && img.width) {
+      ctx.save();
+      ctx.globalAlpha = 0.32;
+      ctx.translate(-Math.round(cameraX * 0.92), -Math.round(cameraY * 0.85));
+      const bandH = Math.round(rh * 0.34);
+      ctx.drawImage(img, 0, 0, img.width, img.height, 0, rh - bandH, rw, bandH);
+      ctx.restore();
+    }
+    // Dark vignette band along the bottom edge (camera-locked)
+    const grad = ctx.createLinearGradient(0, rh - 80, 0, rh);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, rh - 80, rw, 80);
   }
 
   function drawParallaxPlane(img, cameraX, cameraY, rw, rh, speedX, speedY, alpha = 1) {
@@ -3365,15 +4168,26 @@
 
   function drawCastleGardenArchitecture(room) {
     ctx.save();
-    const gate = room.portcullis;
-    if (gate) {
-      drawIntroTileCell("pillar", gate.x - 84, gate.y + 20, 72, gate.h + 64, 0.82);
-      drawIntroTileCell("pillar", gate.x + gate.w + 12, gate.y + 20, 72, gate.h + 64, 0.82);
+    const bridge = room.drawbridge;
+    if (bridge) {
+      const waterY = bridge.y + 22;
+      const moat = ctx.createLinearGradient(0, waterY, 0, roomHeight(room));
+      moat.addColorStop(0, "rgba(9, 45, 61, 0.82)");
+      moat.addColorStop(0.42, "rgba(5, 18, 27, 0.94)");
+      moat.addColorStop(1, "rgba(2, 5, 8, 0.98)");
+      ctx.fillStyle = moat;
+      ctx.fillRect(bridge.x - 16, waterY, bridge.w + 40, roomHeight(room) - waterY);
+      ctx.fillStyle = "rgba(173, 222, 230, 0.15)";
+      for (let x = bridge.x; x < bridge.x + bridge.w; x += 46) {
+        ctx.fillRect(x + Math.sin(game.time * 1.3 + x) * 8, waterY + 18 + Math.sin(game.time + x) * 3, 26, 2);
+      }
+      drawIntroTileCell("pillar", bridge.x - 82, bridge.y - 152, 76, 238, 0.82);
+      drawIntroTileCell("pillar", bridge.x + bridge.w + 10, bridge.y - 150, 76, 238, 0.76);
       ctx.fillStyle = "rgba(15, 12, 10, 0.78)";
-      ctx.fillRect(gate.x - 76, gate.y - 18, gate.w + 152, 30);
+      ctx.fillRect(bridge.x - 82, bridge.y - 164, bridge.w + 168, 30);
       ctx.strokeStyle = "rgba(244, 211, 139, 0.42)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(gate.x - 74, gate.y - 16, gate.w + 148, 28);
+      ctx.strokeRect(bridge.x - 80, bridge.y - 162, bridge.w + 164, 28);
     }
 
     const statueXs = [230, 560, 1240];
@@ -3417,6 +4231,30 @@
     const gate = images.gate;
     for (const door of game.room.doors) {
       const open = doorOpen(door);
+      if (door.hidden) {
+        // Subtle sparkle hint when player is near
+        const cx = door.x + door.w / 2;
+        const cy = door.y + door.h / 2;
+        const dx = (player.x + player.w / 2) - cx;
+        const dy = (player.y + player.h / 2) - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 220) {
+          const alpha = (1 - dist / 220) * 0.6;
+          const pulse = 0.5 + 0.5 * Math.sin(game.time * 4);
+          ctx.globalAlpha = alpha * pulse;
+          ctx.shadowColor = "#ffd065";
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = "rgba(244, 211, 139, 0.4)";
+          for (let i = 0; i < 5; i += 1) {
+            const sx = cx + Math.sin(game.time * 1.2 + i * 1.3) * 14;
+            const sy = cy + Math.cos(game.time * 0.9 + i * 1.7) * 22 - i * 6;
+            ctx.fillRect(sx - 1, sy - 1, 2, 2);
+          }
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+        }
+        continue;
+      }
       ctx.globalAlpha = open ? 0.92 : 0.72;
       if (gate) ctx.drawImage(gate, door.x - 8, door.y - 18, door.w + 16, door.h + 28);
       ctx.fillStyle = open ? "rgba(107, 220, 194, 0.22)" : "rgba(211, 55, 52, 0.34)";
@@ -3429,9 +4267,65 @@
   }
 
   function drawRoomMechanics() {
+    const bridge = game.room && game.room.drawbridge;
+    if (bridge) drawDrawbridge(bridge);
     const gate = game.room && game.room.portcullis;
-    if (!gate) return;
-    drawPortcullis(gate);
+    if (gate) drawPortcullis(gate);
+  }
+
+  function drawDrawbridge(bridge) {
+    const p = clamp(bridge.progress, 0, 1);
+    const pivotRight = bridge.hingeX > bridge.x + bridge.w / 2;
+    const angle = (pivotRight ? 1 : -1) * p * Math.PI * 0.48;
+    const localX = pivotRight ? -bridge.w : 0;
+    const farVector = pivotRight ? -bridge.w : bridge.w;
+    ctx.save();
+    ctx.translate(bridge.hingeX, bridge.hingeY);
+    ctx.rotate(angle);
+    ctx.shadowColor = "#050408";
+    ctx.shadowBlur = 18;
+    const grad = ctx.createLinearGradient(0, -bridge.h, bridge.w, bridge.h);
+    grad.addColorStop(0, "#4c321f");
+    grad.addColorStop(0.5, "#a36b34");
+    grad.addColorStop(1, "#2b1a12");
+    ctx.fillStyle = grad;
+    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(244, 211, 139, 0.36)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(localX, -bridge.h, bridge.w, bridge.h);
+    ctx.strokeStyle = "rgba(11, 6, 4, 0.68)";
+    ctx.lineWidth = 3;
+    for (let x = localX + 38; x < localX + bridge.w; x += 56) {
+      ctx.beginPath();
+      ctx.moveTo(x, -bridge.h + 3);
+      ctx.lineTo(x, -3);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(250, 218, 143, 0.42)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(localX + 6, -bridge.h + 5);
+    ctx.lineTo(localX + bridge.w - 12, -bridge.h + 5);
+    ctx.stroke();
+    ctx.restore();
+
+    const farX = bridge.hingeX + Math.cos(angle) * farVector;
+    const farY = bridge.hingeY + Math.sin(angle) * farVector;
+    ctx.save();
+    ctx.strokeStyle = "rgba(166, 148, 104, 0.74)";
+    ctx.lineWidth = 3;
+    for (const dy of [-22, -8]) {
+      ctx.beginPath();
+      ctx.moveTo(bridge.hingeX + 12, bridge.hingeY - 162 + dy * 0.1);
+      ctx.lineTo(farX, farY + dy);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(244, 211, 139, 0.55)";
+    ctx.beginPath();
+    ctx.arc(bridge.hingeX + 4, bridge.hingeY - 4, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawPortcullis(gate) {
@@ -3932,32 +4826,54 @@
     ctx.drawImage(img, 0, 0, img.width, img.height, x, y, w, h);
   }
 
-  function drawMode7Floor(room, img, rw, rh, cameraX = 0, cameraY = 0) {
+  function drawMode7Floor(room, img, rw, rh, cameraX = 0, cameraY = 0, outdoor = false) {
     if (!img || !img.width) return;
-    const startY = Math.round(rh * 0.62);
-    const sourceY = Math.round(img.height * 0.58);
+    // Outdoor rooms get a higher, more prominent perspective floor
+    const horizonRatio = outdoor ? 0.55 : 0.62;
+    const startY = Math.round(rh * horizonRatio);
+    const sourceY = Math.round(img.height * (outdoor ? 0.62 : 0.58));
     const sourceH = Math.max(1, img.height - sourceY);
     const isImagen = IMG[room.bg] && IMG[room.bg].includes("bg_imagen");
+    const baseAlpha = outdoor ? 0.55 : (isImagen ? 0.34 : 0.22);
+    // Camera-driven horizontal sway gives the floor a "scrolling forward" feel
+    const swayX = outdoor ? Math.round(cameraX * 0.35) : Math.round(cameraX * 0.82);
+    const swayY = outdoor ? Math.round(cameraY * 0.5) : Math.round(cameraY * 0.72);
     ctx.save();
-    ctx.translate(-Math.round(cameraX * 0.82), -Math.round(cameraY * 0.72));
-    ctx.globalAlpha = isImagen ? 0.34 : 0.22;
-    for (let y = startY; y < rh; y += 3) {
+    ctx.translate(-swayX, -swayY);
+    ctx.globalAlpha = baseAlpha;
+    const stride = outdoor ? 2 : 3;
+    const extraBase = outdoor ? 120 : 70;
+    const extraGain = outdoor ? 360 : 210;
+    const sliceGain = outdoor ? 11 : 7;
+    for (let y = startY; y < rh; y += stride) {
       const t = (y - startY) / Math.max(1, rh - startY);
       const ease = t * t;
       const sy = sourceY + Math.min(sourceH - 1, Math.round(sourceH * ease));
-      const sliceH = Math.max(2, Math.round(2 + t * 7));
-      const extra = 70 + t * 210;
+      const sliceH = Math.max(2, Math.round(2 + t * sliceGain));
+      const extra = extraBase + t * extraGain;
+      // Phase-based horizontal scroll for parallax illusion
+      const scrollX = outdoor ? Math.sin(game.time * 0.5 + t * 4) * 8 : 0;
       ctx.drawImage(
         img,
         0,
         sy,
         img.width,
         Math.min(sliceH, img.height - sy),
-        -extra,
+        -extra + scrollX,
         y,
         rw + extra * 2,
-        4
+        Math.max(2, stride + 1)
       );
+    }
+    // Soft horizon line glow
+    if (outdoor) {
+      ctx.globalAlpha = 0.4;
+      const horizonGrad = ctx.createLinearGradient(0, startY - 20, 0, startY + 12);
+      horizonGrad.addColorStop(0, "rgba(244, 211, 139, 0)");
+      horizonGrad.addColorStop(0.7, "rgba(244, 174, 90, 0.55)");
+      horizonGrad.addColorStop(1, "rgba(244, 211, 139, 0)");
+      ctx.fillStyle = horizonGrad;
+      ctx.fillRect(0, startY - 20, rw, 32);
     }
     ctx.restore();
   }
@@ -3981,6 +4897,17 @@
 
   function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function dynamicPlatforms(room = game.room) {
+    if (!room || !room.drawbridge) return [];
+    const bridge = room.drawbridge;
+    if (bridge.progress > 0.35) return [];
+    return [{ x: bridge.x, y: bridge.y, w: bridge.w, h: bridge.h, type: "gardenStone" }];
+  }
+
+  function collisionPlatforms(room = game.room) {
+    return room ? room.platforms.concat(dynamicPlatforms(room)) : [];
   }
 
   function roomWidth(room = game.room) {
