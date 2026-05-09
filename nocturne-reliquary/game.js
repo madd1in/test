@@ -130,7 +130,8 @@
   window.__NOCTURNE_INPUT_INFO = {
     jumpKeys: KEYMAP.jump.slice(),
     upKeys: KEYMAP.up.slice(),
-    feel: ["jumpBuffer", "downWhipPogo"]
+    feel: ["jumpBuffer", "downWhipPogo"],
+    mobileStart: "tap-requests-fullscreen"
   };
 
   const TILE_SET = "imagen-hd-platforms-v1";
@@ -194,7 +195,11 @@
     tileDrawSize: TILE_DRAW_SIZE,
     roomSet: "forest-garden-expanded-21-hd",
     introSet: "castlevania-drawbridge-v2",
-    mobileTouch: "large-hit-targets-v2",
+    drawbridgeTileSet: "imagen-existing-root-trim-v1",
+    drawbridgeChainSet: "existing-fg-chain-rotated-v1",
+    mobileTouch: "large-hit-targets-v3-readable-fonts",
+    mobileFont: "compact-cinzel-v1",
+    mobileStartFullscreen: "start-tap-default-v1",
     difficulty: "mercy-pass"
   };
 
@@ -267,6 +272,8 @@
     touchJumpHold: 0,
     muted: false,
     mobileMode: false,
+    mobileStartFullscreenAttempted: 0,
+    mobileStartFullscreenBlocked: false,
     message: "",
     messageTimer: 0,
     loaded: false,
@@ -1550,6 +1557,11 @@
     keys: Array.from(keysDown),
     touches: Array.from(touchDown),
     touchJumpHold: Number((game.touchJumpHold || 0).toFixed(2)),
+    mobileMode: Boolean(game.mobileMode),
+    mobileLayout: isMobileLayout(),
+    fullscreen: Boolean(fullscreenElement()),
+    mobileStartFullscreenAttempted: game.mobileStartFullscreenAttempted,
+    mobileStartFullscreenBlocked: Boolean(game.mobileStartFullscreenBlocked),
     visuals: game.room ? {
       bg: game.room.bg,
       parallax: parallaxKeysForRoom(game.room).slice(),
@@ -1578,11 +1590,14 @@
   window.__NOCTURNE_TEST_TELEPORT = (roomId, x, y) => {
     if (!rooms[roomId]) return false;
     game.mode = "playing";
+    player.hp = Math.max(player.hp, player.maxHp || 112);
     hideTitlePanel();
     enterRoom(roomId, { x, y }, false);
     return true;
   };
   window.__NOCTURNE_TEST_PLACE_PLAYER = (x, y) => {
+    game.mode = "playing";
+    player.hp = Math.max(player.hp, player.maxHp || 112);
     player.x = x;
     player.y = y;
     player.vx = 0;
@@ -4284,47 +4299,149 @@
     ctx.rotate(angle);
     ctx.shadowColor = "#050408";
     ctx.shadowBlur = 18;
-    const grad = ctx.createLinearGradient(0, -bridge.h, bridge.w, bridge.h);
-    grad.addColorStop(0, "#4c321f");
-    grad.addColorStop(0.5, "#a36b34");
-    grad.addColorStop(1, "#2b1a12");
-    ctx.fillStyle = grad;
-    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "rgba(244, 211, 139, 0.36)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(localX, -bridge.h, bridge.w, bridge.h);
-    ctx.strokeStyle = "rgba(11, 6, 4, 0.68)";
-    ctx.lineWidth = 3;
-    for (let x = localX + 38; x < localX + bridge.w; x += 56) {
-      ctx.beginPath();
-      ctx.moveTo(x, -bridge.h + 3);
-      ctx.lineTo(x, -3);
-      ctx.stroke();
+    if (!drawDrawbridgeHdDeck(bridge, localX)) {
+      const grad = ctx.createLinearGradient(0, -bridge.h, bridge.w, bridge.h);
+      grad.addColorStop(0, "#4c321f");
+      grad.addColorStop(0.5, "#a36b34");
+      grad.addColorStop(1, "#2b1a12");
+      ctx.fillStyle = grad;
+      ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
     }
-    ctx.strokeStyle = "rgba(250, 218, 143, 0.42)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(localX + 6, -bridge.h + 5);
-    ctx.lineTo(localX + bridge.w - 12, -bridge.h + 5);
-    ctx.stroke();
+    ctx.shadowBlur = 0;
     ctx.restore();
 
+    drawDrawbridgeChains(bridge, angle, farVector);
+  }
+
+  function drawDrawbridgeChains(bridge, angle, farVector) {
     const farX = bridge.hingeX + Math.cos(angle) * farVector;
     const farY = bridge.hingeY + Math.sin(angle) * farVector;
+    const pivotRight = bridge.hingeX > bridge.x + bridge.w / 2;
     ctx.save();
-    ctx.strokeStyle = "rgba(166, 148, 104, 0.74)";
-    ctx.lineWidth = 3;
     for (const dy of [-22, -8]) {
-      ctx.beginPath();
-      ctx.moveTo(bridge.hingeX + 12, bridge.hingeY - 162 + dy * 0.1);
-      ctx.lineTo(farX, farY + dy);
-      ctx.stroke();
+      drawChainBetween(
+        bridge.hingeX + (pivotRight ? 12 : -12),
+        bridge.hingeY - 162 + dy * 0.1,
+        farX + (pivotRight ? 10 : -10),
+        farY + dy,
+        13,
+        0.76
+      );
     }
-    ctx.fillStyle = "rgba(244, 211, 139, 0.55)";
+
+    ctx.shadowColor = "#050408";
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = "rgba(244, 211, 139, 0.58)";
     ctx.beginPath();
     ctx.arc(bridge.hingeX + 4, bridge.hingeY - 4, 8, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = "rgba(15, 12, 10, 0.78)";
+    ctx.beginPath();
+    ctx.arc(farX, farY - 1, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244, 211, 139, 0.45)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  function drawChainBetween(x1, y1, x2, y2, width = 18, alpha = 1) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.hypot(dx, dy);
+    if (length < 4) return;
+    const img = images.chain;
+    ctx.save();
+    ctx.translate(x1, y1);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.shadowColor = "#050408";
+    ctx.shadowBlur = 10;
+    if (!img || !img.width) {
+      ctx.strokeStyle = "rgba(166, 148, 104, 0.74)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(length, 0);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    const crops = [
+      { x: 8, y: 28, w: 34, h: 64 },
+      { x: 55, y: 32, w: 33, h: 60 }
+    ];
+    const step = 15;
+    ctx.beginPath();
+    ctx.rect(0, -width * 0.55, length, width * 1.1);
+    ctx.clip();
+    ctx.globalAlpha *= alpha;
+    ctx.filter = "brightness(1.28) contrast(1.08)";
+    for (let x = -6, i = 0; x < length + step; x += step, i += 1) {
+      const crop = crops[i % crops.length];
+      const tileLen = Math.min(24, Math.max(15, length - x + 8));
+      ctx.save();
+      ctx.translate(x + tileLen / 2, 0);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -width / 2, -tileLen / 2, width, tileLen);
+      ctx.restore();
+    }
+    ctx.filter = "none";
+    ctx.restore();
+  }
+
+  function drawDrawbridgeHdDeck(bridge, localX) {
+    const intro = images.introTiles;
+    if (!intro || !intro.width) return false;
+    const root = INTRO_TILE_CELLS.root;
+    const plankW = 58;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(localX, -bridge.h, bridge.w, bridge.h);
+    ctx.clip();
+    ctx.fillStyle = "rgba(34, 21, 13, 0.96)";
+    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
+    ctx.globalAlpha *= 0.98;
+    for (let x = localX, i = 0; x < localX + bridge.w; x += plankW, i += 1) {
+      const w = Math.min(plankW + 1, localX + bridge.w - x);
+      const sx = root[0] * INTRO_TILE_SOURCE_SIZE + 10 + (i % 4) * 12;
+      const sy = root[1] * INTRO_TILE_SOURCE_SIZE + 64 + (i % 2) * 12;
+      ctx.drawImage(intro, sx, sy, 188, 132, x, -bridge.h, w, bridge.h);
+      ctx.fillStyle = i % 2 ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 220, 150, 0.08)";
+      ctx.fillRect(x, -bridge.h, 2, bridge.h);
+    }
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = "rgba(136, 76, 30, 0.38)";
+    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
+    ctx.globalCompositeOperation = "source-over";
+    const glaze = ctx.createLinearGradient(localX, -bridge.h, localX, 0);
+    glaze.addColorStop(0, "rgba(244, 211, 139, 0.18)");
+    glaze.addColorStop(0.45, "rgba(255, 255, 255, 0.04)");
+    glaze.addColorStop(1, "rgba(0, 0, 0, 0.42)");
+    ctx.fillStyle = glaze;
+    ctx.fillRect(localX, -bridge.h, bridge.w, bridge.h);
+    ctx.restore();
+
+    for (let x = localX + 72; x < localX + bridge.w - 22; x += 112) {
+      drawDrawbridgeTileBand(x, -bridge.h + 1, 12, bridge.h - 4, 0.68);
+    }
+    return true;
+  }
+
+  function drawDrawbridgeTileBand(x, y, w, h, alpha = 1) {
+    const img = images.tiles;
+    if (!img || !img.width) return;
+    const cell = PLATFORM_TILE_CELLS.trim;
+    const sx = cell[0] * TILE_SOURCE_SIZE + 8;
+    const sy = cell[1] * TILE_SOURCE_SIZE + 92;
+    const sw = TILE_SOURCE_SIZE - 16;
+    const sh = 64;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    for (let xx = x; xx < x + w; xx += 64) {
+      ctx.drawImage(img, sx, sy, sw, sh, xx, y, Math.min(64, x + w - xx), h);
+    }
     ctx.restore();
   }
 
@@ -5156,35 +5273,85 @@
     else if (game.room) playMusic(game.boss ? "boss" : game.room.music);
   }
 
-  function toggleMobileMode(force) {
+  function isMobileLayout() {
+    const coarse = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+    return coarse || window.innerWidth <= 760 || window.innerHeight <= 520;
+  }
+
+  function syncMobileDefaults(options = {}) {
+    if (isMobileLayout() && !game.mobileMode) toggleMobileMode(true, { silent: true, ...options });
+  }
+
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+
+  function fullscreenRequest(root) {
+    return root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen || null;
+  }
+
+  function fullscreenExit() {
+    return document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen || null;
+  }
+
+  async function requestAppFullscreen(options = {}) {
+    const root = document.getElementById("app");
+    const request = fullscreenRequest(root);
+    if (!request) {
+      if (!options.quiet) message("Fullscreen is not available here");
+      return false;
+    }
+    try {
+      await request.call(root);
+      updateFullscreenButton();
+      return Boolean(fullscreenElement());
+    } catch {
+      if (!options.quiet) message("Fullscreen request was blocked");
+      return false;
+    }
+  }
+
+  async function enterMobileStartFullscreen() {
+    if (!isMobileLayout() || fullscreenElement()) return true;
+    syncMobileDefaults({ silent: true });
+    game.mobileStartFullscreenAttempted += 1;
+    game.mobileStartFullscreenBlocked = false;
+    const ok = await requestAppFullscreen({ quiet: true });
+    game.mobileStartFullscreenBlocked = !ok;
+    if (!ok) message("Tap FS if fullscreen was blocked");
+    return ok;
+  }
+
+  async function exitAppFullscreen() {
+    const exit = fullscreenExit();
+    if (!exit) return false;
+    try {
+      await exit.call(document);
+      updateFullscreenButton();
+      return true;
+    } catch {
+      message("Fullscreen exit was blocked");
+      return false;
+    }
+  }
+
+  function toggleMobileMode(force, options = {}) {
     game.mobileMode = force ?? !game.mobileMode;
     document.body.classList.toggle("mobile-mode", game.mobileMode);
     dom.mobileButton.textContent = game.mobileMode ? "PAD" : "MOB";
     dom.mobileButton.setAttribute("aria-pressed", String(game.mobileMode));
-    message(game.mobileMode ? "Swipe mode armed" : "Swipe mode tucked away");
+    if (!options.silent) message(game.mobileMode ? "Swipe mode armed" : "Swipe mode tucked away");
   }
 
   async function toggleFullscreen() {
-    const root = document.getElementById("app");
-    try {
-      if (!document.fullscreenElement) {
-        if (!root.requestFullscreen) {
-          message("Fullscreen is not available here");
-          return;
-        }
-        await root.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch {
-      message("Fullscreen request was blocked");
-    }
+    if (!fullscreenElement()) await requestAppFullscreen();
+    else await exitAppFullscreen();
     updateFullscreenButton();
   }
 
   function updateFullscreenButton() {
-    dom.fullscreenButton.textContent = document.fullscreenElement ? "WIN" : "FS";
-    dom.fullscreenButton.setAttribute("aria-pressed", String(Boolean(document.fullscreenElement)));
+    dom.fullscreenButton.textContent = fullscreenElement() ? "WIN" : "FS";
+    dom.fullscreenButton.setAttribute("aria-pressed", String(Boolean(fullscreenElement())));
   }
 
   function clearSwipeMovement() {
@@ -5299,18 +5466,31 @@
   }
 
   dom.startButton.disabled = true;
+  async function startFromTitle(fromSave) {
+    await enterMobileStartFullscreen();
+    resetRun(fromSave);
+  }
+
   dom.startButton.addEventListener("click", () => {
     dom.startButton.textContent = "Begin";
-    resetRun(false);
+    startFromTitle(false);
   });
-  dom.continueButton.addEventListener("click", () => resetRun(true));
+  dom.continueButton.addEventListener("click", () => startFromTitle(true));
   dom.mobileButton.addEventListener("click", () => toggleMobileMode());
   dom.fullscreenButton.addEventListener("click", toggleFullscreen);
   dom.mapButton.addEventListener("click", () => toggleMap());
   dom.closeMapButton.addEventListener("click", () => toggleMap(false));
   dom.muteButton.addEventListener("click", toggleMute);
   document.addEventListener("fullscreenchange", updateFullscreenButton);
+  document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+  window.addEventListener("resize", () => syncMobileDefaults({ silent: true }));
+  if (typeof window.matchMedia === "function") {
+    for (const query of [window.matchMedia("(pointer: coarse)"), window.matchMedia("(max-width: 760px)")]) {
+      if (query.addEventListener) query.addEventListener("change", () => syncMobileDefaults({ silent: true }));
+    }
+  }
 
+  syncMobileDefaults({ silent: true });
   loadAssets();
   enterRoom("forest", rooms.forest.spawn, false);
   requestAnimationFrame(loop);

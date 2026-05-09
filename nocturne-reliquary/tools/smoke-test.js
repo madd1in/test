@@ -65,6 +65,29 @@ async function closeBrowser(browser) {
   }
 }
 
+function watchPage(page, consoleErrors, pageErrors, badResponses) {
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("pageerror", (err) => pageErrors.push(err.message));
+  page.on("response", (res) => {
+    if (res.status() >= 400) badResponses.push(`${res.status()} ${res.url()}`);
+  });
+}
+
+async function stubExternalFonts(page) {
+  await page.route("https://fonts.googleapis.com/**", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/css; charset=utf-8",
+    body: "/* External font CSS is stubbed for offline smoke tests. */"
+  }));
+  await page.route("https://fonts.gstatic.com/**", (route) => route.fulfill({
+    status: 200,
+    contentType: "font/woff2",
+    body: ""
+  }));
+}
+
 async function browserSmoke() {
   const { chromium } = resolvePlaywright();
   const server = await staticServer();
@@ -85,23 +108,8 @@ async function browserSmoke() {
   const consoleErrors = [];
   const pageErrors = [];
   const badResponses = [];
-  page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
-  });
-  page.on("pageerror", (err) => pageErrors.push(err.message));
-  page.on("response", (res) => {
-    if (res.status() >= 400) badResponses.push(`${res.status()} ${res.url()}`);
-  });
-  await page.route("https://fonts.googleapis.com/**", (route) => route.fulfill({
-    status: 200,
-    contentType: "text/css; charset=utf-8",
-    body: "/* External font CSS is stubbed for offline smoke tests. */"
-  }));
-  await page.route("https://fonts.gstatic.com/**", (route) => route.fulfill({
-    status: 200,
-    contentType: "font/woff2",
-    body: ""
-  }));
+  watchPage(page, consoleErrors, pageErrors, badResponses);
+  await stubExternalFonts(page);
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__NOCTURNE_READY === true, null, { timeout: 90000 });
@@ -241,10 +249,10 @@ async function browserSmoke() {
     for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
     window.__NOCTURNE_TEST_TELEPORT("courtyard", 1090, 352);
   });
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2400);
   const drawbridgeRaisedState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
   await page.evaluate(() => window.__NOCTURNE_TEST_PLACE_PLAYER(500, 352));
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1800);
   const drawbridgeLoweringState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
 
   await page.evaluate(() => {
@@ -284,6 +292,12 @@ async function browserSmoke() {
       hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
       hasMobile: Boolean(document.getElementById("mobileButton")),
       hasTouchDown: Boolean(document.querySelector('#touchControls button[data-touch="down"]')),
+      mobileMode: document.body.classList.contains("mobile-mode"),
+      fullscreen: Boolean(document.fullscreenElement || document.webkitFullscreenElement),
+      touchDisplay: getComputedStyle(document.getElementById("touchControls")).display,
+      h1FontFamily: getComputedStyle(document.querySelector(".title-inner h1")).fontFamily,
+      bodyFontFamily: getComputedStyle(document.body).fontFamily,
+      viewportMeta: document.querySelector('meta[name="viewport"]').content,
       touchButtonText: Array.from(document.querySelectorAll("#touchControls button"), (button) => button.textContent.trim()).join(""),
       touchUserSelect: getComputedStyle(document.querySelector("#touchControls button")).userSelect,
       touchWebkitUserSelect: getComputedStyle(document.querySelector("#touchControls button")).webkitUserSelect,
@@ -297,9 +311,48 @@ async function browserSmoke() {
     };
   });
 
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true
+  });
+  const mobilePage = await mobileContext.newPage();
+  watchPage(mobilePage, consoleErrors, pageErrors, badResponses);
+  await stubExternalFonts(mobilePage);
+  await mobilePage.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await mobilePage.waitForFunction(() => window.__NOCTURNE_READY === true, null, { timeout: 150000 });
+  await mobilePage.waitForTimeout(260);
+  const mobileTitleState = await mobilePage.evaluate(() => {
+    const h1Style = getComputedStyle(document.querySelector(".title-inner h1"));
+    const subtitleStyle = getComputedStyle(document.querySelector(".subtitle"));
+    return {
+      debug: window.__NOCTURNE_DEBUG_STATE(),
+      bodyMobile: document.body.classList.contains("mobile-mode"),
+      titleHidden: document.getElementById("titlePanel").hidden,
+      h1FontFamily: h1Style.fontFamily,
+      h1FontSize: Number.parseFloat(h1Style.fontSize),
+      h1LetterSpacing: h1Style.letterSpacing,
+      subtitleFontSize: Number.parseFloat(subtitleStyle.fontSize),
+      subtitleLetterSpacing: subtitleStyle.letterSpacing,
+      viewportMeta: document.querySelector('meta[name="viewport"]').content
+    };
+  });
+  await mobilePage.click("#startButton");
+  await mobilePage.waitForTimeout(700);
+  const mobileStartState = await mobilePage.evaluate(() => ({
+    debug: window.__NOCTURNE_DEBUG_STATE(),
+    bodyMobile: document.body.classList.contains("mobile-mode"),
+    titleHidden: document.getElementById("titlePanel").hidden,
+    touchDisplay: getComputedStyle(document.getElementById("touchControls")).display,
+    appHeight: Math.round(document.getElementById("app").getBoundingClientRect().height),
+    viewportHeight: window.innerHeight,
+    fullscreen: Boolean(document.fullscreenElement || document.webkitFullscreenElement)
+  }));
+  await mobileContext.close();
+
   await closeBrowser(browser);
   server.close();
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, movementState, transitionStates, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, movementState, transitionStates, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -357,7 +410,11 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.tileDrawSize === 48, "platform collision draw tiles should stay gameplay-sized");
   assert(result.state.tuningInfo.roomSet === "forest-garden-expanded-21-hd", "expanded optional room set should be wired");
   assert(result.state.tuningInfo.introSet === "castlevania-drawbridge-v2", "Castlevania-style drawbridge intro should be wired");
-  assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v2", "mobile touch tuning should include larger hit targets");
+  assert(result.state.tuningInfo.drawbridgeTileSet === "imagen-existing-root-trim-v1", "drawbridge should use existing Imagen HD tile sheets");
+  assert(result.state.tuningInfo.drawbridgeChainSet === "existing-fg-chain-rotated-v1", "drawbridge chains should use the existing chain asset");
+  assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v3-readable-fonts", "mobile touch tuning should include readable-font touch targets");
+  assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
+  assert(result.state.tuningInfo.mobileStartFullscreen === "start-tap-default-v1", "mobile start fullscreen tuning should be wired");
   assert(result.state.tuningInfo.difficulty === "mercy-pass", "difficulty tuning should be softened");
   assert(result.movementState.visuals && result.movementState.visuals.bg === "bgForest", "new run should open in the forest room");
   assert(result.movementState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
@@ -374,6 +431,20 @@ async function browserSmoke() {
   assert(result.state.touchButtonMinSize >= 64, `touch buttons should be at least 64px: ${result.state.touchButtonMinSize}`);
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
+  assert(result.state.mobileMode, "manual mobile toggle should leave mobile mode enabled for desktop probe");
+  assert(result.state.bodyFontFamily.includes("Cinzel"), `mobile mode should switch to readable Cinzel UI font: ${result.state.bodyFontFamily}`);
+  assert(result.state.viewportMeta.includes("viewport-fit=cover"), "mobile viewport should opt into full-screen safe-area coverage");
+  assert(result.mobileTitleState.bodyMobile, `mobile title should auto-arm mobile mode: ${JSON.stringify(result.mobileTitleState)}`);
+  assert(result.mobileTitleState.debug.mobileLayout, `mobile debug state should detect mobile layout: ${JSON.stringify(result.mobileTitleState.debug)}`);
+  assert(result.mobileTitleState.h1FontFamily.includes("Cinzel"), `mobile title should use readable heading font: ${result.mobileTitleState.h1FontFamily}`);
+  assert(result.mobileTitleState.h1FontSize <= 48, `mobile title font should be compact: ${result.mobileTitleState.h1FontSize}`);
+  assert(["0px", "normal"].includes(result.mobileTitleState.h1LetterSpacing), `mobile title should not widen letters: ${result.mobileTitleState.h1LetterSpacing}`);
+  assert(["0px", "normal"].includes(result.mobileTitleState.subtitleLetterSpacing), `mobile subtitle should keep normal tracking: ${result.mobileTitleState.subtitleLetterSpacing}`);
+  assert(result.mobileTitleState.viewportMeta.includes("viewport-fit=cover"), "mobile page should use viewport-fit=cover");
+  assert(result.mobileStartState.titleHidden, `mobile start should hide title: ${JSON.stringify(result.mobileStartState)}`);
+  assert(result.mobileStartState.bodyMobile, `mobile start should keep mobile controls armed: ${JSON.stringify(result.mobileStartState)}`);
+  assert(result.mobileStartState.touchDisplay === "flex", `mobile touch controls should appear after start: ${result.mobileStartState.touchDisplay}`);
+  assert(result.mobileStartState.debug.mobileStartFullscreenAttempted >= 1, `mobile start should request fullscreen from the start tap: ${JSON.stringify(result.mobileStartState.debug)}`);
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);
   assert(result.state.room.length > 0, "room label missing");
   console.log(JSON.stringify({ ok: true, ...result }, null, 2));
