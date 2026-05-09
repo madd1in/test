@@ -1,0 +1,869 @@
+window.SPRITE_MAP = {
+  "image": "assets/sprite-map.png?v=20260501-archive",
+  "size": [
+    1024,
+    2112
+  ],
+  "animations": {
+    "apprentice_idle_front": {
+      "x": 4,
+      "y": 4,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 7,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_idle_back": {
+      "x": 4,
+      "y": 72,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 7,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_idle_right": {
+      "x": 4,
+      "y": 140,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 7,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_idle_left": {
+      "x": 4,
+      "y": 208,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 7,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_walk_front": {
+      "x": 4,
+      "y": 276,
+      "w": 832,
+      "h": 64,
+      "frames": 13,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_walk_back": {
+      "x": 4,
+      "y": 344,
+      "w": 832,
+      "h": 64,
+      "frames": 13,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_walk_right": {
+      "x": 4,
+      "y": 412,
+      "w": 832,
+      "h": 64,
+      "frames": 13,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_walk_left": {
+      "x": 4,
+      "y": 480,
+      "w": 832,
+      "h": 64,
+      "frames": 13,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_talk_front": {
+      "x": 4,
+      "y": 548,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_talk_right": {
+      "x": 4,
+      "y": 616,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_talk_left": {
+      "x": 4,
+      "y": 684,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_cast_front": {
+      "x": 4,
+      "y": 752,
+      "w": 576,
+      "h": 64,
+      "frames": 9,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_cast_right": {
+      "x": 4,
+      "y": 820,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_cast_left": {
+      "x": 4,
+      "y": 888,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_pickup_front": {
+      "x": 4,
+      "y": 956,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 9,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_inspect_front": {
+      "x": 4,
+      "y": 1024,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 7,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "apprentice_surprised_front": {
+      "x": 520,
+      "y": 1024,
+      "w": 384,
+      "h": 64,
+      "frames": 6,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    }
+  },
+  "effects": {
+    "spell_sparkle": {
+      "x": 4,
+      "y": 1092,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        32
+      ]
+    },
+    "smoke_puff": {
+      "x": 4,
+      "y": 1160,
+      "w": 512,
+      "h": 64,
+      "frames": 8,
+      "fps": 12,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        32
+      ]
+    }
+  },
+  "items": {
+    "wand": {
+      "x": 520,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "spellbook": {
+      "x": 556,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "coin": {
+      "x": 592,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "potion": {
+      "x": 628,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "key": {
+      "x": 664,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "scroll": {
+      "x": 700,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "mushroom": {
+      "x": 736,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "crystal": {
+      "x": 772,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "feather": {
+      "x": 808,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "rune_stone": {
+      "x": 844,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "herb_bundle": {
+      "x": 880,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "star_lens": {
+      "x": 916,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "silver_key": {
+      "x": 952,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "moon_badge": {
+      "x": 988,
+      "y": 1160,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    },
+    "moon_pearl": {
+      "x": 4,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32
+    }
+  },
+  "cursors": {
+    "walk": {
+      "x": 40,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "look": {
+      "x": 76,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "talk": {
+      "x": 112,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "use": {
+      "x": 148,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "take": {
+      "x": 184,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "inventory": {
+      "x": 220,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "exit": {
+      "x": 256,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "item": {
+      "x": 292,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    },
+    "hotspot": {
+      "x": 328,
+      "y": 1228,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "hotspot": [
+        4,
+        4
+      ]
+    }
+  },
+  "portraits": {
+    "neutral": {
+      "x": 148,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "talk": {
+      "x": 216,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "worried": {
+      "x": 284,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "spell": {
+      "x": 352,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "keeper": {
+      "x": 420,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "herbalist": {
+      "x": 488,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "merchant": {
+      "x": 556,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "alchemist": {
+      "x": 624,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "astronomer": {
+      "x": 692,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "statue": {
+      "x": 760,
+      "y": 2044,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    }
+  },
+  "npcs": {
+    "keeper_idle": {
+      "x": 364,
+      "y": 1228,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "keeper_talk": {
+      "x": 4,
+      "y": 1296,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 10,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "herbalist_idle": {
+      "x": 4,
+      "y": 1364,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "herbalist_talk": {
+      "x": 4,
+      "y": 1432,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 10,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "merchant_idle": {
+      "x": 4,
+      "y": 1500,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "merchant_talk": {
+      "x": 4,
+      "y": 1568,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 10,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "alchemist_idle": {
+      "x": 4,
+      "y": 1636,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "alchemist_talk": {
+      "x": 4,
+      "y": 1704,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 10,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "astronomer_idle": {
+      "x": 4,
+      "y": 1772,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "astronomer_talk": {
+      "x": 4,
+      "y": 1840,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 10,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "statue_idle": {
+      "x": 4,
+      "y": 1908,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 8,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    },
+    "statue_talk": {
+      "x": 4,
+      "y": 1976,
+      "w": 640,
+      "h": 64,
+      "frames": 10,
+      "fps": 10,
+      "frameW": 64,
+      "frameH": 64,
+      "anchor": [
+        32,
+        58
+      ]
+    }
+  },
+  "props": {
+    "garden_arch_icon": {
+      "x": 648,
+      "y": 1976,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "market_stall_icon": {
+      "x": 716,
+      "y": 1976,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "cellar_cabinet_icon": {
+      "x": 784,
+      "y": 1976,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    },
+    "telescope_icon": {
+      "x": 852,
+      "y": 1976,
+      "w": 64,
+      "h": 64,
+      "frameW": 64,
+      "frameH": 64
+    }
+  },
+  "markers": {
+    "exit_arrow": {
+      "x": 920,
+      "y": 1976,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "item_spark": {
+      "x": 956,
+      "y": 1976,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "talk_bubble": {
+      "x": 4,
+      "y": 2044,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "use_rune": {
+      "x": 40,
+      "y": 2044,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "look_eye": {
+      "x": 76,
+      "y": 2044,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "hotspot_pin": {
+      "x": 112,
+      "y": 2044,
+      "w": 32,
+      "h": 32,
+      "frameW": 32,
+      "frameH": 32,
+      "anchor": [
+        16,
+        16
+      ]
+    }
+  }
+};

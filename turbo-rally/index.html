@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turbo Rally - Coastal Circuit</title>
+  <link rel="icon" type="image/png" href="assets/tiles/turbo-rally-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game-shell" aria-label="Turbo Rally Spiel">
+    <canvas id="game-canvas" width="1280" height="720"></canvas>
+    <button id="fullscreen-button" class="fullscreen-button" type="button" aria-label="Vollbild umschalten" aria-pressed="false"></button>
+
+    <section id="hud" class="hud" aria-live="polite">
+      <div class="hud-block speed-slot">
+        <span class="hud-label">Tempo</span>
+        <strong id="speed-value">0</strong>
+      </div>
+      <div class="hud-block lap-slot">
+        <span class="hud-label">Runde</span>
+        <strong id="lap-value">1/3</strong>
+      </div>
+      <div class="hud-block position-slot">
+        <span class="hud-label">Platz</span>
+        <strong id="position-value">1/8</strong>
+      </div>
+      <div class="hud-block item-slot">
+        <span class="hud-label">Item</span>
+        <strong id="item-value">-</strong>
+      </div>
+      <div class="hud-block time-slot">
+        <span class="hud-label">Zeit</span>
+        <strong id="time-value">0:00.0</strong>
+      </div>
+      <div class="hud-block coin-slot">
+        <span class="hud-label">Coins</span>
+        <strong id="coin-value">0</strong>
+      </div>
+      <div class="hud-block boost-slot">
+        <span class="hud-label">Overdrive</span>
+        <strong id="overdrive-value">0%</strong>
+      </div>
+      <div class="hud-block style-slot">
+        <span class="hud-label">Style</span>
+        <strong id="style-value">0</strong>
+      </div>
+    </section>
+
+    <canvas id="minimap" width="180" height="180" aria-label="Streckenkarte"></canvas>
+
+    <section id="menu-screen" class="screen active">
+      <div class="panel menu-panel">
+        <p class="eyebrow">Arcade Cup</p>
+        <h1>Turbo Rally</h1>
+        <p class="subtitle">Coastal Circuit</p>
+
+        <div class="kart-select" role="group" aria-label="Kart Auswahl">
+          <button class="kart-option active" data-kart="sprinter">
+            <span class="kart-preview preview-sprinter"></span>
+            <span>Sprinter</span>
+          </button>
+          <button class="kart-option" data-kart="drifter">
+            <span class="kart-preview preview-drifter"></span>
+            <span>Drifter</span>
+          </button>
+          <button class="kart-option" data-kart="heavy">
+            <span class="kart-preview preview-heavy"></span>
+            <span>Heavy</span>
+          </button>
+        </div>
+
+        <button id="start-button" class="primary-button">Rennen starten</button>
+        <p class="control-line">WASD/Pfeile fahren | Shift driften | Leertaste Item | E Overdrive | M Sound | P Pause</p>
+      </div>
+    </section>
+
+    <section id="countdown-screen" class="screen">
+      <div id="countdown-value" class="countdown">3</div>
+    </section>
+
+    <section id="pause-screen" class="screen">
+      <div class="panel small-panel">
+        <h2>Pause</h2>
+        <button id="resume-button" class="primary-button">Weiterfahren</button>
+        <button id="restart-button" class="secondary-button">Neu starten</button>
+      </div>
+    </section>
+
+    <section id="finish-screen" class="screen">
+      <div class="panel small-panel">
+        <p class="eyebrow">Ziel</p>
+        <h2 id="finish-title">Rennen beendet</h2>
+        <p id="finish-stats" class="finish-stats"></p>
+        <button id="race-again-button" class="primary-button">Nochmal fahren</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="touch-controls" aria-hidden="true">
+      <button data-touch="left" aria-label="Links">&lt;</button>
+      <button data-touch="brake" aria-label="Bremsen">v</button>
+      <button data-touch="gas" aria-label="Gas">^</button>
+      <button data-touch="right" aria-label="Rechts">&gt;</button>
+      <button data-touch="drift" aria-label="Drift">DR</button>
+      <button data-touch="item" aria-label="Item nutzen">IT</button>
+      <button data-touch="overdrive" aria-label="Overdrive">OD</button>
+    </div>
+  </main>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
