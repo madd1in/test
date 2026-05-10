@@ -622,6 +622,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-miniboss-v1", "quest seal route should force the new sections into progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
   assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2", "zora/panther plus smooth quest mini-boss HD frame map tuning should be wired");
+  assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
   assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v3-readable-fonts", "mobile touch tuning should include readable-font touch targets");
   assert(result.state.tuningInfo.mobileCeilingDoors === "auto-enter-touch-overlap-v1", "mobile ceiling doors should auto-enter when the player overlaps the hatch");
   assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-exit-v1", "mobile door reentry guard should prevent immediate bounce-backs");
@@ -632,6 +633,7 @@ async function browserSmoke() {
   assert(result.newRunState.visuals && result.newRunState.visuals.bg === "bgForest", "new run should open in the forest room");
   assert(result.newRunState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
   assert(result.newRunState.visuals.mode7, "forest opening should use stretched/Mode7 background fill");
+  assert(result.newRunState.objectiveDoor && result.newRunState.objectiveDoor.to === "courtyard" && result.newRunState.objectiveDoor.side === "right", `new run should mark the next exit in-world: ${JSON.stringify(result.newRunState.objectiveDoor)}`);
   assert(result.drawbridgeRaisedState.introBridge && result.drawbridgeRaisedState.introBridge.progress > 0.45 && result.drawbridgeRaisedState.introBridge.target === 1, `drawbridge should raise after crossing trigger: ${JSON.stringify(result.drawbridgeRaisedState)}`);
   assert(result.drawbridgeRaisedState.drawbridgeCache && result.drawbridgeRaisedState.drawbridgeCache.deck && result.drawbridgeRaisedState.drawbridgeCache.anchor && result.drawbridgeRaisedState.drawbridgeCache.chains > 0 && result.drawbridgeRaisedState.drawbridgeCache.mode7 > 0 && result.drawbridgeRaisedState.drawbridgeCache.backgrounds > 0 && result.drawbridgeRaisedState.drawbridgeCache.scenery > 0, `drawbridge cached render layers should be active: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
   assert(result.drawbridgeRaisedState.drawbridgeCache.chains <= 2, `drawbridge should reuse stable chain strips instead of producing per-frame canvases: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
