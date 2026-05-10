@@ -1647,6 +1647,7 @@ function saveProfile(nextProfile) {
 function createEmptyProgress() {
   return {
     crossword: {},
+    crosswordLast: null,
     wordle: {
       currentAnswer: "",
       guesses: [],
@@ -1667,6 +1668,13 @@ function loadProgress() {
             data.crossword && typeof data.crossword === "object" && !Array.isArray(data.crossword)
               ? data.crossword
               : {},
+          crosswordLast:
+            data.crosswordLast &&
+            typeof data.crosswordLast === "object" &&
+            typeof data.crosswordLast.key === "string" &&
+            Number.isInteger(data.crosswordLast.index)
+              ? { key: data.crosswordLast.key, index: data.crosswordLast.index }
+              : null,
           wordle: {
             currentAnswer:
               data.wordle && typeof data.wordle.currentAnswer === "string"
@@ -1709,6 +1717,7 @@ function resetCrosswordProgress() {
   crosswordPuzzles.forEach((puzzle) => {
     delete progress.crossword[getCrosswordKey(puzzle)];
   });
+  progress.crosswordLast = null;
   saveProgress();
 }
 
@@ -1736,6 +1745,40 @@ function markCrosswordSolved(puzzle, index) {
   }
   state.completed = state.solved.length >= puzzle.entries.length;
   saveProgress();
+}
+
+function saveCrosswordPosition(puzzle, index) {
+  if (!puzzle || !Number.isInteger(index) || index < 0 || index >= puzzle.entries.length) {
+    return;
+  }
+  const key = getCrosswordKey(puzzle);
+  if (
+    progress.crosswordLast &&
+    progress.crosswordLast.key === key &&
+    progress.crosswordLast.index === index
+  ) {
+    return;
+  }
+  progress.crosswordLast = { key, index };
+  saveProgress();
+}
+
+function getSavedCrosswordPosition() {
+  const last = progress.crosswordLast;
+  if (!last || typeof last.key !== "string" || !Number.isInteger(last.index)) {
+    return null;
+  }
+  const puzzleIndex = crosswordPuzzles.findIndex((puzzle) => getCrosswordKey(puzzle) === last.key);
+  if (puzzleIndex < 0) {
+    return null;
+  }
+  const puzzle = crosswordPuzzles[puzzleIndex];
+  const entryIndex = last.index;
+  const state = getCrosswordState(puzzle);
+  if (entryIndex < 0 || entryIndex >= puzzle.entries.length || state.solved.includes(entryIndex)) {
+    return null;
+  }
+  return { puzzleIndex, entryIndex };
 }
 
 function getProgressSummary() {
@@ -2931,6 +2974,9 @@ function startWordleSession() {
 }
 
 function showExercisePicker() {
+  if (game.currentMode && typeof game.currentMode.destroy === "function") {
+    game.currentMode.destroy();
+  }
   game.running = false;
   game.currentMode = null;
   game.roundStats = null;
@@ -2940,6 +2986,7 @@ function showExercisePicker() {
   stopTimer();
   clearStage();
   clearModeTheme();
+  document.body.classList.add("menu-open");
   dom.roundLabel.textContent = "-";
   dom.timer.textContent = "Ohne Zeit";
   setTimerFill(1);
@@ -2948,12 +2995,34 @@ function showExercisePicker() {
   updateMissionHUD();
   updateRoundProgress();
   updateWeeklyDisplay();
-  dom.modeTitle.textContent = "Uebung waehlen";
-  setPrompt("Uebung waehlen", "Klicke eine Uebung an. Ohne Zeitlimit.");
-  setOptions(
-    modes.map((mode) => ({ label: mode.title, value: mode })),
-    (index, option) => startSingleMode(option.value)
-  );
+  setFeedback("", "");
+  dom.modeTitle.textContent = "Hauptmen\u00fc";
+  setPrompt("Hauptmen\u00fc", "");
+  dom.options.innerHTML = "";
+  dom.inputArea.innerHTML = "";
+
+  const menu = document.createElement("div");
+  menu.className = "home-menu";
+
+  const continueButton = document.createElement("button");
+  continueButton.type = "button";
+  continueButton.className = "primary home-menu-button";
+  continueButton.textContent = "Weiter Kreuzwort";
+  continueButton.addEventListener("click", () => {
+    startCrosswordSession();
+  });
+
+  const wordleButton = document.createElement("button");
+  wordleButton.type = "button";
+  wordleButton.className = "ghost home-menu-button";
+  wordleButton.textContent = "Wordle";
+  wordleButton.addEventListener("click", () => {
+    startWordleSession();
+  });
+
+  menu.appendChild(continueButton);
+  menu.appendChild(wordleButton);
+  dom.inputArea.appendChild(menu);
   updatePlayLayout();
 }
 
@@ -3005,6 +3074,7 @@ function resetGame() {
   game.missionAutoCollapsed = false;
   game.missionManualToggle = false;
   game.speechAction = null;
+  document.body.classList.remove("menu-open");
   clearModeTheme();
   if (game.questBannerTimer) {
     clearTimeout(game.questBannerTimer);
@@ -3136,7 +3206,7 @@ function showRoundSummary() {
   const activeModes = getActiveModes();
   const isLast = game.modeIndex >= activeModes.length - 1;
   const crosswordOnly = isCrosswordOnlySession();
-  const secondaryLabel = crosswordOnly ? "" : game.playMode === "select" ? "Uebung waehlen" : "Neu starten";
+  const secondaryLabel = crosswordOnly ? "" : game.playMode === "select" ? "Hauptmen\u00fc" : "Neu starten";
   showOverlay({
     title: `Runde ${game.modeIndex + 1} fertig`,
     body: crosswordOnly
@@ -3290,7 +3360,7 @@ function finishGame() {
       : "Dynamischer Schwierigkeitsgrad aktiv. Deine Leistung wird gespeichert.",
     statsHtml,
     primaryLabel: crosswordOnly ? "Weiter Kreuzwort" : isSelect ? "Nochmal" : "Nochmal spielen",
-    secondaryLabel: crosswordOnly ? "" : isSelect ? "Uebung waehlen" : "Schliessen",
+    secondaryLabel: crosswordOnly ? "" : isSelect ? "Hauptmen\u00fc" : "Schliessen",
     onPrimary: () => {
       if (crosswordOnly) {
         startCrosswordSession();
@@ -3331,21 +3401,31 @@ function setupCrossword(stats) {
   if (areCrosswordsComplete()) {
     resetCrosswordProgress();
   }
-  let puzzleIndex = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
+  const savedPosition = getSavedCrosswordPosition();
+  let puzzleIndex = savedPosition
+    ? savedPosition.puzzleIndex
+    : crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
   if (puzzleIndex < 0) {
     puzzleIndex = 0;
   }
   let puzzle = crosswordPuzzles[puzzleIndex];
   let solved = new Set(getCrosswordState(puzzle).solved);
-  let activeIndex = Math.max(0, puzzle.entries.findIndex((entry, index) => !solved.has(index)));
+  let activeIndex = 0;
 
-  const loadPuzzle = (index) => {
+  const loadPuzzle = (index, preferredEntryIndex = null) => {
     puzzleIndex = index;
     puzzle = crosswordPuzzles[puzzleIndex];
     solved = new Set(getCrosswordState(puzzle).solved);
     const firstOpen = puzzle.entries.findIndex((entry, entryIndex) => !solved.has(entryIndex));
-    activeIndex = firstOpen >= 0 ? firstOpen : 0;
+    const canUsePreferred =
+      Number.isInteger(preferredEntryIndex) &&
+      preferredEntryIndex >= 0 &&
+      preferredEntryIndex < puzzle.entries.length &&
+      !solved.has(preferredEntryIndex);
+    activeIndex = canUsePreferred ? preferredEntryIndex : firstOpen >= 0 ? firstOpen : 0;
   };
+
+  loadPuzzle(puzzleIndex, savedPosition ? savedPosition.entryIndex : null);
 
   const entryCells = (entry) => {
     const cells = [];
@@ -3359,17 +3439,58 @@ function setupCrossword(stats) {
     return cells;
   };
 
-  const moveToNextOpen = () => {
-    const next = puzzle.entries.findIndex((entry, index) => index > activeIndex && !solved.has(index));
-    if (next >= 0) {
-      activeIndex = next;
-      return;
+  const getOpenPositions = () =>
+    crosswordPuzzles.flatMap((item, itemIndex) => {
+      const state = getCrosswordState(item);
+      return item.entries
+        .map((entry, entryIndex) => ({ puzzleIndex: itemIndex, entryIndex }))
+        .filter((position) => !state.solved.includes(position.entryIndex));
+    });
+
+  const moveToOpenPosition = (direction) => {
+    const open = getOpenPositions();
+    if (!open.length) {
+      return false;
     }
-    const first = puzzle.entries.findIndex((entry, index) => !solved.has(index));
-    if (first >= 0) {
-      activeIndex = first;
+    const current = open.findIndex(
+      (position) => position.puzzleIndex === puzzleIndex && position.entryIndex === activeIndex
+    );
+    let targetIndex = current + direction;
+    if (current < 0) {
+      targetIndex =
+        direction >= 0
+          ? open.findIndex(
+              (position) =>
+                position.puzzleIndex > puzzleIndex ||
+                (position.puzzleIndex === puzzleIndex && position.entryIndex > activeIndex)
+            )
+          : open
+              .map((position, index) => ({ position, index }))
+              .filter(
+                (item) =>
+                  item.position.puzzleIndex < puzzleIndex ||
+                  (item.position.puzzleIndex === puzzleIndex && item.position.entryIndex < activeIndex)
+              )
+              .reduce((lastIndex, item) => item.index, -1);
+      if (targetIndex < 0) {
+        targetIndex = direction >= 0 ? 0 : open.length - 1;
+      }
     }
+    const target = open[(targetIndex + open.length) % open.length];
+    loadPuzzle(target.puzzleIndex, target.entryIndex);
+    return true;
   };
+
+  const moveToNextOpen = () => {
+    moveToOpenPosition(1);
+  };
+
+  const getActiveEntryNumber = () =>
+    crosswordPuzzles
+      .slice(0, puzzleIndex)
+      .reduce((sum, item) => sum + item.entries.length, 0) +
+    activeIndex +
+    1;
 
   const buildCellMap = () => {
     const map = new Map();
@@ -3415,10 +3536,11 @@ function setupCrossword(stats) {
       return;
     }
     const entry = puzzle.entries[activeIndex];
+    saveCrosswordPosition(puzzle, activeIndex);
     const cellMap = buildCellMap();
     const expectedAnswer = normalizeGermanWord(entry.answer);
     const progressCounts = getCrosswordProgressCounts();
-    const overallStep = Math.min(progressCounts.solved + 1, progressCounts.total);
+    const overallStep = getActiveEntryNumber();
     const clueSpeech = `${entry.clue}. ${entry.answer.length} Buchstaben.`;
     game.speechAction = (options = {}) => speakText(clueSpeech, options);
     setPrompt(
@@ -3465,9 +3587,31 @@ function setupCrossword(stats) {
     const panel = document.createElement("div");
     panel.className = "crossword-panel";
 
+    const navRow = document.createElement("div");
+    navRow.className = "crossword-nav-row";
+
+    const menuButton = document.createElement("button");
+    menuButton.type = "button";
+    menuButton.className = "crossword-nav-button";
+    menuButton.textContent = "Men\u00fc";
+
+    const prevButton = document.createElement("button");
+    prevButton.type = "button";
+    prevButton.className = "crossword-nav-button";
+    prevButton.textContent = "Zur\u00fcck";
+
+    const nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.className = "crossword-nav-button";
+    nextButton.textContent = "Weiter";
+
+    navRow.appendChild(menuButton);
+    navRow.appendChild(prevButton);
+    navRow.appendChild(nextButton);
+
     const step = document.createElement("div");
     step.className = "crossword-step";
-    step.textContent = `${overallStep}/${progressCounts.total} | ${entry.answer.length} Buchstaben`;
+    step.textContent = `${overallStep}/${progressCounts.total} | ${progressCounts.solved} gel\u00f6st`;
 
     const clue = document.createElement("div");
     clue.className = "crossword-clue";
@@ -3706,6 +3850,23 @@ function setupCrossword(stats) {
 
     voiceButton.addEventListener("click", startVoiceAnswer);
 
+    menuButton.addEventListener("click", () => {
+      playSfx("select");
+      showExercisePicker();
+    });
+
+    prevButton.addEventListener("click", () => {
+      moveToOpenPosition(-1);
+      playSfx("select");
+      render();
+    });
+
+    nextButton.addEventListener("click", () => {
+      moveToOpenPosition(1);
+      playSfx("select");
+      render();
+    });
+
     submit.addEventListener("click", checkAnswer);
     input.addEventListener("input", () => {
       input.value = normalizeGermanWord(input.value);
@@ -3717,6 +3878,7 @@ function setupCrossword(stats) {
       }
     });
 
+    panel.appendChild(navRow);
     panel.appendChild(step);
     panel.appendChild(clue);
     panel.appendChild(slots);
@@ -3749,19 +3911,11 @@ function setupCrossword(stats) {
         }
       }
       if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-        moveToNextOpen();
+        moveToOpenPosition(1);
         render();
       }
       if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-        const open = puzzle.entries
-          .map((entry, index) => index)
-          .filter((index) => !solved.has(index));
-        const current = open.indexOf(activeIndex);
-        if (current > 0) {
-          activeIndex = open[current - 1];
-        } else if (open.length) {
-          activeIndex = open[open.length - 1];
-        }
+        moveToOpenPosition(-1);
         render();
       }
     },
@@ -5318,7 +5472,7 @@ function showStartOverlay() {
     body: "Startet mit Kreuzwortraetsel. Alles ist gross, ruhig und ohne Zeitlimit.",
     statsHtml,
     primaryLabel: "Start: Kreuzwort",
-    secondaryLabel: "Uebung waehlen",
+    secondaryLabel: "Hauptmen\u00fc",
     onPrimary: () => {
       startCrosswordSession();
     },

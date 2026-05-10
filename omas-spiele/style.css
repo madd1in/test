@@ -135,6 +135,20 @@ body.focus-mode .card {
   border-radius: 22px;
 }
 
+body.menu-open .hud,
+body.menu-open .progress-panel {
+  display: none;
+}
+
+body.menu-open .app {
+  gap: 12px;
+}
+
+body.menu-open .card {
+  min-height: min(420px, calc(100vh - 56px));
+  align-content: center;
+}
+
 body.focus-mode .feedback {
   font-size: 0.85rem;
   opacity: 0.8;
@@ -1548,7 +1562,8 @@ button.ghost,
 .clue-chip,
 .speech-button,
 .voice-button,
-.hint-button {
+.hint-button,
+.crossword-nav-button {
   min-height: 60px;
   border-radius: 8px;
   font-size: 1.15rem;
@@ -1587,6 +1602,20 @@ body.focus-mode .options {
   color: #334155;
 }
 
+.home-menu {
+  width: min(520px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+}
+
+.home-menu-button {
+  width: 100%;
+  min-height: 76px;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
 .input-area,
 body.focus-mode .input-area {
   width: 100%;
@@ -1610,6 +1639,7 @@ body.focus-mode .input-area {
 .option-btn:focus-visible,
 .chip:focus-visible,
 .clue-chip:focus-visible,
+.crossword-nav-button:focus-visible,
 button.primary:focus-visible,
 button.ghost:focus-visible {
   outline: 4px solid #f2b84b;
@@ -1838,6 +1868,26 @@ button.ghost:focus-visible {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.crossword-nav-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crossword-nav-button {
+  padding: 10px 8px;
+  border: 3px solid rgba(15, 94, 156, 0.22);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.crossword-nav-button:first-child {
+  background: #d9edf8;
+  color: #0f5e9c;
 }
 
 .speech-button {
@@ -2099,6 +2149,7 @@ button.ghost:focus-visible {
   .speech-button,
   .voice-button,
   .hint-button,
+  .crossword-nav-button,
   .crossword-action-row button {
     width: 100%;
     font-size: 1.2rem;
@@ -2343,24 +2394,46 @@ body.focus-mode[data-mode="crossword"] .feedback {
   opacity: 1;
 }
 
+body.focus-mode .home-menu {
+  width: min(440px, 100%);
+  gap: 12px;
+}
+
+body.focus-mode .home-menu-button {
+  min-height: 78px;
+  font-size: 1.4rem;
+}
+
 body.focus-mode[data-mode="crossword"] .crossword-panel {
-  gap: 8px;
+  gap: 6px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-nav-row {
+  gap: 6px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-nav-button {
+  min-height: 48px;
+  padding: 6px 4px;
+  font-size: 0.95rem;
+  font-weight: 900;
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-step {
-  padding: 8px 12px;
+  padding: 6px 10px;
+  font-size: 0.98rem;
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-clue {
-  padding: 12px 14px;
-  font-size: 2rem;
+  padding: 10px 12px;
+  font-size: 1.75rem;
   line-height: 1.2;
 }
 
 body.focus-mode[data-mode="crossword"] .input-area input {
-  min-height: 64px;
-  padding: 10px 14px;
-  font-size: 1.7rem;
+  min-height: 58px;
+  padding: 8px 12px;
+  font-size: 1.55rem;
   font-weight: 900;
 }
 
@@ -2369,8 +2442,8 @@ body.focus-mode[data-mode="crossword"] .answer-slots {
 }
 
 body.focus-mode[data-mode="crossword"] .answer-slot {
-  min-height: 52px;
-  font-size: 1.7rem;
+  min-height: 46px;
+  font-size: 1.5rem;
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-action-row {
@@ -2378,8 +2451,8 @@ body.focus-mode[data-mode="crossword"] .crossword-action-row {
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-action-row button {
-  min-height: 66px;
-  font-size: 1.35rem;
+  min-height: 58px;
+  font-size: 1.25rem;
   font-weight: 900;
 }
 
