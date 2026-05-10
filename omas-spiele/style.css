@@ -1,6 +1,6 @@
 :root {
-  --ink: #1b1d1f;
-  --muted: #5b626a;
+  --ink: #111827;
+  --muted: #374151;
   --paper: #f7f2e8;
   --card: rgba(255, 255, 255, 0.9);
   --accent: #f26b4f;
@@ -27,7 +27,8 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  font-family: "Optima", "Candara", "Segoe UI", sans-serif;
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  line-height: 1.35;
   background: radial-gradient(circle at top left, #f7f2e8 0%, #dfe7f4 45%, #e6f0e6 100%);
   display: flex;
   justify-content: center;
@@ -357,7 +358,7 @@ body.focus-mode .mini-item:nth-child(3) .mini-value {
 h1 {
   margin: 0;
   font-size: clamp(2.2rem, 4vw, 3.4rem);
-  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
 }
 
 .subtitle {
@@ -935,7 +936,7 @@ body[data-mode="memory"] .card {
 .prompt {
   font-size: clamp(2.1rem, 4.2vw, 3.4rem);
   font-weight: 700;
-  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
 }
 
 body.flow-high .prompt {
@@ -1755,7 +1756,7 @@ button.ghost:focus-visible {
 
 .crossword-action-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -2196,8 +2197,8 @@ body.focus-mode[data-mode="crossword"] .card {
 
 body.focus-mode[data-mode="wordle"] .card {
   width: min(640px, 100%);
-  padding: 14px;
-  gap: 10px;
+  padding: 12px;
+  gap: 8px;
 }
 
 body.focus-mode[data-mode="wordle"] .mode-title {
@@ -2216,12 +2217,12 @@ body.focus-mode[data-mode="wordle"] .subprompt {
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-wrap {
-  gap: 10px;
+  gap: 8px;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-board {
-  grid-template-columns: repeat(5, 44px);
-  gap: 4px;
+  grid-template-columns: repeat(5, 46px);
+  gap: 3px;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-tile {
@@ -2236,7 +2237,9 @@ body.focus-mode[data-mode="wordle"] .wordle-form {
 
 body.focus-mode[data-mode="wordle"] .input-area input,
 body.focus-mode[data-mode="wordle"] .wordle-form button {
-  min-height: 56px;
+  min-height: 62px;
+  font-size: 1.55rem;
+  font-weight: 900;
 }
 
 body.focus-mode[data-mode="crossword"] .feedback {
@@ -2255,12 +2258,15 @@ body.focus-mode[data-mode="crossword"] .crossword-step {
 
 body.focus-mode[data-mode="crossword"] .crossword-clue {
   padding: 12px 14px;
+  font-size: 2rem;
   line-height: 1.2;
 }
 
 body.focus-mode[data-mode="crossword"] .input-area input {
-  min-height: 58px;
+  min-height: 64px;
   padding: 10px 14px;
+  font-size: 1.7rem;
+  font-weight: 900;
 }
 
 body.focus-mode[data-mode="crossword"] .answer-slots {
@@ -2268,7 +2274,8 @@ body.focus-mode[data-mode="crossword"] .answer-slots {
 }
 
 body.focus-mode[data-mode="crossword"] .answer-slot {
-  min-height: 48px;
+  min-height: 52px;
+  font-size: 1.7rem;
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-action-row {
@@ -2276,7 +2283,9 @@ body.focus-mode[data-mode="crossword"] .crossword-action-row {
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-action-row button {
-  min-height: 56px;
+  min-height: 66px;
+  font-size: 1.35rem;
+  font-weight: 900;
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-extra summary {
@@ -2304,7 +2313,7 @@ body.playing .mobile-quickbar {
 
 @media (max-width: 760px) {
   body {
-    padding-bottom: 92px;
+    padding-bottom: 12px;
   }
 
   .top {
@@ -2340,10 +2349,6 @@ body.playing .mobile-quickbar {
 
   .progress-clear {
     width: 100%;
-  }
-
-  .mobile-quickbar {
-    display: grid;
   }
 
   body.focus-mode[data-mode="crossword"] .crossword-extra {

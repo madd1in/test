@@ -32,7 +32,6 @@ const dom = {
   quickBgm: document.getElementById("quickBgm"),
   quickSfx: document.getElementById("quickSfx"),
   quickSpeech: document.getElementById("quickSpeech"),
-  quickWordle: document.getElementById("quickWordle"),
   coachTip: document.getElementById("coachTip"),
   modeRelic: document.getElementById("modeRelic"),
   artifactFill: document.getElementById("artifactFill"),
@@ -1279,12 +1278,6 @@ function setupAudioControls() {
       speakCurrentClue({ force: true });
     });
   }
-  if (dom.quickWordle) {
-    dom.quickWordle.addEventListener("click", () => {
-      startWordleSession();
-      playSfx("select");
-    });
-  }
   if (dom.clearProgress) {
     dom.clearProgress.addEventListener("click", resetSavedProgress);
   }
@@ -2385,6 +2378,9 @@ function ensureConfettiLayer() {
 }
 
 function spawnConfetti(count = 16) {
+  if (document.body.classList.contains("focus-mode") || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
   const layer = ensureConfettiLayer();
   const colors = ["#f26b4f", "#f1b631", "#3aa370", "#2f7ea8", "#f08c2e"];
   for (let i = 0; i < count; i += 1) {
@@ -3327,13 +3323,11 @@ function setupCrossword(stats) {
     const submit = document.createElement("button");
     submit.type = "button";
     submit.className = "primary";
-    submit.textContent = "Pruefen";
+    submit.textContent = "OK";
 
     const actionRow = document.createElement("div");
     actionRow.className = "crossword-action-row";
     actionRow.appendChild(speakButton);
-    actionRow.appendChild(voiceButton);
-    actionRow.appendChild(hintButton);
     actionRow.appendChild(submit);
 
     const extraDetails = document.createElement("details");
@@ -3535,10 +3529,8 @@ function setupCrossword(stats) {
     panel.appendChild(slots);
     panel.appendChild(input);
     panel.appendChild(actionRow);
-    panel.appendChild(hintLine);
     extraDetails.appendChild(grid);
     extraDetails.appendChild(clueList);
-    panel.appendChild(extraDetails);
     layout.appendChild(panel);
     dom.inputArea.appendChild(layout);
     updateHintLine();
@@ -3683,7 +3675,7 @@ function setupWordle(stats) {
     const submit = document.createElement("button");
     submit.type = "button";
     submit.className = "primary";
-    submit.textContent = "Pruefen";
+    submit.textContent = "OK";
 
     const checkGuess = () => {
       if (!active) {
