@@ -1521,7 +1521,9 @@ body.focus-mode .coach-tip {
 button.primary,
 button.ghost,
 .clue-chip,
-.speech-button {
+.speech-button,
+.voice-button,
+.hint-button {
   min-height: 60px;
   border-radius: 8px;
   font-size: 1.15rem;
@@ -1739,6 +1741,12 @@ button.ghost:focus-visible {
   align-items: center;
 }
 
+.crossword-voice-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, auto);
+  gap: 10px;
+}
+
 .speech-button {
   padding: 12px 16px;
   border: 0;
@@ -1747,7 +1755,29 @@ button.ghost:focus-visible {
   font-weight: 850;
 }
 
-.speech-button:disabled {
+.voice-button {
+  padding: 12px 16px;
+  border: 0;
+  background: #067a46;
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.voice-button.listening {
+  background: #b42318;
+  box-shadow: 0 0 0 4px rgba(180, 35, 24, 0.16);
+}
+
+.hint-button {
+  padding: 12px 16px;
+  border: 3px solid rgba(15, 94, 156, 0.22);
+  background: #fff8db;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.speech-button:disabled,
+.voice-button:disabled {
   opacity: 0.55;
 }
 
@@ -1755,6 +1785,17 @@ button.ghost:focus-visible {
   color: var(--muted);
   font-size: 1rem;
   font-weight: 700;
+}
+
+.crossword-hint-line {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 2px solid rgba(15, 94, 156, 0.14);
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 800;
 }
 
 .answer-slots {
@@ -1926,12 +1967,23 @@ button.ghost:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .speech-button {
+  .crossword-voice-row {
+    grid-template-columns: 1fr;
+  }
+
+  .speech-button,
+  .voice-button,
+  .hint-button {
     width: 100%;
     font-size: 1.2rem;
   }
 
   .speech-note {
+    text-align: center;
+  }
+
+  .crossword-hint-line {
+    font-size: 1.15rem;
     text-align: center;
   }
 
