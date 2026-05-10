@@ -287,6 +287,7 @@
     enemyExtFrames: 24,
     questBossFrames: 24,
     mapMode: "cycle-off-mini-full-v1",
+    objectiveDoorGuide: "in-world-next-exit-v1",
     mobileTouch: "large-hit-targets-v3-readable-fonts",
     mobileCeilingDoors: "auto-enter-touch-overlap-v1",
     mobileDoorReentryGuard: "block-reverse-door-until-exit-v1",
@@ -852,6 +853,24 @@
       }
     }
     return null;
+  }
+
+  function nextObjectiveDoor() {
+    const target = nextObjectiveRoom();
+    if (!target || target === game.roomId || !game.room) return null;
+    return nextHopDoor(target);
+  }
+
+  function objectiveDoorDebug() {
+    const door = nextObjectiveDoor();
+    if (!door) return null;
+    return {
+      to: door.to,
+      side: door.side,
+      open: doorOpen(door),
+      x: Math.round(door.x),
+      y: Math.round(door.y)
+    };
   }
 
   function compassText() {
@@ -2136,6 +2155,7 @@
       step: game.room.puzzle.step || 0,
       solved: puzzleSolved(game.room.puzzle.id)
     } : null,
+    objectiveDoor: objectiveDoorDebug(),
     survey: surveyProgress(),
     questSeals: questSealProgress(),
     grotto: grottoDebugState(),
@@ -5025,6 +5045,7 @@
     ctx.save();
     ctx.translate(-Math.round(game.cameraX), -Math.round(game.cameraY));
     drawDoors();
+    drawObjectiveDoorGuide();
     drawRoomMechanics();
     drawShrine();
     drawCandles();
@@ -5917,6 +5938,65 @@
     ctx.drawImage(img, cellX * DOOR_FRAME_SIZE, 0, DOOR_FRAME_SIZE, DOOR_FRAME_SIZE, x, y, dw, dh);
     ctx.restore();
     return true;
+  }
+
+  function objectiveDoorGuideCenter(door) {
+    const cx = door.x + door.w / 2;
+    const cy = door.y + door.h / 2;
+    if (door.side === "left") return { x: door.x + door.w + 30, y: cy };
+    if (door.side === "right") return { x: door.x - 30, y: cy };
+    if (door.side === "up") return { x: cx, y: door.y + door.h + 26 };
+    if (door.side === "down") return { x: cx, y: door.y - 22 };
+    return { x: cx, y: cy };
+  }
+
+  function drawObjectiveArrow(cx, cy, side, size) {
+    ctx.beginPath();
+    if (side === "left") {
+      ctx.moveTo(cx - size, cy);
+      ctx.lineTo(cx + size * 0.62, cy - size * 0.72);
+      ctx.lineTo(cx + size * 0.62, cy + size * 0.72);
+    } else if (side === "right") {
+      ctx.moveTo(cx + size, cy);
+      ctx.lineTo(cx - size * 0.62, cy - size * 0.72);
+      ctx.lineTo(cx - size * 0.62, cy + size * 0.72);
+    } else if (side === "up") {
+      ctx.moveTo(cx, cy - size);
+      ctx.lineTo(cx - size * 0.72, cy + size * 0.62);
+      ctx.lineTo(cx + size * 0.72, cy + size * 0.62);
+    } else {
+      ctx.moveTo(cx, cy + size);
+      ctx.lineTo(cx - size * 0.72, cy - size * 0.62);
+      ctx.lineTo(cx + size * 0.72, cy - size * 0.62);
+    }
+    ctx.closePath();
+  }
+
+  function drawObjectiveDoorGuide() {
+    const door = nextObjectiveDoor();
+    if (!door || door.hidden) return;
+    const open = doorOpen(door);
+    const center = objectiveDoorGuideCenter(door);
+    const pulse = 0.5 + 0.5 * Math.sin(game.time * 4.2);
+    const color = open ? "#ffd065" : "#ff5465";
+    ctx.save();
+    ctx.globalAlpha = open ? 0.66 + pulse * 0.18 : 0.5 + pulse * 0.16;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = open ? 14 + pulse * 10 : 10 + pulse * 8;
+    ctx.strokeStyle = open ? "rgba(255, 224, 128, 0.82)" : "rgba(255, 84, 101, 0.74)";
+    ctx.fillStyle = open ? "rgba(255, 208, 101, 0.72)" : "rgba(255, 84, 101, 0.58)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 17 + pulse * 5, 0, Math.PI * 2);
+    ctx.stroke();
+    drawObjectiveArrow(center.x, center.y, door.side, 10 + pulse * 2);
+    ctx.fill();
+    ctx.globalAlpha *= 0.24;
+    const trigger = doorTriggerBox(door);
+    ctx.strokeStyle = open ? "rgba(255, 224, 128, 0.55)" : "rgba(255, 84, 101, 0.48)";
+    ctx.setLineDash([8, 8]);
+    ctx.strokeRect(trigger.x, trigger.y, trigger.w, trigger.h);
+    ctx.restore();
   }
 
   function drawRoomMechanics() {
