@@ -4,7 +4,7 @@ Ein eigenstaendiges, Zelda-inspiriertes Top-down-Browsergame mit lokalen Assets.
 
 Weitere Deploys:
 
-- [Omas Spiele](./omas-spiele/)
+- [Omas Spiele](./omas-spiele/) - Senior:innen-freundliches Kreuzwortraetsel, Wordle und Gehirnspiele mit grossen Bedienelementen
 - [Resonance Lab FPS](./resonance-lab-fps/)
 - [Super Tile Hopper](./super-tile-hopper/)
 

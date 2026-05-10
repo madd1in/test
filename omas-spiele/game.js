@@ -48,7 +48,7 @@ const dom = {
 };
 
 const settings = {
-  roundSeconds: 40,
+  roundSeconds: 90,
 };
 
 const storageKeys = {
@@ -61,6 +61,18 @@ const storageKeys = {
 const profile = loadProfile();
 
 const modes = [
+  {
+    id: "crossword",
+    title: "Kreuzwortraetsel",
+    intro: "Loese ein grosses, gut lesbares Kreuzwortraetsel.",
+    setup: setupCrossword,
+  },
+  {
+    id: "wordle",
+    title: "Wordle",
+    intro: "Errate das Wort in ruhigen Schritten.",
+    setup: setupWordle,
+  },
   {
     id: "math",
     title: "Rechen-Tempo",
@@ -136,6 +148,8 @@ const modes = [
 ];
 
 const modeLore = {
+  crossword: "Kreuzwort-Tafel",
+  wordle: "Wort-Siegel",
   math: "Relikt der Zahlen",
   stroop: "Spiegel-Siegel",
   reaction: "Blitzamulett",
@@ -393,6 +407,110 @@ const dualWords = [
 ];
 const rotationDirs = ["N", "E", "S", "W"];
 
+const wordleWords = [
+  "APFEL",
+  "BLUME",
+  "SONNE",
+  "LAMPE",
+  "WOLKE",
+  "TISCH",
+  "RADIO",
+  "KASSE",
+  "KARTE",
+  "HONIG",
+  "WAGEN",
+  "GABEL",
+  "BIRNE",
+  "PFERD",
+  "WASSER",
+  "GARTEN",
+].filter((word) => word.length === 5);
+
+const crosswordPuzzles = [
+  {
+    title: "Daheim und Garten",
+    size: 9,
+    entries: [
+      {
+        clue: "Rotes oder gruenes Obst",
+        answer: "APFEL",
+        row: 1,
+        col: 1,
+        dir: "across",
+      },
+      {
+        clue: "Tier, auf dem man reiten kann",
+        answer: "PFERD",
+        row: 1,
+        col: 2,
+        dir: "down",
+      },
+      {
+        clue: "Helle Oeffnung in der Wand",
+        answer: "FENSTER",
+        row: 1,
+        col: 3,
+        dir: "down",
+      },
+      {
+        clue: "Macht am Abend Licht",
+        answer: "LAMPE",
+        row: 1,
+        col: 5,
+        dir: "down",
+      },
+      {
+        clue: "Daraus trinkt man Tee",
+        answer: "TASSE",
+        row: 6,
+        col: 4,
+        dir: "across",
+      },
+    ],
+  },
+  {
+    title: "Alltag",
+    size: 9,
+    entries: [
+      {
+        clue: "Damit schaut man Nachrichten",
+        answer: "RADIO",
+        row: 0,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Hilft beim Heimweg",
+        answer: "KARTE",
+        row: 2,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Kleines Heft zum Lesen",
+        answer: "BUCH",
+        row: 3,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Steht oft neben dem Sofa",
+        answer: "TISCH",
+        row: 5,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Warm und weich im Bett",
+        answer: "KISSEN",
+        row: 0,
+        col: 7,
+        dir: "down",
+      },
+    ],
+  },
+];
+
 const game = {
   modeIndex: 0,
   score: 0,
@@ -419,6 +537,10 @@ const audioState = {
   sfx: true,
   bgm: true,
   bgmTimer: null,
+  bgmAudio: null,
+  localSfx: {},
+  localAudioReady: false,
+  usingLocalBgm: false,
   bgmStep: 0,
   bgmInterval: 1100,
   baseInterval: 1100,
@@ -427,6 +549,21 @@ const audioState = {
 };
 
 let audioAutoArmed = false;
+
+const audioAssets = {
+  bgm: "../assets/audio/glimmerwald-theme.wav",
+  sfx: {
+    correct: "../assets/audio/pickup.wav",
+    wrong: "../assets/audio/hurt.wav",
+    start: "../assets/audio/gate.wav",
+    roundEnd: "../assets/audio/hit.wav",
+    finish: "../assets/audio/gate.wav",
+    mission: "../assets/audio/pickup.wav",
+    rupee: "../assets/audio/pickup.wav",
+    fairy: "../assets/audio/gate.wav",
+    select: "../assets/audio/slash.wav",
+  },
+};
 
 const bgmThemes = {
   calm: {
@@ -547,6 +684,7 @@ function updateComboBadge(multiplier) {
 }
 
 function ensureAudio() {
+  setupLocalAudio();
   if (!audioState.ctx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) {
@@ -557,6 +695,53 @@ function ensureAudio() {
   if (audioState.ctx && audioState.ctx.state === "suspended") {
     audioState.ctx.resume();
   }
+}
+
+function setupLocalAudio() {
+  if (audioState.localAudioReady || typeof Audio === "undefined") {
+    return;
+  }
+  audioState.localAudioReady = true;
+  audioState.bgmAudio = new Audio(audioAssets.bgm);
+  audioState.bgmAudio.loop = true;
+  audioState.bgmAudio.preload = "auto";
+  audioState.bgmAudio.volume = 0.18;
+  Object.entries(audioAssets.sfx).forEach(([name, src]) => {
+    const clip = new Audio(src);
+    clip.preload = "auto";
+    clip.volume = name === "wrong" ? 0.28 : 0.34;
+    audioState.localSfx[name] = clip;
+  });
+}
+
+function playLocalSfx(name) {
+  setupLocalAudio();
+  const source = audioState.localSfx[name] || audioState.localSfx.select;
+  if (!source) {
+    return false;
+  }
+  const clip = source.cloneNode();
+  clip.volume = source.volume;
+  clip.play().catch(() => {});
+  return true;
+}
+
+function startLocalBgm() {
+  setupLocalAudio();
+  if (!audioState.bgmAudio) {
+    return false;
+  }
+  audioState.usingLocalBgm = true;
+  audioState.bgmAudio.volume = document.body.classList.contains("focus-mode") ? 0.12 : 0.18;
+  audioState.bgmAudio
+    .play()
+    .catch(() => {
+      audioState.usingLocalBgm = false;
+      if (audioState.bgm) {
+        startProceduralBgm();
+      }
+    });
+  return true;
 }
 
 function playTone(freq, duration = 0.12, type = "sine", gain = 0.06, when = 0) {
@@ -608,6 +793,9 @@ function setBgmTheme(nextTheme, force = false) {
 
 function playSfx(name) {
   if (!audioState.sfx) {
+    return;
+  }
+  if (playLocalSfx(name)) {
     return;
   }
   if (!audioState.ctx) {
@@ -664,6 +852,20 @@ function startBgm() {
   if (!audioState.bgm) {
     return;
   }
+  if (startLocalBgm()) {
+    return;
+  }
+  startProceduralBgm();
+}
+
+function startProceduralBgm() {
+  if (audioState.bgmTimer) {
+    clearInterval(audioState.bgmTimer);
+    audioState.bgmTimer = null;
+  }
+  if (!audioState.bgm) {
+    return;
+  }
   ensureAudio();
   if (!audioState.ctx) {
     return;
@@ -690,6 +892,10 @@ function startBgm() {
 }
 
 function stopBgm() {
+  audioState.usingLocalBgm = false;
+  if (audioState.bgmAudio) {
+    audioState.bgmAudio.pause();
+  }
   if (audioState.bgmTimer) {
     clearInterval(audioState.bgmTimer);
     audioState.bgmTimer = null;
@@ -697,6 +903,9 @@ function stopBgm() {
 }
 
 function refreshBgmTempo(streak) {
+  if (audioState.usingLocalBgm) {
+    return;
+  }
   const base = audioState.baseInterval || 1100;
   const min = Math.max(680, base - 380);
   const nextInterval = clamp(base - streak * 40, min, base);
@@ -717,7 +926,8 @@ function updateAudioButtons() {
   }
   if (dom.toggleBgm) {
     const themeLabel = bgmThemes[audioState.theme] ? bgmThemes[audioState.theme].label : "Calm";
-    dom.toggleBgm.textContent = audioState.bgm ? `BGM: An (${themeLabel})` : "BGM: Aus";
+    const label = audioState.usingLocalBgm ? "Lokal" : themeLabel;
+    dom.toggleBgm.textContent = audioState.bgm ? `BGM: An (${label})` : "BGM: Aus";
     dom.toggleBgm.setAttribute("aria-pressed", String(audioState.bgm));
     dom.toggleBgm.classList.toggle("active", audioState.bgm);
   }
@@ -728,7 +938,7 @@ function updateFullButton() {
     return;
   }
   const isFull = Boolean(document.fullscreenElement);
-  dom.toggleFull.textContent = isFull ? "Fenster" : "Fullscreen";
+  dom.toggleFull.textContent = isFull ? "Fenster" : "Vollbild";
   dom.toggleFull.setAttribute("aria-pressed", String(isFull));
   dom.toggleFull.classList.toggle("active", isFull);
 }
@@ -738,7 +948,7 @@ function updateFocusButton() {
     return;
   }
   const isFocus = document.body.classList.contains("focus-mode");
-  dom.toggleFocus.textContent = isFocus ? "Focus An" : "Focus";
+  dom.toggleFocus.textContent = isFocus ? "Einfach An" : "Einfach";
   dom.toggleFocus.setAttribute("aria-pressed", String(isFocus));
   dom.toggleFocus.classList.toggle("active", isFocus);
 }
@@ -748,7 +958,7 @@ function updateCompactButton() {
     return;
   }
   const isCompact = document.body.classList.contains("compact-hud");
-  dom.toggleCompact.textContent = isCompact ? "Compact An" : "Compact HUD";
+  dom.toggleCompact.textContent = isCompact ? "Gross An" : "Grosse Ansicht";
   dom.toggleCompact.setAttribute("aria-pressed", String(isCompact));
   dom.toggleCompact.classList.toggle("active", isCompact);
 }
@@ -1724,7 +1934,10 @@ function updatePlayLayout() {
 
 function applyDefaultUIState() {
   document.body.classList.add("focus-mode", "compact-hud");
-  setBgmTheme("calm", true);
+  audioState.theme = "calm";
+  audioState.baseInterval = bgmThemes.calm.interval;
+  audioState.bgmInterval = bgmThemes.calm.interval;
+  updateAudioButtons();
   updateFocusButton();
   updateCompactButton();
   updateMiniHud();
@@ -2089,7 +2302,8 @@ function getActiveModes() {
 }
 
 function pickRandomModes(count) {
-  const pool = shuffle([...modes]);
+  const priority = modes.filter((mode) => mode.id === "crossword" || mode.id === "wordle");
+  const pool = [...priority, ...shuffle(modes.filter((mode) => !priority.includes(mode)))];
   return pool.slice(0, Math.min(count, pool.length));
 }
 
@@ -2469,6 +2683,384 @@ function finishGame() {
       }
     },
   });
+}
+
+function normalizeGermanWord(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\u00c4/g, "AE")
+    .replace(/\u00d6/g, "OE")
+    .replace(/\u00dc/g, "UE")
+    .replace(/\u1e9e/g, "SS")
+    .replace(/\u00df/g, "SS")
+    .replace(/[^A-Z]/g, "");
+}
+
+function setupCrossword(stats) {
+  let active = true;
+  let puzzleIndex = randInt(0, crosswordPuzzles.length - 1);
+  let puzzle = crosswordPuzzles[puzzleIndex];
+  let solved = new Set();
+  let activeIndex = 0;
+
+  const entryCells = (entry) => {
+    const cells = [];
+    for (let i = 0; i < entry.answer.length; i += 1) {
+      cells.push({
+        row: entry.row + (entry.dir === "down" ? i : 0),
+        col: entry.col + (entry.dir === "across" ? i : 0),
+        letter: entry.answer[i],
+      });
+    }
+    return cells;
+  };
+
+  const moveToNextOpen = () => {
+    const next = puzzle.entries.findIndex((entry, index) => index > activeIndex && !solved.has(index));
+    if (next >= 0) {
+      activeIndex = next;
+      return;
+    }
+    const first = puzzle.entries.findIndex((entry, index) => !solved.has(index));
+    if (first >= 0) {
+      activeIndex = first;
+    }
+  };
+
+  const buildCellMap = () => {
+    const map = new Map();
+    puzzle.entries.forEach((entry, index) => {
+      entryCells(entry).forEach((cell, letterIndex) => {
+        const key = `${cell.row},${cell.col}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            letter: cell.letter,
+            entries: [],
+            numbers: [],
+          });
+        }
+        const item = map.get(key);
+        item.entries.push(index);
+        if (letterIndex === 0) {
+          item.numbers.push(index + 1);
+        }
+      });
+    });
+    return map;
+  };
+
+  const render = () => {
+    if (!active) {
+      return;
+    }
+    const entry = puzzle.entries[activeIndex];
+    const cellMap = buildCellMap();
+    setPrompt(
+      puzzle.title,
+      `Frage ${activeIndex + 1}: ${entry.clue} (${entry.answer.length} Buchstaben)`
+    );
+    dom.options.innerHTML = "";
+    dom.inputArea.innerHTML = "";
+
+    const layout = document.createElement("div");
+    layout.className = "crossword-layout";
+
+    const grid = document.createElement("div");
+    grid.className = "crossword-grid";
+    grid.style.setProperty("--crossword-size", puzzle.size);
+    grid.setAttribute("aria-label", "Kreuzwortraetsel Raster");
+
+    for (let row = 0; row < puzzle.size; row += 1) {
+      for (let col = 0; col < puzzle.size; col += 1) {
+        const key = `${row},${col}`;
+        const data = cellMap.get(key);
+        const cell = document.createElement("div");
+        cell.className = data ? "crossword-cell" : "crossword-cell blocked";
+        if (data) {
+          const isActive = data.entries.includes(activeIndex);
+          const isSolved = data.entries.some((index) => solved.has(index));
+          cell.classList.toggle("active", isActive);
+          cell.classList.toggle("solved", isSolved);
+          cell.textContent = isSolved ? data.letter : "";
+          if (data.numbers.length) {
+            const num = document.createElement("span");
+            num.className = "crossword-number";
+            num.textContent = data.numbers[0];
+            cell.appendChild(num);
+          }
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    const panel = document.createElement("div");
+    panel.className = "crossword-panel";
+
+    const clue = document.createElement("div");
+    clue.className = "crossword-clue";
+    clue.textContent = `${activeIndex + 1}. ${entry.clue}`;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.autocomplete = "off";
+    input.inputMode = "text";
+    input.maxLength = entry.answer.length + 2;
+    input.placeholder = "Antwort";
+    input.setAttribute("aria-label", `Antwort fuer Frage ${activeIndex + 1}`);
+
+    const submit = document.createElement("button");
+    submit.type = "button";
+    submit.className = "primary";
+    submit.textContent = "Antwort pruefen";
+
+    const clueList = document.createElement("div");
+    clueList.className = "crossword-clue-list";
+    puzzle.entries.forEach((item, index) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "clue-chip";
+      btn.classList.toggle("active", index === activeIndex);
+      btn.classList.toggle("solved", solved.has(index));
+      btn.textContent = `${index + 1}. ${item.clue}`;
+      btn.addEventListener("click", () => {
+        activeIndex = index;
+        playSfx("select");
+        render();
+      });
+      clueList.appendChild(btn);
+    });
+
+    const checkAnswer = () => {
+      if (!active || solved.has(activeIndex)) {
+        return;
+      }
+      const value = normalizeGermanWord(input.value);
+      const expected = normalizeGermanWord(entry.answer);
+      if (!value) {
+        setFeedback("Bitte eine Antwort eintippen.", "bad");
+        return;
+      }
+      if (value === expected) {
+        solved.add(activeIndex);
+        noteCorrect(stats, 16, "Sehr gut!");
+        if (solved.size >= puzzle.entries.length) {
+          setFeedback("Kreuzwortraetsel geloest!", "good");
+          playSfx("finish");
+          setTimeout(() => {
+            puzzleIndex = (puzzleIndex + 1) % crosswordPuzzles.length;
+            puzzle = crosswordPuzzles[puzzleIndex];
+            solved = new Set();
+            activeIndex = 0;
+            render();
+          }, 900);
+          return;
+        }
+        moveToNextOpen();
+        setTimeout(render, 260);
+      } else {
+        noteWrong(stats, 1, "Noch einmal langsam.");
+        input.select();
+      }
+    };
+
+    submit.addEventListener("click", checkAnswer);
+    input.addEventListener("input", () => {
+      input.value = normalizeGermanWord(input.value);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        checkAnswer();
+      }
+    });
+
+    panel.appendChild(clue);
+    panel.appendChild(input);
+    panel.appendChild(submit);
+    panel.appendChild(clueList);
+    layout.appendChild(grid);
+    layout.appendChild(panel);
+    dom.inputArea.appendChild(layout);
+    input.focus();
+  };
+
+  render();
+
+  return {
+    destroy() {
+      active = false;
+      dom.inputArea.innerHTML = "";
+    },
+    onKey(event) {
+      if (event.key === "Enter") {
+        const button = dom.inputArea.querySelector(".crossword-panel button.primary");
+        if (button) {
+          button.click();
+        }
+      }
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        moveToNextOpen();
+        render();
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        const open = puzzle.entries
+          .map((entry, index) => index)
+          .filter((index) => !solved.has(index));
+        const current = open.indexOf(activeIndex);
+        if (current > 0) {
+          activeIndex = open[current - 1];
+        } else if (open.length) {
+          activeIndex = open[open.length - 1];
+        }
+        render();
+      }
+    },
+  };
+}
+
+function setupWordle(stats) {
+  let active = true;
+  let answer = "";
+  let guesses = [];
+  const maxGuesses = 6;
+
+  const pickAnswer = () => {
+    answer = wordleWords[randInt(0, wordleWords.length - 1)];
+    guesses = [];
+  };
+
+  const scoreGuess = (guess) => {
+    const result = Array(answer.length).fill("miss");
+    const counts = {};
+    answer.split("").forEach((letter, index) => {
+      if (guess[index] !== letter) {
+        counts[letter] = (counts[letter] || 0) + 1;
+      }
+    });
+    guess.split("").forEach((letter, index) => {
+      if (answer[index] === letter) {
+        result[index] = "hit";
+      }
+    });
+    guess.split("").forEach((letter, index) => {
+      if (result[index] === "hit") {
+        return;
+      }
+      if (counts[letter]) {
+        result[index] = "near";
+        counts[letter] -= 1;
+      }
+    });
+    return result;
+  };
+
+  const renderBoard = () => {
+    dom.options.innerHTML = "";
+    dom.inputArea.innerHTML = "";
+    setPrompt("Wordle", "Fuenf Buchstaben. Gruen ist richtig, Gelb ist im Wort.");
+
+    const wrap = document.createElement("div");
+    wrap.className = "wordle-wrap";
+
+    const board = document.createElement("div");
+    board.className = "wordle-board";
+    board.setAttribute("aria-label", "Wordle Raster");
+    for (let row = 0; row < maxGuesses; row += 1) {
+      const guess = guesses[row] || "";
+      const score = guess ? scoreGuess(guess) : [];
+      for (let col = 0; col < answer.length; col += 1) {
+        const tile = document.createElement("div");
+        tile.className = "wordle-tile";
+        if (score[col]) {
+          tile.classList.add(score[col]);
+        }
+        tile.textContent = guess[col] || "";
+        board.appendChild(tile);
+      }
+    }
+
+    const form = document.createElement("div");
+    form.className = "wordle-form";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "text";
+    input.autocomplete = "off";
+    input.maxLength = answer.length;
+    input.placeholder = "WORT";
+    input.setAttribute("aria-label", "Wordle Wort eingeben");
+    const submit = document.createElement("button");
+    submit.type = "button";
+    submit.className = "primary";
+    submit.textContent = "Pruefen";
+
+    const checkGuess = () => {
+      if (!active) {
+        return;
+      }
+      const guess = normalizeGermanWord(input.value).slice(0, answer.length);
+      if (guess.length !== answer.length) {
+        setFeedback("Bitte genau 5 Buchstaben.", "bad");
+        input.focus();
+        return;
+      }
+      guesses.push(guess);
+      if (guess === answer) {
+        const points = Math.max(10, 22 - guesses.length * 2);
+        noteCorrect(stats, points, "Wort geloest!");
+        setTimeout(() => {
+          pickAnswer();
+          renderBoard();
+        }, 850);
+        return;
+      }
+      if (guesses.length >= maxGuesses) {
+        noteWrong(stats, 2, `Loesung: ${answer}`);
+        setTimeout(() => {
+          pickAnswer();
+          renderBoard();
+        }, 1100);
+        return;
+      }
+      setFeedback(`${maxGuesses - guesses.length} Versuche uebrig.`, "good");
+      playSfx("select");
+      renderBoard();
+    };
+
+    input.addEventListener("input", () => {
+      input.value = normalizeGermanWord(input.value).slice(0, answer.length);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        checkGuess();
+      }
+    });
+    submit.addEventListener("click", checkGuess);
+
+    form.appendChild(input);
+    form.appendChild(submit);
+    wrap.appendChild(board);
+    wrap.appendChild(form);
+    dom.inputArea.appendChild(wrap);
+    input.focus();
+  };
+
+  pickAnswer();
+  renderBoard();
+
+  return {
+    destroy() {
+      active = false;
+      dom.inputArea.innerHTML = "";
+    },
+    onKey(event) {
+      if (event.key === "Enter") {
+        const button = dom.inputArea.querySelector(".wordle-form button");
+        if (button) {
+          button.click();
+        }
+      }
+    },
+  };
 }
 
 function setupMath(stats) {
@@ -3621,6 +4213,11 @@ document.addEventListener("keydown", (event) => {
   if (!game.running || !game.currentMode || !game.currentMode.onKey) {
     return;
   }
+  const target = event.target;
+  const tag = target && target.tagName ? target.tagName.toLowerCase() : "";
+  if (tag === "input" || tag === "textarea" || (target && target.isContentEditable)) {
+    return;
+  }
   game.currentMode.onKey(event);
 });
 
@@ -3634,10 +4231,10 @@ function showStartOverlay() {
     .map((mode) => `<div>${mode.title}</div>`)
     .join("");
   showOverlay({
-    title: "GehirnJogging Sprint",
-    body: `Sprint: 3 zufaellige Uebungen aus dem Pool. Oder Einzeluebung waehlen.`,
+    title: "Omas Spiele",
+    body: "Startet mit Kreuzwortraetsel und Wordle. Alles ist gross, ruhig und per Antippen bedienbar.",
     statsHtml,
-    primaryLabel: "Sprint (3 zufaellig)",
+    primaryLabel: "Start: Kreuzwort + Wordle",
     secondaryLabel: "Uebung waehlen",
     onPrimary: () => {
       startSprint();

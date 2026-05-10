@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>GehirnJogging Sprint</title>
+    <title>Omas Spiele</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -15,7 +15,7 @@
       </div>
       <div class="mini-item">
         <span class="mini-label">Zeit</span>
-        <span id="miniTimer" class="mini-value">00:40</span>
+        <span id="miniTimer" class="mini-value">01:30</span>
       </div>
       <div class="mini-item">
         <span class="mini-label">Score</span>
@@ -26,12 +26,12 @@
         <span id="miniMissions" class="mini-value">0/0</span>
       </div>
     </div>
-    <main id="app" class="app">
+    <main id="app" class="app" aria-label="Omas Spiele">
       <header class="top">
         <div>
-          <p class="eyebrow">GehirnJogging</p>
-          <h1>Sprint-Modus</h1>
-          <p class="subtitle">Sprint (3 zufaellige) oder Einzeluebung, schneller Fokus.</p>
+          <p class="eyebrow">Omas Spiele</p>
+          <h1>Gross & gut lesbar</h1>
+          <p class="subtitle">Kreuzwortraetsel, Wordle und ruhige Gehirnspiele fuer Handy und Tablet.</p>
           <p id="sessionInfo" class="session-info"></p>
         </div>
         <div class="hud">
@@ -41,7 +41,7 @@
           </div>
           <div class="hud-item">
             <span class="hud-label">Zeit</span>
-            <span id="timer" class="hud-value">00:40</span>
+            <span id="timer" class="hud-value">01:30</span>
           </div>
           <div class="hud-item score-stack">
             <span class="hud-label">Score</span>
@@ -55,9 +55,9 @@
         <div class="hud-actions">
           <button id="toggleSfx" class="chip" aria-pressed="false">SFX: Aus</button>
           <button id="toggleBgm" class="chip" aria-pressed="false">BGM: Aus</button>
-          <button id="toggleFull" class="chip" aria-pressed="false">Fullscreen</button>
-          <button id="toggleFocus" class="chip" aria-pressed="false">Focus</button>
-          <button id="toggleCompact" class="chip" aria-pressed="false">Compact HUD</button>
+          <button id="toggleFull" class="chip" aria-pressed="false">Vollbild</button>
+          <button id="toggleFocus" class="chip" aria-pressed="false">Einfach</button>
+          <button id="toggleCompact" class="chip" aria-pressed="false">Grosse Ansicht</button>
           <button id="toggleMissions" class="chip" aria-pressed="false">Missionen</button>
         </div>
       </header>
@@ -124,16 +124,15 @@
 
       <section class="footer-hint">
         <p>
-          Tipp: 1-4 fuer Auswahl (inkl. Reaktion Dual mit 1/2), J/N fuer Ja/Nein
-          (Match, Dual), Enter fuer Memory. Hotkeys: M Missionen, F Focus, C Compact, B
-          BGM, S SFX.
+          Tipp: Alles geht per Antippen. Tastatur: 1-4 fuer Auswahl, Enter fuer Eingabe,
+          B fuer Musik, S fuer Effekte.
         </p>
       </section>
     </main>
 
     <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
       <div class="overlay-card">
-        <h2 id="overlayTitle">GehirnJogging Sprint</h2>
+        <h2 id="overlayTitle">Omas Spiele</h2>
         <p id="overlayBody"></p>
         <div id="overlayStats" class="overlay-stats"></div>
         <div class="overlay-actions">
