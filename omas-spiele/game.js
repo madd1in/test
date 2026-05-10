@@ -1528,6 +1528,13 @@ function resetSavedProgress() {
   playSfx("select");
 }
 
+function resetCrosswordProgress() {
+  crosswordPuzzles.forEach((puzzle) => {
+    delete progress.crossword[getCrosswordKey(puzzle)];
+  });
+  saveProgress();
+}
+
 function getCrosswordKey(puzzle) {
   return puzzle.title;
 }
@@ -2735,10 +2742,6 @@ function startSingleMode(mode) {
 }
 
 function startCrosswordSession() {
-  if (areCrosswordsComplete()) {
-    startWordleSession();
-    return;
-  }
   game.playMode = "select";
   game.sessionModes = [getCrosswordMode()];
   startGame();
@@ -2761,7 +2764,7 @@ function showExercisePicker() {
   clearStage();
   clearModeTheme();
   dom.roundLabel.textContent = "-";
-  dom.timer.textContent = formatTime(settings.roundSeconds * 1000);
+  dom.timer.textContent = "Ohne Zeit";
   setTimerFill(1);
   updateSessionInfo();
   updateDailyFocusDisplay();
@@ -2769,7 +2772,7 @@ function showExercisePicker() {
   updateRoundProgress();
   updateWeeklyDisplay();
   dom.modeTitle.textContent = "Uebung waehlen";
-  setPrompt("Uebung waehlen", "Klicke eine Uebung an.");
+  setPrompt("Uebung waehlen", "Klicke eine Uebung an. Ohne Zeitlimit.");
   setOptions(
     modes.map((mode) => ({ label: mode.title, value: mode })),
     (index, option) => startSingleMode(option.value)
@@ -2841,7 +2844,7 @@ function resetGame() {
   initSessionMeta();
   dom.score.textContent = "0";
   dom.roundLabel.textContent = "-";
-  dom.timer.textContent = formatTime(settings.roundSeconds * 1000);
+  dom.timer.textContent = "Ohne Zeit";
   setTimerFill(1);
   updateSessionInfo();
   updateDailyFocusDisplay();
@@ -2869,8 +2872,7 @@ function startGame() {
 function startRound() {
   const activeModes = getActiveModes();
   const mode = activeModes[game.modeIndex];
-  const now = Date.now();
-  game.roundEnd = now + settings.roundSeconds * 1000;
+  game.roundEnd = 0;
   game.roundStats = {
     id: mode.id,
     title: mode.title,
@@ -2901,18 +2903,11 @@ function startRound() {
 
 function startTimer() {
   stopTimer();
-  const total = settings.roundSeconds * 1000;
-  const tick = () => {
-    const remaining = Math.max(0, game.roundEnd - Date.now());
-    dom.timer.textContent = formatTime(remaining);
-    setTimerFill(total ? remaining / total : 0);
-    updateMiniHud();
-    if (remaining <= 0) {
-      endRound();
-    }
-  };
-  tick();
-  game.timerId = setInterval(tick, 200);
+  if (dom.timer) {
+    dom.timer.textContent = "Ohne Zeit";
+  }
+  setTimerFill(1);
+  updateMiniHud();
 }
 
 function stopTimer() {
@@ -2970,10 +2965,10 @@ function showRoundSummary() {
     body: crosswordOnly
       ? "Dein Fortschritt ist gespeichert."
       : isLast
-        ? "Auswertung folgt."
+        ? "Fertig."
         : "Kurze Pause, dann geht es weiter.",
     statsHtml,
-    primaryLabel: crosswordOnly ? "Weiter Kreuzwort" : isLast ? "Auswertung" : "Weiter",
+    primaryLabel: crosswordOnly ? "Weiter Kreuzwort" : isLast ? "Weiter" : "Weiter",
     secondaryLabel,
     onPrimary: () => {
       if (crosswordOnly) {
@@ -3157,13 +3152,7 @@ function setupCrossword(stats) {
   let voiceRecognition = null;
   const hintCounts = new Map();
   if (areCrosswordsComplete()) {
-    startWordleSession();
-    return {
-      destroy() {
-        active = false;
-      },
-      onKey() {},
-    };
+    resetCrosswordProgress();
   }
   let puzzleIndex = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
   if (puzzleIndex < 0) {
@@ -3424,22 +3413,23 @@ function setupCrossword(stats) {
         if (solved.size >= puzzle.entries.length) {
           const nextOpen = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
           const allCrosswordsDone = nextOpen < 0;
-          setFeedback(allCrosswordsDone ? "Weiter zu Wordle." : "Tafel fertig.", "good");
+          setFeedback(allCrosswordsDone ? "Alles geloest." : "Tafel fertig.", "good");
           if (speechState.enabled) {
             speakText(
-              allCrosswordsDone ? "Sehr gut. Jetzt kommt Wordle." : "Sehr gut. Kreuzwortraetsel geloest.",
+              allCrosswordsDone
+                ? "Sehr gut. Alle Kreuzwortraetsel sind geloest. Es geht wieder von vorne los."
+                : "Sehr gut. Kreuzwortraetsel geloest.",
               { silent: true }
             );
           }
           playSfx("finish");
           setTimeout(() => {
             if (allCrosswordsDone) {
-              active = false;
-              stopVoiceRecognition();
-              startWordleSession();
-              return;
+              resetCrosswordProgress();
+              loadPuzzle(0);
+            } else {
+              loadPuzzle(nextOpen);
             }
-            loadPuzzle(nextOpen);
             render();
           }, 900);
           return;
@@ -5111,12 +5101,12 @@ function showStartOverlay() {
     .join("");
   showOverlay({
     title: "Omas Spiele",
-    body: "Startet mit Kreuzwortraetsel und Wordle. Alles ist gross, ruhig und per Antippen bedienbar.",
+    body: "Startet mit Kreuzwortraetsel. Alles ist gross, ruhig und ohne Zeitlimit.",
     statsHtml,
-    primaryLabel: "Start: Kreuzwort + Wordle",
+    primaryLabel: "Start: Kreuzwort",
     secondaryLabel: "Uebung waehlen",
     onPrimary: () => {
-      startSprint();
+      startCrosswordSession();
     },
     onSecondary: () => {
       showExercisePicker();
