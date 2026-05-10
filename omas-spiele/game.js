@@ -32,7 +32,7 @@ const dom = {
   quickBgm: document.getElementById("quickBgm"),
   quickSfx: document.getElementById("quickSfx"),
   quickSpeech: document.getElementById("quickSpeech"),
-  quickProgress: document.getElementById("quickProgress"),
+  quickWordle: document.getElementById("quickWordle"),
   coachTip: document.getElementById("coachTip"),
   modeRelic: document.getElementById("modeRelic"),
   artifactFill: document.getElementById("artifactFill"),
@@ -1279,13 +1279,9 @@ function setupAudioControls() {
       speakCurrentClue({ force: true });
     });
   }
-  if (dom.quickProgress) {
-    dom.quickProgress.addEventListener("click", () => {
-      updateProgressUI();
-      if (dom.progressPanel) {
-        dom.progressPanel.scrollIntoView({ behavior: "smooth", block: "center" });
-        pulse(dom.progressPanel);
-      }
+  if (dom.quickWordle) {
+    dom.quickWordle.addEventListener("click", () => {
+      startWordleSession();
       playSfx("select");
     });
   }
@@ -1528,12 +1524,8 @@ function markCrosswordSolved(puzzle, index) {
 }
 
 function getProgressSummary() {
-  const crosswordTotal = crosswordPuzzles.reduce((sum, puzzle) => sum + puzzle.entries.length, 0);
-  const crosswordSolved = crosswordPuzzles.reduce(
-    (sum, puzzle) => sum + getCrosswordState(puzzle).solved.length,
-    0
-  );
-  return `${crosswordSolved} von ${crosswordTotal} geloest.`;
+  const counts = getCrosswordProgressCounts();
+  return `${counts.solved} von ${counts.total} geloest.`;
 }
 
 function updateProgressUI() {
@@ -2667,9 +2659,27 @@ function getCrosswordMode() {
   return modes.find((mode) => mode.id === "crossword") || modes[0];
 }
 
+function getWordleMode() {
+  return modes.find((mode) => mode.id === "wordle") || modes[0];
+}
+
 function isCrosswordOnlySession() {
   const activeModes = getActiveModes();
   return activeModes.length === 1 && activeModes[0].id === "crossword";
+}
+
+function getCrosswordProgressCounts() {
+  const total = crosswordPuzzles.reduce((sum, puzzle) => sum + puzzle.entries.length, 0);
+  const solved = crosswordPuzzles.reduce(
+    (sum, puzzle) => sum + getCrosswordState(puzzle).solved.length,
+    0
+  );
+  return { solved, total };
+}
+
+function areCrosswordsComplete() {
+  const counts = getCrosswordProgressCounts();
+  return counts.total > 0 && counts.solved >= counts.total;
 }
 
 function pickRandomModes(count) {
@@ -2691,8 +2701,18 @@ function startSingleMode(mode) {
 }
 
 function startCrosswordSession() {
+  if (areCrosswordsComplete()) {
+    startWordleSession();
+    return;
+  }
   game.playMode = "select";
   game.sessionModes = [getCrosswordMode()];
+  startGame();
+}
+
+function startWordleSession() {
+  game.playMode = "select";
+  game.sessionModes = [getWordleMode()];
   startGame();
 }
 
@@ -3102,6 +3122,15 @@ function setupCrossword(stats) {
   let active = true;
   let voiceRecognition = null;
   const hintCounts = new Map();
+  if (areCrosswordsComplete()) {
+    startWordleSession();
+    return {
+      destroy() {
+        active = false;
+      },
+      onKey() {},
+    };
+  }
   let puzzleIndex = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
   if (puzzleIndex < 0) {
     puzzleIndex = 0;
@@ -3188,6 +3217,8 @@ function setupCrossword(stats) {
     const entry = puzzle.entries[activeIndex];
     const cellMap = buildCellMap();
     const expectedAnswer = normalizeGermanWord(entry.answer);
+    const progressCounts = getCrosswordProgressCounts();
+    const overallStep = Math.min(progressCounts.solved + 1, progressCounts.total);
     const clueSpeech = `Frage ${activeIndex + 1} von ${puzzle.entries.length}. ${entry.clue}. ${entry.answer.length} Buchstaben.`;
     game.speechAction = (options = {}) => speakText(`${clueSpeech} Bitte Antwort eintippen.`, options);
     setPrompt(
@@ -3236,7 +3267,7 @@ function setupCrossword(stats) {
 
     const step = document.createElement("div");
     step.className = "crossword-step";
-    step.textContent = `Frage ${activeIndex + 1} von ${puzzle.entries.length} | ${entry.answer.length} Buchstaben`;
+    step.textContent = `${overallStep}/${progressCounts.total} | ${entry.answer.length} Buchstaben`;
 
     const clue = document.createElement("div");
     clue.className = "crossword-clue";
@@ -3371,14 +3402,24 @@ function setupCrossword(stats) {
           speakText("Sehr gut. Weiter zur naechsten Frage.", { silent: true });
         }
         if (solved.size >= puzzle.entries.length) {
-          setFeedback("Fertig!", "good");
+          const nextOpen = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
+          const allCrosswordsDone = nextOpen < 0;
+          setFeedback(allCrosswordsDone ? "Weiter zu Wordle." : "Tafel fertig.", "good");
           if (speechState.enabled) {
-            speakText("Sehr gut. Kreuzwortraetsel geloest.", { silent: true });
+            speakText(
+              allCrosswordsDone ? "Sehr gut. Jetzt kommt Wordle." : "Sehr gut. Kreuzwortraetsel geloest.",
+              { silent: true }
+            );
           }
           playSfx("finish");
           setTimeout(() => {
-            const nextOpen = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
-            loadPuzzle(nextOpen >= 0 ? nextOpen : (puzzleIndex + 1) % crosswordPuzzles.length);
+            if (allCrosswordsDone) {
+              active = false;
+              stopVoiceRecognition();
+              startWordleSession();
+              return;
+            }
+            loadPuzzle(nextOpen);
             render();
           }, 900);
           return;
@@ -3605,7 +3646,10 @@ function setupWordle(stats) {
   const renderBoard = () => {
     dom.options.innerHTML = "";
     dom.inputArea.innerHTML = "";
-    setPrompt("Wordle", "Fuenf Buchstaben. Gruen ist richtig, Gelb ist im Wort.");
+    setPrompt("Wordle", "5 Buchstaben");
+    if (dom.coachTip) {
+      dom.coachTip.textContent = "";
+    }
 
     const wrap = document.createElement("div");
     wrap.className = "wordle-wrap";

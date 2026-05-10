@@ -2167,11 +2167,12 @@ body.focus-mode[data-mode="crossword"] .app {
 }
 
 body.focus-mode[data-mode="crossword"] .progress-panel {
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 10px 14px;
-  box-shadow: none;
-  background: rgba(255, 255, 255, 0.96);
+  display: none;
+}
+
+body.focus-mode[data-mode="wordle"] .progress-panel,
+body.focus-mode[data-mode="wordle"] .coach-tip {
+  display: none;
 }
 
 body.focus-mode[data-mode="crossword"] .progress-kicker {
@@ -2189,14 +2190,98 @@ body.focus-mode[data-mode="crossword"] .progress-clear {
 
 body.focus-mode[data-mode="crossword"] .card {
   width: min(720px, 100%);
-  padding: 18px;
+  padding: 14px;
+  gap: 8px;
+}
+
+body.focus-mode[data-mode="wordle"] .card {
+  width: min(640px, 100%);
+  padding: 14px;
   gap: 10px;
 }
 
+body.focus-mode[data-mode="wordle"] .mode-title {
+  display: none;
+}
+
+body.focus-mode[data-mode="wordle"] .prompt {
+  font-size: 2rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+body.focus-mode[data-mode="wordle"] .subprompt {
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-wrap {
+  gap: 10px;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-board {
+  grid-template-columns: repeat(5, 44px);
+  gap: 4px;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-tile {
+  border-width: 2px;
+  font-size: 1.2rem;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+body.focus-mode[data-mode="wordle"] .input-area input,
+body.focus-mode[data-mode="wordle"] .wordle-form button {
+  min-height: 56px;
+}
+
 body.focus-mode[data-mode="crossword"] .feedback {
-  min-height: 28px;
+  min-height: 24px;
   font-size: 1.2rem;
   opacity: 1;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-panel {
+  gap: 8px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-step {
+  padding: 8px 12px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-clue {
+  padding: 12px 14px;
+  line-height: 1.2;
+}
+
+body.focus-mode[data-mode="crossword"] .input-area input {
+  min-height: 58px;
+  padding: 10px 14px;
+}
+
+body.focus-mode[data-mode="crossword"] .answer-slots {
+  gap: 6px;
+}
+
+body.focus-mode[data-mode="crossword"] .answer-slot {
+  min-height: 48px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-action-row {
+  gap: 8px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-action-row button {
+  min-height: 56px;
+}
+
+body.focus-mode[data-mode="crossword"] .crossword-extra summary {
+  min-height: 48px;
+  padding: 9px 12px;
 }
 
 body.focus-mode .mobile-quickbar {
@@ -2253,17 +2338,16 @@ body.playing .mobile-quickbar {
     gap: 10px;
   }
 
-  body.focus-mode[data-mode="crossword"] .progress-panel {
-    flex-direction: row;
-    align-items: center;
-  }
-
   .progress-clear {
     width: 100%;
   }
 
   .mobile-quickbar {
     display: grid;
+  }
+
+  body.focus-mode[data-mode="crossword"] .crossword-extra {
+    display: none;
   }
 
   .hud-actions {
