@@ -170,7 +170,8 @@ async function browserSmoke() {
       }
     });
     await page.evaluate(setup);
-    await page.waitForTimeout(1400);
+    await page.waitForFunction((room) => window.__NOCTURNE_DEBUG_STATE().room === room, expectedRoom, { timeout: 2600 }).catch(() => {});
+    await page.waitForTimeout(180);
     const probe = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
     assert(probe.room === expectedRoom, `${name} expected ${expectedRoom}: ${JSON.stringify(probe)}`);
     assert(probe.playerY < probe.roomHeight, `${name} left player below room: ${JSON.stringify(probe)}`);
@@ -436,7 +437,11 @@ async function browserSmoke() {
       hasFullscreen: Boolean(document.getElementById("fullscreenButton")),
       hasMobile: Boolean(document.getElementById("mobileButton")),
       mapButtonText: document.getElementById("mapButton").textContent.trim(),
+      objectiveText: document.getElementById("objectiveChip").textContent.trim(),
+      compassText: document.getElementById("compassChip").textContent.trim(),
+      statusText: document.getElementById("statusLine").textContent.trim(),
       miniMapDisplay: getComputedStyle(document.getElementById("miniMap")).display,
+      miniMapObjectiveDisplay: getComputedStyle(document.getElementById("miniMapObjective")).display,
       miniMapCells: document.querySelectorAll(".mini-map-cell").length,
       mapPanelHidden: document.getElementById("mapPanel").hidden,
       hasTouchDown: Boolean(document.querySelector('#touchControls button[data-touch="down"]')),
@@ -445,10 +450,13 @@ async function browserSmoke() {
       touchDisplay: getComputedStyle(document.getElementById("touchControls")).display,
       h1FontFamily: getComputedStyle(document.querySelector(".title-inner h1")).fontFamily,
       bodyFontFamily: getComputedStyle(document.body).fontFamily,
+      iconButtonFontFamily: getComputedStyle(document.getElementById("mapButton")).fontFamily,
       viewportMeta: document.querySelector('meta[name="viewport"]').content,
       touchButtonText: Array.from(document.querySelectorAll("#touchControls button"), (button) => button.textContent.trim()).join(""),
       touchUserSelect: getComputedStyle(document.querySelector("#touchControls button")).userSelect,
       touchWebkitUserSelect: getComputedStyle(document.querySelector("#touchControls button")).webkitUserSelect,
+      touchButtonClipPath: getComputedStyle(document.querySelector("#touchControls button")).clipPath,
+      touchButtonBorderRadius: getComputedStyle(document.querySelector("#touchControls button")).borderRadius,
       touchButtonMinSize: Math.min(...Array.from(document.querySelectorAll("#touchControls button"), (button) => {
         const rect = button.getBoundingClientRect();
         return Math.min(rect.width, rect.height);
@@ -548,10 +556,18 @@ async function browserSmoke() {
   assert(questBossMap.version === "quest-seal-minibosses-hd-24f-v1", "quest mini-boss frame map version mismatch");
   assert(
     questBossMap.animations.tideWarden.frames === 24 &&
-    questBossMap.animations.starWarden.frames === 24 &&
-    questBossMap.animations.inkWarden.frames === 24,
-    "quest mini-boss frame map should expose 24 frames each"
+    questBossMap.animations.starWarden.frames === 24,
+    "quest mini-boss frame map should keep 24-frame tide/star rows"
   );
+  const archiveWardenMapPath = path.join(root, "assets/generated/enemy_imagen_archive_warden_48f_frame_map.json");
+  assert(fs.existsSync(archiveWardenMapPath), "Moonlit Archives 48-frame Archive Warden map JSON missing");
+  const archiveWardenMap = JSON.parse(fs.readFileSync(archiveWardenMapPath, "utf8"));
+  assert(archiveWardenMap.version === "archive-warden-imagen-hd-48f-v1", "Archive Warden frame map version mismatch");
+  assert(archiveWardenMap.animations.inkWarden.frames === 48 && archiveWardenMap.animations.inkWarden.attack.length === 12, "Archive Warden should expose a 48-frame attack-capable HD strip");
+  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_armory_moon_cases.png")), "Candlelit Armory Imagen HD moon/case atlas missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_library_switches.png")), "Forgotten Library Imagen HD rune switch atlas missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_moon_chain_tower.png")), "Moon Chain Tower Imagen HD prop atlas missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_gallery_portraits.png")), "Silver Portrait Gallery Imagen HD portrait atlas missing");
 
   const paths = new Set(Array.from(gameJs.matchAll(/"assets\/[^"]+"/g), (match) => match[0].slice(1, -1)));
   for (const asset of paths) {
@@ -579,9 +595,10 @@ async function browserSmoke() {
   assert(result.state.frameInfo.bossFrames === 16, "boss should use the HD 16-frame strip");
   assert(result.state.frameInfo.enemyExtFrameW === 256 && result.state.frameInfo.enemyExtFrameH === 192 && result.state.frameInfo.enemyExtFrames === 24, "extended zora/panther enemy HD frames should be wired");
   assert(result.state.frameInfo.questBossFrameW === 320 && result.state.frameInfo.questBossFrameH === 256 && result.state.frameInfo.questBossFrames === 24, "quest mini-boss HD frames should be wired");
+  assert(result.state.frameInfo.archiveWardenFrameW === 320 && result.state.frameInfo.archiveWardenFrameH === 256 && result.state.frameInfo.archiveWardenFrames === 48, "Archive Warden HD 48-frame strip should be wired");
   assert(result.state.frameInfo.chestFrameW === 256 && result.state.frameInfo.chestFrameH === 256 && result.state.frameInfo.chestFrames === 4, "Imagen HD treasure chest sheet should expose four 256px frames");
   assert(result.state.enemyFrameMap.zora.frames === 24 && result.state.enemyFrameMap.blackPanther.frames === 24, "runtime enemy frame map should expose 24-frame zora and panther rows");
-  assert(result.state.enemyFrameMap.tideWarden.frames === 24 && result.state.enemyFrameMap.starWarden.frames === 24 && result.state.enemyFrameMap.inkWarden.frames === 24, "runtime enemy frame map should expose 24-frame quest mini-boss rows");
+  assert(result.state.enemyFrameMap.tideWarden.frames === 24 && result.state.enemyFrameMap.starWarden.frames === 24 && result.state.enemyFrameMap.inkWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.attack.length === 12, "runtime enemy frame map should expose the 48-frame Archive Warden row");
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
   assert(result.state.inputInfo.upKeys.includes("KeyW"), "W should trigger up/door control");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
@@ -606,23 +623,28 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.drawbridgeTileSet === "imagen-existing-root-trim-v1", "drawbridge should use existing Imagen HD tile sheets");
   assert(result.state.tuningInfo.drawbridgeChainSet === "existing-fg-chain-rotated-v1", "drawbridge chains should use the existing chain asset");
   assert(result.state.tuningInfo.drawbridgeAnchorSet === "imagen-trim-anchor-plates-v1", "drawbridge anchors should use existing Imagen HD trim tiles");
-  assert(result.state.tuningInfo.drawbridgePerf === "cached-deck-chain-mode7-v2", "drawbridge deck, chains, and Mode7 floor should be cached for performance");
+  assert(result.state.tuningInfo.drawbridgePerf === "world-layer-warmed-water-v3", "drawbridge should use warmed world layers instead of per-camera cache churn");
   assert(result.state.tuningInfo.cavernSection === "sapphire-grotto-zora-v1", "new cavern section should be wired");
   assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-spikes-v2-hd-assets", "sapphire grotto moving raft and HD duck spikes should be wired");
   assert(result.state.tuningInfo.enemyVisibility === "panther-zora-rim-respawn-v1", "zora and panther visibility tuning should be wired");
   assert(result.state.tuningInfo.chestSet === "imagen-hd-treasure-chests-v2", "Imagen HD treasure chest tuning should be wired");
   assert(result.state.tuningInfo.weaponSet === "hd-subweapons-projectiles-v1", "HD subweapon/projectile sheet should be wired");
   assert(result.state.tuningInfo.doorSet === "imagen-hd-transition-doors-v2", "Imagen HD transition door sheet should be wired");
-  assert(result.state.tuningInfo.moatWaterSet === "imagen-hd-mode7-parallax-cached-v2", "HD moat water tileset should use cached Mode7 parallax tuning");
+  assert(result.state.tuningInfo.moatWaterSet === "imagen-hd-mode7-parallax-warmed-v3", "HD moat water tileset should use warmed Mode7 parallax tuning");
   assert(result.state.tuningInfo.puzzleSet === "rune-sequence-gates-v1", "room puzzle gate tuning should be wired");
+  assert(result.state.tuningInfo.librarySwitchSet === "imagen-hd-library-rune-switches-v1", "Forgotten Library rune switches should use HD prop assets");
   assert(result.state.tuningInfo.forgePuzzleFlow === "linear-nearby-no-reset-v1", "forge numerals should use a linear no-reset flow");
   assert(result.state.tuningInfo.shrineSet === "imagen-hd-reset-shrine-v1", "reset shrine HD sheet should be wired");
   assert(result.state.tuningInfo.grottoSpikeSet === "imagen-hd-stalagmite-stalactite-v1", "grotto stalagmite/stalactite HD sheet should be wired");
+  assert(result.state.tuningInfo.armoryProps === "imagen-hd-armory-moon-cases-v1", "Candlelit Armory HD moon/case props should be wired");
+  assert(result.state.tuningInfo.towerGalleryProps === "imagen-hd-moon-chain-gallery-props-v1", "Moon Chain Tower and Gallery Imagen HD prop tuning should be wired");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-miniboss-v1", "quest seal route should force the new sections into progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
-  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2", "zora/panther plus smooth quest mini-boss HD frame map tuning should be wired");
+  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+archive-warden-imagen-hd-48f-v1", "zora/panther plus Archive Warden HD frame map tuning should be wired");
   assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
+  assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
+  assert(result.state.tuningInfo.controlSkin === "gothic-medallion-controls-v1", "gothic medallion control skin should be wired");
   assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v3-readable-fonts", "mobile touch tuning should include readable-font touch targets");
   assert(result.state.tuningInfo.mobileCeilingDoors === "auto-enter-touch-overlap-v1", "mobile ceiling doors should auto-enter when the player overlaps the hatch");
   assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-exit-v1", "mobile door reentry guard should prevent immediate bounce-backs");
@@ -671,13 +693,20 @@ async function browserSmoke() {
   assert(openedChest && openedChest.opened && openedChest.asset && openedChest.frames === 4, `opened vault chest should use the HD open-frame sheet: ${JSON.stringify(result.chestVisualProbe.opened.chests)}`);
   const archiveState = result.transitionStates.find((entry) => entry.room === "archive");
   assert(archiveState && archiveState.enemyTypes.includes("inkWarden"), `Moonlit Archives should spawn the Ink Warden quest mini-boss: ${JSON.stringify(archiveState && archiveState.enemyTypes)}`);
+  assert(archiveState.hdProps && archiveState.hdProps.archiveWarden && archiveState.hdProps.archiveWardenSize === "15360x256", `Moonlit Archives should use the 48-frame Archive Warden HD sheet: ${JSON.stringify(archiveState && archiveState.hdProps)}`);
   const observatoryState = result.transitionStates.find((entry) => entry.room === "observatory");
   assert(observatoryState && observatoryState.enemyTypes.includes("starWarden"), `Starfall Observatory should spawn the Star Warden quest mini-boss: ${JSON.stringify(observatoryState && observatoryState.enemyTypes)}`);
   assert(observatoryState.visuals.bg === "bgObservatory" && observatoryState.visuals.parallax.includes("paraMoonwellRipples"), `Starfall Observatory should use its HD background/parallax: ${JSON.stringify(observatoryState.visuals)}`);
   const armoryState = result.transitionStates.find((entry) => entry.room === "armory");
   assert(armoryState && armoryState.visuals.bg === "bgArmory" && armoryState.visuals.parallax.includes("paraArches"), `Candlelit Armory should use its HD background/parallax: ${JSON.stringify(armoryState && armoryState.visuals)}`);
+  assert(armoryState.hdProps && armoryState.hdProps.armory && armoryState.hdProps.armorySize === "1920x1080", `Candlelit Armory should replace flat moon/rectangles with the HD moon/case overlay: ${JSON.stringify(armoryState && armoryState.hdProps)}`);
+  const libraryState = result.transitionStates.find((entry) => entry.room === "library");
+  assert(libraryState && libraryState.hdProps && libraryState.hdProps.librarySwitches && libraryState.hdProps.librarySwitchSize === "768x768", `Forgotten Library should render the HD rune switch sheet: ${JSON.stringify(libraryState && libraryState.hdProps)}`);
   const towerState = result.transitionStates.find((entry) => entry.room === "tower");
   assert(towerState && towerState.visuals.bg === "bgTower" && towerState.visuals.parallax.includes("paraMachinery"), `Moon Chain Tower should use its HD background/parallax: ${JSON.stringify(towerState && towerState.visuals)}`);
+  assert(towerState.hdProps && towerState.hdProps.tower && towerState.hdProps.towerSize === "1254x1254" && towerState.hdProps.chromaCaches >= 1, `Moon Chain Tower should use the new Imagen HD chain/moon prop atlas: ${JSON.stringify(towerState && towerState.hdProps)}`);
+  const galleryState = result.transitionStates.find((entry) => entry.room === "gallery");
+  assert(galleryState && galleryState.hdProps && galleryState.hdProps.galleryPortraits && galleryState.hdProps.gallerySize === "1254x1254" && galleryState.hdProps.chromaCaches >= 1, `Silver Portrait Gallery should use the new Imagen HD portrait atlas: ${JSON.stringify(galleryState && galleryState.hdProps)}`);
   const mirrorState = result.transitionStates.find((entry) => entry.room === "mirrorCloister");
   assert(mirrorState && mirrorState.visuals.bg === "bgMirrorCloister" && mirrorState.roomPuzzle && mirrorState.roomPuzzle.id === "mirrorRunes", `Mirror Cloister should expose its HD room and puzzle: ${JSON.stringify(mirrorState)}`);
   assert(result.puzzleProbe.locked.room === "mirrorCloister", `unsolved mirror puzzle should keep chapel door locked: ${JSON.stringify(result.puzzleProbe.locked)}`);
@@ -690,11 +719,13 @@ async function browserSmoke() {
   assert(result.state.debugState.enemyTypes.includes("blackPanther"), `Gate Hall should spawn the black panther enemy: ${JSON.stringify(result.state.debugState.enemyTypes)}`);
   assert(result.state.debugState.survey && result.state.debugState.survey.total >= 27, `survey debug state should include the full castle route plus puzzle rooms: ${JSON.stringify(result.state.debugState.survey)}`);
   assert(result.state.debugState.mapMode === "mini" && result.state.mapButtonText === "MINI" && result.state.miniMapDisplay !== "none" && result.state.miniMapCells >= 27 && result.state.mapPanelHidden, `mini map should be visible while full map is closed: ${JSON.stringify(result.state)}`);
+  assert(result.state.objectiveText.length <= 8 && result.state.compassText.length <= 4 && result.state.statusText.length <= 32 && result.state.miniMapObjectiveDisplay === "none", `low-reading HUD should keep persistent text compact: ${JSON.stringify(result.state)}`);
   assert(result.state.debugState.questSeals && result.state.debugState.questSeals.total === 3, `debug state should expose the three quest seals: ${JSON.stringify(result.state.debugState.questSeals)}`);
-  assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 24, "debug state should expose extended enemy frame counts");
-  assert(result.state.debugState.enemyFrameMap.version === "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2", "debug state should expose the smooth mini-boss frame map version");
+  assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 24 && result.state.debugState.enemyFrameMap.archiveWardenFrames === 48, "debug state should expose extended enemy frame counts");
+  assert(result.state.debugState.enemyFrameMap.version === "zora-panther-hd-24f-v2+archive-warden-imagen-hd-48f-v1", "debug state should expose the Archive Warden frame map version");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
   assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
+  assert(result.state.touchButtonClipPath !== "none" && /Pirata|Cinzel/.test(result.state.iconButtonFontFamily), `controls should use gothic medallion/plaque styling: ${JSON.stringify({ clip: result.state.touchButtonClipPath, font: result.state.iconButtonFontFamily })}`);
   assert(result.state.touchButtonMinSize >= 64, `touch buttons should be at least 64px: ${result.state.touchButtonMinSize}`);
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
@@ -715,9 +746,9 @@ async function browserSmoke() {
   assert(!result.mobileStartState.fullscreen && !result.mobileStartState.debug.fullscreen, `mobile start should stay in browser mode until FS is tapped: ${JSON.stringify(result.mobileStartState)}`);
   assert(result.mobileStartState.objectiveDisplay !== "none", `mobile objective tracker should be visible: ${JSON.stringify(result.mobileStartState)}`);
   assert(result.mobileStartState.miniMapDisplay !== "none" && result.mobileStartState.miniMapCells >= 27, `mobile mini map should stay visible by default: ${JSON.stringify(result.mobileStartState)}`);
-  assert(result.mobileStartState.objectiveRect.width > 90 && result.mobileStartState.objectiveRect.height >= 18, `mobile objective tracker should have readable bounds: ${JSON.stringify(result.mobileStartState.objectiveRect)}`);
-  assert(result.mobileStartState.objectiveText.includes("Next:") || result.mobileStartState.objectiveText.includes("Item:") || result.mobileStartState.objectiveText.includes("Seal"), `mobile objective tracker should name the next goal: ${result.mobileStartState.objectiveText}`);
-  assert(result.mobileStartState.compassDisplay !== "none" && result.mobileStartState.compassRect.width > 70, `mobile compass tracker should stay visible: ${JSON.stringify(result.mobileStartState)}`);
+  assert(result.mobileStartState.objectiveRect.width >= 50 && result.mobileStartState.objectiveRect.height >= 18, `mobile objective tracker should keep a compact readable target: ${JSON.stringify(result.mobileStartState.objectiveRect)}`);
+  assert(result.mobileStartState.objectiveText.length <= 8, `mobile objective tracker should avoid long reading text: ${result.mobileStartState.objectiveText}`);
+  assert(result.mobileStartState.compassDisplay !== "none" && result.mobileStartState.compassRect.width >= 36 && result.mobileStartState.compassText.length <= 4, `mobile compass tracker should stay compact: ${JSON.stringify(result.mobileStartState)}`);
   assert(result.state.lit > 1800, `canvas appears too dark: ${result.state.lit}`);
   assert(result.state.room.length > 0, "room label missing");
   console.log(JSON.stringify({ ok: true, ...result }, null, 2));

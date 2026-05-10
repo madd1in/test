@@ -1,0 +1,72 @@
+{
+  "version": "archive-warden-imagen-hd-48f-v1",
+  "image": "enemy_imagen_archive_warden_48f_sheet.png",
+  "source": "imagen_archive_warden_hd_48f_20260510.png",
+  "frameWidth": 320,
+  "frameHeight": 256,
+  "framesPerRow": 48,
+  "animations": {
+    "inkWarden": {
+      "row": 0,
+      "frames": 48,
+      "fps": 14,
+      "idle": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "cast": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "attack": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "recover": [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "anchor": "bottom-center"
+    }
+  }
+}
