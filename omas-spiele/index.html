@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GehirnJogging Sprint</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-shapes" aria-hidden="true"></div>
+    <div id="miniHud" class="mini-hud hidden" aria-hidden="true">
+      <div class="mini-item">
+        <span class="mini-label">Runde</span>
+        <span id="miniRound" class="mini-value">-</span>
+      </div>
+      <div class="mini-item">
+        <span class="mini-label">Zeit</span>
+        <span id="miniTimer" class="mini-value">00:40</span>
+      </div>
+      <div class="mini-item">
+        <span class="mini-label">Score</span>
+        <span id="miniScore" class="mini-value">0</span>
+      </div>
+      <div class="mini-item">
+        <span class="mini-label">Missionen</span>
+        <span id="miniMissions" class="mini-value">0/0</span>
+      </div>
+    </div>
+    <main id="app" class="app">
+      <header class="top">
+        <div>
+          <p class="eyebrow">GehirnJogging</p>
+          <h1>Sprint-Modus</h1>
+          <p class="subtitle">Sprint (3 zufaellige) oder Einzeluebung, schneller Fokus.</p>
+          <p id="sessionInfo" class="session-info"></p>
+        </div>
+        <div class="hud">
+          <div class="hud-item">
+            <span class="hud-label">Runde</span>
+            <span id="roundLabel" class="hud-value">-</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">Zeit</span>
+            <span id="timer" class="hud-value">00:40</span>
+          </div>
+          <div class="hud-item score-stack">
+            <span class="hud-label">Score</span>
+            <span class="hud-value">
+              <span class="rupee" aria-hidden="true"></span>
+              <span id="score">0</span>
+              <span id="scoreMultiplier" class="score-multiplier">x1.0</span>
+            </span>
+          </div>
+        </div>
+        <div class="hud-actions">
+          <button id="toggleSfx" class="chip" aria-pressed="false">SFX: Aus</button>
+          <button id="toggleBgm" class="chip" aria-pressed="false">BGM: Aus</button>
+          <button id="toggleFull" class="chip" aria-pressed="false">Fullscreen</button>
+          <button id="toggleFocus" class="chip" aria-pressed="false">Focus</button>
+          <button id="toggleCompact" class="chip" aria-pressed="false">Compact HUD</button>
+          <button id="toggleMissions" class="chip" aria-pressed="false">Missionen</button>
+        </div>
+      </header>
+      <div class="timer-bar" aria-hidden="true">
+        <div id="timerFill" class="timer-fill"></div>
+      </div>
+      <div id="roundProgress" class="round-progress" aria-hidden="true"></div>
+
+      <section id="missionPanel" class="mission-panel">
+        <div class="mission-header-row">
+          <div class="mission-label">Missionen</div>
+          <div class="mission-header-actions">
+            <button id="toggleMissionsInline" class="chip mini" aria-pressed="true">Ein/Aus</button>
+          </div>
+        </div>
+        <div class="mission-focus">
+          <div class="mission-label">Daily Fokus</div>
+          <div id="dailyFocus" class="mission-value">-</div>
+          <div id="dailyFocusHint" class="mission-hint"></div>
+          <div id="heartRow" class="heart-row" aria-label="Herzen"></div>
+          <div class="momentum">
+            <div class="momentum-label">Momentum</div>
+            <div class="momentum-bar">
+              <div id="momentumFill" class="momentum-fill"></div>
+            </div>
+            <div id="momentumValue" class="momentum-value">Start</div>
+          </div>
+          <div class="weekly">
+            <div class="weekly-label">Wochenziel</div>
+            <div class="weekly-bar">
+              <div id="weeklyFill" class="weekly-fill"></div>
+            </div>
+            <div id="weeklyValue" class="weekly-value">0/5 Sessions</div>
+          </div>
+        </div>
+        <div class="mission-tracker">
+          <div class="mission-header">
+            <span class="mission-label">Session-Missionen</span>
+            <span id="missionCount" class="mission-count">0/0</span>
+          </div>
+          <div id="missionList" class="mission-list"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div id="questBanner" class="quest-banner hidden"></div>
+        <div class="mode-emblem" aria-hidden="true">
+          <span class="tri"></span>
+          <span class="tri"></span>
+          <span class="tri"></span>
+        </div>
+        <div id="modeTitle" class="mode-title">Bereit?</div>
+        <div id="prompt" class="prompt">Warte auf den Start.</div>
+        <div id="subprompt" class="subprompt"></div>
+        <div id="modeRelic" class="mode-relic"></div>
+        <div class="artifact-gauge" aria-hidden="true">
+          <div id="artifactFill" class="artifact-fill"></div>
+        </div>
+        <div id="coachTip" class="coach-tip"></div>
+        <div id="options" class="options"></div>
+        <div id="inputArea" class="input-area"></div>
+        <div id="feedback" class="feedback" aria-live="polite"></div>
+      </section>
+
+      <section class="footer-hint">
+        <p>
+          Tipp: 1-4 fuer Auswahl (inkl. Reaktion Dual mit 1/2), J/N fuer Ja/Nein
+          (Match, Dual), Enter fuer Memory. Hotkeys: M Missionen, F Focus, C Compact, B
+          BGM, S SFX.
+        </p>
+      </section>
+    </main>
+
+    <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
+      <div class="overlay-card">
+        <h2 id="overlayTitle">GehirnJogging Sprint</h2>
+        <p id="overlayBody"></p>
+        <div id="overlayStats" class="overlay-stats"></div>
+        <div class="overlay-actions">
+          <button id="overlayPrimary" class="primary">Start</button>
+          <button id="overlaySecondary" class="ghost hidden">Schliessen</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
