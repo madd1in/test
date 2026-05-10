@@ -558,6 +558,7 @@ const audioState = {
 };
 
 let audioAutoArmed = false;
+let fullscreenAutoArmed = false;
 
 const audioAssets = {
   bgm: "../assets/audio/glimmerwald-theme.wav",
@@ -953,18 +954,82 @@ function updateAudioButtons() {
 }
 
 function updateFullButton() {
-  if (!dom.toggleFull) {
-    return;
-  }
   const isFull = Boolean(document.fullscreenElement);
-  dom.toggleFull.textContent = isFull ? "Fenster" : "Vollbild";
-  dom.toggleFull.setAttribute("aria-pressed", String(isFull));
-  dom.toggleFull.classList.toggle("active", isFull);
+  if (dom.toggleFull) {
+    dom.toggleFull.textContent = isFull ? "Fenster" : "Vollbild";
+    dom.toggleFull.setAttribute("aria-pressed", String(isFull));
+    dom.toggleFull.classList.toggle("active", isFull);
+  }
   if (dom.quickFull) {
     dom.quickFull.textContent = isFull ? "Fenster" : "Vollbild";
     dom.quickFull.setAttribute("aria-pressed", String(isFull));
     dom.quickFull.classList.toggle("active", isFull);
   }
+}
+
+async function enterFullscreen(options = {}) {
+  const silent = Boolean(options.silent);
+  if (document.fullscreenElement) {
+    updateFullButton();
+    return true;
+  }
+  const target = document.documentElement;
+  if (!target || !target.requestFullscreen) {
+    if (!silent) {
+      setFeedback("Vollbild ist in diesem Browser nicht verfuegbar.", "bad");
+    }
+    updateFullButton();
+    return false;
+  }
+  try {
+    await target.requestFullscreen();
+    updateFullButton();
+    return true;
+  } catch (err) {
+    if (!silent) {
+      setFeedback("Vollbild ist in diesem Browser blockiert.", "bad");
+    }
+    updateFullButton();
+    return false;
+  }
+}
+
+async function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    await enterFullscreen();
+    return;
+  }
+  try {
+    await document.exitFullscreen();
+  } catch (err) {
+    setFeedback("Vollbild konnte nicht beendet werden.", "bad");
+  }
+  updateFullButton();
+}
+
+function armStartupFullscreen() {
+  if (fullscreenAutoArmed || document.fullscreenElement) {
+    return;
+  }
+  fullscreenAutoArmed = true;
+  const events = ["pointerdown", "keydown", "touchstart"];
+  const handler = () => {
+    events.forEach((eventName) => {
+      window.removeEventListener(eventName, handler, true);
+    });
+    enterFullscreen({ silent: true });
+  };
+  events.forEach((eventName) => {
+    window.addEventListener(eventName, handler, { once: true, capture: true });
+  });
+}
+
+function requestStartupFullscreen() {
+  enterFullscreen({ silent: true }).then((didEnter) => {
+    if (!didEnter) {
+      armStartupFullscreen();
+    }
+  });
 }
 
 function updateFocusButton() {
@@ -1022,18 +1087,6 @@ function armAudioAutoStart() {
 }
 
 function setupAudioControls() {
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (err) {
-      setFeedback("Vollbild ist in diesem Browser blockiert.", "bad");
-    }
-    updateFullButton();
-  };
   if (dom.toggleSfx) {
     dom.toggleSfx.addEventListener("click", () => {
       ensureAudio();
@@ -4502,3 +4555,4 @@ updateAppScale();
 window.addEventListener("resize", updateAppScale);
 
 startCrosswordSession();
+requestStartupFullscreen();
