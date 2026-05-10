@@ -18,6 +18,7 @@ const dom = {
   weeklyValue: document.getElementById("weeklyValue"),
   toggleSfx: document.getElementById("toggleSfx"),
   toggleBgm: document.getElementById("toggleBgm"),
+  toggleSpeech: document.getElementById("toggleSpeech"),
   toggleFull: document.getElementById("toggleFull"),
   toggleFocus: document.getElementById("toggleFocus"),
   toggleCompact: document.getElementById("toggleCompact"),
@@ -30,6 +31,7 @@ const dom = {
   quickFull: document.getElementById("quickFull"),
   quickBgm: document.getElementById("quickBgm"),
   quickSfx: document.getElementById("quickSfx"),
+  quickSpeech: document.getElementById("quickSpeech"),
   quickProgress: document.getElementById("quickProgress"),
   coachTip: document.getElementById("coachTip"),
   modeRelic: document.getElementById("modeRelic"),
@@ -64,10 +66,12 @@ const storageKeys = {
   modeHistory: "gj_mode_history_v1",
   weekly: "gj_weekly_v1",
   progress: "omas_spiele_progress_v2",
+  speech: "omas_spiele_speech_v1",
 };
 
 const profile = loadProfile();
 const progress = loadProgress();
+const speechState = loadSpeechState();
 
 const modes = [
   {
@@ -539,6 +543,7 @@ const game = {
   missionManualToggle: false,
   questBannerTimer: null,
   questBannerHideTimer: null,
+  speechAction: null,
 };
 
 const audioState = {
@@ -1032,6 +1037,128 @@ function requestStartupFullscreen() {
   });
 }
 
+function loadSpeechState() {
+  try {
+    const raw = localStorage.getItem(storageKeys.speech);
+    if (raw) {
+      const data = JSON.parse(raw);
+      return {
+        enabled: Boolean(data && data.enabled),
+      };
+    }
+  } catch (err) {
+    // ignore storage errors
+  }
+  return { enabled: false };
+}
+
+function saveSpeechState() {
+  try {
+    localStorage.setItem(storageKeys.speech, JSON.stringify(speechState));
+  } catch (err) {
+    // ignore storage errors
+  }
+}
+
+function supportsSpeech() {
+  return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+}
+
+function makeSpeechText(value) {
+  return String(value || "")
+    .replace(/Kreuzwortraetsel/g, "Kreuzwortr\u00e4tsel")
+    .replace(/Kreuzwort/g, "Kreuzwort")
+    .replace(/gruen/g, "gr\u00fcn")
+    .replace(/gruenes/g, "gr\u00fcnes")
+    .replace(/Oeffnung/g, "\u00d6ffnung")
+    .replace(/fuer/g, "f\u00fcr")
+    .replace(/waehlen/g, "w\u00e4hlen")
+    .replace(/geloest/g, "gel\u00f6st")
+    .replace(/Loesung/g, "L\u00f6sung")
+    .replace(/naechst/g, "n\u00e4chst");
+}
+
+function speakText(text, options = {}) {
+  if (!supportsSpeech()) {
+    if (!options.silent) {
+      setFeedback("Sprachausgabe ist in diesem Browser nicht verfuegbar.", "bad");
+    }
+    return false;
+  }
+  const utterance = new SpeechSynthesisUtterance(makeSpeechText(text));
+  utterance.lang = "de-DE";
+  utterance.rate = 0.78;
+  utterance.pitch = 0.96;
+  utterance.volume = 1;
+  try {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    return true;
+  } catch (err) {
+    if (!options.silent) {
+      setFeedback("Sprachausgabe konnte nicht gestartet werden.", "bad");
+    }
+  }
+  return false;
+}
+
+function updateSpeechButtons() {
+  const supported = supportsSpeech();
+  const isOn = Boolean(speechState.enabled && supported);
+  if (dom.toggleSpeech) {
+    dom.toggleSpeech.textContent = isOn ? "Sprache: An" : "Sprache: Aus";
+    dom.toggleSpeech.setAttribute("aria-pressed", String(isOn));
+    dom.toggleSpeech.disabled = !supported;
+    dom.toggleSpeech.classList.toggle("active", isOn);
+  }
+  if (dom.quickSpeech) {
+    dom.quickSpeech.textContent = isOn ? "Sprache an" : "Vorlesen";
+    dom.quickSpeech.setAttribute("aria-pressed", String(isOn));
+    dom.quickSpeech.disabled = !supported;
+    dom.quickSpeech.classList.toggle("active", isOn);
+  }
+}
+
+function speakCurrentClue(options = {}) {
+  if (game.speechAction) {
+    return game.speechAction(options);
+  }
+  return speakText("Keine Frage zum Vorlesen.", options);
+}
+
+function setSpeechEnabled(enabled, options = {}) {
+  if (enabled && !supportsSpeech()) {
+    speakText("", { silent: false });
+    updateSpeechButtons();
+    return false;
+  }
+  speechState.enabled = Boolean(enabled);
+  saveSpeechState();
+  updateSpeechButtons();
+  if (!speechState.enabled && supportsSpeech()) {
+    window.speechSynthesis.cancel();
+    if (!options.silent) {
+      setFeedback("Sprachausgabe aus.", "good");
+    }
+    return false;
+  }
+  if (!options.silent) {
+    speakCurrentClue({ force: true });
+  }
+  return true;
+}
+
+function maybeSpeakCurrentClue() {
+  if (!speechState.enabled || !game.speechAction) {
+    return;
+  }
+  setTimeout(() => {
+    if (speechState.enabled && game.speechAction) {
+      speakCurrentClue({ silent: true });
+    }
+  }, 180);
+}
+
 function updateFocusButton() {
   if (!dom.toggleFocus) {
     return;
@@ -1109,6 +1236,11 @@ function setupAudioControls() {
       updateAudioButtons();
     });
   }
+  if (dom.toggleSpeech) {
+    dom.toggleSpeech.addEventListener("click", () => {
+      setSpeechEnabled(!speechState.enabled);
+    });
+  }
   if (dom.toggleFull) {
     dom.toggleFull.addEventListener("click", toggleFullscreen);
     document.addEventListener("fullscreenchange", updateFullButton);
@@ -1128,6 +1260,11 @@ function setupAudioControls() {
       if (dom.toggleSfx) {
         dom.toggleSfx.click();
       }
+    });
+  }
+  if (dom.quickSpeech) {
+    dom.quickSpeech.addEventListener("click", () => {
+      setSpeechEnabled(!speechState.enabled);
     });
   }
   if (dom.quickProgress) {
@@ -2159,6 +2296,7 @@ function applyDefaultUIState() {
   updateAudioButtons();
   updateFocusButton();
   updateCompactButton();
+  updateSpeechButtons();
   updateProgressUI();
   updateMiniHud();
 }
@@ -2628,6 +2766,7 @@ function resetGame() {
   game.sessionGoals = [];
   game.missionAutoCollapsed = false;
   game.missionManualToggle = false;
+  game.speechAction = null;
   clearModeTheme();
   if (game.questBannerTimer) {
     clearTimeout(game.questBannerTimer);
@@ -3025,15 +3164,20 @@ function setupCrossword(stats) {
     }
     const entry = puzzle.entries[activeIndex];
     const cellMap = buildCellMap();
+    const clueSpeech = `Frage ${activeIndex + 1} von ${puzzle.entries.length}. ${entry.clue}. ${entry.answer.length} Buchstaben.`;
+    game.speechAction = (options = {}) => speakText(`${clueSpeech} Bitte Antwort eintippen.`, options);
     setPrompt(
-      puzzle.title,
-      `Frage ${activeIndex + 1}: ${entry.clue} (${entry.answer.length} Buchstaben)`
+      `Frage ${activeIndex + 1} von ${puzzle.entries.length}`,
+      `${puzzle.title} | ${entry.answer.length} Buchstaben`
     );
+    if (dom.coachTip) {
+      dom.coachTip.textContent = "Tippe auf Frage vorlesen, dann in Ruhe antworten.";
+    }
     dom.options.innerHTML = "";
     dom.inputArea.innerHTML = "";
 
     const layout = document.createElement("div");
-    layout.className = "crossword-layout";
+    layout.className = "crossword-layout crossword-card-mode";
 
     const grid = document.createElement("div");
     grid.className = "crossword-grid";
@@ -3066,9 +3210,43 @@ function setupCrossword(stats) {
     const panel = document.createElement("div");
     panel.className = "crossword-panel";
 
+    const step = document.createElement("div");
+    step.className = "crossword-step";
+    step.textContent = `Frage ${activeIndex + 1} von ${puzzle.entries.length} | ${entry.answer.length} Buchstaben`;
+
     const clue = document.createElement("div");
     clue.className = "crossword-clue";
-    clue.textContent = `${activeIndex + 1}. ${entry.clue}`;
+    clue.textContent = entry.clue;
+
+    const speechRow = document.createElement("div");
+    speechRow.className = "crossword-speech-row";
+
+    const speakButton = document.createElement("button");
+    speakButton.type = "button";
+    speakButton.className = "speech-button";
+    speakButton.textContent = speechState.enabled ? "Nochmals vorlesen" : "Frage vorlesen";
+    speakButton.disabled = !supportsSpeech();
+    speakButton.addEventListener("click", () => {
+      setSpeechEnabled(true, { silent: true });
+      speakCurrentClue({ force: true });
+    });
+
+    const speechNote = document.createElement("div");
+    speechNote.className = "speech-note";
+    speechNote.textContent = supportsSpeech()
+      ? "Sprachausgabe liest langsam vor."
+      : "Sprachausgabe ist in diesem Browser nicht verfuegbar.";
+    speechRow.appendChild(speakButton);
+    speechRow.appendChild(speechNote);
+
+    const slots = document.createElement("div");
+    slots.className = "answer-slots";
+    slots.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < entry.answer.length; i += 1) {
+      const slot = document.createElement("span");
+      slot.className = "answer-slot";
+      slots.appendChild(slot);
+    }
 
     const input = document.createElement("input");
     input.type = "text";
@@ -3078,6 +3256,14 @@ function setupCrossword(stats) {
     input.placeholder = "Antwort";
     input.setAttribute("aria-label", `Antwort fuer Frage ${activeIndex + 1}`);
 
+    const updateSlots = () => {
+      const letters = normalizeGermanWord(input.value).slice(0, entry.answer.length);
+      [...slots.children].forEach((slot, index) => {
+        slot.textContent = letters[index] || "";
+        slot.classList.toggle("filled", Boolean(letters[index]));
+      });
+    };
+
     const submit = document.createElement("button");
     submit.type = "button";
     submit.className = "primary";
@@ -3085,6 +3271,7 @@ function setupCrossword(stats) {
 
     const clueList = document.createElement("div");
     clueList.className = "crossword-clue-list";
+    clueList.setAttribute("aria-label", "Fragenliste");
     puzzle.entries.forEach((item, index) => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -3108,6 +3295,9 @@ function setupCrossword(stats) {
       const expected = normalizeGermanWord(entry.answer);
       if (!value) {
         setFeedback("Bitte eine Antwort eintippen.", "bad");
+        if (speechState.enabled) {
+          speakText("Bitte eine Antwort eintippen.", { silent: true });
+        }
         return;
       }
       if (value === expected) {
@@ -3116,6 +3306,9 @@ function setupCrossword(stats) {
         noteCorrect(stats, 16, "Sehr gut!");
         if (solved.size >= puzzle.entries.length) {
           setFeedback("Kreuzwortraetsel geloest!", "good");
+          if (speechState.enabled) {
+            speakText("Sehr gut. Kreuzwortraetsel geloest.", { silent: true });
+          }
           playSfx("finish");
           setTimeout(() => {
             const nextOpen = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
@@ -3128,6 +3321,9 @@ function setupCrossword(stats) {
         setTimeout(render, 260);
       } else {
         noteWrong(stats, 1, "Noch einmal langsam.");
+        if (speechState.enabled) {
+          speakText("Noch einmal langsam. Die Antwort passt noch nicht.", { silent: true });
+        }
         input.select();
       }
     };
@@ -3135,6 +3331,7 @@ function setupCrossword(stats) {
     submit.addEventListener("click", checkAnswer);
     input.addEventListener("input", () => {
       input.value = normalizeGermanWord(input.value);
+      updateSlots();
     });
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
@@ -3142,14 +3339,19 @@ function setupCrossword(stats) {
       }
     });
 
+    panel.appendChild(step);
     panel.appendChild(clue);
+    panel.appendChild(speechRow);
+    panel.appendChild(slots);
     panel.appendChild(input);
     panel.appendChild(submit);
     panel.appendChild(clueList);
-    layout.appendChild(grid);
     layout.appendChild(panel);
+    layout.appendChild(grid);
     dom.inputArea.appendChild(layout);
+    updateSlots();
     input.focus();
+    maybeSpeakCurrentClue();
   };
 
   render();
@@ -3157,6 +3359,7 @@ function setupCrossword(stats) {
   return {
     destroy() {
       active = false;
+      game.speechAction = null;
       dom.inputArea.innerHTML = "";
     },
     onKey(event) {
@@ -4508,6 +4711,9 @@ function handleGlobalHotkeys(event) {
   }
   if (key === "s" && dom.toggleSfx) {
     dom.toggleSfx.click();
+  }
+  if (key === "v" && dom.toggleSpeech) {
+    dom.toggleSpeech.click();
   }
 }
 

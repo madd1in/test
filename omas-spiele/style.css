@@ -1520,7 +1520,8 @@ body.focus-mode .coach-tip {
 .overlay-actions button,
 button.primary,
 button.ghost,
-.clue-chip {
+.clue-chip,
+.speech-button {
   min-height: 60px;
   border-radius: 8px;
   font-size: 1.15rem;
@@ -1712,6 +1713,15 @@ button.ghost:focus-visible {
   gap: 12px;
 }
 
+.crossword-step {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #d9edf8;
+  color: #0f5e9c;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
 .crossword-clue {
   padding: 14px 16px;
   border-radius: 8px;
@@ -1720,6 +1730,54 @@ button.ghost:focus-visible {
   color: var(--ink);
   font-size: 1.35rem;
   font-weight: 800;
+}
+
+.crossword-speech-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.speech-button {
+  padding: 12px 16px;
+  border: 0;
+  background: #0f5e9c;
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.speech-button:disabled {
+  opacity: 0.55;
+}
+
+.speech-note {
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.answer-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  gap: 8px;
+}
+
+.answer-slot {
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 3px solid rgba(15, 94, 156, 0.22);
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.answer-slot.filled {
+  background: #fff8db;
+  border-color: #f2b84b;
 }
 
 .crossword-clue-list {
@@ -1830,14 +1888,27 @@ button.ghost:focus-visible {
   }
 
   .crossword-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
   .crossword-grid {
+    order: 2;
     grid-template-columns: repeat(var(--crossword-size), minmax(28px, 1fr));
     gap: 3px;
-    width: 100%;
+    width: min(100%, 330px);
+    margin: 2px auto 0;
     padding: 6px;
+  }
+
+  .crossword-panel {
+    order: 1;
+    gap: 14px;
+  }
+
+  .crossword-step {
+    font-size: 1.08rem;
+    text-align: center;
   }
 
   .crossword-cell {
@@ -1846,7 +1917,31 @@ button.ghost:focus-visible {
   }
 
   .crossword-clue {
-    font-size: 1.18rem;
+    padding: 18px;
+    font-size: 1.55rem;
+    line-height: 1.3;
+  }
+
+  .crossword-speech-row {
+    grid-template-columns: 1fr;
+  }
+
+  .speech-button {
+    width: 100%;
+    font-size: 1.2rem;
+  }
+
+  .speech-note {
+    text-align: center;
+  }
+
+  .answer-slots {
+    grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
+  }
+
+  .answer-slot {
+    min-height: 58px;
+    font-size: 1.6rem;
   }
 
   .mini-hud {
@@ -1919,8 +2014,8 @@ button.ghost:focus-visible {
   bottom: max(10px, env(safe-area-inset-bottom));
   z-index: 18;
   display: none;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   width: min(680px, calc(100vw - 16px));
   padding: 8px;
   border-radius: 12px;
@@ -1931,14 +2026,21 @@ button.ghost:focus-visible {
 }
 
 .mobile-quickbar button {
-  min-height: 58px;
+  min-height: 52px;
   border: 0;
   border-radius: 8px;
   background: #d9edf8;
   color: var(--ink);
   font-size: 0.95rem;
   font-weight: 850;
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
   touch-action: manipulation;
+}
+
+.mobile-quickbar button:disabled {
+  opacity: 0.5;
 }
 
 .mobile-quickbar button.active {
@@ -1961,7 +2063,7 @@ body.playing .mobile-quickbar {
 
 @media (max-width: 760px) {
   body {
-    padding-bottom: 86px;
+    padding-bottom: 148px;
   }
 
   .top {
