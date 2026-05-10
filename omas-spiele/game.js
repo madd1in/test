@@ -563,6 +563,7 @@ const audioState = {
 
 let audioAutoArmed = false;
 let fullscreenAutoArmed = false;
+let speechAutoArmed = false;
 
 const audioAssets = {
   bgm: "../assets/audio/glimmerwald-theme.wav",
@@ -1041,19 +1042,29 @@ function loadSpeechState() {
     const raw = localStorage.getItem(storageKeys.speech);
     if (raw) {
       const data = JSON.parse(raw);
+      if (data && data.manual === true) {
+        return {
+          enabled: Boolean(data.enabled),
+          manual: true,
+        };
+      }
       return {
-        enabled: Boolean(data && data.enabled),
+        enabled: true,
+        manual: false,
       };
     }
   } catch (err) {
     // ignore storage errors
   }
-  return { enabled: false };
+  return { enabled: true, manual: false };
 }
 
 function saveSpeechState() {
   try {
-    localStorage.setItem(storageKeys.speech, JSON.stringify(speechState));
+    localStorage.setItem(
+      storageKeys.speech,
+      JSON.stringify({ enabled: Boolean(speechState.enabled), manual: true })
+    );
   } catch (err) {
     // ignore storage errors
   }
@@ -1155,15 +1166,42 @@ function setSpeechEnabled(enabled, options = {}) {
   return true;
 }
 
-function maybeSpeakCurrentClue() {
+function armSpeechAutoStart() {
+  if (speechAutoArmed || !supportsSpeech()) {
+    return;
+  }
+  speechAutoArmed = true;
+  const events = ["pointerdown", "keydown", "touchstart"];
+  const handler = () => {
+    events.forEach((eventName) => {
+      window.removeEventListener(eventName, handler, true);
+    });
+    speechAutoArmed = false;
+    if (speechState.enabled && game.speechAction) {
+      speakCurrentClue({ silent: true });
+    }
+  };
+  events.forEach((eventName) => {
+    window.addEventListener(eventName, handler, { once: true, capture: true });
+  });
+}
+
+function maybeSpeakCurrentClue(options = {}) {
   if (!speechState.enabled || !game.speechAction) {
     return;
   }
+  if (options.key && game.lastAutoSpeechKey === options.key) {
+    return;
+  }
+  if (options.key) {
+    game.lastAutoSpeechKey = options.key;
+  }
+  armSpeechAutoStart();
   setTimeout(() => {
     if (speechState.enabled && game.speechAction) {
       speakCurrentClue({ silent: true });
     }
-  }, 180);
+  }, options.delay ?? 420);
 }
 
 function updateFocusButton() {
@@ -3269,16 +3307,6 @@ function setupCrossword(stats) {
     clue.className = "crossword-clue";
     clue.textContent = entry.clue;
 
-    const speakButton = document.createElement("button");
-    speakButton.type = "button";
-    speakButton.className = "speech-button";
-    speakButton.textContent = "Vorlesen";
-    speakButton.disabled = !supportsSpeech();
-    speakButton.addEventListener("click", () => {
-      setSpeechEnabled(true, { silent: true });
-      speakCurrentClue({ force: true });
-    });
-
     const voiceButton = document.createElement("button");
     voiceButton.type = "button";
     voiceButton.className = "voice-button";
@@ -3327,7 +3355,6 @@ function setupCrossword(stats) {
 
     const actionRow = document.createElement("div");
     actionRow.className = "crossword-action-row";
-    actionRow.appendChild(speakButton);
     actionRow.appendChild(submit);
 
     const extraDetails = document.createElement("details");
@@ -3389,7 +3416,6 @@ function setupCrossword(stats) {
         setFeedback("Richtig.", "good");
         input.disabled = true;
         submit.disabled = true;
-        speakButton.disabled = true;
         voiceButton.disabled = true;
         hintButton.disabled = true;
         if (speechState.enabled && !willCompletePuzzle) {
@@ -3536,7 +3562,7 @@ function setupCrossword(stats) {
     updateHintLine();
     updateSlots();
     input.focus();
-    maybeSpeakCurrentClue();
+    maybeSpeakCurrentClue({ key: `crossword:${puzzle.title}:${activeIndex}` });
   };
 
   render();
@@ -3639,6 +3665,8 @@ function setupWordle(stats) {
     dom.options.innerHTML = "";
     dom.inputArea.innerHTML = "";
     setPrompt("Wordle", "5 Buchstaben");
+    game.speechAction = (options = {}) =>
+      speakText("Wordle. Bitte ein Wort mit 5 Buchstaben eintippen.", options);
     if (dom.coachTip) {
       dom.coachTip.textContent = "";
     }
@@ -3738,6 +3766,7 @@ function setupWordle(stats) {
     wrap.appendChild(form);
     dom.inputArea.appendChild(wrap);
     input.focus();
+    maybeSpeakCurrentClue({ key: `wordle:${answer}` });
   };
 
   resumeWordle();
