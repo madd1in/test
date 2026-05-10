@@ -1120,7 +1120,7 @@ function updateSpeechButtons() {
     dom.toggleSpeech.classList.toggle("active", isOn);
   }
   if (dom.quickSpeech) {
-    dom.quickSpeech.textContent = isOn ? "Sprache an" : "Vorlesen";
+    dom.quickSpeech.textContent = "Vorlesen";
     dom.quickSpeech.setAttribute("aria-pressed", String(isOn));
     dom.quickSpeech.disabled = !supported;
     dom.quickSpeech.classList.toggle("active", isOn);
@@ -1272,7 +1272,11 @@ function setupAudioControls() {
   }
   if (dom.quickSpeech) {
     dom.quickSpeech.addEventListener("click", () => {
-      setSpeechEnabled(!speechState.enabled);
+      if (!speechState.enabled) {
+        setSpeechEnabled(true);
+        return;
+      }
+      speakCurrentClue({ force: true });
     });
   }
   if (dom.quickProgress) {
@@ -1529,15 +1533,7 @@ function getProgressSummary() {
     (sum, puzzle) => sum + getCrosswordState(puzzle).solved.length,
     0
   );
-  const completedCrosswords = crosswordPuzzles.filter((puzzle) => getCrosswordState(puzzle).completed).length;
-  const solvedWords = progress.wordle.solvedWords.length;
-  const activeWordle = progress.wordle.currentAnswer && progress.wordle.guesses.length
-    ? ` | Wordle offen: ${progress.wordle.guesses.length}/6`
-    : "";
-  if (!crosswordSolved && !solvedWords && !activeWordle) {
-    return "Noch nichts geloest. Dein Stand wird ab jetzt automatisch gespeichert.";
-  }
-  return `Kreuzwort: ${crosswordSolved}/${crosswordTotal} Fragen, ${completedCrosswords}/${crosswordPuzzles.length} Tafeln fertig. Wordle: ${solvedWords} Woerter geloest${activeWordle}.`;
+  return `${crosswordSolved} von ${crosswordTotal} geloest.`;
 }
 
 function updateProgressUI() {
@@ -3196,10 +3192,10 @@ function setupCrossword(stats) {
     game.speechAction = (options = {}) => speakText(`${clueSpeech} Bitte Antwort eintippen.`, options);
     setPrompt(
       `Frage ${activeIndex + 1} von ${puzzle.entries.length}`,
-      `${puzzle.title} | ${entry.answer.length} Buchstaben`
+      `${entry.answer.length} Buchstaben`
     );
     if (dom.coachTip) {
-      dom.coachTip.textContent = "Tippe auf Frage vorlesen, dann in Ruhe antworten.";
+      dom.coachTip.textContent = "";
     }
     dom.options.innerHTML = "";
     dom.inputArea.innerHTML = "";
@@ -3246,34 +3242,20 @@ function setupCrossword(stats) {
     clue.className = "crossword-clue";
     clue.textContent = entry.clue;
 
-    const speechRow = document.createElement("div");
-    speechRow.className = "crossword-speech-row";
-
     const speakButton = document.createElement("button");
     speakButton.type = "button";
     speakButton.className = "speech-button";
-    speakButton.textContent = speechState.enabled ? "Nochmals vorlesen" : "Frage vorlesen";
+    speakButton.textContent = "Vorlesen";
     speakButton.disabled = !supportsSpeech();
     speakButton.addEventListener("click", () => {
       setSpeechEnabled(true, { silent: true });
       speakCurrentClue({ force: true });
     });
 
-    const speechNote = document.createElement("div");
-    speechNote.className = "speech-note";
-    speechNote.textContent = supportsSpeech()
-      ? "Sprachausgabe liest langsam vor."
-      : "Sprachausgabe ist in diesem Browser nicht verfuegbar.";
-    speechRow.appendChild(speakButton);
-    speechRow.appendChild(speechNote);
-
-    const voiceRow = document.createElement("div");
-    voiceRow.className = "crossword-voice-row";
-
     const voiceButton = document.createElement("button");
     voiceButton.type = "button";
     voiceButton.className = "voice-button";
-    voiceButton.textContent = "Antwort sprechen";
+    voiceButton.textContent = "Sprechen";
     voiceButton.disabled = !supportsVoiceInput();
 
     const hintButton = document.createElement("button");
@@ -3283,9 +3265,7 @@ function setupCrossword(stats) {
 
     const hintLine = document.createElement("div");
     hintLine.className = "crossword-hint-line";
-    hintLine.textContent = "Tipp zeigt einzelne Buchstaben.";
-    voiceRow.appendChild(voiceButton);
-    voiceRow.appendChild(hintButton);
+    hintLine.hidden = true;
 
     const slots = document.createElement("div");
     slots.className = "answer-slots";
@@ -3316,7 +3296,20 @@ function setupCrossword(stats) {
     const submit = document.createElement("button");
     submit.type = "button";
     submit.className = "primary";
-    submit.textContent = "Antwort pruefen";
+    submit.textContent = "Pruefen";
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "crossword-action-row";
+    actionRow.appendChild(speakButton);
+    actionRow.appendChild(voiceButton);
+    actionRow.appendChild(hintButton);
+    actionRow.appendChild(submit);
+
+    const extraDetails = document.createElement("details");
+    extraDetails.className = "crossword-extra";
+    const extraSummary = document.createElement("summary");
+    extraSummary.textContent = "Tafel zeigen";
+    extraDetails.appendChild(extraSummary);
 
     const clueList = document.createElement("div");
     clueList.className = "crossword-clue-list";
@@ -3339,7 +3332,8 @@ function setupCrossword(stats) {
     const updateHintLine = () => {
       const count = hintCounts.get(getHintKey()) || 0;
       if (!count) {
-        hintLine.textContent = "Tipp zeigt einzelne Buchstaben.";
+        hintLine.hidden = true;
+        hintLine.textContent = "";
         return;
       }
       const revealed = entry.answer
@@ -3347,6 +3341,7 @@ function setupCrossword(stats) {
         .map((letter, index) => (index < count ? letter : "_"))
         .join(" ");
       hintLine.textContent = `Tipp: ${revealed}`;
+      hintLine.hidden = false;
     };
 
     const checkAnswer = (options = {}) => {
@@ -3366,6 +3361,7 @@ function setupCrossword(stats) {
         solved.add(activeIndex);
         markCrosswordSolved(puzzle, activeIndex);
         noteCorrect(stats, 16, "Sehr gut!");
+        setFeedback("Richtig.", "good");
         input.disabled = true;
         submit.disabled = true;
         speakButton.disabled = true;
@@ -3375,7 +3371,7 @@ function setupCrossword(stats) {
           speakText("Sehr gut. Weiter zur naechsten Frage.", { silent: true });
         }
         if (solved.size >= puzzle.entries.length) {
-          setFeedback("Kreuzwortraetsel geloest!", "good");
+          setFeedback("Fertig!", "good");
           if (speechState.enabled) {
             speakText("Sehr gut. Kreuzwortraetsel geloest.", { silent: true });
           }
@@ -3391,6 +3387,7 @@ function setupCrossword(stats) {
         setTimeout(render, 260);
       } else {
         noteWrong(stats, 1, "Noch einmal langsam.");
+        setFeedback("Noch einmal.", "bad");
         if (speechState.enabled) {
           speakText("Noch einmal langsam. Die Antwort passt noch nicht.", { silent: true });
         }
@@ -3400,7 +3397,7 @@ function setupCrossword(stats) {
 
     const startVoiceAnswer = () => {
       if (!supportsVoiceInput()) {
-        setFeedback("Spracheingabe ist in diesem Browser nicht verfuegbar.", "bad");
+        setFeedback("Sprechen geht hier nicht.", "bad");
         if (speechState.enabled) {
           speakText("Spracheingabe ist in diesem Browser nicht verfuegbar.", { silent: true });
         }
@@ -3416,8 +3413,8 @@ function setupCrossword(stats) {
       voiceRecognition.interimResults = false;
       voiceRecognition.maxAlternatives = 1;
       voiceButton.classList.add("listening");
-      voiceButton.textContent = "Ich hoere...";
-      setFeedback("Sag jetzt die Antwort.", "good");
+      voiceButton.textContent = "Hoere...";
+      setFeedback("Sprechen.", "good");
       voiceRecognition.onresult = (event) => {
         const transcript =
           event.results && event.results[0] && event.results[0][0]
@@ -3427,7 +3424,7 @@ function setupCrossword(stats) {
         input.value = heard;
         updateSlots();
         if (!heard) {
-          setFeedback("Ich habe nichts verstanden. Bitte nochmal sprechen.", "bad");
+          setFeedback("Nichts gehoert.", "bad");
           if (speechState.enabled) {
             speakText("Ich habe nichts verstanden. Bitte nochmal sprechen.", { silent: true });
           }
@@ -3437,13 +3434,13 @@ function setupCrossword(stats) {
           checkAnswer({ fromVoice: true });
           return;
         }
-        setFeedback(`Ich habe ${heard} verstanden. Bitte pruefen oder nochmal sprechen.`, "good");
+        setFeedback(`Gehoert: ${heard}`, "good");
         if (speechState.enabled) {
           speakText(`Ich habe ${heard} verstanden. Bitte pruefen oder nochmal sprechen.`, { silent: true });
         }
       };
       voiceRecognition.onerror = () => {
-        setFeedback("Mikrofon hat nicht geklappt. Tippen geht weiter.", "bad");
+        setFeedback("Mikrofon klappt nicht.", "bad");
         if (speechState.enabled) {
           speakText("Mikrofon hat nicht geklappt. Tippen geht weiter.", { silent: true });
         }
@@ -3451,15 +3448,15 @@ function setupCrossword(stats) {
       voiceRecognition.onend = () => {
         voiceRecognition = null;
         voiceButton.classList.remove("listening");
-        voiceButton.textContent = "Antwort sprechen";
+        voiceButton.textContent = "Sprechen";
       };
       try {
         voiceRecognition.start();
       } catch (err) {
         voiceRecognition = null;
         voiceButton.classList.remove("listening");
-        voiceButton.textContent = "Antwort sprechen";
-        setFeedback("Mikrofon konnte nicht gestartet werden.", "bad");
+        voiceButton.textContent = "Sprechen";
+        setFeedback("Mikrofon klappt nicht.", "bad");
       }
     };
 
@@ -3494,15 +3491,14 @@ function setupCrossword(stats) {
 
     panel.appendChild(step);
     panel.appendChild(clue);
-    panel.appendChild(speechRow);
-    panel.appendChild(voiceRow);
-    panel.appendChild(hintLine);
     panel.appendChild(slots);
     panel.appendChild(input);
-    panel.appendChild(submit);
-    panel.appendChild(clueList);
+    panel.appendChild(actionRow);
+    panel.appendChild(hintLine);
+    extraDetails.appendChild(grid);
+    extraDetails.appendChild(clueList);
+    panel.appendChild(extraDetails);
     layout.appendChild(panel);
-    layout.appendChild(grid);
     dom.inputArea.appendChild(layout);
     updateHintLine();
     updateSlots();
