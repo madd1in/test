@@ -16,7 +16,7 @@
 
       <section id="hud" class="hud" aria-live="polite">
         <div class="hud-left">
-          <div class="brandline">
+          <div class="brandline" aria-label="Nocturne Reliquary">
             <span class="crest"></span>
             <span>Nocturne Reliquary</span>
           </div>
@@ -27,7 +27,7 @@
             <span class="stat-chip" id="levelChip">Lv 1</span>
             <span class="stat-chip" id="heartsChip">&#9829; 0</span>
             <span class="stat-chip" id="subChip">Dagger</span>
-            <span class="stat-chip objective-chip" id="objectiveChip">Next: Moon Sigil</span>
+            <span class="stat-chip objective-chip" id="objectiveChip" aria-label="Next objective">GO</span>
             <span class="stat-chip compass-chip" id="compassChip">→ Gallery</span>
           </div>
         </div>
@@ -45,7 +45,7 @@
 
       <section id="miniMap" class="mini-map" aria-label="Mini map">
         <div id="miniMapGrid" class="mini-map-grid"></div>
-        <div id="miniMapObjective" class="mini-map-objective">Next: Moon Sigil</div>
+        <div id="miniMapObjective" class="mini-map-objective" aria-hidden="true"></div>
       </section>
 
       <section id="titlePanel" class="title-panel">

@@ -55,6 +55,7 @@
     enemy: "assets/generated/enemy_sheet_clean.png",
     enemyExt: "assets/generated/enemy_imagen_zora_panther_sheet.png",
     enemyQuest: "assets/generated/enemy_imagen_quest_minibosses_sheet.png",
+    archiveWarden: "assets/generated/enemy_imagen_archive_warden_48f_sheet.png",
     boss: "assets/generated/boss_sheet_hd_16.png",
     projectile: "assets/generated/projectile_sheet.png",
     weaponsHd: "assets/generated/weapons_hd_sheet.png",
@@ -66,6 +67,10 @@
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
+    armoryProps: "assets/generated/props_imagen_hd_armory_moon_cases.png",
+    librarySwitches: "assets/generated/props_imagen_hd_library_switches.png",
+    towerProps: "assets/generated/props_imagen_hd_moon_chain_tower.png",
+    galleryPortraits: "assets/generated/props_imagen_hd_gallery_portraits.png",
     titleBg: "assets/generated/bg_imagen_title_screen_hd.png",
     bgGate: "assets/generated/bg_imagen_gate_hd.png",
     midGate: "assets/generated/bg_stage1_mid_tiled.png",
@@ -269,25 +274,30 @@
     drawbridgeTileSet: "imagen-existing-root-trim-v1",
     drawbridgeChainSet: "existing-fg-chain-rotated-v1",
     drawbridgeAnchorSet: "imagen-trim-anchor-plates-v1",
-    drawbridgePerf: "cached-deck-chain-mode7-v2",
+    drawbridgePerf: "world-layer-warmed-water-v3",
     cavernSection: "sapphire-grotto-zora-v1",
     grottoMechanic: "moving-water-raft-duck-spikes-v2-hd-assets",
     enemyVisibility: "panther-zora-rim-respawn-v1",
     chestSet: "imagen-hd-treasure-chests-v2",
     weaponSet: WEAPON_ASSET_SET,
     doorSet: DOOR_ASSET_SET,
-    moatWaterSet: "imagen-hd-mode7-parallax-cached-v2",
+    moatWaterSet: "imagen-hd-mode7-parallax-warmed-v3",
     puzzleSet: ROOM_PUZZLE_SET,
+    librarySwitchSet: "imagen-hd-library-rune-switches-v1",
     forgePuzzleFlow: "linear-nearby-no-reset-v1",
     shrineSet: "imagen-hd-reset-shrine-v1",
     grottoSpikeSet: "imagen-hd-stalagmite-stalactite-v1",
+    armoryProps: "imagen-hd-armory-moon-cases-v1",
+    towerGalleryProps: "imagen-hd-moon-chain-gallery-props-v1",
     questSealRoute: "archive-observatory-grotto-miniboss-v1",
     questSealSet: "imagen-quest-seals-hd-v1",
-    enemyFrameMap: "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2",
+    enemyFrameMap: "zora-panther-hd-24f-v2+archive-warden-imagen-hd-48f-v1",
     enemyExtFrames: 24,
     questBossFrames: 24,
     mapMode: "cycle-off-mini-full-v1",
     objectiveDoorGuide: "in-world-next-exit-v1",
+    accessibilityHud: "low-reading-hud-v1",
+    controlSkin: "gothic-medallion-controls-v1",
     mobileTouch: "large-hit-targets-v3-readable-fonts",
     mobileCeilingDoors: "auto-enter-touch-overlap-v1",
     mobileDoorReentryGuard: "block-reverse-door-until-exit-v1",
@@ -313,6 +323,9 @@
     questBossFrameW: 320,
     questBossFrameH: 256,
     questBossFrames: 24,
+    archiveWardenFrameW: 320,
+    archiveWardenFrameH: 256,
+    archiveWardenFrames: 48,
     chestFrameW: 256,
     chestFrameH: 256,
     chestFrames: 4
@@ -332,7 +345,7 @@
     witch: { row: 9, hp: 34, w: 48, h: 88, dw: 86, dh: 126, speed: 0.34, damage: 7, ai: "witch" },
     boneWraith: { row: 4, hp: 220, w: 64, h: 130, dw: 128, dh: 184, speed: 0.7, damage: 12, ai: "wraith", mini: true, banner: "Bone Wraith", subtitle: "Catacomb Warden" },
     bellWraith: { row: 6, hp: 320, w: 70, h: 134, dw: 134, dh: 188, speed: 0.55, damage: 14, ai: "wraith", mini: true, banner: "Bell Wraith", subtitle: "Tower Sentinel" },
-    inkWarden: { row: 2, hp: 260, w: 64, h: 126, dw: 170, dh: 216, speed: 0.5, damage: 13, ai: "wraith", mini: true, sprite: "inkWarden", questSeal: "inkSeal", banner: "Archive Warden", subtitle: "Keeper of the Ink Seal" },
+    inkWarden: { row: 2, hp: 420, w: 72, h: 134, dw: 196, dh: 236, speed: 0.62, damage: 17, ai: "wraith", mini: true, sprite: "inkWarden", questSeal: "inkSeal", banner: "Archive Warden", subtitle: "Keeper of the Ink Seal" },
     starWarden: { row: 1, hp: 300, w: 70, h: 132, dw: 180, dh: 224, speed: 0.52, damage: 14, ai: "wraith", mini: true, sprite: "starWarden", questSeal: "starSeal", banner: "Star Warden", subtitle: "Keeper of the Astral Lens" },
     tideWarden: { row: 0, hp: 320, w: 72, h: 132, dw: 184, dh: 226, speed: 0.55, damage: 14, ai: "wraith", mini: true, sprite: "tideWarden", questSeal: "tideSeal", banner: "Tide Warden", subtitle: "Keeper of the Tide Sigil" },
     drowned: { row: 0, hp: 36, w: 44, h: 86, dw: 86, dh: 122, speed: 0.74, damage: 8, ai: "walker" },
@@ -390,17 +403,17 @@
       recover: [16, 17, 18, 19, 20, 21, 22, 23]
     },
     inkWarden: {
-      image: "enemyQuest",
-      row: 2,
+      image: "archiveWarden",
+      row: 0,
       frameW: 320,
       frameH: 256,
-      frames: 24,
-      fps: 7,
-      smoothMini: true,
-      idle: [0, 1, 2, 3, 4, 5, 6, 7],
-      idleSmooth: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
-      cast: [8, 9, 10, 11, 12, 13, 14, 15],
-      recover: [16, 17, 18, 19, 20, 21, 22, 23]
+      frames: 48,
+      fps: 14,
+      facing: "left",
+      idle: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      cast: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+      attack: [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35],
+      recover: [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47]
     }
   };
   window.__NOCTURNE_ENEMY_FRAME_MAP = ENEMY_FRAME_MAP;
@@ -417,13 +430,16 @@
   const drawbridgeRenderCache = { deck: null, chains: new Map(), anchor: null };
   const mode7FloorCache = new Map();
   const roomBackgroundCache = new Map();
+  const roomBackgroundWorldCache = new Map();
   const moatWaterRenderCache = new Map();
   const roomSceneryCache = new Map();
+  const roomSceneryWorldCache = new Map();
+  const chromaCutoutCache = new Map();
   const perfStats = { enabled: false, update: [], draw: [], frame: [] };
   const sfxPool = {};
   const SFX_POOL_SIZE = 3;
   const hudCache = { hp: -1, mp: -1, exp: -1, level: -1, hearts: -1, sub: "", room: "", status: "", objective: "", compass: "" };
-  const SUB_LABEL_SHORT = { dagger: "Dagger", axe: "Axe", holyWater: "Holy Water", boomerang: "Boomerang" };
+  const SUB_LABEL_SHORT = { dagger: "DAG", axe: "AXE", holyWater: "HOLY", boomerang: "BOOM" };
 
   const game = {
     mode: "loading",
@@ -884,6 +900,15 @@
     return `${arrow} ${next}`;
   }
 
+  function compassGlyphText() {
+    const target = nextObjectiveRoom();
+    if (!target) return "OK";
+    if (target === game.roomId) return "HERE";
+    const door = nextHopDoor(target);
+    if (!door) return ">";
+    return door.side === "left" ? "<" : door.side === "right" ? ">" : door.side === "up" ? "^" : "v";
+  }
+
   function sideObjectives() {
     const s = game.save;
     const out = [];
@@ -924,6 +949,42 @@
     const seals = questSealProgress();
     if (!seals.done) return `Seal ${seals.found + 1}/${seals.total}: ${seals.next.label}`;
     return "Next: Crimson Reliquary";
+  }
+
+  function objectiveChipText() {
+    const s = game.save;
+    if (s.bossDefeated) return "DONE";
+    if (!s.visited.gate) return "GATE";
+    if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) return "RUNE";
+    if (!s.moonSigil) return "SIGIL";
+    if (!s.relics.dash) return "DASH";
+    const survey = surveyProgress();
+    if (!survey.done) return `${survey.visited}/${survey.total}`;
+    const seals = questSealProgress();
+    if (!seals.done) return `SEAL ${seals.found}/${seals.total}`;
+    return "RITE";
+  }
+
+  function compactObjectiveLine() {
+    const s = game.save;
+    if (s.bossDefeated) return "Rite broken";
+    if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) return `Rune puzzle: ${game.room.puzzle.label}`;
+    const target = nextObjectiveRoom();
+    if (!target) return "Explore freely";
+    if (target === game.roomId) return "Goal is here";
+    return `Next room: ${roomDisplayName(target)}`;
+  }
+
+  function compactSideObjectives() {
+    const out = [];
+    const survey = surveyProgress();
+    const seals = questSealProgress();
+    if (!survey.done) out.push(`Map ${survey.visited}/${survey.total}`);
+    if (!seals.done) out.push(`Seals ${seals.found}/${seals.total}`);
+    if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) out.push("Hit runes in order");
+    const target = nextObjectiveRoom();
+    if (target && target !== game.roomId) out.push(`${compassGlyphText()} exit`);
+    return out;
   }
 
   const rooms = {
@@ -2181,15 +2242,33 @@
       chains: drawbridgeRenderCache.chains.size,
       anchor: Boolean(drawbridgeRenderCache.anchor),
       mode7: mode7FloorCache.size,
-      backgrounds: roomBackgroundCache.size,
+      backgrounds: roomBackgroundCache.size + roomBackgroundWorldCache.size,
+      backgroundViewports: roomBackgroundCache.size,
+      backgroundWorld: roomBackgroundWorldCache.size,
       moatWater: moatWaterRenderCache.size,
-      scenery: roomSceneryCache.size
+      scenery: roomSceneryCache.size + roomSceneryWorldCache.size,
+      sceneryViewports: roomSceneryCache.size,
+      sceneryWorld: roomSceneryWorldCache.size
+    },
+    hdProps: {
+      armory: Boolean(images.armoryProps && images.armoryProps.width),
+      armorySize: images.armoryProps && images.armoryProps.width ? `${images.armoryProps.width}x${images.armoryProps.height}` : null,
+      librarySwitches: Boolean(images.librarySwitches && images.librarySwitches.width),
+      librarySwitchSize: images.librarySwitches && images.librarySwitches.width ? `${images.librarySwitches.width}x${images.librarySwitches.height}` : null,
+      archiveWarden: Boolean(images.archiveWarden && images.archiveWarden.width),
+      archiveWardenSize: images.archiveWarden && images.archiveWarden.width ? `${images.archiveWarden.width}x${images.archiveWarden.height}` : null,
+      tower: Boolean(images.towerProps && images.towerProps.width),
+      galleryPortraits: Boolean(images.galleryPortraits && images.galleryPortraits.width),
+      towerSize: images.towerProps && images.towerProps.width ? `${images.towerProps.width}x${images.towerProps.height}` : null,
+      gallerySize: images.galleryPortraits && images.galleryPortraits.width ? `${images.galleryPortraits.width}x${images.galleryPortraits.height}` : null,
+      chromaCaches: chromaCutoutCache.size
     },
     enemyFrameMap: {
-      version: "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2",
+      version: "zora-panther-hd-24f-v2+archive-warden-imagen-hd-48f-v1",
       zoraFrames: ENEMY_FRAME_MAP.zora.frames,
       pantherFrames: ENEMY_FRAME_MAP.blackPanther.frames,
-      questBossFrames: ENEMY_FRAME_MAP.tideWarden.frames
+      questBossFrames: ENEMY_FRAME_MAP.tideWarden.frames,
+      archiveWardenFrames: ENEMY_FRAME_MAP.inkWarden.frames
     },
     visuals: game.room ? {
       bg: game.room.bg,
@@ -2341,13 +2420,27 @@
     const bg = images[room.bg];
     if (bg && bg.width) {
       getMode7FloorLayer(room, bg, roomWidth(room), roomHeight(room), isOutdoorRoom(room));
-      getRoomBackgroundViewportLayer(room, bg, images[room.mid], 480, 96, roomWidth(room), roomHeight(room), isOutdoorRoom(room));
+      getRoomBackgroundWorldLayer(room, bg, images[room.mid], roomWidth(room), roomHeight(room), isOutdoorRoom(room));
     }
     getDrawbridgeDeckLayer(room.drawbridge);
     getDrawbridgeChainStrip(520, 13);
     getDrawbridgeAnchorPlate();
     getPlatformLayer(room);
-    getRoomSceneryViewportLayer(room, 480, 96);
+    getRoomSceneryWorldLayer(room);
+    warmMoatWaterPerformanceCaches(room);
+  }
+
+  function warmMoatWaterPerformanceCaches(room) {
+    if (!room || !room.moatWater) return;
+    const plane = room.moatWater;
+    const img = images[plane.tile || "moatWaterTiles"];
+    if (!img || !img.width) return;
+    const w = Math.ceil(plane.w || roomWidth(room));
+    const h = Math.ceil(plane.h || Math.max(96, roomHeight(room) - (plane.y || 0)));
+    for (let frame = 0; frame < MOAT_WATER_FRAMES; frame += 1) {
+      getMoatWaterMode7Layer(img, w, h, frame, 0);
+      getMoatWaterMode7Layer(img, w, h, frame, 1);
+    }
   }
 
   function hasSave() {
@@ -3471,43 +3564,46 @@
           enemy.cooldown = 1.35;
         }
       } else if (cfg.ai === "wraith") {
-        // Mini-boss: heavy stalker that periodically lunges and emits a 3-shot fan
+        // Mini-boss: heavy stalker that periodically lunges and emits a projectile fan.
+        const isInkWarden = enemy.type === "inkWarden";
         enemy.vy += GRAVITY * step;
         const dist = playerCenterX - center;
         const dir = Math.sign(dist || enemy.facing);
         if (enemy.lunge > 0) {
           enemy.lunge -= dt;
-          enemy.vx = dir * 5.4;
+          enemy.vx = dir * (isInkWarden ? 6.2 : 5.4);
         } else {
-          enemy.vx += dir * cfg.speed * 0.06 * step;
-          enemy.vx = clamp(enemy.vx, -cfg.speed, cfg.speed);
+          const pressure = isInkWarden && Math.abs(dist) < 520 ? 0.09 : 0.06;
+          enemy.vx += dir * cfg.speed * pressure * step;
+          enemy.vx = clamp(enemy.vx, -cfg.speed * (isInkWarden ? 1.22 : 1), cfg.speed * (isInkWarden ? 1.22 : 1));
         }
         if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
         moveEntity(enemy, step, false);
         if (enemy.cooldown <= 0) {
-          if (Math.abs(dist) < 220 && Math.random() < 0.6) {
-            enemy.lunge = 0.5;
-            enemy.attackWindup = 0.5;
-            enemy.cooldown = 2.2;
+          if (Math.abs(dist) < (isInkWarden ? 260 : 220) && Math.random() < (isInkWarden ? 0.72 : 0.6)) {
+            enemy.lunge = isInkWarden ? 0.58 : 0.5;
+            enemy.attackWindup = isInkWarden ? 0.68 : 0.5;
+            enemy.cooldown = isInkWarden ? 1.55 : 2.2;
             burst(enemy.x + enemy.w / 2, enemy.y + 24, "#bfa0ff", 14);
             playSound("bossRoar", 0.18);
           } else {
-            enemy.attackWindup = 0.72;
-            for (const angle of [-0.18, 0, 0.18]) {
-              const sp = 4.6;
+            enemy.attackWindup = isInkWarden ? 0.9 : 0.72;
+            const fan = isInkWarden ? [-0.34, -0.16, 0, 0.16, 0.34] : [-0.18, 0, 0.18];
+            for (const angle of fan) {
+              const sp = isInkWarden ? 5.35 : 4.6;
               game.projectiles.push({
                 from: "enemy",
                 x: enemy.x + enemy.w / 2,
                 y: enemy.y + enemy.h * 0.4,
-                w: 18, h: 18,
-                vx: dir * (sp - Math.abs(angle) * 1.2),
-                vy: angle * 6,
+                w: isInkWarden ? 22 : 18, h: isInkWarden ? 20 : 18,
+                vx: dir * (sp - Math.abs(angle) * (isInkWarden ? 0.9 : 1.2)),
+                vy: angle * (isInkWarden ? 6.8 : 6),
                 damage: cfg.damage,
-                life: 2.0,
+                life: isInkWarden ? 2.35 : 2.0,
                 color: "#c9a8ff"
               });
             }
-            enemy.cooldown = 1.7;
+            enemy.cooldown = isInkWarden ? 1.28 : 1.7;
           }
         }
       } else if (cfg.ai === "zora") {
@@ -4993,9 +5089,27 @@
     }
   }
 
+  function compactMessage(text) {
+    const raw = String(text || "");
+    if (!raw) return "";
+    const lower = raw.toLowerCase();
+    if (lower.includes("locked")) return "Locked";
+    if (lower.includes("mini-boss") || lower.includes("warden")) return raw.split(" - ")[0].slice(0, 28);
+    if (lower.includes("sub-weapon")) return raw.replace("Sub-Weapon: ", "").slice(0, 24);
+    if (lower.includes("relic gained")) return raw.replace("Relic gained: ", "").split("/")[0].trim();
+    if (lower.includes("treasure")) return raw.replace("Treasure! ", "").slice(0, 24);
+    if (lower.includes("puzzle") || lower.includes("rune")) return raw.slice(0, 30);
+    if (lower.includes("fullscreen")) return "FS blocked";
+    if (lower.includes("drawbridge")) return "Bridge moving";
+    if (lower.includes("portcullis") || lower.includes("gate")) return "Gate moving";
+    if (lower.includes("save shrine")) return "Restored";
+    if (lower.includes("moonfall")) return "Returned to shrine";
+    return raw.length > 32 ? `${raw.slice(0, 29)}...` : raw;
+  }
+
   function message(text) {
-    game.message = text;
-    game.messageTimer = 2.1;
+    game.message = compactMessage(text);
+    game.messageTimer = game.message ? 2.2 : 0;
   }
 
   function recordPerfSample(type, value) {
@@ -5199,10 +5313,7 @@
     ctx.fillRect(0, 0, W, H);
     drawMoatWaterUnderlay(room, cameraX, cameraY);
 
-    const scenery = getRoomSceneryViewportLayer(room, cameraX, cameraY);
-    if (scenery) {
-      ctx.drawImage(scenery, 0, 0);
-    } else {
+    if (!drawCachedRoomScenery(room, cameraX, cameraY)) {
       ctx.save();
       ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
       drawArchitecture(room);
@@ -5218,6 +5329,34 @@
       }
       ctx.restore();
     }
+  }
+
+  function drawCachedRoomScenery(room, cameraX, cameraY) {
+    if (!room || !room.drawbridge) return false;
+    const layer = getRoomSceneryWorldLayer(room);
+    if (!layer) return false;
+    drawWorldLayerViewport(layer, cameraX, cameraY);
+    return true;
+  }
+
+  function getRoomSceneryWorldLayer(room) {
+    if (!room || !room.drawbridge) return null;
+    const tileKey = images.introTiles && images.introTiles.width ? `${images.introTiles.width}x${images.introTiles.height}` : "none";
+    const platformKey = images.tiles && images.tiles.width ? `${images.tiles.width}x${images.tiles.height}` : "none";
+    const key = `${room.name}:${tileKey}:${platformKey}:${roomWidth(room)}x${roomHeight(room)}`;
+    if (roomSceneryWorldCache.has(key)) return roomSceneryWorldCache.get(key);
+    if (roomSceneryWorldCache.size > 3) roomSceneryWorldCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = roomWidth(room);
+    layer.height = roomHeight(room);
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+    drawCastleGardenSceneryTo(g, room);
+    const platforms = getPlatformLayer(room);
+    if (platforms) g.drawImage(platforms, 0, 0);
+    roomSceneryWorldCache.set(key, layer);
+    return layer;
   }
 
   function getRoomSceneryViewportLayer(room, cameraX, cameraY) {
@@ -5298,12 +5437,15 @@
     ctx.fillRect(x, y, w, h);
 
     if (img && img.width) {
-      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 0, 0.62);
-      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 1, 0.36);
+      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 0, plane.bridgeChannel ? 0.58 : 0.62);
+      if (!plane.bridgeChannel) {
+        drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 1, 0.36);
+      }
     } else {
       drawFallbackMoatWater(x, y, w, h);
     }
-    drawMoatWaterHighlights(x, y, w, h);
+    if (plane.bridgeChannel) drawBridgeChannelWaterHighlights(x, y, w, h);
+    else drawMoatWaterHighlights(x, y, w, h);
     ctx.restore();
   }
 
@@ -5320,7 +5462,6 @@
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = alpha;
     ctx.drawImage(layer, baseX, y);
-    ctx.drawImage(layer, baseX + layer.width, y);
     ctx.restore();
   }
 
@@ -5411,6 +5552,33 @@
     ctx.restore();
   }
 
+  function drawBridgeChannelWaterHighlights(x, y, w, h) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineWidth = 1.25;
+    for (let i = 0; i < 2; i += 1) {
+      const yy = y + 14 + i * Math.max(24, h * 0.24);
+      ctx.globalAlpha = 0.14 - i * 0.025;
+      ctx.strokeStyle = i ? "rgba(228, 250, 236, 0.42)" : "rgba(91, 220, 244, 0.40)";
+      ctx.beginPath();
+      for (let xx = x - 16; xx <= x + w + 16; xx += 44) {
+        const waveY = yy + Math.sin(game.time * 2.1 + xx * 0.024 + i * 1.4) * (2.2 + i * 0.2);
+        if (xx === x - 16) ctx.moveTo(xx, waveY);
+        else ctx.lineTo(xx, waveY);
+      }
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    const fade = ctx.createLinearGradient(0, y, 0, y + h);
+    fade.addColorStop(0, "rgba(170, 237, 246, 0.10)");
+    fade.addColorStop(0.32, "rgba(54, 149, 178, 0.03)");
+    fade.addColorStop(1, "rgba(0, 0, 0, 0.34)");
+    ctx.fillStyle = fade;
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+  }
+
   function positiveModulo(value, size) {
     return ((value % size) + size) % size;
   }
@@ -5421,6 +5589,14 @@
     const outdoor = isOutdoorRoom(room);
     ctx.save();
     ctx.imageSmoothingEnabled = true;
+
+    const worldCached = getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor);
+    if (worldCached) {
+      drawWorldLayerViewport(worldCached, cameraX, cameraY);
+      ctx.restore();
+      ctx.imageSmoothingEnabled = false;
+      return;
+    }
 
     const cached = getRoomBackgroundViewportLayer(room, bg, mid, cameraX, cameraY, rw, rh, outdoor);
     if (cached) {
@@ -5445,6 +5621,7 @@
     if (mid && mid.width) {
       drawParallaxPlane(mid, cameraX, cameraY, rw, rh, 0.48, 0.32, 0.24);
     }
+    drawRoomBackgroundProps(room, cameraX, cameraY, rw, rh);
 
     // 5) Mode 7 perspective floor — strong for outdoor
     drawMode7Floor(room, bg, rw, rh, cameraX, cameraY, outdoor);
@@ -5459,6 +5636,49 @@
 
     ctx.restore();
     ctx.imageSmoothingEnabled = false;
+  }
+
+  function drawRoomBackgroundProps(room, cameraX, cameraY, rw, rh) {
+    const img = room && room.bg === "bgArmory" ? images.armoryProps : null;
+    if (!img || !img.width) return false;
+    drawParallaxPlane(img, cameraX, cameraY, rw, rh, 0.28, 0.18, 1);
+    return true;
+  }
+
+  function drawWorldLayerViewport(layer, cameraX, cameraY, target = ctx) {
+    if (!layer) return false;
+    const sx = clamp(Math.round(cameraX), 0, Math.max(0, layer.width - W));
+    const sy = clamp(Math.round(cameraY), 0, Math.max(0, layer.height - H));
+    const sw = Math.min(W, layer.width - sx);
+    const sh = Math.min(H, layer.height - sy);
+    target.drawImage(layer, sx, sy, sw, sh, 0, 0, sw, sh);
+    return true;
+  }
+
+  function getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor) {
+    if (!room || !room.drawbridge || !bg || !bg.width) return null;
+    const midKey = mid && mid.width ? `${mid.width}x${mid.height}` : "none";
+    const paraKey = parallaxKeysForRoom(room).join(",");
+    const key = `${room.name}:${room.bg}:${bg.width}x${bg.height}:${midKey}:${paraKey}:${rw}x${rh}:${outdoor ? "out" : "in"}`;
+    if (roomBackgroundWorldCache.has(key)) return roomBackgroundWorldCache.get(key);
+    if (roomBackgroundWorldCache.size > 3) roomBackgroundWorldCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = rw;
+    layer.height = rh;
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+
+    if (outdoor) drawSkyGradientWorldTo(g, room, rw, rh);
+    drawParallaxPlaneTo(g, bg, 0, 0, rw, rh, 0, 0, 1);
+    drawParallaxElementsTo(g, room, 0, 0, rw, rh, 0);
+    if (mid && mid.width) drawParallaxPlaneTo(g, mid, 0, 0, rw, rh, 0, 0, 0.24);
+    drawMode7FloorTo(g, room, bg, rw, rh, 0, 0, outdoor);
+    drawParallaxElementsTo(g, room, 0, 0, rw, rh, 1);
+    if (outdoor) drawNearForegroundParallaxTo(g, room, 0, 0, rw, rh);
+
+    roomBackgroundWorldCache.set(key, layer);
+    return layer;
   }
 
   function getRoomBackgroundViewportLayer(room, bg, mid, cameraX, cameraY, rw, rh, outdoor) {
@@ -5529,6 +5749,43 @@
     target.fillStyle = "rgba(20, 18, 32, 0.35)";
     target.beginPath();
     target.arc(mx + 8, my - 4, 22, 0, Math.PI * 2);
+    target.fill();
+  }
+
+  function drawSkyGradientWorldTo(target, room, rw, rh) {
+    const horizon = rh * 0.62;
+    const grad = target.createLinearGradient(0, 0, 0, horizon);
+    const palette = room.palette;
+    if (palette === "green") {
+      grad.addColorStop(0, "#0e1530");
+      grad.addColorStop(0.55, "#3a1d3c");
+      grad.addColorStop(1, "#7e3a32");
+    } else if (palette === "gold") {
+      grad.addColorStop(0, "#1a0e1a");
+      grad.addColorStop(0.55, "#54213a");
+      grad.addColorStop(1, "#8a4424");
+    } else {
+      grad.addColorStop(0, "#0a0a18");
+      grad.addColorStop(1, "#3a1d36");
+    }
+    target.fillStyle = grad;
+    target.fillRect(0, 0, rw, Math.min(rh, horizon));
+
+    const mx = Math.round(clamp(rw * 0.58, 140, rw - 140));
+    const my = 84;
+    const halo = target.createRadialGradient(mx, my, 8, mx, my, 112);
+    halo.addColorStop(0, "rgba(244, 224, 180, 0.58)");
+    halo.addColorStop(0.42, "rgba(244, 211, 139, 0.22)");
+    halo.addColorStop(1, "rgba(244, 211, 139, 0)");
+    target.fillStyle = halo;
+    target.fillRect(mx - 124, my - 124, 248, 248);
+    target.fillStyle = "#fff5dd";
+    target.beginPath();
+    target.arc(mx, my, 28, 0, Math.PI * 2);
+    target.fill();
+    target.fillStyle = "rgba(20, 18, 32, 0.35)";
+    target.beginPath();
+    target.arc(mx + 9, my - 5, 25, 0, Math.PI * 2);
     target.fill();
   }
 
@@ -5760,17 +6017,116 @@
     cx.fillRect(solid.x + solid.w - 2, solid.y, 2, solid.h);
   }
 
+  function chromaCutoutImage(img, key) {
+    if (!img || !img.width) return null;
+    if (chromaCutoutCache.has(key)) return chromaCutoutCache.get(key);
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    try {
+      const pixels = g.getImageData(0, 0, c.width, c.height);
+      const data = pixels.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const gr = data[i + 1];
+        const b = data[i + 2];
+        if (gr > 130 && gr > r * 1.45 && gr > b * 1.45) {
+          const greenDominance = Math.min(1, (gr - Math.max(r, b)) / 150);
+          data[i + 3] = Math.max(0, Math.round(data[i + 3] * (1 - greenDominance)));
+        }
+      }
+      g.putImageData(pixels, 0, 0);
+    } catch (err) {
+      return img;
+    }
+    chromaCutoutCache.set(key, c);
+    return c;
+  }
+
+  function drawChromaAtlasSprite(img, cacheKey, sx, sy, sw, sh, dx, dy, dw, dh, alpha = 1) {
+    const cutout = chromaCutoutImage(img, cacheKey);
+    if (!cutout) return false;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(cutout, sx, sy, sw, sh, dx, dy, dw, dh);
+    ctx.restore();
+    return true;
+  }
+
+  function drawTowerHdProps(room) {
+    const img = images.towerProps;
+    if (!img || !img.width) return false;
+    const t = game.time;
+    const cellW = img.width / 4;
+    const chainH = img.height * 0.42;
+    const anchorY = img.height * 0.39;
+    const anchorH = img.height * 0.27;
+    const moonY = img.height * 0.64;
+    const moonH = img.height * 0.36;
+    const chains = [
+      { frame: 0, x: 86, y: -24, w: 94, h: 252, a: 0.74 },
+      { frame: 1, x: 372, y: -34, w: 86, h: 234, a: 0.68 },
+      { frame: 2, x: 642, y: -18, w: 70, h: 248, a: 0.72 },
+      { frame: 3, x: 1034, y: -30, w: 96, h: 268, a: 0.76 },
+      { frame: 1, x: 1236, y: -20, w: 82, h: 236, a: 0.62 }
+    ];
+    ctx.save();
+    for (const c of chains) {
+      const sway = Math.sin(t * 0.85 + c.x * 0.02) * 4;
+      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, 0, cellW, chainH, c.x + sway, c.y, c.w, c.h, c.a);
+      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, anchorY, cellW, anchorH, c.x - 34 + sway, c.y + c.h - 12, c.w + 68, 118, 0.72);
+    }
+    ctx.globalCompositeOperation = "screen";
+    drawChromaAtlasSprite(img, "towerProps", 0, moonY, img.width * 0.48, moonH, 852, 40, 252, 148, 0.62);
+    drawChromaAtlasSprite(img, "towerProps", img.width * 0.48, moonY, img.width * 0.52, moonH, 548, 58, 212, 128, 0.56);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.restore();
+    return true;
+  }
+
+  function drawGalleryPortraits(room) {
+    const img = images.galleryPortraits;
+    if (!img || !img.width) return false;
+    const cellW = img.width / 4;
+    const cellH = img.height / 2;
+    const portraits = [
+      { i: 0, x: 56, y: 88, w: 134, h: 212, a: 0.72 },
+      { i: 1, x: 250, y: 74, w: 150, h: 236, a: 0.82 },
+      { i: 2, x: 468, y: 94, w: 132, h: 210, a: 0.72 },
+      { i: 3, x: 686, y: 76, w: 148, h: 232, a: 0.78 },
+      { i: 4, x: 924, y: 102, w: 132, h: 208, a: 0.68 },
+      { i: 5, x: 1134, y: 82, w: 146, h: 226, a: 0.78 },
+      { i: 6, x: 330, y: 352, w: 112, h: 176, a: 0.54 },
+      { i: 7, x: 1048, y: 344, w: 118, h: 184, a: 0.52 }
+    ];
+    ctx.save();
+    for (const p of portraits) {
+      const col = p.i % 4;
+      const row = Math.floor(p.i / 4);
+      drawChromaAtlasSprite(img, "galleryPortraits", col * cellW, row * cellH, cellW, cellH, p.x, p.y, p.w, p.h, p.a);
+    }
+    ctx.restore();
+    return true;
+  }
+
   function drawArchitecture(room) {
     if (room.bg === "bgForest" || room.bg === "bgCastleGarden") return;
 
     const chain = images.chain;
     const lamp = images.lamp;
     if (!chain || !lamp || !images.tiles) return;
-    for (let x = 88; x < roomWidth(room); x += 192) {
-      ctx.globalAlpha = 0.42;
-      ctx.drawImage(chain, x, 34 + Math.sin(game.time + x) * 3, 24, 146);
-      ctx.globalAlpha = 0.8;
-      ctx.drawImage(lamp, x - 18, 170 + Math.sin(game.time * 1.7 + x) * 3, 42, 42);
+    const useTowerProps = game.roomId === "tower" && drawTowerHdProps(room);
+    if (game.roomId === "gallery") drawGalleryPortraits(room);
+    if (!useTowerProps) {
+      for (let x = 88; x < roomWidth(room); x += 192) {
+        ctx.globalAlpha = 0.42;
+        ctx.drawImage(chain, x, 34 + Math.sin(game.time + x) * 3, 24, 146);
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(lamp, x - 18, 170 + Math.sin(game.time * 1.7 + x) * 3, 42, 42);
+      }
     }
     ctx.globalAlpha = room.palette === "green" ? 0.18 : 0.14;
     const trimTile = PLATFORM_TILE_CELLS.trim;
@@ -6022,6 +6378,7 @@
       const lit = solved || activeIndex < step;
       const expected = !solved && puzzle.sequence[step] === i;
       const pulse = 0.5 + 0.5 * Math.sin(game.time * 4 + i);
+      if (drawLibraryHdSwitch(puzzle, sw, i, lit, expected, pulse)) continue;
       ctx.shadowColor = sw.color || "#f4d38b";
       ctx.shadowBlur = lit ? 18 : expected ? 10 + pulse * 8 : 0;
       ctx.fillStyle = lit ? (sw.color || "#f4d38b") : "rgba(20, 18, 22, 0.94)";
@@ -6057,6 +6414,35 @@
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  function drawLibraryHdSwitch(puzzle, sw, index, lit, expected, pulse) {
+    if (!puzzle || puzzle.id !== "libraryRunes") return false;
+    const img = images.librarySwitches;
+    if (!img || !img.width) return false;
+    const frameSize = 256;
+    const col = clamp(index, 0, 2);
+    const row = lit ? 1 : expected ? 2 : 0;
+    const drawW = 82;
+    const drawH = 102;
+    const x = sw.x - drawW / 2;
+    const y = sw.y - 88;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    if (lit || expected) {
+      ctx.globalAlpha = expected ? 0.22 + pulse * 0.15 : 0.18;
+      ctx.fillStyle = sw.color || "#f4d38b";
+      ctx.beginPath();
+      ctx.ellipse(sw.x, sw.y - 36, 46 + pulse * 7, 54 + pulse * 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.shadowColor = expected ? "#fff0cf" : sw.color || "#f4d38b";
+    ctx.shadowBlur = lit ? 10 : expected ? 14 + pulse * 8 : 3;
+    ctx.drawImage(img, col * frameSize, row * frameSize, frameSize, frameSize, x, y, drawW, drawH);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    return true;
   }
 
   function drawGrottoMechanics(room) {
@@ -6927,6 +7313,7 @@
     const meta = ENEMY_FRAME_MAP[enemy.cfg.sprite || enemy.type];
     if (meta && images[meta.image] && images[meta.image].width) {
       const frame = enemyAnimationFrame(enemy, meta);
+      const flip = meta.facing === "left" ? enemy.facing > 0 : enemy.facing < 0;
       drawSheetFrame(
         images[meta.image],
         frame,
@@ -6937,7 +7324,7 @@
         enemy.y + enemy.h + 6,
         enemy.cfg.dw,
         enemy.cfg.dh,
-        enemy.facing < 0,
+        flip,
         alpha
       );
       return;
@@ -6955,7 +7342,11 @@
     } else if (meta.smoothMini) {
       seq = meta.idleSmooth || meta.idle;
     } else if (meta.cast && meta.recover && meta.idle) {
-      seq = enemy.attackWindup > 0.28 || enemy.lunge > 0 ? meta.cast : enemy.hurt > 0 ? meta.recover : meta.idle;
+      if (meta.attack) {
+        seq = enemy.lunge > 0 ? meta.attack : enemy.attackWindup > 0.44 ? meta.cast : enemy.attackWindup > 0 ? meta.attack : enemy.hurt > 0 ? meta.recover : meta.idle;
+      } else {
+        seq = enemy.attackWindup > 0.28 || enemy.lunge > 0 ? meta.cast : enemy.hurt > 0 ? meta.recover : meta.idle;
+      }
     }
     if (!seq || !seq.length) {
       return Math.floor(game.time * (meta.fps || 10) + enemy.phase) % meta.frames;
@@ -7187,7 +7578,7 @@
       horizonGrad.addColorStop(0.7, "rgba(244, 174, 90, 0.55)");
       horizonGrad.addColorStop(1, "rgba(244, 211, 139, 0)");
       target.fillStyle = horizonGrad;
-      target.fillRect(0, startY - 20, W, 32);
+      target.fillRect(0, startY - 20, rw, 32);
       target.restore();
     }
   }
@@ -7311,20 +7702,29 @@
     }
     if (player.hearts !== hudCache.hearts) {
       if (dom.heartsChip) dom.heartsChip.textContent = `♥ ${player.hearts}`;
+      if (dom.heartsChip) dom.heartsChip.textContent = `H ${player.hearts}`;
       hudCache.hearts = player.hearts;
     }
     if (player.subweapon !== hudCache.sub) {
       if (dom.subChip) dom.subChip.textContent = SUB_LABEL_SHORT[player.subweapon] || "Dagger";
       hudCache.sub = player.subweapon;
     }
-    const objShort = objectiveShort();
+    const objShort = objectiveChipText();
     if (objShort !== hudCache.objective) {
-      if (dom.objectiveChip) dom.objectiveChip.textContent = objShort;
+      if (dom.objectiveChip) {
+        dom.objectiveChip.textContent = objShort;
+        dom.objectiveChip.title = objectiveShort();
+        dom.objectiveChip.setAttribute("aria-label", objectiveShort());
+      }
       hudCache.objective = objShort;
     }
-    const compass = compassText();
+    const compass = compassGlyphText();
     if (compass !== hudCache.compass) {
-      if (dom.compassChip) dom.compassChip.textContent = compass;
+      if (dom.compassChip) {
+        dom.compassChip.textContent = compass;
+        dom.compassChip.title = compassText();
+        dom.compassChip.setAttribute("aria-label", compassText());
+      }
       hudCache.compass = compass;
     }
     const roomName = game.room ? game.room.name : "Nocturne Reliquary";
@@ -7332,7 +7732,7 @@
       dom.roomName.textContent = roomName;
       hudCache.room = roomName;
     }
-    const status = game.messageTimer > 0 ? game.message : statusSummary();
+    const status = game.messageTimer > 0 ? game.message : "";
     if (status !== hudCache.status) {
       dom.statusLine.textContent = status;
       hudCache.status = status;
@@ -7354,11 +7754,12 @@
 
   function updateMapPanel() {
     if (dom.objectiveLine) {
-      dom.objectiveLine.textContent = nextObjective();
+      dom.objectiveLine.textContent = compactObjectiveLine();
+      dom.objectiveLine.title = nextObjective();
     }
     if (dom.sideObjectiveList) {
       dom.sideObjectiveList.innerHTML = "";
-      for (const text of sideObjectives()) {
+      for (const text of compactSideObjectives()) {
         const li = document.createElement("li");
         li.textContent = text;
         dom.sideObjectiveList.appendChild(li);
@@ -7374,18 +7775,12 @@
       const pct = Math.max(0, Math.min(1, (player.exp - cur) / Math.max(1, next - cur)));
       const survey = surveyProgress();
       const stats = [
-        ["Level", `${player.level} (${Math.round(pct * 100)}% to next)`],
-        ["Map", `${survey.visited} / ${survey.total}`],
-        ["XP", `${player.exp} / ${next}`],
-        ["HP", `${Math.round(player.hp)} / ${player.maxHp}`],
-        ["MP", `${Math.round(player.mp)} / ${player.maxMp}`],
-        ["Hearts", `${player.hearts} / ${player.maxHearts}`],
-        ["Strength", `+${player.baseDamage}`],
-        ["Defense", `+${playerDefense()}`],
-        ["Luck", `${playerLuck()}`],
-        ["Kills", String(game.save.kills || 0)],
-        ["Crits", String(game.save.crits || 0)],
-        ["Time", `${hh}:${mm}:${ss}`]
+        ["LV", `${player.level} (${Math.round(pct * 100)}%)`],
+        ["MAP", `${survey.visited}/${survey.total}`],
+        ["HP", `${Math.round(player.hp)}/${player.maxHp}`],
+        ["MP", `${Math.round(player.mp)}/${player.maxMp}`],
+        ["HEART", `${player.hearts}`],
+        ["TIME", `${hh}:${mm}:${ss}`]
       ];
       dom.statsList.innerHTML = "";
       for (const [label, value] of stats) {
@@ -7433,6 +7828,13 @@
         const baseText = seen || slot.id === game.roomId ? slot.room.name : "...";
         cell.textContent = isTarget ? `★ ${baseText}` : baseText;
       }
+      if (slot) {
+        const isCurrent = slot.id === game.roomId;
+        const seen = game.save.visited[slot.id];
+        const isTarget = slot.id === targetRoom && !isCurrent;
+        cell.title = seen || isCurrent ? slot.room.name : "Uncharted";
+        cell.textContent = isTarget ? "GO" : isCurrent ? "YOU" : "";
+      }
       dom.mapGrid.appendChild(cell);
       if (dom.miniMapGrid) {
         const mini = document.createElement("div");
@@ -7447,30 +7849,24 @@
         dom.miniMapGrid.appendChild(mini);
       }
     }
-    if (dom.miniMapObjective) dom.miniMapObjective.textContent = objectiveShort();
+    if (dom.miniMapObjective) dom.miniMapObjective.textContent = "";
     syncMapModeDom();
 
     dom.relicList.innerHTML = "";
     const owned = game.save.ownedSubweapons || {};
-    const eq = game.save.equipment || {};
     const mapSurvey = surveyProgress();
+    const seals = questSealProgress();
     const chips = [
-      `Lv ${player.level || game.save.level || 1}`,
-      `Map ${mapSurvey.visited}/${mapSurvey.total}`,
-      game.save.relics.doubleJump && "Grave Boots",
-      game.save.relics.dash && "Mist Dash",
-      game.save.moonSigil && "Moon Sigil",
-      game.save.questSeals && game.save.questSeals.inkSeal && "Ink Seal",
-      game.save.questSeals && game.save.questSeals.starSeal && "Astral Lens",
-      game.save.questSeals && game.save.questSeals.tideSeal && "Tide Sigil",
-      eq.ringOfArdor && "Ring of Ardor",
-      eq.batCloak && "Bat Cloak",
-      eq.wraithArmor && "Wraith Armor",
-      eq.phoenixPendant && "Phoenix Pendant",
-      owned.dagger && (player.subweapon === "dagger" ? "[Dagger]" : "Dagger"),
-      owned.axe && (player.subweapon === "axe" ? "[Axe]" : "Axe"),
-      owned.holyWater && (player.subweapon === "holyWater" ? "[Holy Water]" : "Holy Water"),
-      owned.boomerang && (player.subweapon === "boomerang" ? "[Boomerang]" : "Boomerang"),
+      `LV ${player.level || game.save.level || 1}`,
+      `MAP ${mapSurvey.visited}/${mapSurvey.total}`,
+      !seals.done && `SEALS ${seals.found}/${seals.total}`,
+      game.save.moonSigil && "SIGIL",
+      game.save.relics.doubleJump && "BOOTS",
+      game.save.relics.dash && "DASH",
+      owned.dagger && (player.subweapon === "dagger" ? "[DAG]" : "DAG"),
+      owned.axe && (player.subweapon === "axe" ? "[AXE]" : "AXE"),
+      owned.holyWater && (player.subweapon === "holyWater" ? "[HOLY]" : "HOLY"),
+      owned.boomerang && (player.subweapon === "boomerang" ? "[BOOM]" : "BOOM"),
       game.save.bossDefeated && "Crimson Rite"
     ].filter(Boolean);
     for (const label of chips) {
@@ -7759,18 +8155,23 @@
 
   for (const button of dom.touchControls.querySelectorAll("button")) {
     const action = button.dataset.touch;
+    const releaseTouchButton = () => {
+      touchDown.delete(action);
+      button.classList.remove("is-down");
+    };
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       touchDown.add(action);
       justPressed.add(`touch:${action}`);
+      button.classList.add("is-down");
       if (action === "jump") game.touchJumpHold = Math.max(game.touchJumpHold || 0, 0.2);
       try {
         button.setPointerCapture(event.pointerId);
       } catch {}
     });
-    button.addEventListener("pointerup", () => touchDown.delete(action));
-    button.addEventListener("pointercancel", () => touchDown.delete(action));
-    button.addEventListener("pointerleave", () => touchDown.delete(action));
+    button.addEventListener("pointerup", releaseTouchButton);
+    button.addEventListener("pointercancel", releaseTouchButton);
+    button.addEventListener("pointerleave", releaseTouchButton);
   }
 
   dom.startButton.disabled = true;

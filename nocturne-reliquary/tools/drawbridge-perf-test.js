@@ -68,9 +68,13 @@ function percentile(values, pct) {
   return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * pct))];
 }
 
+let activeBrowser = null;
+let activeServer = null;
+
 (async () => {
   const { chromium } = resolvePlaywright();
   const server = await staticServer();
+  activeServer = server;
   const port = server.address().port;
   const chromeCandidates = [
     "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -83,6 +87,7 @@ function percentile(values, pct) {
     executablePath,
     args: ["--autoplay-policy=no-user-gesture-required", "--allow-file-access-from-files"]
   });
+  activeBrowser = browser;
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   await page.route("https://fonts.googleapis.com/**", (route) => route.fulfill({
     status: 200,
@@ -101,9 +106,12 @@ function percentile(values, pct) {
   await page.waitForTimeout(500);
 
   const result = await page.evaluate(async () => {
-    window.__NOCTURNE_TEST_TELEPORT("courtyard", 1072, 352);
+    window.__NOCTURNE_TEST_TELEPORT("courtyard", 560, 352);
+    window.__NOCTURNE_TEST_CLEAR_ROOM_THREATS();
+    window.__NOCTURNE_TEST_INPUT("right", true);
     window.__NOCTURNE_PERF_RESET();
     await new Promise((resolve) => requestAnimationFrame(resolve));
+    const start = window.__NOCTURNE_DEBUG_STATE();
     const samples = [];
     let last = performance.now();
     const end = last + 3200;
@@ -113,7 +121,8 @@ function percentile(values, pct) {
       samples.push(now - last);
       last = now;
     }
-    return { samples, state: window.__NOCTURNE_DEBUG_STATE(), perf: window.__NOCTURNE_PERF_STATS() };
+    window.__NOCTURNE_TEST_INPUT("right", false);
+    return { samples, start, state: window.__NOCTURNE_DEBUG_STATE(), perf: window.__NOCTURNE_PERF_STATS() };
   });
 
   const samples = result.samples.filter((value) => Number.isFinite(value) && value > 0);
@@ -124,6 +133,8 @@ function percentile(values, pct) {
     maxMs: Number(Math.max(...samples).toFixed(2)),
     over20ms: samples.filter((value) => value > 20).length,
     over33ms: samples.filter((value) => value > 33.4).length,
+    cameraTravel: result.state.cameraX - result.start.cameraX,
+    playerTravel: result.state.playerX - result.start.playerX,
     internalPerf: result.perf,
     drawbridgeCache: result.state.drawbridgeCache,
     introBridge: result.state.introBridge
@@ -135,10 +146,20 @@ function percentile(values, pct) {
   if (summary.internalPerf.frame.p95 > 18) throw new Error(`Drawbridge internal frame p95 too high: ${summary.internalPerf.frame.p95}ms`);
   if (summary.drawbridgeCache.chains > 2) throw new Error(`Chain cache churn: ${summary.drawbridgeCache.chains}`);
   if (!summary.drawbridgeCache.mode7) throw new Error("Mode7 floor cache was not populated");
+  if (summary.drawbridgeCache.backgroundViewports !== 0 || summary.drawbridgeCache.sceneryViewports !== 0) {
+    throw new Error(`Drawbridge should not build per-camera viewport caches while crossing: ${JSON.stringify(summary.drawbridgeCache)}`);
+  }
+  if (summary.cameraTravel < 80 || summary.playerTravel < 180) throw new Error(`Drawbridge movement probe did not cross enough ground: ${JSON.stringify(summary)}`);
   await closeBrowser(browser);
+  activeBrowser = null;
   await closeServer(server);
+  activeServer = null;
   process.exit(0);
 })().catch((error) => {
-  console.error(error);
-  process.exit(1);
+  (async () => {
+    console.error(error);
+    if (activeBrowser) await closeBrowser(activeBrowser);
+    if (activeServer) await closeServer(activeServer);
+    process.exit(1);
+  })();
 });
