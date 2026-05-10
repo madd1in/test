@@ -34,6 +34,9 @@
           <p class="subtitle">Kreuzwortraetsel, Wordle und ruhige Gehirnspiele fuer Handy und Tablet.</p>
           <p id="sessionInfo" class="session-info"></p>
         </div>
+        <div class="hero-badge" aria-hidden="true">
+          <img src="./assets/oma-badge.svg" alt="" />
+        </div>
         <div class="hud">
           <div class="hud-item">
             <span class="hud-label">Runde</span>
@@ -65,6 +68,14 @@
         <div id="timerFill" class="timer-fill"></div>
       </div>
       <div id="roundProgress" class="round-progress" aria-hidden="true"></div>
+
+      <section id="progressPanel" class="progress-panel" aria-label="Gespeicherter Fortschritt">
+        <div>
+          <div class="progress-kicker">Gespeichert</div>
+          <div id="progressSummary" class="progress-summary" aria-live="polite">Noch nichts geloest.</div>
+        </div>
+        <button id="clearProgress" class="chip progress-clear" type="button">Fortschritt loeschen</button>
+      </section>
 
       <section id="missionPanel" class="mission-panel">
         <div class="mission-header-row">
@@ -129,6 +140,13 @@
         </p>
       </section>
     </main>
+
+    <nav class="mobile-quickbar" aria-label="Schnellzugriff">
+      <button id="quickFull" type="button">Vollbild</button>
+      <button id="quickBgm" type="button">Musik</button>
+      <button id="quickSfx" type="button">Klang</button>
+      <button id="quickProgress" type="button">Stand</button>
+    </nav>
 
     <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
       <div class="overlay-card">

@@ -24,6 +24,13 @@ const dom = {
   toggleMissions: document.getElementById("toggleMissions"),
   toggleMissionsInline: document.getElementById("toggleMissionsInline"),
   roundProgress: document.getElementById("roundProgress"),
+  progressPanel: document.getElementById("progressPanel"),
+  progressSummary: document.getElementById("progressSummary"),
+  clearProgress: document.getElementById("clearProgress"),
+  quickFull: document.getElementById("quickFull"),
+  quickBgm: document.getElementById("quickBgm"),
+  quickSfx: document.getElementById("quickSfx"),
+  quickProgress: document.getElementById("quickProgress"),
   coachTip: document.getElementById("coachTip"),
   modeRelic: document.getElementById("modeRelic"),
   artifactFill: document.getElementById("artifactFill"),
@@ -56,9 +63,11 @@ const storageKeys = {
   history: "gj_history_v1",
   modeHistory: "gj_mode_history_v1",
   weekly: "gj_weekly_v1",
+  progress: "omas_spiele_progress_v2",
 };
 
 const profile = loadProfile();
+const progress = loadProgress();
 
 const modes = [
   {
@@ -924,12 +933,22 @@ function updateAudioButtons() {
     dom.toggleSfx.setAttribute("aria-pressed", String(audioState.sfx));
     dom.toggleSfx.classList.toggle("active", audioState.sfx);
   }
+  if (dom.quickSfx) {
+    dom.quickSfx.textContent = audioState.sfx ? "Klang an" : "Klang aus";
+    dom.quickSfx.setAttribute("aria-pressed", String(audioState.sfx));
+    dom.quickSfx.classList.toggle("active", audioState.sfx);
+  }
   if (dom.toggleBgm) {
     const themeLabel = bgmThemes[audioState.theme] ? bgmThemes[audioState.theme].label : "Calm";
     const label = audioState.usingLocalBgm ? "Lokal" : themeLabel;
     dom.toggleBgm.textContent = audioState.bgm ? `BGM: An (${label})` : "BGM: Aus";
     dom.toggleBgm.setAttribute("aria-pressed", String(audioState.bgm));
     dom.toggleBgm.classList.toggle("active", audioState.bgm);
+  }
+  if (dom.quickBgm) {
+    dom.quickBgm.textContent = audioState.bgm ? "Musik an" : "Musik aus";
+    dom.quickBgm.setAttribute("aria-pressed", String(audioState.bgm));
+    dom.quickBgm.classList.toggle("active", audioState.bgm);
   }
 }
 
@@ -941,6 +960,11 @@ function updateFullButton() {
   dom.toggleFull.textContent = isFull ? "Fenster" : "Vollbild";
   dom.toggleFull.setAttribute("aria-pressed", String(isFull));
   dom.toggleFull.classList.toggle("active", isFull);
+  if (dom.quickFull) {
+    dom.quickFull.textContent = isFull ? "Fenster" : "Vollbild";
+    dom.quickFull.setAttribute("aria-pressed", String(isFull));
+    dom.quickFull.classList.toggle("active", isFull);
+  }
 }
 
 function updateFocusButton() {
@@ -998,6 +1022,18 @@ function armAudioAutoStart() {
 }
 
 function setupAudioControls() {
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      setFeedback("Vollbild ist in diesem Browser blockiert.", "bad");
+    }
+    updateFullButton();
+  };
   if (dom.toggleSfx) {
     dom.toggleSfx.addEventListener("click", () => {
       ensureAudio();
@@ -1021,19 +1057,38 @@ function setupAudioControls() {
     });
   }
   if (dom.toggleFull) {
-    dom.toggleFull.addEventListener("click", async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch (err) {
-        // ignore fullscreen errors
-      }
-      updateFullButton();
-    });
+    dom.toggleFull.addEventListener("click", toggleFullscreen);
     document.addEventListener("fullscreenchange", updateFullButton);
+  }
+  if (dom.quickFull) {
+    dom.quickFull.addEventListener("click", toggleFullscreen);
+  }
+  if (dom.quickBgm) {
+    dom.quickBgm.addEventListener("click", () => {
+      if (dom.toggleBgm) {
+        dom.toggleBgm.click();
+      }
+    });
+  }
+  if (dom.quickSfx) {
+    dom.quickSfx.addEventListener("click", () => {
+      if (dom.toggleSfx) {
+        dom.toggleSfx.click();
+      }
+    });
+  }
+  if (dom.quickProgress) {
+    dom.quickProgress.addEventListener("click", () => {
+      updateProgressUI();
+      if (dom.progressPanel) {
+        dom.progressPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+        pulse(dom.progressPanel);
+      }
+      playSfx("select");
+    });
+  }
+  if (dom.clearProgress) {
+    dom.clearProgress.addEventListener("click", resetSavedProgress);
   }
   if (dom.toggleFocus) {
     dom.toggleFocus.addEventListener("click", () => {
@@ -1181,6 +1236,117 @@ function saveProfile(nextProfile) {
   } catch (err) {
     // ignore storage errors
   }
+}
+
+function createEmptyProgress() {
+  return {
+    crossword: {},
+    wordle: {
+      currentAnswer: "",
+      guesses: [],
+      solvedWords: [],
+    },
+    updatedAt: 0,
+  };
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(storageKeys.progress);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && typeof data === "object") {
+        return {
+          crossword:
+            data.crossword && typeof data.crossword === "object" && !Array.isArray(data.crossword)
+              ? data.crossword
+              : {},
+          wordle: {
+            currentAnswer:
+              data.wordle && typeof data.wordle.currentAnswer === "string"
+                ? normalizeGermanWord(data.wordle.currentAnswer)
+                : "",
+            guesses: data.wordle && Array.isArray(data.wordle.guesses) ? data.wordle.guesses.slice(0, 6) : [],
+            solvedWords:
+              data.wordle && Array.isArray(data.wordle.solvedWords)
+                ? [...new Set(data.wordle.solvedWords.map(normalizeGermanWord).filter(Boolean))]
+                : [],
+          },
+          updatedAt: data.updatedAt || 0,
+        };
+      }
+    }
+  } catch (err) {
+    // ignore storage errors
+  }
+  return createEmptyProgress();
+}
+
+function saveProgress() {
+  progress.updatedAt = Date.now();
+  try {
+    localStorage.setItem(storageKeys.progress, JSON.stringify(progress));
+  } catch (err) {
+    // ignore storage errors
+  }
+  updateProgressUI();
+}
+
+function resetSavedProgress() {
+  Object.assign(progress, createEmptyProgress());
+  saveProgress();
+  setFeedback("Fortschritt geloescht.", "good");
+  playSfx("select");
+}
+
+function getCrosswordKey(puzzle) {
+  return puzzle.title;
+}
+
+function getCrosswordState(puzzle) {
+  const key = getCrosswordKey(puzzle);
+  if (!progress.crossword[key]) {
+    progress.crossword[key] = { solved: [], completed: false };
+  }
+  const state = progress.crossword[key];
+  state.solved = Array.isArray(state.solved)
+    ? [...new Set(state.solved.filter((index) => Number.isInteger(index) && index >= 0 && index < puzzle.entries.length))]
+    : [];
+  state.completed = Boolean(state.completed);
+  return state;
+}
+
+function markCrosswordSolved(puzzle, index) {
+  const state = getCrosswordState(puzzle);
+  if (!state.solved.includes(index)) {
+    state.solved.push(index);
+  }
+  state.completed = state.solved.length >= puzzle.entries.length;
+  saveProgress();
+}
+
+function getProgressSummary() {
+  const crosswordTotal = crosswordPuzzles.reduce((sum, puzzle) => sum + puzzle.entries.length, 0);
+  const crosswordSolved = crosswordPuzzles.reduce(
+    (sum, puzzle) => sum + getCrosswordState(puzzle).solved.length,
+    0
+  );
+  const completedCrosswords = crosswordPuzzles.filter((puzzle) => getCrosswordState(puzzle).completed).length;
+  const solvedWords = progress.wordle.solvedWords.length;
+  const activeWordle = progress.wordle.currentAnswer && progress.wordle.guesses.length
+    ? ` | Wordle offen: ${progress.wordle.guesses.length}/6`
+    : "";
+  if (!crosswordSolved && !solvedWords && !activeWordle) {
+    return "Noch nichts geloest. Dein Stand wird ab jetzt automatisch gespeichert.";
+  }
+  return `Kreuzwort: ${crosswordSolved}/${crosswordTotal} Fragen, ${completedCrosswords}/${crosswordPuzzles.length} Tafeln fertig. Wordle: ${solvedWords} Woerter geloest${activeWordle}.`;
+}
+
+function updateProgressUI() {
+  if (!dom.progressSummary) {
+    return;
+  }
+  dom.progressSummary.textContent = getProgressSummary();
 }
 
 function loadHistory() {
@@ -1940,6 +2106,7 @@ function applyDefaultUIState() {
   updateAudioButtons();
   updateFocusButton();
   updateCompactButton();
+  updateProgressUI();
   updateMiniHud();
 }
 
@@ -2373,10 +2540,12 @@ function showOverlay(config) {
   }
 
   dom.overlay.classList.remove("hidden");
+  document.body.classList.add("modal-open");
 }
 
 function hideOverlay() {
   dom.overlay.classList.add("hidden");
+  document.body.classList.remove("modal-open");
 }
 
 function resetGame() {
@@ -2414,6 +2583,7 @@ function resetGame() {
   updateMissionHUD();
   updateRoundProgress();
   updateWeeklyDisplay();
+  updateProgressUI();
   setPrompt("Warte auf den Start.", "");
   setFeedback("", "");
   clearStage();
@@ -2699,10 +2869,21 @@ function normalizeGermanWord(value) {
 
 function setupCrossword(stats) {
   let active = true;
-  let puzzleIndex = randInt(0, crosswordPuzzles.length - 1);
+  let puzzleIndex = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
+  if (puzzleIndex < 0) {
+    puzzleIndex = 0;
+  }
   let puzzle = crosswordPuzzles[puzzleIndex];
-  let solved = new Set();
-  let activeIndex = 0;
+  let solved = new Set(getCrosswordState(puzzle).solved);
+  let activeIndex = Math.max(0, puzzle.entries.findIndex((entry, index) => !solved.has(index)));
+
+  const loadPuzzle = (index) => {
+    puzzleIndex = index;
+    puzzle = crosswordPuzzles[puzzleIndex];
+    solved = new Set(getCrosswordState(puzzle).solved);
+    const firstOpen = puzzle.entries.findIndex((entry, entryIndex) => !solved.has(entryIndex));
+    activeIndex = firstOpen >= 0 ? firstOpen : 0;
+  };
 
   const entryCells = (entry) => {
     const cells = [];
@@ -2843,15 +3024,14 @@ function setupCrossword(stats) {
       }
       if (value === expected) {
         solved.add(activeIndex);
+        markCrosswordSolved(puzzle, activeIndex);
         noteCorrect(stats, 16, "Sehr gut!");
         if (solved.size >= puzzle.entries.length) {
           setFeedback("Kreuzwortraetsel geloest!", "good");
           playSfx("finish");
           setTimeout(() => {
-            puzzleIndex = (puzzleIndex + 1) % crosswordPuzzles.length;
-            puzzle = crosswordPuzzles[puzzleIndex];
-            solved = new Set();
-            activeIndex = 0;
+            const nextOpen = crosswordPuzzles.findIndex((item) => !getCrosswordState(item).completed);
+            loadPuzzle(nextOpen >= 0 ? nextOpen : (puzzleIndex + 1) % crosswordPuzzles.length);
             render();
           }, 900);
           return;
@@ -2924,9 +3104,33 @@ function setupWordle(stats) {
   let guesses = [];
   const maxGuesses = 6;
 
-  const pickAnswer = () => {
-    answer = wordleWords[randInt(0, wordleWords.length - 1)];
+  const pickFreshAnswer = () => {
+    const solvedWords = new Set(progress.wordle.solvedWords);
+    const openWords = wordleWords.filter((word) => !solvedWords.has(word));
+    const pool = openWords.length ? openWords : wordleWords;
+    return pool[randInt(0, pool.length - 1)];
+  };
+
+  const startNewWordle = () => {
+    answer = pickFreshAnswer();
     guesses = [];
+    progress.wordle.currentAnswer = answer;
+    progress.wordle.guesses = [];
+    saveProgress();
+  };
+
+  const resumeWordle = () => {
+    const savedAnswer = normalizeGermanWord(progress.wordle.currentAnswer);
+    const validAnswer = wordleWords.includes(savedAnswer);
+    const savedGuesses = Array.isArray(progress.wordle.guesses)
+      ? progress.wordle.guesses.map(normalizeGermanWord).filter((guess) => guess.length === 5).slice(0, maxGuesses)
+      : [];
+    if (validAnswer && savedGuesses.length < maxGuesses && !savedGuesses.includes(savedAnswer)) {
+      answer = savedAnswer;
+      guesses = savedGuesses;
+      return;
+    }
+    startNewWordle();
   };
 
   const scoreGuess = (guess) => {
@@ -3004,19 +3208,31 @@ function setupWordle(stats) {
         return;
       }
       guesses.push(guess);
+      progress.wordle.currentAnswer = answer;
+      progress.wordle.guesses = guesses.slice(0, maxGuesses);
+      saveProgress();
       if (guess === answer) {
         const points = Math.max(10, 22 - guesses.length * 2);
+        if (!progress.wordle.solvedWords.includes(answer)) {
+          progress.wordle.solvedWords.push(answer);
+        }
+        progress.wordle.currentAnswer = "";
+        progress.wordle.guesses = [];
+        saveProgress();
         noteCorrect(stats, points, "Wort geloest!");
         setTimeout(() => {
-          pickAnswer();
+          startNewWordle();
           renderBoard();
         }, 850);
         return;
       }
       if (guesses.length >= maxGuesses) {
+        progress.wordle.currentAnswer = "";
+        progress.wordle.guesses = [];
+        saveProgress();
         noteWrong(stats, 2, `Loesung: ${answer}`);
         setTimeout(() => {
-          pickAnswer();
+          startNewWordle();
           renderBoard();
         }, 1100);
         return;
@@ -3044,7 +3260,7 @@ function setupWordle(stats) {
     input.focus();
   };
 
-  pickAnswer();
+  resumeWordle();
   renderBoard();
 
   return {
