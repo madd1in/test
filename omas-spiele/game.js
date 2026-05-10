@@ -37,6 +37,7 @@ const dom = {
   modeRelic: document.getElementById("modeRelic"),
   artifactFill: document.getElementById("artifactFill"),
   questBanner: document.getElementById("questBanner"),
+  gameNav: document.getElementById("gameNav"),
   miniHud: document.getElementById("miniHud"),
   miniRound: document.getElementById("miniRound"),
   miniTimer: document.getElementById("miniTimer"),
@@ -2924,6 +2925,78 @@ function getWordleMode() {
   return modes.find((mode) => mode.id === "wordle") || modes[0];
 }
 
+function getHomeModeLabel(mode) {
+  const labels = {
+    crossword: "Kreuzwort",
+    math: "Rechnen",
+    stroop: "Farbe",
+    reaction: "Reaktion",
+    symbolscan: "Symbole",
+    compare: "Groesser",
+    category: "Kategorie",
+    wordlength: "Wortlaenge",
+    pattern: "Muster",
+    wordchain: "Wortkette",
+    rotation: "Drehen",
+    dualtask: "Dual",
+    memory: "Zahlen",
+  };
+  return labels[mode.id] || mode.title;
+}
+
+function getCurrentModeCatalogIndex() {
+  const activeMode = game.roundStats && game.roundStats.id
+    ? game.roundStats.id
+    : game.sessionModes[game.modeIndex] && game.sessionModes[game.modeIndex].id;
+  const index = modes.findIndex((mode) => mode.id === activeMode);
+  return index >= 0 ? index : 0;
+}
+
+function switchModeByOffset(offset) {
+  const index = getCurrentModeCatalogIndex();
+  const nextMode = modes[(index + offset + modes.length) % modes.length];
+  startSingleMode(nextMode);
+}
+
+function clearGameNav() {
+  if (!dom.gameNav) {
+    return;
+  }
+  dom.gameNav.innerHTML = "";
+  dom.gameNav.classList.add("hidden");
+}
+
+function renderGameNav(config = {}) {
+  if (!dom.gameNav) {
+    return;
+  }
+  if (config.hidden) {
+    clearGameNav();
+    return;
+  }
+  const onHome = config.onHome || showExercisePicker;
+  const onPrevious = config.onPrevious || (() => switchModeByOffset(-1));
+  const onNext = config.onNext || (() => switchModeByOffset(1));
+  const items = [
+    { label: "Men\u00fc", action: onHome, className: "home" },
+    { label: "Zur\u00fcck", action: onPrevious },
+    { label: "Weiter", action: onNext },
+  ];
+  dom.gameNav.innerHTML = "";
+  items.forEach((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `game-nav-button ${item.className || ""}`.trim();
+    button.textContent = item.label;
+    button.addEventListener("click", () => {
+      playSfx("select");
+      item.action();
+    });
+    dom.gameNav.appendChild(button);
+  });
+  dom.gameNav.classList.remove("hidden");
+}
+
 function isCrosswordOnlySession() {
   const activeModes = getActiveModes();
   return activeModes.length === 1 && activeModes[0].id === "crossword";
@@ -2986,6 +3059,7 @@ function showExercisePicker() {
   stopTimer();
   clearStage();
   clearModeTheme();
+  clearGameNav();
   document.body.classList.add("menu-open");
   dom.roundLabel.textContent = "-";
   dom.timer.textContent = "Ohne Zeit";
@@ -3002,26 +3076,18 @@ function showExercisePicker() {
   dom.inputArea.innerHTML = "";
 
   const menu = document.createElement("div");
-  menu.className = "home-menu";
+  menu.className = "home-menu all-games";
 
-  const continueButton = document.createElement("button");
-  continueButton.type = "button";
-  continueButton.className = "primary home-menu-button";
-  continueButton.textContent = "Weiter Kreuzwort";
-  continueButton.addEventListener("click", () => {
-    startCrosswordSession();
+  modes.forEach((mode) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `home-menu-button ${mode.id === "crossword" ? "primary" : "ghost"}`;
+    button.textContent = getHomeModeLabel(mode);
+    button.addEventListener("click", () => {
+      startSingleMode(mode);
+    });
+    menu.appendChild(button);
   });
-
-  const wordleButton = document.createElement("button");
-  wordleButton.type = "button";
-  wordleButton.className = "ghost home-menu-button";
-  wordleButton.textContent = "Wordle";
-  wordleButton.addEventListener("click", () => {
-    startWordleSession();
-  });
-
-  menu.appendChild(continueButton);
-  menu.appendChild(wordleButton);
   dom.inputArea.appendChild(menu);
   updatePlayLayout();
 }
@@ -3062,6 +3128,9 @@ function hideOverlay() {
 }
 
 function resetGame() {
+  if (game.currentMode && typeof game.currentMode.destroy === "function") {
+    game.currentMode.destroy();
+  }
   game.modeIndex = 0;
   game.score = 0;
   game.rounds = [];
@@ -3076,6 +3145,7 @@ function resetGame() {
   game.speechAction = null;
   document.body.classList.remove("menu-open");
   clearModeTheme();
+  clearGameNav();
   if (game.questBannerTimer) {
     clearTimeout(game.questBannerTimer);
     game.questBannerTimer = null;
@@ -3140,6 +3210,7 @@ function startRound() {
   showQuestBanner(`Quest ${game.modeIndex + 1}/${activeModes.length}: ${mode.title}`);
   setFeedback("", "");
   clearStage();
+  renderGameNav();
   game.running = true;
   updatePlayLayout();
   game.currentMode = mode.setup(game.roundStats);
@@ -3587,28 +3658,6 @@ function setupCrossword(stats) {
     const panel = document.createElement("div");
     panel.className = "crossword-panel";
 
-    const navRow = document.createElement("div");
-    navRow.className = "crossword-nav-row";
-
-    const menuButton = document.createElement("button");
-    menuButton.type = "button";
-    menuButton.className = "crossword-nav-button";
-    menuButton.textContent = "Men\u00fc";
-
-    const prevButton = document.createElement("button");
-    prevButton.type = "button";
-    prevButton.className = "crossword-nav-button";
-    prevButton.textContent = "Zur\u00fcck";
-
-    const nextButton = document.createElement("button");
-    nextButton.type = "button";
-    nextButton.className = "crossword-nav-button";
-    nextButton.textContent = "Weiter";
-
-    navRow.appendChild(menuButton);
-    navRow.appendChild(prevButton);
-    navRow.appendChild(nextButton);
-
     const step = document.createElement("div");
     step.className = "crossword-step";
     step.textContent = `${overallStep}/${progressCounts.total} | ${progressCounts.solved} gel\u00f6st`;
@@ -3921,26 +3970,8 @@ function setupCrossword(stats) {
 
     voiceButton.addEventListener("click", startVoiceAnswer);
 
-    menuButton.addEventListener("click", () => {
-      playSfx("select");
-      showExercisePicker();
-    });
-
-    prevButton.addEventListener("click", () => {
-      moveToOpenPosition(-1);
-      playSfx("select");
-      render();
-    });
-
-    nextButton.addEventListener("click", () => {
-      moveToOpenPosition(1);
-      playSfx("select");
-      render();
-    });
-
     submit.addEventListener("click", checkAnswer);
 
-    panel.appendChild(navRow);
     panel.appendChild(step);
     panel.appendChild(clue);
     panel.appendChild(slots);
@@ -3955,6 +3986,16 @@ function setupCrossword(stats) {
     maybeSpeakCurrentClue({ key: `crossword:${puzzle.title}:${activeIndex}` });
   };
 
+  renderGameNav({
+    onPrevious: () => {
+      moveToOpenPosition(-1);
+      render();
+    },
+    onNext: () => {
+      moveToOpenPosition(1);
+      render();
+    },
+  });
   render();
 
   return {

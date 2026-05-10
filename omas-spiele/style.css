@@ -1563,6 +1563,7 @@ button.ghost,
 .speech-button,
 .voice-button,
 .hint-button,
+.game-nav-button,
 .crossword-nav-button {
   min-height: 60px;
   border-radius: 8px;
@@ -1616,6 +1617,44 @@ body.focus-mode .options {
   font-weight: 900;
 }
 
+.home-menu.all-games {
+  width: min(620px, 100%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-menu.all-games .home-menu-button {
+  min-height: 58px;
+  padding: 10px 8px;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.game-nav {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.game-nav.hidden {
+  display: none;
+}
+
+.game-nav-button {
+  padding: 10px 8px;
+  border: 3px solid rgba(15, 94, 156, 0.22);
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.game-nav-button.home {
+  background: #d9edf8;
+  color: #0f5e9c;
+}
+
 .input-area,
 body.focus-mode .input-area {
   width: 100%;
@@ -1641,6 +1680,7 @@ body.focus-mode .input-area {
 .clue-chip:focus-visible,
 .answer-slot:focus-visible,
 .wordle-tile-input:focus-visible,
+.game-nav-button:focus-visible,
 .crossword-nav-button:focus-visible,
 button.primary:focus-visible,
 button.ghost:focus-visible {
@@ -2350,23 +2390,27 @@ body.focus-mode[data-mode="crossword"] .card {
 
 body.focus-mode[data-mode="wordle"] .card {
   width: min(640px, 100%);
-  padding: 8px;
-  gap: 4px;
+  padding: 6px;
+  gap: 3px;
 }
 
 body.focus-mode[data-mode="wordle"] .mode-title {
   display: none;
 }
 
+body.focus-mode[data-mode="wordle"] .game-nav-button {
+  min-height: 42px;
+  font-size: 0.9rem;
+}
+
 body.focus-mode[data-mode="wordle"] .prompt {
-  font-size: 2rem;
+  font-size: 1.55rem;
   line-height: 1.1;
   text-align: center;
 }
 
 body.focus-mode[data-mode="wordle"] .subprompt {
-  font-size: 1.05rem;
-  text-align: center;
+  display: none;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-wrap {
@@ -2374,7 +2418,7 @@ body.focus-mode[data-mode="wordle"] .wordle-wrap {
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-board {
-  grid-template-columns: repeat(5, 42px);
+  grid-template-columns: repeat(5, 38px);
   gap: 2px;
 }
 
@@ -2391,19 +2435,19 @@ body.focus-mode[data-mode="wordle"] .wordle-form {
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-help {
-  font-size: 1rem;
-  padding: 6px 8px;
+  font-size: 0.9rem;
+  padding: 5px 6px;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-hint-button {
-  min-height: 46px;
-  font-size: 0.98rem;
+  min-height: 40px;
+  font-size: 0.9rem;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-letter-input,
 body.focus-mode[data-mode="wordle"] .wordle-form button {
-  min-height: 58px;
-  font-size: 1.55rem;
+  min-height: 50px;
+  font-size: 1.35rem;
   font-weight: 900;
 }
 
@@ -2414,7 +2458,7 @@ body.focus-mode[data-mode="wordle"] .wordle-tile-input {
 
 body.focus-mode[data-mode="wordle"] .wordle-tile-input {
   min-height: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 body.focus-mode[data-mode="crossword"] .feedback {
@@ -2431,6 +2475,61 @@ body.focus-mode .home-menu {
 body.focus-mode .home-menu-button {
   min-height: 78px;
   font-size: 1.4rem;
+}
+
+body.focus-mode .home-menu.all-games {
+  width: min(520px, 100%);
+  gap: 8px;
+}
+
+body.focus-mode .home-menu.all-games .home-menu-button {
+  min-height: 48px;
+  padding: 6px 5px;
+  font-size: 0.9rem;
+}
+
+body.focus-mode .game-nav {
+  gap: 6px;
+}
+
+body.focus-mode .game-nav-button {
+  min-height: 48px;
+  padding: 6px 4px;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+body.menu-open.focus-mode .app {
+  padding-top: 10px;
+  padding-bottom: 12px;
+  gap: 8px;
+}
+
+body.menu-open.focus-mode .card {
+  min-height: 0;
+  padding: 12px;
+  gap: 8px;
+}
+
+body.menu-open.focus-mode .prompt {
+  font-size: 1.65rem;
+  line-height: 1.05;
+}
+
+body.menu-open.focus-mode .feedback {
+  display: none;
+}
+
+body.focus-mode .progress-panel,
+body.focus-mode .mode-title,
+body.focus-mode .subprompt,
+body.focus-mode .coach-tip {
+  display: none;
+}
+
+body.focus-mode .prompt {
+  font-size: clamp(2rem, 8vw, 2.55rem);
+  line-height: 1.12;
 }
 
 body.focus-mode[data-mode="crossword"] .crossword-panel {
