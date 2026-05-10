@@ -1657,6 +1657,38 @@ button.ghost:focus-visible {
   width: min(560px, 100%);
 }
 
+.wordle-help {
+  width: min(560px, 100%);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 2px solid rgba(15, 94, 156, 0.18);
+  background: #edf7fc;
+  color: #12324a;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.wordle-entry {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.input-area .wordle-letter-input {
+  min-width: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.wordle-letter-input.locked {
+  border-color: #067a46;
+  background: #dff3e8;
+  color: #054f31;
+}
+
 .crossword-layout {
   display: grid;
   grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1fr);
@@ -2197,8 +2229,8 @@ body.focus-mode[data-mode="crossword"] .card {
 
 body.focus-mode[data-mode="wordle"] .card {
   width: min(640px, 100%);
-  padding: 12px;
-  gap: 8px;
+  padding: 8px;
+  gap: 4px;
 }
 
 body.focus-mode[data-mode="wordle"] .mode-title {
@@ -2217,12 +2249,12 @@ body.focus-mode[data-mode="wordle"] .subprompt {
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-wrap {
-  gap: 8px;
+  gap: 4px;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-board {
-  grid-template-columns: repeat(5, 46px);
-  gap: 3px;
+  grid-template-columns: repeat(5, 42px);
+  gap: 2px;
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-tile {
@@ -2231,15 +2263,25 @@ body.focus-mode[data-mode="wordle"] .wordle-tile {
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-form {
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, auto);
+  gap: 6px;
+  align-items: stretch;
 }
 
-body.focus-mode[data-mode="wordle"] .input-area input,
+body.focus-mode[data-mode="wordle"] .wordle-help {
+  font-size: 1rem;
+  padding: 6px 8px;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-letter-input,
 body.focus-mode[data-mode="wordle"] .wordle-form button {
-  min-height: 62px;
+  min-height: 58px;
   font-size: 1.55rem;
   font-weight: 900;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-letter-input {
+  padding: 0;
 }
 
 body.focus-mode[data-mode="crossword"] .feedback {

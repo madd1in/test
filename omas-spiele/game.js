@@ -3661,12 +3661,62 @@ function setupWordle(stats) {
     return result;
   };
 
+  const getWordleHints = () => {
+    const fixed = Array(answer.length).fill("");
+    const present = new Set();
+    const near = new Set();
+    const blocked = new Set();
+    const scoredGuesses = guesses.map((guess) => ({ guess, score: scoreGuess(guess) }));
+
+    scoredGuesses.forEach(({ guess, score }) => {
+      score.forEach((state, index) => {
+        const letter = guess[index];
+        if (state === "hit") {
+          fixed[index] = letter;
+          present.add(letter);
+          return;
+        }
+        if (state === "near") {
+          present.add(letter);
+          near.add(letter);
+        }
+      });
+    });
+
+    scoredGuesses.forEach(({ guess, score }) => {
+      score.forEach((state, index) => {
+        const letter = guess[index];
+        if (state === "miss" && !present.has(letter)) {
+          blocked.add(letter);
+        }
+      });
+    });
+
+    return { fixed, near, blocked };
+  };
+
+  const formatLetters = (letters) => [...letters].sort().join(" ");
+
+  const buildWordleHelp = (hints) => {
+    const fixedText = hints.fixed.map((letter) => letter || "_").join(" ");
+    const parts = [`Fest: ${fixedText}`];
+    const nearLetters = [...hints.near].filter((letter) => !hints.fixed.includes(letter));
+    if (nearLetters.length) {
+      parts.push(`Dabei: ${nearLetters.sort().join(" ")}`);
+    }
+    if (hints.blocked.size) {
+      parts.push(`Nicht: ${formatLetters(hints.blocked)}`);
+    }
+    return parts.join(" | ");
+  };
+
   const renderBoard = () => {
     dom.options.innerHTML = "";
     dom.inputArea.innerHTML = "";
     setPrompt("Wordle", "5 Buchstaben");
+    const hints = getWordleHints();
     game.speechAction = (options = {}) =>
-      speakText("Wordle. Bitte ein Wort mit 5 Buchstaben eintippen.", options);
+      speakText(`Wordle. ${buildWordleHelp(hints)}. Bitte fehlende Kaestchen fuellen.`, options);
     if (dom.coachTip) {
       dom.coachTip.textContent = "";
     }
@@ -3691,28 +3741,136 @@ function setupWordle(stats) {
       }
     }
 
+    const help = document.createElement("div");
+    help.className = "wordle-help";
+    help.textContent = buildWordleHelp(hints);
+
     const form = document.createElement("div");
     form.className = "wordle-form";
-    const input = document.createElement("input");
-    input.type = "text";
-    input.inputMode = "text";
-    input.autocomplete = "off";
-    input.maxLength = answer.length;
-    input.placeholder = "WORT";
-    input.setAttribute("aria-label", "Wordle Wort eingeben");
+    const entry = document.createElement("div");
+    entry.className = "wordle-entry";
+    entry.setAttribute("aria-label", "Wordle Wort eingeben");
+    const letterInputs = [];
     const submit = document.createElement("button");
     submit.type = "button";
     submit.className = "primary";
     submit.textContent = "OK";
 
+    const openIndexes = () => letterInputs
+      .map((box, index) => (box.readOnly ? -1 : index))
+      .filter((index) => index >= 0);
+
+    const focusBox = (index) => {
+      const box = letterInputs[index];
+      if (box && !box.readOnly) {
+        box.focus();
+        box.select();
+        return true;
+      }
+      return false;
+    };
+
+    const focusNextOpen = (fromIndex = 0) => {
+      const indexes = openIndexes();
+      const next = indexes.find((index) => index >= fromIndex && !letterInputs[index].value)
+        ?? indexes.find((index) => index >= fromIndex)
+        ?? indexes[0];
+      if (Number.isInteger(next)) {
+        focusBox(next);
+      }
+    };
+
+    const focusPreviousOpen = (fromIndex) => {
+      const indexes = openIndexes().filter((index) => index < fromIndex);
+      const previous = indexes[indexes.length - 1];
+      if (Number.isInteger(previous)) {
+        focusBox(previous);
+      }
+    };
+
+    const showBlockedLetter = (letter) => {
+      setFeedback(`${letter} geht nicht mehr.`, "bad");
+      if (speechState.enabled) {
+        speakText(`${letter} geht nicht mehr.`, { silent: true });
+      }
+    };
+
+    const applyLetters = (rawValue, startIndex) => {
+      const letters = normalizeGermanWord(rawValue).split("");
+      let index = startIndex;
+      let blockedLetter = "";
+      letters.forEach((letter) => {
+        if (!letter) {
+          return;
+        }
+        if (hints.blocked.has(letter)) {
+          blockedLetter = blockedLetter || letter;
+          return;
+        }
+        while (index < answer.length && letterInputs[index] && letterInputs[index].readOnly) {
+          index += 1;
+        }
+        if (index < answer.length && letterInputs[index]) {
+          letterInputs[index].value = letter;
+          index += 1;
+        }
+      });
+      if (blockedLetter) {
+        showBlockedLetter(blockedLetter);
+      }
+      focusNextOpen(index);
+    };
+
+    hints.fixed.forEach((letter, index) => {
+      const box = document.createElement("input");
+      box.type = "text";
+      box.inputMode = "text";
+      box.autocomplete = "off";
+      box.maxLength = 1;
+      box.className = "wordle-letter-input";
+      box.value = letter;
+      box.readOnly = Boolean(letter);
+      box.classList.toggle("locked", Boolean(letter));
+      box.setAttribute(
+        "aria-label",
+        letter ? `Buchstabe ${index + 1}, richtig ${letter}` : `Buchstabe ${index + 1}`
+      );
+      if (letter) {
+        box.tabIndex = -1;
+      }
+      box.addEventListener("input", () => {
+        const value = box.value;
+        box.value = "";
+        applyLetters(value, index);
+      });
+      box.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          checkGuess();
+          return;
+        }
+        if (event.key === "Backspace" && !box.value) {
+          event.preventDefault();
+          focusPreviousOpen(index);
+        }
+      });
+      letterInputs.push(box);
+      entry.appendChild(box);
+    });
+
+    const getGuess = () => letterInputs.map((box) => normalizeGermanWord(box.value).slice(0, 1)).join("");
+
     const checkGuess = () => {
       if (!active) {
         return;
       }
-      const guess = normalizeGermanWord(input.value).slice(0, answer.length);
+      const guess = getGuess();
       if (guess.length !== answer.length) {
-        setFeedback("Bitte genau 5 Buchstaben.", "bad");
-        input.focus();
+        setFeedback("Bitte alle 5 Kaestchen fuellen.", "bad");
+        if (speechState.enabled) {
+          speakText("Bitte alle 5 Kaestchen fuellen.", { silent: true });
+        }
+        focusNextOpen(0);
         return;
       }
       guesses.push(guess);
@@ -3750,22 +3908,15 @@ function setupWordle(stats) {
       renderBoard();
     };
 
-    input.addEventListener("input", () => {
-      input.value = normalizeGermanWord(input.value).slice(0, answer.length);
-    });
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        checkGuess();
-      }
-    });
     submit.addEventListener("click", checkGuess);
 
-    form.appendChild(input);
+    form.appendChild(entry);
     form.appendChild(submit);
     wrap.appendChild(board);
+    wrap.appendChild(help);
     wrap.appendChild(form);
     dom.inputArea.appendChild(wrap);
-    input.focus();
+    focusNextOpen(0);
     maybeSpeakCurrentClue({ key: `wordle:${answer}` });
   };
 
