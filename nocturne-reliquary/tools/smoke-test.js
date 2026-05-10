@@ -272,6 +272,11 @@ async function browserSmoke() {
     window.__NOCTURNE_TEST_TELEPORT("gallery", 1370, 330);
     window.__NOCTURNE_TEST_INPUT("right", true);
   }, "mirrorCloister"));
+  transitionStates.push(await transitionProbe("mobile clockwork down to gallery without rebound", () => {
+    window.__NOCTURNE_TEST_TELEPORT("clock", 456, 382);
+    if (!document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
+    window.__NOCTURNE_TEST_INPUT("down", true);
+  }, "gallery"));
 
   const puzzleProbe = await page.evaluate(async () => {
     for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
@@ -586,7 +591,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");
   assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
   assert(result.state.tuningInfo.spriteSet === "stable-v4", "sprites should use the stable pre-reference-slice sheets");
-  assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v3", "Imagen HD room-fill backgrounds should be wired");
+  assert(result.state.tuningInfo.backgroundSet === "imagen-hd-roomfill-v4-room-specific", "Imagen HD room-fill backgrounds should be room-specific");
   assert(result.state.tuningInfo.parallaxSet === "imagen-parallax-v1", "Imagen parallax overlays should be wired");
   assert(result.state.tuningInfo.introParallaxSet === "imagen-intro-parallax-v1", "Imagen intro parallax overlays should be wired");
   assert(result.state.tuningInfo.titleScreenSet === "imagen-title-mode7-parallax-v1", "Imagegen HD title screen should be wired");
@@ -603,19 +608,23 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.drawbridgeAnchorSet === "imagen-trim-anchor-plates-v1", "drawbridge anchors should use existing Imagen HD trim tiles");
   assert(result.state.tuningInfo.drawbridgePerf === "cached-deck-chain-mode7-v2", "drawbridge deck, chains, and Mode7 floor should be cached for performance");
   assert(result.state.tuningInfo.cavernSection === "sapphire-grotto-zora-v1", "new cavern section should be wired");
-  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-spikes-v1", "sapphire grotto moving raft and duck spikes should be wired");
+  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-spikes-v2-hd-assets", "sapphire grotto moving raft and HD duck spikes should be wired");
   assert(result.state.tuningInfo.enemyVisibility === "panther-zora-rim-respawn-v1", "zora and panther visibility tuning should be wired");
   assert(result.state.tuningInfo.chestSet === "imagen-hd-treasure-chests-v2", "Imagen HD treasure chest tuning should be wired");
   assert(result.state.tuningInfo.weaponSet === "hd-subweapons-projectiles-v1", "HD subweapon/projectile sheet should be wired");
-  assert(result.state.tuningInfo.doorSet === "hd-transition-doors-v1", "HD transition door sheet should be wired");
-  assert(result.state.tuningInfo.moatWaterSet === "imagen-hd-mode7-parallax-v1", "HD moat water tileset and Mode7 parallax tuning should be wired");
+  assert(result.state.tuningInfo.doorSet === "imagen-hd-transition-doors-v2", "Imagen HD transition door sheet should be wired");
+  assert(result.state.tuningInfo.moatWaterSet === "imagen-hd-mode7-parallax-cached-v2", "HD moat water tileset should use cached Mode7 parallax tuning");
   assert(result.state.tuningInfo.puzzleSet === "rune-sequence-gates-v1", "room puzzle gate tuning should be wired");
+  assert(result.state.tuningInfo.forgePuzzleFlow === "linear-nearby-no-reset-v1", "forge numerals should use a linear no-reset flow");
+  assert(result.state.tuningInfo.shrineSet === "imagen-hd-reset-shrine-v1", "reset shrine HD sheet should be wired");
+  assert(result.state.tuningInfo.grottoSpikeSet === "imagen-hd-stalagmite-stalactite-v1", "grotto stalagmite/stalactite HD sheet should be wired");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-miniboss-v1", "quest seal route should force the new sections into progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
-  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1", "zora/panther plus quest mini-boss HD frame map tuning should be wired");
+  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2", "zora/panther plus smooth quest mini-boss HD frame map tuning should be wired");
   assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v3-readable-fonts", "mobile touch tuning should include readable-font touch targets");
   assert(result.state.tuningInfo.mobileCeilingDoors === "auto-enter-touch-overlap-v1", "mobile ceiling doors should auto-enter when the player overlaps the hatch");
+  assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-exit-v1", "mobile door reentry guard should prevent immediate bounce-backs");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
   assert(result.state.tuningInfo.progressRoute === "full-castle-survey-v1", "full-map survey route should be wired");
@@ -636,12 +645,13 @@ async function browserSmoke() {
   const moatState = result.transitionStates.find((entry) => entry.room === "moat");
   assert(moatState && moatState.visuals.water && moatState.visuals.water.asset && moatState.visuals.water.width === 1024 && moatState.visuals.water.height === 256, `Moon Moat Culvert should use the HD animated water tilesheet: ${JSON.stringify(moatState && moatState.visuals)}`);
   assert(moatState.visuals.water.mode7 && moatState.visuals.water.parallax && moatState.visuals.water.frames === 4, `Moon Moat Culvert water should expose Mode7 parallax animation metadata: ${JSON.stringify(moatState.visuals.water)}`);
+  assert(moatState.visuals.water.cache >= 1 || result.state.debugState.drawbridgeCache.moatWater >= 1, `Moon Moat Culvert water should use cached render layers: ${JSON.stringify(moatState.visuals.water)}`);
   assert(grottoState && grottoState.visuals.bg === "bgCavernDepths", `sapphire grotto should use the new cavern depths background: ${JSON.stringify(grottoState)}`);
   assert(grottoState.visuals.parallax.includes("paraCavernSpires") && grottoState.visuals.parallax.includes("paraCavernMist"), `sapphire grotto should use new parallax layers: ${JSON.stringify(grottoState.visuals)}`);
   assert(grottoState.visuals.mode7, "sapphire grotto should use stretched/Mode7 background fill");
   assert(grottoState.enemyTypes.includes("zora"), `sapphire grotto should spawn zora waterspout enemies: ${JSON.stringify(grottoState.enemyTypes)}`);
   assert(grottoState.enemyTypes.includes("tideWarden"), `sapphire grotto should spawn the Tide Warden quest mini-boss: ${JSON.stringify(grottoState.enemyTypes)}`);
-  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3, `sapphire grotto should expose moving raft and three duck gates: ${JSON.stringify(grottoState.grotto)}`);
+  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3 && grottoState.grotto.spikesAsset && grottoState.grotto.spikeFrameW === 256, `sapphire grotto should expose moving raft and HD duck gate spikes: ${JSON.stringify(grottoState.grotto)}`);
   const carryOffsetStart = result.grottoMechanicProbe.carryStart.playerX - result.grottoMechanicProbe.carryStart.grotto.platform.x;
   const carryOffsetEnd = result.grottoMechanicProbe.carryEnd.playerX - result.grottoMechanicProbe.carryEnd.grotto.platform.x;
   assert(Math.abs(carryOffsetEnd - carryOffsetStart) <= 18, `moving grotto raft should carry the player: ${JSON.stringify(result.grottoMechanicProbe)}`);
@@ -661,6 +671,11 @@ async function browserSmoke() {
   assert(archiveState && archiveState.enemyTypes.includes("inkWarden"), `Moonlit Archives should spawn the Ink Warden quest mini-boss: ${JSON.stringify(archiveState && archiveState.enemyTypes)}`);
   const observatoryState = result.transitionStates.find((entry) => entry.room === "observatory");
   assert(observatoryState && observatoryState.enemyTypes.includes("starWarden"), `Starfall Observatory should spawn the Star Warden quest mini-boss: ${JSON.stringify(observatoryState && observatoryState.enemyTypes)}`);
+  assert(observatoryState.visuals.bg === "bgObservatory" && observatoryState.visuals.parallax.includes("paraMoonwellRipples"), `Starfall Observatory should use its HD background/parallax: ${JSON.stringify(observatoryState.visuals)}`);
+  const armoryState = result.transitionStates.find((entry) => entry.room === "armory");
+  assert(armoryState && armoryState.visuals.bg === "bgArmory" && armoryState.visuals.parallax.includes("paraArches"), `Candlelit Armory should use its HD background/parallax: ${JSON.stringify(armoryState && armoryState.visuals)}`);
+  const towerState = result.transitionStates.find((entry) => entry.room === "tower");
+  assert(towerState && towerState.visuals.bg === "bgTower" && towerState.visuals.parallax.includes("paraMachinery"), `Moon Chain Tower should use its HD background/parallax: ${JSON.stringify(towerState && towerState.visuals)}`);
   const mirrorState = result.transitionStates.find((entry) => entry.room === "mirrorCloister");
   assert(mirrorState && mirrorState.visuals.bg === "bgMirrorCloister" && mirrorState.roomPuzzle && mirrorState.roomPuzzle.id === "mirrorRunes", `Mirror Cloister should expose its HD room and puzzle: ${JSON.stringify(mirrorState)}`);
   assert(result.puzzleProbe.locked.room === "mirrorCloister", `unsolved mirror puzzle should keep chapel door locked: ${JSON.stringify(result.puzzleProbe.locked)}`);
@@ -675,6 +690,7 @@ async function browserSmoke() {
   assert(result.state.debugState.mapMode === "mini" && result.state.mapButtonText === "MINI" && result.state.miniMapDisplay !== "none" && result.state.miniMapCells >= 27 && result.state.mapPanelHidden, `mini map should be visible while full map is closed: ${JSON.stringify(result.state)}`);
   assert(result.state.debugState.questSeals && result.state.debugState.questSeals.total === 3, `debug state should expose the three quest seals: ${JSON.stringify(result.state.debugState.questSeals)}`);
   assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 24, "debug state should expose extended enemy frame counts");
+  assert(result.state.debugState.enemyFrameMap.version === "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2", "debug state should expose the smooth mini-boss frame map version");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
   assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
   assert(result.state.touchButtonMinSize >= 64, `touch buttons should be at least 64px: ${result.state.touchButtonMinSize}`);
