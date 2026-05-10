@@ -36,6 +36,9 @@
     mapPanel: document.getElementById("mapPanel"),
     closeMapButton: document.getElementById("closeMapButton"),
     mapGrid: document.getElementById("mapGrid"),
+    miniMap: document.getElementById("miniMap"),
+    miniMapGrid: document.getElementById("miniMapGrid"),
+    miniMapObjective: document.getElementById("miniMapObjective"),
     relicList: document.getElementById("relicList"),
     objectiveLine: document.getElementById("objectiveLine"),
     sideObjectiveList: document.getElementById("sideObjectiveList"),
@@ -54,6 +57,8 @@
     enemyQuest: "assets/generated/enemy_imagen_quest_minibosses_sheet.png",
     boss: "assets/generated/boss_sheet_hd_16.png",
     projectile: "assets/generated/projectile_sheet.png",
+    weaponsHd: "assets/generated/weapons_hd_sheet.png",
+    doorsHd: "assets/generated/doors_hd_sheet.png",
     whip: "assets/generated/whip_sheet.png",
     tiles: "assets/generated/tiles_imagen_hd_platforms.png",
     gate: "assets/generated/tile_gate.png",
@@ -76,6 +81,9 @@
     bgArchive: "assets/generated/bg_imagen_archive_hd.png",
     bgOssuary: "assets/generated/bg_imagen_ossuary_hd.png",
     bgAqueduct: "assets/generated/bg_imagen_aqueduct_hd.png",
+    bgMirrorCloister: "assets/generated/bg_imagen_mirror_cloister_hd.png",
+    bgEmberFoundry: "assets/generated/bg_imagen_ember_foundry_hd.png",
+    bgMoonwell: "assets/generated/bg_imagen_moonwell_hd.png",
     bgLoft: "assets/generated/bg_imagen_loft_hd.png",
     bgForest: "assets/generated/bg_imagen_forest_opening_hd.png",
     bgCastleGarden: "assets/generated/bg_imagen_castle_garden_hd.png",
@@ -85,13 +93,17 @@
     paraCrystals: "assets/generated/para_imagen_crystals_hd.png",
     paraCavernSpires: "assets/generated/para_imagen_cavern_spires_hd.png",
     paraCavernMist: "assets/generated/para_imagen_cavern_mist_hd.png",
+    paraMirrorWindows: "assets/generated/para_imagen_mirror_windows_hd.png",
+    paraEmberChains: "assets/generated/para_imagen_ember_chains_hd.png",
+    paraMoonwellRipples: "assets/generated/para_imagen_moonwell_ripples_hd.png",
     paraForest: "assets/generated/para_imagen_forest_canopy_hd.png",
     paraStatues: "assets/generated/para_imagen_castle_statues_hd.png",
     introTiles: "assets/generated/tiles_imagen_intro_props.png",
     itemIcons: "assets/generated/items_imagen_hd.png",
     questIcons: "assets/generated/items_imagen_quest_seals.png",
     portcullis: "assets/generated/sprite_imagen_portcullis.png",
-    chests: "assets/generated/props_hd_treasure_chests.png"
+    chests: "assets/generated/props_imagen_hd_treasure_chests_v2.png",
+    moatWaterTiles: "assets/generated/tiles_imagen_hd_moat_water_anim.png"
   };
 
   const AUDIO = {
@@ -147,6 +159,16 @@
   const INTRO_TILE_SOURCE_SIZE = 256;
   const ITEM_ICON_SET = "imagen-items-hd-v1";
   const ITEM_ICON_SIZE = 128;
+  const WEAPON_ASSET_SET = "hd-subweapons-projectiles-v1";
+  const DOOR_ASSET_SET = "hd-transition-doors-v1";
+  const ROOM_PUZZLE_SET = "rune-sequence-gates-v1";
+  const WEAPON_ICON_SIZE = 128;
+  const DOOR_FRAME_SIZE = 256;
+  const MOAT_WATER_TILE_SIZE = 256;
+  const MOAT_WATER_FRAMES = 4;
+  const ENEMY_HP_SCALE = 1.18;
+  const ENEMY_DAMAGE_SCALE = 1.2;
+  const BOSS_HP_SCALE = 1.35;
   const TILE_DRAW_SIZE = 48;
   const PLATFORM_TILE_CELLS = {
     gold: [0, 0],
@@ -178,10 +200,25 @@
     phoenixPendant: [0, 2],
     subAxe: [1, 2],
     subHolyWater: [2, 2],
+    subBoomerang: [1, 2],
     heart: [3, 2],
     bigHeart: [3, 2],
     smallHp: [3, 2],
     smallMp: [2, 2]
+  };
+  const WEAPON_CELLS = {
+    dagger: [0, 0],
+    axe: [1, 0],
+    holyWater: [2, 0],
+    boomerang: [3, 0],
+    playerProjectile: [4, 0],
+    enemyProjectile: [5, 0],
+    holyFlame: [6, 0]
+  };
+  const WEAPON_PICKUP_CELLS = {
+    subAxe: "axe",
+    subHolyWater: "holyWater",
+    subBoomerang: "boomerang"
   };
   const QUEST_ICON_CELLS = {
     tideSeal: [0, 0],
@@ -215,7 +252,7 @@
     itemSet: ITEM_ICON_SET,
     tileSourceSize: TILE_SOURCE_SIZE,
     tileDrawSize: TILE_DRAW_SIZE,
-    roomSet: "forest-garden-expanded-21-hd",
+    roomSet: "forest-garden-expanded-27-hd-puzzle",
     introSet: "castlevania-drawbridge-v2",
     drawbridgeTileSet: "imagen-existing-root-trim-v1",
     drawbridgeChainSet: "existing-fg-chain-rotated-v1",
@@ -224,17 +261,23 @@
     cavernSection: "sapphire-grotto-zora-v1",
     grottoMechanic: "moving-water-raft-duck-spikes-v1",
     enemyVisibility: "panther-zora-rim-respawn-v1",
-    chestSet: "hd-treasure-chests-v1",
+    chestSet: "imagen-hd-treasure-chests-v2",
+    weaponSet: WEAPON_ASSET_SET,
+    doorSet: DOOR_ASSET_SET,
+    moatWaterSet: "imagen-hd-mode7-parallax-v1",
+    puzzleSet: ROOM_PUZZLE_SET,
     questSealRoute: "archive-observatory-grotto-miniboss-v1",
     questSealSet: "imagen-quest-seals-hd-v1",
     enemyFrameMap: "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1",
     enemyExtFrames: 24,
     questBossFrames: 24,
+    mapMode: "cycle-off-mini-full-v1",
     mobileTouch: "large-hit-targets-v3-readable-fonts",
+    mobileCeilingDoors: "auto-enter-touch-overlap-v1",
     mobileFont: "compact-cinzel-v1",
     mobileStartFullscreen: "manual-fs-button-v1",
     progressRoute: "full-castle-survey-v1",
-    difficulty: "mercy-pass"
+    difficulty: "classic-puzzle-pressure-v1"
   };
 
   const SPRITES = {
@@ -253,8 +296,8 @@
     questBossFrameW: 320,
     questBossFrameH: 256,
     questBossFrames: 24,
-    chestFrameW: 192,
-    chestFrameH: 192,
+    chestFrameW: 256,
+    chestFrameH: 256,
     chestFrames: 4
   };
   window.__NOCTURNE_FRAME_INFO = SPRITES;
@@ -356,7 +399,7 @@
   const sfxPool = {};
   const SFX_POOL_SIZE = 3;
   const hudCache = { hp: -1, mp: -1, exp: -1, level: -1, hearts: -1, sub: "", room: "", status: "", objective: "", compass: "" };
-  const SUB_LABEL_SHORT = { dagger: "Dagger", axe: "Axe", holyWater: "Holy Water" };
+  const SUB_LABEL_SHORT = { dagger: "Dagger", axe: "Axe", holyWater: "Holy Water", boomerang: "Boomerang" };
 
   const game = {
     mode: "loading",
@@ -384,6 +427,7 @@
     touchJumpHold: 0,
     muted: false,
     mobileMode: false,
+    mapMode: "mini",
     mobileStartFullscreenAttempted: 0,
     mobileStartFullscreenBlocked: false,
     message: "",
@@ -408,6 +452,7 @@
       familiar: null,
       equipment: { ringOfArdor: false, batCloak: false, wraithArmor: false, phoenixPendant: false },
       openedChests: {},
+      puzzles: {},
       crits: 0
     }
   };
@@ -518,6 +563,28 @@
           color: "#bfe7ff"
         }];
       }
+    },
+    boomerang: {
+      label: "Moon Boomerang",
+      cost: 8,
+      cooldown: 0.44,
+      throw(p, facing) {
+        return [{
+          from: "player", kind: "subweapon", subType: "boomerang",
+          owner: p,
+          x: p.x + p.w / 2 + facing * 18,
+          y: p.y + 30,
+          w: 30, h: 18,
+          vx: facing * 8.0, vy: -1.1,
+          gravity: 0,
+          damage: 16 + p.baseDamage,
+          spin: 0,
+          returnTimer: 0.42,
+          pierce: 4,
+          life: 2.3,
+          color: "#f7d988"
+        }];
+      }
     }
   };
 
@@ -597,16 +664,18 @@
   const SURVEY_ROOM_ROUTE = [
     "forest", "courtyard", "armory", "library", "vault", "archive",
     "gate", "moat", "crypt", "catacomb", "ossuary",
-    "gallery", "clock", "tower", "belltower", "loft", "observatory",
-    "aqueduct", "cavern", "cavernDepths", "garden", "chapel", "antechamber", "sanctum"
+    "gallery", "mirrorCloister", "clock", "tower", "belltower", "loft", "observatory",
+    "aqueduct", "moonwell", "cavern", "cavernDepths", "garden", "chapel", "antechamber", "emberFoundry", "sanctum"
   ];
+  const CHEST_DRAW_W = 92;
+  const CHEST_DRAW_H = 70;
 
   const ROOM_ROUTE_HINTS = {
     forest: "start from the Moonwood path.",
     courtyard: "cross the drawbridge from Moonwood Verge.",
     armory: "take the upper garden hatch in Castle Garden.",
     library: "go right from the Candlelit Armory or climb up from Gate Hall.",
-    vault: "find the hidden upper exit inside the Forgotten Library.",
+    vault: "solve the Tome Runes, then climb to the upper Library hatch.",
     archive: "push east from the Forgotten Library.",
     gate: "return through the castle's central hall.",
     moat: "drop through Castle Garden into the culvert.",
@@ -614,17 +683,20 @@
     catacomb: "push east from the Lower Crypt.",
     ossuary: "continue east from the Bone Bell Catacomb.",
     gallery: "head east from Gate Hall.",
+    mirrorCloister: "solve the Moon-Mirror-Sun rune order east of the Gallery.",
     clock: "climb the upper exit in the Silver Portrait Gallery.",
     tower: "push right from Clockwork Rise.",
     belltower: "go right from Moon Chain Tower.",
     loft: "ride the belltower route to its right exit.",
     observatory: "continue east from the Bell Loft.",
     aqueduct: "drop down from Starfall Observatory.",
+    moonwell: "press the three tide plates beyond the Astral Aqueduct.",
     cavern: "go left from the Aqueduct or down from the Rose Garden.",
     cavernDepths: "drop through the lower fissure in Crystal Cavern.",
     garden: "climb up from the Cavern or descend from Moon Chain Tower.",
     chapel: "go right from the Drowned Rose Garden.",
     antechamber: "drop through the lower Chapel passage.",
+    emberFoundry: "read the forge numerals below the Crimson Antechamber.",
     sanctum: "push right through the Crimson Antechamber."
   };
 
@@ -685,6 +757,9 @@
     }
     const target = nextObjectiveRoom();
     const inTarget = target === game.roomId;
+    if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) {
+      return `Puzzle: ${game.room.puzzle.label}. Strike the glowing plates in the clue order.`;
+    }
     if (s.moonSigil && s.relics.dash) {
       const survey = surveyProgress();
       if (!survey.done) {
@@ -782,8 +857,15 @@
     if (!s.visited.armory) out.push("Optional: Candlelit Armory links the garden, library, and early loot route.");
     if (!s.visited.moat) out.push("Optional: Moon Moat Culvert opens a lower shortcut toward the crypt.");
     if (!s.visited.observatory) out.push("Optional: Starfall Observatory loops the bell tower back toward the aqueduct.");
+    for (const id of ["libraryRunes", "mirrorRunes", "forgeRunes", "tideRunes"]) {
+      if (!puzzleSolved(id)) {
+        const meta = puzzleMetaById(id);
+        if (meta) out.push(`Puzzle: ${meta.puzzle.label} in ${meta.room.name}. Strike the plates in their clue order.`);
+      }
+    }
     if (s.ownedSubweapons && !s.ownedSubweapons.axe) out.push("Tip: smash candles — rare ones drop the War Axe.");
     if (s.ownedSubweapons && !s.ownedSubweapons.holyWater) out.push("Tip: candles can also drop Holy Water.");
+    if (s.ownedSubweapons && !s.ownedSubweapons.boomerang) out.push("Tip: the Moon Boomerang waits in the Mirror Rune Cloister chest.");
     return out;
   }
 
@@ -791,6 +873,7 @@
     const s = game.save;
     if (s.bossDefeated) return "Free roam";
     if (!s.visited.gate) return "Next: Castle Gate";
+    if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) return `Puzzle: ${game.room.puzzle.label}`;
     if (!s.moonSigil) return "Item: Moon Sigil";
     if (!s.relics.dash) return "Item: Mist Dash";
     const survey = surveyProgress();
@@ -897,6 +980,7 @@
       music: "explore",
       palette: "blue",
       spawn: { x: 140, y: 330 },
+      moatWater: { x: 0, y: 394, w: LONG_ROOM_WIDTH, h: 118, tile: "moatWaterTiles", mode7: true, parallax: true },
       platforms: [
         p(0, 468, 960, 72, "blue"),
         p(136, 386, 148, 24, "stone"),
@@ -968,7 +1052,7 @@
       ],
       doors: [
         d(0, 340, 38, 120, "gate", 856, 330, "left"),
-        d(922, 340, 38, 120, "chapel", 54, 330, "right"),
+        d(922, 340, 38, 120, "mirrorCloister", 54, 330, "right"),
         d(430, 82, 100, 60, "clock", 448, 382, "up")
       ],
       enemies: [
@@ -979,6 +1063,48 @@
       items: [
         item("moonSigil", "moonSigil", 668, 226)
       ]
+    },
+    mirrorCloister: {
+      name: "Mirror Rune Cloister",
+      grid: [2, 0],
+      bg: "bgMirrorCloister",
+      mid: "paraMirrorWindows",
+      para: ["paraMirrorWindows", "paraMist"],
+      music: "explore",
+      palette: "blue",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(120, 386, 150, 28, "stone"),
+        p(340, 330, 150, 28, "blue"),
+        p(566, 276, 150, 28, "stone"),
+        p(760, 210, 132, 28, "blue"),
+        p(382, 154, 184, 24, "trim")
+      ],
+      doors: [
+        d(0, 340, 38, 120, "gallery", 856, 330, "left"),
+        d(922, 340, 38, 120, "chapel", 54, 330, "right", "puzzle:mirrorRunes")
+      ],
+      puzzle: {
+        id: "mirrorRunes",
+        label: "Mirror Runes",
+        sequence: [1, 0, 2],
+        solvedMessage: "The chapel mirror opens.",
+        switches: [
+          { x: 172, y: 350, glyph: "Moon", color: "#8bd7ff" },
+          { x: 466, y: 294, glyph: "Mirror", color: "#fff0cf" },
+          { x: 784, y: 174, glyph: "Sun", color: "#ffd065" }
+        ]
+      },
+      enemies: [
+        e("mc1", "phantom", 358, 246, 260, 560),
+        e("mc2", "medusa", 640, 206, 560, 830),
+        e("mc3", "witch", 788, 126, 700, 900)
+      ],
+      chests: [
+        { id: "mirror_boomerang", x: 780, y: 432, loot: "subBoomerang" }
+      ],
+      items: []
     },
     chapel: {
       name: "Ashen Chapel",
@@ -996,7 +1122,7 @@
         p(696, 368, 116, 28, "trim")
       ],
       doors: [
-        d(0, 340, 38, 120, "gallery", 856, 330, "left"),
+        d(0, 340, 38, 120, "mirrorCloister", 856, 330, "left"),
         d(922, 320, 38, 140, "throne", 68, 326, "right", "moonGate"),
         d(438, 0, 96, 56, "garden", 460, 372, "up"),
         d(220, 440, 100, 56, "antechamber", 80, 380, "down")
@@ -1030,12 +1156,54 @@
       ],
       doors: [
         d(180, 100, 100, 56, "chapel", 248, 380, "up"),
-        d(922, 340, 38, 120, "sanctum", 60, 330, "right")
+        d(922, 340, 38, 120, "sanctum", 60, 330, "right", "puzzle:forgeRunes"),
+        d(430, 440, 100, 56, "emberFoundry", 160, 360, "down")
       ],
       enemies: [
         e("kn3", "knight", 240, 376, 130, 460),
         e("ph5", "phantom", 540, 232, 430, 730),
         e("r3", "reaper", 760, 132, 660, 880)
+      ],
+      items: []
+    },
+    emberFoundry: {
+      name: "Ember Gear Foundry",
+      grid: [2, 4],
+      bg: "bgEmberFoundry",
+      mid: "paraEmberChains",
+      para: ["paraEmberChains", "paraArches"],
+      music: "throne",
+      palette: "red",
+      spawn: { x: 160, y: 360 },
+      platforms: [
+        p(0, 468, 960, 72, "red"),
+        p(126, 396, 150, 28, "stone"),
+        p(352, 336, 154, 28, "red"),
+        p(602, 282, 154, 28, "stone"),
+        p(746, 214, 146, 28, "red"),
+        p(274, 162, 210, 24, "trim")
+      ],
+      doors: [
+        d(430, 0, 100, 56, "antechamber", 454, 360, "up")
+      ],
+      puzzle: {
+        id: "forgeRunes",
+        label: "Forge Numerals",
+        sequence: [2, 0, 1],
+        solvedMessage: "The sanctum bolts cool and release.",
+        switches: [
+          { x: 192, y: 360, glyph: "I", color: "#ffd065" },
+          { x: 428, y: 300, glyph: "II", color: "#ff7a4f" },
+          { x: 782, y: 178, glyph: "III", color: "#fff0cf" }
+        ]
+      },
+      enemies: [
+        e("ef1", "bonepillar", 398, 236, 340, 470),
+        e("ef2", "knight", 642, 376, 570, 760),
+        e("ef3", "reaper", 796, 142, 700, 900)
+      ],
+      chests: [
+        { id: "foundry_cache", x: 330, y: 432, loot: "heartCache" }
       ],
       items: []
     },
@@ -1306,8 +1474,19 @@
         d(190, 440, 100, 56, "gate", 462, 380, "down"),
         d(0, 340, 38, 120, "armory", 1346, 330, "left"),
         d(922, 340, 38, 120, "archive", 54, 330, "right"),
-        d(120, 96, 80, 64, "vault", 80, 380, "up", null, { hidden: true })
+        d(430, 96, 96, 64, "vault", 80, 380, "up", "puzzle:libraryRunes")
       ],
+      puzzle: {
+        id: "libraryRunes",
+        label: "Tome Runes",
+        sequence: [0, 1, 2],
+        solvedMessage: "The vault hatch above the upper shelf unlocks.",
+        switches: [
+          { x: 182, y: 348, glyph: "I", color: "#f4d38b" },
+          { x: 432, y: 284, glyph: "II", color: "#8bd7ff" },
+          { x: 704, y: 224, glyph: "III", color: "#bfa0ff" }
+        ]
+      },
       enemies: [
         e("sk4", "skeleton", 200, 296, 130, 380),
         e("wi3", "witch", 480, 232, 380, 700),
@@ -1525,6 +1704,7 @@
       ],
       doors: [
         d(0, 320, 38, 140, "cavern", 1346, 330, "left"),
+        d(922, 320, 38, 140, "moonwell", 60, 330, "right"),
         d(430, 0, 100, 56, "observatory", 474, 376, "up")
       ],
       enemies: [
@@ -1535,6 +1715,48 @@
       items: [
         item("aquaHeart", "heartVessel", 822, 170)
       ]
+    },
+    moonwell: {
+      name: "Moonwell Tidemaze",
+      grid: [5, 2],
+      bg: "bgMoonwell",
+      mid: "paraMoonwellRipples",
+      para: ["paraMoonwellRipples", "paraCrystals"],
+      music: "explore",
+      palette: "blue",
+      spawn: { x: 80, y: 330 },
+      platforms: [
+        p(0, 468, 960, 72, "blue"),
+        p(118, 386, 156, 28, "stone"),
+        p(348, 328, 150, 24, "blue"),
+        p(586, 270, 150, 24, "stone"),
+        p(760, 204, 144, 24, "blue"),
+        p(292, 162, 176, 24, "trim")
+      ],
+      doors: [
+        d(0, 320, 38, 140, "aqueduct", 856, 330, "left")
+      ],
+      puzzle: {
+        id: "tideRunes",
+        label: "Tide Plates",
+        sequence: [0, 2, 1],
+        solvedMessage: "The moonwell drains into a hidden cache.",
+        reward: { type: "heartVessel", x: 790, y: 166 },
+        switches: [
+          { x: 172, y: 350, glyph: "Ebb", color: "#42dfff" },
+          { x: 426, y: 292, glyph: "Flow", color: "#8bd7ff" },
+          { x: 792, y: 168, glyph: "Moon", color: "#fff0cf" }
+        ]
+      },
+      enemies: [
+        e("mw1", "zora", 258, 306, 120, 420),
+        e("mw2", "zora", 618, 190, 540, 760),
+        e("mw3", "drowned", 790, 376, 700, 900)
+      ],
+      chests: [
+        { id: "moonwell_mana", x: 560, y: 432, loot: "manaPool" }
+      ],
+      items: []
     }
   };
 
@@ -1563,6 +1785,7 @@
       moat: [p(842, 384, 158, 28, "blue"), p(1092, 316, 178, 28, "stone")],
       gate: [p(902, 402, 156, 28, "stone"), p(1138, 344, 168, 28, "gold")],
       gallery: [p(842, 386, 158, 28, "red"), p(1084, 334, 178, 28, "stone")],
+      mirrorCloister: [p(878, 374, 160, 28, "blue"), p(1124, 304, 176, 28, "stone")],
       chapel: [p(846, 348, 160, 28, "blue"), p(1098, 286, 178, 28, "stone")],
       crypt: [p(846, 378, 164, 28, "green"), p(1118, 306, 184, 28, "stone")],
       catacomb: [p(884, 390, 166, 28, "green"), p(1120, 322, 176, 28, "stone")],
@@ -1578,7 +1801,9 @@
       cavern: [p(880, 376, 160, 28, "blue"), p(1130, 308, 170, 28, "stone")],
       cavernDepths: [p(874, 374, 164, 28, "blue"), p(1116, 300, 176, 28, "stone")],
       aqueduct: [p(866, 382, 166, 28, "blue"), p(1112, 312, 176, 28, "stone")],
+      moonwell: [p(872, 374, 166, 28, "blue"), p(1118, 298, 178, 28, "stone")],
       antechamber: [p(880, 376, 160, 28, "red"), p(1130, 308, 170, 28, "stone")],
+      emberFoundry: [p(874, 382, 166, 28, "red"), p(1124, 306, 178, 28, "stone")],
       sanctum: [p(880, 388, 160, 28, "blue"), p(1130, 320, 170, 28, "stone")]
     };
 
@@ -1604,6 +1829,12 @@
       }
       for (const drop of room.items) {
         if (drop.x > 560) drop.x += rightShift;
+      }
+      if (room.puzzle && room.puzzle.switches) {
+        for (const sw of room.puzzle.switches) {
+          if (sw.x > 560) sw.x += rightShift;
+        }
+        if (room.puzzle.reward && room.puzzle.reward.x > 560) room.puzzle.reward.x += rightShift;
       }
     }
 
@@ -1743,7 +1974,7 @@
   }
 
   function installIntroSequence() {
-    rooms.courtyard.drawbridge = {
+    const drawbridge = {
       x: 610,
       y: 468,
       w: 450,
@@ -1756,6 +1987,17 @@
       target: 0,
       cycled: false,
       reopened: false
+    };
+    rooms.courtyard.drawbridge = drawbridge;
+    rooms.courtyard.moatWater = {
+      x: drawbridge.x - 28,
+      y: drawbridge.y + 18,
+      w: drawbridge.w + 76,
+      h: roomHeight(rooms.courtyard) - drawbridge.y + 44,
+      tile: "moatWaterTiles",
+      mode7: true,
+      parallax: true,
+      bridgeChannel: true
     };
   }
 
@@ -1816,6 +2058,7 @@
     const r = rng();
     if (rare && r < 0.04) return "subAxe";
     if (rare && r < 0.08) return "subHolyWater";
+    if (rare && r < 0.12) return "subBoomerang";
     if (r < 0.66) return "heart";
     if (r < 0.85) return "bigHeart";
     if (r < 0.94) return "smallMp";
@@ -1857,6 +2100,13 @@
     fullscreen: Boolean(fullscreenElement()),
     mobileStartFullscreenAttempted: game.mobileStartFullscreenAttempted,
     mobileStartFullscreenBlocked: Boolean(game.mobileStartFullscreenBlocked),
+    mapMode: game.mapMode,
+    puzzles: { ...(game.save.puzzles || {}) },
+    roomPuzzle: game.room && game.room.puzzle ? {
+      id: game.room.puzzle.id,
+      step: game.room.puzzle.step || 0,
+      solved: puzzleSolved(game.room.puzzle.id)
+    } : null,
     survey: surveyProgress(),
     questSeals: questSealProgress(),
     grotto: grottoDebugState(),
@@ -1869,8 +2119,8 @@
       frameW: SPRITES.chestFrameW,
       frameH: SPRITES.chestFrameH,
       frames: SPRITES.chestFrames,
-      drawW: 76,
-      drawH: 58
+      drawW: CHEST_DRAW_W,
+      drawH: CHEST_DRAW_H
     })),
     drawbridgeCache: {
       deck: Boolean(drawbridgeRenderCache.deck),
@@ -1889,7 +2139,8 @@
     visuals: game.room ? {
       bg: game.room.bg,
       parallax: parallaxKeysForRoom(game.room).slice(),
-      mode7: Boolean(game.room.bg && images[game.room.bg])
+      mode7: Boolean(game.room.bg && images[game.room.bg]),
+      water: moatWaterDebugState(game.room)
     } : null,
     titleVisuals: titleVisuals(),
     introGate: game.room && game.room.portcullis ? {
@@ -1979,6 +2230,16 @@
       const chest = game.chests.find((candidate) => candidate.id === chestId);
       if (chest) chest.opened = Boolean(opened);
     }
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_PUZZLE = (id, solved = true) => {
+    if (!game.save.puzzles) game.save.puzzles = {};
+    if (solved) game.save.puzzles[id] = true;
+    else delete game.save.puzzles[id];
+    for (const room of Object.values(rooms)) {
+      if (room.puzzle && room.puzzle.id === id) room.puzzle.step = solved ? room.puzzle.sequence.length : 0;
+    }
+    updateMapPanel();
     return true;
   };
   window.__NOCTURNE_PERF_RESET = () => {
@@ -2127,7 +2388,8 @@
     const owned = {
       dagger: true,
       axe: Boolean(ownedRaw.axe),
-      holyWater: Boolean(ownedRaw.holyWater)
+      holyWater: Boolean(ownedRaw.holyWater),
+      boomerang: Boolean(ownedRaw.boomerang)
     };
     let sub = save.subweapon || "dagger";
     if (!SUBWEAPONS[sub] || !owned[sub]) sub = "dagger";
@@ -2166,7 +2428,8 @@
         phoenixPendant: Boolean(save.equipment && save.equipment.phoenixPendant)
       },
       crits: Math.max(0, save.crits || 0),
-      openedChests: { ...(save.openedChests || {}) }
+      openedChests: { ...(save.openedChests || {}) },
+      puzzles: { ...(save.puzzles || {}) }
     };
   }
 
@@ -2237,6 +2500,7 @@
       .filter((def) => !game.save.collected[`${roomId}:${def.id}`])
       .map((def) => ({ ...def, bob: Math.random() * 10 }));
     syncQuestSealPickups(roomId);
+    syncPuzzleReward(roomId);
     // Candles respawn on every room enter (SOTN-style); only persist subweapon drops once collected.
     game.candles = (room.candles || []).map((c) => ({
       x: c.x, y: c.y, drop: c.drop, id: c.id,
@@ -2308,8 +2572,19 @@
     }
   }
 
+  function scaledEnemyConfig(base) {
+    if (!base) return null;
+    const hpScale = base.mini ? Math.max(1.08, ENEMY_HP_SCALE - 0.04) : ENEMY_HP_SCALE;
+    const damageScale = base.mini ? Math.max(1.08, ENEMY_DAMAGE_SCALE - 0.08) : ENEMY_DAMAGE_SCALE;
+    return {
+      ...base,
+      hp: Math.max(1, Math.round(base.hp * hpScale)),
+      damage: Math.max(1, Math.ceil(base.damage * damageScale))
+    };
+  }
+
   function createEnemy(def) {
-    const cfg = ENEMY_TYPES[def.type];
+    const cfg = scaledEnemyConfig(ENEMY_TYPES[def.type]);
     return {
       id: def.id,
       type: def.type,
@@ -2383,6 +2658,7 @@
   }
 
   function createBoss() {
+    const hp = Math.round(150 * BOSS_HP_SCALE);
     return {
       type: "lordVeyr",
       x: 650,
@@ -2392,8 +2668,8 @@
       vx: -0.45,
       vy: 0,
       row: 0,
-      hp: 150,
-      maxHp: 150,
+      hp,
+      maxHp: hp,
       facing: -1,
       cooldown: 1.4,
       state: "stalk",
@@ -2445,10 +2721,13 @@
       message(nextObjective());
       playSound("ui", 0.22);
     }
-    if (actionJust("pause")) toggleMap();
+    if (actionJust("pause")) {
+      if (game.mapMode === "full") toggleMap(false);
+      else setMapMode("full");
+    }
 
     // Pause gameplay while the menu is open. Still let the menu stats refresh.
-    if (dom.mapPanel.hidden === false) {
+    if (game.mapMode === "full" || dom.mapPanel.hidden === false) {
       game.statsRefreshTimer = (game.statsRefreshTimer || 0) - dt;
       if (game.statsRefreshTimer <= 0) {
         game.statsRefreshTimer = 0.5;
@@ -2537,6 +2816,22 @@
         w: gate.w,
         h: gate.h
       }))
+    };
+  }
+
+  function moatWaterDebugState(room = game.room) {
+    if (!room || !room.moatWater) return null;
+    const tileKey = room.moatWater.tile || "moatWaterTiles";
+    const img = images[tileKey];
+    return {
+      tile: tileKey,
+      asset: Boolean(img && img.width),
+      width: img && img.width ? img.width : 0,
+      height: img && img.height ? img.height : 0,
+      frameW: MOAT_WATER_TILE_SIZE,
+      frames: MOAT_WATER_FRAMES,
+      mode7: Boolean(room.moatWater.mode7),
+      parallax: Boolean(room.moatWater.parallax)
     };
   }
 
@@ -2864,6 +3159,50 @@
     message("Moon tether caught you.");
   }
 
+  function hitPuzzleSwitches(box) {
+    const puzzle = game.room && game.room.puzzle;
+    if (!puzzle || puzzleSolved(puzzle.id)) return false;
+    let hit = false;
+    for (let i = 0; i < puzzle.switches.length; i += 1) {
+      const sw = puzzle.switches[i];
+      const target = { x: sw.x - 22, y: sw.y - 34, w: 44, h: 48 };
+      if (rectsOverlap(box, target)) {
+        activatePuzzleSwitch(puzzle, i, sw);
+        hit = true;
+        break;
+      }
+    }
+    return hit;
+  }
+
+  function activatePuzzleSwitch(puzzle, index, sw) {
+    const expected = puzzle.sequence[puzzle.step || 0];
+    if (index !== expected) {
+      puzzle.step = 0;
+      game.shake = Math.max(game.shake, 0.45);
+      burst(sw.x, sw.y - 16, "#ff5465", 18);
+      message(`${puzzle.label}: wrong rune. Sequence reset.`);
+      playSound("hit", 0.28);
+      return;
+    }
+
+    puzzle.step = (puzzle.step || 0) + 1;
+    burst(sw.x, sw.y - 16, sw.color || "#f4d38b", 22);
+    playSound("spell", 0.22);
+    if (puzzle.step >= puzzle.sequence.length) {
+      if (!game.save.puzzles) game.save.puzzles = {};
+      game.save.puzzles[puzzle.id] = true;
+      puzzle.step = puzzle.sequence.length;
+      spawnPuzzleReward(game.roomId, puzzle, true);
+      message(puzzle.solvedMessage || `${puzzle.label} solved.`);
+      game.shake = Math.max(game.shake, 0.8);
+      updateMapPanel();
+      writeSave();
+      return;
+    }
+    message(`${puzzle.label}: rune ${puzzle.step}/${puzzle.sequence.length}`);
+  }
+
   function playerMelee(charged) {
     const downWhip = player.attackVariant === "down";
     const reach = charged ? Math.round(WHIP_SIDE_REACH * 1.35) : WHIP_SIDE_REACH;
@@ -2908,10 +3247,11 @@
         hits += 1;
       }
     }
+    if (hitPuzzleSwitches(box)) hits += 1;
     // Treasure chests
     if (game.chests) {
       for (const chest of game.chests) {
-        if (!chest.opened && rectsOverlap(box, { x: chest.x, y: chest.y, w: 36, h: 28 })) {
+        if (!chest.opened && rectsOverlap(box, chestHitBox(chest))) {
           openChest(chest);
         }
       }
@@ -3288,6 +3628,32 @@
     }
   }
 
+  function projectileImpactExpires(shot) {
+    if (shot.kind === "subweapon" && shot.subType === "boomerang" && (shot.pierce || 0) > 0) {
+      shot.pierce -= 1;
+      return false;
+    }
+    return true;
+  }
+
+  function updateBoomerangShot(shot, dt, step) {
+    if (shot.subType !== "boomerang") return;
+    shot.spin = (shot.spin || 0) + step * 0.36;
+    shot.returnTimer = (shot.returnTimer || 0) - dt;
+    if (shot.returnTimer <= 0) {
+      const tx = player.x + player.w / 2;
+      const ty = player.y + player.h * 0.42;
+      const cx = shot.x + shot.w / 2;
+      const cy = shot.y + shot.h / 2;
+      const dx = tx - cx;
+      const dy = ty - cy;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      shot.vx = clamp(shot.vx + (dx / dist) * 0.42 * step, -10, 10);
+      shot.vy = clamp(shot.vy + (dy / dist) * 0.34 * step, -8, 8);
+      if (dist < 30) shot.life = 0;
+    }
+  }
+
   function updateProjectiles(step, dt) {
     const arr = game.projectiles;
     const rw = roomWidth();
@@ -3301,17 +3667,18 @@
       const grav = shot.gravity != null ? shot.gravity : (shot.from === "player" ? 0 : 0.02);
       shot.vy += grav * step;
       if (shot.subType === "axe") shot.spin = (shot.spin || 0) + step * 0.45;
+      updateBoomerangShot(shot, dt, step);
 
       if (shot.from === "player") {
         for (const enemy of game.enemies) {
           if (shot.life > 0 && rectsOverlap(shot, enemy)) {
             damageEnemy(enemy, shot.damage);
-            shot.life = 0;
+            if (projectileImpactExpires(shot)) shot.life = 0;
           }
         }
         if (game.boss && shot.life > 0 && rectsOverlap(shot, game.boss)) {
           damageBoss(shot.damage);
-          shot.life = 0;
+          if (projectileImpactExpires(shot)) shot.life = 0;
         }
         if (shot.life > 0) {
           for (const candle of game.candles) {
@@ -3322,6 +3689,9 @@
               break;
             }
           }
+        }
+        if (shot.life > 0 && hitPuzzleSwitches(shot)) {
+          if (shot.kind !== "subweapon" || shot.subType === "dagger") shot.life = 0;
         }
         // Holy water lands and spawns flame puddle
         if (shot.life > 0 && shot.kind === "subweapon" && shot.subType === "holyWater" && shot.flameOnLand) {
@@ -3467,11 +3837,34 @@
         });
       }
       burst(cx, cy - 20, "#bfe7ff", 30);
+    } else if (kind === "boomerang") {
+      message("Item Crash: Mirror Orbit");
+      playSound("spell", 0.48);
+      for (let i = 0; i < 6; i += 1) {
+        const a = (Math.PI * 2 * i) / 6;
+        game.projectiles.push({
+          from: "player", kind: "subweapon", subType: "boomerang",
+          owner: player,
+          x: cx + Math.cos(a) * 26,
+          y: cy + Math.sin(a) * 18,
+          w: 30, h: 18,
+          vx: Math.cos(a) * 8.8,
+          vy: Math.sin(a) * 5.2,
+          gravity: 0,
+          damage: 18 + player.baseDamage * 2,
+          spin: i,
+          returnTimer: 0.28,
+          pierce: 5,
+          life: 2.1,
+          color: "#f7d988"
+        });
+      }
+      burst(cx, cy, "#f7d988", 38);
     }
   }
 
   function cycleSubweapon() {
-    const order = ["dagger", "axe", "holyWater"];
+    const order = ["dagger", "axe", "holyWater", "boomerang"];
     const owned = game.save.ownedSubweapons;
     const filtered = order.filter((k) => owned[k]);
     if (filtered.length <= 1) {
@@ -3541,6 +3934,7 @@
   function chestLootLabel(loot) {
     if (loot === "subAxe") return "War Axe";
     if (loot === "subHolyWater") return "Holy Water";
+    if (loot === "subBoomerang") return "Moon Boomerang";
     if (loot === "phoenixPendant") return "Phoenix Pendant";
     if (loot === "heartCache") return "Heart Cache (+25 Hearts)";
     if (loot === "manaPool") return "Mana Pool (+24 MP)";
@@ -3578,6 +3972,9 @@
     if (b === "bgCastleGarden" || b === "bgGarden") return { kind: "petal", color: "#ff9ec0", count: 18, speedX: -0.4, speedY: 0.4 };
     if (b === "bgGate") return { kind: "ash", color: "#d8c89a", count: 14, speedX: -0.3, speedY: 0.3 };
     if (b === "bgLibrary" || b === "bgArchive") return { kind: "dust", color: "#d8c890", count: 16, speedX: 0.15, speedY: 0.18 };
+    if (b === "bgMirrorCloister") return { kind: "dust", color: "#dfe9ff", count: 14, speedX: 0.12, speedY: 0.12 };
+    if (b === "bgEmberFoundry") return { kind: "ember", color: "#ff7a4f", count: 20, speedX: -0.08, speedY: -0.52 };
+    if (b === "bgMoonwell") return { kind: "spore", color: "#8bd7ff", count: 20, speedX: 0.08, speedY: -0.32 };
     if (b === "bgClock" || b === "bgBelltower" || b === "bgLoft") return { kind: "spark", color: "#ffd065", count: 14, speedX: 0.2, speedY: -0.3 };
     if (b === "bgCavern" || b === "bgAqueduct") return { kind: "spore", color: "#9af5df", count: 18, speedX: 0.1, speedY: -0.4 };
     if (b === "bgCrypt" || b === "bgOssuary") return { kind: "mist", color: "#86d8ff", count: 12, speedX: 0.08, speedY: -0.2 };
@@ -3664,13 +4061,22 @@
     }
   }
 
+  function chestHitBox(chest) {
+    return {
+      x: chest.x + 18 - CHEST_DRAW_W / 2,
+      y: chest.y + 28 - CHEST_DRAW_H,
+      w: CHEST_DRAW_W,
+      h: CHEST_DRAW_H
+    };
+  }
+
   function drawHdChest(chest) {
     const sheet = images.chests;
     if (!sheet || !sheet.width) return false;
     const shimmer = Math.floor(game.time * 2.4 + chest.x * 0.01) % 2;
     const frame = chest.opened ? 2 + shimmer : shimmer;
-    const drawW = 76;
-    const drawH = 58;
+    const drawW = CHEST_DRAW_W;
+    const drawH = CHEST_DRAW_H;
     const x = chest.x + 18 - drawW / 2;
     const y = chest.y + 28 - drawH;
     ctx.save();
@@ -3726,7 +4132,7 @@
 
   function spawnCandleDrop(candle) {
     const drop = candle.drop;
-    if (drop === "subAxe" || drop === "subHolyWater") {
+    if (drop === "subAxe" || drop === "subHolyWater" || drop === "subBoomerang") {
       game.pickups.push({ id: `cd_${candle.id}_${game.time}`, type: drop, x: candle.x - 14, y: candle.y - 6, w: 28, h: 28, bob: 0, fromCandle: true });
       return;
     }
@@ -3988,9 +4394,16 @@
   function doorIntent(door) {
     if (door.side === "left") return actionDown("left") || player.x <= door.x + door.w + 8;
     if (door.side === "right") return actionDown("right") || player.x + player.w >= door.x - 8;
-    if (door.side === "up") return actionDown("up");
+    if (door.side === "up") return actionDown("up") || mobileCeilingDoorIntent(door);
     if (door.side === "down") return actionDown("down");
     return true;
+  }
+
+  function mobileCeilingDoorIntent(door) {
+    if (door.side !== "up" || (!game.mobileMode && !isMobileLayout())) return false;
+    const playerCenterX = player.x + player.w / 2;
+    const doorCenterX = door.x + door.w / 2;
+    return Math.abs(playerCenterX - doorCenterX) <= Math.max(54, door.w * 0.75);
   }
 
   function nudgeFromDoor(door) {
@@ -4098,13 +4511,75 @@
     if (Math.abs(gate.progress - gate.target) < 0.01) gate.progress = gate.target;
   }
 
+  function puzzleLockId(lock) {
+    return typeof lock === "string" && lock.startsWith("puzzle:") ? lock.slice(7) : null;
+  }
+
+  function puzzleSolved(id) {
+    return Boolean(id && game.save.puzzles && game.save.puzzles[id]);
+  }
+
+  function puzzleMetaById(id) {
+    for (const [roomId, room] of Object.entries(rooms)) {
+      if (room.puzzle && room.puzzle.id === id) return { roomId, room, puzzle: room.puzzle };
+    }
+    return null;
+  }
+
+  function puzzleLabel(id) {
+    const meta = puzzleMetaById(id);
+    return meta ? meta.puzzle.label : "Rune Puzzle";
+  }
+
+  function puzzleRewardId(puzzle) {
+    return `puzzle_${puzzle.id}`;
+  }
+
+  function spawnPuzzleReward(roomId, puzzle, fromSolve = false) {
+    if (!puzzle || !puzzle.reward) return false;
+    const id = puzzleRewardId(puzzle);
+    const key = `${roomId}:${id}`;
+    if (game.save.collected[key]) return false;
+    if (game.pickups.some((drop) => drop.id === id)) return false;
+    const reward = puzzle.reward;
+    game.pickups.push({
+      id,
+      type: reward.type,
+      x: reward.x,
+      y: reward.y,
+      w: 28,
+      h: 28,
+      bob: fromSolve ? 0 : Math.random() * 10,
+      fall: fromSolve,
+      vx: 0,
+      vy: fromSolve ? -4.4 : 0,
+      fallLife: 18
+    });
+    return true;
+  }
+
+  function syncPuzzleReward(roomId) {
+    const room = rooms[roomId];
+    const puzzle = room && room.puzzle;
+    if (!puzzle || !puzzleSolved(puzzle.id)) return;
+    spawnPuzzleReward(roomId, puzzle, false);
+  }
+
   function doorOpen(door) {
     if (!door.lock) return true;
+    const puzzleId = puzzleLockId(door.lock);
+    if (puzzleId) return puzzleSolved(puzzleId);
     if (door.lock === "moonGate") return game.save.moonSigil && game.save.relics.dash && allSurveyRoomsVisited() && allQuestSealsClaimed();
     return true;
   }
 
   function lockMessage(lock) {
+    const puzzleId = puzzleLockId(lock);
+    if (puzzleId) {
+      const meta = puzzleMetaById(puzzleId);
+      const roomName = meta ? meta.room.name : "this room";
+      return `Locked. Solve ${puzzleLabel(puzzleId)} in ${roomName}. Strike the rune plates in order.`;
+    }
     if (lock === "moonGate") {
       if (!game.save.moonSigil && !game.save.relics.dash) {
         return "Locked. Need Moon Sigil + Mist Dash. Sigil: Silver Portrait Gallery (east of Gate Hall). Dash: Moon Chain Tower (Gallery → Clockwork Rise → Tower).";
@@ -4130,6 +4605,8 @@
   }
 
   function lockShortMessage(lock) {
+    const puzzleId = puzzleLockId(lock);
+    if (puzzleId) return `LOCKED - ${puzzleLabel(puzzleId)}`;
     if (lock === "moonGate") {
       const need = [];
       if (!game.save.moonSigil) need.push("Moon Sigil");
@@ -4147,6 +4624,11 @@
   }
 
   function lockTargetRoom(lock) {
+    const puzzleId = puzzleLockId(lock);
+    if (puzzleId) {
+      const meta = puzzleMetaById(puzzleId);
+      return meta ? meta.roomId : null;
+    }
     if (lock === "moonGate") {
       if (!game.save.moonSigil) return "gallery";
       if (!game.save.relics.dash) return "tower";
@@ -4240,6 +4722,12 @@
       message("Sub-Weapon: Holy Water equipped");
       burst(drop.x, drop.y, "#bfe7ff", 22);
       mapNeedsUpdate = true;
+    } else if (drop.type === "subBoomerang") {
+      game.save.ownedSubweapons.boomerang = true;
+      player.subweapon = "boomerang";
+      message("Sub-Weapon: Moon Boomerang equipped");
+      burst(drop.x, drop.y, "#f7d988", 24);
+      mapNeedsUpdate = true;
     } else if (drop.type === "heart") {
       player.hearts = Math.min(player.maxHearts, player.hearts + 1);
     } else if (drop.type === "bigHeart") {
@@ -4258,7 +4746,7 @@
       : "pickup";
     playSound(sfx, 0.34);
     if (mapNeedsUpdate) updateMapPanel();
-    if (persist || drop.type === "subAxe" || drop.type === "subHolyWater") writeSave();
+    if (persist || drop.type === "subAxe" || drop.type === "subHolyWater" || drop.type === "subBoomerang") writeSave();
   }
 
   function damageEnemy(enemy, amount, crit) {
@@ -4602,6 +5090,7 @@
     const tone = room.palette === "red" ? "rgba(105, 18, 28, 0.20)" : room.palette === "green" ? "rgba(24, 86, 53, 0.18)" : room.palette === "blue" ? "rgba(31, 75, 115, 0.18)" : "rgba(111, 79, 30, 0.16)";
     ctx.fillStyle = tone;
     ctx.fillRect(0, 0, W, H);
+    drawMoatWaterUnderlay(room, cameraX, cameraY);
 
     const scenery = getRoomSceneryViewportLayer(room, cameraX, cameraY);
     if (scenery) {
@@ -4658,17 +5147,6 @@
   function drawCastleGardenSceneryTo(target, room) {
     const bridge = room.drawbridge;
     if (bridge) {
-      const waterY = bridge.y + 22;
-      const moat = target.createLinearGradient(0, waterY, 0, roomHeight(room));
-      moat.addColorStop(0, "rgba(9, 45, 61, 0.82)");
-      moat.addColorStop(0.42, "rgba(5, 18, 27, 0.94)");
-      moat.addColorStop(1, "rgba(2, 5, 8, 0.98)");
-      target.fillStyle = moat;
-      target.fillRect(bridge.x - 16, waterY, bridge.w + 40, roomHeight(room) - waterY);
-      target.fillStyle = "rgba(173, 222, 230, 0.15)";
-      for (let x = bridge.x; x < bridge.x + bridge.w; x += 46) {
-        target.fillRect(x, waterY + 18, 26, 2);
-      }
       drawIntroTileCellTo(target, "pillar", bridge.x - 82, bridge.y - 152, 76, 238, 0.82);
       drawIntroTileCellTo(target, "pillar", bridge.x + bridge.w + 10, bridge.y - 150, 76, 238, 0.76);
       target.fillStyle = "rgba(15, 12, 10, 0.78)";
@@ -4683,6 +5161,127 @@
       drawIntroTileCellTo(target, "statue", x - 34, 292, 86, 176, 0.88);
       drawIntroTileCellTo(target, "rose", x - 76, 438, 120, 42, 0.78);
     }
+  }
+
+  function drawMoatWaterUnderlay(room, cameraX, cameraY) {
+    if (!room || !room.moatWater) return;
+    ctx.save();
+    ctx.translate(-Math.round(cameraX), -Math.round(cameraY));
+    drawMoatWaterPlane(room, room.moatWater, cameraX, cameraY);
+    ctx.restore();
+  }
+
+  function drawMoatWaterPlane(room, plane, cameraX, cameraY) {
+    const img = images[plane.tile || "moatWaterTiles"];
+    const x = plane.x || 0;
+    const y = plane.y || Math.round(roomHeight(room) * 0.58);
+    const w = plane.w || roomWidth(room);
+    const h = plane.h || Math.max(96, roomHeight(room) - y);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+
+    const depth = ctx.createLinearGradient(0, y, 0, y + h);
+    depth.addColorStop(0, "rgba(42, 134, 154, 0.34)");
+    depth.addColorStop(0.38, "rgba(8, 47, 67, 0.76)");
+    depth.addColorStop(1, "rgba(1, 8, 18, 0.96)");
+    ctx.fillStyle = depth;
+    ctx.fillRect(x, y, w, h);
+
+    if (img && img.width) {
+      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 0, 0.62);
+      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 1, 0.36);
+    } else {
+      drawFallbackMoatWater(x, y, w, h);
+    }
+    drawMoatWaterHighlights(x, y, w, h);
+    ctx.restore();
+  }
+
+  function drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, pass, alpha) {
+    const frame = Math.floor(game.time * 7.5 + pass) % MOAT_WATER_FRAMES;
+    const sx = frame * MOAT_WATER_TILE_SIZE;
+    const stride = pass === 0 ? 4 : 5;
+    const speedX = pass === 0 ? 28 : -14;
+    const speedY = pass === 0 ? 36 : 18;
+    const cameraFactor = pass === 0 ? 0.18 : 0.38;
+    const center = x + w / 2;
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha = alpha;
+    for (let yy = 0; yy < h; yy += stride) {
+      const t = yy / Math.max(1, h);
+      const ease = t * t;
+      const tileScale = (pass === 0 ? 0.74 : 0.96) + ease * (pass === 0 ? 1.45 : 1.9);
+      const tileW = MOAT_WATER_TILE_SIZE * tileScale;
+      const destH = Math.max(3, stride + 1 + ease * 8);
+      const sy = Math.floor((yy * (0.76 + ease * 2.8) + game.time * speedY + cameraY * 0.1 + pass * 41) % MOAT_WATER_TILE_SIZE);
+      const srcH = Math.min(4, MOAT_WATER_TILE_SIZE - sy);
+      const spread = w * (0.08 + ease * 0.34);
+      const left = center - (w + spread) / 2;
+      const right = center + (w + spread) / 2;
+      const scroll = positiveModulo(game.time * speedX + cameraX * cameraFactor + yy * (0.22 + pass * 0.08), tileW);
+      for (let dx = left - scroll - tileW; dx < right + tileW; dx += tileW) {
+        ctx.drawImage(img, sx, sy, MOAT_WATER_TILE_SIZE, srcH, dx, y + yy, tileW + 1, destH);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawFallbackMoatWater(x, y, w, h) {
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#8beeff";
+    ctx.shadowBlur = 7;
+    for (let i = 0; i < 7; i += 1) {
+      const yy = y + 12 + i * 15;
+      ctx.globalAlpha = 0.32 - i * 0.025;
+      ctx.strokeStyle = i % 2 ? "rgba(173, 238, 246, 0.45)" : "rgba(64, 188, 220, 0.42)";
+      ctx.beginPath();
+      for (let xx = x; xx <= x + w; xx += 18) {
+        const waveY = yy + Math.sin(game.time * (2.1 + i * 0.1) + xx * 0.035 + i) * (2.2 + i * 0.22);
+        if (xx === x) ctx.moveTo(xx, waveY);
+        else ctx.lineTo(xx, waveY);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMoatWaterHighlights(x, y, w, h) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = "#baf8ff";
+    ctx.shadowBlur = 9;
+    for (let i = 0; i < 5; i += 1) {
+      const yy = y + 10 + i * Math.max(12, h * 0.12);
+      ctx.globalAlpha = 0.18 - i * 0.018;
+      ctx.strokeStyle = i % 2 ? "rgba(228, 250, 236, 0.54)" : "rgba(91, 220, 244, 0.46)";
+      ctx.beginPath();
+      for (let xx = x - 20; xx <= x + w + 20; xx += 16) {
+        const waveY = yy + Math.sin(game.time * 2.7 + xx * 0.028 + i * 1.4) * (2.6 + i * 0.3);
+        if (xx === x - 20) ctx.moveTo(xx, waveY);
+        else ctx.lineTo(xx, waveY);
+      }
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    const fade = ctx.createLinearGradient(0, y, 0, y + h);
+    fade.addColorStop(0, "rgba(170, 237, 246, 0.13)");
+    fade.addColorStop(0.28, "rgba(54, 149, 178, 0.04)");
+    fade.addColorStop(1, "rgba(0, 0, 0, 0.38)");
+    ctx.fillStyle = fade;
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+  }
+
+  function positiveModulo(value, size) {
+    return ((value % size) + size) % size;
   }
 
   function drawRoomBackground(room, bg, mid, cameraX, cameraY) {
@@ -5081,17 +5680,6 @@
     ctx.save();
     const bridge = room.drawbridge;
     if (bridge) {
-      const waterY = bridge.y + 22;
-      const moat = ctx.createLinearGradient(0, waterY, 0, roomHeight(room));
-      moat.addColorStop(0, "rgba(9, 45, 61, 0.82)");
-      moat.addColorStop(0.42, "rgba(5, 18, 27, 0.94)");
-      moat.addColorStop(1, "rgba(2, 5, 8, 0.98)");
-      ctx.fillStyle = moat;
-      ctx.fillRect(bridge.x - 16, waterY, bridge.w + 40, roomHeight(room) - waterY);
-      ctx.fillStyle = "rgba(173, 222, 230, 0.15)";
-      for (let x = bridge.x; x < bridge.x + bridge.w; x += 46) {
-        ctx.fillRect(x + Math.sin(game.time * 1.3 + x) * 8, waterY + 18 + Math.sin(game.time + x) * 3, 26, 2);
-      }
       drawIntroTileCell("pillar", bridge.x - 82, bridge.y - 152, 76, 238, 0.82);
       drawIntroTileCell("pillar", bridge.x + bridge.w + 10, bridge.y - 150, 76, 238, 0.76);
       ctx.fillStyle = "rgba(15, 12, 10, 0.78)";
@@ -5187,9 +5775,11 @@
         continue;
       }
       ctx.globalAlpha = open ? 0.92 : 0.72;
-      if (gate) ctx.drawImage(gate, door.x - 8, door.y - 18, door.w + 16, door.h + 28);
-      ctx.fillStyle = open ? "rgba(107, 220, 194, 0.22)" : "rgba(211, 55, 52, 0.34)";
-      ctx.fillRect(door.x, door.y, door.w, door.h);
+      if (!drawHdDoor(door, open)) {
+        if (gate) ctx.drawImage(gate, door.x - 8, door.y - 18, door.w + 16, door.h + 28);
+        ctx.fillStyle = open ? "rgba(107, 220, 194, 0.22)" : "rgba(211, 55, 52, 0.34)";
+        ctx.fillRect(door.x, door.y, door.w, door.h);
+      }
       if (!open && door.lock) {
         drawLockBadge(door);
       }
@@ -5197,12 +5787,81 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawHdDoor(door, open) {
+    const img = images.doorsHd;
+    if (!img || !img.width) return false;
+    const horizontal = door.side === "up" || door.side === "down";
+    const cellX = horizontal ? (open ? 2 : 3) : (open ? 0 : 1);
+    const dw = horizontal ? Math.max(96, door.w + 42) : Math.max(66, door.w + 34);
+    const dh = horizontal ? Math.max(74, door.h + 44) : Math.max(150, door.h + 36);
+    const x = door.x + door.w / 2 - dw / 2;
+    const y = horizontal ? door.y + door.h / 2 - dh / 2 : door.y + door.h - dh + 12;
+    ctx.save();
+    ctx.shadowColor = open ? "#7be09a" : "#ff5465";
+    ctx.shadowBlur = open ? 8 : 12;
+    ctx.drawImage(img, cellX * DOOR_FRAME_SIZE, 0, DOOR_FRAME_SIZE, DOOR_FRAME_SIZE, x, y, dw, dh);
+    ctx.restore();
+    return true;
+  }
+
   function drawRoomMechanics() {
     if (game.room && game.room.grottoRide) drawGrottoMechanics(game.room);
+    if (game.room && game.room.puzzle) drawPuzzleMechanics(game.room);
     const bridge = game.room && game.room.drawbridge;
     if (bridge) drawDrawbridge(bridge);
     const gate = game.room && game.room.portcullis;
     if (gate) drawPortcullis(gate);
+  }
+
+  function drawPuzzleMechanics(room) {
+    const puzzle = room.puzzle;
+    const solved = puzzleSolved(puzzle.id);
+    const step = solved ? puzzle.sequence.length : (puzzle.step || 0);
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "10px Cinzel, serif";
+    for (let i = 0; i < puzzle.switches.length; i += 1) {
+      const sw = puzzle.switches[i];
+      const activeIndex = puzzle.sequence.indexOf(i);
+      const lit = solved || activeIndex < step;
+      const expected = !solved && puzzle.sequence[step] === i;
+      const pulse = 0.5 + 0.5 * Math.sin(game.time * 4 + i);
+      ctx.shadowColor = sw.color || "#f4d38b";
+      ctx.shadowBlur = lit ? 18 : expected ? 10 + pulse * 8 : 0;
+      ctx.fillStyle = lit ? (sw.color || "#f4d38b") : "rgba(20, 18, 22, 0.94)";
+      ctx.strokeStyle = expected ? "#fff0cf" : "rgba(244, 211, 139, 0.46)";
+      ctx.lineWidth = expected ? 2.5 : 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sw.x, sw.y - 34);
+      ctx.lineTo(sw.x + 24, sw.y - 12);
+      ctx.lineTo(sw.x, sw.y + 10);
+      ctx.lineTo(sw.x - 24, sw.y - 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = lit ? "#050408" : "#f7ead2";
+      const label = String(sw.glyph || i + 1);
+      ctx.fillText(label.length > 4 ? label.slice(0, 4) : label, sw.x, sw.y - 12);
+      ctx.globalAlpha = 0.32;
+      ctx.fillStyle = sw.color || "#f4d38b";
+      ctx.fillRect(sw.x - 2, sw.y + 10, 4, 30);
+      ctx.globalAlpha = 1;
+    }
+    if (solved) {
+      ctx.globalAlpha = 0.28 + 0.12 * Math.sin(game.time * 3);
+      ctx.strokeStyle = "#fff0cf";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < puzzle.switches.length; i += 1) {
+        const sw = puzzle.switches[puzzle.sequence[i]];
+        if (i === 0) ctx.moveTo(sw.x, sw.y - 12);
+        else ctx.lineTo(sw.x, sw.y - 12);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawGrottoMechanics(room) {
@@ -5616,6 +6275,11 @@
   }
 
   function lockRequirements(lock) {
+    const puzzleId = puzzleLockId(lock);
+    if (puzzleId) {
+      const meta = puzzleMetaById(puzzleId);
+      return [{ label: meta ? `${meta.puzzle.label} (${meta.room.name})` : "Rune Puzzle", have: puzzleSolved(puzzleId) }];
+    }
     if (lock === "moonGate") {
       return [
         { label: "Moon Sigil (Gallery)", have: !!game.save.moonSigil },
@@ -5635,8 +6299,8 @@
     for (const drop of game.pickups) {
       const y = drop.y + Math.sin(drop.bob) * 5;
       const isQuestSeal = !!QUEST_ICON_CELLS[drop.type];
-      const isRelic = isQuestSeal || drop.type === "doubleJump" || drop.type === "dash" || drop.type === "moonSigil" || drop.type === "heartVessel" || drop.type === "subAxe" || drop.type === "subHolyWater" || drop.type === "familiarBat" || drop.type === "ringOfArdor" || drop.type === "batCloak" || drop.type === "wraithArmor" || drop.type === "phoenixPendant";
-      const color = drop.type === "doubleJump" ? "#8bd7ff" : drop.type === "dash" ? "#d8fff3" : drop.type === "heartVessel" ? "#f05f5b" : drop.type === "moonSigil" ? "#f2cb68" : drop.type === "tideSeal" ? "#42dfff" : drop.type === "starSeal" ? "#ffd56a" : drop.type === "inkSeal" ? "#bca8ff" : drop.type === "familiarBat" ? "#bfa0ff" : drop.type === "ringOfArdor" ? "#ff9a3a" : drop.type === "batCloak" ? "#9a7adb" : drop.type === "wraithArmor" ? "#cfeacc" : drop.type === "phoenixPendant" ? "#ffae3a" : "#f2cb68";
+      const isRelic = isQuestSeal || drop.type === "doubleJump" || drop.type === "dash" || drop.type === "moonSigil" || drop.type === "heartVessel" || drop.type === "subAxe" || drop.type === "subHolyWater" || drop.type === "subBoomerang" || drop.type === "familiarBat" || drop.type === "ringOfArdor" || drop.type === "batCloak" || drop.type === "wraithArmor" || drop.type === "phoenixPendant";
+      const color = drop.type === "doubleJump" ? "#8bd7ff" : drop.type === "dash" ? "#d8fff3" : drop.type === "heartVessel" ? "#f05f5b" : drop.type === "moonSigil" ? "#f2cb68" : drop.type === "tideSeal" ? "#42dfff" : drop.type === "starSeal" ? "#ffd56a" : drop.type === "inkSeal" ? "#bca8ff" : drop.type === "subBoomerang" ? "#f7d988" : drop.type === "familiarBat" ? "#bfa0ff" : drop.type === "ringOfArdor" ? "#ff9a3a" : drop.type === "batCloak" ? "#9a7adb" : drop.type === "wraithArmor" ? "#cfeacc" : drop.type === "phoenixPendant" ? "#ffae3a" : "#f2cb68";
 
       // Path beacon: tall light column + descending arrow above relics in the target room
       if (inTargetRoom && isRelic) {
@@ -5678,6 +6342,29 @@
   }
 
   function drawPickupIcon(drop, y, color, isRelic) {
+    const weaponCellName = WEAPON_PICKUP_CELLS[drop.type];
+    if (weaponCellName && images.weaponsHd && images.weaponsHd.width && WEAPON_CELLS[weaponCellName]) {
+      const cell = WEAPON_CELLS[weaponCellName];
+      const size = isRelic ? 46 : 36;
+      const cx = drop.x + drop.w / 2;
+      const cy = y + drop.h / 2;
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = isRelic ? 28 : 18;
+      ctx.drawImage(
+        images.weaponsHd,
+        cell[0] * WEAPON_ICON_SIZE,
+        cell[1] * WEAPON_ICON_SIZE,
+        WEAPON_ICON_SIZE,
+        WEAPON_ICON_SIZE,
+        cx - size / 2,
+        cy - size / 2,
+        size,
+        size
+      );
+      ctx.restore();
+      return true;
+    }
     const isQuestSeal = !!QUEST_ICON_CELLS[drop.type];
     const cell = isQuestSeal ? QUEST_ICON_CELLS[drop.type] : ITEM_ICON_CELLS[drop.type];
     const img = isQuestSeal ? images.questIcons : images.itemIcons;
@@ -5719,6 +6406,8 @@
         drawSubweapon(shot);
         continue;
       }
+      const cellName = shot.from === "player" ? "playerProjectile" : "enemyProjectile";
+      if (drawWeaponCell(cellName, shot.x + shot.w / 2, shot.y + shot.h / 2, Math.max(30, shot.w + 16), Math.max(30, shot.h + 16), Math.atan2(shot.vy, shot.vx || 1), shot.vx < 0, shot.color)) continue;
       ctx.shadowColor = shot.color;
       ctx.shadowBlur = shot.from === "player" ? 16 : 12;
       ctx.fillStyle = shot.color;
@@ -5729,9 +6418,41 @@
     ctx.shadowBlur = 0;
   }
 
+  function drawWeaponCell(cellName, cx, cy, w, h, angle = 0, flip = false, glow = "#f2cb68") {
+    const cell = WEAPON_CELLS[cellName];
+    const img = images.weaponsHd;
+    if (!cell || !img || !img.width) return false;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    if (flip) ctx.scale(-1, 1);
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 14;
+    ctx.drawImage(
+      img,
+      cell[0] * WEAPON_ICON_SIZE,
+      cell[1] * WEAPON_ICON_SIZE,
+      WEAPON_ICON_SIZE,
+      WEAPON_ICON_SIZE,
+      -w / 2,
+      -h / 2,
+      w,
+      h
+    );
+    ctx.restore();
+    return true;
+  }
+
   function drawSubweapon(shot) {
     const cx = shot.x + shot.w / 2;
     const cy = shot.y + shot.h / 2;
+    const cellName = shot.subType === "holyWater" ? "holyWater" : shot.subType;
+    const angle = shot.subType === "axe" || shot.subType === "boomerang"
+      ? (shot.spin || 0) * 12
+      : shot.subType === "dagger"
+        ? 0
+        : Math.atan2(shot.vy, shot.vx || 1) * 0.2;
+    if (drawWeaponCell(cellName, cx, cy, Math.max(34, shot.w + 18), Math.max(30, shot.h + 18), angle, shot.vx < 0 && shot.subType === "dagger", shot.color)) return;
     if (shot.subType === "dagger") {
       ctx.shadowColor = shot.color;
       ctx.shadowBlur = 14;
@@ -5802,6 +6523,10 @@
       const fade = clamp(f.life / 1.4, 0, 1);
       const flick = Math.sin(f.flicker) * 2;
       ctx.globalAlpha = 0.6 * fade;
+      if (drawWeaponCell("holyFlame", f.x + f.w / 2, f.y + f.h / 2, f.w + 22, f.h + 38 + flick, 0, false, "#bfe7ff")) {
+        ctx.globalAlpha = 1;
+        continue;
+      }
       ctx.shadowColor = "#bfe7ff";
       ctx.shadowBlur = 16;
       ctx.fillStyle = "#bfe7ff";
@@ -5896,11 +6621,6 @@
     if (enemy.type === "blackPanther") {
       const dir = enemy.facing < 0 ? -1 : 1;
       ctx.shadowColor = "#f4d38b";
-      ctx.strokeStyle = "rgba(244, 211, 139, 0.72)";
-      ctx.beginPath();
-      ctx.moveTo(cx - dir * 66, bottom - 78);
-      ctx.quadraticCurveTo(cx - dir * 16, bottom - 116, cx + dir * 58, bottom - 78);
-      ctx.stroke();
       ctx.fillStyle = "#ffd95a";
       ctx.shadowBlur = 8;
       const eyeW = 4;
@@ -6407,6 +7127,10 @@
     const cols = maxX - minX + 1;
     const rows = maxY - minY + 1;
     dom.mapGrid.style.setProperty("--map-cols", String(cols));
+    if (dom.miniMapGrid) {
+      dom.miniMapGrid.innerHTML = "";
+      dom.miniMapGrid.style.setProperty("--mini-map-cols", String(cols));
+    }
     const grid = Array.from({ length: cols * rows }, () => null);
     for (const [id, room] of Object.entries(rooms)) {
       const [gx, gy] = room.grid;
@@ -6426,7 +7150,21 @@
         cell.textContent = isTarget ? `★ ${baseText}` : baseText;
       }
       dom.mapGrid.appendChild(cell);
+      if (dom.miniMapGrid) {
+        const mini = document.createElement("div");
+        mini.className = "mini-map-cell";
+        if (slot) {
+          const seen = game.save.visited[slot.id];
+          mini.classList.toggle("visited", Boolean(seen));
+          mini.classList.toggle("current", slot.id === game.roomId);
+          mini.classList.toggle("target", slot.id === targetRoom && slot.id !== game.roomId);
+          mini.title = seen || slot.id === game.roomId ? slot.room.name : "Uncharted";
+        }
+        dom.miniMapGrid.appendChild(mini);
+      }
     }
+    if (dom.miniMapObjective) dom.miniMapObjective.textContent = objectiveShort();
+    syncMapModeDom();
 
     dom.relicList.innerHTML = "";
     const owned = game.save.ownedSubweapons || {};
@@ -6448,6 +7186,7 @@
       owned.dagger && (player.subweapon === "dagger" ? "[Dagger]" : "Dagger"),
       owned.axe && (player.subweapon === "axe" ? "[Axe]" : "Axe"),
       owned.holyWater && (player.subweapon === "holyWater" ? "[Holy Water]" : "Holy Water"),
+      owned.boomerang && (player.subweapon === "boomerang" ? "[Boomerang]" : "Boomerang"),
       game.save.bossDefeated && "Crimson Rite"
     ].filter(Boolean);
     for (const label of chips) {
@@ -6458,10 +7197,33 @@
     }
   }
 
-  function toggleMap(force) {
-    const shouldOpen = force ?? dom.mapPanel.hidden;
-    dom.mapPanel.hidden = !shouldOpen;
+  function syncMapModeDom() {
+    const mode = game.mapMode || "mini";
+    if (dom.mapPanel) dom.mapPanel.hidden = mode !== "full";
+    if (dom.miniMap) dom.miniMap.hidden = mode !== "mini";
+    if (dom.mapButton) {
+      dom.mapButton.textContent = mode === "full" ? "MAP" : mode === "mini" ? "MINI" : "OFF";
+      dom.mapButton.setAttribute("aria-label", `Map mode: ${mode}. Cycle map mode`);
+    }
+  }
+
+  function setMapMode(mode) {
+    game.mapMode = mode === "full" || mode === "off" ? mode : "mini";
+    syncMapModeDom();
     updateMapPanel();
+  }
+
+  function toggleMap(force) {
+    if (force === true) {
+      setMapMode("full");
+      return;
+    }
+    if (force === false) {
+      setMapMode("off");
+      return;
+    }
+    const next = game.mapMode === "mini" ? "full" : game.mapMode === "full" ? "off" : "mini";
+    setMapMode(next);
   }
 
   function playSound(key, volume = 0.36) {

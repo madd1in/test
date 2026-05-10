@@ -86,7 +86,8 @@ button {
 }
 
 body.title-active .hud,
-body.title-active .touch-controls {
+body.title-active .touch-controls,
+body.title-active .mini-map {
   display: none;
 }
 
@@ -531,6 +532,7 @@ h1 {
 
 .map-panel {
   position: absolute;
+  z-index: 12;
   top: 86px;
   right: clamp(10px, 3vw, 32px);
   width: min(92vw, 420px);
@@ -543,6 +545,68 @@ h1 {
     inset 0 0 0 4px rgba(122, 90, 30, 0.5),
     0 22px 80px rgba(0, 0, 0, 0.75);
   font-family: var(--font-body);
+}
+
+.mini-map {
+  position: absolute;
+  z-index: 8;
+  right: clamp(10px, 3vw, 30px);
+  bottom: clamp(76px, 15vh, 132px);
+  width: 168px;
+  padding: 8px;
+  border: 1px solid rgba(244, 211, 139, 0.5);
+  background:
+    linear-gradient(180deg, rgba(18, 12, 8, 0.82), rgba(4, 4, 6, 0.88));
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.74),
+    0 10px 26px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.mini-map[hidden] {
+  display: none;
+}
+
+.mini-map-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--mini-map-cols, 4), 1fr);
+  gap: 3px;
+}
+
+.mini-map-cell {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 1px solid rgba(247, 234, 210, 0.14);
+  background: rgba(18, 18, 24, 0.82);
+}
+
+.mini-map-cell.visited {
+  border-color: rgba(244, 211, 139, 0.42);
+  background: linear-gradient(180deg, rgba(92, 76, 50, 0.9), rgba(35, 39, 42, 0.9));
+}
+
+.mini-map-cell.current {
+  border-color: #fff0cf;
+  background: #d1a84d;
+  box-shadow: 0 0 10px rgba(244, 211, 139, 0.86);
+}
+
+.mini-map-cell.target {
+  border-color: #7be09a;
+  background: #395f3f;
+  box-shadow: 0 0 8px rgba(123, 224, 154, 0.68);
+}
+
+.mini-map-objective {
+  margin-top: 6px;
+  overflow: hidden;
+  color: #fff0cf;
+  font-size: 10px;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 #000;
 }
 
 .map-panel[hidden] {
@@ -936,6 +1000,31 @@ body.mobile-mode .touch-controls {
     padding: 0 7px;
     font-size: 10px;
     letter-spacing: 0;
+  }
+
+  .mini-map {
+    right: max(7px, env(safe-area-inset-right));
+    bottom: calc(max(78px, env(safe-area-inset-bottom)) + 6px);
+    width: 126px;
+    padding: 6px;
+  }
+
+  .mini-map-grid {
+    gap: 2px;
+  }
+
+  .mini-map-objective {
+    max-width: 112px;
+    font-size: 9px;
+  }
+
+  .map-panel {
+    top: max(78px, calc(env(safe-area-inset-top) + 72px));
+    right: max(7px, env(safe-area-inset-right));
+    width: min(96vw, 380px);
+    max-height: calc(100dvh - 104px);
+    overflow: auto;
+    padding: 12px;
   }
 
   .touch-controls button {
