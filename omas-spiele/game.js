@@ -2468,6 +2468,15 @@ function getActiveModes() {
   return game.sessionModes.length ? game.sessionModes : modes;
 }
 
+function getCrosswordMode() {
+  return modes.find((mode) => mode.id === "crossword") || modes[0];
+}
+
+function isCrosswordOnlySession() {
+  const activeModes = getActiveModes();
+  return activeModes.length === 1 && activeModes[0].id === "crossword";
+}
+
 function pickRandomModes(count) {
   const priority = modes.filter((mode) => mode.id === "crossword" || mode.id === "wordle");
   const pool = [...priority, ...shuffle(modes.filter((mode) => !priority.includes(mode)))];
@@ -2483,6 +2492,12 @@ function startSprint() {
 function startSingleMode(mode) {
   game.playMode = "select";
   game.sessionModes = [mode];
+  startGame();
+}
+
+function startCrosswordSession() {
+  game.playMode = "select";
+  game.sessionModes = [getCrosswordMode()];
   startGame();
 }
 
@@ -2675,7 +2690,11 @@ function endRound() {
   game.rounds.push(game.roundStats);
   updateRoundProgress();
   playSfx("roundEnd");
-  showRoundSummary();
+  if (isCrosswordOnlySession()) {
+    finishGame();
+  } else {
+    showRoundSummary();
+  }
 }
 
 function showRoundSummary() {
@@ -2694,15 +2713,22 @@ function showRoundSummary() {
 
   const activeModes = getActiveModes();
   const isLast = game.modeIndex >= activeModes.length - 1;
-  const secondaryLabel = game.playMode === "select" ? "Uebung waehlen" : "Neu starten";
+  const crosswordOnly = isCrosswordOnlySession();
+  const secondaryLabel = crosswordOnly ? "" : game.playMode === "select" ? "Uebung waehlen" : "Neu starten";
   showOverlay({
     title: `Runde ${game.modeIndex + 1} fertig`,
-    body: isLast ? "Auswertung folgt." : "Kurze Pause, dann geht es weiter.",
+    body: crosswordOnly
+      ? "Dein Fortschritt ist gespeichert."
+      : isLast
+        ? "Auswertung folgt."
+        : "Kurze Pause, dann geht es weiter.",
     statsHtml,
-    primaryLabel: isLast ? "Auswertung" : "Weiter",
+    primaryLabel: crosswordOnly ? "Weiter Kreuzwort" : isLast ? "Auswertung" : "Weiter",
     secondaryLabel,
     onPrimary: () => {
-      if (isLast) {
+      if (crosswordOnly) {
+        startCrosswordSession();
+      } else if (isLast) {
         finishGame();
       } else {
         game.modeIndex += 1;
@@ -2710,7 +2736,9 @@ function showRoundSummary() {
       }
     },
     onSecondary: () => {
-      if (game.playMode === "select") {
+      if (crosswordOnly) {
+        startCrosswordSession();
+      } else if (game.playMode === "select") {
         showExercisePicker();
       } else {
         startSprint();
@@ -2828,25 +2856,32 @@ function finishGame() {
     </div>
   `;
 
+  const crosswordOnly = isCrosswordOnlySession();
   const isSelect = game.playMode === "select";
-  const finishTitle = isSelect ? "Uebung abgeschlossen" : "Sprint abgeschlossen";
+  const finishTitle = crosswordOnly ? "Kreuzwort gespeichert" : isSelect ? "Uebung abgeschlossen" : "Sprint abgeschlossen";
   playSfx("finish");
   spawnConfetti(isSelect ? 18 : 28);
   showOverlay({
     title: finishTitle,
-    body: "Dynamischer Schwierigkeitsgrad aktiv. Deine Leistung wird gespeichert.",
+    body: crosswordOnly
+      ? "Dein Stand bleibt gespeichert. Weiter geht es mit der naechsten offenen Frage."
+      : "Dynamischer Schwierigkeitsgrad aktiv. Deine Leistung wird gespeichert.",
     statsHtml,
-    primaryLabel: isSelect ? "Nochmal" : "Nochmal spielen",
-    secondaryLabel: isSelect ? "Uebung waehlen" : "Schliessen",
+    primaryLabel: crosswordOnly ? "Weiter Kreuzwort" : isSelect ? "Nochmal" : "Nochmal spielen",
+    secondaryLabel: crosswordOnly ? "" : isSelect ? "Uebung waehlen" : "Schliessen",
     onPrimary: () => {
-      if (isSelect) {
+      if (crosswordOnly) {
+        startCrosswordSession();
+      } else if (isSelect) {
         startSingleMode(activeModes[0]);
       } else {
         startSprint();
       }
     },
     onSecondary: () => {
-      if (isSelect) {
+      if (crosswordOnly) {
+        startCrosswordSession();
+      } else if (isSelect) {
         showExercisePicker();
       } else {
         resetGame();
@@ -4466,4 +4501,4 @@ setupAudioControls();
 updateAppScale();
 window.addEventListener("resize", updateAppScale);
 
-showStartOverlay();
+startCrosswordSession();
