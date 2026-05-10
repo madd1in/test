@@ -3634,29 +3634,97 @@ function setupCrossword(stats) {
 
     const slots = document.createElement("div");
     slots.className = "answer-slots";
-    slots.setAttribute("aria-hidden", "true");
-    for (let i = 0; i < entry.answer.length; i += 1) {
-      const slot = document.createElement("span");
-      slot.className = "answer-slot";
-      slots.appendChild(slot);
-    }
+    slots.setAttribute("aria-label", "Antwort direkt in Kaestchen");
+    const letterBoxes = [];
 
-    const input = document.createElement("input");
-    input.className = "crossword-answer-input";
-    input.type = "text";
-    input.autocomplete = "off";
-    input.inputMode = "text";
-    input.maxLength = entry.answer.length + 2;
-    input.placeholder = "Antwort";
-    input.setAttribute("aria-label", `Antwort fuer Frage ${activeIndex + 1}`);
+    const getAnswerLetters = () =>
+      letterBoxes.map((box) => normalizeGermanWord(box.value).slice(0, 1));
+
+    const getAnswerValue = () => getAnswerLetters().join("");
 
     const updateSlots = () => {
-      const letters = normalizeGermanWord(input.value).slice(0, entry.answer.length);
-      [...slots.children].forEach((slot, index) => {
-        slot.textContent = letters[index] || "";
-        slot.classList.toggle("filled", Boolean(letters[index]));
+      letterBoxes.forEach((box) => {
+        box.classList.toggle("filled", Boolean(normalizeGermanWord(box.value)));
       });
     };
+
+    const focusAnswerBox = (index) => {
+      const box = letterBoxes[index];
+      if (box && !box.disabled) {
+        box.focus();
+        box.select();
+      }
+    };
+
+    const focusNextAnswerBox = (fromIndex = 0) => {
+      const next = letterBoxes.findIndex((box, index) => index >= fromIndex && !box.value);
+      if (next >= 0) {
+        focusAnswerBox(next);
+        return;
+      }
+      focusAnswerBox(Math.min(fromIndex, Math.max(0, letterBoxes.length - 1)));
+    };
+
+    const focusPreviousAnswerBox = (fromIndex) => {
+      const previous = letterBoxes
+        .map((box, index) => index)
+        .filter((index) => index < fromIndex)
+        .pop();
+      if (Number.isInteger(previous)) {
+        focusAnswerBox(previous);
+      }
+    };
+
+    const applyAnswerText = (rawValue, startIndex = 0) => {
+      const letters = normalizeGermanWord(rawValue).split("");
+      let index = startIndex;
+      letters.forEach((letter) => {
+        if (index < letterBoxes.length) {
+          letterBoxes[index].value = letter;
+          index += 1;
+        }
+      });
+      updateSlots();
+      focusNextAnswerBox(index);
+    };
+
+    for (let i = 0; i < entry.answer.length; i += 1) {
+      const box = document.createElement("input");
+      box.type = "text";
+      box.inputMode = "text";
+      box.autocomplete = "off";
+      box.maxLength = entry.answer.length;
+      box.className = "answer-slot";
+      box.setAttribute("aria-label", `Antwort Buchstabe ${i + 1}`);
+      box.addEventListener("input", () => {
+        const value = box.value;
+        box.value = "";
+        applyAnswerText(value, i);
+      });
+      box.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          checkAnswer();
+          return;
+        }
+        if (event.key === "Backspace" && !box.value) {
+          event.preventDefault();
+          focusPreviousAnswerBox(i);
+          return;
+        }
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          focusPreviousAnswerBox(i);
+          return;
+        }
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          focusAnswerBox(i + 1);
+        }
+      });
+      letterBoxes.push(box);
+      slots.appendChild(box);
+    }
 
     const submit = document.createElement("button");
     submit.type = "button";
@@ -3710,12 +3778,14 @@ function setupCrossword(stats) {
       if (!active || solved.has(activeIndex)) {
         return;
       }
-      const value = normalizeGermanWord(input.value);
-      if (!value) {
-        setFeedback("Bitte eine Antwort eintippen.", "bad");
+      const letters = getAnswerLetters();
+      const value = getAnswerValue();
+      if (letters.some((letter) => !letter)) {
+        setFeedback("Bitte alle Kaestchen fuellen.", "bad");
         if (speechState.enabled) {
-          speakText("Bitte eine Antwort eintippen.", { silent: true });
+          speakText("Bitte alle Kaestchen fuellen.", { silent: true });
         }
+        focusNextAnswerBox(0);
         return;
       }
       if (value === expectedAnswer) {
@@ -3724,7 +3794,9 @@ function setupCrossword(stats) {
         markCrosswordSolved(puzzle, activeIndex);
         noteCorrect(stats, 16, "Sehr gut!");
         setFeedback("Richtig.", "good");
-        input.disabled = true;
+        letterBoxes.forEach((box) => {
+          box.disabled = true;
+        });
         submit.disabled = true;
         voiceButton.disabled = true;
         hintButton.disabled = true;
@@ -3763,7 +3835,7 @@ function setupCrossword(stats) {
         if (speechState.enabled) {
           speakText("Noch einmal langsam. Die Antwort passt noch nicht.", { silent: true });
         }
-        input.select();
+        focusNextAnswerBox(0);
       }
     };
 
@@ -3793,8 +3865,7 @@ function setupCrossword(stats) {
             ? event.results[0][0].transcript
             : "";
         const heard = normalizeGermanWord(transcript).slice(0, entry.answer.length + 2);
-        input.value = heard;
-        updateSlots();
+        applyAnswerText(heard, 0);
         if (!heard) {
           setFeedback("Nichts gehoert.", "bad");
           if (speechState.enabled) {
@@ -3868,21 +3939,11 @@ function setupCrossword(stats) {
     });
 
     submit.addEventListener("click", checkAnswer);
-    input.addEventListener("input", () => {
-      input.value = normalizeGermanWord(input.value);
-      updateSlots();
-    });
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        checkAnswer();
-      }
-    });
 
     panel.appendChild(navRow);
     panel.appendChild(step);
     panel.appendChild(clue);
     panel.appendChild(slots);
-    panel.appendChild(input);
     panel.appendChild(actionRow);
     extraDetails.appendChild(grid);
     extraDetails.appendChild(clueList);
@@ -3890,7 +3951,7 @@ function setupCrossword(stats) {
     dom.inputArea.appendChild(layout);
     updateHintLine();
     updateSlots();
-    input.focus();
+    focusAnswerBox(0);
     maybeSpeakCurrentClue({ key: `crossword:${puzzle.title}:${activeIndex}` });
   };
 
@@ -4057,19 +4118,6 @@ function setupWordle(stats) {
     const board = document.createElement("div");
     board.className = "wordle-board";
     board.setAttribute("aria-label", "Wordle Raster");
-    for (let row = 0; row < maxGuesses; row += 1) {
-      const guess = guesses[row] || "";
-      const score = guess ? scoreGuess(guess) : [];
-      for (let col = 0; col < answer.length; col += 1) {
-        const tile = document.createElement("div");
-        tile.className = "wordle-tile";
-        if (score[col]) {
-          tile.classList.add(score[col]);
-        }
-        tile.textContent = guess[col] || "";
-        board.appendChild(tile);
-      }
-    }
 
     const help = document.createElement("div");
     help.className = "wordle-help";
@@ -4088,9 +4136,6 @@ function setupWordle(stats) {
 
     const form = document.createElement("div");
     form.className = "wordle-form";
-    const entry = document.createElement("div");
-    entry.className = "wordle-entry";
-    entry.setAttribute("aria-label", "Wordle Wort eingeben");
     const letterInputs = [];
     const submit = document.createElement("button");
     submit.type = "button";
@@ -4115,7 +4160,7 @@ function setupWordle(stats) {
       const indexes = openIndexes();
       const next = indexes.find((index) => index >= fromIndex && !letterInputs[index].value)
         ?? indexes.find((index) => index >= fromIndex)
-        ?? indexes[0];
+        ?? indexes[indexes.length - 1];
       if (Number.isInteger(next)) {
         focusBox(next);
       }
@@ -4161,43 +4206,6 @@ function setupWordle(stats) {
       }
       focusNextOpen(index);
     };
-
-    hints.fixed.forEach((letter, index) => {
-      const box = document.createElement("input");
-      box.type = "text";
-      box.inputMode = "text";
-      box.autocomplete = "off";
-      box.maxLength = 1;
-      box.className = "wordle-letter-input";
-      box.value = letter;
-      box.readOnly = Boolean(letter);
-      box.classList.toggle("locked", Boolean(letter));
-      box.setAttribute(
-        "aria-label",
-        letter ? `Buchstabe ${index + 1}, richtig ${letter}` : `Buchstabe ${index + 1}`
-      );
-      if (letter) {
-        box.tabIndex = -1;
-      }
-      box.addEventListener("input", () => {
-        const value = box.value;
-        box.value = "";
-        applyLetters(value, index);
-      });
-      box.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          checkGuess();
-          return;
-        }
-        if (event.key === "Backspace" && !box.value) {
-          event.preventDefault();
-          focusPreviousOpen(index);
-        }
-      });
-      letterInputs.push(box);
-      entry.appendChild(box);
-    });
 
     const getGuess = () => letterInputs.map((box) => normalizeGermanWord(box.value).slice(0, 1)).join("");
 
@@ -4265,10 +4273,73 @@ function setupWordle(stats) {
       renderBoard();
     };
 
+    for (let row = 0; row < maxGuesses; row += 1) {
+      const guess = guesses[row] || "";
+      const score = guess ? scoreGuess(guess) : [];
+      const isActiveRow = row === guesses.length;
+      for (let col = 0; col < answer.length; col += 1) {
+        if (isActiveRow) {
+          const letter = hints.fixed[col] || "";
+          const box = document.createElement("input");
+          box.type = "text";
+          box.inputMode = "text";
+          box.autocomplete = "off";
+          box.maxLength = answer.length;
+          box.className = "wordle-tile wordle-tile-input";
+          box.value = letter;
+          box.readOnly = Boolean(letter);
+          box.classList.toggle("hit", Boolean(letter));
+          box.classList.toggle("locked", Boolean(letter));
+          box.setAttribute(
+            "aria-label",
+            letter ? `Buchstabe ${col + 1}, richtig ${letter}` : `Buchstabe ${col + 1}`
+          );
+          if (letter) {
+            box.tabIndex = -1;
+          }
+          box.addEventListener("input", () => {
+            const value = box.value;
+            box.value = "";
+            applyLetters(value, col);
+          });
+          box.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              checkGuess();
+              return;
+            }
+            if (event.key === "Backspace" && !box.value) {
+              event.preventDefault();
+              focusPreviousOpen(col);
+              return;
+            }
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              focusPreviousOpen(col);
+              return;
+            }
+            if (event.key === "ArrowRight") {
+              event.preventDefault();
+              focusBox(col + 1);
+            }
+          });
+          letterInputs.push(box);
+          board.appendChild(box);
+          continue;
+        }
+        const tile = document.createElement("div");
+        tile.className = "wordle-tile";
+        if (score[col]) {
+          tile.classList.add(score[col]);
+        }
+        tile.textContent = guess[col] || "";
+        board.appendChild(tile);
+      }
+    }
+
     helpButton.addEventListener("click", revealHint);
     submit.addEventListener("click", checkGuess);
 
-    form.appendChild(entry);
     form.appendChild(submit);
     wrap.appendChild(board);
     wrap.appendChild(helpRow);

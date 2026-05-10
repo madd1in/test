@@ -1639,6 +1639,8 @@ body.focus-mode .input-area {
 .option-btn:focus-visible,
 .chip:focus-visible,
 .clue-chip:focus-visible,
+.answer-slot:focus-visible,
+.wordle-tile-input:focus-visible,
 .crossword-nav-button:focus-visible,
 button.primary:focus-visible,
 button.ghost:focus-visible {
@@ -1706,7 +1708,8 @@ button.ghost:focus-visible {
 
 .wordle-form {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(160px, 240px);
+  justify-content: center;
   gap: 12px;
   width: min(560px, 100%);
 }
@@ -1759,6 +1762,15 @@ button.ghost:focus-visible {
   min-width: 0;
   padding: 0;
   text-align: center;
+}
+
+.input-area input.wordle-tile-input {
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .wordle-letter-input.locked {
@@ -1955,12 +1967,22 @@ button.ghost:focus-visible {
   min-height: 54px;
   display: grid;
   place-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
   border-radius: 8px;
   border: 3px solid rgba(15, 94, 156, 0.22);
   background: #ffffff;
   color: var(--ink);
   font-size: 1.45rem;
   font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.input-area input.answer-slot {
+  min-height: 54px;
+  padding: 0;
 }
 
 .answer-slot.filled {
@@ -2362,7 +2384,8 @@ body.focus-mode[data-mode="wordle"] .wordle-tile {
 }
 
 body.focus-mode[data-mode="wordle"] .wordle-form {
-  grid-template-columns: minmax(0, 1fr) minmax(72px, auto);
+  grid-template-columns: minmax(150px, 220px);
+  justify-content: center;
   gap: 6px;
   align-items: stretch;
 }
@@ -2384,8 +2407,14 @@ body.focus-mode[data-mode="wordle"] .wordle-form button {
   font-weight: 900;
 }
 
-body.focus-mode[data-mode="wordle"] .wordle-letter-input {
+body.focus-mode[data-mode="wordle"] .wordle-letter-input,
+body.focus-mode[data-mode="wordle"] .wordle-tile-input {
   padding: 0;
+}
+
+body.focus-mode[data-mode="wordle"] .wordle-tile-input {
+  min-height: 0;
+  font-size: 1.2rem;
 }
 
 body.focus-mode[data-mode="crossword"] .feedback {
@@ -2435,6 +2464,12 @@ body.focus-mode[data-mode="crossword"] .input-area input {
   padding: 8px 12px;
   font-size: 1.55rem;
   font-weight: 900;
+}
+
+body.focus-mode[data-mode="crossword"] .input-area input.answer-slot {
+  min-height: 46px;
+  padding: 0;
+  font-size: 1.5rem;
 }
 
 body.focus-mode[data-mode="crossword"] .answer-slots {
