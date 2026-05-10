@@ -58,7 +58,9 @@
     boss: "assets/generated/boss_sheet_hd_16.png",
     projectile: "assets/generated/projectile_sheet.png",
     weaponsHd: "assets/generated/weapons_hd_sheet.png",
-    doorsHd: "assets/generated/doors_hd_sheet.png",
+    doorsHd: "assets/generated/doors_imagen_hd_sheet_v2.png",
+    shrineHd: "assets/generated/props_imagen_hd_reset_shrine.png",
+    grottoSpikesHd: "assets/generated/props_imagen_hd_grotto_spikes.png",
     whip: "assets/generated/whip_sheet.png",
     tiles: "assets/generated/tiles_imagen_hd_platforms.png",
     gate: "assets/generated/tile_gate.png",
@@ -87,6 +89,14 @@
     bgLoft: "assets/generated/bg_imagen_loft_hd.png",
     bgForest: "assets/generated/bg_imagen_forest_opening_hd.png",
     bgCastleGarden: "assets/generated/bg_imagen_castle_garden_hd.png",
+    bgArmory: "assets/generated/bg_imagen_armory_hd.png",
+    bgGallery: "assets/generated/bg_imagen_gallery_hd.png",
+    bgChapel: "assets/generated/bg_imagen_chapel_hd.png",
+    bgAntechamber: "assets/generated/bg_imagen_antechamber_hd.png",
+    bgSanctum: "assets/generated/bg_imagen_sanctum_hd.png",
+    bgCatacomb: "assets/generated/bg_imagen_catacomb_hd.png",
+    bgTower: "assets/generated/bg_imagen_tower_hd.png",
+    bgObservatory: "assets/generated/bg_imagen_observatory_hd.png",
     paraArches: "assets/generated/para_imagen_arches_hd.png",
     paraMachinery: "assets/generated/para_imagen_machinery_hd.png",
     paraMist: "assets/generated/para_imagen_mist_roses_hd.png",
@@ -160,10 +170,12 @@
   const ITEM_ICON_SET = "imagen-items-hd-v1";
   const ITEM_ICON_SIZE = 128;
   const WEAPON_ASSET_SET = "hd-subweapons-projectiles-v1";
-  const DOOR_ASSET_SET = "hd-transition-doors-v1";
+  const DOOR_ASSET_SET = "imagen-hd-transition-doors-v2";
   const ROOM_PUZZLE_SET = "rune-sequence-gates-v1";
   const WEAPON_ICON_SIZE = 128;
   const DOOR_FRAME_SIZE = 256;
+  const SHRINE_FRAME_SIZE = 256;
+  const GROTTO_SPIKE_FRAME_SIZE = 256;
   const MOAT_WATER_TILE_SIZE = 256;
   const MOAT_WATER_FRAMES = 4;
   const ENEMY_HP_SCALE = 1.18;
@@ -242,7 +254,7 @@
     longRoomHeight: LONG_ROOM_HEIGHT,
     whipSideReach: WHIP_SIDE_REACH,
     spriteSet: "stable-v4",
-    backgroundSet: "imagen-hd-roomfill-v3",
+    backgroundSet: "imagen-hd-roomfill-v4-room-specific",
     parallaxSet: "imagen-parallax-v1",
     introParallaxSet: "imagen-intro-parallax-v1",
     titleScreenSet: "imagen-title-mode7-parallax-v1",
@@ -259,21 +271,25 @@
     drawbridgeAnchorSet: "imagen-trim-anchor-plates-v1",
     drawbridgePerf: "cached-deck-chain-mode7-v2",
     cavernSection: "sapphire-grotto-zora-v1",
-    grottoMechanic: "moving-water-raft-duck-spikes-v1",
+    grottoMechanic: "moving-water-raft-duck-spikes-v2-hd-assets",
     enemyVisibility: "panther-zora-rim-respawn-v1",
     chestSet: "imagen-hd-treasure-chests-v2",
     weaponSet: WEAPON_ASSET_SET,
     doorSet: DOOR_ASSET_SET,
-    moatWaterSet: "imagen-hd-mode7-parallax-v1",
+    moatWaterSet: "imagen-hd-mode7-parallax-cached-v2",
     puzzleSet: ROOM_PUZZLE_SET,
+    forgePuzzleFlow: "linear-nearby-no-reset-v1",
+    shrineSet: "imagen-hd-reset-shrine-v1",
+    grottoSpikeSet: "imagen-hd-stalagmite-stalactite-v1",
     questSealRoute: "archive-observatory-grotto-miniboss-v1",
     questSealSet: "imagen-quest-seals-hd-v1",
-    enemyFrameMap: "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1",
+    enemyFrameMap: "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2",
     enemyExtFrames: 24,
     questBossFrames: 24,
     mapMode: "cycle-off-mini-full-v1",
     mobileTouch: "large-hit-targets-v3-readable-fonts",
     mobileCeilingDoors: "auto-enter-touch-overlap-v1",
+    mobileDoorReentryGuard: "block-reverse-door-until-exit-v1",
     mobileFont: "compact-cinzel-v1",
     mobileStartFullscreen: "manual-fs-button-v1",
     progressRoute: "full-castle-survey-v1",
@@ -352,8 +368,10 @@
       frameW: 320,
       frameH: 256,
       frames: 24,
-      fps: 12,
+      fps: 7,
+      smoothMini: true,
       idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      idleSmooth: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
       cast: [8, 9, 10, 11, 12, 13, 14, 15],
       recover: [16, 17, 18, 19, 20, 21, 22, 23]
     },
@@ -363,8 +381,10 @@
       frameW: 320,
       frameH: 256,
       frames: 24,
-      fps: 12,
+      fps: 7,
+      smoothMini: true,
       idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      idleSmooth: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
       cast: [8, 9, 10, 11, 12, 13, 14, 15],
       recover: [16, 17, 18, 19, 20, 21, 22, 23]
     },
@@ -374,8 +394,10 @@
       frameW: 320,
       frameH: 256,
       frames: 24,
-      fps: 13,
+      fps: 7,
+      smoothMini: true,
       idle: [0, 1, 2, 3, 4, 5, 6, 7],
+      idleSmooth: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
       cast: [8, 9, 10, 11, 12, 13, 14, 15],
       recover: [16, 17, 18, 19, 20, 21, 22, 23]
     }
@@ -394,6 +416,7 @@
   const drawbridgeRenderCache = { deck: null, chains: new Map(), anchor: null };
   const mode7FloorCache = new Map();
   const roomBackgroundCache = new Map();
+  const moatWaterRenderCache = new Map();
   const roomSceneryCache = new Map();
   const perfStats = { enabled: false, update: [], draw: [], frame: [] };
   const sfxPool = {};
@@ -423,6 +446,7 @@
     cameraTargetX: 0,
     cameraTargetY: 0,
     roomTransitionCooldown: 0,
+    doorReentryBlock: null,
     lastSafeSpot: null,
     touchJumpHold: 0,
     muted: false,
@@ -944,8 +968,8 @@
     armory: {
       name: "Candlelit Armory",
       grid: [-1, 0],
-      bg: "bgLibrary",
-      mid: "midGate",
+      bg: "bgArmory",
+      mid: "paraArches",
       music: "explore",
       palette: "gold",
       spawn: { x: 210, y: 380 },
@@ -1038,8 +1062,8 @@
     gallery: {
       name: "Silver Portrait Gallery",
       grid: [1, 1],
-      bg: "bgGate",
-      mid: "midGate",
+      bg: "bgGallery",
+      mid: "paraArches",
       music: "explore",
       palette: "red",
       spawn: { x: 80, y: 330 },
@@ -1109,8 +1133,8 @@
     chapel: {
       name: "Ashen Chapel",
       grid: [2, 1],
-      bg: "bgThrone",
-      mid: "midThrone",
+      bg: "bgChapel",
+      mid: "paraArches",
       music: "throne",
       palette: "blue",
       spawn: { x: 80, y: 330 },
@@ -1139,8 +1163,8 @@
     antechamber: {
       name: "Crimson Antechamber",
       grid: [2, 3],
-      bg: "bgThrone",
-      mid: "midThrone",
+      bg: "bgAntechamber",
+      mid: "paraArches",
       music: "throne",
       palette: "red",
       spawn: { x: 80, y: 330 },
@@ -1189,12 +1213,13 @@
       puzzle: {
         id: "forgeRunes",
         label: "Forge Numerals",
-        sequence: [2, 0, 1],
-        solvedMessage: "The sanctum bolts cool and release.",
+        sequence: [0, 1, 2],
+        forgiving: true,
+        solvedMessage: "The sanctum bolts cool and release. Return upward, then push right.",
         switches: [
-          { x: 192, y: 360, glyph: "I", color: "#ffd065" },
-          { x: 428, y: 300, glyph: "II", color: "#ff7a4f" },
-          { x: 782, y: 178, glyph: "III", color: "#fff0cf" }
+          { x: 220, y: 360, glyph: "I", color: "#ffd065" },
+          { x: 370, y: 330, glyph: "II", color: "#ff7a4f" },
+          { x: 520, y: 360, glyph: "III", color: "#fff0cf" }
         ]
       },
       enemies: [
@@ -1240,8 +1265,8 @@
     sanctum: {
       name: "Drowned Sanctum",
       grid: [3, 3],
-      bg: "bgCavern",
-      mid: "midCrypt",
+      bg: "bgSanctum",
+      mid: "paraCavernMist",
       music: "explore",
       palette: "blue",
       spawn: { x: 60, y: 330 },
@@ -1317,8 +1342,8 @@
     catacomb: {
       name: "Bone Bell Catacomb",
       grid: [1, 2],
-      bg: "bgCrypt",
-      mid: "midCrypt",
+      bg: "bgCatacomb",
+      mid: "paraMist",
       music: "explore",
       palette: "green",
       spawn: { x: 80, y: 330 },
@@ -1400,8 +1425,8 @@
     tower: {
       name: "Moon Chain Tower",
       grid: [2, 0],
-      bg: "bgClock",
-      mid: "midClock",
+      bg: "bgTower",
+      mid: "paraMachinery",
       music: "clock",
       palette: "gold",
       spawn: { x: 60, y: 112 },
@@ -1584,8 +1609,8 @@
     observatory: {
       name: "Starfall Observatory",
       grid: [5, 0],
-      bg: "bgLoft",
-      mid: "midClock",
+      bg: "bgObservatory",
+      mid: "paraMoonwellRipples",
       music: "clock",
       palette: "blue",
       spawn: { x: 80, y: 360 },
@@ -2094,6 +2119,10 @@
     lastSafe: game.lastSafeSpot ? { ...game.lastSafeSpot } : null,
     keys: Array.from(keysDown),
     touches: Array.from(touchDown),
+    doorReentryBlock: game.doorReentryBlock ? {
+      roomId: game.doorReentryBlock.roomId,
+      door: game.doorReentryBlock.key
+    } : null,
     touchJumpHold: Number((game.touchJumpHold || 0).toFixed(2)),
     mobileMode: Boolean(game.mobileMode),
     mobileLayout: isMobileLayout(),
@@ -2122,16 +2151,22 @@
       drawW: CHEST_DRAW_W,
       drawH: CHEST_DRAW_H
     })),
+    shrine: game.room && game.room.shrine ? {
+      asset: Boolean(images.shrineHd && images.shrineHd.width),
+      frameW: SHRINE_FRAME_SIZE,
+      frames: 4
+    } : null,
     drawbridgeCache: {
       deck: Boolean(drawbridgeRenderCache.deck),
       chains: drawbridgeRenderCache.chains.size,
       anchor: Boolean(drawbridgeRenderCache.anchor),
       mode7: mode7FloorCache.size,
       backgrounds: roomBackgroundCache.size,
+      moatWater: moatWaterRenderCache.size,
       scenery: roomSceneryCache.size
     },
     enemyFrameMap: {
-      version: "zora-panther-hd-24f-v2+quest-seal-minibosses-hd-24f-v1",
+      version: "zora-panther-hd-24f-v2+quest-miniboss-smooth-pingpong-v2",
       zoraFrames: ENEMY_FRAME_MAP.zora.frames,
       pantherFrames: ENEMY_FRAME_MAP.blackPanther.frames,
       questBossFrames: ENEMY_FRAME_MAP.tideWarden.frames
@@ -2482,12 +2517,20 @@
     }
   }
 
-  function enterRoom(roomId, spawn, autosave = true) {
+  function enterRoom(roomId, spawn, autosave = true, sourceDoor = null) {
     const room = rooms[roomId] || rooms.gate;
     game.roomId = roomId;
     game.room = room;
     game.save.visited[roomId] = true;
     placePlayerAtSpawn(room, spawn);
+    game.doorReentryBlock = null;
+    if (sourceDoor) {
+      suppressReverseDoorUntilExit(room, sourceDoor);
+      if (sourceDoor.usedSide) {
+        touchDown.delete(sourceDoor.usedSide);
+        justPressed.delete(`touch:${sourceDoor.usedSide}`);
+      }
+    }
     player.vx = 0;
     player.vy = 0;
     player.onGround = false;
@@ -2810,6 +2853,8 @@
       } : null,
       waterY: room.grottoRide.waterY,
       ducking: playerIsDucking(),
+      spikesAsset: Boolean(images.grottoSpikesHd && images.grottoSpikesHd.width),
+      spikeFrameW: GROTTO_SPIKE_FRAME_SIZE,
       duckGates: (room.duckGates || []).map((gate) => ({
         x: gate.x,
         y: gate.y,
@@ -2831,7 +2876,8 @@
       frameW: MOAT_WATER_TILE_SIZE,
       frames: MOAT_WATER_FRAMES,
       mode7: Boolean(room.moatWater.mode7),
-      parallax: Boolean(room.moatWater.parallax)
+      parallax: Boolean(room.moatWater.parallax),
+      cache: moatWaterRenderCache.size
     };
   }
 
@@ -3143,7 +3189,7 @@
       cx <= door.x + door.w + 96
     );
     if (downDoor) {
-      enterRoom(downDoor.to, downDoor.spawn);
+      enterRoom(downDoor.to, downDoor.spawn, true, { fromRoomId: game.roomId, usedSide: downDoor.side });
       return;
     }
 
@@ -3178,6 +3224,14 @@
   function activatePuzzleSwitch(puzzle, index, sw) {
     const expected = puzzle.sequence[puzzle.step || 0];
     if (index !== expected) {
+      if (puzzle.forgiving) {
+        const next = puzzle.switches[expected] || puzzle.switches[0];
+        game.shake = Math.max(game.shake, 0.12);
+        burst(next.x, next.y - 16, next.color || "#fff0cf", 12);
+        message(`${puzzle.label}: follow ${next.glyph} next.`);
+        playSound("ui", 0.12);
+        return;
+      }
       puzzle.step = 0;
       game.shake = Math.max(game.shake, 0.45);
       burst(sw.x, sw.y - 16, "#ff5465", 18);
@@ -4391,6 +4445,37 @@
     return door;
   }
 
+  function doorKey(door) {
+    return `${door.side}:${Math.round(door.x)}:${Math.round(door.y)}:${Math.round(door.w)}:${Math.round(door.h)}:${door.to}`;
+  }
+
+  function suppressReverseDoorUntilExit(room, sourceDoor) {
+    if (!room || !sourceDoor || !sourceDoor.fromRoomId) return;
+    for (const door of room.doors) {
+      if (door.to !== sourceDoor.fromRoomId) continue;
+      if (door.side !== "up" || (!game.mobileMode && !isMobileLayout())) continue;
+      if (!rectsOverlap(player, doorTriggerBox(door))) continue;
+      game.doorReentryBlock = {
+        roomId: game.roomId,
+        key: doorKey(door)
+      };
+      return;
+    }
+  }
+
+  function doorReentryBlocked(door) {
+    const block = game.doorReentryBlock;
+    if (!block) return false;
+    if (block.roomId !== game.roomId) {
+      game.doorReentryBlock = null;
+      return false;
+    }
+    if (block.key !== doorKey(door)) return false;
+    if (rectsOverlap(player, doorTriggerBox(door))) return true;
+    game.doorReentryBlock = null;
+    return false;
+  }
+
   function doorIntent(door) {
     if (door.side === "left") return actionDown("left") || player.x <= door.x + door.w + 8;
     if (door.side === "right") return actionDown("right") || player.x + player.w >= door.x - 8;
@@ -4432,6 +4517,7 @@
     if (game.roomTransitionCooldown > 0) return;
 
     for (const door of game.room.doors) {
+      if (doorReentryBlocked(door)) continue;
       if (!rectsOverlap(player, doorTriggerBox(door)) || !doorIntent(door)) continue;
       if (!doorOpen(door)) {
         message(lockMessage(door.lock));
@@ -4439,7 +4525,7 @@
         return;
       }
       burst(player.x + player.w / 2, player.y + player.h / 2, "#eac36f", 18);
-      enterRoom(door.to, door.spawn);
+      enterRoom(door.to, door.spawn, true, { fromRoomId: game.roomId, usedSide: door.side });
       return;
     }
   }
@@ -5202,33 +5288,57 @@
 
   function drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, pass, alpha) {
     const frame = Math.floor(game.time * 7.5 + pass) % MOAT_WATER_FRAMES;
-    const sx = frame * MOAT_WATER_TILE_SIZE;
-    const stride = pass === 0 ? 4 : 5;
     const speedX = pass === 0 ? 28 : -14;
-    const speedY = pass === 0 ? 36 : 18;
     const cameraFactor = pass === 0 ? 0.18 : 0.38;
-    const center = x + w / 2;
+    const layer = getMoatWaterMode7Layer(img, Math.ceil(w), Math.ceil(h), frame, pass);
+    if (!layer) return;
+    const scroll = positiveModulo(game.time * speedX + cameraX * cameraFactor + cameraY * 0.07, MOAT_WATER_TILE_SIZE);
+    const baseX = x - MOAT_WATER_TILE_SIZE - scroll;
 
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = alpha;
+    ctx.drawImage(layer, baseX, y);
+    ctx.drawImage(layer, baseX + layer.width, y);
+    ctx.restore();
+  }
+
+  function getMoatWaterMode7Layer(img, w, h, frame, pass) {
+    if (!img || !img.width || w <= 0 || h <= 0) return null;
+    const widthBucket = Math.ceil(w / 64) * 64;
+    const heightBucket = Math.ceil(h / 32) * 32;
+    const key = `${img.src || img.width}:${widthBucket}x${heightBucket}:${frame}:${pass}`;
+    if (moatWaterRenderCache.has(key)) return moatWaterRenderCache.get(key);
+    if (moatWaterRenderCache.size > 16) moatWaterRenderCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = widthBucket + MOAT_WATER_TILE_SIZE * 2;
+    layer.height = heightBucket;
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+
+    const sx = frame * MOAT_WATER_TILE_SIZE;
+    const stride = pass === 0 ? 6 : 8;
+    const center = layer.width / 2;
     for (let yy = 0; yy < h; yy += stride) {
       const t = yy / Math.max(1, h);
       const ease = t * t;
       const tileScale = (pass === 0 ? 0.74 : 0.96) + ease * (pass === 0 ? 1.45 : 1.9);
       const tileW = MOAT_WATER_TILE_SIZE * tileScale;
-      const destH = Math.max(3, stride + 1 + ease * 8);
-      const sy = Math.floor((yy * (0.76 + ease * 2.8) + game.time * speedY + cameraY * 0.1 + pass * 41) % MOAT_WATER_TILE_SIZE);
-      const srcH = Math.min(4, MOAT_WATER_TILE_SIZE - sy);
+      const destH = Math.max(4, stride + 2 + ease * 8);
+      const sy = Math.floor((yy * (0.76 + ease * 2.8) + pass * 41) % MOAT_WATER_TILE_SIZE);
+      const srcH = Math.min(5, MOAT_WATER_TILE_SIZE - sy);
       const spread = w * (0.08 + ease * 0.34);
-      const left = center - (w + spread) / 2;
-      const right = center + (w + spread) / 2;
-      const scroll = positiveModulo(game.time * speedX + cameraX * cameraFactor + yy * (0.22 + pass * 0.08), tileW);
-      for (let dx = left - scroll - tileW; dx < right + tileW; dx += tileW) {
-        ctx.drawImage(img, sx, sy, MOAT_WATER_TILE_SIZE, srcH, dx, y + yy, tileW + 1, destH);
+      const left = center - (widthBucket + spread) / 2 - MOAT_WATER_TILE_SIZE;
+      const right = center + (widthBucket + spread) / 2 + MOAT_WATER_TILE_SIZE;
+      const rowOffset = positiveModulo(yy * (0.22 + pass * 0.08), tileW);
+      for (let dx = left - rowOffset - tileW; dx < right + tileW; dx += tileW) {
+        g.drawImage(img, sx, sy, MOAT_WATER_TILE_SIZE, srcH, dx, yy, tileW + 1, destH);
       }
     }
-    ctx.restore();
+
+    moatWaterRenderCache.set(key, layer);
+    return layer;
   }
 
   function drawFallbackMoatWater(x, y, w, h) {
@@ -5257,12 +5367,12 @@
     ctx.lineWidth = 1.5;
     ctx.shadowColor = "#baf8ff";
     ctx.shadowBlur = 9;
-    for (let i = 0; i < 5; i += 1) {
-      const yy = y + 10 + i * Math.max(12, h * 0.12);
+    for (let i = 0; i < 3; i += 1) {
+      const yy = y + 12 + i * Math.max(18, h * 0.18);
       ctx.globalAlpha = 0.18 - i * 0.018;
       ctx.strokeStyle = i % 2 ? "rgba(228, 250, 236, 0.54)" : "rgba(91, 220, 244, 0.46)";
       ctx.beginPath();
-      for (let xx = x - 20; xx <= x + w + 20; xx += 16) {
+      for (let xx = x - 20; xx <= x + w + 20; xx += 32) {
         const waveY = yy + Math.sin(game.time * 2.7 + xx * 0.028 + i * 1.4) * (2.6 + i * 0.3);
         if (xx === x - 20) ctx.moveTo(xx, waveY);
         else ctx.lineTo(xx, waveY);
@@ -5541,6 +5651,11 @@
     if (!room) return ["paraArches", "paraMist"];
     if (room.para) return room.para;
     if (room.bg === "bgClock" || room.bg === "bgBelltower" || room.bg === "bgLoft") return ["paraMachinery", "paraArches"];
+    if (room.bg === "bgTower") return ["paraMachinery", "paraArches"];
+    if (room.bg === "bgObservatory") return ["paraMoonwellRipples", "paraMachinery"];
+    if (room.bg === "bgArmory" || room.bg === "bgGallery" || room.bg === "bgChapel" || room.bg === "bgAntechamber") return ["paraArches", "paraMist"];
+    if (room.bg === "bgSanctum") return ["paraCrystals", "paraMist"];
+    if (room.bg === "bgCatacomb") return ["paraMist", "paraArches"];
     if (room.bg === "bgCavern" || room.bg === "bgAqueduct") return ["paraCrystals", "paraMist"];
     if (room.bg === "bgCrypt" || room.bg === "bgOssuary" || room.bg === "bgGarden") return ["paraMist", "paraArches"];
     return ["paraArches", "paraMist"];
@@ -5921,6 +6036,7 @@
   }
 
   function drawGrottoDuckGate(gate, index) {
+    if (drawHdGrottoDuckGate(gate, index)) return;
     const teeth = Math.max(3, Math.floor(gate.w / 30));
     ctx.save();
     ctx.shadowColor = "#07101c";
@@ -5959,6 +6075,54 @@
     }
     ctx.restore();
     ctx.globalAlpha = 1;
+  }
+
+  function drawHdGrottoDuckGate(gate, index) {
+    const img = images.grottoSpikesHd;
+    if (!img || !img.width) return false;
+    const cells = Math.max(1, Math.floor(img.width / GROTTO_SPIKE_FRAME_SIZE));
+    const topW = 86;
+    const topH = Math.max(110, gate.h + 36);
+    const bottomW = 82;
+    const bottomH = 72;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.shadowColor = "#06101d";
+    ctx.shadowBlur = 8;
+    for (let x = gate.x - 16, i = 0; x < gate.x + gate.w + 12; x += topW * 0.58, i += 1) {
+      const cell = (index + i) % cells;
+      const sway = Math.sin(game.time * 1.2 + index + i * 0.7) * 2;
+      ctx.drawImage(
+        img,
+        cell * GROTTO_SPIKE_FRAME_SIZE,
+        0,
+        GROTTO_SPIKE_FRAME_SIZE,
+        GROTTO_SPIKE_FRAME_SIZE,
+        x + sway,
+        gate.y - 24,
+        topW,
+        topH
+      );
+    }
+    ctx.globalAlpha = 0.88;
+    for (let x = gate.x - 10, i = 0; x < gate.x + gate.w + 10; x += bottomW * 0.72, i += 1) {
+      const cell = (index + i + 1) % cells;
+      const h = bottomH + ((index + i) % 3) * 8;
+      ctx.drawImage(
+        img,
+        cell * GROTTO_SPIKE_FRAME_SIZE,
+        GROTTO_SPIKE_FRAME_SIZE,
+        GROTTO_SPIKE_FRAME_SIZE,
+        GROTTO_SPIKE_FRAME_SIZE,
+        x,
+        468 - h,
+        bottomW,
+        h
+      );
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return true;
   }
 
   function drawDrawbridge(bridge) {
@@ -6541,6 +6705,7 @@
   function drawShrine() {
     if (!game.room.shrine) return;
     const s = game.room.shrine;
+    if (drawHdShrine(s)) return;
     // Pedestal
     ctx.fillStyle = "rgba(36, 30, 24, 0.92)";
     ctx.fillRect(s.x - 18, s.y, 56, 18);
@@ -6570,6 +6735,43 @@
         color: "#fff2c0", size: 1.6
       });
     }
+  }
+
+  function drawHdShrine(s) {
+    const img = images.shrineHd;
+    if (!img || !img.width) return false;
+    const frame = Math.floor(game.time * 5.5) % 4;
+    const pulse = 0.5 + 0.5 * Math.sin(game.time * 2.6);
+    const dw = 136;
+    const dh = 136;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.shadowColor = "#f4d38b";
+    ctx.shadowBlur = 10 + pulse * 12;
+    ctx.drawImage(
+      img,
+      frame * SHRINE_FRAME_SIZE,
+      0,
+      SHRINE_FRAME_SIZE,
+      SHRINE_FRAME_SIZE,
+      s.x - dw / 2 + 8,
+      s.y - dh + 28,
+      dw,
+      dh
+    );
+    ctx.shadowBlur = 0;
+    if (Math.random() < 0.18) {
+      game.particles.push({
+        x: s.x + 8 + (Math.random() - 0.5) * 34,
+        y: s.y - 58 + Math.random() * 18,
+        vx: (Math.random() - 0.5) * 0.75,
+        vy: -0.5 - Math.random() * 0.55,
+        life: 0.62, maxLife: 0.62,
+        color: "#fff2c0", size: 1.5
+      });
+    }
+    ctx.restore();
+    return true;
   }
 
   function drawEnemies() {
@@ -6670,6 +6872,8 @@
       seq = enemy.attackWindup > 0.34 ? meta.attack : enemy.attackWindup > 0 ? meta.recover : meta.idle;
     } else if (enemy.cfg.ai === "panther") {
       seq = enemy.lunge > 0 ? meta.lunge : Math.abs(enemy.vx) > enemy.cfg.speed * 0.18 ? meta.run : meta.recover;
+    } else if (meta.smoothMini) {
+      seq = meta.idleSmooth || meta.idle;
     } else if (meta.cast && meta.recover && meta.idle) {
       seq = enemy.attackWindup > 0.28 || enemy.lunge > 0 ? meta.cast : enemy.hurt > 0 ? meta.recover : meta.idle;
     }
