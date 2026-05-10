@@ -57,7 +57,7 @@
         </div>
         <div class="hud-actions">
           <button id="toggleSfx" class="chip" aria-pressed="false">SFX: Aus</button>
-          <button id="toggleBgm" class="chip" aria-pressed="false">BGM: Aus</button>
+          <button id="toggleBgm" class="chip" aria-pressed="false">Klang: Aus</button>
           <button id="toggleSpeech" class="chip" aria-pressed="false">Sprache: Aus</button>
           <button id="toggleFull" class="chip" aria-pressed="false">Vollbild</button>
           <button id="toggleFocus" class="chip" aria-pressed="false">Einfach</button>
@@ -73,7 +73,7 @@
       <section id="progressPanel" class="progress-panel" aria-label="Gespeicherter Fortschritt">
         <div>
           <div class="progress-kicker">Stand</div>
-          <div id="progressSummary" class="progress-summary" aria-live="polite">0 von 10 geloest.</div>
+          <div id="progressSummary" class="progress-summary" aria-live="polite">0 von 25 geloest.</div>
         </div>
         <button id="clearProgress" class="chip progress-clear" type="button">Neu anfangen</button>
       </section>
@@ -140,6 +140,10 @@
         </p>
       </section>
     </main>
+
+    <button id="audioMute" class="audio-mute" type="button" aria-label="Ruheklang ausschalten" aria-pressed="true">
+      🔊
+    </button>
 
     <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
       <div class="overlay-card">

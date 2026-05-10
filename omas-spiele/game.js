@@ -32,6 +32,7 @@ const dom = {
   quickBgm: document.getElementById("quickBgm"),
   quickSfx: document.getElementById("quickSfx"),
   quickSpeech: document.getElementById("quickSpeech"),
+  audioMute: document.getElementById("audioMute"),
   coachTip: document.getElementById("coachTip"),
   modeRelic: document.getElementById("modeRelic"),
   artifactFill: document.getElementById("artifactFill"),
@@ -521,6 +522,129 @@ const crosswordPuzzles = [
       },
     ],
   },
+  {
+    title: "Kueche",
+    size: 9,
+    entries: [
+      {
+        clue: "Zum Suppe essen",
+        answer: "LOEFFEL",
+        row: 1,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Darin kocht Wasser",
+        answer: "TOPF",
+        row: 3,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Morgens oft mit Butter",
+        answer: "BROT",
+        row: 5,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Suess zum Kaffee",
+        answer: "KUCHEN",
+        row: 0,
+        col: 7,
+        dir: "down",
+      },
+      {
+        clue: "Heisses Getraenk",
+        answer: "KAFFEE",
+        row: 0,
+        col: 5,
+        dir: "down",
+      },
+    ],
+  },
+  {
+    title: "Natur",
+    size: 9,
+    entries: [
+      {
+        clue: "Grosser Baum im Wald",
+        answer: "EICHE",
+        row: 1,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Blaue Blume im Garten",
+        answer: "BLUME",
+        row: 3,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Scheint am Tag",
+        answer: "SONNE",
+        row: 5,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Weiss am Himmel",
+        answer: "WOLKE",
+        row: 0,
+        col: 6,
+        dir: "down",
+      },
+      {
+        clue: "Wasserlauf im Tal",
+        answer: "FLUSS",
+        row: 0,
+        col: 8,
+        dir: "down",
+      },
+    ],
+  },
+  {
+    title: "Familie",
+    size: 9,
+    entries: [
+      {
+        clue: "Mutter der Mutter",
+        answer: "OMA",
+        row: 1,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Vater des Vaters",
+        answer: "OPA",
+        row: 3,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Kind der Eltern",
+        answer: "SOHN",
+        row: 5,
+        col: 0,
+        dir: "across",
+      },
+      {
+        clue: "Maedchen der Eltern",
+        answer: "TOCHTER",
+        row: 0,
+        col: 4,
+        dir: "down",
+      },
+      {
+        clue: "Alle zusammen",
+        answer: "FAMILIE",
+        row: 0,
+        col: 8,
+        dir: "down",
+      },
+    ],
+  },
 ];
 
 const game = {
@@ -559,6 +683,7 @@ const audioState = {
   baseInterval: 1100,
   theme: "calm",
   themeLockUntil: 0,
+  theta: null,
 };
 
 let audioAutoArmed = false;
@@ -717,10 +842,6 @@ function setupLocalAudio() {
     return;
   }
   audioState.localAudioReady = true;
-  audioState.bgmAudio = new Audio(audioAssets.bgm);
-  audioState.bgmAudio.loop = true;
-  audioState.bgmAudio.preload = "auto";
-  audioState.bgmAudio.volume = 0.18;
   Object.entries(audioAssets.sfx).forEach(([name, src]) => {
     const clip = new Audio(src);
     clip.preload = "auto";
@@ -742,21 +863,7 @@ function playLocalSfx(name) {
 }
 
 function startLocalBgm() {
-  setupLocalAudio();
-  if (!audioState.bgmAudio) {
-    return false;
-  }
-  audioState.usingLocalBgm = true;
-  audioState.bgmAudio.volume = document.body.classList.contains("focus-mode") ? 0.12 : 0.18;
-  audioState.bgmAudio
-    .play()
-    .catch(() => {
-      audioState.usingLocalBgm = false;
-      if (audioState.bgm) {
-        startProceduralBgm();
-      }
-    });
-  return true;
+  return false;
 }
 
 function playTone(freq, duration = 0.12, type = "sine", gain = 0.06, when = 0) {
@@ -867,10 +974,60 @@ function startBgm() {
   if (!audioState.bgm) {
     return;
   }
-  if (startLocalBgm()) {
+  startThetaBgm();
+}
+
+function stopThetaBgm() {
+  if (!audioState.theta) {
     return;
   }
-  startProceduralBgm();
+  try {
+    audioState.theta.left.stop();
+    audioState.theta.right.stop();
+  } catch (err) {
+    // already stopped
+  }
+  audioState.theta.left.disconnect();
+  audioState.theta.right.disconnect();
+  audioState.theta.gain.disconnect();
+  audioState.theta = null;
+}
+
+function startThetaBgm() {
+  ensureAudio();
+  if (!audioState.ctx) {
+    return;
+  }
+  stopThetaBgm();
+  audioState.usingLocalBgm = false;
+  const ctx = audioState.ctx;
+  const now = ctx.currentTime;
+  const left = ctx.createOscillator();
+  const right = ctx.createOscillator();
+  const gain = ctx.createGain();
+  left.type = "sine";
+  right.type = "sine";
+  left.frequency.setValueAtTime(174, now);
+  right.frequency.setValueAtTime(180, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.linearRampToValueAtTime(0.018, now + 1.2);
+
+  if (ctx.createStereoPanner) {
+    const leftPan = ctx.createStereoPanner();
+    const rightPan = ctx.createStereoPanner();
+    leftPan.pan.value = -0.45;
+    rightPan.pan.value = 0.45;
+    left.connect(leftPan).connect(gain);
+    right.connect(rightPan).connect(gain);
+    audioState.theta = { left, right, gain, leftPan, rightPan };
+  } else {
+    left.connect(gain);
+    right.connect(gain);
+    audioState.theta = { left, right, gain };
+  }
+  gain.connect(ctx.destination);
+  left.start(now);
+  right.start(now);
 }
 
 function startProceduralBgm() {
@@ -908,6 +1065,7 @@ function startProceduralBgm() {
 
 function stopBgm() {
   audioState.usingLocalBgm = false;
+  stopThetaBgm();
   if (audioState.bgmAudio) {
     audioState.bgmAudio.pause();
   }
@@ -918,7 +1076,7 @@ function stopBgm() {
 }
 
 function refreshBgmTempo(streak) {
-  if (audioState.usingLocalBgm) {
+  if (audioState.usingLocalBgm || audioState.theta) {
     return;
   }
   const base = audioState.baseInterval || 1100;
@@ -945,9 +1103,7 @@ function updateAudioButtons() {
     dom.quickSfx.classList.toggle("active", audioState.sfx);
   }
   if (dom.toggleBgm) {
-    const themeLabel = bgmThemes[audioState.theme] ? bgmThemes[audioState.theme].label : "Calm";
-    const label = audioState.usingLocalBgm ? "Lokal" : themeLabel;
-    dom.toggleBgm.textContent = audioState.bgm ? `BGM: An (${label})` : "BGM: Aus";
+    dom.toggleBgm.textContent = audioState.bgm ? "Klang: An" : "Klang: Aus";
     dom.toggleBgm.setAttribute("aria-pressed", String(audioState.bgm));
     dom.toggleBgm.classList.toggle("active", audioState.bgm);
   }
@@ -955,6 +1111,15 @@ function updateAudioButtons() {
     dom.quickBgm.textContent = audioState.bgm ? "Musik an" : "Musik aus";
     dom.quickBgm.setAttribute("aria-pressed", String(audioState.bgm));
     dom.quickBgm.classList.toggle("active", audioState.bgm);
+  }
+  if (dom.audioMute) {
+    dom.audioMute.textContent = audioState.bgm ? "🔊" : "🔇";
+    dom.audioMute.setAttribute("aria-pressed", String(audioState.bgm));
+    dom.audioMute.setAttribute(
+      "aria-label",
+      audioState.bgm ? "Ruheklang ausschalten" : "Ruheklang einschalten"
+    );
+    dom.audioMute.classList.toggle("muted", !audioState.bgm);
   }
 }
 
@@ -1271,9 +1436,21 @@ function setupAudioControls() {
   }
   if (dom.toggleBgm) {
     dom.toggleBgm.addEventListener("click", () => {
-      ensureAudio();
       audioState.bgm = !audioState.bgm;
       if (audioState.bgm) {
+        ensureAudio();
+        startBgm();
+      } else {
+        stopBgm();
+      }
+      updateAudioButtons();
+    });
+  }
+  if (dom.audioMute) {
+    dom.audioMute.addEventListener("click", () => {
+      audioState.bgm = !audioState.bgm;
+      if (audioState.bgm) {
+        ensureAudio();
         startBgm();
       } else {
         stopBgm();
@@ -3242,8 +3419,8 @@ function setupCrossword(stats) {
     const expectedAnswer = normalizeGermanWord(entry.answer);
     const progressCounts = getCrosswordProgressCounts();
     const overallStep = Math.min(progressCounts.solved + 1, progressCounts.total);
-    const clueSpeech = `Frage ${activeIndex + 1} von ${puzzle.entries.length}. ${entry.clue}. ${entry.answer.length} Buchstaben.`;
-    game.speechAction = (options = {}) => speakText(`${clueSpeech} Bitte Antwort eintippen.`, options);
+    const clueSpeech = `${entry.clue}. ${entry.answer.length} Buchstaben.`;
+    game.speechAction = (options = {}) => speakText(clueSpeech, options);
     setPrompt(
       `Frage ${activeIndex + 1} von ${puzzle.entries.length}`,
       `${entry.answer.length} Buchstaben`
@@ -3595,6 +3772,7 @@ function setupWordle(stats) {
   let active = true;
   let answer = "";
   let guesses = [];
+  let hintedIndexes = new Set();
   const maxGuesses = 6;
 
   const pickFreshAnswer = () => {
@@ -3607,6 +3785,7 @@ function setupWordle(stats) {
   const startNewWordle = () => {
     answer = pickFreshAnswer();
     guesses = [];
+    hintedIndexes = new Set();
     progress.wordle.currentAnswer = answer;
     progress.wordle.guesses = [];
     saveProgress();
@@ -3682,6 +3861,13 @@ function setupWordle(stats) {
       });
     });
 
+    hintedIndexes.forEach((index) => {
+      if (index >= 0 && index < answer.length) {
+        fixed[index] = answer[index];
+        present.add(answer[index]);
+      }
+    });
+
     return { fixed, near, blocked };
   };
 
@@ -3689,10 +3875,10 @@ function setupWordle(stats) {
 
   const buildWordleHelp = (hints) => {
     const fixedText = hints.fixed.map((letter) => letter || "_").join(" ");
-    const parts = [`Fest: ${fixedText}`];
+    const parts = [`Richtig: ${fixedText}`];
     const nearLetters = [...hints.near].filter((letter) => !hints.fixed.includes(letter));
     if (nearLetters.length) {
-      parts.push(`Dabei: ${nearLetters.sort().join(" ")}`);
+      parts.push(`Drin: ${nearLetters.sort().join(" ")}`);
     }
     if (hints.blocked.size) {
       parts.push(`Nicht: ${formatLetters(hints.blocked)}`);
@@ -3734,6 +3920,17 @@ function setupWordle(stats) {
     const help = document.createElement("div");
     help.className = "wordle-help";
     help.textContent = buildWordleHelp(hints);
+
+    const helpButton = document.createElement("button");
+    helpButton.type = "button";
+    helpButton.className = "wordle-hint-button";
+    helpButton.textContent = "Hinweis";
+    helpButton.disabled = !hints.fixed.some((letter) => !letter);
+
+    const helpRow = document.createElement("div");
+    helpRow.className = "wordle-help-row";
+    helpRow.appendChild(help);
+    helpRow.appendChild(helpButton);
 
     const form = document.createElement("div");
     form.className = "wordle-form";
@@ -3850,6 +4047,22 @@ function setupWordle(stats) {
 
     const getGuess = () => letterInputs.map((box) => normalizeGermanWord(box.value).slice(0, 1)).join("");
 
+    const revealHint = () => {
+      const index = hints.fixed.findIndex((letter) => !letter);
+      if (index < 0) {
+        setFeedback("Alle sicheren Buchstaben sind schon da.", "good");
+        return;
+      }
+      hintedIndexes.add(index);
+      const letter = answer[index];
+      setFeedback(`Hinweis: ${letter}`, "good");
+      if (speechState.enabled) {
+        speakText(`Hinweis. ${letter}.`, { silent: true });
+      }
+      playSfx("select");
+      renderBoard();
+    };
+
     const checkGuess = () => {
       if (!active) {
         return;
@@ -3898,12 +4111,13 @@ function setupWordle(stats) {
       renderBoard();
     };
 
+    helpButton.addEventListener("click", revealHint);
     submit.addEventListener("click", checkGuess);
 
     form.appendChild(entry);
     form.appendChild(submit);
     wrap.appendChild(board);
-    wrap.appendChild(help);
+    wrap.appendChild(helpRow);
     wrap.appendChild(form);
     dom.inputArea.appendChild(wrap);
     focusNextOpen(0);
