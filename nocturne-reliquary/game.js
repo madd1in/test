@@ -60,6 +60,7 @@
     archiveWarden: "assets/generated/enemy_imagen_archive_warden_48f_sheet.png",
     boss: "assets/generated/boss_sheet_hd_32_smooth.png",
     npcStory: "assets/generated/npc_imagen_story_atlas_v1.png",
+    npcStoryAnim: "assets/generated/npc_imagen_story_sprites_16f.png",
     projectile: "assets/generated/projectile_sheet.png",
     weaponsHd: "assets/generated/weapons_hd_sheet.png",
     doorsHd: "assets/generated/doors_imagen_hd_sheet_v2.png",
@@ -369,7 +370,7 @@
     enemyFrameMap: "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1",
     enemyExtFrames: 24,
     questBossFrames: 48,
-    storyNpcSet: "imagen-story-npc-atlas-v1",
+    storyNpcSet: "imagen-story-npc-atlas-v1+animated-16f-clean-v1",
     storyRoute: "elys-vellum-maribel-nera-dialogue-v1",
     mapMazeSet: "organic-looped-castle-v2-root-sluice-reservoir",
     bossMilestones: "quest-wardens-full-bossfight-v2",
@@ -406,6 +407,9 @@
     archiveWardenFrameW: 320,
     archiveWardenFrameH: 256,
     archiveWardenFrames: 48,
+    npcFrameW: 192,
+    npcFrameH: 256,
+    npcFrames: 16,
     chestFrameW: 256,
     chestFrameH: 256,
     chestFrames: 4
@@ -2602,6 +2606,8 @@
     story: {
       npcAtlas: Boolean(images.npcStory && images.npcStory.width),
       npcAtlasSize: images.npcStory && images.npcStory.width ? `${images.npcStory.width}x${images.npcStory.height}` : null,
+      npcAnim: Boolean(images.npcStoryAnim && images.npcStoryAnim.width),
+      npcAnimSize: images.npcStoryAnim && images.npcStoryAnim.width ? `${images.npcStoryAnim.width}x${images.npcStoryAnim.height}` : null,
       roomNpcs: (game.npcs || []).map((npc) => npc.id),
       dialogue: game.dialogue ? game.dialogue.npc : null,
       flags: { ...(game.save.storyFlags || {}) },
@@ -6706,17 +6712,20 @@
         const r = data[i];
         const gr = data[i + 1];
         const b = data[i + 2];
-        const galleryMatte = String(key || "").includes("galleryPortraits");
+        const keyText = String(key || "");
+        const galleryMatte = keyText.includes("galleryPortraits");
+        const npcMatte = keyText.includes("npcStory");
         const maxRb = Math.max(r, b);
-        const greenScreen = galleryMatte
-          ? gr > 82 && gr - maxRb > 14 && gr > r * 1.12 && gr > b * 1.06
+        const greenScreen = galleryMatte || npcMatte
+          ? gr > 72 && gr - maxRb > 12 && gr > r * 1.08 && gr > b * 1.04
           : gr > 130 && gr > r * 1.45 && gr > b * 1.45;
         if (greenScreen) {
-          const threshold = galleryMatte ? 12 : 0;
-          const falloff = galleryMatte ? 68 : 150;
+          const threshold = galleryMatte || npcMatte ? 12 : 0;
+          const falloff = galleryMatte || npcMatte ? 68 : 150;
           const greenDominance = Math.min(1, Math.max(0, (gr - maxRb - threshold) / falloff));
           data[i + 3] = Math.max(0, Math.round(data[i + 3] * (1 - greenDominance)));
-          if (galleryMatte && greenDominance > 0.52) data[i + 3] = 0;
+          if ((galleryMatte || npcMatte) && greenDominance > 0.46) data[i + 3] = 0;
+          if (npcMatte) data[i + 1] = Math.min(gr, maxRb + 14);
         }
       }
       g.putImageData(pixels, 0, 0);
@@ -8329,6 +8338,13 @@
       : { img, sx: meta.col * cellW, sy: NPC_ATLAS.spriteY, sw: cellW, sh: NPC_ATLAS.spriteH };
   }
 
+  function npcAnimCell(npcId) {
+    const meta = STORY_NPCS[npcId];
+    const img = images.npcStoryAnim;
+    if (!meta || !img || !img.width) return null;
+    return { img, row: meta.col, frames: SPRITES.npcFrames };
+  }
+
   function drawNpcs() {
     if (!game.npcs || !game.npcs.length) return;
     const near = nearbyNpc();
@@ -8357,10 +8373,33 @@
   }
 
   function drawNpcSprite(npc, alpha, bob) {
-    const cell = npcAtlasCell(npc.id, "sprite");
+    const anim = npcAnimCell(npc.id);
     const meta = STORY_NPCS[npc.id];
     const drawW = npc.id === "vellum" ? 104 : 92;
     const drawH = npc.id === "vellum" ? 144 : 138;
+    if (anim) {
+      const frame = Math.floor(game.time * 8 + (npc.phase || 0) * 2) % anim.frames;
+      ctx.save();
+      ctx.shadowColor = meta ? meta.color : "#fff0cf";
+      ctx.shadowBlur = 12;
+      drawSheetFrame(
+        anim.img,
+        frame,
+        anim.row,
+        SPRITES.npcFrameW,
+        SPRITES.npcFrameH,
+        npc.x + npc.w / 2,
+        npc.y + npc.h + 7 + bob,
+        drawW,
+        drawH,
+        false,
+        alpha,
+        true
+      );
+      ctx.restore();
+      return;
+    }
+    const cell = npcAtlasCell(npc.id, "sprite");
     if (cell) {
       const cutout = chromaCutoutImage(cell.img, "npcStory");
       ctx.save();
