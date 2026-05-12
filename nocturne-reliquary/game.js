@@ -381,6 +381,7 @@
     mobileDoorReentryGuard: "block-reverse-door-until-exit-v1",
     mobileFont: "compact-cinzel-v1",
     mobileStartFullscreen: "manual-fs-button-v1",
+    mobilePerformance: "viewport-lite-backgrounds-lite-enemy-fx-v5",
     progressRoute: "full-castle-survey-v1",
     difficulty: "classic-puzzle-pressure-v1+warden-milestones-v2"
   };
@@ -2536,6 +2537,7 @@
     mobileMode: Boolean(game.mobileMode),
     paused: Boolean(game.paused),
     mobileLayout: isMobileLayout(),
+    mobilePerformance: mobilePerformanceMode(),
     fullscreen: Boolean(fullscreenElement()),
     mobileStartFullscreenAttempted: game.mobileStartFullscreenAttempted,
     mobileStartFullscreenBlocked: Boolean(game.mobileStartFullscreenBlocked),
@@ -5797,9 +5799,14 @@
     };
   }
 
+  function mobilePerformanceMode() {
+    return game.mobileMode || window.innerWidth <= 760 || window.innerHeight <= 520;
+  }
+
   function draw() {
     const shakeX = game.shake ? (Math.random() - 0.5) * game.shake * 4 : 0;
     const shakeY = game.shake ? (Math.random() - 0.5) * game.shake * 4 : 0;
+    const liteFx = mobilePerformanceMode();
     ctx.save();
     ctx.translate(shakeX, shakeY);
     if (game.mode !== "playing") {
@@ -5818,17 +5825,17 @@
     drawShrine();
     drawCandles();
     drawChests();
-    drawAmbient();
+    if (!liteFx) drawAmbient();
     drawComboMeter();
-    drawFlames();
+    if (!liteFx) drawFlames();
     drawPickups();
     drawProjectiles();
     drawEnemies();
     drawBoss();
     drawPlayer();
-    drawFamiliar();
-    drawParticles();
-    drawDamageTexts();
+    if (!liteFx) drawFamiliar();
+    drawParticles(liteFx ? 34 : Infinity);
+    if (!liteFx) drawDamageTexts();
     ctx.restore();
     drawBossHud();
     drawVignette();
@@ -6102,9 +6109,10 @@
     ctx.fillRect(x, y, w, h);
 
     if (img && img.width) {
-      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 0, plane.bridgeChannel ? 0.58 : 0.62);
-      if (!plane.bridgeChannel) {
-        drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 1, 0.36);
+      const liteWater = mobilePerformanceMode();
+      drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 0, plane.bridgeChannel ? 0.58 : 0.62, liteWater);
+      if (!plane.bridgeChannel && !liteWater) {
+        drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, 1, 0.36, false);
       }
     } else {
       drawFallbackMoatWater(x, y, w, h);
@@ -6114,7 +6122,7 @@
     ctx.restore();
   }
 
-  function drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, pass, alpha) {
+  function drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, pass, alpha, lite = false) {
     const rawFrame = game.time * 7.5 + pass;
     const frame = Math.floor(rawFrame) % MOAT_WATER_FRAMES;
     const nextFrame = (frame + 1) % MOAT_WATER_FRAMES;
@@ -6123,7 +6131,7 @@
     const cameraFactor = pass === 0 ? 0.18 : 0.38;
     const layer = getMoatWaterMode7Layer(img, Math.ceil(w), Math.ceil(h), frame, pass);
     if (!layer) return;
-    const nextLayer = getMoatWaterMode7Layer(img, Math.ceil(w), Math.ceil(h), nextFrame, pass);
+    const nextLayer = lite ? null : getMoatWaterMode7Layer(img, Math.ceil(w), Math.ceil(h), nextFrame, pass);
     const scroll = positiveModulo(game.time * speedX + cameraX * cameraFactor + cameraY * 0.07, MOAT_WATER_TILE_SIZE);
     const baseX = x - MOAT_WATER_TILE_SIZE - scroll;
 
@@ -6268,7 +6276,15 @@
     ctx.save();
     ctx.imageSmoothingEnabled = true;
 
-    const worldCached = getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor);
+    if (mobilePerformanceMode()) {
+      drawMobileLiteRoomBackground(room, bg, mid, cameraX, cameraY, rw, rh, outdoor);
+      ctx.restore();
+      ctx.imageSmoothingEnabled = false;
+      return;
+    }
+
+    const liteBackground = mobilePerformanceMode();
+    const worldCached = (liteBackground || (room && room.drawbridge)) ? getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor, liteBackground) : null;
     if (worldCached) {
       drawWorldLayerViewport(worldCached, cameraX, cameraY);
       ctx.restore();
@@ -6316,6 +6332,37 @@
     ctx.imageSmoothingEnabled = false;
   }
 
+  function drawMobileLiteRoomBackground(room, bg, mid, cameraX, cameraY, rw, rh, outdoor) {
+    if (outdoor) drawSkyGradient(room, rh);
+    drawMobileViewportPlane(bg, cameraX, cameraY, rw, rh, outdoor ? 0.08 : 0.12, outdoor ? 0.05 : 0.08, 1);
+    if (mid && mid.width) drawMobileViewportPlane(mid, cameraX, cameraY, rw, rh, 0.18, 0.12, 0.1);
+    const floor = ctx.createLinearGradient(0, H * 0.56, 0, H);
+    floor.addColorStop(0, "rgba(0, 0, 0, 0)");
+    floor.addColorStop(1, room && room.palette === "blue" ? "rgba(2, 14, 28, 0.36)" : "rgba(4, 4, 8, 0.32)");
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawMobileViewportPlane(img, cameraX, cameraY, rw, rh, speedX, speedY, alpha = 1) {
+    if (!img || !img.width) {
+      if (alpha >= 0.99) {
+        ctx.fillStyle = "#08080d";
+        ctx.fillRect(0, 0, W, H);
+      }
+      return;
+    }
+    const viewX = clamp(Math.round(cameraX * speedX), 0, Math.max(0, rw - W));
+    const viewY = clamp(Math.round(cameraY * speedY), 0, Math.max(0, rh - H));
+    const sx = clamp(Math.round((viewX / Math.max(1, rw)) * img.width), 0, Math.max(0, img.width - 1));
+    const sy = clamp(Math.round((viewY / Math.max(1, rh)) * img.height), 0, Math.max(0, img.height - 1));
+    const sw = clamp(Math.ceil((W / Math.max(1, rw)) * img.width), 1, img.width - sx);
+    const sh = clamp(Math.ceil((H / Math.max(1, rh)) * img.height), 1, img.height - sy);
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.restore();
+  }
+
   function drawRoomBackgroundProps(room, cameraX, cameraY, rw, rh) {
     const img = room && room.bg === "bgArmory" ? images.armoryProps : null;
     if (!img || !img.width) return false;
@@ -6333,13 +6380,13 @@
     return true;
   }
 
-  function getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor) {
-    if (!room || !room.drawbridge || !bg || !bg.width) return null;
+  function getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor, lite = false) {
+    if (!room || !bg || !bg.width) return null;
     const midKey = mid && mid.width ? `${mid.width}x${mid.height}` : "none";
     const paraKey = parallaxKeysForRoom(room).join(",");
-    const key = `${room.name}:${room.bg}:${bg.width}x${bg.height}:${midKey}:${paraKey}:${rw}x${rh}:${outdoor ? "out" : "in"}`;
+    const key = `${room.name}:${room.bg}:${bg.width}x${bg.height}:${midKey}:${paraKey}:${rw}x${rh}:${outdoor ? "out" : "in"}:${lite ? "lite" : "full"}`;
     if (roomBackgroundWorldCache.has(key)) return roomBackgroundWorldCache.get(key);
-    if (roomBackgroundWorldCache.size > 3) roomBackgroundWorldCache.clear();
+    if (roomBackgroundWorldCache.size > (lite ? 8 : 3)) roomBackgroundWorldCache.clear();
 
     const layer = document.createElement("canvas");
     layer.width = rw;
@@ -6349,11 +6396,11 @@
 
     if (outdoor) drawSkyGradientWorldTo(g, room, rw, rh);
     drawParallaxPlaneTo(g, bg, 0, 0, rw, rh, 0, 0, 1);
-    drawParallaxElementsTo(g, room, 0, 0, rw, rh, 0);
-    if (mid && mid.width) drawParallaxPlaneTo(g, mid, 0, 0, rw, rh, 0, 0, 0.24);
+    if (!lite) drawParallaxElementsTo(g, room, 0, 0, rw, rh, 0);
+    if (mid && mid.width && !lite) drawParallaxPlaneTo(g, mid, 0, 0, rw, rh, 0, 0, 0.24);
     drawMode7FloorTo(g, room, bg, rw, rh, 0, 0, outdoor);
-    drawParallaxElementsTo(g, room, 0, 0, rw, rh, 1);
-    if (outdoor) drawNearForegroundParallaxTo(g, room, 0, 0, rw, rh);
+    if (!lite) drawParallaxElementsTo(g, room, 0, 0, rw, rh, 1);
+    if (outdoor && !lite) drawNearForegroundParallaxTo(g, room, 0, 0, rw, rh);
 
     roomBackgroundWorldCache.set(key, layer);
     return layer;
@@ -7500,14 +7547,18 @@
 
     ctx.save();
     ctx.lineWidth = 2;
-    ctx.shadowColor = "#7ee8ff";
-    ctx.shadowBlur = 8;
-    for (let i = 0; i < 5; i += 1) {
+    const liteFx = mobilePerformanceMode();
+    if (!liteFx) {
+      ctx.shadowColor = "#7ee8ff";
+      ctx.shadowBlur = 8;
+    }
+    const lines = liteFx ? 2 : 5;
+    for (let i = 0; i < lines; i += 1) {
       const y = waterTop + 8 + i * 14;
-      ctx.globalAlpha = 0.32 - i * 0.035;
+      ctx.globalAlpha = liteFx ? 0.18 - i * 0.04 : 0.32 - i * 0.035;
       ctx.strokeStyle = i % 2 ? "rgba(190, 250, 255, 0.46)" : "rgba(94, 222, 255, 0.42)";
       ctx.beginPath();
-      for (let x = 178; x < roomWidth(room) - 80; x += 18) {
+      for (let x = 178; x < roomWidth(room) - 80; x += liteFx ? 34 : 18) {
         const yy = y + Math.sin(game.time * (2.2 + i * 0.12) + x * 0.035 + i) * (2.2 + i * 0.35);
         if (x === 178) ctx.moveTo(x, yy);
         else ctx.lineTo(x, yy);
@@ -7577,8 +7628,10 @@
 
   function drawGrottoRidePlatform(platform) {
     ctx.save();
-    ctx.shadowColor = "#7ee8ff";
-    ctx.shadowBlur = 12;
+    if (!mobilePerformanceMode()) {
+      ctx.shadowColor = "#7ee8ff";
+      ctx.shadowBlur = 12;
+    }
     drawPlatformInto(ctx, platform);
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 0.72;
@@ -7592,9 +7645,12 @@
 
   function drawGrottoDuckGate(gate, index) {
     const bars = Math.max(3, Math.floor(gate.w / 34));
+    const liteFx = mobilePerformanceMode();
     ctx.save();
-    ctx.shadowColor = "#7ee8ff";
-    ctx.shadowBlur = 9;
+    if (!liteFx) {
+      ctx.shadowColor = "#7ee8ff";
+      ctx.shadowBlur = 9;
+    }
     const rail = ctx.createLinearGradient(gate.x, gate.y, gate.x, gate.y + gate.h);
     rail.addColorStop(0, "rgba(10, 26, 42, 0.88)");
     rail.addColorStop(0.55, "rgba(30, 92, 118, 0.54)");
@@ -7605,7 +7661,7 @@
     ctx.strokeStyle = "rgba(190, 250, 255, 0.38)";
     ctx.lineWidth = 2;
     ctx.strokeRect(gate.x - 8, gate.y - 8, gate.w + 16, gate.h + 14);
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = liteFx ? 0 : 4;
     for (let i = 0; i < bars; i += 1) {
       const x = gate.x + ((i + 0.5) / bars) * gate.w + Math.sin(index * 1.7 + i) * 2;
       const sway = Math.sin(game.time * 1.6 + index + i) * 2;
@@ -8458,12 +8514,14 @@
   }
 
   function drawEnemies() {
+    const liteFx = mobilePerformanceMode();
     for (const enemy of game.enemies) {
+      if (liteFx && !isEnemyInRenderRange(enemy, 120)) continue;
       const alpha = enemy.hurt > 0 ? 0.55 : 1;
-      drawFeaturedEnemyBacklight(enemy, alpha);
-      drawEnemySprite(enemy, alpha);
-      drawFeaturedEnemyReadability(enemy, alpha);
-      if (enemy.hp < enemy.maxHp && !(enemy.cfg && enemy.cfg.fullBoss)) {
+      if (!liteFx) drawFeaturedEnemyBacklight(enemy, alpha);
+      drawEnemySprite(enemy, alpha, liteFx);
+      if (!liteFx) drawFeaturedEnemyReadability(enemy, alpha);
+      if ((!liteFx || enemy.hurt > 0) && enemy.hp < enemy.maxHp && !(enemy.cfg && enemy.cfg.fullBoss)) {
         if (enemy.cfg.mini) {
           drawSmallBar(enemy.x - 16, enemy.y - 14, enemy.w + 32, enemy.hp / enemy.maxHp, "#bfa0ff");
         } else {
@@ -8471,6 +8529,14 @@
         }
       }
     }
+  }
+
+  function isEnemyInRenderRange(enemy, pad = 0) {
+    if (!enemy) return false;
+    return enemy.x + enemy.w >= game.cameraX - pad &&
+      enemy.x <= game.cameraX + W + pad &&
+      enemy.y + enemy.h >= game.cameraY - pad &&
+      enemy.y <= game.cameraY + H + pad;
   }
 
   function isFeaturedVisibleEnemy(enemy) {
@@ -8523,7 +8589,7 @@
     ctx.restore();
   }
 
-  function drawEnemySprite(enemy, alpha) {
+  function drawEnemySprite(enemy, alpha, liteFx = false) {
     const meta = ENEMY_FRAME_MAP[enemy.cfg.sprite || enemy.type];
     if (meta && images[meta.image] && images[meta.image].width) {
       const pose = enemyAnimationPose(enemy, meta);
@@ -8541,7 +8607,7 @@
         flip,
         alpha
       );
-      if (pose.nextFrame !== pose.frame && pose.blend > 0.02) {
+      if (!liteFx && pose.nextFrame !== pose.frame && pose.blend > 0.02) {
         drawSheetFrame(
           images[meta.image],
           pose.nextFrame,
@@ -8685,12 +8751,16 @@
     if (alpha !== prevAlpha) ctx.globalAlpha = prevAlpha;
   }
 
-  function drawParticles() {
-    for (const dot of game.particles) {
+  function drawParticles(limit = Infinity) {
+    let drawn = 0;
+    for (let i = game.particles.length - 1; i >= 0; i -= 1) {
+      if (drawn >= limit) break;
+      const dot = game.particles[i];
       const a = clamp(dot.life / dot.maxLife, 0, 1);
       ctx.globalAlpha = a;
       ctx.fillStyle = dot.color;
       ctx.fillRect(dot.x, dot.y, dot.size, dot.size);
+      drawn += 1;
     }
     ctx.globalAlpha = 1;
   }
