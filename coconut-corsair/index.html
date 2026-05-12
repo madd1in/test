@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coconut Corsair: The Star Compass</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Coconut Corsair game">
+      <canvas id="gameCanvas" width="1920" height="1080"></canvas>
+
+      <section id="topBar" aria-label="Status">
+        <div id="sceneName">Harbor</div>
+        <div id="statusLine">Loading...</div>
+        <div class="topActions">
+          <button id="audioButton" type="button" title="Audio">Audio</button>
+          <button id="voiceButton" type="button" title="Voice">Voice</button>
+          <button id="saveButton" type="button" title="Save">Save</button>
+          <button id="resetButton" type="button" title="Reset">Reset</button>
+        </div>
+      </section>
+
+      <section id="dialogue" aria-live="polite">
+        <strong id="speaker"></strong>
+        <span id="line"></span>
+      </section>
+
+      <section id="commandBar" aria-label="Commands">
+        <div id="verbs" role="toolbar" aria-label="Verbs">
+          <button type="button" data-verb="walk" title="Walk"><span>&gt;</span> Walk</button>
+          <button type="button" data-verb="look" title="Look"><span>?</span> Look</button>
+          <button type="button" data-verb="talk" title="Talk"><span>&quot;</span> Talk</button>
+          <button type="button" data-verb="take" title="Take"><span>+</span> Take</button>
+          <button type="button" data-verb="use" title="Use"><span>*</span> Use</button>
+        </div>
+        <div id="inventory" aria-label="Inventory"></div>
+      </section>
+
+      <section id="startScreen">
+        <div class="titleBlock">
+          <p class="kicker">A new HD pirate adventure</p>
+          <h1>Coconut Corsair</h1>
+          <p class="subtitle">The Star Compass</p>
+          <button id="startButton" type="button">Start</button>
+        </div>
+      </section>
+
+      <section id="endingScreen" hidden>
+        <div class="titleBlock">
+          <p class="kicker">Treasure recovered</p>
+          <h2>The Star Compass turns again.</h2>
+          <button id="continueButton" type="button">Continue</button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
