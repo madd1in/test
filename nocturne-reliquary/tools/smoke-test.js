@@ -588,9 +588,9 @@ async function browserSmoke() {
   assert(result.titleFrameDelta > 0, `title canvas should animate between frames: ${JSON.stringify({ before: result.titleFrameA, after: result.titleFrameB })}`);
   assert(result.state.titleHidden, "title did not hide after begin");
   assert(result.state.frameInfo.playerFrameW === 128, "player frame width should be 128");
-  assert(result.state.frameInfo.playerFrames === 24, "player frame count should be 24");
+  assert(result.state.frameInfo.playerFrames === 48, "player frame count should be 48");
   assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
-  assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
+  assert(result.state.frameInfo.whipFrames === 16, "whip frame count should be 16");
   assert(result.state.frameInfo.bossFrameW === 320, "boss frame width should be 320");
   assert(result.state.frameInfo.bossFrames === 32, "boss should use the smooth HD 32-frame strip");
   assert(result.state.frameInfo.enemyExtFrameW === 256 && result.state.frameInfo.enemyExtFrameH === 192 && result.state.frameInfo.enemyExtFrames === 24, "extended zora/panther enemy HD frames should be wired");
