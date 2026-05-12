@@ -83,10 +83,10 @@
 
       <section id="touchControls" class="touch-controls" aria-label="Touch controls">
         <div class="touch-cluster movement-pad">
-          <button data-touch="up" data-glyph="&#9650;" type="button" aria-label="Move up"></button>
-          <button data-touch="left" data-glyph="&#9664;" type="button" aria-label="Move left"></button>
-          <button data-touch="down" data-glyph="&#9660;" type="button" aria-label="Crouch or move down"></button>
-          <button data-touch="right" data-glyph="&#9654;" type="button" aria-label="Move right"></button>
+          <div id="touchJoystick" class="touch-joystick" aria-hidden="true">
+            <span class="touch-joystick-ring"></span>
+            <span id="touchJoystickKnob" class="touch-joystick-knob"></span>
+          </div>
         </div>
         <div class="touch-cluster">
           <button data-touch="jump" data-glyph="&#10548;" type="button" aria-label="Jump"></button>

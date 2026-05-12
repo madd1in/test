@@ -49,7 +49,9 @@
     statsList: document.getElementById("statsList"),
     title: document.querySelector(".title-inner h1"),
     subtitle: document.querySelector(".title-inner .subtitle"),
-    touchControls: document.getElementById("touchControls")
+    touchControls: document.getElementById("touchControls"),
+    touchJoystick: document.getElementById("touchJoystick"),
+    touchJoystickKnob: document.getElementById("touchJoystickKnob")
   };
 
   const IMG = {
@@ -376,12 +378,12 @@
     playerMotionSet: "imagen-hd-player-72f-body-atlas-v2",
     accessibilityHud: "low-reading-hud-v1",
     controlSkin: "gothic-medallion-controls-v1",
-    mobileTouch: "large-hit-targets-v3-readable-fonts",
+    mobileTouch: "transient-joystick-v1-readable-actions",
     mobileCeilingDoors: "auto-enter-touch-overlap-v1",
     mobileDoorReentryGuard: "block-reverse-door-until-exit-v1",
     mobileFont: "compact-cinzel-v1",
     mobileStartFullscreen: "manual-fs-button-v1",
-    mobilePerformance: "viewport-lite-backgrounds-lite-enemy-fx-v5",
+    mobilePerformance: "viewport-lite-player-cache-no-vignette-v6",
     progressRoute: "full-castle-survey-v1",
     difficulty: "classic-puzzle-pressure-v1+warden-milestones-v2"
   };
@@ -519,7 +521,7 @@
   const keysDown = new Set();
   const justPressed = new Set();
   const touchDown = new Set();
-  const swipe = { id: null, startX: 0, startY: 0, lastX: 0, lastY: 0, jumpSent: false };
+  const joystick = { id: null, startX: 0, startY: 0, lastX: 0, lastY: 0, jumpSent: false, active: false, max: 54, deadzone: 12 };
   let lastTime = 0;
   let activeMusic = null;
   let musicKey = null;
@@ -532,6 +534,7 @@
   const roomSceneryCache = new Map();
   const roomSceneryWorldCache = new Map();
   const chromaCutoutCache = new Map();
+  const sheetFrameCache = new WeakMap();
   const perfStats = { enabled: false, update: [], draw: [], frame: [] };
   const sfxPool = {};
   const SFX_POOL_SIZE = 3;
@@ -2162,7 +2165,7 @@
     for (const room of Object.values(rooms)) {
       for (const door of room.doors) {
         const target = rooms[door.to];
-        if (door.side === "left" && target) door.spawn.x = Math.max(54, roomWidth(target) - 104);
+        if (door.side === "left" && target) door.spawn.x = Math.max(54, roomWidth(target) - 160);
       }
     }
   }
@@ -2652,7 +2655,11 @@
     game.mode = "playing";
     player.hp = Math.max(player.hp, player.maxHp || 112);
     hideTitlePanel();
+    game.roomTransitionCooldown = 0;
+    game.doorReentryBlock = null;
     enterRoom(roomId, { x, y }, false);
+    game.roomTransitionCooldown = 0;
+    game.doorReentryBlock = null;
     return true;
   };
   window.__NOCTURNE_TEST_PLACE_PLAYER = (x, y) => {
@@ -4811,6 +4818,7 @@
   function drawChests() {
     if (!game.chests || game.chests.length === 0) return;
     for (const chest of game.chests) {
+      if (!entityInRenderRange(chestHitBox(chest), 80)) continue;
       if (!drawHdChest(chest)) drawFallbackChest(chest);
     }
   }
@@ -5203,7 +5211,6 @@
     if (!room || !sourceDoor || !sourceDoor.fromRoomId) return;
     for (const door of room.doors) {
       if (door.to !== sourceDoor.fromRoomId) continue;
-      if (door.side !== "up" || (!game.mobileMode && !isMobileLayout())) continue;
       if (!rectsOverlap(player, doorTriggerBox(door))) continue;
       game.doorReentryBlock = {
         roomId: game.roomId,
@@ -5840,7 +5847,7 @@
     if (!liteFx) drawDamageTexts();
     ctx.restore();
     drawBossHud();
-    drawVignette();
+    if (!liteFx) drawVignette();
     if (game.paused) drawPauseOverlay();
     drawBossBanner();
     drawDialogueOverlay();
@@ -6745,7 +6752,7 @@
   }
 
   function chromaCutoutImage(img, key) {
-    if (!img || !img.width) return null;
+    if (!isDrawableImage(img)) return null;
     if (chromaCutoutCache.has(key)) return chromaCutoutCache.get(key);
     const c = document.createElement("canvas");
     c.width = img.width;
@@ -6796,7 +6803,7 @@
 
   function drawImagenHdMoon(x, y, w, h, alpha = 0.68, variant = 0) {
     const img = images.towerProps;
-    if (!img || !img.width) return false;
+    if (!isDrawableImage(img)) return false;
     const moonY = img.height * 0.64;
     const moonH = img.height * 0.36;
     const split = img.width * 0.48;
@@ -6810,7 +6817,7 @@
   }
 
   function drawHdImageLayer(img, x, y, w, h, alpha = 1, mode = "source-over") {
-    if (!img || !img.width) return false;
+    if (!isDrawableImage(img)) return false;
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha *= alpha;
@@ -6860,7 +6867,7 @@
   }
 
   function drawMoonwellRippleLayer(img, x, y, w, h, alpha = 1) {
-    if (!img || !img.width) return false;
+    if (!isDrawableImage(img)) return false;
     const drift = positiveModulo(game.time * 18, 96);
     const lift = Math.sin(game.time * 0.9) * 4;
     ctx.save();
@@ -6911,6 +6918,7 @@
     const rw = roomWidth(room);
     const rh = roomHeight(room);
     const t = game.time;
+    const img = images.towerProps;
     ctx.save();
     const wall = ctx.createLinearGradient(0, 0, 0, rh);
     wall.addColorStop(0, "#080a0f");
@@ -6956,6 +6964,34 @@
       ctx.stroke();
     }
 
+    if (isDrawableImage(img)) {
+      const cellW = img.width / 4;
+      const cellH = img.height / 3;
+      const drawCell = (col, row, x, y, w, h, alpha = 1, sway = 0) => {
+        const dx = x + (sway ? Math.sin(t * 0.8 + x * 0.012) * sway : 0);
+        return drawChromaAtlasSprite(img, "towerProps", col * cellW, row * cellH, cellW, cellH, dx, y, w, h, alpha);
+      };
+      ctx.globalCompositeOperation = "source-over";
+      const chains = [
+        { col: 0, x: 112, y: -38, w: 92, h: 314, a: 0.80, sway: 2 },
+        { col: 1, x: 432, y: -28, w: 100, h: 292, a: 0.72, sway: 3 },
+        { col: 2, x: 742, y: -20, w: 82, h: 276, a: 0.66, sway: 2 },
+        { col: 3, x: 1104, y: -34, w: 96, h: 326, a: 0.78, sway: 3 }
+      ];
+      for (const chain of chains) drawCell(chain.col, 0, chain.x, chain.y, chain.w, chain.h, chain.a, chain.sway);
+      const anchors = [
+        { col: 0, x: 54, y: 258, w: 192, h: 154, a: 0.66 },
+        { col: 1, x: 384, y: 238, w: 188, h: 172, a: 0.62 },
+        { col: 2, x: 704, y: 226, w: 188, h: 178, a: 0.64 },
+        { col: 3, x: 1050, y: 244, w: 196, h: 166, a: 0.62 }
+      ];
+      for (const anchor of anchors) drawCell(anchor.col, 1, anchor.x, anchor.y, anchor.w, anchor.h, anchor.a);
+      ctx.globalCompositeOperation = "screen";
+      drawChromaAtlasSprite(img, "towerProps", 0, cellH * 2, cellW * 2, cellH, 760, 18, 300, 284, 0.46);
+      drawChromaAtlasSprite(img, "towerProps", cellW * 2, cellH * 2, cellW * 2, cellH, 1130, 132, 228, 204, 0.38);
+      ctx.globalCompositeOperation = "source-over";
+    }
+
     ctx.globalCompositeOperation = "screen";
     ctx.globalAlpha = 0.22;
     const moon = ctx.createRadialGradient(968, 156, 12, 968, 156, 154);
@@ -6971,12 +7007,52 @@
   }
 
   function drawGalleryPortraits(room) {
-    return false;
+    const img = images.galleryPortraits;
+    if (!isDrawableImage(img)) return false;
+    const cellW = img.width / 4;
+    const cellH = img.height / 2;
+    const portraits = [
+      { col: 0, row: 0, x: 76, y: 108, w: 176, h: 258, a: 0.78 },
+      { col: 1, row: 0, x: 276, y: 82, w: 178, h: 260, a: 0.76 },
+      { col: 2, row: 0, x: 504, y: 58, w: 184, h: 268, a: 0.82 },
+      { col: 3, row: 0, x: 742, y: 82, w: 178, h: 260, a: 0.76 },
+      { col: 0, row: 1, x: 990, y: 104, w: 180, h: 262, a: 0.78 },
+      { col: 1, row: 1, x: 1186, y: 150, w: 172, h: 250, a: 0.66 },
+      { col: 2, row: 1, x: 358, y: 350, w: 160, h: 234, a: 0.54 },
+      { col: 3, row: 1, x: 636, y: 318, w: 166, h: 242, a: 0.58 }
+    ];
+    ctx.save();
+    for (const portrait of portraits) {
+      const sway = Math.sin(game.time * 0.65 + portrait.x * 0.01) * 1.4;
+      drawChromaAtlasSprite(
+        img,
+        "galleryPortraits",
+        portrait.col * cellW,
+        portrait.row * cellH,
+        cellW,
+        cellH,
+        portrait.x,
+        portrait.y + sway,
+        portrait.w,
+        portrait.h,
+        portrait.a
+      );
+    }
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.18 + Math.sin(game.time * 2.2) * 0.04;
+    const gleam = ctx.createRadialGradient(666, 190, 8, 666, 190, 156);
+    gleam.addColorStop(0, "rgba(242, 203, 104, 0.42)");
+    gleam.addColorStop(0.44, "rgba(242, 203, 104, 0.13)");
+    gleam.addColorStop(1, "rgba(242, 203, 104, 0)");
+    ctx.fillStyle = gleam;
+    ctx.fillRect(510, 34, 312, 312);
+    ctx.restore();
+    return true;
   }
 
   function drawCatacombHdProps(room) {
     const img = images.catacombProps;
-    if (!img || !img.width) return false;
+    if (!isDrawableImage(img)) return false;
     const cellW = img.width / 2;
     const cellH = img.height / 3;
     const t = game.time;
@@ -7139,6 +7215,14 @@
     ctx.quadraticCurveTo(x + w * 0.88, y + h * 0.08, x + w, shoulder);
     ctx.lineTo(x + w, y + h);
     ctx.closePath();
+  }
+
+  function isDrawableImage(img) {
+    if (!img || !img.width || !img.height) return false;
+    if (typeof HTMLImageElement !== "undefined" && img instanceof HTMLImageElement) {
+      return img.complete && img.naturalWidth > 0 && img.naturalHeight > 0;
+    }
+    return true;
   }
 
   function drawArchitecture(room) {
@@ -8022,8 +8106,10 @@
   function drawPickups() {
     const target = nextObjectiveRoom();
     const inTargetRoom = target === game.roomId;
+    const liteFx = mobilePerformanceMode();
     for (const drop of game.pickups) {
       const y = drop.y + Math.sin(drop.bob) * 5;
+      if (!entityInRenderRange({ x: drop.x, y, w: drop.w, h: drop.h }, 96)) continue;
       const isQuestSeal = !!QUEST_ICON_CELLS[drop.type];
       const isRelic = isQuestSeal || drop.type === "doubleJump" || drop.type === "dash" || drop.type === "moonSigil" || drop.type === "heartVessel" || drop.type === "subAxe" || drop.type === "subHolyWater" || drop.type === "subBoomerang" || drop.type === "familiarBat" || drop.type === "ringOfArdor" || drop.type === "batCloak" || drop.type === "wraithArmor" || drop.type === "phoenixPendant";
       const color = drop.type === "doubleJump" ? "#8bd7ff" : drop.type === "dash" ? "#d8fff3" : drop.type === "heartVessel" ? "#f05f5b" : drop.type === "moonSigil" ? "#f2cb68" : drop.type === "tideSeal" ? "#42dfff" : drop.type === "starSeal" ? "#ffd56a" : drop.type === "inkSeal" ? "#bca8ff" : drop.type === "subBoomerang" ? "#f7d988" : drop.type === "familiarBat" ? "#bfa0ff" : drop.type === "ringOfArdor" ? "#ff9a3a" : drop.type === "batCloak" ? "#9a7adb" : drop.type === "wraithArmor" ? "#cfeacc" : drop.type === "phoenixPendant" ? "#ffae3a" : "#f2cb68";
@@ -8031,16 +8117,18 @@
       // Path beacon: tall light column + descending arrow above relics in the target room
       if (inTargetRoom && isRelic) {
         const beat = 0.6 + 0.4 * Math.sin(game.time * 3);
-        ctx.globalAlpha = 0.55 * beat;
-        const grad = ctx.createLinearGradient(drop.x + 14, 0, drop.x + 14, y);
-        grad.addColorStop(0, "rgba(244, 211, 139, 0)");
-        grad.addColorStop(1, color);
-        ctx.fillStyle = grad;
-        ctx.fillRect(drop.x + 4, 0, 20, y + 14);
+        if (!liteFx) {
+          ctx.globalAlpha = 0.55 * beat;
+          const grad = ctx.createLinearGradient(drop.x + 14, 0, drop.x + 14, y);
+          grad.addColorStop(0, "rgba(244, 211, 139, 0)");
+          grad.addColorStop(1, color);
+          ctx.fillStyle = grad;
+          ctx.fillRect(drop.x + 4, 0, 20, y + 14);
+        }
         // Floating arrow chevrons above the relic
         ctx.globalAlpha = 0.85 * beat;
         ctx.fillStyle = color;
-        for (let i = 0; i < 3; i += 1) {
+        for (let i = 0; i < (liteFx ? 1 : 3); i += 1) {
           const ay = y - 28 - i * 14 - ((game.time * 60) % 14);
           if (ay < 0) continue;
           ctx.beginPath();
@@ -8053,10 +8141,10 @@
         ctx.globalAlpha = 1;
       }
 
-      if (drawPickupIcon(drop, y, color, isRelic)) continue;
+      if (drawPickupIcon(drop, y, color, isRelic, liteFx)) continue;
 
       ctx.shadowColor = color;
-      ctx.shadowBlur = isRelic ? 32 : 20;
+      ctx.shadowBlur = liteFx ? 0 : (isRelic ? 32 : 20);
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(drop.x + 14, y + 14, isRelic ? 16 : 13, 0, Math.PI * 2);
@@ -8067,7 +8155,7 @@
     }
   }
 
-  function drawPickupIcon(drop, y, color, isRelic) {
+  function drawPickupIcon(drop, y, color, isRelic, liteFx = false) {
     const weaponCellName = WEAPON_PICKUP_CELLS[drop.type];
     if (weaponCellName && images.weaponsHd && images.weaponsHd.width && WEAPON_CELLS[weaponCellName]) {
       const cell = WEAPON_CELLS[weaponCellName];
@@ -8076,7 +8164,7 @@
       const cy = y + drop.h / 2;
       ctx.save();
       ctx.shadowColor = color;
-      ctx.shadowBlur = isRelic ? 28 : 18;
+      ctx.shadowBlur = liteFx ? 0 : (isRelic ? 28 : 18);
       ctx.drawImage(
         images.weaponsHd,
         cell[0] * WEAPON_ICON_SIZE,
@@ -8100,7 +8188,7 @@
     const cy = y + drop.h / 2;
     ctx.save();
     ctx.shadowColor = color;
-    ctx.shadowBlur = isRelic ? 28 : 18;
+    ctx.shadowBlur = liteFx ? 0 : (isRelic ? 28 : 18);
     ctx.drawImage(
       img,
       cell[0] * ITEM_ICON_SIZE,
@@ -8128,6 +8216,7 @@
 
   function drawProjectiles() {
     for (const shot of game.projectiles) {
+      if (!entityInRenderRange(shot, 80)) continue;
       if (shot.kind === "subweapon") {
         drawSubweapon(shot);
         continue;
@@ -8218,8 +8307,10 @@
   }
 
   function drawCandles() {
+    const liteFx = mobilePerformanceMode();
     for (const candle of game.candles) {
       if (candle.broken) continue;
+      if (!entityInRenderRange({ x: candle.x - 18, y: candle.y - 32, w: 36, h: 52 }, 80)) continue;
       // Holder
       ctx.fillStyle = "#3a2a18";
       ctx.fillRect(candle.x - 4, candle.y, 8, 12);
@@ -8231,15 +8322,17 @@
       // Flame
       const flick = Math.sin(candle.flame) * 1.4;
       ctx.shadowColor = "#ffae3a";
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = liteFx ? 0 : 18;
       ctx.fillStyle = "#ffd065";
       ctx.beginPath();
       ctx.ellipse(candle.x, candle.y - 18, 3.6 + flick * 0.2, 7 + flick, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#fff7d6";
-      ctx.beginPath();
-      ctx.ellipse(candle.x, candle.y - 17, 1.6, 3.2, 0, 0, Math.PI * 2);
-      ctx.fill();
+      if (!liteFx) {
+        ctx.fillStyle = "#fff7d6";
+        ctx.beginPath();
+        ctx.ellipse(candle.x, candle.y - 17, 1.6, 3.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.shadowBlur = 0;
     }
   }
@@ -8357,6 +8450,7 @@
     if (!game.npcs || !game.npcs.length) return;
     const near = nearbyNpc();
     for (const npc of game.npcs) {
+      if (!entityInRenderRange(npc, 160)) continue;
       const meta = STORY_NPCS[npc.id];
       const alpha = near === npc ? 1 : 0.88;
       const bob = Math.sin(game.time * 1.8 + (npc.phase || 0)) * 2;
@@ -8534,11 +8628,17 @@
   }
 
   function isEnemyInRenderRange(enemy, pad = 0) {
-    if (!enemy) return false;
-    return enemy.x + enemy.w >= game.cameraX - pad &&
-      enemy.x <= game.cameraX + W + pad &&
-      enemy.y + enemy.h >= game.cameraY - pad &&
-      enemy.y <= game.cameraY + H + pad;
+    return entityInRenderRange(enemy, pad);
+  }
+
+  function entityInRenderRange(entity, pad = 0) {
+    if (!entity) return false;
+    const width = entity.w || 0;
+    const height = entity.h || 0;
+    return entity.x + width >= game.cameraX - pad &&
+      entity.x <= game.cameraX + W + pad &&
+      entity.y + height >= game.cameraY - pad &&
+      entity.y <= game.cameraY + H + pad;
   }
 
   function isFeaturedVisibleEnemy(enemy) {
@@ -8707,7 +8807,7 @@
       frame = PLAYER_ANIM.walkStart + Math.floor(game.time * walkRate) % PLAYER_ANIM.walkFrames;
     }
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
-    drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha, true);
+    drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha, true, mobilePerformanceMode());
 
     if (player.attackTimer > 0.035) {
       const sx = clamp(Math.floor(attackProgress * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
@@ -8733,7 +8833,27 @@
     }
   }
 
-  function drawSheetFrame(img, col, row, fw, fh, cx, bottom, dw, dh, flip, alpha = 1, smooth = false) {
+  function cachedSheetFrame(img, col, row, fw, fh) {
+    if (!img || !img.width) return null;
+    let cache = sheetFrameCache.get(img);
+    if (!cache) {
+      cache = new Map();
+      sheetFrameCache.set(img, cache);
+    }
+    const key = `${col}:${row}:${fw}:${fh}`;
+    if (cache.has(key)) return cache.get(key);
+    if (cache.size > 96) cache.clear();
+    const frame = document.createElement("canvas");
+    frame.width = fw;
+    frame.height = fh;
+    const frameCtx = frame.getContext("2d");
+    frameCtx.imageSmoothingEnabled = false;
+    frameCtx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, fw, fh);
+    cache.set(key, frame);
+    return frame;
+  }
+
+  function drawSheetFrame(img, col, row, fw, fh, cx, bottom, dw, dh, flip, alpha = 1, smooth = false, cacheFrame = false) {
     if (!img || !img.width) {
       const prevAlpha = ctx.globalAlpha;
       if (alpha !== prevAlpha) ctx.globalAlpha = alpha;
@@ -8744,16 +8864,19 @@
     }
     const prevAlpha = ctx.globalAlpha;
     const prevSmoothing = ctx.imageSmoothingEnabled;
+    const source = cacheFrame ? cachedSheetFrame(img, col, row, fw, fh) : img;
+    const sx = cacheFrame ? 0 : col * fw;
+    const sy = cacheFrame ? 0 : row * fh;
     if (alpha !== prevAlpha) ctx.globalAlpha = alpha;
     if (smooth !== prevSmoothing) ctx.imageSmoothingEnabled = smooth;
     if (flip) {
       ctx.save();
       ctx.translate(cx, bottom - dh);
       ctx.scale(-1, 1);
-      ctx.drawImage(img, col * fw, row * fh, fw, fh, -dw / 2, 0, dw, dh);
+      ctx.drawImage(source, sx, sy, fw, fh, -dw / 2, 0, dw, dh);
       ctx.restore();
     } else {
-      ctx.drawImage(img, col * fw, row * fh, fw, fh, cx - dw / 2, bottom - dh, dw, dh);
+      ctx.drawImage(source, sx, sy, fw, fh, cx - dw / 2, bottom - dh, dw, dh);
     }
     if (smooth !== prevSmoothing) ctx.imageSmoothingEnabled = prevSmoothing;
     if (alpha !== prevAlpha) ctx.globalAlpha = prevAlpha;
@@ -9375,9 +9498,9 @@
   function toggleMobileMode(force, options = {}) {
     game.mobileMode = force ?? !game.mobileMode;
     document.body.classList.toggle("mobile-mode", game.mobileMode);
-    dom.mobileButton.textContent = game.mobileMode ? "PAD" : "MOB";
+    dom.mobileButton.textContent = game.mobileMode ? "JOY" : "MOB";
     dom.mobileButton.setAttribute("aria-pressed", String(game.mobileMode));
-    if (!options.silent) message(game.mobileMode ? "Swipe mode armed" : "Swipe mode tucked away");
+    if (!options.silent) message(game.mobileMode ? "Joystick armed" : "Joystick tucked away");
   }
 
   async function toggleFullscreen() {
@@ -9398,51 +9521,91 @@
     touchDown.delete("down");
   }
 
+  function clearJoystickMovement() {
+    clearSwipeMovement();
+  }
+
   function triggerTouchJump() {
     justPressed.add("touch:jump");
     game.touchJumpHold = Math.max(game.touchJumpHold || 0, (game.mobileMode || isMobileLayout()) ? 0.26 : 0.2);
   }
 
+  function setJoystickVisual(active, x = joystick.startX, y = joystick.startY, knobX = 0, knobY = 0) {
+    if (!dom.touchJoystick || !dom.touchJoystickKnob) return;
+    dom.touchJoystick.classList.toggle("is-active", active);
+    if (active) {
+      dom.touchJoystick.style.left = `${x}px`;
+      dom.touchJoystick.style.top = `${y}px`;
+      dom.touchJoystickKnob.style.transform = `translate3d(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px), 0)`;
+    } else {
+      dom.touchJoystickKnob.style.transform = "translate3d(-50%, -50%, 0)";
+    }
+  }
+
+  function updateJoystickDirection(dx, dy) {
+    clearJoystickMovement();
+    const distance = Math.hypot(dx, dy);
+    if (distance < joystick.deadzone) return;
+    const mobileInput = game.mobileMode || isMobileLayout();
+    const horizontalGate = mobileInput ? 0.28 : 0.42;
+    const verticalGate = mobileInput ? 0.34 : 0.5;
+    if (Math.abs(dx) > joystick.deadzone && Math.abs(dx) >= Math.abs(dy) * horizontalGate) {
+      touchDown.add(dx > 0 ? "right" : "left");
+    }
+    if (dy > joystick.deadzone && Math.abs(dy) >= Math.abs(dx) * verticalGate) {
+      touchDown.add("down");
+    } else if (dy < -joystick.deadzone * 1.25 && Math.abs(dy) >= Math.abs(dx) * 0.7) {
+      touchDown.add("up");
+      if (!joystick.jumpSent) {
+        triggerTouchJump();
+        joystick.jumpSent = true;
+      }
+    }
+  }
+
   function beginSwipe(event) {
     if (event.pointerType === "mouse" && !game.mobileMode) return;
-    swipe.id = event.pointerId;
-    swipe.startX = event.clientX;
-    swipe.startY = event.clientY;
-    swipe.lastX = event.clientX;
-    swipe.lastY = event.clientY;
-    swipe.jumpSent = false;
+    const rect = canvas.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    const mobileInput = game.mobileMode || isMobileLayout();
+    const wantsAttackTap = mobileInput && localX > rect.width * 0.68 && localY < rect.height * 0.82;
+    joystick.id = event.pointerId;
+    joystick.startX = event.clientX;
+    joystick.startY = event.clientY;
+    joystick.lastX = event.clientX;
+    joystick.lastY = event.clientY;
+    joystick.jumpSent = false;
+    joystick.active = !wantsAttackTap;
+    if (joystick.active) setJoystickVisual(true, joystick.startX, joystick.startY, 0, 0);
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch {}
   }
 
   function moveSwipe(event) {
-    if (swipe.id !== event.pointerId) return;
-    const dx = event.clientX - swipe.startX;
-    const dy = event.clientY - swipe.startY;
-    swipe.lastX = event.clientX;
-    swipe.lastY = event.clientY;
-    const mobileSwipe = game.mobileMode || isMobileLayout();
-    const horizontalThreshold = mobileSwipe ? 14 : 22;
-    const jumpThreshold = mobileSwipe ? -32 : -42;
-    const duckThreshold = mobileSwipe ? 42 : 52;
-    if (Math.abs(dx) > horizontalThreshold && Math.abs(dx) > Math.abs(dy) * 0.95) {
-      touchDown.delete(dx > 0 ? "left" : "right");
-      touchDown.add(dx > 0 ? "right" : "left");
+    if (joystick.id !== event.pointerId) return;
+    const rawDx = event.clientX - joystick.startX;
+    const rawDy = event.clientY - joystick.startY;
+    const distance = Math.hypot(rawDx, rawDy);
+    const scale = distance > joystick.max ? joystick.max / distance : 1;
+    const dx = rawDx * scale;
+    const dy = rawDy * scale;
+    joystick.lastX = event.clientX;
+    joystick.lastY = event.clientY;
+    if (!joystick.active && distance > joystick.deadzone * 1.5) {
+      joystick.active = true;
+      setJoystickVisual(true, joystick.startX, joystick.startY, 0, 0);
     }
-    if (dy < jumpThreshold && !swipe.jumpSent) {
-      triggerTouchJump();
-      touchDown.add("up");
-      swipe.jumpSent = true;
-    } else if (dy > duckThreshold) {
-      touchDown.add("down");
-    }
+    if (!joystick.active) return;
+    setJoystickVisual(true, joystick.startX, joystick.startY, dx, dy);
+    updateJoystickDirection(rawDx, rawDy);
   }
 
   function endSwipe(event) {
-    if (swipe.id !== event.pointerId) return;
-    const dx = event.clientX - swipe.startX;
-    const dy = event.clientY - swipe.startY;
+    if (joystick.id !== event.pointerId) return;
+    const dx = event.clientX - joystick.startX;
+    const dy = event.clientY - joystick.startY;
     const travel = Math.hypot(dx, dy);
     if (travel < 16 && game.mode === "playing") {
       const rect = canvas.getBoundingClientRect();
@@ -9450,8 +9613,10 @@
       if (localX > rect.width * 0.48) justPressed.add("touch:attack");
       else triggerTouchJump();
     }
-    swipe.id = null;
-    clearSwipeMovement();
+    joystick.id = null;
+    joystick.active = false;
+    clearJoystickMovement();
+    setJoystickVisual(false);
   }
 
   function loop(now) {

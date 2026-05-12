@@ -794,31 +794,64 @@ h1 {
 }
 
 .movement-pad {
-  display: grid;
-  grid-template-columns: repeat(3, var(--move-touch-size));
-  grid-template-rows: repeat(2, var(--move-touch-size));
-  gap: var(--touch-gap);
-  align-items: center;
-  max-width: calc(var(--move-touch-size) * 3 + var(--touch-gap) * 2);
+  width: 0;
+  max-width: 0;
+  pointer-events: none;
 }
 
-.movement-pad button[data-touch="up"] {
-  grid-column: 2;
+.touch-joystick {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 116px;
+  height: 116px;
+  z-index: 12;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-50%, -50%, 0) scale(0.82);
+  transition: opacity 90ms ease, transform 90ms ease;
+  will-change: transform, opacity;
 }
 
-.movement-pad button[data-touch="left"] {
-  grid-column: 1;
-  grid-row: 2;
+.touch-joystick.is-active {
+  opacity: 0.54;
+  transform: translate3d(-50%, -50%, 0) scale(1);
 }
 
-.movement-pad button[data-touch="down"] {
-  grid-column: 2;
-  grid-row: 2;
+.touch-joystick-ring,
+.touch-joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate3d(-50%, -50%, 0);
 }
 
-.movement-pad button[data-touch="right"] {
-  grid-column: 3;
-  grid-row: 2;
+.touch-joystick-ring {
+  width: 116px;
+  height: 116px;
+  border: 2px solid rgba(244, 211, 139, 0.42);
+  background:
+    radial-gradient(circle, rgba(255, 235, 170, 0.08) 0 34%, transparent 35%),
+    radial-gradient(circle, rgba(112, 184, 198, 0.14), rgba(5, 4, 8, 0.18) 62%, rgba(5, 4, 8, 0.42));
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.72),
+    inset 0 0 18px rgba(244, 211, 139, 0.12),
+    0 8px 22px rgba(0, 0, 0, 0.42);
+}
+
+.touch-joystick-knob {
+  width: 50px;
+  height: 50px;
+  border: 2px solid rgba(255, 238, 178, 0.72);
+  background:
+    radial-gradient(circle at 48% 36%, rgba(255, 238, 178, 0.26), transparent 34%),
+    linear-gradient(145deg, rgba(81, 34, 18, 0.76), rgba(7, 6, 9, 0.68));
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.54),
+    0 5px 14px rgba(0, 0, 0, 0.4);
+  will-change: transform;
 }
 
 .touch-controls button {
@@ -856,17 +889,6 @@ h1 {
     0 0 0 1px rgba(0, 0, 0, 0.74);
   opacity: 0.52;
   transition: opacity 120ms ease, transform 80ms ease, border-color 120ms ease, box-shadow 120ms ease;
-}
-
-.movement-pad button {
-  width: var(--move-touch-size);
-  height: var(--move-touch-size);
-  min-width: var(--move-touch-size);
-  min-height: var(--move-touch-size);
-}
-
-.movement-pad button::before {
-  font-size: 34px;
 }
 
 .touch-controls button::before {
@@ -1281,7 +1303,7 @@ body.mobile-mode .touch-controls {
   }
 
   h1 {
-    font-size: clamp(36px, 13vw, 52px);
+    font-size: clamp(34px, 11.2vw, 46px);
     line-height: 0.94;
   }
 
