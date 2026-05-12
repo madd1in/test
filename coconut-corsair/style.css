@@ -8,6 +8,9 @@
   --cream: #fff0c9;
   --muted: #9fb2b0;
   --focus: #79d8ff;
+  --body-font: "Book Antiqua", "Palatino Linotype", Georgia, serif;
+  --display-font: "Blackadder ITC", "Bookman Old Style", "Cooper Black", Georgia, serif;
+  --ui-font: "Bookman Old Style", "Book Antiqua", Georgia, serif;
 }
 
 * {
@@ -21,8 +24,9 @@ body {
   margin: 0;
   background: #0a0d12;
   color: var(--cream);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: var(--body-font);
   overflow: hidden;
+  text-rendering: geometricPrecision;
 }
 
 button {
@@ -30,9 +34,11 @@ button {
   border-radius: 8px;
   background: rgba(17, 24, 36, 0.86);
   color: var(--cream);
-  font: inherit;
+  font-family: var(--ui-font);
+  font-size: inherit;
   font-weight: 700;
   letter-spacing: 0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
   cursor: pointer;
   transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
@@ -80,8 +86,13 @@ button:focus-visible {
 
 #sceneName {
   color: var(--gold);
-  font-size: 15px;
-  font-weight: 800;
+  font-family: var(--display-font);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 2px 0 #4b2417,
+    0 0 14px rgba(240, 199, 102, 0.32);
   white-space: nowrap;
 }
 
@@ -89,7 +100,8 @@ button:focus-visible {
   min-width: 0;
   overflow: hidden;
   color: #dce7df;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -103,7 +115,9 @@ button:focus-visible {
   height: 32px;
   min-width: 56px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
+  background:
+    linear-gradient(180deg, rgba(105, 55, 35, 0.92), rgba(34, 27, 31, 0.92));
 }
 
 #dialogue {
@@ -129,13 +143,19 @@ button:focus-visible {
 
 #speaker {
   color: var(--gold);
+  font-family: var(--display-font);
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 0 2px 0 #4b2417;
   white-space: nowrap;
 }
 
 #line {
   min-width: 0;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
   line-height: 1.35;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.52);
 }
 
 #commandBar {
@@ -161,7 +181,11 @@ button:focus-visible {
 #verbs button {
   height: 54px;
   padding: 4px 6px;
-  font-size: 13px;
+  font-family: var(--display-font);
+  font-size: 16px;
+  line-height: 1.05;
+  background:
+    linear-gradient(180deg, rgba(83, 49, 36, 0.94), rgba(20, 24, 31, 0.94));
 }
 
 #verbs button span {
@@ -169,6 +193,7 @@ button:focus-visible {
   color: var(--gold);
   font-size: 18px;
   line-height: 18px;
+  text-shadow: 0 2px 0 #3f2116;
 }
 
 #verbs button.active {
@@ -236,32 +261,48 @@ button:focus-visible {
 .kicker {
   margin: 0;
   color: var(--gold);
-  font-size: clamp(13px, 2vw, 17px);
+  font-family: var(--ui-font);
+  font-size: clamp(14px, 2vw, 20px);
   font-weight: 800;
   text-transform: uppercase;
+  text-shadow:
+    0 2px 0 #4b2417,
+    0 0 18px rgba(240, 199, 102, 0.42);
 }
 
 h1,
 h2,
 .subtitle {
   margin: 0;
-  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.65);
+  font-family: var(--display-font);
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow:
+    0 3px 0 #4f2115,
+    0 6px 0 #111824,
+    0 12px 28px rgba(0, 0, 0, 0.72);
 }
 
 h1 {
-  font-size: clamp(48px, 10vw, 120px);
-  line-height: 0.9;
+  max-width: 100%;
+  color: #ffd56e;
+  font-size: clamp(54px, 11vw, 136px);
+  line-height: 0.84;
+  -webkit-text-stroke: 2px #542516;
+  paint-order: stroke fill;
 }
 
 h2 {
   font-size: clamp(34px, 6vw, 76px);
   line-height: 0.98;
+  -webkit-text-stroke: 1px #542516;
 }
 
 .subtitle {
-  color: #bfe7de;
-  font-size: clamp(24px, 4vw, 44px);
-  font-weight: 800;
+  color: #9fe3da;
+  font-size: clamp(26px, 4.5vw, 52px);
+  line-height: 1;
+  -webkit-text-stroke: 1px #17363d;
 }
 
 #startButton,
@@ -271,8 +312,11 @@ h2 {
   margin-top: 8px;
   background: linear-gradient(180deg, #f0c766, #b96d32);
   color: #1b130d;
+  font-family: var(--display-font);
+  font-size: 23px;
   border-color: rgba(255, 245, 196, 0.65);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.36);
+  text-shadow: 0 1px 0 rgba(255, 244, 188, 0.42);
 }
 
 @media (max-width: 760px) {

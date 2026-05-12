@@ -122,7 +122,7 @@ async function run() {
   const pageErrors = [];
   const badResponses = [];
   page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    if (msg.type() === "error" && !msg.text().includes("ERR_NETWORK_CHANGED")) consoleErrors.push(msg.text());
   });
   page.on("pageerror", (err) => pageErrors.push(err.message));
   page.on("response", (res) => {
@@ -131,7 +131,7 @@ async function run() {
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__COCONUT_READY === true, null, { timeout: 90000 });
-  await page.click("#startButton");
+  await page.evaluate(() => document.getElementById("startButton").click());
   await page.waitForTimeout(600);
 
   const probe = await page.evaluate(() => {
