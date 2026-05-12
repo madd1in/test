@@ -53,7 +53,7 @@
   };
 
   const IMG = {
-    player: "assets/generated/player_sheet_imagen_hd_48.png",
+    player: "assets/generated/player_sheet_imagen_hd_72.png",
     enemy: "assets/generated/enemy_sheet_clean.png",
     enemyExt: "assets/generated/enemy_imagen_zora_panther_sheet.png",
     enemyQuest: "assets/generated/enemy_imagen_quest_minibosses_sheet_48.png",
@@ -373,7 +373,7 @@
     bossMilestones: "quest-wardens-full-bossfight-v2",
     mapMode: "cycle-off-mini-full-v1",
     objectiveDoorGuide: "in-world-next-exit-v1",
-    playerMotionSet: "imagen-hd-player-48f-whip-16f-smooth-v1",
+    playerMotionSet: "imagen-hd-player-72f-body-atlas-v2",
     accessibilityHud: "low-reading-hud-v1",
     controlSkin: "gothic-medallion-controls-v1",
     mobileTouch: "large-hit-targets-v3-readable-fonts",
@@ -389,7 +389,7 @@
   const SPRITES = {
     playerFrameW: 128,
     playerFrameH: 184,
-    playerFrames: 48,
+    playerFrames: 72,
     whipFrameW: 192,
     whipFrameH: 72,
     whipFrames: 16,
@@ -415,15 +415,17 @@
   window.__NOCTURNE_FRAME_INFO = SPRITES;
 
   const PLAYER_ANIM = {
-    idle: [0, 1],
-    walkStart: 2,
-    walkFrames: 16,
-    jumpRise: 18,
-    jumpFall: 20,
-    hurt: 22,
-    attackStart: 24,
+    idle: [0, 1, 2, 3, 4, 5, 6, 7],
+    walkStart: 12,
+    walkFrames: 24,
+    jumpStart: 36,
+    jumpFrames: 12,
+    hurt: 45,
+    attackStart: 48,
     attackFrames: 12,
-    duck: 36
+    duckStart: 60,
+    duckFrames: 12,
+    duck: 61
   };
 
   const ENEMY_TYPES = {
@@ -8689,13 +8691,19 @@
   function drawPlayer() {
     const attackProgress = clamp((0.28 - player.attackTimer) / 0.28, 0, 1);
     const moving = Math.abs(player.vx) > 0.16;
-    let frame = PLAYER_ANIM.idle[Math.floor(game.time * 3) % PLAYER_ANIM.idle.length];
+    let frame = PLAYER_ANIM.idle[Math.floor(game.time * 4) % PLAYER_ANIM.idle.length];
     if (player.invuln > 0.62) frame = PLAYER_ANIM.hurt;
     else if (player.attackTimer > 0) frame = PLAYER_ANIM.attackStart + clamp(Math.floor(attackProgress * PLAYER_ANIM.attackFrames), 0, PLAYER_ANIM.attackFrames - 1);
-    else if (!player.onGround) frame = player.vy < -0.25 ? PLAYER_ANIM.jumpRise : PLAYER_ANIM.jumpFall;
-    else if (playerIsDucking()) frame = PLAYER_ANIM.duck;
+    else if (!player.onGround) {
+      const jumpIndex = player.vy < -5 ? 0 : player.vy < -2 ? 2 : player.vy < 0.75 ? 4 : player.vy < 4 ? 7 : 10;
+      frame = PLAYER_ANIM.jumpStart + clamp(jumpIndex, 0, PLAYER_ANIM.jumpFrames - 1);
+    } else if (playerIsDucking()) {
+      frame = moving
+        ? PLAYER_ANIM.duckStart + Math.floor(game.time * 12) % PLAYER_ANIM.duckFrames
+        : PLAYER_ANIM.duck;
+    }
     else if (moving) {
-      const walkRate = 13.5 + clamp(Math.abs(player.vx) * 1.55, 0, 5.5);
+      const walkRate = 24 + clamp(Math.abs(player.vx) * 2.1, 0, 8);
       frame = PLAYER_ANIM.walkStart + Math.floor(game.time * walkRate) % PLAYER_ANIM.walkFrames;
     }
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
