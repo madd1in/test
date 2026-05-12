@@ -706,6 +706,18 @@ const audioAssets = {
   },
 };
 
+const sfxProfiles = {
+  correct: { volume: 0.16, rate: 0.88 },
+  wrong: { volume: 0.14, rate: 0.82 },
+  start: { volume: 0.13, rate: 0.78 },
+  roundEnd: { volume: 0.14, rate: 0.84 },
+  finish: { volume: 0.15, rate: 0.82 },
+  mission: { volume: 0.14, rate: 0.86 },
+  rupee: { volume: 0.12, rate: 0.84 },
+  fairy: { volume: 0.12, rate: 0.8 },
+  select: { volume: 0.1, rate: 0.74 },
+};
+
 const bgmThemes = {
   calm: {
     label: "Calm",
@@ -846,7 +858,9 @@ function setupLocalAudio() {
   Object.entries(audioAssets.sfx).forEach(([name, src]) => {
     const clip = new Audio(src);
     clip.preload = "auto";
-    clip.volume = name === "wrong" ? 0.28 : 0.34;
+    const profile = sfxProfiles[name] || sfxProfiles.select;
+    clip.volume = profile.volume;
+    clip.playbackRate = profile.rate;
     audioState.localSfx[name] = clip;
   });
 }
@@ -859,6 +873,7 @@ function playLocalSfx(name) {
   }
   const clip = source.cloneNode();
   clip.volume = source.volume;
+  clip.playbackRate = source.playbackRate;
   clip.play().catch(() => {});
   return true;
 }
@@ -874,13 +889,17 @@ function playTone(freq, duration = 0.12, type = "sine", gain = 0.06, when = 0) {
   const ctx = audioState.ctx;
   const now = ctx.currentTime + when;
   const osc = ctx.createOscillator();
+  const filter = ctx.createBiquadFilter();
   const amp = ctx.createGain();
   osc.type = type;
   osc.frequency.value = freq;
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(760, now);
+  filter.Q.setValueAtTime(0.35, now);
   amp.gain.setValueAtTime(0.0001, now);
-  amp.gain.linearRampToValueAtTime(gain, now + 0.02);
+  amp.gain.linearRampToValueAtTime(gain, now + 0.035);
   amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-  osc.connect(amp).connect(ctx.destination);
+  osc.connect(filter).connect(amp).connect(ctx.destination);
   osc.start(now);
   osc.stop(now + duration + 0.05);
 }
@@ -929,40 +948,40 @@ function playSfx(name) {
   }
   switch (name) {
     case "correct":
-      playTone(880, 0.08, "sine", 0.06);
-      playTone(1120, 0.1, "sine", 0.05, 0.06);
+      playTone(392, 0.12, "sine", 0.025);
+      playTone(523.25, 0.14, "sine", 0.02, 0.08);
       break;
     case "wrong":
-      playTone(220, 0.14, "sawtooth", 0.05);
-      playTone(180, 0.16, "sawtooth", 0.04, 0.08);
+      playTone(196, 0.16, "triangle", 0.025);
+      playTone(164.81, 0.18, "sine", 0.02, 0.09);
       break;
     case "start":
-      playTone(520, 0.12, "triangle", 0.05);
+      playTone(261.63, 0.16, "sine", 0.024);
       break;
     case "roundEnd":
-      playTone(330, 0.12, "triangle", 0.05);
-      playTone(392, 0.12, "triangle", 0.04, 0.08);
+      playTone(246.94, 0.14, "sine", 0.022);
+      playTone(329.63, 0.14, "sine", 0.018, 0.1);
       break;
     case "finish":
-      playTone(392, 0.12, "sine", 0.05);
-      playTone(523.25, 0.12, "sine", 0.05, 0.1);
-      playTone(659.25, 0.16, "sine", 0.05, 0.2);
+      playTone(261.63, 0.15, "sine", 0.022);
+      playTone(329.63, 0.16, "sine", 0.02, 0.12);
+      playTone(392, 0.18, "sine", 0.018, 0.24);
       break;
     case "mission":
-      playTone(659.25, 0.08, "triangle", 0.05);
-      playTone(880, 0.1, "triangle", 0.04, 0.08);
+      playTone(329.63, 0.12, "sine", 0.021);
+      playTone(440, 0.14, "sine", 0.018, 0.1);
       break;
     case "rupee":
-      playTone(659.25, 0.08, "square", 0.05);
-      playTone(988, 0.1, "square", 0.04, 0.05);
+      playTone(329.63, 0.09, "sine", 0.018);
+      playTone(392, 0.11, "sine", 0.016, 0.07);
       break;
     case "fairy":
-      playTone(523.25, 0.1, "triangle", 0.05);
-      playTone(659.25, 0.12, "triangle", 0.04, 0.06);
-      playTone(783.99, 0.14, "triangle", 0.04, 0.12);
+      playTone(261.63, 0.13, "sine", 0.02);
+      playTone(329.63, 0.15, "sine", 0.018, 0.09);
+      playTone(392, 0.17, "sine", 0.016, 0.18);
       break;
     default:
-      playTone(440, 0.1, "sine", 0.04);
+      playTone(261.63, 0.1, "sine", 0.016);
       break;
   }
 }
@@ -1240,6 +1259,31 @@ function supportsSpeech() {
   return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 }
 
+function getPreferredSpeechVoice() {
+  if (!supportsSpeech()) {
+    return null;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  const germanVoices = voices.filter((voice) => /^de\b/i.test(voice.lang || ""));
+  if (!germanVoices.length) {
+    return null;
+  }
+  const naturalHints = ["katja", "hedda", "anna", "google", "premium", "natural", "neural"];
+  const avoidHints = ["compact", "eloquence", "espeak"];
+  const ranked = germanVoices
+    .map((voice) => {
+      const name = String(voice.name || "").toLowerCase();
+      const score =
+        (voice.lang === "de-DE" ? 8 : 0) +
+        (voice.localService ? 4 : 0) +
+        naturalHints.reduce((sum, hint) => sum + (name.includes(hint) ? 6 : 0), 0) -
+        avoidHints.reduce((sum, hint) => sum + (name.includes(hint) ? 12 : 0), 0);
+      return { voice, score };
+    })
+    .sort((a, b) => b.score - a.score);
+  return ranked[0].voice;
+}
+
 function getSpeechRecognitionCtor() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
@@ -1270,10 +1314,14 @@ function speakText(text, options = {}) {
     return false;
   }
   const utterance = new SpeechSynthesisUtterance(makeSpeechText(text));
+  const preferredVoice = getPreferredSpeechVoice();
   utterance.lang = "de-DE";
-  utterance.rate = 0.78;
-  utterance.pitch = 0.96;
-  utterance.volume = 1;
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+  utterance.rate = 0.68;
+  utterance.pitch = 0.88;
+  utterance.volume = 0.82;
   try {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
