@@ -66,7 +66,6 @@
     doorsHd: "assets/generated/doors_imagen_hd_sheet_v2.png",
     exitGuides: "assets/generated/ui_imagen_hd_exit_guides.png",
     shrineHd: "assets/generated/props_imagen_hd_reset_shrine.png",
-    grottoSpikesHd: "assets/generated/props_imagen_hd_grotto_spikes.png",
     whip: "assets/generated/whip_sheet_imagen_hd_16.png",
     tiles: "assets/generated/tiles_imagen_hd_platforms.png",
     gate: "assets/generated/tile_gate.png",
@@ -112,7 +111,6 @@
     paraMachinery: "assets/generated/para_imagen_machinery_hd.png",
     paraMist: "assets/generated/para_imagen_mist_roses_hd.png",
     paraCrystals: "assets/generated/para_imagen_crystals_hd.png",
-    paraCavernSpires: "assets/generated/para_imagen_cavern_spires_hd.png",
     paraCavernMist: "assets/generated/para_imagen_cavern_mist_hd.png",
     paraMirrorWindows: "assets/generated/para_imagen_mirror_windows_hd_v2.png",
     paraEmberChains: "assets/generated/para_imagen_ember_chains_hd.png",
@@ -187,7 +185,6 @@
   const WEAPON_ICON_SIZE = 128;
   const DOOR_FRAME_SIZE = 256;
   const SHRINE_FRAME_SIZE = 256;
-  const GROTTO_SPIKE_FRAME_SIZE = 256;
   const MOAT_WATER_TILE_SIZE = 256;
   const MOAT_WATER_FRAMES = 4;
   const ENEMY_HP_SCALE = 1.18;
@@ -349,7 +346,7 @@
     drawbridgeAnchorSet: "imagen-trim-anchor-plates-v1",
     drawbridgePerf: "world-layer-warmed-water-v3",
     cavernSection: "sapphire-grotto-zora-v1",
-    grottoMechanic: "moving-water-raft-duck-spikes-v2-hd-assets",
+    grottoMechanic: "moving-water-raft-duck-gates-v3-no-stalagmites",
     enemyVisibility: "panther-zora-rim-respawn-v1",
     chestSet: "imagen-hd-treasure-chests-v2",
     weaponSet: WEAPON_ASSET_SET,
@@ -360,7 +357,7 @@
     librarySwitchSet: "imagen-hd-library-rune-switches-v1",
     forgePuzzleFlow: "linear-nearby-no-reset-v1",
     shrineSet: "imagen-hd-reset-shrine-v1",
-    grottoSpikeSet: "imagen-hd-stalagmite-stalactite-v1",
+    grottoSpikeSet: "removed-stalagmite-shades-v1",
     armoryProps: "imagen-hd-armory-moon-cases-v1",
     towerGalleryProps: "imagen-hd-moon-chain-gallery-props-v1",
     catacombProps: "imagen-hd-bone-bell-catacomb-props-v1",
@@ -1934,7 +1931,7 @@
       mid: null,
       music: "explore",
       palette: "blue",
-      para: ["paraCavernSpires", "paraCavernMist"],
+      para: ["paraCrystals", "paraCavernMist"],
       grottoRide: { x1: 278, x2: 1056, y: 404, w: 190, h: 24, waterY: 430, speed: 0.52 },
       duckGates: [
         { x: 520, y: 264, w: 96, h: 92 },
@@ -3366,8 +3363,9 @@
       } : null,
       waterY: room.grottoRide.waterY,
       ducking: playerIsDucking(),
-      spikesAsset: Boolean(images.grottoSpikesHd && images.grottoSpikesHd.width),
-      spikeFrameW: GROTTO_SPIKE_FRAME_SIZE,
+      spikesAsset: false,
+      spikeFrameW: 0,
+      gateVisual: "clean-low-gates-no-stalagmites",
       duckGates: (room.duckGates || []).map((gate) => ({
         x: gate.x,
         y: gate.y,
@@ -6855,21 +6853,8 @@
     const rw = roomWidth(room);
     const rh = roomHeight(room);
     drew = drawHdImageLayer(images.bgSanctum, 0, 0, rw, rh, 0.18, "screen") || drew;
-    drew = drawHdImageLayer(images.paraCavernSpires, -40, 10, rw + 80, 430, 0.30, "source-over") || drew;
+    drew = drawHdImageLayer(images.paraCavernMist, -40, 10, rw + 80, 430, 0.24, "screen") || drew;
     drew = drawHdImageLayer(images.paraMoonwellRipples, 90, 250, rw - 120, 260, 0.30, "screen") || drew;
-    const spikes = images.grottoSpikesHd;
-    if (spikes && spikes.width) {
-      for (let x = 90, i = 0; x < rw - 70; x += 245, i += 1) {
-        const cell = (i % Math.max(1, Math.floor(spikes.width / GROTTO_SPIKE_FRAME_SIZE))) * GROTTO_SPIKE_FRAME_SIZE;
-        ctx.save();
-        ctx.imageSmoothingEnabled = true;
-        ctx.globalAlpha = 0.48;
-        ctx.drawImage(spikes, cell, 0, GROTTO_SPIKE_FRAME_SIZE, GROTTO_SPIKE_FRAME_SIZE, x, 40 + (i % 2) * 26, 136, 184);
-        ctx.drawImage(spikes, cell, GROTTO_SPIKE_FRAME_SIZE, GROTTO_SPIKE_FRAME_SIZE, GROTTO_SPIKE_FRAME_SIZE, x + 68, 398, 120, 92);
-        ctx.restore();
-      }
-      drew = true;
-    }
     return drew;
   }
 
@@ -6982,34 +6967,49 @@
       : room.organic === "bones" ? "rgba(19, 22, 18, 0.62)"
       : "rgba(8, 15, 13, 0.62)";
     ctx.save();
-    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     for (let x = -40, i = 0; x < rw + 120; x += 138, i += 1) {
       const top = 42 + ((i * 37) % 72);
       const drop = 86 + ((i * 29) % 118);
+      ctx.globalAlpha = 0.46;
+      ctx.lineWidth = room.organic === "gears" ? 12 : 18;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + 86, 0);
-      ctx.lineTo(x + 74, top + drop);
-      ctx.quadraticCurveTo(x + 48, top + drop + 34, x + 26, top + drop * 0.62);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(x + 36, 18);
+      ctx.bezierCurveTo(x + 72, top * 0.8, x + 18, top + drop * 0.52, x + 78, top + drop);
+      ctx.stroke();
+      ctx.globalAlpha = 0.24;
+      ctx.lineWidth = room.organic === "gears" ? 5 : 7;
+      ctx.beginPath();
+      ctx.moveTo(x + 58, 8);
+      ctx.quadraticCurveTo(x + 26, top + 34, x + 96, top + drop * 0.74);
+      ctx.stroke();
     }
     ctx.globalAlpha = 0.38;
+    ctx.strokeStyle = color;
     for (let x = 70, i = 0; x < rw; x += 220, i += 1) {
       const h = 130 + (i % 3) * 38;
       const y = rh - h - 76 + Math.sin(i * 1.7) * 18;
+      ctx.lineWidth = room.organic === "reservoir" || room.organic === "sluice" ? 6 : 10;
       ctx.beginPath();
-      ctx.moveTo(x - 34, rh);
-      ctx.lineTo(x + 42, y);
-      ctx.lineTo(x + 96, rh);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(x - 42, rh - 84);
+      ctx.bezierCurveTo(x + 8, y + 54, x + 76, y + 70, x + 128, rh - 96);
+      ctx.stroke();
+      ctx.globalAlpha = 0.22;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x - 16, rh - 58);
+      ctx.quadraticCurveTo(x + 36, y + 100, x + 108, rh - 62);
+      ctx.stroke();
+      ctx.globalAlpha = 0.38;
       if (room.organic === "gears") {
         ctx.strokeStyle = "rgba(255, 122, 79, 0.22)";
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.arc(x + 38, y + 28, 34, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.strokeStyle = color;
       } else if (room.organic === "reservoir" || room.organic === "sluice") {
         ctx.strokeStyle = "rgba(126, 232, 255, 0.18)";
         ctx.lineWidth = 3;
@@ -7017,6 +7017,7 @@
         ctx.moveTo(x - 22, y + 52);
         ctx.quadraticCurveTo(x + 42, y + 70, x + 98, y + 38);
         ctx.stroke();
+        ctx.strokeStyle = color;
       }
     }
     ctx.globalAlpha = 1;
@@ -7590,93 +7591,42 @@
   }
 
   function drawGrottoDuckGate(gate, index) {
-    if (drawHdGrottoDuckGate(gate, index)) return;
-    const teeth = Math.max(3, Math.floor(gate.w / 30));
+    const bars = Math.max(3, Math.floor(gate.w / 34));
     ctx.save();
-    ctx.shadowColor = "#07101c";
-    ctx.shadowBlur = 5;
-    for (let i = 0; i < teeth; i += 1) {
-      const x0 = gate.x + (i / teeth) * gate.w;
-      const x1 = gate.x + ((i + 1) / teeth) * gate.w;
-      const mid = (x0 + x1) / 2 + Math.sin(index * 1.7 + i) * 4;
-      const tip = gate.y + gate.h - (i % 2) * 18;
-      const grad = ctx.createLinearGradient(mid, gate.y, mid, tip);
-      grad.addColorStop(0, "rgba(8, 16, 28, 0.98)");
-      grad.addColorStop(0.58, "rgba(28, 58, 82, 0.94)");
-      grad.addColorStop(1, "rgba(142, 236, 255, 0.82)");
-      ctx.fillStyle = grad;
+    ctx.shadowColor = "#7ee8ff";
+    ctx.shadowBlur = 9;
+    const rail = ctx.createLinearGradient(gate.x, gate.y, gate.x, gate.y + gate.h);
+    rail.addColorStop(0, "rgba(10, 26, 42, 0.88)");
+    rail.addColorStop(0.55, "rgba(30, 92, 118, 0.54)");
+    rail.addColorStop(1, "rgba(10, 26, 42, 0.28)");
+    ctx.fillStyle = rail;
+    ctx.fillRect(gate.x - 8, gate.y - 8, gate.w + 16, 18);
+    ctx.fillRect(gate.x - 8, gate.y + gate.h - 8, gate.w + 16, 14);
+    ctx.strokeStyle = "rgba(190, 250, 255, 0.38)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(gate.x - 8, gate.y - 8, gate.w + 16, gate.h + 14);
+    ctx.shadowBlur = 4;
+    for (let i = 0; i < bars; i += 1) {
+      const x = gate.x + ((i + 0.5) / bars) * gate.w + Math.sin(index * 1.7 + i) * 2;
+      const sway = Math.sin(game.time * 1.6 + index + i) * 2;
+      ctx.globalAlpha = 0.58;
+      ctx.strokeStyle = "rgba(168, 246, 255, 0.48)";
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(x0 - 5, gate.y);
-      ctx.lineTo(x1 + 5, gate.y);
-      ctx.lineTo(mid, tip);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(190, 250, 255, 0.26)";
-      ctx.lineWidth = 1.5;
+      ctx.moveTo(x + sway, gate.y - 1);
+      ctx.quadraticCurveTo(x - 7 + sway, gate.y + gate.h * 0.48, x + 2 - sway, gate.y + gate.h - 2);
       ctx.stroke();
     }
 
-    ctx.globalAlpha = 0.64;
-    ctx.fillStyle = "rgba(45, 126, 156, 0.28)";
-    for (let x = gate.x - 6; x < gate.x + gate.w + 8; x += 34) {
-      const h = 28 + ((x + index * 13) % 24);
-      ctx.beginPath();
-      ctx.moveTo(x, 468);
-      ctx.lineTo(x + 16, 468 - h);
-      ctx.lineTo(x + 32, 468);
-      ctx.closePath();
-      ctx.fill();
-    }
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "rgba(64, 196, 220, 0.22)";
+    ctx.fillRect(gate.x - 18, 458, gate.w + 36, 10);
     ctx.restore();
     ctx.globalAlpha = 1;
   }
 
   function drawHdGrottoDuckGate(gate, index) {
-    const img = images.grottoSpikesHd;
-    if (!img || !img.width) return false;
-    const cells = Math.max(1, Math.floor(img.width / GROTTO_SPIKE_FRAME_SIZE));
-    const topW = 86;
-    const topH = Math.max(110, gate.h + 36);
-    const bottomW = 82;
-    const bottomH = 72;
-    ctx.save();
-    ctx.imageSmoothingEnabled = true;
-    ctx.shadowColor = "#06101d";
-    ctx.shadowBlur = 8;
-    for (let x = gate.x - 16, i = 0; x < gate.x + gate.w + 12; x += topW * 0.58, i += 1) {
-      const cell = (index + i) % cells;
-      const sway = Math.sin(game.time * 1.2 + index + i * 0.7) * 2;
-      ctx.drawImage(
-        img,
-        cell * GROTTO_SPIKE_FRAME_SIZE,
-        0,
-        GROTTO_SPIKE_FRAME_SIZE,
-        GROTTO_SPIKE_FRAME_SIZE,
-        x + sway,
-        gate.y - 24,
-        topW,
-        topH
-      );
-    }
-    ctx.globalAlpha = 0.88;
-    for (let x = gate.x - 10, i = 0; x < gate.x + gate.w + 10; x += bottomW * 0.72, i += 1) {
-      const cell = (index + i + 1) % cells;
-      const h = bottomH + ((index + i) % 3) * 8;
-      ctx.drawImage(
-        img,
-        cell * GROTTO_SPIKE_FRAME_SIZE,
-        GROTTO_SPIKE_FRAME_SIZE,
-        GROTTO_SPIKE_FRAME_SIZE,
-        GROTTO_SPIKE_FRAME_SIZE,
-        x,
-        468 - h,
-        bottomW,
-        h
-      );
-    }
-    ctx.globalAlpha = 1;
-    ctx.restore();
-    return true;
+    return false;
   }
 
   function drawDrawbridge(bridge) {

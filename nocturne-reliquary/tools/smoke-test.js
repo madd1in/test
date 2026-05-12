@@ -626,7 +626,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.drawbridgeAnchorSet === "imagen-trim-anchor-plates-v1", "drawbridge anchors should use existing Imagen HD trim tiles");
   assert(result.state.tuningInfo.drawbridgePerf === "world-layer-warmed-water-v3", "drawbridge should use warmed world layers instead of per-camera cache churn");
   assert(result.state.tuningInfo.cavernSection === "sapphire-grotto-zora-v1", "new cavern section should be wired");
-  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-spikes-v2-hd-assets", "sapphire grotto moving raft and HD duck spikes should be wired");
+  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-gates-v3-no-stalagmites", "sapphire grotto moving raft and clean low duck gates should be wired");
   assert(result.state.tuningInfo.enemyVisibility === "panther-zora-rim-respawn-v1", "zora and panther visibility tuning should be wired");
   assert(result.state.tuningInfo.chestSet === "imagen-hd-treasure-chests-v2", "Imagen HD treasure chest tuning should be wired");
   assert(result.state.tuningInfo.weaponSet === "hd-subweapons-projectiles-v1", "HD subweapon/projectile sheet should be wired");
@@ -636,7 +636,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.librarySwitchSet === "imagen-hd-library-rune-switches-v1", "Forgotten Library rune switches should use HD prop assets");
   assert(result.state.tuningInfo.forgePuzzleFlow === "linear-nearby-no-reset-v1", "forge numerals should use a linear no-reset flow");
   assert(result.state.tuningInfo.shrineSet === "imagen-hd-reset-shrine-v1", "reset shrine HD sheet should be wired");
-  assert(result.state.tuningInfo.grottoSpikeSet === "imagen-hd-stalagmite-stalactite-v1", "grotto stalagmite/stalactite HD sheet should be wired");
+  assert(result.state.tuningInfo.grottoSpikeSet === "removed-stalagmite-shades-v1", "grotto stalagmite shade removal should be wired");
   assert(result.state.tuningInfo.armoryProps === "imagen-hd-armory-moon-cases-v1", "Candlelit Armory HD moon/case props should be wired");
   assert(result.state.tuningInfo.towerGalleryProps === "imagen-hd-moon-chain-gallery-props-v1", "Moon Chain Tower and Gallery Imagen HD prop tuning should be wired");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
@@ -675,16 +675,16 @@ async function browserSmoke() {
   assert(moatState.visuals.water.mode7 && moatState.visuals.water.parallax && moatState.visuals.water.frames === 4, `Moon Moat Culvert water should expose Mode7 parallax animation metadata: ${JSON.stringify(moatState.visuals.water)}`);
   assert(moatState.visuals.water.cache >= 1 || result.state.debugState.drawbridgeCache.moatWater >= 1, `Moon Moat Culvert water should use cached render layers: ${JSON.stringify(moatState.visuals.water)}`);
   assert(grottoState && grottoState.visuals.bg === "bgCavernDepths", `sapphire grotto should use the new cavern depths background: ${JSON.stringify(grottoState)}`);
-  assert(grottoState.visuals.parallax.includes("paraCavernSpires") && grottoState.visuals.parallax.includes("paraCavernMist"), `sapphire grotto should use new parallax layers: ${JSON.stringify(grottoState.visuals)}`);
+  assert(!grottoState.visuals.parallax.includes("paraCavernSpires") && grottoState.visuals.parallax.includes("paraCavernMist"), `sapphire grotto should remove cavern spire/stalagmite parallax: ${JSON.stringify(grottoState.visuals)}`);
   assert(grottoState.visuals.mode7, "sapphire grotto should use stretched/Mode7 background fill");
   assert(grottoState.enemyTypes.includes("zora"), `sapphire grotto should spawn zora waterspout enemies: ${JSON.stringify(grottoState.enemyTypes)}`);
   assert(grottoState.enemyTypes.includes("tideWarden"), `sapphire grotto should spawn the Tide Warden quest mini-boss: ${JSON.stringify(grottoState.enemyTypes)}`);
-  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3 && grottoState.grotto.spikesAsset && grottoState.grotto.spikeFrameW === 256, `sapphire grotto should expose moving raft and HD duck gate spikes: ${JSON.stringify(grottoState.grotto)}`);
+  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3 && !grottoState.grotto.spikesAsset && grottoState.grotto.gateVisual === "clean-low-gates-no-stalagmites", `sapphire grotto should expose moving raft and clean low gates without spike assets: ${JSON.stringify(grottoState.grotto)}`);
   const carryOffsetStart = result.grottoMechanicProbe.carryStart.playerX - result.grottoMechanicProbe.carryStart.grotto.platform.x;
   const carryOffsetEnd = result.grottoMechanicProbe.carryEnd.playerX - result.grottoMechanicProbe.carryEnd.grotto.platform.x;
   assert(Math.abs(carryOffsetEnd - carryOffsetStart) <= 18, `moving grotto raft should carry the player: ${JSON.stringify(result.grottoMechanicProbe)}`);
-  assert(result.grottoMechanicProbe.noDuckEnd.hp < result.grottoMechanicProbe.noDuckStart.hp, `standing under grotto spikes should hurt: ${JSON.stringify(result.grottoMechanicProbe.noDuckEnd)}`);
-  assert(result.grottoMechanicProbe.duckEnd.grotto.ducking && result.grottoMechanicProbe.duckEnd.hp === result.grottoMechanicProbe.duckStart.hp, `ducking should clear the low grotto spikes without damage: ${JSON.stringify(result.grottoMechanicProbe.duckEnd)}`);
+  assert(result.grottoMechanicProbe.noDuckEnd.hp < result.grottoMechanicProbe.noDuckStart.hp, `standing under the low grotto gate should hurt: ${JSON.stringify(result.grottoMechanicProbe.noDuckEnd)}`);
+  assert(result.grottoMechanicProbe.duckEnd.grotto.ducking && result.grottoMechanicProbe.duckEnd.hp === result.grottoMechanicProbe.duckStart.hp, `ducking should clear the low grotto gate without damage: ${JSON.stringify(result.grottoMechanicProbe.duckEnd)}`);
   assert(result.enemyVisibilityProbe.gate.enemyTypes.includes("blackPanther"), `black panther should respawn even if a regular kill was saved: ${JSON.stringify(result.enemyVisibilityProbe.gate.enemyTypes)}`);
   assert(result.enemyVisibilityProbe.grotto.enemyTypes.includes("zora"), `zora should respawn even if a regular kill was saved: ${JSON.stringify(result.enemyVisibilityProbe.grotto.enemyTypes)}`);
   const visiblePanther = result.enemyVisibilityProbe.gate.featuredEnemies.find((enemy) => enemy.type === "blackPanther");
