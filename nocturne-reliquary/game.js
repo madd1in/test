@@ -518,6 +518,7 @@
   window.__NOCTURNE_ENEMY_FRAME_MAP = ENEMY_FRAME_MAP;
 
   const images = {};
+  const failedAssets = new Set();
   const keysDown = new Set();
   const justPressed = new Set();
   const touchDown = new Set();
@@ -2757,7 +2758,8 @@
     let done = 0;
     await Promise.all(entries.map(async ([key, src]) => {
       const result = await loadImage(key, src);
-      images[key] = result.img;
+      images[key] = result.ok ? result.img : null;
+      if (!result.ok) failedAssets.add(key);
       done += 1;
       dom.loadState.textContent = `Loading local assets ${done}/${entries.length}`;
     }));
@@ -8809,7 +8811,7 @@
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
     drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha, true, mobilePerformanceMode());
 
-    if (player.attackTimer > 0.035) {
+    if (player.attackTimer > 0.035 && images.whip && images.whip.width) {
       const sx = clamp(Math.floor(attackProgress * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
       const drawW = WHIP_DRAW_W;
       const drawH = WHIP_DRAW_H;
