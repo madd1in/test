@@ -53,7 +53,7 @@
   };
 
   const IMG = {
-    player: "assets/generated/player_sheet_anim.png",
+    player: "assets/generated/player_sheet_imagen_hd_48.png",
     enemy: "assets/generated/enemy_sheet_clean.png",
     enemyExt: "assets/generated/enemy_imagen_zora_panther_sheet.png",
     enemyQuest: "assets/generated/enemy_imagen_quest_minibosses_sheet_48.png",
@@ -66,7 +66,7 @@
     exitGuides: "assets/generated/ui_imagen_hd_exit_guides.png",
     shrineHd: "assets/generated/props_imagen_hd_reset_shrine.png",
     grottoSpikesHd: "assets/generated/props_imagen_hd_grotto_spikes.png",
-    whip: "assets/generated/whip_sheet.png",
+    whip: "assets/generated/whip_sheet_imagen_hd_16.png",
     tiles: "assets/generated/tiles_imagen_hd_platforms.png",
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
@@ -375,6 +375,7 @@
     bossMilestones: "quest-wardens-full-bossfight-v2",
     mapMode: "cycle-off-mini-full-v1",
     objectiveDoorGuide: "in-world-next-exit-v1",
+    playerMotionSet: "imagen-hd-player-48f-whip-16f-smooth-v1",
     accessibilityHud: "low-reading-hud-v1",
     controlSkin: "gothic-medallion-controls-v1",
     mobileTouch: "large-hit-targets-v3-readable-fonts",
@@ -389,10 +390,10 @@
   const SPRITES = {
     playerFrameW: 128,
     playerFrameH: 184,
-    playerFrames: 24,
+    playerFrames: 48,
     whipFrameW: 192,
     whipFrameH: 72,
-    whipFrames: 8,
+    whipFrames: 16,
     bossFrameW: 320,
     bossFrameH: 256,
     bossFrames: 32,
@@ -410,6 +411,18 @@
     chestFrames: 4
   };
   window.__NOCTURNE_FRAME_INFO = SPRITES;
+
+  const PLAYER_ANIM = {
+    idle: [0, 1],
+    walkStart: 2,
+    walkFrames: 16,
+    jumpRise: 18,
+    jumpFall: 20,
+    hurt: 22,
+    attackStart: 24,
+    attackFrames: 12,
+    duck: 36
+  };
 
   const ENEMY_TYPES = {
     zombie: { row: 0, hp: 22, w: 42, h: 82, dw: 86, dh: 118, speed: 0.62, damage: 5, ai: "walker" },
@@ -450,7 +463,8 @@
       frameW: 256,
       frameH: 192,
       frames: 24,
-      fps: 18,
+      fps: 16,
+      blendFrames: true,
       run: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       lunge: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
       recover: [20, 21, 22, 23]
@@ -4086,16 +4100,17 @@
         const targetSpeed = hunt ? cfg.speed : cfg.speed * 0.48;
         if (enemy.lunge > 0) {
           enemy.lunge -= dt;
-          enemy.vx = enemy.facing * cfg.speed * 1.7;
+          const lungeSpeed = enemy.facing * cfg.speed * 1.7;
+          enemy.vx += (lungeSpeed - enemy.vx) * Math.min(1, 0.34 * step);
         } else {
-          enemy.vx += dir * 0.18 * step;
+          enemy.vx += dir * 0.14 * step;
           enemy.vx = clamp(enemy.vx, -targetSpeed, targetSpeed);
           if (enemy.onGround && hunt && Math.abs(dist) < 260 && enemy.cooldown <= 0) {
             enemy.facing = dir;
             enemy.lunge = 0.42;
             enemy.attackWindup = 0.55;
-            enemy.vx = dir * cfg.speed * 1.85;
-            enemy.vy = -5.8;
+            enemy.vx = dir * cfg.speed * 1.42;
+            enemy.vy = -5.35;
             enemy.cooldown = 1.6;
             burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#1d2540", 10);
           }
@@ -4127,6 +4142,8 @@
         }
       }
 
+      updateEnemyAnimationClock(enemy, dt);
+
       if (rectsOverlap(player, enemy)) {
         hurtPlayer(cfg.damage);
         if (player.invuln > 0.4) {
@@ -4138,6 +4155,18 @@
         }
       }
     }
+  }
+
+  function updateEnemyAnimationClock(enemy, dt) {
+    const state = enemyAnimationState(enemy);
+    if (enemy.animState !== state) {
+      enemy.animState = state;
+      enemy.animTime = 0;
+      return;
+    }
+    const speedRatio = enemy.cfg && enemy.cfg.speed ? clamp(Math.abs(enemy.vx || 0) / Math.max(0.1, enemy.cfg.speed), 0.35, 1.35) : 1;
+    const strideScale = enemy.cfg && enemy.cfg.ai === "panther" && state === "run" ? speedRatio : 1;
+    enemy.animTime = (enemy.animTime || 0) + dt * strideScale;
   }
 
   function shootEnemy(enemy, speed, color, damage = 6, opts = {}) {
@@ -6082,11 +6111,15 @@
   }
 
   function drawMode7MoatWaterPass(plane, img, x, y, w, h, cameraX, cameraY, pass, alpha) {
-    const frame = Math.floor(game.time * 7.5 + pass) % MOAT_WATER_FRAMES;
+    const rawFrame = game.time * 7.5 + pass;
+    const frame = Math.floor(rawFrame) % MOAT_WATER_FRAMES;
+    const nextFrame = (frame + 1) % MOAT_WATER_FRAMES;
+    const blend = smoothstep(rawFrame - Math.floor(rawFrame));
     const speedX = pass === 0 ? 28 : -14;
     const cameraFactor = pass === 0 ? 0.18 : 0.38;
     const layer = getMoatWaterMode7Layer(img, Math.ceil(w), Math.ceil(h), frame, pass);
     if (!layer) return;
+    const nextLayer = getMoatWaterMode7Layer(img, Math.ceil(w), Math.ceil(h), nextFrame, pass);
     const scroll = positiveModulo(game.time * speedX + cameraX * cameraFactor + cameraY * 0.07, MOAT_WATER_TILE_SIZE);
     const baseX = x - MOAT_WATER_TILE_SIZE - scroll;
 
@@ -6094,6 +6127,10 @@
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = alpha;
     ctx.drawImage(layer, baseX, y);
+    if (nextLayer && blend > 0.02) {
+      ctx.globalAlpha = alpha * blend * 0.5;
+      ctx.drawImage(nextLayer, baseX + Math.sin(game.time * 1.8 + pass) * 2, y);
+    }
     ctx.restore();
   }
 
@@ -6213,6 +6250,11 @@
 
   function positiveModulo(value, size) {
     return ((value % size) + size) % size;
+  }
+
+  function smoothstep(t) {
+    const x = clamp(t, 0, 1);
+    return x * x * (3 - 2 * x);
   }
 
   function drawRoomBackground(room, bg, mid, cameraX, cameraY) {
@@ -6664,9 +6706,17 @@
         const r = data[i];
         const gr = data[i + 1];
         const b = data[i + 2];
-        if (gr > 130 && gr > r * 1.45 && gr > b * 1.45) {
-          const greenDominance = Math.min(1, (gr - Math.max(r, b)) / 150);
+        const galleryMatte = String(key || "").includes("galleryPortraits");
+        const maxRb = Math.max(r, b);
+        const greenScreen = galleryMatte
+          ? gr > 82 && gr - maxRb > 14 && gr > r * 1.12 && gr > b * 1.06
+          : gr > 130 && gr > r * 1.45 && gr > b * 1.45;
+        if (greenScreen) {
+          const threshold = galleryMatte ? 12 : 0;
+          const falloff = galleryMatte ? 68 : 150;
+          const greenDominance = Math.min(1, Math.max(0, (gr - maxRb - threshold) / falloff));
           data[i + 3] = Math.max(0, Math.round(data[i + 3] * (1 - greenDominance)));
+          if (galleryMatte && greenDominance > 0.52) data[i + 3] = 0;
         }
       }
       g.putImageData(pixels, 0, 0);
@@ -6747,10 +6797,28 @@
     const rw = roomWidth(room);
     const rh = roomHeight(room);
     drew = drawHdImageLayer(images.bgMoonwell, 0, 0, rw, rh, 0.24, "screen") || drew;
-    drew = drawHdImageLayer(images.paraMoonwellRipples, 0, 180, rw, 380, 0.42, "screen") || drew;
+    drew = drawMoonwellRippleLayer(images.paraMoonwellRipples, 0, 180, rw, 380, 0.42) || drew;
     drew = drawHdImageLayer(images.paraCrystals, 760, 40, 520, 360, 0.28, "screen") || drew;
     drew = drawImagenHdMoon(1046, 48, 230, 138, 0.52, 1) || drew;
     return drew;
+  }
+
+  function drawMoonwellRippleLayer(img, x, y, w, h, alpha = 1) {
+    if (!img || !img.width) return false;
+    const drift = positiveModulo(game.time * 18, 96);
+    const lift = Math.sin(game.time * 0.9) * 4;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(img, 0, 0, img.width, img.height, x - drift, y + lift, w + 112, h);
+    ctx.globalAlpha *= 0.58;
+    ctx.drawImage(img, 0, 0, img.width, img.height, x + 42 - drift * 0.45, y + 10 - lift * 0.35, w + 96, h);
+    ctx.restore();
+    return true;
   }
 
   function drawCrimsonChamberHdProps() {
@@ -6797,89 +6865,70 @@
   }
 
   function drawTowerHdProps(room) {
-    const img = images.towerProps;
-    if (!img || !img.width) return false;
+    const rw = roomWidth(room);
+    const rh = roomHeight(room);
     const t = game.time;
-    const cellW = img.width / 4;
-    const chainH = img.height * 0.42;
-    const anchorY = img.height * 0.39;
-    const anchorH = img.height * 0.27;
-    const moonY = img.height * 0.64;
-    const moonH = img.height * 0.36;
-    const chains = [
-      { frame: 0, x: 86, y: -24, w: 94, h: 252, a: 0.44 },
-      { frame: 1, x: 372, y: -34, w: 86, h: 234, a: 0.4 },
-      { frame: 2, x: 642, y: -18, w: 70, h: 248, a: 0.42 },
-      { frame: 3, x: 1034, y: -30, w: 96, h: 268, a: 0.44 },
-      { frame: 1, x: 1236, y: -20, w: 82, h: 236, a: 0.36 }
-    ];
     ctx.save();
-    for (const c of chains) {
-      const sway = Math.sin(t * 0.85 + c.x * 0.02) * 4;
-      ctx.save();
-      ctx.globalAlpha = 0.32;
-      ctx.filter = "blur(7px)";
-      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, 0, cellW, chainH, c.x + sway + 10, c.y + 12, c.w, c.h, c.a);
-      ctx.restore();
-      ctx.save();
-      ctx.filter = "saturate(0.38) brightness(0.56) contrast(1.18)";
-      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, 0, cellW, chainH, c.x + sway, c.y, c.w, c.h, c.a);
-      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, anchorY, cellW, anchorH, c.x - 34 + sway, c.y + c.h - 12, c.w + 68, 118, 0.38);
-      ctx.restore();
+    const wall = ctx.createLinearGradient(0, 0, 0, rh);
+    wall.addColorStop(0, "#080a0f");
+    wall.addColorStop(0.45, "#111622");
+    wall.addColorStop(1, "#080709");
+    ctx.fillStyle = wall;
+    ctx.fillRect(0, 0, rw, rh);
+
+    ctx.globalAlpha = 0.32;
+    ctx.fillStyle = "#171b25";
+    for (let x = -30; x < rw + 80; x += 178) {
+      ctx.fillRect(x, 0, 34, rh);
+      ctx.fillRect(x + 76, 0, 12, rh);
     }
-    const fog = ctx.createLinearGradient(0, 0, 0, 300);
-    fog.addColorStop(0, "rgba(7, 8, 14, 0.36)");
-    fog.addColorStop(0.54, "rgba(90, 112, 132, 0.10)");
-    fog.addColorStop(1, "rgba(7, 8, 14, 0)");
-    ctx.fillStyle = fog;
-    ctx.fillRect(0, 0, roomWidth(room), 300);
+
+    ctx.globalAlpha = 0.42;
+    for (let x = 86, i = 0; x < rw + 160; x += 276, i += 1) {
+      const w = 150 + (i % 2) * 28;
+      const h = 360 + (i % 3) * 42;
+      const y = 62 + (i % 2) * 22;
+      traceGothicArch(x, y, w, h);
+      const arch = ctx.createLinearGradient(x, y, x, y + h);
+      arch.addColorStop(0, "rgba(16, 24, 35, 0.82)");
+      arch.addColorStop(0.56, "rgba(28, 35, 48, 0.58)");
+      arch.addColorStop(1, "rgba(4, 5, 8, 0.88)");
+      ctx.fillStyle = arch;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(99, 91, 74, 0.34)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 0.16;
+    ctx.strokeStyle = "rgba(154, 132, 88, 0.18)";
+    ctx.lineWidth = 3;
+    for (let x = 160; x < rw + 80; x += 260) {
+      const sway = Math.sin(t * 0.7 + x * 0.01) * 3;
+      ctx.beginPath();
+      ctx.moveTo(x + sway, 0);
+      for (let y = 0; y < rh + 40; y += 42) {
+        ctx.lineTo(x + Math.sin(y * 0.04 + t * 0.6) * 5 + sway, y);
+      }
+      ctx.stroke();
+    }
+
     ctx.globalCompositeOperation = "screen";
-    drawChromaAtlasSprite(img, "towerProps", 0, moonY, img.width * 0.48, moonH, 852, 40, 252, 148, 0.48);
-    drawChromaAtlasSprite(img, "towerProps", img.width * 0.48, moonY, img.width * 0.52, moonH, 548, 58, 212, 128, 0.42);
+    ctx.globalAlpha = 0.22;
+    const moon = ctx.createRadialGradient(968, 156, 12, 968, 156, 154);
+    moon.addColorStop(0, "rgba(210, 228, 236, 0.58)");
+    moon.addColorStop(0.48, "rgba(126, 158, 176, 0.18)");
+    moon.addColorStop(1, "rgba(126, 158, 176, 0)");
+    ctx.fillStyle = moon;
+    ctx.fillRect(792, -18, 352, 352);
     ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
     ctx.restore();
     return true;
   }
 
   function drawGalleryPortraits(room) {
-    const img = images.galleryPortraits;
-    if (!img || !img.width) return false;
-    const cellW = img.width / 4;
-    const cellH = img.height / 2;
-    const portraits = [
-      { i: 0, x: 56, y: 88, w: 134, h: 212, a: 0.72 },
-      { i: 1, x: 250, y: 74, w: 150, h: 236, a: 0.82 },
-      { i: 2, x: 468, y: 94, w: 132, h: 210, a: 0.72 },
-      { i: 3, x: 686, y: 76, w: 148, h: 232, a: 0.78 },
-      { i: 4, x: 924, y: 102, w: 132, h: 208, a: 0.68 },
-      { i: 5, x: 1134, y: 82, w: 146, h: 226, a: 0.78 },
-      { i: 6, x: 330, y: 352, w: 112, h: 176, a: 0.54 },
-      { i: 7, x: 1048, y: 344, w: 118, h: 184, a: 0.52 }
-    ];
-    ctx.save();
-    for (const p of portraits) {
-      const col = p.i % 4;
-      const row = Math.floor(p.i / 4);
-      const framePad = 12;
-      const frameGradient = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y + p.h);
-      frameGradient.addColorStop(0, "rgba(25, 18, 16, 0.94)");
-      frameGradient.addColorStop(0.5, "rgba(126, 88, 34, 0.86)");
-      frameGradient.addColorStop(1, "rgba(10, 8, 12, 0.94)");
-      ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-      ctx.fillRect(p.x - framePad + 6, p.y - framePad + 8, p.w + framePad * 2, p.h + framePad * 2);
-      ctx.fillStyle = frameGradient;
-      ctx.fillRect(p.x - framePad, p.y - framePad, p.w + framePad * 2, p.h + framePad * 2);
-      ctx.fillStyle = "rgba(6, 5, 8, 0.88)";
-      ctx.fillRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6);
-      drawChromaAtlasSprite(img, "galleryPortraits", col * cellW, row * cellH, cellW, cellH, p.x, p.y, p.w, p.h, Math.min(0.72, p.a));
-      ctx.fillStyle = "rgba(221, 238, 255, 0.08)";
-      ctx.fillRect(p.x + 8, p.y + 8, Math.max(12, p.w * 0.24), p.h - 16);
-      ctx.strokeStyle = "rgba(244, 211, 139, 0.26)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(p.x - framePad + 3, p.y - framePad + 3, p.w + framePad * 2 - 6, p.h + framePad * 2 - 6);
-    }
-    ctx.restore();
-    return true;
+    return false;
   }
 
   function drawCatacombHdProps(room) {
@@ -6966,9 +7015,77 @@
     return true;
   }
 
+  function drawGalleryBackdropCleanup(room) {
+    const rw = roomWidth(room);
+    const top = 58;
+    const bottom = Math.min(roomHeight(room), 512);
+    ctx.save();
+    const wall = ctx.createLinearGradient(0, top, 0, bottom);
+    wall.addColorStop(0, "#1e0a12");
+    wall.addColorStop(0.48, "#33101e");
+    wall.addColorStop(1, "#12080c");
+    ctx.fillStyle = wall;
+    ctx.fillRect(0, top, rw, bottom - top);
+
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = "rgba(244, 211, 139, 0.26)";
+    ctx.lineWidth = 4;
+    for (let x = 84; x < rw + 120; x += 214) {
+      ctx.beginPath();
+      ctx.moveTo(x, top + 18);
+      ctx.lineTo(x - 18, bottom - 20);
+      ctx.moveTo(x + 66, top + 10);
+      ctx.lineTo(x + 48, bottom - 10);
+      ctx.stroke();
+    }
+
+    const recesses = [
+      { x: 118, y: 116, w: 160, h: 246, a: 0.48 },
+      { x: 386, y: 104, w: 172, h: 266, a: 0.42 },
+      { x: 672, y: 112, w: 168, h: 254, a: 0.50 },
+      { x: 962, y: 104, w: 174, h: 266, a: 0.44 },
+      { x: 1248, y: 118, w: 154, h: 236, a: 0.36 }
+    ];
+    for (const r of recesses) {
+      ctx.globalAlpha = r.a;
+      traceGothicArch(r.x, r.y, r.w, r.h);
+      const recess = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+      recess.addColorStop(0, "rgba(10, 7, 11, 0.74)");
+      recess.addColorStop(0.58, "rgba(46, 18, 26, 0.64)");
+      recess.addColorStop(1, "rgba(8, 5, 8, 0.86)");
+      ctx.fillStyle = recess;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(155, 108, 50, 0.54)";
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      ctx.globalAlpha = r.a * 0.42;
+      traceGothicArch(r.x + 16, r.y + 26, r.w - 32, r.h - 50);
+      ctx.strokeStyle = "rgba(244, 211, 139, 0.34)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return true;
+  }
+
+  function traceGothicArch(x, y, w, h) {
+    const mid = x + w / 2;
+    const shoulder = y + h * 0.34;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x, shoulder);
+    ctx.quadraticCurveTo(x + w * 0.12, y + h * 0.08, mid, y);
+    ctx.quadraticCurveTo(x + w * 0.88, y + h * 0.08, x + w, shoulder);
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+  }
+
   function drawArchitecture(room) {
     if (room.bg === "bgForest" || room.bg === "bgCastleGarden") return;
     drawOrganicMazeContours(room);
+    if (game.roomId === "gallery") drawGalleryBackdropCleanup(room);
 
     const chain = images.chain;
     const lamp = images.lamp;
@@ -7393,7 +7510,10 @@
 
   function drawGrottoWaterPits(room, waterTop) {
     const tile = images.moatWaterTiles;
-    const frame = Math.floor(game.time * 7) % MOAT_WATER_FRAMES;
+    const rawFrame = game.time * 7;
+    const frame = Math.floor(rawFrame) % MOAT_WATER_FRAMES;
+    const nextFrame = (frame + 1) % MOAT_WATER_FRAMES;
+    const blend = smoothstep(rawFrame - Math.floor(rawFrame));
     for (const pit of room.waterPits) {
       const top = pit.y + Math.sin(game.time * 1.4 + pit.x * 0.01) * 3;
       ctx.save();
@@ -7402,8 +7522,14 @@
       ctx.clip();
       if (tile && tile.width) {
         ctx.imageSmoothingEnabled = true;
-        for (let x = pit.x - 18; x < pit.x + pit.w + 20; x += 86) {
+        const drift = positiveModulo(game.time * 22 + pit.x * 0.04, 86);
+        for (let x = pit.x - 104 - drift; x < pit.x + pit.w + 20; x += 86) {
           ctx.drawImage(tile, frame * MOAT_WATER_TILE_SIZE, 0, MOAT_WATER_TILE_SIZE, MOAT_WATER_TILE_SIZE, x, top - 20, 108, pit.h + 46);
+          if (blend > 0.02) {
+            ctx.globalAlpha = 0.44 * blend;
+            ctx.drawImage(tile, nextFrame * MOAT_WATER_TILE_SIZE, 0, MOAT_WATER_TILE_SIZE, MOAT_WATER_TILE_SIZE, x + 2, top - 20, 108, pit.h + 46);
+            ctx.globalAlpha = 1;
+          }
         }
       }
       const grad = ctx.createLinearGradient(0, top, 0, top + pit.h);
@@ -7417,11 +7543,11 @@
       ctx.lineWidth = 2;
       ctx.shadowColor = "#7ee8ff";
       ctx.shadowBlur = 9;
-      for (let i = 0; i < 3; i += 1) {
+      for (let i = 0; i < 4; i += 1) {
         const y = top + 8 + i * 18;
         ctx.beginPath();
-        for (let x = pit.x + 8; x < pit.x + pit.w - 6; x += 14) {
-          const yy = y + Math.sin(game.time * (2.5 + i * 0.2) + x * 0.04) * (2 + i * 0.4);
+        for (let x = pit.x + 8; x < pit.x + pit.w - 6; x += 8) {
+          const yy = y + Math.sin(game.time * (2.2 + i * 0.18) + x * 0.032 + i * 0.7) * (1.8 + i * 0.34);
           if (x === pit.x + 8) ctx.moveTo(x, yy);
           else ctx.lineTo(x, yy);
         }
@@ -8411,11 +8537,11 @@
   function drawEnemySprite(enemy, alpha) {
     const meta = ENEMY_FRAME_MAP[enemy.cfg.sprite || enemy.type];
     if (meta && images[meta.image] && images[meta.image].width) {
-      const frame = enemyAnimationFrame(enemy, meta);
+      const pose = enemyAnimationPose(enemy, meta);
       const flip = meta.facing === "left" ? enemy.facing > 0 : enemy.facing < 0;
       drawSheetFrame(
         images[meta.image],
-        frame,
+        pose.frame,
         meta.row,
         meta.frameW,
         meta.frameH,
@@ -8426,6 +8552,21 @@
         flip,
         alpha
       );
+      if (pose.nextFrame !== pose.frame && pose.blend > 0.02) {
+        drawSheetFrame(
+          images[meta.image],
+          pose.nextFrame,
+          meta.row,
+          meta.frameW,
+          meta.frameH,
+          enemy.x + enemy.w / 2 + Math.sin(game.time * 8 + enemy.phase) * 1.2,
+          enemy.y + enemy.h + 6,
+          enemy.cfg.dw,
+          enemy.cfg.dh,
+          flip,
+          alpha * pose.blend * 0.34
+        );
+      }
       return;
     }
     const frame = Math.floor(game.time * 7 + enemy.phase) % 4;
@@ -8433,11 +8574,16 @@
   }
 
   function enemyAnimationFrame(enemy, meta) {
+    return enemyAnimationPose(enemy, meta).frame;
+  }
+
+  function enemyAnimationPose(enemy, meta) {
     let seq = null;
+    const state = enemyAnimationState(enemy);
     if (enemy.cfg.ai === "zora") {
-      seq = enemy.attackWindup > 0.34 ? meta.attack : enemy.attackWindup > 0 ? meta.recover : meta.idle;
+      seq = state === "attack" ? meta.attack : state === "recover" ? meta.recover : meta.idle;
     } else if (enemy.cfg.ai === "panther") {
-      seq = enemy.lunge > 0 ? meta.lunge : Math.abs(enemy.vx) > enemy.cfg.speed * 0.18 ? meta.run : meta.recover;
+      seq = state === "lunge" ? meta.lunge : state === "run" ? meta.run : meta.recover;
     } else if (meta.smoothMini) {
       seq = meta.idleSmooth || meta.idle;
     } else if (meta.cast && meta.recover && meta.idle) {
@@ -8447,11 +8593,28 @@
         seq = enemy.attackWindup > 0.28 || enemy.lunge > 0 ? meta.cast : enemy.hurt > 0 ? meta.recover : meta.idle;
       }
     }
-    if (!seq || !seq.length) {
-      return Math.floor(game.time * (meta.fps || 10) + enemy.phase) % meta.frames;
-    }
     const fps = meta.fps || 10;
-    return seq[Math.floor(game.time * fps + enemy.phase) % seq.length];
+    const clock = Number.isFinite(enemy.animTime) ? enemy.animTime * fps + (enemy.phase % 1) : game.time * fps + enemy.phase;
+    if (!seq || !seq.length) {
+      const frame = Math.floor(clock) % meta.frames;
+      const nextFrame = (frame + 1) % meta.frames;
+      return { frame, nextFrame, blend: meta.blendFrames ? smoothstep(clock - Math.floor(clock)) : 0 };
+    }
+    const idx = Math.floor(clock) % seq.length;
+    const frame = seq[idx];
+    const nextFrame = seq[(idx + 1) % seq.length];
+    return { frame, nextFrame, blend: meta.blendFrames ? smoothstep(clock - Math.floor(clock)) : 0 };
+  }
+
+  function enemyAnimationState(enemy) {
+    if (!enemy || !enemy.cfg) return "idle";
+    if (enemy.cfg.ai === "zora") {
+      return enemy.attackWindup > 0.34 ? "attack" : enemy.attackWindup > 0 ? "recover" : "idle";
+    }
+    if (enemy.cfg.ai === "panther") {
+      return enemy.lunge > 0 ? "lunge" : Math.abs(enemy.vx || 0) > enemy.cfg.speed * 0.18 ? "run" : "recover";
+    }
+    return "idle";
   }
 
   function drawBoss() {
@@ -8469,22 +8632,28 @@
   }
 
   function drawPlayer() {
-    let frame = 0;
-    if (player.invuln > 0.62) frame = 11;
-    else if (player.attackTimer > 0) frame = 12 + clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * 6), 0, 5);
-    else if (!player.onGround) frame = 9;
-    else if (playerIsDucking()) frame = 18;
-    else if (Math.abs(player.vx) > 0.25) frame = 1 + Math.floor(game.time * 10) % 8;
-    else frame = Math.floor(game.time * 2) % 2;
+    const attackProgress = clamp((0.28 - player.attackTimer) / 0.28, 0, 1);
+    const moving = Math.abs(player.vx) > 0.16;
+    let frame = PLAYER_ANIM.idle[Math.floor(game.time * 3) % PLAYER_ANIM.idle.length];
+    if (player.invuln > 0.62) frame = PLAYER_ANIM.hurt;
+    else if (player.attackTimer > 0) frame = PLAYER_ANIM.attackStart + clamp(Math.floor(attackProgress * PLAYER_ANIM.attackFrames), 0, PLAYER_ANIM.attackFrames - 1);
+    else if (!player.onGround) frame = player.vy < -0.25 ? PLAYER_ANIM.jumpRise : PLAYER_ANIM.jumpFall;
+    else if (playerIsDucking()) frame = PLAYER_ANIM.duck;
+    else if (moving) {
+      const walkRate = 13.5 + clamp(Math.abs(player.vx) * 1.55, 0, 5.5);
+      frame = PLAYER_ANIM.walkStart + Math.floor(game.time * walkRate) % PLAYER_ANIM.walkFrames;
+    }
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
-    drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha);
+    drawSheetFrame(images.player, frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, player.x + player.w / 2, player.y + player.h + 14, 112, 184, player.facing < 0, alpha, true);
 
-    if (player.attackTimer > 0.08) {
-      const sx = clamp(Math.floor(((0.28 - player.attackTimer) / 0.28) * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
+    if (player.attackTimer > 0.035) {
+      const sx = clamp(Math.floor(attackProgress * SPRITES.whipFrames), 0, SPRITES.whipFrames - 1);
       const drawW = WHIP_DRAW_W;
       const drawH = WHIP_DRAW_H;
       const x = player.facing > 0 ? player.x + player.w - 14 : player.x - drawW + 14;
       ctx.save();
+      const prevSmoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = true;
       if (player.attackVariant === "down") {
         ctx.translate(player.x + player.w / 2, player.y + player.h - 8);
         ctx.rotate(Math.PI / 2);
@@ -8496,11 +8665,12 @@
       } else {
         ctx.drawImage(images.whip, sx * SPRITES.whipFrameW, 0, SPRITES.whipFrameW, SPRITES.whipFrameH, x, player.y + 24, drawW, drawH);
       }
+      ctx.imageSmoothingEnabled = prevSmoothing;
       ctx.restore();
     }
   }
 
-  function drawSheetFrame(img, col, row, fw, fh, cx, bottom, dw, dh, flip, alpha = 1) {
+  function drawSheetFrame(img, col, row, fw, fh, cx, bottom, dw, dh, flip, alpha = 1, smooth = false) {
     if (!img || !img.width) {
       const prevAlpha = ctx.globalAlpha;
       if (alpha !== prevAlpha) ctx.globalAlpha = alpha;
@@ -8510,7 +8680,9 @@
       return;
     }
     const prevAlpha = ctx.globalAlpha;
+    const prevSmoothing = ctx.imageSmoothingEnabled;
     if (alpha !== prevAlpha) ctx.globalAlpha = alpha;
+    if (smooth !== prevSmoothing) ctx.imageSmoothingEnabled = smooth;
     if (flip) {
       ctx.save();
       ctx.translate(cx, bottom - dh);
@@ -8520,6 +8692,7 @@
     } else {
       ctx.drawImage(img, col * fw, row * fh, fw, fh, cx - dw / 2, bottom - dh, dw, dh);
     }
+    if (smooth !== prevSmoothing) ctx.imageSmoothingEnabled = prevSmoothing;
     if (alpha !== prevAlpha) ctx.globalAlpha = prevAlpha;
   }
 
