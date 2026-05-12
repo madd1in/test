@@ -754,8 +754,10 @@ h1 {
 
 .touch-controls {
   --touch-size: 64px;
+  --move-touch-size: 72px;
   --touch-gap: 8px;
   position: absolute;
+  z-index: 9;
   inset: auto 0 max(14px, env(safe-area-inset-bottom)) 0;
   display: none;
   justify-content: space-between;
@@ -782,10 +784,11 @@ h1 {
 
 .movement-pad {
   display: grid;
-  grid-template-columns: repeat(3, var(--touch-size));
-  grid-template-rows: repeat(2, var(--touch-size));
+  grid-template-columns: repeat(3, var(--move-touch-size));
+  grid-template-rows: repeat(2, var(--move-touch-size));
   gap: var(--touch-gap);
   align-items: center;
+  max-width: calc(var(--move-touch-size) * 3 + var(--touch-gap) * 2);
 }
 
 .movement-pad button[data-touch="up"] {
@@ -840,6 +843,17 @@ h1 {
     inset 0 -9px 14px rgba(0, 0, 0, 0.54),
     0 8px 20px rgba(0, 0, 0, 0.48),
     0 0 0 1px rgba(0, 0, 0, 0.74);
+}
+
+.movement-pad button {
+  width: var(--move-touch-size);
+  height: var(--move-touch-size);
+  min-width: var(--move-touch-size);
+  min-height: var(--move-touch-size);
+}
+
+.movement-pad button::before {
+  font-size: 34px;
 }
 
 .touch-controls button::before {
@@ -911,6 +925,7 @@ body.mobile-mode .touch-controls {
 @media (pointer: coarse) {
   .touch-controls {
     --touch-size: 68px;
+    --move-touch-size: 76px;
     display: flex;
   }
 
@@ -934,6 +949,7 @@ body.mobile-mode .touch-controls {
 @media (max-width: 520px) {
   .touch-controls {
     --touch-size: 64px;
+    --move-touch-size: 74px;
     --touch-gap: 5px;
     gap: 8px;
     padding: 0 max(6px, env(safe-area-inset-right)) 0 max(6px, env(safe-area-inset-left));
@@ -947,6 +963,7 @@ body.mobile-mode .touch-controls {
 @media (max-width: 380px) {
   .touch-controls {
     --touch-size: 62px;
+    --move-touch-size: 70px;
   }
 }
 
@@ -1115,9 +1132,9 @@ body.mobile-mode .touch-controls {
   }
 
   .mini-map {
-    right: max(7px, env(safe-area-inset-right));
-    bottom: calc(max(78px, env(safe-area-inset-bottom)) + 6px);
-    width: 126px;
+    right: max(8px, env(safe-area-inset-right));
+    bottom: calc(max(218px, env(safe-area-inset-bottom)) + 12px);
+    width: min(118px, 32vw);
     padding: 6px;
   }
 
@@ -1181,6 +1198,18 @@ body.mobile-mode .touch-controls {
 
   .touch-controls {
     inset: auto 0 max(8px, env(safe-area-inset-bottom)) 0;
+  }
+
+  .mini-map {
+    top: max(68px, calc(env(safe-area-inset-top) + 62px));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: auto;
+    width: 104px;
+    padding: 5px;
+  }
+
+  .mini-map-grid {
+    gap: 1px;
   }
 }
 
