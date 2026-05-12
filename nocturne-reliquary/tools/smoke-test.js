@@ -654,6 +654,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-exit-v1", "mobile door reentry guard should prevent immediate bounce-backs");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
+  assert(result.state.tuningInfo.mobilePerformance === "viewport-lite-backgrounds-lite-enemy-fx-v5", "mobile performance should use viewport-cropped lite backgrounds and lighter enemy FX");
   assert(result.state.tuningInfo.progressRoute === "full-castle-survey-v1", "full-map survey route should be wired");
   assert(result.state.tuningInfo.difficulty === "classic-puzzle-pressure-v1+warden-milestones-v2", "difficulty tuning should add classic puzzle pressure and warden milestones");
   assert(result.newRunState.visuals && result.newRunState.visuals.bg === "bgForest", "new run should open in the forest room");

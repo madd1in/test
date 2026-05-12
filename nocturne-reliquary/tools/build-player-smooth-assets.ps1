@@ -99,6 +99,34 @@ function Set-Quality {
   $Graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
 }
 
+function Remove-PlayerFrameArtifacts {
+  param(
+    [System.Drawing.Bitmap]$Frame,
+    [int]$SourceIndex
+  )
+
+  for ($y = 0; $y -lt $Frame.Height; $y++) {
+    for ($x = 0; $x -lt $Frame.Width; $x++) {
+      $p = $Frame.GetPixel($x, $y)
+      if ($p.A -le 0) { continue }
+      $r = [int]$p.R
+      $g = [int]$p.G
+      $b = [int]$p.B
+      $maxRb = [Math]::Max($r, $b)
+
+      $greenFringe = $g -gt 54 -and ($g - $maxRb) -gt 10
+      $bottomChroma = $y -gt ($Frame.Height - 18) -and $greenFringe
+      $masonryStep = $SourceIndex -eq 10 -and (($x -gt 74 -and $y -gt 116) -or ($x -gt 54 -and $y -gt 145))
+
+      if ($masonryStep -or ($greenFringe -and ($g - $maxRb) -gt 24) -or $bottomChroma) {
+        $Frame.SetPixel($x, $y, [System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+      } elseif ($greenFringe) {
+        $Frame.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($p.A, $r, [Math]::Min($g, $maxRb + 8), $b))
+      }
+    }
+  }
+}
+
 function Build-PlayerSheet {
   $fw = 128
   $fh = 184
@@ -110,7 +138,9 @@ function Build-PlayerSheet {
   try {
     Set-Quality $graphics
     for ($i = 0; $i -lt 24; $i++) {
-      $frames += Get-Frame $source $i $fw $fh
+      $frame = Get-Frame $source $i $fw $fh
+      Remove-PlayerFrameArtifacts $frame $i
+      $frames += $frame
     }
 
     Add-Frame $graphics $frames[0] 0 $fw $fh
