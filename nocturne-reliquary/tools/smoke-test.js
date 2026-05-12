@@ -216,7 +216,7 @@ async function browserSmoke() {
     window.__NOCTURNE_TEST_INPUT("right", true);
   }, "belltower"));
   transitionStates.push(await transitionProbe("belltower to tower", () => {
-    window.__NOCTURNE_TEST_TELEPORT("belltower", 60, 360);
+    window.__NOCTURNE_TEST_TELEPORT("belltower", 32, 360);
     window.__NOCTURNE_TEST_INPUT("left", true);
   }, "tower"));
   transitionStates.push(await transitionProbe("belltower falling left exit", () => {
@@ -445,6 +445,7 @@ async function browserSmoke() {
       miniMapCells: document.querySelectorAll(".mini-map-cell").length,
       mapPanelHidden: document.getElementById("mapPanel").hidden,
       hasTouchDown: Boolean(document.querySelector('#touchControls button[data-touch="down"]')),
+      hasTouchJoystick: Boolean(document.getElementById("touchJoystick")),
       mobileMode: document.body.classList.contains("mobile-mode"),
       fullscreen: Boolean(document.fullscreenElement || document.webkitFullscreenElement),
       touchDisplay: getComputedStyle(document.getElementById("touchControls")).display,
@@ -604,7 +605,7 @@ async function browserSmoke() {
   assert(result.state.inputInfo.upKeys.includes("KeyW"), "W should trigger up/door control");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
   assert(result.state.inputInfo.mobileStart === "manual-fullscreen-button", "mobile start should not auto-toggle fullscreen");
-  assert(result.state.hasTouchDown, "mobile controls should include a down/crouch button");
+  assert(result.state.hasTouchJoystick && !result.state.hasTouchDown, "mobile controls should use the transient joystick instead of direction buttons");
   assert(result.state.tuningInfo.longRoomWidth > 960, "rooms should be wider than one screen");
   assert(result.state.tuningInfo.longRoomHeight > 540, "rooms should be taller than one screen");
   assert(result.state.tuningInfo.whipSideReach >= 150, "side whip reach should be forgiving");
@@ -649,12 +650,12 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
   assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
   assert(result.state.tuningInfo.controlSkin === "gothic-medallion-controls-v1", "gothic medallion control skin should be wired");
-  assert(result.state.tuningInfo.mobileTouch === "large-hit-targets-v3-readable-fonts", "mobile touch tuning should include readable-font touch targets");
+  assert(result.state.tuningInfo.mobileTouch === "transient-joystick-v1-readable-actions", "mobile touch tuning should use the transient joystick and readable action targets");
   assert(result.state.tuningInfo.mobileCeilingDoors === "auto-enter-touch-overlap-v1", "mobile ceiling doors should auto-enter when the player overlaps the hatch");
   assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-exit-v1", "mobile door reentry guard should prevent immediate bounce-backs");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
-  assert(result.state.tuningInfo.mobilePerformance === "viewport-lite-backgrounds-lite-enemy-fx-v5", "mobile performance should use viewport-cropped lite backgrounds and lighter enemy FX");
+  assert(result.state.tuningInfo.mobilePerformance === "viewport-lite-player-cache-no-vignette-v6", "mobile performance should use viewport-cropped backgrounds, cached player frames, and no mobile vignette");
   assert(result.state.tuningInfo.progressRoute === "full-castle-survey-v1", "full-map survey route should be wired");
   assert(result.state.tuningInfo.difficulty === "classic-puzzle-pressure-v1+warden-milestones-v2", "difficulty tuning should add classic puzzle pressure and warden milestones");
   assert(result.newRunState.visuals && result.newRunState.visuals.bg === "bgForest", "new run should open in the forest room");
