@@ -588,7 +588,7 @@ async function browserSmoke() {
   assert(result.titleFrameDelta > 0, `title canvas should animate between frames: ${JSON.stringify({ before: result.titleFrameA, after: result.titleFrameB })}`);
   assert(result.state.titleHidden, "title did not hide after begin");
   assert(result.state.frameInfo.playerFrameW === 128, "player frame width should be 128");
-  assert(result.state.frameInfo.playerFrames === 48, "player frame count should be 48");
+  assert(result.state.frameInfo.playerFrames === 72, "player frame count should be 72");
   assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
   assert(result.state.frameInfo.whipFrames === 16, "whip frame count should be 16");
   assert(result.state.frameInfo.bossFrameW === 320, "boss frame width should be 320");
