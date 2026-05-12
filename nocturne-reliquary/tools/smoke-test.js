@@ -73,7 +73,7 @@ async function closeServer(server) {
 
 function watchPage(page, consoleErrors, pageErrors, badResponses) {
   page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    if (msg.type() === "error" && !msg.text().includes("ERR_NETWORK_CHANGED")) consoleErrors.push(msg.text());
   });
   page.on("pageerror", (err) => pageErrors.push(err.message));
   page.on("response", (res) => {
@@ -592,13 +592,13 @@ async function browserSmoke() {
   assert(result.state.frameInfo.whipFrameW === 192, "whip frame width should be 192");
   assert(result.state.frameInfo.whipFrames === 8, "whip frame count should be 8");
   assert(result.state.frameInfo.bossFrameW === 320, "boss frame width should be 320");
-  assert(result.state.frameInfo.bossFrames === 16, "boss should use the HD 16-frame strip");
+  assert(result.state.frameInfo.bossFrames === 32, "boss should use the smooth HD 32-frame strip");
   assert(result.state.frameInfo.enemyExtFrameW === 256 && result.state.frameInfo.enemyExtFrameH === 192 && result.state.frameInfo.enemyExtFrames === 24, "extended zora/panther enemy HD frames should be wired");
-  assert(result.state.frameInfo.questBossFrameW === 320 && result.state.frameInfo.questBossFrameH === 256 && result.state.frameInfo.questBossFrames === 24, "quest mini-boss HD frames should be wired");
+  assert(result.state.frameInfo.questBossFrameW === 320 && result.state.frameInfo.questBossFrameH === 256 && result.state.frameInfo.questBossFrames === 48, "smooth quest mini-boss HD frames should be wired");
   assert(result.state.frameInfo.archiveWardenFrameW === 320 && result.state.frameInfo.archiveWardenFrameH === 256 && result.state.frameInfo.archiveWardenFrames === 48, "Archive Warden HD 48-frame strip should be wired");
   assert(result.state.frameInfo.chestFrameW === 256 && result.state.frameInfo.chestFrameH === 256 && result.state.frameInfo.chestFrames === 4, "Imagen HD treasure chest sheet should expose four 256px frames");
   assert(result.state.enemyFrameMap.zora.frames === 24 && result.state.enemyFrameMap.blackPanther.frames === 24, "runtime enemy frame map should expose 24-frame zora and panther rows");
-  assert(result.state.enemyFrameMap.tideWarden.frames === 24 && result.state.enemyFrameMap.starWarden.frames === 24 && result.state.enemyFrameMap.inkWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.attack.length === 12, "runtime enemy frame map should expose the 48-frame Archive Warden row");
+  assert(result.state.enemyFrameMap.tideWarden.frames === 48 && result.state.enemyFrameMap.starWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.attack.length === 12, "runtime enemy frame map should expose 48-frame quest warden rows");
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
   assert(result.state.inputInfo.upKeys.includes("KeyW"), "W should trigger up/door control");
   assert(result.state.inputInfo.feel.includes("downWhipPogo"), "down-whip pogo should be enabled");
@@ -639,9 +639,12 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.armoryProps === "imagen-hd-armory-moon-cases-v1", "Candlelit Armory HD moon/case props should be wired");
   assert(result.state.tuningInfo.towerGalleryProps === "imagen-hd-moon-chain-gallery-props-v1", "Moon Chain Tower and Gallery Imagen HD prop tuning should be wired");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
-  assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-miniboss-v1", "quest seal route should force the new sections into progression");
+  assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-full-boss-v2", "quest seal route should force the new sections into full milestone boss progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
-  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+archive-warden-imagen-hd-48f-v1", "zora/panther plus Archive Warden HD frame map tuning should be wired");
+  assert(result.state.tuningInfo.storyNpcSet === "imagen-story-npc-atlas-v1", "Imagen HD story NPC atlas should be wired");
+  assert(result.state.tuningInfo.mapMazeSet === "organic-looped-castle-v2-root-sluice-reservoir", "organic maze loop tuning should be wired");
+  assert(result.state.tuningInfo.bossMilestones === "quest-wardens-full-bossfight-v2", "quest wardens should be promoted to full bossfight milestones");
+  assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "zora/panther plus smooth quest warden HD frame map tuning should be wired");
   assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
   assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
   assert(result.state.tuningInfo.controlSkin === "gothic-medallion-controls-v1", "gothic medallion control skin should be wired");
@@ -651,7 +654,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
   assert(result.state.tuningInfo.progressRoute === "full-castle-survey-v1", "full-map survey route should be wired");
-  assert(result.state.tuningInfo.difficulty === "classic-puzzle-pressure-v1", "difficulty tuning should add classic puzzle pressure");
+  assert(result.state.tuningInfo.difficulty === "classic-puzzle-pressure-v1+warden-milestones-v2", "difficulty tuning should add classic puzzle pressure and warden milestones");
   assert(result.newRunState.visuals && result.newRunState.visuals.bg === "bgForest", "new run should open in the forest room");
   assert(result.newRunState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
   assert(result.newRunState.visuals.mode7, "forest opening should use stretched/Mode7 background fill");
@@ -715,14 +718,15 @@ async function browserSmoke() {
   assert(result.mapCycleProbe[0].mode === "mini" && !result.mapCycleProbe[0].miniHidden && result.mapCycleProbe[0].panelHidden, `map should default to mini mode: ${JSON.stringify(result.mapCycleProbe)}`);
   assert(result.mapCycleProbe[1].mode === "full" && !result.mapCycleProbe[1].panelHidden && result.mapCycleProbe[1].miniHidden, `map button should open full map: ${JSON.stringify(result.mapCycleProbe)}`);
   assert(result.mapCycleProbe[2].mode === "off" && result.mapCycleProbe[2].panelHidden && result.mapCycleProbe[2].miniHidden, `map button should turn the map off: ${JSON.stringify(result.mapCycleProbe)}`);
-  assert(result.mapCycleProbe[3].mode === "mini" && !result.mapCycleProbe[3].miniHidden && result.mapCycleProbe[3].miniCells >= 27, `map button should cycle back to mini map: ${JSON.stringify(result.mapCycleProbe)}`);
+  assert(result.mapCycleProbe[3].mode === "mini" && !result.mapCycleProbe[3].miniHidden && result.mapCycleProbe[3].miniCells >= 30, `map button should cycle back to mini map: ${JSON.stringify(result.mapCycleProbe)}`);
   assert(result.state.debugState.enemyTypes.includes("blackPanther"), `Gate Hall should spawn the black panther enemy: ${JSON.stringify(result.state.debugState.enemyTypes)}`);
-  assert(result.state.debugState.survey && result.state.debugState.survey.total >= 27, `survey debug state should include the full castle route plus puzzle rooms: ${JSON.stringify(result.state.debugState.survey)}`);
-  assert(result.state.debugState.mapMode === "mini" && result.state.mapButtonText === "MINI" && result.state.miniMapDisplay !== "none" && result.state.miniMapCells >= 27 && result.state.mapPanelHidden, `mini map should be visible while full map is closed: ${JSON.stringify(result.state)}`);
+  assert(result.state.debugState.survey && result.state.debugState.survey.total >= 30, `survey debug state should include the full organic castle route plus puzzle rooms: ${JSON.stringify(result.state.debugState.survey)}`);
+  assert(result.state.debugState.mapMode === "mini" && result.state.mapButtonText === "MINI" && result.state.miniMapDisplay !== "none" && result.state.miniMapCells >= 30 && result.state.mapPanelHidden, `mini map should be visible while full map is closed: ${JSON.stringify(result.state)}`);
   assert(result.state.objectiveText.length <= 8 && result.state.compassText.length <= 4 && result.state.statusText.length <= 32 && result.state.miniMapObjectiveDisplay === "none", `low-reading HUD should keep persistent text compact: ${JSON.stringify(result.state)}`);
   assert(result.state.debugState.questSeals && result.state.debugState.questSeals.total === 3, `debug state should expose the three quest seals: ${JSON.stringify(result.state.debugState.questSeals)}`);
-  assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 24 && result.state.debugState.enemyFrameMap.archiveWardenFrames === 48, "debug state should expose extended enemy frame counts");
-  assert(result.state.debugState.enemyFrameMap.version === "zora-panther-hd-24f-v2+archive-warden-imagen-hd-48f-v1", "debug state should expose the Archive Warden frame map version");
+  assert(result.state.debugState.story && result.state.debugState.story.npcAtlas && result.state.debugState.story.npcAtlasSize, `debug state should expose the Imagen story NPC atlas: ${JSON.stringify(result.state.debugState.story)}`);
+  assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 48 && result.state.debugState.enemyFrameMap.archiveWardenFrames === 48, "debug state should expose extended enemy frame counts");
+  assert(result.state.debugState.enemyFrameMap.version === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "debug state should expose the smooth quest warden frame map version");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
   assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
   assert(result.state.touchButtonClipPath !== "none" && /Pirata|Cinzel/.test(result.state.iconButtonFontFamily), `controls should use gothic medallion/plaque styling: ${JSON.stringify({ clip: result.state.touchButtonClipPath, font: result.state.iconButtonFontFamily })}`);
