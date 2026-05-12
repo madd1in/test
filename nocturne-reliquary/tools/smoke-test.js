@@ -596,6 +596,7 @@ async function browserSmoke() {
   assert(result.state.frameInfo.enemyExtFrameW === 256 && result.state.frameInfo.enemyExtFrameH === 192 && result.state.frameInfo.enemyExtFrames === 24, "extended zora/panther enemy HD frames should be wired");
   assert(result.state.frameInfo.questBossFrameW === 320 && result.state.frameInfo.questBossFrameH === 256 && result.state.frameInfo.questBossFrames === 48, "smooth quest mini-boss HD frames should be wired");
   assert(result.state.frameInfo.archiveWardenFrameW === 320 && result.state.frameInfo.archiveWardenFrameH === 256 && result.state.frameInfo.archiveWardenFrames === 48, "Archive Warden HD 48-frame strip should be wired");
+  assert(result.state.frameInfo.npcFrameW === 192 && result.state.frameInfo.npcFrameH === 256 && result.state.frameInfo.npcFrames === 16, "story NPCs should use the clean 16-frame animated Imagen strip");
   assert(result.state.frameInfo.chestFrameW === 256 && result.state.frameInfo.chestFrameH === 256 && result.state.frameInfo.chestFrames === 4, "Imagen HD treasure chest sheet should expose four 256px frames");
   assert(result.state.enemyFrameMap.zora.frames === 24 && result.state.enemyFrameMap.blackPanther.frames === 24, "runtime enemy frame map should expose 24-frame zora and panther rows");
   assert(result.state.enemyFrameMap.tideWarden.frames === 48 && result.state.enemyFrameMap.starWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.attack.length === 12, "runtime enemy frame map should expose 48-frame quest warden rows");
@@ -641,7 +642,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-full-boss-v2", "quest seal route should force the new sections into full milestone boss progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
-  assert(result.state.tuningInfo.storyNpcSet === "imagen-story-npc-atlas-v1", "Imagen HD story NPC atlas should be wired");
+  assert(result.state.tuningInfo.storyNpcSet === "imagen-story-npc-atlas-v1+animated-16f-clean-v1", "Imagen HD story NPC atlas and clean animated strip should be wired");
   assert(result.state.tuningInfo.mapMazeSet === "organic-looped-castle-v2-root-sluice-reservoir", "organic maze loop tuning should be wired");
   assert(result.state.tuningInfo.bossMilestones === "quest-wardens-full-bossfight-v2", "quest wardens should be promoted to full bossfight milestones");
   assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "zora/panther plus smooth quest warden HD frame map tuning should be wired");
@@ -725,6 +726,7 @@ async function browserSmoke() {
   assert(result.state.objectiveText.length <= 8 && result.state.compassText.length <= 4 && result.state.statusText.length <= 32 && result.state.miniMapObjectiveDisplay === "none", `low-reading HUD should keep persistent text compact: ${JSON.stringify(result.state)}`);
   assert(result.state.debugState.questSeals && result.state.debugState.questSeals.total === 3, `debug state should expose the three quest seals: ${JSON.stringify(result.state.debugState.questSeals)}`);
   assert(result.state.debugState.story && result.state.debugState.story.npcAtlas && result.state.debugState.story.npcAtlasSize, `debug state should expose the Imagen story NPC atlas: ${JSON.stringify(result.state.debugState.story)}`);
+  assert(result.state.debugState.story && result.state.debugState.story.npcAnim && result.state.debugState.story.npcAnimSize === "3072x1024", `debug state should expose the clean animated NPC strip: ${JSON.stringify(result.state.debugState.story)}`);
   assert(result.state.debugState.enemyFrameMap.zoraFrames === 24 && result.state.debugState.enemyFrameMap.pantherFrames === 24 && result.state.debugState.enemyFrameMap.questBossFrames === 48 && result.state.debugState.enemyFrameMap.archiveWardenFrames === 48, "debug state should expose extended enemy frame counts");
   assert(result.state.debugState.enemyFrameMap.version === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "debug state should expose the smooth quest warden frame map version");
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
