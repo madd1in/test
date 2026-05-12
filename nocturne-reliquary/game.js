@@ -3421,20 +3421,37 @@
     const left = actionDown("left");
     const right = actionDown("right");
     const save = game.save;
+    const mobileTuning = (game.mobileMode || isMobileLayout()) ? {
+      accel: 0.68,
+      friction: 0.7,
+      maxSpeed: 4.65,
+      dashSpeed: 11.4,
+      dashCooldown: 0.52,
+      backdashSpeed: 9.8,
+      backdashCooldown: 0.38
+    } : {
+      accel: 0.54,
+      friction: 0.78,
+      maxSpeed: 4.2,
+      dashSpeed: 10.6,
+      dashCooldown: 0.62,
+      backdashSpeed: 9.2,
+      backdashCooldown: 0.45
+    };
     let move = 0;
     if (left) move -= 1;
     if (right) move += 1;
 
     if (move) {
       player.facing = move;
-      player.vx += move * 0.54 * step;
+      player.vx += move * mobileTuning.accel * step;
     } else {
-      player.vx *= Math.pow(0.78, step);
+      player.vx *= Math.pow(mobileTuning.friction, step);
       if (Math.abs(player.vx) < 0.04) player.vx = 0;
     }
 
     const slowMul = player.slow > 0 ? 0.55 : 1.0;
-    const maxSpeed = (player.dashTimer > 0 ? 10.4 : 4.2) * slowMul;
+    const maxSpeed = (player.dashTimer > 0 ? mobileTuning.dashSpeed : mobileTuning.maxSpeed) * slowMul;
     player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
 
     if (player.onGround) {
@@ -3476,9 +3493,9 @@
     if (actionJust("dash")) {
       if (save.relics.dash && player.dashCooldown <= 0) {
         player.dashTimer = 0.18;
-        player.dashCooldown = 0.62;
+        player.dashCooldown = mobileTuning.dashCooldown;
         player.invuln = Math.max(player.invuln, 0.22);
-        player.vx = player.facing * 10.6;
+        player.vx = player.facing * mobileTuning.dashSpeed;
         burst(player.x + player.w / 2, player.y + player.h / 2, "#c9f4ee", 14);
         playSound("dash");
       } else if (!save.relics.dash) {
@@ -3488,9 +3505,9 @@
 
     if (actionJust("backdash") && player.backdashCooldown <= 0 && player.backdashTimer <= 0) {
       player.backdashTimer = 0.22;
-      player.backdashCooldown = 0.45;
+      player.backdashCooldown = mobileTuning.backdashCooldown;
       player.invuln = Math.max(player.invuln, 0.26);
-      player.vx = -player.facing * 9.2;
+      player.vx = -player.facing * mobileTuning.backdashSpeed;
       player.vy = Math.min(player.vy, -0.6);
       burst(player.x + player.w / 2, player.y + player.h / 2, "#a8b8d8", 12);
       playSound("dash", 0.28);
@@ -6790,21 +6807,35 @@
     const moonY = img.height * 0.64;
     const moonH = img.height * 0.36;
     const chains = [
-      { frame: 0, x: 86, y: -24, w: 94, h: 252, a: 0.74 },
-      { frame: 1, x: 372, y: -34, w: 86, h: 234, a: 0.68 },
-      { frame: 2, x: 642, y: -18, w: 70, h: 248, a: 0.72 },
-      { frame: 3, x: 1034, y: -30, w: 96, h: 268, a: 0.76 },
-      { frame: 1, x: 1236, y: -20, w: 82, h: 236, a: 0.62 }
+      { frame: 0, x: 86, y: -24, w: 94, h: 252, a: 0.44 },
+      { frame: 1, x: 372, y: -34, w: 86, h: 234, a: 0.4 },
+      { frame: 2, x: 642, y: -18, w: 70, h: 248, a: 0.42 },
+      { frame: 3, x: 1034, y: -30, w: 96, h: 268, a: 0.44 },
+      { frame: 1, x: 1236, y: -20, w: 82, h: 236, a: 0.36 }
     ];
     ctx.save();
     for (const c of chains) {
       const sway = Math.sin(t * 0.85 + c.x * 0.02) * 4;
+      ctx.save();
+      ctx.globalAlpha = 0.32;
+      ctx.filter = "blur(7px)";
+      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, 0, cellW, chainH, c.x + sway + 10, c.y + 12, c.w, c.h, c.a);
+      ctx.restore();
+      ctx.save();
+      ctx.filter = "saturate(0.38) brightness(0.56) contrast(1.18)";
       drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, 0, cellW, chainH, c.x + sway, c.y, c.w, c.h, c.a);
-      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, anchorY, cellW, anchorH, c.x - 34 + sway, c.y + c.h - 12, c.w + 68, 118, 0.72);
+      drawChromaAtlasSprite(img, "towerProps", c.frame * cellW, anchorY, cellW, anchorH, c.x - 34 + sway, c.y + c.h - 12, c.w + 68, 118, 0.38);
+      ctx.restore();
     }
+    const fog = ctx.createLinearGradient(0, 0, 0, 300);
+    fog.addColorStop(0, "rgba(7, 8, 14, 0.36)");
+    fog.addColorStop(0.54, "rgba(90, 112, 132, 0.10)");
+    fog.addColorStop(1, "rgba(7, 8, 14, 0)");
+    ctx.fillStyle = fog;
+    ctx.fillRect(0, 0, roomWidth(room), 300);
     ctx.globalCompositeOperation = "screen";
-    drawChromaAtlasSprite(img, "towerProps", 0, moonY, img.width * 0.48, moonH, 852, 40, 252, 148, 0.62);
-    drawChromaAtlasSprite(img, "towerProps", img.width * 0.48, moonY, img.width * 0.52, moonH, 548, 58, 212, 128, 0.56);
+    drawChromaAtlasSprite(img, "towerProps", 0, moonY, img.width * 0.48, moonH, 852, 40, 252, 148, 0.48);
+    drawChromaAtlasSprite(img, "towerProps", img.width * 0.48, moonY, img.width * 0.52, moonH, 548, 58, 212, 128, 0.42);
     ctx.globalCompositeOperation = "source-over";
     ctx.restore();
     return true;
@@ -6829,7 +6860,23 @@
     for (const p of portraits) {
       const col = p.i % 4;
       const row = Math.floor(p.i / 4);
-      drawChromaAtlasSprite(img, "galleryPortraits", col * cellW, row * cellH, cellW, cellH, p.x, p.y, p.w, p.h, p.a);
+      const framePad = 12;
+      const frameGradient = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y + p.h);
+      frameGradient.addColorStop(0, "rgba(25, 18, 16, 0.94)");
+      frameGradient.addColorStop(0.5, "rgba(126, 88, 34, 0.86)");
+      frameGradient.addColorStop(1, "rgba(10, 8, 12, 0.94)");
+      ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+      ctx.fillRect(p.x - framePad + 6, p.y - framePad + 8, p.w + framePad * 2, p.h + framePad * 2);
+      ctx.fillStyle = frameGradient;
+      ctx.fillRect(p.x - framePad, p.y - framePad, p.w + framePad * 2, p.h + framePad * 2);
+      ctx.fillStyle = "rgba(6, 5, 8, 0.88)";
+      ctx.fillRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6);
+      drawChromaAtlasSprite(img, "galleryPortraits", col * cellW, row * cellH, cellW, cellH, p.x, p.y, p.w, p.h, Math.min(0.72, p.a));
+      ctx.fillStyle = "rgba(221, 238, 255, 0.08)";
+      ctx.fillRect(p.x + 8, p.y + 8, Math.max(12, p.w * 0.24), p.h - 16);
+      ctx.strokeStyle = "rgba(244, 211, 139, 0.26)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x - framePad + 3, p.y - framePad + 3, p.w + framePad * 2 - 6, p.h + framePad * 2 - 6);
     }
     ctx.restore();
     return true;
@@ -8240,31 +8287,36 @@
     if (!dialogue) return;
     const meta = STORY_NPCS[dialogue.npc];
     const text = dialogue.lines[dialogue.line] || "";
-    const x = 70;
-    const y = H - 166;
-    const w = W - 140;
-    const h = 124;
+    const mobileDialogue = game.mobileMode || isMobileLayout();
+    const x = mobileDialogue ? 28 : 70;
+    const y = mobileDialogue ? 162 : H - 166;
+    const w = mobileDialogue ? W - 56 : W - 140;
+    const h = mobileDialogue ? 152 : 124;
+    const portraitSize = mobileDialogue ? 78 : 100;
+    const textX = x + portraitSize + (mobileDialogue ? 34 : 36);
+    const bodyWidth = w - portraitSize - (mobileDialogue ? 58 : 78);
     ctx.save();
     ctx.fillStyle = "rgba(5, 4, 8, 0.94)";
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = meta ? meta.color : "#f4d38b";
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
-    drawNpcPortrait(dialogue.npc, x + 18, y + 14, 100, 96);
+    drawNpcPortrait(dialogue.npc, x + 18, y + 16, portraitSize, portraitSize + (mobileDialogue ? 12 : -4));
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.shadowBlur = 0;
     ctx.fillStyle = meta ? meta.color : "#f4d38b";
-    ctx.font = "900 18px Cinzel, Georgia, serif";
-    ctx.fillText(meta ? meta.name : "Voice", x + 136, y + 18);
+    ctx.font = `${mobileDialogue ? "900 16px" : "900 18px"} Cinzel, Georgia, serif`;
+    ctx.fillText(meta ? meta.name : "Voice", textX, y + 18);
     ctx.fillStyle = "rgba(255, 240, 207, 0.78)";
-    ctx.font = "700 11px 'Trebuchet MS', Arial, sans-serif";
-    ctx.fillText(meta ? meta.title : "", x + 136, y + 41);
+    ctx.font = `${mobileDialogue ? "700 10px" : "700 11px"} 'Trebuchet MS', Arial, sans-serif`;
+    ctx.fillText(meta ? meta.title : "", textX, y + 41);
     ctx.fillStyle = "#fff5dd";
-    ctx.font = "600 15px 'Trebuchet MS', Arial, sans-serif";
-    const lines = wrapDialogueText(text, w - 178);
-    for (let i = 0; i < Math.min(3, lines.length); i += 1) {
-      ctx.fillText(lines[i], x + 136, y + 62 + i * 19);
+    ctx.font = `${mobileDialogue ? "600 14px" : "600 15px"} 'Trebuchet MS', Arial, sans-serif`;
+    const lines = wrapDialogueText(text, bodyWidth);
+    const maxLines = mobileDialogue ? 4 : 3;
+    for (let i = 0; i < Math.min(maxLines, lines.length); i += 1) {
+      ctx.fillText(lines[i], textX, y + 62 + i * (mobileDialogue ? 18 : 19));
     }
     ctx.fillStyle = "rgba(244, 211, 139, 0.86)";
     ctx.font = "700 11px 'Trebuchet MS', Arial, sans-serif";
@@ -8726,6 +8778,7 @@
   }
 
   function updateHud() {
+    document.body.classList.toggle("dialogue-active", Boolean(game.dialogue));
     const hp = clamp(player.hp / player.maxHp, 0, 1);
     if (hp !== hudCache.hp) {
       dom.hpFill.style.transform = `scaleX(${hp})`;
@@ -9107,7 +9160,7 @@
 
   function triggerTouchJump() {
     justPressed.add("touch:jump");
-    game.touchJumpHold = Math.max(game.touchJumpHold || 0, 0.2);
+    game.touchJumpHold = Math.max(game.touchJumpHold || 0, (game.mobileMode || isMobileLayout()) ? 0.26 : 0.2);
   }
 
   function beginSwipe(event) {
@@ -9129,15 +9182,19 @@
     const dy = event.clientY - swipe.startY;
     swipe.lastX = event.clientX;
     swipe.lastY = event.clientY;
-    if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.05) {
+    const mobileSwipe = game.mobileMode || isMobileLayout();
+    const horizontalThreshold = mobileSwipe ? 14 : 22;
+    const jumpThreshold = mobileSwipe ? -32 : -42;
+    const duckThreshold = mobileSwipe ? 42 : 52;
+    if (Math.abs(dx) > horizontalThreshold && Math.abs(dx) > Math.abs(dy) * 0.95) {
       touchDown.delete(dx > 0 ? "left" : "right");
       touchDown.add(dx > 0 ? "right" : "left");
     }
-    if (dy < -42 && !swipe.jumpSent) {
+    if (dy < jumpThreshold && !swipe.jumpSent) {
       triggerTouchJump();
       touchDown.add("up");
       swipe.jumpSent = true;
-    } else if (dy > 52) {
+    } else if (dy > duckThreshold) {
       touchDown.add("down");
     }
   }
@@ -9213,7 +9270,7 @@
       touchDown.add(action);
       justPressed.add(`touch:${action}`);
       button.classList.add("is-down");
-      if (action === "jump") game.touchJumpHold = Math.max(game.touchJumpHold || 0, 0.2);
+      if (action === "jump") game.touchJumpHold = Math.max(game.touchJumpHold || 0, (game.mobileMode || isMobileLayout()) ? 0.26 : 0.2);
       try {
         button.setPointerCapture(event.pointerId);
       } catch {}
