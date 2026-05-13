@@ -10,6 +10,10 @@
   const WHIP_SIDE_HEIGHT = 86;
   const WHIP_DRAW_W = 206;
   const WHIP_DRAW_H = 78;
+  const RITE_SURVEY_REQUIRED = 18;
+  const RITE_SEALS_REQUIRED = 2;
+  const MOON_SURGE_MIN_COMBO = 3;
+  const MOON_SURGE_DURATION = 6.5;
   const STORE_KEY = "nocturneReliquarySaveV1";
 
   const canvas = document.getElementById("game");
@@ -289,12 +293,12 @@
       col: 1,
       color: "#bfa0ff",
       lines() {
-        const seals = questSealProgress();
+        const seals = riteSealProgress();
         return [
           "Veyr split the Reliquary into three witnesses: ink, star, and tide.",
-          seals.done
-            ? "You carry all three. The chapel door should fear your footsteps now."
-            : `You have ${seals.found}/${seals.total}. The next witness waits in ${seals.next.roomName}.`
+          seals.ready
+            ? "Two witnesses are enough to open the wound. The third is leverage, not a leash."
+            : `You have ${seals.found}/${seals.required}. The next witness waits in ${seals.next.roomName}.`
         ];
       }
     },
@@ -304,15 +308,15 @@
       col: 2,
       color: "#fff0cf",
       lines() {
-        if (allQuestSealsClaimed()) {
+        if (riteGateReady()) {
           return [
-            "The seals sing together. Beyond this nave, Lord Veyr has nowhere left to hide.",
-            "Do not rush the crimson door. Breathe, save, and make the final rite earn you."
+            "The rite is thin enough to cut now. The spare seal and full survey are strength, not permission.",
+            "Do not rush the crimson door unless your hands want it. Veyr has already heard you coming."
           ];
         }
         return [
           "The chapel moon is false. Veyr hung it here so hunters would mistake light for mercy.",
-          "Bring me the three warden seals and the real path will stop pretending to be a wall."
+          "Two warden seals can crack the rite. Claim the third only if you want the castle to bleed a little less."
         ];
       }
     },
@@ -396,7 +400,10 @@
     mobileFont: "compact-cinzel-v1",
     mobileStartFullscreen: "manual-fs-button-v1",
     mobilePerformance: "viewport-lite-player-cache-no-vignette-v6",
-    progressRoute: "full-castle-survey-v1",
+    pacingSet: "rite-shortcut-portrait-warp-surge-v1",
+    riteSurveyRequired: RITE_SURVEY_REQUIRED,
+    riteSealsRequired: RITE_SEALS_REQUIRED,
+    progressRoute: "rite-shortcut-18rooms-2seals-v1",
     difficulty: "classic-puzzle-pressure-v1+warden-milestones-v2"
   };
 
@@ -652,6 +659,7 @@
     baseDamage: 0,
     combo: 0,
     comboTimer: 0,
+    surgeTimer: 0,
     score: 0,
     stepWasGrounded: false,
     // Status effects
@@ -906,6 +914,33 @@
     return questSealProgress().done;
   }
 
+  function riteSurveyProgress() {
+    const survey = surveyProgress();
+    return {
+      ...survey,
+      required: Math.min(RITE_SURVEY_REQUIRED, survey.total),
+      ready: survey.visited >= Math.min(RITE_SURVEY_REQUIRED, survey.total)
+    };
+  }
+
+  function riteSealProgress() {
+    const seals = questSealProgress();
+    return {
+      ...seals,
+      required: Math.min(RITE_SEALS_REQUIRED, seals.total),
+      ready: seals.found >= Math.min(RITE_SEALS_REQUIRED, seals.total)
+    };
+  }
+
+  function riteGateReady() {
+    return Boolean(
+      game.save.moonSigil &&
+      game.save.relics.dash &&
+      riteSurveyProgress().ready &&
+      riteSealProgress().ready
+    );
+  }
+
   function questSealLabel(type) {
     const meta = questSealMeta(type);
     return meta ? meta.label : "Reliquary Seal";
@@ -925,22 +960,22 @@
       return `Puzzle: ${game.room.puzzle.label}. Strike the glowing plates in the clue order.`;
     }
     if (s.moonSigil && s.relics.dash) {
-      const survey = surveyProgress();
-      if (!survey.done) {
+      const survey = riteSurveyProgress();
+      if (!survey.ready) {
         const name = roomDisplayName(survey.next);
         if (survey.next === game.roomId) {
-          return `Castle survey ${survey.visited}/${survey.total}: chart ${name}, then follow the next compass step.`;
+          return `Rite survey ${survey.visited}/${survey.required}: chart ${name}, then follow the next compass step.`;
         }
-        return `Castle survey ${survey.visited}/${survey.total}: chart ${name} - ${roomRouteHint(survey.next)}`;
+        return `Rite survey ${survey.visited}/${survey.required}: chart ${name} - ${roomRouteHint(survey.next)}`;
       }
-      const seals = questSealProgress();
-      if (!seals.done) {
+      const seals = riteSealProgress();
+      if (!seals.ready) {
         if (seals.next.room === game.roomId) {
           return `${seals.next.label} is here - defeat its mini-boss and claim the seal.`;
         }
-        return `Reliquary seals ${seals.found}/${seals.total}: ${seals.next.label} - ${seals.next.hint}`;
+        return `Reliquary seals ${seals.found}/${seals.required}: ${seals.next.label} - ${seals.next.hint}`;
       }
-      return "Full survey and all three seals complete. Return to Ashen Chapel - the moon-gate opens to the Crimson Reliquary.";
+      return "Rite path open. Return to Ashen Chapel - optional full survey and the spare seal still strengthen you.";
     }
     if (!s.moonSigil) {
       return inTarget
@@ -952,8 +987,8 @@
         ? "Walk right + HOLD jump (↑/Space) to clear each step. 8 stairs to the gold beacon."
         : "Climb to the Moon Chain Tower for Mist Dash (Gallery → Clockwork Rise → Tower).";
     }
-    const seals = questSealProgress();
-    if (!seals.done) return `Claim the three Reliquary seals. Next: ${seals.next.label} in ${seals.next.roomName}.`;
+    const seals = riteSealProgress();
+    if (!seals.ready) return `Claim ${seals.required} Reliquary seals. Next: ${seals.next.label} in ${seals.next.roomName}.`;
     return "Return to Ashen Chapel — the moon-gate now opens to the Crimson Reliquary.";
   }
 
@@ -963,10 +998,10 @@
     if (!s.visited.gate) return "gate";
     if (!s.moonSigil) return "gallery";
     if (!s.relics.dash) return "tower";
-    const survey = surveyProgress();
-    if (!survey.done) return survey.next;
-    const seals = questSealProgress();
-    if (!seals.done) return seals.next.room;
+    const survey = riteSurveyProgress();
+    if (!survey.ready) return survey.next;
+    const seals = riteSealProgress();
+    if (!seals.ready) return seals.next.room;
     return "throne";
   }
 
@@ -1036,12 +1071,18 @@
     const s = game.save;
     const out = [];
     const survey = surveyProgress();
-    if (!survey.done) {
-      out.push(`Castle survey: ${survey.visited}/${survey.total} rooms. Next: ${roomDisplayName(survey.next)} - ${roomRouteHint(survey.next)}`);
+    const riteSurvey = riteSurveyProgress();
+    if (!riteSurvey.ready) {
+      out.push(`Rite survey: ${riteSurvey.visited}/${riteSurvey.required} rooms. Next: ${roomDisplayName(riteSurvey.next)} - ${roomRouteHint(riteSurvey.next)}`);
+    } else if (!survey.done) {
+      out.push(`Optional full survey: ${survey.visited}/${survey.total} rooms. Next: ${roomDisplayName(survey.next)} - ${roomRouteHint(survey.next)}`);
     }
     const seals = questSealProgress();
-    if (!seals.done) {
-      out.push(`Reliquary seals: ${seals.found}/${seals.total}. Next: ${seals.next.label} - ${seals.next.hint}`);
+    const riteSeals = riteSealProgress();
+    if (!riteSeals.ready) {
+      out.push(`Reliquary seals: ${riteSeals.found}/${riteSeals.required}. Next: ${riteSeals.next.label} - ${riteSeals.next.hint}`);
+    } else if (!seals.done) {
+      out.push(`Optional spare seal: ${seals.next.label} - ${seals.next.hint}`);
     }
     if (!s.relics.doubleJump) out.push("Optional: Grave Boots (Triple Moonstep) wait in the Bone Bell Catacomb (Crypt → east).");
     if (!s.collected || !s.collected["garden:bloodRose"]) out.push("Optional: a Blood Rose in the Drowned Rose Garden raises Max HP.");
@@ -1067,10 +1108,10 @@
     if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) return `Puzzle: ${game.room.puzzle.label}`;
     if (!s.moonSigil) return "Item: Moon Sigil";
     if (!s.relics.dash) return "Item: Mist Dash";
-    const survey = surveyProgress();
-    if (!survey.done) return `Map ${survey.visited}/${survey.total}: ${roomDisplayName(survey.next)}`;
-    const seals = questSealProgress();
-    if (!seals.done) return `Seal ${seals.found + 1}/${seals.total}: ${seals.next.label}`;
+    const survey = riteSurveyProgress();
+    if (!survey.ready) return `Map ${survey.visited}/${survey.required}: ${roomDisplayName(survey.next)}`;
+    const seals = riteSealProgress();
+    if (!seals.ready) return `Seal ${seals.found + 1}/${seals.required}: ${seals.next.label}`;
     return "Next: Crimson Reliquary";
   }
 
@@ -1081,10 +1122,10 @@
     if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) return "RUNE";
     if (!s.moonSigil) return "SIGIL";
     if (!s.relics.dash) return "DASH";
-    const survey = surveyProgress();
-    if (!survey.done) return `${survey.visited}/${survey.total}`;
-    const seals = questSealProgress();
-    if (!seals.done) return `SEAL ${seals.found}/${seals.total}`;
+    const survey = riteSurveyProgress();
+    if (!survey.ready) return `${survey.visited}/${survey.required}`;
+    const seals = riteSealProgress();
+    if (!seals.ready) return `SEAL ${seals.found}/${seals.required}`;
     return "RITE";
   }
 
@@ -1092,6 +1133,12 @@
     const s = game.save;
     if (s.bossDefeated) return "Rite broken";
     if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) return `Rune puzzle: ${game.room.puzzle.label}`;
+    if (game.save.moonSigil && game.save.relics.dash) {
+      const survey = riteSurveyProgress();
+      if (!survey.ready) return `Rite map ${survey.visited}/${survey.required}`;
+      const seals = riteSealProgress();
+      if (!seals.ready) return `Rite seals ${seals.found}/${seals.required}`;
+    }
     const target = nextObjectiveRoom();
     if (!target) return "Explore freely";
     if (target === game.roomId) return "Goal is here";
@@ -1100,10 +1147,10 @@
 
   function compactSideObjectives() {
     const out = [];
-    const survey = surveyProgress();
-    const seals = questSealProgress();
-    if (!survey.done) out.push(`Map ${survey.visited}/${survey.total}`);
-    if (!seals.done) out.push(`Seals ${seals.found}/${seals.total}`);
+    const survey = riteSurveyProgress();
+    const seals = riteSealProgress();
+    if (!survey.ready) out.push(`Map ${survey.visited}/${survey.required}`);
+    if (!seals.ready) out.push(`Seals ${seals.found}/${seals.required}`);
     if (game.room && game.room.puzzle && !puzzleSolved(game.room.puzzle.id)) out.push("Hit runes in order");
     const target = nextObjectiveRoom();
     if (target && target !== game.roomId) out.push(`${compassGlyphText()} exit`);
@@ -2191,6 +2238,7 @@
   installOrganicMaze();
   installWaterHazards();
   installStoryNpcs();
+  installPortraitWarps();
   generateCandles();
   installShrines();
   installClimbAids();
@@ -2298,6 +2346,16 @@
         drawH: 176
       }));
     }
+  }
+
+  function installPortraitWarps() {
+    if (!rooms.gallery) return;
+    rooms.gallery.portraitWarps = [
+      { id: "tower", label: "Moon Chain Tower", to: "tower", x: 424, y: 432, spawn: { x: 96, y: 112 }, color: "#f2cb68" },
+      { id: "archive", label: "Moonlit Archives", to: "archive", x: 678, y: 432, spawn: { x: 420, y: 352 }, color: "#bca8ff" },
+      { id: "observatory", label: "Starfall Observatory", to: "observatory", x: 942, y: 432, spawn: { x: 420, y: 352 }, color: "#ffd56a" },
+      { id: "grotto", label: "Sapphire Grotto", to: "cavernDepths", x: 1192, y: 432, spawn: { x: 620, y: 326 }, color: "#42dfff" }
+    ];
   }
 
   function installWaterHazards() {
@@ -2705,6 +2763,21 @@
       cycled: Boolean(game.room.drawbridge.cycled),
       reopened: Boolean(game.room.drawbridge.reopened)
     } : null,
+    pacing: {
+      riteSurveyRequired: RITE_SURVEY_REQUIRED,
+      riteSealsRequired: RITE_SEALS_REQUIRED,
+      riteSurvey: riteSurveyProgress(),
+      riteSeals: riteSealProgress(),
+      riteGateReady: riteGateReady(),
+      portraitWarps: game.room && game.room.portraitWarps
+        ? game.room.portraitWarps.map((warp) => ({ id: warp.id, to: warp.to, unlocked: portraitWarpUnlocked(warp) }))
+        : [],
+      nearbyPortraitWarp: (() => {
+        const warp = nearbyPortraitWarp();
+        return warp ? { id: warp.id, to: warp.to, unlocked: portraitWarpUnlocked(warp) } : null;
+      })(),
+      surge: Number((player.surgeTimer || 0).toFixed(2))
+    },
     hp: Math.round(player.hp)
   });
   window.__NOCTURNE_TEST_INPUT = (action, down) => {
@@ -2806,6 +2879,31 @@
       if (key in patch) enemy[key] = Boolean(patch[key]);
     }
     return true;
+  };
+  window.__NOCTURNE_TEST_SET_CORE_PROGRESS = (opts = {}) => {
+    if ("moonSigil" in opts) game.save.moonSigil = Boolean(opts.moonSigil);
+    if ("dash" in opts) game.save.relics.dash = Boolean(opts.dash);
+    if (Array.isArray(opts.visited)) {
+      for (const roomId of opts.visited) {
+        if (rooms[roomId]) game.save.visited[roomId] = true;
+      }
+    }
+    if (Array.isArray(opts.seals)) {
+      if (!game.save.questSeals) game.save.questSeals = {};
+      for (const seal of opts.seals) {
+        if (QUEST_SEALS.some((meta) => meta.type === seal)) game.save.questSeals[seal] = true;
+      }
+    }
+    updateHud();
+    updateMapPanel();
+    return window.__NOCTURNE_DEBUG_STATE();
+  };
+  window.__NOCTURNE_TEST_TRIGGER_SURGE = () => {
+    player.combo = Math.max(player.combo, MOON_SURGE_MIN_COMBO);
+    player.comboTimer = 3.0;
+    triggerMoonSurge();
+    updateHud();
+    return window.__NOCTURNE_DEBUG_STATE();
   };
   window.__NOCTURNE_PERF_RESET = () => {
     perfStats.enabled = true;
@@ -2952,6 +3050,7 @@
     player.jumpBuffer = 0;
     player.combo = 0;
     player.comboTimer = 0;
+    player.surgeTimer = 0;
     game.projectiles.length = 0;
     game.particles.length = 0;
     game.message = "";
@@ -3352,6 +3451,7 @@
     player.subweaponCooldown = Math.max(0, player.subweaponCooldown - dt);
     player.comboTimer = Math.max(0, player.comboTimer - dt);
     if (player.comboTimer === 0) player.combo = 0;
+    player.surgeTimer = Math.max(0, player.surgeTimer - dt);
     if (player.attackTimer === 0) player.attackHit = false;
 
     if (actionJust("map")) toggleMap();
@@ -3362,6 +3462,11 @@
     }
     if (actionJust("quickSave")) quickSaveGame();
     if (actionJust("interact") && tryStartNpcDialogue()) {
+      updateHud();
+      clearJust();
+      return;
+    }
+    if (actionJust("interact") && tryUsePortraitWarp()) {
       updateHud();
       clearJust();
       return;
@@ -3544,20 +3649,21 @@
       backdashSpeed: 9.2,
       backdashCooldown: 0.45
     };
+    const surgeMul = playerSurgeActive() ? 1.14 : 1;
     let move = 0;
     if (left) move -= 1;
     if (right) move += 1;
 
     if (move) {
       player.facing = move;
-      player.vx += move * mobileTuning.accel * step;
+      player.vx += move * mobileTuning.accel * surgeMul * step;
     } else {
       player.vx *= Math.pow(mobileTuning.friction, step);
       if (Math.abs(player.vx) < 0.04) player.vx = 0;
     }
 
     const slowMul = player.slow > 0 ? 0.55 : 1.0;
-    const maxSpeed = (player.dashTimer > 0 ? mobileTuning.dashSpeed : mobileTuning.maxSpeed) * slowMul;
+    const maxSpeed = (player.dashTimer > 0 ? mobileTuning.dashSpeed : mobileTuning.maxSpeed) * slowMul * surgeMul;
     player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
 
     if (player.onGround) {
@@ -3601,7 +3707,7 @@
         player.dashTimer = 0.18;
         player.dashCooldown = mobileTuning.dashCooldown;
         player.invuln = Math.max(player.invuln, 0.22);
-        player.vx = player.facing * mobileTuning.dashSpeed;
+        player.vx = player.facing * mobileTuning.dashSpeed * surgeMul;
         burst(player.x + player.w / 2, player.y + player.h / 2, "#c9f4ee", 14);
         playSound("dash");
       } else if (!save.relics.dash) {
@@ -3613,7 +3719,7 @@
       player.backdashTimer = 0.22;
       player.backdashCooldown = mobileTuning.backdashCooldown;
       player.invuln = Math.max(player.invuln, 0.26);
-      player.vx = -player.facing * mobileTuning.backdashSpeed;
+      player.vx = -player.facing * mobileTuning.backdashSpeed * surgeMul;
       player.vy = Math.min(player.vy, -0.6);
       burst(player.x + player.w / 2, player.y + player.h / 2, "#a8b8d8", 12);
       playSound("dash", 0.28);
@@ -3924,9 +4030,10 @@
     }
     const meleeBonus = player.baseDamage * 2;
     const chargeMul = charged ? 2.0 : 1.0;
+    const surgeMul = playerSurgeActive() ? 1.18 : 1.0;
     for (const enemy of game.enemies) {
       if (rectsOverlap(box, enemy)) {
-        let dmg = Math.round(((downWhip ? 22 : 26) + meleeBonus) * chargeMul);
+        let dmg = Math.round(((downWhip ? 22 : 26) + meleeBonus) * chargeMul * surgeMul);
         let crit = false;
         if (rollCrit()) { dmg = applyCrit(dmg); crit = true; }
         damageEnemy(enemy, dmg, crit);
@@ -3934,7 +4041,7 @@
       }
     }
     if (game.boss && rectsOverlap(box, game.boss)) {
-      let dmg = Math.round(((downWhip ? 18 : 20) + meleeBonus) * chargeMul);
+      let dmg = Math.round(((downWhip ? 18 : 20) + meleeBonus) * chargeMul * surgeMul);
       let crit = false;
       if (rollCrit()) { dmg = applyCrit(dmg); crit = true; }
       damageBoss(dmg, crit);
@@ -5701,11 +5808,70 @@
     return Boolean(activeMilestoneBoss() || game.boss);
   }
 
+  function playerSurgeActive() {
+    return player.surgeTimer > 0;
+  }
+
+  function triggerMoonSurge(x = player.x + player.w / 2, y = player.y + player.h / 2) {
+    const alreadyActive = playerSurgeActive();
+    player.surgeTimer = alreadyActive ? Math.max(player.surgeTimer, 3.2) : MOON_SURGE_DURATION;
+    if (!alreadyActive) {
+      message("Moon Surge");
+      game.shake = Math.max(game.shake, 0.45);
+      burst(x, y, "#f2cb68", mobilePerformanceMode() ? 18 : 34);
+      playSound("spell", 0.28);
+    }
+  }
+
+  function portraitWarpUnlocked(warp) {
+    if (!game.save.moonSigil) return false;
+    return warp.id === "tower" || game.save.relics.dash;
+  }
+
+  function nearbyPortraitWarp(range = 84) {
+    if (!game.room || !game.room.portraitWarps) return null;
+    const px = player.x + player.w / 2;
+    const py = player.y + player.h;
+    let best = null;
+    let bestDist = Infinity;
+    for (const warp of game.room.portraitWarps) {
+      const dx = Math.abs(px - warp.x);
+      const dy = Math.abs(py - warp.y);
+      if (dx > range || dy > 96) continue;
+      const dist = dx + dy * 0.5;
+      if (dist < bestDist) {
+        best = warp;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
+  function tryUsePortraitWarp() {
+    const warp = nearbyPortraitWarp();
+    if (!warp) return false;
+    if (roomBossActive()) {
+      message("The portrait refuses to move during a warden fight.");
+      playSound("ui", 0.18);
+      return true;
+    }
+    if (!portraitWarpUnlocked(warp)) {
+      message(warp.id === "tower" ? "Portrait route needs the Moon Sigil." : "Seal portraits need Moon Sigil + Mist Dash.");
+      playSound("ui", 0.18);
+      return true;
+    }
+    burst(warp.x, warp.y - 42, warp.color, mobilePerformanceMode() ? 16 : 30);
+    enterRoom(warp.to, warp.spawn, true, null);
+    message(`Portrait route: ${warp.label}`);
+    playSound("spell", 0.35);
+    return true;
+  }
+
   function doorOpen(door) {
     if (!door.lock) return true;
     const puzzleId = puzzleLockId(door.lock);
     if (puzzleId) return puzzleSolved(puzzleId);
-    if (door.lock === "moonGate") return game.save.moonSigil && game.save.relics.dash && allSurveyRoomsVisited() && allQuestSealsClaimed();
+    if (door.lock === "moonGate") return riteGateReady();
     return true;
   }
 
@@ -5728,13 +5894,13 @@
       }
     }
     if (lock === "moonGate") {
-      const survey = surveyProgress();
-      if (!survey.done) {
-        return `Locked. Castle survey incomplete (${survey.visited}/${survey.total}). Next: ${roomDisplayName(survey.next)} - ${roomRouteHint(survey.next)}`;
+      const survey = riteSurveyProgress();
+      if (!survey.ready) {
+        return `Locked. Rite survey incomplete (${survey.visited}/${survey.required}). Next: ${roomDisplayName(survey.next)} - ${roomRouteHint(survey.next)}`;
       }
-      const seals = questSealProgress();
-      if (!seals.done) {
-        return `Locked. Reliquary seals incomplete (${seals.found}/${seals.total}). Next: ${seals.next.label} - ${seals.next.hint}`;
+      const seals = riteSealProgress();
+      if (!seals.ready) {
+        return `Locked. Reliquary seals incomplete (${seals.found}/${seals.required}). Next: ${seals.next.label} - ${seals.next.hint}`;
       }
     }
     return "Sealed";
@@ -5748,10 +5914,10 @@
       if (!game.save.moonSigil) need.push("Moon Sigil");
       if (!game.save.relics.dash) need.push("Mist Dash");
       if (need.length === 0) {
-        const survey = surveyProgress();
-        if (!survey.done) return `LOCKED - survey ${survey.visited}/${survey.total}`;
-        const seals = questSealProgress();
-        if (!seals.done) return `LOCKED - seals ${seals.found}/${seals.total}`;
+        const survey = riteSurveyProgress();
+        if (!survey.ready) return `LOCKED - survey ${survey.visited}/${survey.required}`;
+        const seals = riteSealProgress();
+        if (!seals.ready) return `LOCKED - seals ${seals.found}/${seals.required}`;
         return "";
       }
       return `LOCKED — need ${need.join(" + ")}`;
@@ -5768,10 +5934,10 @@
     if (lock === "moonGate") {
       if (!game.save.moonSigil) return "gallery";
       if (!game.save.relics.dash) return "tower";
-      const survey = surveyProgress();
-      if (!survey.done) return survey.next;
-      const seals = questSealProgress();
-      if (!seals.done) return seals.next.room;
+      const survey = riteSurveyProgress();
+      if (!survey.ready) return survey.next;
+      const seals = riteSealProgress();
+      if (!seals.ready) return seals.next.room;
     }
     return null;
   }
@@ -5907,6 +6073,9 @@
       player.score += 100 + player.combo * 25;
       player.mp = Math.min(player.maxMp, player.mp + 5 + Math.min(8, player.combo));
       if (player.combo > 1) message(`Moon chain x${player.combo}`);
+      if (player.combo >= MOON_SURGE_MIN_COMBO) {
+        triggerMoonSurge(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+      }
       const isMini = enemy.cfg && enemy.cfg.mini;
       burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, isMini ? "#bfa0ff" : "#e1d0a0", isMini ? 60 : 22);
       playSound(isMini ? "bossDie" : "enemyDie", isMini ? 0.55 : 0.45);
@@ -7411,6 +7580,64 @@
     return true;
   }
 
+  function drawPortraitWarps(room) {
+    if (!room || !room.portraitWarps || game.roomId !== "gallery") return;
+    const active = nearbyPortraitWarp();
+    const liteFx = mobilePerformanceMode();
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 11px Cinzel, Georgia, serif";
+    for (const warp of room.portraitWarps) {
+      const unlocked = portraitWarpUnlocked(warp);
+      const hot = active && active.id === warp.id;
+      const pulse = 0.5 + 0.5 * Math.sin(game.time * (hot ? 5.6 : 3.2) + warp.x * 0.01);
+      const baseAlpha = unlocked ? (hot ? 0.82 : 0.46) : 0.22;
+      const y = warp.y + 3;
+
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = baseAlpha * (liteFx ? 0.72 : 1);
+      const glow = ctx.createRadialGradient(warp.x, y - 10, 6, warp.x, y - 10, hot ? 94 : 68);
+      glow.addColorStop(0, unlocked ? warp.color : "rgba(150, 150, 160, 0.48)");
+      glow.addColorStop(0.55, unlocked ? `${warp.color}55` : "rgba(130, 130, 145, 0.14)");
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.ellipse(warp.x, y, hot ? 70 : 56, hot ? 18 : 13, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = baseAlpha + pulse * 0.12;
+      ctx.strokeStyle = unlocked ? warp.color : "rgba(190, 188, 176, 0.38)";
+      ctx.lineWidth = hot ? 2.4 : 1.4;
+      ctx.beginPath();
+      ctx.ellipse(warp.x, y, hot ? 52 : 42, hot ? 12 : 9, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (!liteFx) {
+        ctx.globalAlpha = (hot ? 0.52 : 0.28) * (unlocked ? 1 : 0.58);
+        ctx.strokeStyle = unlocked ? "#fff5dd" : "rgba(255,255,255,0.32)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(warp.x - 22, y);
+        ctx.bezierCurveTo(warp.x - 6, y - 16 - pulse * 5, warp.x + 6, y + 16 + pulse * 5, warp.x + 22, y);
+        ctx.stroke();
+      }
+
+      if (hot) {
+        ctx.globalAlpha = unlocked ? 0.88 : 0.52;
+        ctx.fillStyle = unlocked ? "#fff5dd" : "#c8c1b8";
+        ctx.shadowColor = unlocked ? warp.color : "rgba(160,160,170,0.6)";
+        ctx.shadowBlur = unlocked ? 10 : 4;
+        ctx.fillText(warp.label, warp.x, y - 38);
+        ctx.shadowBlur = 0;
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.restore();
+  }
+
   function drawCatacombHdProps(room) {
     const img = images.catacombProps;
     if (!isDrawableImage(img)) return false;
@@ -7955,6 +8182,7 @@
   }
 
   function drawRoomMechanics() {
+    if (game.room && game.room.portraitWarps) drawPortraitWarps(game.room);
     if (game.room && game.room.grottoRide) drawGrottoMechanics(game.room);
     if (game.room && game.room.puzzle) drawPuzzleMechanics(game.room);
     const bridge = game.room && game.room.drawbridge;
@@ -8538,13 +8766,13 @@
       return [{ label: meta ? `${meta.puzzle.label} (${meta.room.name})` : "Rune Puzzle", have: puzzleSolved(puzzleId) }];
     }
     if (lock === "moonGate") {
+      const survey = riteSurveyProgress();
+      const seals = riteSealProgress();
       return [
         { label: "Moon Sigil (Gallery)", have: !!game.save.moonSigil },
         { label: "Mist Dash (Tower)", have: !!game.save.relics.dash },
-        { label: `Castle survey (${surveyProgress().total} rooms)`, have: allSurveyRoomsVisited() },
-        { label: "Ink Seal (Archives)", have: !!(game.save.questSeals && game.save.questSeals.inkSeal) },
-        { label: "Astral Lens (Observatory)", have: !!(game.save.questSeals && game.save.questSeals.starSeal) },
-        { label: "Tide Sigil (Grotto)", have: !!(game.save.questSeals && game.save.questSeals.tideSeal) }
+        { label: `Rite survey (${survey.visited}/${survey.required} rooms)`, have: survey.ready },
+        { label: `Reliquary seals (${seals.found}/${seals.required})`, have: seals.ready }
       ];
     }
     return [];
@@ -9368,6 +9596,25 @@
     const alpha = player.invuln > 0 && Math.floor(game.time * 18) % 2 ? 0.48 : 1;
     const centerX = player.x + player.w / 2;
     const bottom = player.y + player.h + 14;
+    if (playerSurgeActive()) {
+      ctx.save();
+      const liteFx = mobilePerformanceMode();
+      const pulse = 0.5 + 0.5 * Math.sin(game.time * 13);
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = liteFx ? 0.22 + pulse * 0.08 : 0.34 + pulse * 0.16;
+      if (liteFx) {
+        ctx.fillStyle = "rgba(242, 203, 104, 0.52)";
+        ctx.fillRect(centerX - 33, player.y + 16, 66, player.h - 8);
+      } else {
+        const aura = ctx.createRadialGradient(centerX, player.y + 58, 12, centerX, player.y + 58, 96);
+        aura.addColorStop(0, "rgba(255, 245, 190, 0.42)");
+        aura.addColorStop(0.42, "rgba(242, 203, 104, 0.18)");
+        aura.addColorStop(1, "rgba(242, 203, 104, 0)");
+        ctx.fillStyle = aura;
+        ctx.fillRect(centerX - 110, player.y - 26, 220, 220);
+      }
+      ctx.restore();
+    }
     drawSheetFrame(images.player, pose.frame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, centerX, bottom, 112, 184, player.facing < 0, alpha, true, mobilePerformanceMode());
     if (pose.nextFrame !== pose.frame && pose.blend > 0.04) {
       drawSheetFrame(images.player, pose.nextFrame, 0, SPRITES.playerFrameW, SPRITES.playerFrameH, centerX, bottom, 112, 184, player.facing < 0, alpha * pose.blend * 0.34, true, mobilePerformanceMode());
@@ -9816,10 +10063,11 @@
     relics.push(game.save.relics.doubleJump ? "Triple Moonstep" : "Double Jump");
     if (game.save.relics.dash) relics.push("Mist Dash");
     if (game.save.moonSigil) relics.push("Moon Sigil");
-    const survey = surveyProgress();
-    if (!survey.done) relics.push(`Map ${survey.visited}/${survey.total}`);
-    const seals = questSealProgress();
-    if (!seals.done) relics.push(`Seals ${seals.found}/${seals.total}`);
+    const survey = riteSurveyProgress();
+    if (!survey.ready) relics.push(`Map ${survey.visited}/${survey.required}`);
+    const seals = riteSealProgress();
+    if (!seals.ready) relics.push(`Seals ${seals.found}/${seals.required}`);
+    if (playerSurgeActive()) relics.push("Moon Surge");
     if (player.combo > 1) relics.push(`Chain x${player.combo}`);
     return relics.join(" / ");
   }
@@ -9926,12 +10174,13 @@
 
     dom.relicList.innerHTML = "";
     const owned = game.save.ownedSubweapons || {};
-    const mapSurvey = surveyProgress();
-    const seals = questSealProgress();
+    const mapSurvey = riteSurveyProgress();
+    const seals = riteSealProgress();
     const chips = [
       `LV ${player.level || game.save.level || 1}`,
-      `MAP ${mapSurvey.visited}/${mapSurvey.total}`,
-      !seals.done && `SEALS ${seals.found}/${seals.total}`,
+      `MAP ${mapSurvey.visited}/${mapSurvey.required}`,
+      !seals.ready && `SEALS ${seals.found}/${seals.required}`,
+      playerSurgeActive() && "SURGE",
       game.save.moonSigil && "SIGIL",
       game.save.relics.doubleJump && "BOOTS",
       game.save.relics.dash && "DASH",

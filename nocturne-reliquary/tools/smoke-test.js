@@ -316,6 +316,49 @@ async function browserSmoke() {
     return { locked, unlocked };
   });
 
+  const riteVisitedRooms = [
+    "forest", "rootwound", "courtyard", "armory", "library", "vault", "archive",
+    "gate", "moat", "crypt", "catacomb", "ossuary",
+    "gallery", "mirrorCloister", "clock", "tower", "belltower", "loft"
+  ];
+  const pacingGateProbe = await page.evaluate(async (visited) => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    window.__NOCTURNE_TEST_SET_CORE_PROGRESS({
+      moonSigil: true,
+      dash: true,
+      visited,
+      seals: ["inkSeal", "starSeal"]
+    });
+    window.__NOCTURNE_TEST_TELEPORT("chapel", 1372, 326);
+    const before = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_INPUT("right", true);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const after = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_INPUT("right", false);
+    return { before, after };
+  }, riteVisitedRooms);
+
+  const portraitWarpBefore = await page.evaluate(() => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    window.__NOCTURNE_TEST_SET_CORE_PROGRESS({
+      moonSigil: true,
+      dash: true,
+      visited: ["gate", "gallery"],
+      seals: []
+    });
+    window.__NOCTURNE_TEST_TELEPORT("gallery", 656, 330);
+    return window.__NOCTURNE_DEBUG_STATE();
+  });
+  await page.keyboard.press("KeyE");
+  await page.waitForFunction(() => window.__NOCTURNE_DEBUG_STATE().room === "archive", null, { timeout: 2600 }).catch(() => {});
+  await page.waitForTimeout(180);
+  const portraitWarpAfter = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
+
+  const surgeProbe = await page.evaluate(() => {
+    window.__NOCTURNE_TEST_TELEPORT("gate", 190, 352);
+    return window.__NOCTURNE_TEST_TRIGGER_SURGE();
+  });
+
   const mapCycleProbe = await page.evaluate(() => {
     const btn = document.getElementById("mapButton");
     const panel = document.getElementById("mapPanel");
@@ -595,7 +638,7 @@ async function browserSmoke() {
 
   await closeBrowser(browser);
   await closeServer(server);
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, galleryPixelProbe, puzzleProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, galleryPixelProbe, puzzleProbe, pacingGateProbe, portraitWarpBefore, portraitWarpAfter, surgeProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -612,6 +655,7 @@ async function browserSmoke() {
   assert(gameJs.includes("dom.title.dataset.title = title"), "dynamic title text should keep the glow layer in sync");
   assert(styleCss.includes("content: attr(data-title)") && styleCss.includes("@keyframes title-aura"), "title screen should include the font-shaped glow aura");
   assert(gameJs.includes("function playerAnimationPose") && gameJs.includes("sequenceAnimationPose"), "player should use blended high-frame animation poses");
+  assert(gameJs.includes("RITE_SURVEY_REQUIRED") && gameJs.includes("riteGateReady") && gameJs.includes("tryUsePortraitWarp") && gameJs.includes("triggerMoonSurge"), "pacing shortcut, portrait warp, and Moon Surge systems should be wired");
   assert(read("tools/build-player-imagen-72.ps1").includes("$SourcePadX = 54") && read("tools/build-player-imagen-72.ps1").includes("RemoveFrameGuideArtifacts"), "player 72-frame sheet should be rebuilt with padded component slicing");
   assert(gameJs.includes("recoverTideWardenIfUnsafe") && gameJs.includes("enemyFeetOverlapWaterPit"), "Tide Warden should recover from Sapphire Grotto pits");
   assert(gameJs.includes("SpeechSynthesisUtterance") && gameJs.includes("speakDialogueLine"), "NPC dialogue should support Web Speech voice output");
@@ -736,7 +780,9 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
   assert(result.state.tuningInfo.mobilePerformance === "viewport-lite-player-cache-no-vignette-v6", "mobile performance should use viewport-cropped backgrounds, cached player frames, and no mobile vignette");
-  assert(result.state.tuningInfo.progressRoute === "full-castle-survey-v1", "full-map survey route should be wired");
+  assert(result.state.tuningInfo.pacingSet === "rite-shortcut-portrait-warp-surge-v1", "pacing shortcut tuning should be wired");
+  assert(result.state.tuningInfo.riteSurveyRequired === 18 && result.state.tuningInfo.riteSealsRequired === 2, "rite gate should require 18 mapped rooms and 2 seals");
+  assert(result.state.tuningInfo.progressRoute === "rite-shortcut-18rooms-2seals-v1", "shortened rite route should be wired");
   assert(result.state.tuningInfo.difficulty === "classic-puzzle-pressure-v1+warden-milestones-v2", "difficulty tuning should add classic puzzle pressure and warden milestones");
   assert(result.newRunState.visuals && result.newRunState.visuals.bg === "bgForest", "new run should open in the forest room");
   assert(result.newRunState.visuals.parallax.includes("paraForest"), "forest opening should use intro parallax elements");
@@ -803,6 +849,11 @@ async function browserSmoke() {
   assert(galleryState && galleryState.hdProps && galleryState.hdProps.galleryPortraits && galleryState.hdProps.gallerySize === "1254x1254" && galleryState.hdProps.chromaCaches >= 1, `Silver Portrait Gallery should use the new Imagen HD portrait atlas: ${JSON.stringify(galleryState && galleryState.hdProps)}`);
   assert(galleryState.visuals && !galleryState.visuals.parallax.includes("paraArches"), `Silver Portrait Gallery should not reintroduce vector-like arch parallax: ${JSON.stringify(galleryState.visuals)}`);
   assert(result.galleryPixelProbe.greenKey < 140 && result.galleryPixelProbe.hardGreen < 40, `Silver Portrait Gallery should not show green-screen pixels around portraits: ${JSON.stringify(result.galleryPixelProbe)}`);
+  assert(result.pacingGateProbe.before.pacing && result.pacingGateProbe.before.pacing.riteGateReady, `18 rooms and 2 seals should open the rite gate before full completion: ${JSON.stringify(result.pacingGateProbe.before.pacing)}`);
+  assert(result.pacingGateProbe.after.room === "throne", `shortened rite gate should transition into the Crimson Reliquary: ${JSON.stringify(result.pacingGateProbe)}`);
+  assert(result.portraitWarpBefore.pacing && result.portraitWarpBefore.pacing.nearbyPortraitWarp && result.portraitWarpBefore.pacing.nearbyPortraitWarp.to === "archive", `Gallery portrait warp should arm near the archive portrait: ${JSON.stringify(result.portraitWarpBefore.pacing)}`);
+  assert(result.portraitWarpAfter.room === "archive", `Gallery portrait warp should jump to Moonlit Archives: ${JSON.stringify(result.portraitWarpAfter)}`);
+  assert(result.surgeProbe.pacing && result.surgeProbe.pacing.surge > 5.5, `Moon Surge should be triggerable and exposed in debug state: ${JSON.stringify(result.surgeProbe.pacing)}`);
   const mirrorState = result.transitionStates.find((entry) => entry.room === "mirrorCloister");
   assert(mirrorState && mirrorState.visuals.bg === "bgMirrorCloister" && mirrorState.roomPuzzle && mirrorState.roomPuzzle.id === "mirrorRunes", `Mirror Cloister should expose its HD room and puzzle: ${JSON.stringify(mirrorState)}`);
   assert(result.puzzleProbe.locked.room === "mirrorCloister", `unsolved mirror puzzle should keep chapel door locked: ${JSON.stringify(result.puzzleProbe.locked)}`);
@@ -814,6 +865,7 @@ async function browserSmoke() {
   assert(result.mapCycleProbe[3].mode === "mini" && !result.mapCycleProbe[3].miniHidden && result.mapCycleProbe[3].miniCells >= 30, `map button should cycle back to mini map: ${JSON.stringify(result.mapCycleProbe)}`);
   assert(result.state.debugState.enemyTypes.includes("blackPanther"), `Gate Hall should spawn the black panther enemy: ${JSON.stringify(result.state.debugState.enemyTypes)}`);
   assert(result.state.debugState.survey && result.state.debugState.survey.total >= 30, `survey debug state should include the full organic castle route plus puzzle rooms: ${JSON.stringify(result.state.debugState.survey)}`);
+  assert(result.state.debugState.pacing && result.state.debugState.pacing.riteSurveyRequired === 18 && result.state.debugState.pacing.riteSealsRequired === 2, `debug state should expose shortened rite pacing: ${JSON.stringify(result.state.debugState.pacing)}`);
   assert(result.state.debugState.mapMode === "mini" && result.state.mapButtonText === "MINI" && result.state.miniMapDisplay !== "none" && result.state.miniMapCells >= 30 && result.state.mapPanelHidden, `mini map should be visible while full map is closed: ${JSON.stringify(result.state)}`);
   assert(result.state.objectiveText.length <= 8 && result.state.compassText.length <= 4 && result.state.statusText.length <= 32 && result.state.miniMapObjectiveDisplay === "none", `low-reading HUD should keep persistent text compact: ${JSON.stringify(result.state)}`);
   assert(result.state.debugState.questSeals && result.state.debugState.questSeals.total === 3, `debug state should expose the three quest seals: ${JSON.stringify(result.state.debugState.questSeals)}`);
