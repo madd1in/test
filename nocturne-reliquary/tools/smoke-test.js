@@ -278,6 +278,23 @@ async function browserSmoke() {
     if (!document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
     window.__NOCTURNE_TEST_INPUT("down", true);
   }, "gallery"));
+  const galleryPixelProbe = await page.evaluate(() => {
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let greenKey = 0;
+    let hardGreen = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      if (a <= 0) continue;
+      if (g > 110 && g - r > 45 && g - b > 32 && g > r * 1.25 && g > b * 1.18) greenKey += 1;
+      if (g > 160 && r < 110 && b < 120) hardGreen += 1;
+    }
+    return { greenKey, hardGreen };
+  });
 
   const puzzleProbe = await page.evaluate(async () => {
     for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
@@ -578,7 +595,7 @@ async function browserSmoke() {
 
   await closeBrowser(browser);
   await closeServer(server);
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, puzzleProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, galleryPixelProbe, puzzleProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -623,7 +640,8 @@ async function browserSmoke() {
   assert(fs.existsSync(path.join(root, "assets/generated/para_imagen_crystals_hd.png")), "Forgotten Library Imagen HD crystal layer missing");
   assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_candles.png")), "Imagen HD candle atlas missing");
   assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_moon_chain_tower.png")), "Moon Chain Tower Imagen HD prop atlas missing");
-  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_gallery_portraits.png")), "Silver Portrait Gallery Imagen HD portrait atlas missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_gallery_portraits_clean.png")), "Silver Portrait Gallery clean Imagen HD portrait atlas missing");
+  assert(read("tools/build-gallery-portrait-clean.ps1").includes("GalleryPortraitMatteCleaner") && gameJs.includes("props_imagen_hd_gallery_portraits_clean.png"), "Silver Portrait Gallery portraits should use a clean alpha-matted atlas");
 
   const paths = new Set(Array.from(gameJs.matchAll(/"assets\/[^"]+"/g), (match) => match[0].slice(1, -1)));
   for (const asset of paths) {
@@ -698,7 +716,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.grottoSpikeSet === "removed-stalagmite-shades-v1", "grotto stalagmite shade removal should be wired");
   assert(result.state.tuningInfo.armoryBackdrop === "imagen-hd-armory-bg-v2-no-overlay-v1", "Candlelit Armory clean HD background should be wired without the old overlay");
   assert(result.state.tuningInfo.towerGalleryProps === "imagen-hd-moon-chain-gallery-props-v1", "Moon Chain Tower and Gallery Imagen HD prop tuning should be wired");
-  assert(result.state.tuningInfo.galleryBackdrop === "imagen-hd-portrait-wall-no-vector-v1", "Silver Portrait Gallery should use the HD portrait wall without procedural vector overlays");
+  assert(result.state.tuningInfo.galleryBackdrop === "imagen-hd-portrait-wall-clean-alpha-v2", "Silver Portrait Gallery should use the HD portrait wall with clean alpha portraits");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-full-boss-v2", "quest seal route should force the new sections into full milestone boss progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
@@ -784,6 +802,7 @@ async function browserSmoke() {
   const galleryState = result.transitionStates.find((entry) => entry.room === "gallery");
   assert(galleryState && galleryState.hdProps && galleryState.hdProps.galleryPortraits && galleryState.hdProps.gallerySize === "1254x1254" && galleryState.hdProps.chromaCaches >= 1, `Silver Portrait Gallery should use the new Imagen HD portrait atlas: ${JSON.stringify(galleryState && galleryState.hdProps)}`);
   assert(galleryState.visuals && !galleryState.visuals.parallax.includes("paraArches"), `Silver Portrait Gallery should not reintroduce vector-like arch parallax: ${JSON.stringify(galleryState.visuals)}`);
+  assert(result.galleryPixelProbe.greenKey < 140 && result.galleryPixelProbe.hardGreen < 40, `Silver Portrait Gallery should not show green-screen pixels around portraits: ${JSON.stringify(result.galleryPixelProbe)}`);
   const mirrorState = result.transitionStates.find((entry) => entry.room === "mirrorCloister");
   assert(mirrorState && mirrorState.visuals.bg === "bgMirrorCloister" && mirrorState.roomPuzzle && mirrorState.roomPuzzle.id === "mirrorRunes", `Mirror Cloister should expose its HD room and puzzle: ${JSON.stringify(mirrorState)}`);
   assert(result.puzzleProbe.locked.room === "mirrorCloister", `unsolved mirror puzzle should keep chapel door locked: ${JSON.stringify(result.puzzleProbe.locked)}`);

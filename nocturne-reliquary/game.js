@@ -76,7 +76,7 @@
     candlesHd: "assets/generated/props_imagen_hd_candles.png",
     librarySwitches: "assets/generated/props_imagen_hd_library_switches.png",
     towerProps: "assets/generated/props_imagen_hd_moon_chain_tower.png",
-    galleryPortraits: "assets/generated/props_imagen_hd_gallery_portraits.png",
+    galleryPortraits: "assets/generated/props_imagen_hd_gallery_portraits_clean.png",
     catacombProps: "assets/generated/props_imagen_hd_bone_bell_catacomb.png",
     titleBg: "assets/generated/bg_imagen_title_screen_hd.png",
     bgGate: "assets/generated/bg_imagen_gate_hd.png",
@@ -371,7 +371,7 @@
     grottoSpikeSet: "removed-stalagmite-shades-v1",
     armoryBackdrop: "imagen-hd-armory-bg-v2-no-overlay-v1",
     towerGalleryProps: "imagen-hd-moon-chain-gallery-props-v1",
-    galleryBackdrop: "imagen-hd-portrait-wall-no-vector-v1",
+    galleryBackdrop: "imagen-hd-portrait-wall-clean-alpha-v2",
     catacombProps: "imagen-hd-bone-bell-catacomb-props-v1",
     mirrorCloisterSet: "imagen-hd-mirror-cloister-v2",
     questSealRoute: "archive-observatory-grotto-full-boss-v2",
@@ -7065,24 +7065,28 @@
     try {
       const pixels = g.getImageData(0, 0, c.width, c.height);
       const data = pixels.data;
+      const keyText = String(key || "");
+      const galleryMatte = keyText.includes("galleryPortraits");
+      const npcMatte = keyText.includes("npcStory");
+      const matteCleanup = galleryMatte || npcMatte;
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const gr = data[i + 1];
         const b = data[i + 2];
-        const keyText = String(key || "");
-        const galleryMatte = keyText.includes("galleryPortraits");
-        const npcMatte = keyText.includes("npcStory");
         const maxRb = Math.max(r, b);
-        const greenScreen = galleryMatte || npcMatte
-          ? gr > 72 && gr - maxRb > 12 && gr > r * 1.08 && gr > b * 1.04
+        const greenScreen = matteCleanup
+          ? gr > 58 && gr - maxRb > (galleryMatte ? 5 : 10) && gr > r * 1.03 && gr > b * 1.02
           : gr > 130 && gr > r * 1.45 && gr > b * 1.45;
         if (greenScreen) {
-          const threshold = galleryMatte || npcMatte ? 12 : 0;
-          const falloff = galleryMatte || npcMatte ? 68 : 150;
+          const threshold = galleryMatte ? 4 : npcMatte ? 10 : 0;
+          const falloff = galleryMatte ? 42 : npcMatte ? 62 : 150;
           const greenDominance = Math.min(1, Math.max(0, (gr - maxRb - threshold) / falloff));
           data[i + 3] = Math.max(0, Math.round(data[i + 3] * (1 - greenDominance)));
-          if ((galleryMatte || npcMatte) && greenDominance > 0.46) data[i + 3] = 0;
-          if (npcMatte) data[i + 1] = Math.min(gr, maxRb + 14);
+          if (galleryMatte && (greenDominance > 0.22 || gr > 118)) data[i + 3] = 0;
+          if (npcMatte && greenDominance > 0.46) data[i + 3] = 0;
+          if (matteCleanup) data[i + 1] = Math.min(gr, maxRb + (galleryMatte ? 1 : 10));
+        } else if (galleryMatte && gr > maxRb + 2 && gr > 44) {
+          data[i + 1] = Math.min(gr, maxRb + 1);
         }
       }
       g.putImageData(pixels, 0, 0);
