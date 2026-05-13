@@ -383,6 +383,7 @@
     storyRoute: "elys-vellum-maribel-nera-dialogue-v1",
     mapMazeSet: "organic-looped-castle-v2-root-sluice-reservoir",
     bossMilestones: "quest-wardens-full-bossfight-v2",
+    wardenBounds: "clamped-after-motion-v1",
     mapMode: "cycle-off-mini-full-v1",
     objectiveDoorGuide: "in-world-next-exit-v1",
     playerMotionSet: "imagen-hd-player-72f-body-atlas-v2",
@@ -2532,6 +2533,19 @@
     playerVy: Number(player.vy.toFixed(2)),
     onGround: Boolean(player.onGround),
     enemyTypes: game.enemies.map((enemy) => enemy.type),
+    milestoneBosses: game.enemies
+      .filter((enemy) => enemy.cfg && enemy.cfg.fullBoss)
+      .map((enemy) => ({
+        id: enemy.id,
+        type: enemy.type,
+        x: Math.round(enemy.x),
+        y: Math.round(enemy.y),
+        vx: Number((enemy.vx || 0).toFixed(2)),
+        min: enemy.min,
+        max: enemy.max,
+        awakened: Boolean(enemy.awakened),
+        lunge: Number((enemy.lunge || 0).toFixed(2))
+      })),
     featuredEnemies: game.enemies
       .filter((enemy) => enemy.type === "blackPanther" || enemy.type === "zora")
       .map((enemy) => ({
@@ -2757,6 +2771,17 @@
       if (room.puzzle && room.puzzle.id === id) room.puzzle.step = solved ? room.puzzle.sequence.length : 0;
     }
     updateMapPanel();
+    return true;
+  };
+  window.__NOCTURNE_TEST_SET_ENEMY_RAW = (enemyId, patch = {}) => {
+    const enemy = game.enemies.find((candidate) => candidate.id === enemyId);
+    if (!enemy) return false;
+    for (const key of ["x", "y", "vx", "vy", "cooldown", "lunge", "specialCooldown", "attackWindup", "hp"]) {
+      if (Number.isFinite(patch[key])) enemy[key] = patch[key];
+    }
+    for (const key of ["awakened", "phaseTwo", "onGround"]) {
+      if (key in patch) enemy[key] = Boolean(patch[key]);
+    }
     return true;
   };
   window.__NOCTURNE_PERF_RESET = () => {
@@ -4073,8 +4098,8 @@
           const speedMul = activeFullBoss ? (enemy.phaseTwo ? 1.62 : 1.38) : (isInkWarden || isQuestWarden ? 1.22 : 1);
           enemy.vx = clamp(enemy.vx, -cfg.speed * speedMul, cfg.speed * speedMul);
         }
-        if (enemy.x < enemy.min || enemy.x > enemy.max) enemy.vx *= -1;
         moveEntity(enemy, step, false);
+        containEnemyPatrol(enemy);
         if (isFullBoss && !enemy.awakened) {
           if (Math.abs(dist) < 430 || enemy.hurt > 0) awakenWarden(enemy);
           else {

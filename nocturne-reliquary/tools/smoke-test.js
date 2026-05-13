@@ -320,6 +320,29 @@ async function browserSmoke() {
     return states;
   });
 
+  const archiveWardenBoundsProbe = await page.evaluate(async () => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    window.__NOCTURNE_TEST_SET_KILLED("archive", "inkWarden1", false);
+    window.__NOCTURNE_TEST_TELEPORT("archive", 420, 352);
+    window.__NOCTURNE_TEST_SET_PLAYER_RAW(420, 352, true);
+    window.__NOCTURNE_TEST_SET_ENEMY_RAW("inkWarden1", {
+      x: 1248,
+      y: 204,
+      vx: -7.6,
+      vy: 0,
+      awakened: true,
+      lunge: 0.64,
+      cooldown: 4,
+      specialCooldown: 4
+    });
+    const before = window.__NOCTURNE_DEBUG_STATE();
+    await new Promise((resolve) => setTimeout(resolve, 420));
+    const mid = window.__NOCTURNE_DEBUG_STATE();
+    await new Promise((resolve) => setTimeout(resolve, 920));
+    const after = window.__NOCTURNE_DEBUG_STATE();
+    return { before, mid, after };
+  });
+
   const grottoMechanicProbe = await page.evaluate(async () => {
     for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
     window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 360, 260);
@@ -533,7 +556,7 @@ async function browserSmoke() {
 
   await closeBrowser(browser);
   await closeServer(server);
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, puzzleProbe, mapCycleProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, puzzleProbe, mapCycleProbe, archiveWardenBoundsProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -652,6 +675,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.storyNpcSet === "imagen-story-npc-atlas-v1+animated-16f-clean-v1", "Imagen HD story NPC atlas and clean animated strip should be wired");
   assert(result.state.tuningInfo.mapMazeSet === "organic-looped-castle-v2-root-sluice-reservoir", "organic maze loop tuning should be wired");
   assert(result.state.tuningInfo.bossMilestones === "quest-wardens-full-bossfight-v2", "quest wardens should be promoted to full bossfight milestones");
+  assert(result.state.tuningInfo.wardenBounds === "clamped-after-motion-v1", "warden arena bounds should clamp after motion");
   assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "zora/panther plus smooth quest warden HD frame map tuning should be wired");
   assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
   assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
@@ -703,6 +727,9 @@ async function browserSmoke() {
   const openedChest = result.chestVisualProbe.opened.chests.find((chest) => chest.id === "vault_axe_chest");
   assert(closedChest && !closedChest.opened && closedChest.asset && closedChest.frameW === 256 && closedChest.drawW >= 90, `closed vault chest should use the Imagen HD chest sheet: ${JSON.stringify(result.chestVisualProbe.closed.chests)}`);
   assert(openedChest && openedChest.opened && openedChest.asset && openedChest.frames === 4, `opened vault chest should use the HD open-frame sheet: ${JSON.stringify(result.chestVisualProbe.opened.chests)}`);
+  const archiveBoundsBoss = result.archiveWardenBoundsProbe.after.milestoneBosses.find((enemy) => enemy.id === "inkWarden1");
+  assert(archiveBoundsBoss && archiveBoundsBoss.x >= archiveBoundsBoss.min && archiveBoundsBoss.x <= archiveBoundsBoss.max, `Archive Warden should return inside its arena after an offscreen lunge: ${JSON.stringify(result.archiveWardenBoundsProbe)}`);
+  assert(archiveBoundsBoss.x < result.archiveWardenBoundsProbe.before.milestoneBosses[0].x, `Archive Warden should move back from the right edge instead of drifting farther out: ${JSON.stringify(result.archiveWardenBoundsProbe)}`);
   const archiveState = result.transitionStates.find((entry) => entry.room === "archive");
   assert(archiveState && archiveState.enemyTypes.includes("inkWarden"), `Moonlit Archives should spawn the Ink Warden quest mini-boss: ${JSON.stringify(archiveState && archiveState.enemyTypes)}`);
   assert(archiveState.hdProps && archiveState.hdProps.archiveWarden && archiveState.hdProps.archiveWardenSize === "15360x256", `Moonlit Archives should use the 48-frame Archive Warden HD sheet: ${JSON.stringify(archiveState && archiveState.hdProps)}`);
