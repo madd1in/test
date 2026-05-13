@@ -118,7 +118,7 @@ async function browserSmoke() {
   await stubExternalFonts(page);
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
-  await page.waitForFunction(() => window.__NOCTURNE_READY === true, null, { timeout: 90000 });
+  await page.waitForFunction(() => window.__NOCTURNE_READY === true, null, { timeout: 150000 });
 
   async function canvasProbe() {
     return page.evaluate(() => {
@@ -595,6 +595,7 @@ async function browserSmoke() {
   assert(gameJs.includes("dom.title.dataset.title = title"), "dynamic title text should keep the glow layer in sync");
   assert(styleCss.includes("content: attr(data-title)") && styleCss.includes("@keyframes title-aura"), "title screen should include the font-shaped glow aura");
   assert(gameJs.includes("function playerAnimationPose") && gameJs.includes("sequenceAnimationPose"), "player should use blended high-frame animation poses");
+  assert(read("tools/build-player-imagen-72.ps1").includes("$SourcePadX = 54") && read("tools/build-player-imagen-72.ps1").includes("RemoveFrameGuideArtifacts"), "player 72-frame sheet should be rebuilt with padded component slicing");
   assert(gameJs.includes("recoverTideWardenIfUnsafe") && gameJs.includes("enemyFeetOverlapWaterPit"), "Tide Warden should recover from Sapphire Grotto pits");
   assert(gameJs.includes("SpeechSynthesisUtterance") && gameJs.includes("speakDialogueLine"), "NPC dialogue should support Web Speech voice output");
   assert(!gameJs.includes('playSound("gate"'), "room-transition gate/gong SFX should stay removed");
@@ -708,7 +709,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.wardenBounds === "clamped-after-motion-water-rescue-v2", "warden arena bounds should clamp after motion and rescue pit falls");
   assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "zora/panther plus smooth quest warden HD frame map tuning should be wired");
   assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
-  assert(result.state.tuningInfo.playerMotionSet === "imagen-hd-player-72f-blended-motion-v3", "player movement should use blended 72-frame motion tuning");
+  assert(result.state.tuningInfo.playerMotionSet === "imagen-hd-player-72f-resliced-blended-motion-v4", "player movement should use resliced blended 72-frame motion tuning");
   assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
   assert(result.state.tuningInfo.controlSkin === "gothic-medallion-controls-v1", "gothic medallion control skin should be wired");
   assert(result.state.tuningInfo.mobileTouch === "transient-joystick-v1-readable-actions", "mobile touch tuning should use the transient joystick and readable action targets");

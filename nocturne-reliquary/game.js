@@ -387,7 +387,7 @@
     wardenBounds: "clamped-after-motion-water-rescue-v2",
     mapMode: "cycle-off-mini-full-v1",
     objectiveDoorGuide: "in-world-next-exit-v1",
-    playerMotionSet: "imagen-hd-player-72f-blended-motion-v3",
+    playerMotionSet: "imagen-hd-player-72f-resliced-blended-motion-v4",
     accessibilityHud: "low-reading-hud-v1",
     controlSkin: "gothic-medallion-controls-v1",
     mobileTouch: "transient-joystick-v1-readable-actions",
