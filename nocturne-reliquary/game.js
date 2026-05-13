@@ -193,6 +193,11 @@
   const ENEMY_DAMAGE_SCALE = 1.2;
   const BOSS_HP_SCALE = 2.35;
   const TILE_DRAW_SIZE = 48;
+  const CHEST_LEGACY_CENTER_X = 18;
+  const CHEST_LEGACY_FOOT_Y = 28;
+  const CHEST_FOOT_SINK = 4;
+  const CHEST_SUPPORT_PAD = 12;
+  const PASSAGE_EDGE_TOLERANCE = 10;
   const PLATFORM_TILE_CELLS = {
     gold: [0, 0],
     stone: [1, 0],
@@ -351,8 +356,10 @@
     grottoMechanic: "moving-water-raft-duck-gates-v3-no-stalagmites",
     enemyVisibility: "panther-zora-rim-respawn-v1",
     chestSet: "imagen-hd-treasure-chests-v2",
+    chestGrounding: "platform-anchored-hd-v1",
     weaponSet: WEAPON_ASSET_SET,
     doorSet: DOOR_ASSET_SET,
+    doorPresentation: "organic-recess-and-passage-arrows-v1",
     exitGuideSet: "imagen-hd-gothic-exit-guides-v1",
     moatWaterSet: "imagen-hd-mode7-parallax-warmed-v3",
     puzzleSet: ROOM_PUZZLE_SET,
@@ -2562,6 +2569,13 @@
       id: chest.id,
       x: Math.round(chest.x),
       y: Math.round(chest.y),
+      centerX: Math.round(chestCenterX(chest)),
+      floorY: Math.round(chestGroundY(chest)),
+      support: chest.support ? {
+        x: Math.round(chest.support.x),
+        y: Math.round(chest.support.y),
+        w: Math.round(chest.support.w)
+      } : null,
       opened: Boolean(chest.opened),
       asset: Boolean(images.chests && images.chests.width),
       frameW: SPRITES.chestFrameW,
@@ -3058,7 +3072,7 @@
     game.ambient = [];
     // Treasure chests: persistent state via game.save.openedChests
     game.chests = (room.chests || []).map((c) => ({
-      id: c.id, x: c.x, y: c.y, loot: c.loot,
+      ...resolveChestPlacement(room, c),
       opened: !!(game.save.openedChests && game.save.openedChests[`${roomId}:${c.id}`])
     }));
     game.roomTransitionCooldown = 0.18;
@@ -4686,8 +4700,9 @@
     chest.opened = true;
     if (!game.save.openedChests) game.save.openedChests = {};
     game.save.openedChests[`${game.roomId}:${chest.id}`] = true;
-    burst(chest.x + 18, chest.y, "#ffd065", 28);
-    burst(chest.x + 18, chest.y, "#fff5dd", 14);
+    const rect = chestDrawRect(chest);
+    burst(chestCenterX(chest), rect.y + 18, "#ffd065", 28);
+    burst(chestCenterX(chest), rect.y + 18, "#fff5dd", 14);
     game.shake = Math.max(game.shake, 0.6);
     playSound("heart", 0.45);
     message(`Treasure! ${chestLootLabel(chest.loot)}`);
@@ -4717,7 +4732,8 @@
     game.pickups.push({
       id: `chest_${chest.id}_${game.time}`,
       type: loot,
-      x: chest.x + 4, y: chest.y - 24,
+      x: chestCenterX(chest) - 14,
+      y: chestDrawRect(chest).y - 24,
       w: 28, h: 28,
       vx: (Math.random() - 0.5) * 1.4,
       vy: -4.2,
@@ -4817,32 +4833,119 @@
     }
     ctx.globalAlpha = 1;
   }
-  function drawChests() {
-    if (!game.chests || game.chests.length === 0) return;
-    for (const chest of game.chests) {
-      if (!entityInRenderRange(chestHitBox(chest), 80)) continue;
-      if (!drawHdChest(chest)) drawFallbackChest(chest);
+  function resolveChestPlacement(room, chestDef) {
+    const centerHint = chestDef.x + CHEST_LEGACY_CENTER_X;
+    const footHint = chestDef.y + CHEST_LEGACY_FOOT_Y;
+    const support = nearestChestSupport(room, centerHint, footHint);
+    if (!support) {
+      return {
+        id: chestDef.id,
+        x: chestDef.x,
+        y: chestDef.y,
+        loot: chestDef.loot,
+        centerX: centerHint,
+        floorY: footHint,
+        support: null
+      };
     }
+    const minPad = Math.min(Math.max(20, CHEST_DRAW_W * 0.34), Math.max(6, support.w / 2 - 4));
+    const centerX = clamp(centerHint, support.x + minPad, support.x + support.w - minPad);
+    const floorY = support.y;
+    return {
+      id: chestDef.id,
+      x: centerX - CHEST_LEGACY_CENTER_X,
+      y: floorY - CHEST_LEGACY_FOOT_Y,
+      loot: chestDef.loot,
+      centerX,
+      floorY,
+      support: { x: support.x, y: support.y, w: support.w, h: support.h, type: support.type }
+    };
   }
 
-  function chestHitBox(chest) {
+  function nearestChestSupport(room, centerHint, footHint) {
+    if (!room || !room.platforms) return null;
+    let best = null;
+    let bestScore = Infinity;
+    for (const solid of room.platforms) {
+      if (!solid || solid.w < 46 || solid.h < 12) continue;
+      const left = solid.x + CHEST_SUPPORT_PAD;
+      const right = solid.x + solid.w - CHEST_SUPPORT_PAD;
+      if (right <= left) continue;
+      const closestX = clamp(centerHint, left, right);
+      const dx = Math.abs(centerHint - closestX);
+      const dy = Math.abs(solid.y - footHint);
+      const abovePenalty = solid.y < footHint - 14 ? 360 : 0;
+      const airPenalty = dx > solid.w * 0.75 ? 120 : 0;
+      const score = dy + dx * 1.35 + abovePenalty + airPenalty;
+      if (score < bestScore) {
+        best = solid;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  function chestCenterX(chest) {
+    return Number.isFinite(chest.centerX) ? chest.centerX : chest.x + CHEST_LEGACY_CENTER_X;
+  }
+
+  function chestGroundY(chest) {
+    return Number.isFinite(chest.floorY) ? chest.floorY : chest.y + CHEST_LEGACY_FOOT_Y;
+  }
+
+  function chestDrawRect(chest) {
     return {
-      x: chest.x + 18 - CHEST_DRAW_W / 2,
-      y: chest.y + 28 - CHEST_DRAW_H,
+      x: chestCenterX(chest) - CHEST_DRAW_W / 2,
+      y: chestGroundY(chest) - CHEST_DRAW_H + CHEST_FOOT_SINK,
       w: CHEST_DRAW_W,
       h: CHEST_DRAW_H
     };
   }
 
+  function drawChests() {
+    if (!game.chests || game.chests.length === 0) return;
+    for (const chest of game.chests) {
+      if (!entityInRenderRange(chestHitBox(chest), 80)) continue;
+      drawChestGroundContact(chest);
+      if (!drawHdChest(chest)) drawFallbackChest(chest);
+    }
+  }
+
+  function chestHitBox(chest) {
+    const rect = chestDrawRect(chest);
+    return {
+      x: rect.x + 8,
+      y: rect.y + 8,
+      w: rect.w - 16,
+      h: rect.h - 6
+    };
+  }
+
+  function drawChestGroundContact(chest) {
+    const groundY = chestGroundY(chest);
+    const centerX = chestCenterX(chest);
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+    ctx.beginPath();
+    ctx.ellipse(centerX, groundY + 3, 35, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (chest.support) {
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = platformBaseFill(chest.support.type);
+      ctx.fillRect(centerX - 34, groundY - 2, 68, 5);
+      ctx.fillStyle = "rgba(255, 235, 174, 0.18)";
+      ctx.fillRect(centerX - 30, groundY - 4, 60, 2);
+    }
+    ctx.restore();
+  }
+
   function drawHdChest(chest) {
     const sheet = images.chests;
     if (!sheet || !sheet.width) return false;
-    const shimmer = Math.floor(game.time * 2.4 + chest.x * 0.01) % 2;
+    const shimmer = Math.floor(game.time * 2.4 + chestCenterX(chest) * 0.01) % 2;
     const frame = chest.opened ? 2 + shimmer : shimmer;
-    const drawW = CHEST_DRAW_W;
-    const drawH = CHEST_DRAW_H;
-    const x = chest.x + 18 - drawW / 2;
-    const y = chest.y + 28 - drawH;
+    const rect = chestDrawRect(chest);
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(
@@ -4851,18 +4954,19 @@
       0,
       SPRITES.chestFrameW,
       SPRITES.chestFrameH,
-      x,
-      y,
-      drawW,
-      drawH
+      rect.x,
+      rect.y,
+      rect.w,
+      rect.h
     );
     ctx.restore();
     return true;
   }
 
   function drawFallbackChest(chest) {
-    const x = chest.x;
-    const y = chest.y;
+    const centerX = chestCenterX(chest);
+    const y = chestGroundY(chest) - 28;
+    const x = centerX - 18;
     ctx.fillStyle = "#3a2415";
     ctx.fillRect(x, y, 36, 28);
     ctx.fillStyle = "#5a3820";
@@ -7382,12 +7486,14 @@
         }
         continue;
       }
-      ctx.globalAlpha = open ? 0.92 : 0.72;
-      if (!drawHdDoor(door, open)) {
-        if (gate) ctx.drawImage(gate, door.x - 8, door.y - 18, door.w + 16, door.h + 28);
-        ctx.fillStyle = open ? "rgba(107, 220, 194, 0.22)" : "rgba(211, 55, 52, 0.34)";
-        ctx.fillRect(door.x, door.y, door.w, door.h);
+      if (isOpenPassageDoor(door, open)) {
+        drawOpenPassageMarker(door);
+        continue;
       }
+      ctx.save();
+      ctx.globalAlpha = open ? 0.96 : 0.82;
+      if (!drawHdDoor(door, open)) drawDoorFallback(door, open, gate);
+      ctx.restore();
       if (!open && door.lock) {
         drawLockBadge(door);
       }
@@ -7395,21 +7501,152 @@
     ctx.globalAlpha = 1;
   }
 
+  function isOpenPassageDoor(door, open) {
+    if (!open || door.lock || door.hidden) return false;
+    if (door.side !== "left" && door.side !== "right") return false;
+    const rw = roomWidth(game.room);
+    if (door.side === "left") return door.x <= PASSAGE_EDGE_TOLERANCE;
+    return door.x + door.w >= rw - PASSAGE_EDGE_TOLERANCE;
+  }
+
+  function drawOpenPassageMarker(door) {
+    const cy = door.y + door.h * 0.52;
+    const edgeX = door.side === "left" ? door.x + door.w : door.x;
+    const inset = door.side === "left" ? 22 : -22;
+    const dir = door.side === "left" ? 1 : -1;
+    ctx.save();
+    const shade = ctx.createLinearGradient(edgeX, cy - 62, edgeX + dir * 42, cy + 62);
+    shade.addColorStop(0, "rgba(0, 0, 0, 0)");
+    shade.addColorStop(0.44, "rgba(0, 0, 0, 0.30)");
+    shade.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(edgeX + (door.side === "left" ? -2 : -40), door.y - 14, 42, door.h + 28);
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 226, 160, 0.52)";
+    ctx.fillStyle = "rgba(255, 208, 101, 0.46)";
+    ctx.shadowColor = "#ffd065";
+    ctx.shadowBlur = 10;
+    for (let i = 0; i < 3; i += 1) {
+      const pulse = Math.sin(game.time * 3.6 + i * 0.8) * 2;
+      const x = edgeX + inset - dir * i * 14 + pulse * dir;
+      ctx.globalAlpha = 0.34 + i * 0.12;
+      drawObjectiveArrow(x, cy, door.side, 8 + i * 1.5);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = "rgba(255, 238, 190, 0.24)";
+    ctx.fillRect(edgeX + (door.side === "left" ? 0 : -2), door.y + 8, 2, door.h - 16);
+    ctx.restore();
+  }
+
   function drawHdDoor(door, open) {
     const img = images.doorsHd;
     if (!img || !img.width) return false;
     const horizontal = door.side === "up" || door.side === "down";
     const cellX = horizontal ? (open ? 2 : 3) : (open ? 0 : 1);
-    const dw = horizontal ? Math.max(96, door.w + 42) : Math.max(66, door.w + 34);
-    const dh = horizontal ? Math.max(74, door.h + 44) : Math.max(150, door.h + 36);
-    const x = door.x + door.w / 2 - dw / 2;
-    const y = horizontal ? door.y + door.h / 2 - dh / 2 : door.y + door.h - dh + 12;
+    const rect = doorArtRect(door, horizontal);
+    drawDoorRecess(door, rect, horizontal, open);
     ctx.save();
-    ctx.shadowColor = open ? "#7be09a" : "#ff5465";
-    ctx.shadowBlur = open ? 8 : 12;
-    ctx.drawImage(img, cellX * DOOR_FRAME_SIZE, 0, DOOR_FRAME_SIZE, DOOR_FRAME_SIZE, x, y, dw, dh);
+    ctx.globalAlpha *= open ? 0.82 : 0.9;
+    ctx.shadowColor = open ? "rgba(123, 224, 154, 0.45)" : "rgba(255, 84, 101, 0.58)";
+    ctx.shadowBlur = open ? 4 : 8;
+    ctx.drawImage(img, cellX * DOOR_FRAME_SIZE, 0, DOOR_FRAME_SIZE, DOOR_FRAME_SIZE, rect.x, rect.y, rect.w, rect.h);
     ctx.restore();
+    drawDoorMasonryLip(door, rect, horizontal, open);
     return true;
+  }
+
+  function drawDoorFallback(door, open, gate) {
+    const horizontal = door.side === "up" || door.side === "down";
+    const rect = doorArtRect(door, horizontal);
+    drawDoorRecess(door, rect, horizontal, open);
+    ctx.save();
+    ctx.globalAlpha *= open ? 0.52 : 0.72;
+    if (gate) {
+      ctx.drawImage(gate, rect.x + 8, rect.y + 10, rect.w - 16, rect.h - 18);
+    } else {
+      ctx.fillStyle = open ? "rgba(48, 90, 82, 0.32)" : "rgba(86, 30, 34, 0.52)";
+      ctx.fillRect(rect.x + 8, rect.y + 10, rect.w - 16, rect.h - 18);
+    }
+    ctx.restore();
+    drawDoorMasonryLip(door, rect, horizontal, open);
+  }
+
+  function doorArtRect(door, horizontal) {
+    const w = horizontal ? Math.max(94, door.w + 30) : Math.max(58, door.w + 22);
+    const h = horizontal ? Math.max(66, door.h + 32) : Math.max(128, door.h + 20);
+    const x = door.x + door.w / 2 - w / 2;
+    const y = horizontal ? door.y + door.h / 2 - h / 2 : door.y + door.h - h + 6;
+    return { x, y, w, h };
+  }
+
+  function doorStoneFill() {
+    const palette = game.room && game.room.palette;
+    if (palette === "blue") return "rgba(12, 22, 38, 0.88)";
+    if (palette === "green") return "rgba(15, 28, 20, 0.88)";
+    if (palette === "red") return "rgba(40, 14, 18, 0.9)";
+    if (palette === "gold") return "rgba(39, 31, 21, 0.9)";
+    return "rgba(22, 22, 25, 0.9)";
+  }
+
+  function drawDoorRecess(door, rect, horizontal, open) {
+    const padX = horizontal ? 12 : 10;
+    const padY = horizontal ? 9 : 13;
+    const outer = {
+      x: rect.x - padX,
+      y: rect.y - padY,
+      w: rect.w + padX * 2,
+      h: rect.h + padY * 2
+    };
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
+    ctx.fillRect(outer.x + 4, outer.y + 5, outer.w - 8, outer.h - 6);
+    ctx.fillStyle = doorStoneFill();
+    ctx.fillRect(outer.x, outer.y, outer.w, outer.h);
+
+    const slot = ctx.createLinearGradient(outer.x, outer.y, outer.x, outer.y + outer.h);
+    slot.addColorStop(0, open ? "rgba(7, 15, 17, 0.62)" : "rgba(26, 8, 10, 0.72)");
+    slot.addColorStop(0.5, open ? "rgba(8, 10, 13, 0.86)" : "rgba(15, 7, 9, 0.92)");
+    slot.addColorStop(1, "rgba(0, 0, 0, 0.52)");
+    ctx.fillStyle = slot;
+    ctx.fillRect(rect.x + 4, rect.y + 5, rect.w - 8, rect.h - 8);
+
+    ctx.globalAlpha *= 0.62;
+    ctx.fillStyle = "rgba(255, 226, 163, 0.16)";
+    if (horizontal) {
+      ctx.fillRect(outer.x + 8, outer.y + 3, outer.w - 16, 3);
+      ctx.fillRect(outer.x + 8, outer.y + outer.h - 8, outer.w - 16, 2);
+    } else {
+      ctx.fillRect(outer.x + 4, outer.y + 8, 3, outer.h - 16);
+      ctx.fillRect(outer.x + outer.w - 7, outer.y + 8, 3, outer.h - 16);
+      ctx.fillRect(outer.x + 8, outer.y + 4, outer.w - 16, 3);
+    }
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    ctx.fillRect(outer.x, outer.y + outer.h - 5, outer.w, 5);
+    ctx.restore();
+  }
+
+  function drawDoorMasonryLip(door, rect, horizontal, open) {
+    const glow = open ? "rgba(123, 224, 154, 0.20)" : "rgba(255, 84, 101, 0.26)";
+    ctx.save();
+    ctx.globalAlpha *= 0.84;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.30)";
+    if (horizontal) {
+      ctx.fillRect(rect.x - 8, rect.y - 4, rect.w + 16, 6);
+      ctx.fillRect(rect.x - 8, rect.y + rect.h - 2, rect.w + 16, 6);
+      ctx.fillStyle = glow;
+      ctx.fillRect(rect.x + 10, rect.y + rect.h - 5, rect.w - 20, 2);
+    } else {
+      ctx.fillRect(rect.x - 5, rect.y + 8, 8, rect.h - 12);
+      ctx.fillRect(rect.x + rect.w - 3, rect.y + 8, 8, rect.h - 12);
+      ctx.fillRect(rect.x - 2, rect.y - 4, rect.w + 4, 8);
+      ctx.fillStyle = glow;
+      ctx.fillRect(rect.x + 5, rect.y + rect.h - 10, rect.w - 10, 2);
+    }
+    ctx.restore();
   }
 
   function objectiveDoorGuideCenter(door) {
@@ -7488,20 +7725,28 @@
     const open = doorOpen(door);
     const center = objectiveDoorGuideCenter(door);
     const pulse = 0.5 + 0.5 * Math.sin(game.time * 4.2);
-    if (drawHdObjectiveDoorGuide(door, center, open, pulse)) return;
+    const passage = isOpenPassageDoor(door, open);
+    if (!passage && drawHdObjectiveDoorGuide(door, center, open, pulse)) return;
     const color = open ? "#ffd065" : "#ff5465";
     ctx.save();
-    ctx.globalAlpha = open ? 0.66 + pulse * 0.18 : 0.5 + pulse * 0.16;
+    ctx.globalAlpha = passage ? 0.46 + pulse * 0.12 : open ? 0.66 + pulse * 0.18 : 0.5 + pulse * 0.16;
     ctx.shadowColor = color;
-    ctx.shadowBlur = open ? 14 + pulse * 10 : 10 + pulse * 8;
+    ctx.shadowBlur = passage ? 10 + pulse * 6 : open ? 14 + pulse * 10 : 10 + pulse * 8;
     ctx.strokeStyle = open ? "rgba(255, 224, 128, 0.82)" : "rgba(255, 84, 101, 0.74)";
     ctx.fillStyle = open ? "rgba(255, 208, 101, 0.72)" : "rgba(255, 84, 101, 0.58)";
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, 17 + pulse * 5, 0, Math.PI * 2);
-    ctx.stroke();
-    drawObjectiveArrow(center.x, center.y, door.side, 10 + pulse * 2);
+    if (!passage) {
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, 17 + pulse * 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    drawObjectiveArrow(center.x, center.y, door.side, passage ? 9 + pulse : 10 + pulse * 2);
     ctx.fill();
+    if (passage) ctx.stroke();
+    if (passage) {
+      ctx.restore();
+      return;
+    }
     ctx.globalAlpha *= 0.24;
     const trigger = doorTriggerBox(door);
     ctx.strokeStyle = open ? "rgba(255, 224, 128, 0.55)" : "rgba(255, 84, 101, 0.48)";
