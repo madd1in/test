@@ -489,7 +489,7 @@
       const col = meta.icon % 4;
       const row = Math.floor(meta.icon / 4);
       button.style.setProperty("--icon-sheet", `url("${imageSources.items}")`);
-      button.style.setProperty("--icon-pos", `${-col * 78}px ${-row * 78 - 12}px`);
+      button.style.setProperty("--icon-pos", `${-col * 54 - 9}px ${-row * 54 - 9}px`);
       button.addEventListener("click", () => {
         state.activeItem = state.activeItem === id ? null : id;
         state.verb = "use";

@@ -16,6 +16,8 @@
   --display-font: "Blackadder ITC", "Bookman Old Style", "Cooper Black", Georgia, serif;
   --ui-font: "Bookman Old Style", "Book Antiqua", Georgia, serif;
   --verb-font: "Bookman Old Style", "Cooper Black", Georgia, serif;
+  --hud-bg: rgba(10, 8, 7, 0.62);
+  --hud-line: rgba(240, 199, 102, 0.52);
 }
 
 * {
@@ -35,19 +37,17 @@ body {
 }
 
 button {
-  border: 2px solid rgba(200, 145, 61, 0.72);
+  border: 1px solid var(--hud-line);
   border-radius: 5px;
-  background:
-    linear-gradient(180deg, rgba(143, 87, 48, 0.95), rgba(72, 33, 20, 0.98) 54%, rgba(23, 12, 9, 0.98));
+  background: rgba(24, 13, 9, 0.74);
   color: var(--cream);
   font-family: var(--ui-font);
   font-size: inherit;
   font-weight: 700;
   letter-spacing: 0;
   box-shadow:
-    inset 0 1px 0 rgba(255, 230, 151, 0.28),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.46),
-    0 2px 0 rgba(0, 0, 0, 0.42);
+    inset 0 1px 0 rgba(255, 230, 151, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.32);
   text-shadow:
     0 1px 0 #2a130c,
     0 2px 0 rgba(0, 0, 0, 0.6);
@@ -88,20 +88,21 @@ button:focus-visible {
   grid-template-columns: minmax(130px, 210px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border: 2px solid rgba(200, 145, 61, 0.7);
-  border-radius: 6px;
-  background:
-    linear-gradient(180deg, rgba(73, 39, 22, 0.94), rgba(18, 12, 10, 0.94)),
-    repeating-linear-gradient(90deg, rgba(255, 213, 110, 0.06) 0 2px, transparent 2px 13px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 240, 201, 0.16),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.42),
-    0 10px 26px rgba(0, 0, 0, 0.38);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   pointer-events: auto;
 }
 
 #sceneName {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 5px 12px 4px;
+  border: 1px solid var(--hud-line);
+  border-radius: 5px;
+  background: var(--hud-bg);
   color: var(--gold);
   font-family: var(--display-font);
   font-size: 20px;
@@ -116,6 +117,13 @@ button:focus-visible {
 #statusLine {
   min-width: 0;
   overflow: hidden;
+  justify-self: start;
+  max-width: min(46vw, 620px);
+  min-height: 34px;
+  padding: 7px 12px 4px;
+  border: 1px solid rgba(240, 199, 102, 0.34);
+  border-radius: 5px;
+  background: rgba(10, 8, 7, 0.48);
   color: #ffd56e;
   font-family: var(--verb-font);
   font-size: 15px;
@@ -133,28 +141,32 @@ button:focus-visible {
 }
 
 .topActions button {
-  height: 32px;
-  min-width: 54px;
-  padding: 0 10px;
-  font-size: 13px;
+  height: 30px;
+  min-width: 46px;
+  padding: 0 8px;
+  font-size: 12px;
 }
 
 #questTracker {
   position: absolute;
-  top: clamp(72px, 8.8vw, 88px);
+  top: clamp(56px, 6.6vw, 74px);
   right: max(14px, calc((100vw - min(100vw, 177.777vh)) / 2 + 18px));
-  width: min(320px, calc(100vw - 28px));
-  padding: 10px 12px;
-  border: 2px solid rgba(200, 145, 61, 0.72);
+  width: min(285px, calc(100vw - 28px));
+  max-height: 116px;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid rgba(200, 145, 61, 0.58);
   border-radius: 6px;
-  background:
-    linear-gradient(180deg, rgba(39, 20, 12, 0.9), rgba(18, 12, 10, 0.92)),
-    repeating-linear-gradient(0deg, rgba(255, 213, 110, 0.045) 0 1px, transparent 1px 9px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 240, 201, 0.12),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.42),
-    0 14px 36px rgba(0, 0, 0, 0.34);
+  background: rgba(18, 10, 7, 0.58);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
   pointer-events: auto;
+  transition: max-height 0.18s ease, background 0.18s ease;
+}
+
+#questTracker:hover,
+#questTracker:focus-within {
+  max-height: 290px;
+  background: rgba(18, 10, 7, 0.86);
 }
 
 #questTracker[hidden] {
@@ -173,7 +185,7 @@ button:focus-visible {
   overflow: hidden;
   color: var(--gold);
   font-family: var(--display-font);
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1;
   text-overflow: ellipsis;
   text-shadow: 0 2px 0 #4b2417;
@@ -181,37 +193,42 @@ button:focus-visible {
 }
 
 #hintButton {
-  width: 54px;
-  height: 28px;
+  width: 44px;
+  height: 24px;
   padding: 0;
   font-size: 12px;
 }
 
 #questNext {
-  margin: 8px 0 6px;
+  margin: 6px 0 4px;
   color: #f7ead0;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.25;
 }
 
 #questNeed {
-  min-height: 18px;
+  min-height: 15px;
   color: #9fe3da;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.25;
 }
 
 #questSteps {
-  display: grid;
+  display: none;
   gap: 3px;
-  margin: 8px 0 0;
-  padding-left: 20px;
+  margin: 6px 0 0;
+  padding-left: 17px;
   color: #dce7df;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
+}
+
+#questTracker:hover #questSteps,
+#questTracker:focus-within #questSteps {
+  display: grid;
 }
 
 #questSteps li.done {
@@ -227,13 +244,13 @@ button:focus-visible {
   position: absolute;
   left: max(14px, calc((100vw - min(100vw, 177.777vh)) / 2 + 22px));
   right: max(14px, calc((100vw - min(100vw, 177.777vh)) / 2 + 22px));
-  bottom: 164px;
-  min-height: 58px;
+  bottom: 88px;
+  min-height: 48px;
   display: none;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border: 2px solid rgba(200, 145, 61, 0.74);
+  padding: 9px 14px;
+  border: 1px solid rgba(200, 145, 61, 0.62);
   border-radius: 6px;
   background:
     linear-gradient(180deg, rgba(20, 13, 10, 0.96), rgba(8, 8, 10, 0.98));
@@ -249,7 +266,7 @@ button:focus-visible {
 #speaker {
   color: var(--gold);
   font-family: var(--display-font);
-  font-size: 22px;
+  font-size: 19px;
   line-height: 1;
   text-shadow: 0 2px 0 #4b2417;
   white-space: nowrap;
@@ -257,7 +274,7 @@ button:focus-visible {
 
 #line {
   min-width: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.35;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.52);
@@ -269,34 +286,27 @@ button:focus-visible {
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-areas:
-    "sentence sentence"
-    "verbs inventory";
-  grid-template-columns: minmax(330px, 500px) minmax(0, 1fr);
-  gap: 8px 12px;
-  padding: 10px max(12px, calc((100vw - min(100vw, 177.777vh)) / 2 + 14px)) 12px;
-  border-top: 3px solid rgba(200, 145, 61, 0.92);
-  background:
-    linear-gradient(180deg, rgba(6, 5, 4, 0.08), rgba(24, 12, 8, 0.96) 16%, rgba(8, 6, 5, 0.99)),
-    repeating-linear-gradient(90deg, rgba(255, 202, 102, 0.07) 0 2px, transparent 2px 17px),
-    linear-gradient(180deg, var(--wood), var(--wood-dark));
-  box-shadow:
-    inset 0 3px 0 rgba(255, 230, 151, 0.12),
-    0 -16px 30px rgba(0, 0, 0, 0.42);
+  grid-template-areas: "verbs inventory";
+  grid-template-columns: minmax(390px, 540px) minmax(150px, 1fr);
+  gap: 8px;
+  padding: 8px max(10px, calc((100vw - min(100vw, 177.777vh)) / 2 + 12px)) 10px;
+  border-top: 1px solid rgba(200, 145, 61, 0.58);
+  background: linear-gradient(180deg, rgba(6, 5, 4, 0), rgba(8, 6, 5, 0.68) 28%, rgba(8, 6, 5, 0.86));
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
   pointer-events: auto;
 }
 
 #commandSentence {
   grid-area: sentence;
-  min-height: 30px;
-  padding: 5px 12px 4px;
-  border: 2px solid rgba(200, 145, 61, 0.76);
+  display: none;
+  min-height: 36px;
+  padding: 8px 10px 4px;
+  border: 1px solid rgba(200, 145, 61, 0.5);
   border-radius: 5px;
-  background:
-    linear-gradient(180deg, rgba(13, 11, 12, 0.96), rgba(4, 5, 7, 0.98));
+  background: rgba(8, 7, 7, 0.62);
   color: #ffd56e;
   font-family: var(--verb-font);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1.1;
   overflow: hidden;
@@ -310,28 +320,26 @@ button:focus-visible {
 #verbs {
   grid-area: verbs;
   display: grid;
-  grid-template-columns: repeat(3, minmax(92px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
   min-width: 0;
 }
 
 #verbs button {
-  height: 38px;
-  padding: 3px 8px;
-  border-color: rgba(200, 145, 61, 0.68);
+  height: 36px;
+  padding: 3px 6px;
+  border-color: rgba(200, 145, 61, 0.52);
   font-family: var(--verb-font);
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
-  text-align: left;
-  background:
-    linear-gradient(180deg, rgba(97, 49, 26, 0.96), rgba(26, 12, 8, 0.98));
+  text-align: center;
+  background: rgba(28, 14, 9, 0.74);
   color: #f9cf66;
 }
 
 #verbs button.active {
   border-color: #fff0c9;
-  background:
-    linear-gradient(180deg, rgba(174, 81, 43, 0.98), rgba(86, 32, 18, 0.98));
+  background: rgba(150, 68, 36, 0.86);
   color: #fff4cf;
   box-shadow:
     inset 0 0 0 2px rgba(240, 199, 102, 0.36),
@@ -342,32 +350,33 @@ button:focus-visible {
   grid-area: inventory;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(62px, 76px);
-  gap: 6px;
-  min-height: 82px;
-  padding: 6px;
-  border: 2px solid rgba(200, 145, 61, 0.64);
+  grid-auto-columns: 48px;
+  gap: 5px;
+  min-height: 40px;
+  padding: 2px;
+  border: 1px solid rgba(200, 145, 61, 0.42);
   border-radius: 5px;
-  background:
-    linear-gradient(180deg, rgba(10, 9, 8, 0.82), rgba(4, 5, 7, 0.92)),
-    repeating-linear-gradient(90deg, rgba(255, 240, 201, 0.055) 0 1px, transparent 1px 78px);
+  background: rgba(5, 5, 6, 0.52);
   overflow-x: auto;
   scrollbar-width: thin;
 }
 
+#inventory:empty {
+  display: none;
+}
+
 .inventoryItem {
   position: relative;
-  height: 68px;
+  height: 36px;
   padding: 0;
   border-color: rgba(200, 145, 61, 0.56);
   background-color: rgba(255, 240, 201, 0.06);
   background-image: var(--icon-sheet);
   background-position: var(--icon-pos);
   background-repeat: no-repeat;
-  background-size: 312px 156px;
+  background-size: 216px 108px;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 240, 201, 0.06),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.46);
+    inset 0 0 0 1px rgba(255, 240, 201, 0.06);
 }
 
 .inventoryItem.active {
@@ -470,51 +479,70 @@ h2 {
 @media (max-width: 760px) {
   #topBar {
     grid-template-columns: 1fr auto;
+    gap: 6px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
   }
 
   #statusLine {
     grid-column: 1 / -1;
     grid-row: 2;
+    max-width: none;
+    min-height: 28px;
+    padding: 5px 9px 3px;
+    font-size: 12px;
   }
 
   #commandBar {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "sentence"
       "verbs"
       "inventory";
-    gap: 6px;
-    padding-bottom: 10px;
+    gap: 5px;
+    padding: 6px 8px 8px;
   }
 
   #commandSentence {
-    min-height: 26px;
+    min-height: 28px;
     padding: 4px 8px;
-    font-size: 14px;
-  }
-
-  .topActions button {
-    min-width: 46px;
-    padding: 0 8px;
     font-size: 12px;
   }
 
+  #sceneName {
+    min-height: 30px;
+    padding: 5px 9px 3px;
+    font-size: 16px;
+  }
+
+  .topActions button {
+    min-width: 39px;
+    height: 28px;
+    padding: 0 5px;
+    font-size: 10px;
+  }
+
   #questTracker {
-    top: 132px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    max-height: 188px;
+    top: 88px;
+    left: auto;
+    right: 8px;
+    width: min(260px, calc(100vw - 16px));
+    max-height: 96px;
     overflow: auto;
-    padding: 8px 10px;
+    padding: 7px 9px;
+  }
+
+  #questTracker:hover,
+  #questTracker:focus-within {
+    max-height: 210px;
   }
 
   #questTitle {
-    font-size: 17px;
+    font-size: 15px;
   }
 
   #questNext {
-    margin: 6px 0 4px;
+    margin: 4px 0 3px;
     font-size: 12px;
   }
 
@@ -530,9 +558,9 @@ h2 {
   }
 
   #verbs button {
-    height: 36px;
+    height: 30px;
     padding: 2px 4px;
-    font-size: 11px;
+    font-size: 10px;
     text-align: center;
   }
 
@@ -542,16 +570,26 @@ h2 {
   }
 
   #inventory {
-    grid-auto-columns: minmax(56px, 64px);
-    min-height: 58px;
-    padding: 4px;
+    grid-auto-columns: 42px;
+    min-height: 34px;
+    padding: 2px;
   }
 
   .inventoryItem {
-    height: 50px;
+    height: 32px;
   }
 
   #dialogue {
-    bottom: 178px;
+    bottom: 118px;
+    min-height: 42px;
+    padding: 8px 10px;
+  }
+
+  #speaker {
+    font-size: 16px;
+  }
+
+  #line {
+    font-size: 13px;
   }
 }
