@@ -99,7 +99,7 @@
     },
     player: {
       x: 430,
-      y: 824,
+      y: 856,
       target: null,
       facing: 1,
       action: "idle",
@@ -122,95 +122,95 @@
       title: "Harbor",
       bg: "harbor",
       music: "harbor",
-      walkY: 824,
-      walkMin: 170,
-      walkMax: 1745,
+      walkY: 856,
+      walkMin: 165,
+      walkMax: 1715,
       actors: [
-        { id: "dockmasterActor", anim: "dockmaster", x: 1160, y: 824, scale: 0.82 },
+        { id: "dockmasterActor", anim: "dockmaster", x: 1168, y: 856, scale: 0.82 },
       ],
       exits: [
-        { id: "toTavern", label: "Tavern", rect: [1425, 530, 260, 325], to: "tavern", spawn: [380, 816], walkTo: [1510, 824] },
-        { id: "toBeach", label: "Beach", rect: [90, 575, 260, 320], to: "beach", spawn: [1510, 836], walkTo: [240, 824] },
+        { id: "toTavern", label: "Tavern", rect: [1395, 415, 445, 365], to: "tavern", spawn: [330, 856], walkTo: [1455, 856] },
+        { id: "toBeach", label: "Beach", rect: [0, 430, 315, 430], to: "beach", spawn: [1510, 846], walkTo: [205, 856] },
       ],
       hotspots: [
-        { id: "dockmaster", label: "Dockmaster", rect: [1060, 560, 220, 290], walkTo: [1010, 824], verbs: ["look", "talk"] },
-        { id: "rope", label: "Rope Coil", rect: [585, 742, 170, 100], walkTo: [655, 824], hidden: () => state.flags.ropeTaken, verbs: ["look", "take"], item: "rope", itemPos: [642, 827, 100] },
-        { id: "crate", label: "Crates", rect: [772, 710, 180, 145], walkTo: [850, 824], hidden: () => state.flags.tokenTaken, verbs: ["look", "take"], item: "token", itemPos: [850, 804, 72] },
-        { id: "skiff", label: "Jungle Skiff", rect: [1540, 700, 280, 160], walkTo: [1585, 824], verbs: ["look", "use"] },
+        { id: "dockmaster", label: "Dockmaster", rect: [1062, 590, 220, 290], walkTo: [1010, 856], verbs: ["look", "talk"] },
+        { id: "rope", label: "Rope Coil", rect: [575, 705, 190, 115], walkTo: [655, 856], hidden: () => state.flags.ropeTaken, verbs: ["look", "take"], item: "rope", itemPos: [650, 794, 88] },
+        { id: "crate", label: "Crates", rect: [305, 640, 245, 155], walkTo: [530, 856], hidden: () => state.flags.tokenTaken, verbs: ["look", "take"], item: "token", itemPos: [505, 764, 66] },
+        { id: "skiff", label: "Jungle Skiff", rect: [1425, 620, 455, 250], walkTo: [1515, 856], verbs: ["look", "use"] },
       ],
     },
     tavern: {
       title: "Tavern",
       bg: "tavern",
       music: "tavern",
-      walkY: 818,
-      walkMin: 190,
-      walkMax: 1690,
+      walkY: 852,
+      walkMin: 230,
+      walkMax: 1660,
       actors: [
-        { id: "barkeepActor", anim: "barkeep", x: 1135, y: 812, scale: 0.86 },
+        { id: "barkeepActor", anim: "barkeep", x: 1135, y: 842, scale: 0.84 },
       ],
       exits: [
-        { id: "toHarbor", label: "Harbor", rect: [95, 540, 250, 350], to: "harbor", spawn: [1345, 824], walkTo: [260, 818] },
+        { id: "toHarbor", label: "Harbor", rect: [105, 300, 310, 470], to: "harbor", spawn: [1385, 856], walkTo: [305, 852] },
       ],
       hotspots: [
-        { id: "barkeep", label: "Barkeep", rect: [1015, 560, 245, 280], walkTo: [930, 818], verbs: ["look", "talk", "use"] },
-        { id: "lime", label: "Lime Bowl", rect: [740, 610, 160, 115], walkTo: [785, 818], hidden: () => state.flags.limeTaken, verbs: ["look", "take"], item: "lime", itemPos: [808, 704, 74] },
-        { id: "chart", label: "Old Sea Chart", rect: [1330, 412, 225, 190], walkTo: [1395, 818], verbs: ["look"] },
-        { id: "spyglass", label: "Brass Spyglass", rect: [585, 676, 180, 95], walkTo: [650, 818], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [665, 766, 104] },
+        { id: "barkeep", label: "Barkeep", rect: [1008, 552, 250, 290], walkTo: [935, 852], verbs: ["look", "talk", "use"] },
+        { id: "lime", label: "Lime Bowl", rect: [640, 510, 160, 120], walkTo: [735, 852], hidden: () => state.flags.limeTaken, verbs: ["look", "take"], item: "lime", itemPos: [708, 618, 70] },
+        { id: "chart", label: "Old Sea Chart", rect: [1308, 374, 292, 248], walkTo: [1395, 852], verbs: ["look"] },
+        { id: "spyglass", label: "Brass Spyglass", rect: [65, 760, 430, 210], walkTo: [430, 852], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [248, 915, 128] },
       ],
     },
     beach: {
       title: "Wreck Beach",
       bg: "beach",
       music: "beach",
-      walkY: 836,
-      walkMin: 150,
-      walkMax: 1760,
+      walkY: 846,
+      walkMin: 170,
+      walkMax: 1710,
       actors: [],
       exits: [
-        { id: "toHarbor", label: "Harbor", rect: [1465, 540, 310, 330], to: "harbor", spawn: [290, 824], walkTo: [1510, 836] },
+        { id: "toHarbor", label: "Harbor", rect: [1355, 150, 500, 610], to: "harbor", spawn: [250, 856], walkTo: [1485, 846] },
       ],
       hotspots: [
-        { id: "wreck", label: "Shipwreck", rect: [850, 410, 480, 330], walkTo: [1000, 836], verbs: ["look", "use"] },
-        { id: "tidepool", label: "Tide Pool", rect: [440, 760, 260, 115], walkTo: [585, 836], hidden: () => state.flags.shellKeyTaken, verbs: ["look", "take"], item: "shellKey", itemPos: [585, 842, 82] },
-        { id: "bottle", label: "Message Bottle", rect: [680, 770, 170, 100], walkTo: [760, 836], hidden: () => state.flags.bottleTaken, verbs: ["look", "take"], item: "bottle", itemPos: [760, 846, 92] },
-        { id: "cliff", label: "Cliff Path", rect: [110, 488, 245, 385], walkTo: [275, 836], verbs: ["look", "use"] },
+        { id: "wreck", label: "Shipwreck", rect: [500, 245, 650, 450], walkTo: [930, 846], verbs: ["look", "use"] },
+        { id: "tidepool", label: "Tide Pool", rect: [780, 670, 520, 230], walkTo: [970, 846], hidden: () => state.flags.shellKeyTaken, verbs: ["look", "take"], item: "shellKey", itemPos: [1030, 866, 74] },
+        { id: "bottle", label: "Message Bottle", rect: [1610, 735, 190, 120], walkTo: [1510, 846], hidden: () => state.flags.bottleTaken, verbs: ["look", "take"], item: "bottle", itemPos: [1695, 862, 84] },
+        { id: "cliff", label: "Cliff Path", rect: [1365, 120, 470, 500], walkTo: [1455, 846], verbs: ["look", "use"] },
       ],
     },
     jungle: {
       title: "Jungle Shrine",
       bg: "jungle",
       music: "jungle",
-      walkY: 828,
-      walkMin: 170,
-      walkMax: 1720,
+      walkY: 822,
+      walkMin: 250,
+      walkMax: 1620,
       actors: [
-        { id: "keeperActor", anim: "keeperIdle", x: 1360, y: 824, scale: 0.82 },
+        { id: "keeperActor", anim: "keeperIdle", x: 1185, y: 822, scale: 0.82 },
       ],
       exits: [
-        { id: "toHarbor", label: "Harbor", rect: [70, 548, 255, 330], to: "harbor", spawn: [1585, 824], walkTo: [250, 828] },
+        { id: "toHarbor", label: "Harbor", rect: [1230, 560, 565, 330], to: "harbor", spawn: [1555, 856], walkTo: [1425, 822] },
       ],
       hotspots: [
-        { id: "keeper", label: "Shrine Keeper", rect: [1270, 565, 215, 285], walkTo: [1190, 828], verbs: ["look", "talk"] },
-        { id: "shrineDoor", label: "Moon Door", rect: [765, 425, 360, 365], walkTo: [920, 828], verbs: ["look", "use"] },
-        { id: "vines", label: "Jungle Vines", rect: [300, 355, 260, 365], walkTo: [445, 828], verbs: ["look", "use"] },
+        { id: "keeper", label: "Shrine Keeper", rect: [1090, 555, 220, 285], walkTo: [1015, 822], verbs: ["look", "talk"] },
+        { id: "shrineDoor", label: "Moon Door", rect: [392, 205, 492, 455], walkTo: [640, 822], verbs: ["look", "use"] },
+        { id: "vines", label: "Jungle Vines", rect: [150, 30, 285, 600], walkTo: [420, 822], verbs: ["look", "use"] },
       ],
     },
   };
 
   const exitMarkers = {
     harbor: {
-      toTavern: { x: 1598, y: 588, dir: "right", label: "To Tavern" },
-      toBeach: { x: 188, y: 606, dir: "left", label: "To Beach" },
+      toTavern: { x: 1708, y: 545, dir: "right", label: "To Tavern" },
+      toBeach: { x: 178, y: 605, dir: "left", label: "To Beach" },
     },
     tavern: {
-      toHarbor: { x: 172, y: 610, dir: "left", label: "To Harbor" },
+      toHarbor: { x: 190, y: 520, dir: "left", label: "To Harbor" },
     },
     beach: {
-      toHarbor: { x: 1658, y: 640, dir: "right", label: "To Harbor" },
+      toHarbor: { x: 1645, y: 620, dir: "right", label: "To Harbor" },
     },
     jungle: {
-      toHarbor: { x: 156, y: 638, dir: "left", label: "To Harbor" },
+      toHarbor: { x: 1652, y: 652, dir: "right", label: "To Harbor" },
     },
   };
 
@@ -218,53 +218,53 @@
     dockmaster: { kind: "actor", actor: "dockmasterActor" },
     barkeep: { kind: "actor", actor: "barkeepActor" },
     keeper: { kind: "actor", actor: "keeperActor" },
-    skiff: { kind: "polygon", points: [[1518, 742], [1678, 703], [1820, 730], [1784, 844], [1588, 858], [1510, 802]] },
-    chart: { kind: "polygon", points: [[1345, 418], [1540, 430], [1530, 590], [1338, 575]] },
-    wreck: { kind: "polygon", points: [[872, 590], [1008, 426], [1285, 500], [1278, 665], [1050, 742], [865, 705]] },
-    cliff: { kind: "polygon", points: [[135, 512], [300, 482], [352, 835], [205, 864], [110, 744]] },
-    shrineDoor: { kind: "polygon", points: [[850, 428], [1045, 428], [1120, 560], [1062, 775], [845, 792], [760, 620]] },
-    vines: { kind: "polygon", points: [[320, 360], [500, 350], [570, 560], [488, 720], [318, 680], [270, 485]] },
+    skiff: { kind: "polygon", points: [[1432, 730], [1588, 637], [1836, 665], [1880, 768], [1728, 860], [1500, 842]] },
+    chart: { kind: "polygon", points: [[1318, 388], [1570, 408], [1552, 612], [1306, 588]] },
+    wreck: { kind: "polygon", points: [[520, 545], [660, 170], [910, 265], [1135, 520], [1010, 705], [610, 690]] },
+    cliff: { kind: "polygon", points: [[1440, 150], [1810, 112], [1800, 555], [1602, 652], [1370, 520]] },
+    shrineDoor: { kind: "polygon", points: [[455, 238], [758, 226], [868, 392], [812, 633], [505, 650], [392, 430]] },
+    vines: { kind: "polygon", points: [[160, 42], [342, 35], [430, 330], [390, 612], [214, 650], [120, 320]] },
   };
 
   const sceneAmbience = {
     harbor: {
       glows: [
-        { x: 82, y: 442, radius: 116, rgb: "255, 178, 82", alpha: 0.18, phase: 0.1 },
-        { x: 363, y: 405, radius: 82, rgb: "255, 186, 92", alpha: 0.15, phase: 2.2 },
-        { x: 498, y: 408, radius: 62, rgb: "255, 201, 115", alpha: 0.12, phase: 4.1 },
-        { x: 1386, y: 445, radius: 54, rgb: "255, 192, 96", alpha: 0.09, phase: 1.4 },
-        { x: 1515, y: 583, radius: 70, rgb: "255, 178, 82", alpha: 0.12, phase: 3.3 },
+        { x: 92, y: 543, radius: 150, rgb: "255, 178, 82", alpha: 0.16, phase: 0.1 },
+        { x: 532, y: 367, radius: 126, rgb: "255, 186, 92", alpha: 0.15, phase: 2.2 },
+        { x: 626, y: 536, radius: 74, rgb: "255, 201, 115", alpha: 0.11, phase: 4.1 },
+        { x: 1270, y: 448, radius: 62, rgb: "255, 192, 96", alpha: 0.09, phase: 1.4 },
+        { x: 1540, y: 650, radius: 78, rgb: "255, 178, 82", alpha: 0.12, phase: 3.3 },
       ],
-      water: { x: 452, y: 538, w: 1250, h: 248, rows: 18, rgb: "140, 207, 224", alpha: 0.07, drift: 0.045 },
+      water: { x: 335, y: 470, w: 1225, h: 260, rows: 18, rgb: "140, 207, 224", alpha: 0.06, drift: 0.045 },
       reflections: [
-        { x: 492, y: 472, h: 165, rgb: "255, 198, 96", phase: 1.2 },
-        { x: 1515, y: 584, h: 120, rgb: "255, 183, 88", phase: 2.8 },
+        { x: 532, y: 445, h: 190, rgb: "255, 198, 96", phase: 1.2 },
+        { x: 1540, y: 618, h: 130, rgb: "255, 183, 88", phase: 2.8 },
       ],
     },
     tavern: {
       glows: [
-        { x: 625, y: 312, radius: 210, rgb: "255, 149, 76", alpha: 0.11, phase: 1.1 },
-        { x: 1110, y: 385, radius: 178, rgb: "255, 170, 88", alpha: 0.1, phase: 3.6 },
-        { x: 1475, y: 455, radius: 128, rgb: "255, 195, 112", alpha: 0.08, phase: 5.2 },
+        { x: 820, y: 168, radius: 250, rgb: "255, 149, 76", alpha: 0.11, phase: 1.1 },
+        { x: 1018, y: 430, radius: 190, rgb: "255, 170, 88", alpha: 0.1, phase: 3.6 },
+        { x: 1430, y: 410, radius: 142, rgb: "255, 195, 112", alpha: 0.08, phase: 5.2 },
       ],
-      motes: { x: 360, y: 150, w: 1140, h: 470, count: 18, rgb: "255, 220, 154", alpha: 0.055 },
+      motes: { x: 250, y: 120, w: 1340, h: 510, count: 18, rgb: "255, 220, 154", alpha: 0.048 },
     },
     beach: {
       glows: [
-        { x: 1055, y: 342, radius: 150, rgb: "174, 213, 236", alpha: 0.07, phase: 0.6 },
-        { x: 630, y: 764, radius: 120, rgb: "255, 215, 126", alpha: 0.06, phase: 2.4 },
+        { x: 1578, y: 92, radius: 330, rgb: "214, 232, 210", alpha: 0.07, phase: 0.6 },
+        { x: 1045, y: 760, radius: 170, rgb: "255, 215, 126", alpha: 0.045, phase: 2.4 },
       ],
-      water: { x: 0, y: 635, w: 1920, h: 246, rows: 18, rgb: "157, 217, 226", alpha: 0.095, drift: 0.058 },
-      surf: { x: 340, y: 781, w: 1040, rows: 7, rgb: "232, 239, 218", alpha: 0.082 },
+      water: { x: 0, y: 520, w: 1340, h: 300, rows: 18, rgb: "157, 217, 226", alpha: 0.07, drift: 0.058 },
+      surf: { x: 285, y: 642, w: 980, rows: 7, rgb: "232, 239, 218", alpha: 0.07 },
     },
     jungle: {
       glows: [
-        { x: 950, y: 520, radius: 185, rgb: "129, 221, 176", alpha: 0.08, phase: 0.8 },
-        { x: 530, y: 402, radius: 122, rgb: "82, 190, 132", alpha: 0.055, phase: 3.8 },
-        { x: 1390, y: 575, radius: 110, rgb: "255, 206, 106", alpha: 0.06, phase: 2.1 },
+        { x: 410, y: 458, radius: 122, rgb: "255, 154, 72", alpha: 0.09, phase: 0.8 },
+        { x: 870, y: 452, radius: 122, rgb: "255, 174, 82", alpha: 0.09, phase: 3.8 },
+        { x: 1320, y: 165, radius: 330, rgb: "171, 235, 162", alpha: 0.05, phase: 2.1 },
       ],
-      motes: { x: 315, y: 230, w: 1220, h: 410, count: 14, rgb: "128, 235, 171", alpha: 0.05 },
-      mist: { x: 370, y: 694, w: 1030, h: 90, rows: 5, rgb: "164, 226, 204", alpha: 0.035 },
+      motes: { x: 440, y: 90, w: 1040, h: 470, count: 16, rgb: "128, 235, 171", alpha: 0.042 },
+      mist: { x: 920, y: 470, w: 780, h: 230, rows: 6, rgb: "164, 226, 204", alpha: 0.032 },
     },
   };
 
@@ -784,7 +784,7 @@
         break;
       case "skiff":
         if (state.flags.skiffReady && (verb === "walk" || verb === "use")) {
-          transition("jungle", [360, scenes.jungle.walkY]);
+          transition("jungle", [1425, scenes.jungle.walkY]);
           return;
         }
         if (verb === "use") {
@@ -796,7 +796,7 @@
             audio.sfx("gate");
             say("Mara", "Secure. The jungle route is open.");
           } else {
-            transition("jungle", [360, scenes.jungle.walkY]);
+            transition("jungle", [1425, scenes.jungle.walkY]);
           }
         } else {
           say("Mara", state.flags.skiffReady ? "A tied skiff, ready for shrine business." : "A skiff tugging at the dock like it wants a better plan.");
@@ -1379,7 +1379,7 @@
       ctx.globalAlpha = 0.64 + Math.sin(now / 180) * 0.12;
       ctx.fillStyle = "#f0c766";
       ctx.beginPath();
-      ctx.ellipse(950, 570, 82, 34, 0, 0, Math.PI * 2);
+      ctx.ellipse(630, 500, 68, 118, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

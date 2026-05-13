@@ -9,6 +9,7 @@ Add-Type -AssemblyName System.Drawing
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $SourceAtlas = Join-Path $Root "assets\source\background_atlas_imagen_hd.png"
+$SingleBackgroundDir = Join-Path $Root "assets\source\backgrounds_single"
 $ItemSource = Join-Path $Root "assets\source\item_atlas_imagen_hd.png"
 $BackgroundDir = Join-Path $Root "assets\backgrounds"
 $SpriteDir = Join-Path $Root "assets\sprites"
@@ -119,6 +120,34 @@ function Add-ForegroundHints {
 }
 
 function Build-Backgrounds {
+  $singleSources = @{
+    harbor = Join-Path $SingleBackgroundDir "harbor_single_imagen_hd.png"
+    tavern = Join-Path $SingleBackgroundDir "tavern_single_imagen_hd.png"
+    jungle = Join-Path $SingleBackgroundDir "jungle_single_imagen_hd.png"
+    beach = Join-Path $SingleBackgroundDir "beach_single_imagen_hd.png"
+  }
+
+  if (@($singleSources.Values | Where-Object { !(Test-Path $_) }).Count -eq 0) {
+    foreach ($entry in $singleSources.GetEnumerator()) {
+      $scene = $entry.Key
+      $source = [System.Drawing.Bitmap]::FromFile($entry.Value)
+      $bitmap = New-Bitmap 1920 1080
+      $graphics = New-Graphics $bitmap
+      try {
+        $graphics.Clear([System.Drawing.Color]::FromArgb(255, 12, 16, 20))
+        $src = Get-CoverRect 0 0 $source.Width $source.Height (16.0 / 9.0)
+        $dest = New-Object System.Drawing.Rectangle(0, 0, 1920, 1080)
+        $graphics.DrawImage($source, $dest, $src, [System.Drawing.GraphicsUnit]::Pixel)
+      } finally {
+        $graphics.Dispose()
+        $source.Dispose()
+      }
+      Save-Png $bitmap (Join-Path $BackgroundDir "$scene`_imagen_hd.png")
+      $bitmap.Dispose()
+    }
+    return
+  }
+
   if (!(Test-Path $SourceAtlas)) {
     throw "Missing source atlas $SourceAtlas"
   }

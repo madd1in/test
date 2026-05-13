@@ -74,6 +74,10 @@ async function closeBrowser(browser) {
 function checkFiles() {
   [
     "assets/source/background_atlas_imagen_hd.png",
+    "assets/source/backgrounds_single/harbor_single_imagen_hd.png",
+    "assets/source/backgrounds_single/tavern_single_imagen_hd.png",
+    "assets/source/backgrounds_single/jungle_single_imagen_hd.png",
+    "assets/source/backgrounds_single/beach_single_imagen_hd.png",
     "assets/source/player_anim_atlas_imagen_key.png",
     "assets/source/npc_anim_atlas_imagen_key.png",
     "assets/source/item_atlas_imagen_hd.png",
