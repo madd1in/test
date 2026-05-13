@@ -747,6 +747,13 @@
     const sy = anim.row * FRAME_H;
     const w = FRAME_W * scale;
     const h = FRAME_H * scale;
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+    ctx.beginPath();
+    ctx.ellipse(x, y - 8 * scale, 46 * scale, 12 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
     ctx.drawImage(images.characters, sx, sy, FRAME_W, FRAME_H, x - w / 2, y - h, w, h);
   }
 

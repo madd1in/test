@@ -560,5 +560,8 @@ function Build-ParallaxSheet {
 
 Build-Backgrounds
 Build-CharacterSheet
+if ((Test-Path (Join-Path $Root "assets\source\player_anim_atlas_imagen_key.png")) -and (Test-Path (Join-Path $Root "assets\source\npc_anim_atlas_imagen_key.png"))) {
+  & (Join-Path $PSScriptRoot "build_imagen_character_sprites.ps1")
+}
 Build-ItemSheet
 Build-ParallaxSheet
