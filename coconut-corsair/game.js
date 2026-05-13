@@ -39,7 +39,7 @@
     tavern: "assets/backgrounds/tavern_imagen_hd.png",
     jungle: "assets/backgrounds/jungle_imagen_hd.png",
     beach: "assets/backgrounds/beach_imagen_hd.png",
-    characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-3279e0dff",
+    characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
   };

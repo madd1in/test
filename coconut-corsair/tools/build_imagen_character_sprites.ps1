@@ -120,16 +120,28 @@ function Draw-NormalizedFrame {
     [int]$DestRow,
     [int]$DestCol,
     [float]$MaxW = 168,
-    [float]$MaxH = 242
+    [float]$MaxH = 242,
+    [switch]$LockHeight
   )
 
-  $scale = [Math]::Min($MaxW / [Math]::Max(1, $Bounds.Width), $MaxH / [Math]::Max(1, $Bounds.Height))
+  $scale = if ($LockHeight) {
+    $MaxH / [Math]::Max(1, $Bounds.Height)
+  } else {
+    [Math]::Min($MaxW / [Math]::Max(1, $Bounds.Width), $MaxH / [Math]::Max(1, $Bounds.Height))
+  }
   $drawW = [int][Math]::Round($Bounds.Width * $scale)
   $drawH = [int][Math]::Round($Bounds.Height * $scale)
   $destX = ($DestCol * $FrameW) + [int](($FrameW - $drawW) / 2)
   $destY = ($DestRow * $FrameH) + ($FrameH - $drawH - 5)
   $destRect = New-Object System.Drawing.Rectangle($destX, $destY, $drawW, $drawH)
-  $Graphics.DrawImage($Source, $destRect, $Bounds, [System.Drawing.GraphicsUnit]::Pixel)
+  $frameRect = New-Object System.Drawing.Rectangle(($DestCol * $FrameW), ($DestRow * $FrameH), $FrameW, $FrameH)
+  $state = $Graphics.Save()
+  try {
+    $Graphics.SetClip($frameRect)
+    $Graphics.DrawImage($Source, $destRect, $Bounds, [System.Drawing.GraphicsUnit]::Pixel)
+  } finally {
+    $Graphics.Restore($state)
+  }
 }
 
 function Draw-AtlasRow {
@@ -141,14 +153,15 @@ function Draw-AtlasRow {
     [int]$SourceRow,
     [int]$DestRow,
     [float]$MaxW,
-    [float]$MaxH
+    [float]$MaxH,
+    [switch]$LockHeight
   )
 
   for ($destCol = 0; $destCol -lt $DestCols; $destCol += 1) {
     $sourceCol = [Math]::Min($AtlasCols - 1, [int][Math]::Floor(($destCol * $AtlasCols) / $DestCols))
     $cell = Get-CleanCell $Atlas $AtlasCols $AtlasRows $sourceCol $SourceRow
     try {
-      Draw-NormalizedFrame $Graphics $cell.Bitmap $cell.Bounds $DestRow $destCol $MaxW $MaxH
+      Draw-NormalizedFrame $Graphics $cell.Bitmap $cell.Bounds $DestRow $destCol $MaxW $MaxH -LockHeight:$LockHeight
     } finally {
       $cell.Bitmap.Dispose()
     }
@@ -174,10 +187,10 @@ function Build-ImagenCharacterSheet {
     Draw-AtlasRow $graphics $player 8 6 4 4 178 242
     Draw-AtlasRow $graphics $player 8 6 5 5 178 242
 
-    Draw-AtlasRow $graphics $npcs 8 4 0 6 184 246
-    Draw-AtlasRow $graphics $npcs 8 4 1 7 184 246
-    Draw-AtlasRow $graphics $npcs 8 4 2 8 184 246
-    Draw-AtlasRow $graphics $npcs 8 4 3 9 184 246
+    Draw-AtlasRow $graphics $npcs 8 4 0 6 184 246 -LockHeight
+    Draw-AtlasRow $graphics $npcs 8 4 1 7 184 246 -LockHeight
+    Draw-AtlasRow $graphics $npcs 8 4 2 8 184 246 -LockHeight
+    Draw-AtlasRow $graphics $npcs 8 4 3 9 184 246 -LockHeight
   } finally {
     $graphics.Dispose()
     $player.Dispose()
