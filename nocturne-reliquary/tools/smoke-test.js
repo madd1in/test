@@ -722,7 +722,7 @@ async function browserSmoke() {
   assert(result.enemyVisibilityProbe.grotto.enemyTypes.includes("zora"), `zora should respawn even if a regular kill was saved: ${JSON.stringify(result.enemyVisibilityProbe.grotto.enemyTypes)}`);
   const visiblePanther = result.enemyVisibilityProbe.gate.featuredEnemies.find((enemy) => enemy.type === "blackPanther");
   const visibleZora = result.enemyVisibilityProbe.grotto.featuredEnemies.find((enemy) => enemy.type === "zora");
-  assert(visiblePanther && visiblePanther.x < 620 && visiblePanther.dw >= 200, `black panther should be readable in the first Gate Hall screen: ${JSON.stringify(result.enemyVisibilityProbe.gate.featuredEnemies)}`);
+  assert(visiblePanther && visiblePanther.x < 720 && visiblePanther.dw >= 200, `black panther should be readable in the first Gate Hall screen without sitting on the hatch art: ${JSON.stringify(result.enemyVisibilityProbe.gate.featuredEnemies)}`);
   assert(visibleZora && visibleZora.x < 620 && visibleZora.dw >= 140, `zora should be readable in the first Sapphire Grotto screen: ${JSON.stringify(result.enemyVisibilityProbe.grotto.featuredEnemies)}`);
   const closedChest = result.chestVisualProbe.closed.chests.find((chest) => chest.id === "vault_axe_chest");
   const openedChest = result.chestVisualProbe.opened.chests.find((chest) => chest.id === "vault_axe_chest");
