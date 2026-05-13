@@ -196,6 +196,48 @@
     },
   };
 
+  const sceneAmbience = {
+    harbor: {
+      glows: [
+        { x: 82, y: 442, radius: 116, rgb: "255, 178, 82", alpha: 0.18, phase: 0.1 },
+        { x: 363, y: 405, radius: 82, rgb: "255, 186, 92", alpha: 0.15, phase: 2.2 },
+        { x: 498, y: 408, radius: 62, rgb: "255, 201, 115", alpha: 0.12, phase: 4.1 },
+        { x: 1386, y: 445, radius: 54, rgb: "255, 192, 96", alpha: 0.09, phase: 1.4 },
+        { x: 1515, y: 583, radius: 70, rgb: "255, 178, 82", alpha: 0.12, phase: 3.3 },
+      ],
+      water: { x: 452, y: 538, w: 1250, h: 248, rows: 18, rgb: "140, 207, 224", alpha: 0.07, drift: 0.045 },
+      reflections: [
+        { x: 492, y: 472, h: 165, rgb: "255, 198, 96", phase: 1.2 },
+        { x: 1515, y: 584, h: 120, rgb: "255, 183, 88", phase: 2.8 },
+      ],
+    },
+    tavern: {
+      glows: [
+        { x: 625, y: 312, radius: 210, rgb: "255, 149, 76", alpha: 0.11, phase: 1.1 },
+        { x: 1110, y: 385, radius: 178, rgb: "255, 170, 88", alpha: 0.1, phase: 3.6 },
+        { x: 1475, y: 455, radius: 128, rgb: "255, 195, 112", alpha: 0.08, phase: 5.2 },
+      ],
+      motes: { x: 360, y: 150, w: 1140, h: 470, count: 18, rgb: "255, 220, 154", alpha: 0.055 },
+    },
+    beach: {
+      glows: [
+        { x: 1055, y: 342, radius: 150, rgb: "174, 213, 236", alpha: 0.07, phase: 0.6 },
+        { x: 630, y: 764, radius: 120, rgb: "255, 215, 126", alpha: 0.06, phase: 2.4 },
+      ],
+      water: { x: 0, y: 635, w: 1920, h: 246, rows: 18, rgb: "157, 217, 226", alpha: 0.095, drift: 0.058 },
+      surf: { x: 340, y: 781, w: 1040, rows: 7, rgb: "232, 239, 218", alpha: 0.082 },
+    },
+    jungle: {
+      glows: [
+        { x: 950, y: 520, radius: 185, rgb: "129, 221, 176", alpha: 0.08, phase: 0.8 },
+        { x: 530, y: 402, radius: 122, rgb: "82, 190, 132", alpha: 0.055, phase: 3.8 },
+        { x: 1390, y: 575, radius: 110, rgb: "255, 206, 106", alpha: 0.06, phase: 2.1 },
+      ],
+      motes: { x: 315, y: 230, w: 1220, h: 410, count: 14, rgb: "128, 235, 171", alpha: 0.05 },
+      mist: { x: 370, y: 694, w: 1030, h: 90, rows: 5, rgb: "164, 226, 204", alpha: 0.035 },
+    },
+  };
+
   class AudioDesk {
     constructor() {
       this.enabled = false;
@@ -946,6 +988,141 @@
     });
   }
 
+  function ambientPulse(now, phase = 0, speed = 0.004) {
+    return 0.78
+      + Math.sin(now * speed + phase) * 0.12
+      + Math.sin(now * speed * 2.37 + phase * 1.9) * 0.06;
+  }
+
+  function drawSoftGlow(x, y, radius, rgb, alpha, now, phase = 0) {
+    const pulse = ambientPulse(now, phase);
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, `rgba(${rgb}, ${alpha * pulse})`);
+    gradient.addColorStop(0.42, `rgba(${rgb}, ${alpha * 0.34 * pulse})`);
+    gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  function drawWaterSheen(config, now) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(config.x, config.y, config.w, config.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < config.rows; i += 1) {
+      const t = i / Math.max(1, config.rows - 1);
+      const y = config.y + config.h * t + Math.sin(now * 0.0017 + i * 0.9) * 5;
+      const width = 90 + t * 150 + Math.sin(now * 0.0011 + i) * 20;
+      const x = config.x + ((i * 149 + now * config.drift) % (config.w + 220)) - 120;
+      ctx.globalAlpha = config.alpha * (0.65 + t * 0.55);
+      ctx.strokeStyle = `rgb(${config.rgb})`;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x + width * 0.28, y - 4, x + width * 0.68, y + 5, x + width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLightReflections(reflections, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineCap = "round";
+    reflections.forEach((reflection, index) => {
+      for (let i = 0; i < 7; i += 1) {
+        const t = i / 6;
+        const y = reflection.y + t * reflection.h;
+        const sway = Math.sin(now * 0.003 + reflection.phase + i * 1.7) * (8 + t * 12);
+        const half = 18 * (1 - t * 0.72) + Math.sin(now * 0.002 + i) * 2;
+        ctx.globalAlpha = 0.04 * (1 - t * 0.62);
+        ctx.strokeStyle = `rgb(${reflection.rgb})`;
+        ctx.lineWidth = 2.2 - t;
+        ctx.beginPath();
+        ctx.moveTo(reflection.x + sway - half, y);
+        ctx.lineTo(reflection.x + sway + half, y + Math.sin(now * 0.002 + index) * 2);
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+
+  function drawSurf(config, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = `rgb(${config.rgb})`;
+    for (let i = 0; i < config.rows; i += 1) {
+      const y = config.y + i * 12 + Math.sin(now * 0.0022 + i) * 3;
+      const x = config.x + Math.sin(now * 0.0014 + i * 1.4) * 28;
+      ctx.globalAlpha = config.alpha * (1 - i * 0.09);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x + config.w * 0.24, y - 8, x + config.w * 0.58, y + 8, x + config.w, y - 3);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMotes(config, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = `rgb(${config.rgb})`;
+    for (let i = 0; i < config.count; i += 1) {
+      const seed = i * 37.17;
+      const x = config.x + ((seed * 29 + Math.sin(now * 0.00019 + seed) * 24) % config.w);
+      const y = config.y + ((seed * 17 + now * 0.006 + Math.sin(now * 0.00037 + seed) * 18) % config.h);
+      const a = config.alpha * (0.42 + Math.sin(now * 0.0021 + seed) * 0.28);
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.beginPath();
+      ctx.ellipse(x, y, 1.6, 1.1, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawMist(config, now) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(config.x, config.y, config.w, config.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = `rgb(${config.rgb})`;
+    ctx.lineCap = "round";
+    for (let i = 0; i < config.rows; i += 1) {
+      const y = config.y + i * 16 + Math.sin(now * 0.0012 + i) * 6;
+      const x = config.x + Math.sin(now * 0.0007 + i * 1.3) * 46;
+      ctx.globalAlpha = config.alpha;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x + config.w * 0.28, y + 12, x + config.w * 0.58, y - 10, x + config.w, y + 4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawSceneAmbience(sceneId, now) {
+    const ambience = sceneAmbience[sceneId];
+    if (!ambience) return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ambience.glows?.forEach((glow) => {
+      drawSoftGlow(glow.x, glow.y, glow.radius, glow.rgb, glow.alpha, now, glow.phase);
+    });
+    ctx.restore();
+
+    if (ambience.water) drawWaterSheen(ambience.water, now);
+    if (ambience.reflections) drawLightReflections(ambience.reflections, now);
+    if (ambience.surf) drawSurf(ambience.surf, now);
+    if (ambience.motes) drawMotes(ambience.motes, now);
+    if (ambience.mist) drawMist(ambience.mist, now);
+  }
+
   function drawHover() {
     const hit = state.hover;
     if (!hit) return;
@@ -962,6 +1139,7 @@
     const scene = getScene();
     ctx.clearRect(0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(images[scene.bg], 0, 0, WORLD_W, WORLD_H);
+    drawSceneAmbience(scene.bg, now);
 
     scene.actors.forEach((actor, index) => {
       drawSprite(actor.anim, actor.x, actor.y, actor.scale, index * 3);
