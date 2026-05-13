@@ -16,9 +16,20 @@
         <div class="topActions">
           <button id="audioButton" type="button" title="Audio">Audio</button>
           <button id="voiceButton" type="button" title="Voice">Voice</button>
+          <button id="fullscreenButton" type="button" title="Fullscreen">Full</button>
           <button id="saveButton" type="button" title="Save">Save</button>
           <button id="resetButton" type="button" title="Reset">Reset</button>
         </div>
+      </section>
+
+      <section id="questTracker" aria-label="Quest tracker" hidden>
+        <div class="questHead">
+          <strong id="questTitle">Quest</strong>
+          <button id="hintButton" type="button" title="Hint">Hint</button>
+        </div>
+        <p id="questNext">Start the adventure.</p>
+        <div id="questNeed"></div>
+        <ol id="questSteps"></ol>
       </section>
 
       <section id="dialogue" aria-live="polite">

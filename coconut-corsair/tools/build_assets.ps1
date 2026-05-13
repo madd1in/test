@@ -6,7 +6,6 @@ Add-Type -AssemblyName System.Drawing
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $SourceAtlas = Join-Path $Root "assets\source\background_atlas_imagen_hd.png"
 $ItemSource = Join-Path $Root "assets\source\item_atlas_imagen_hd.png"
-$ParallaxSource = Join-Path $Root "assets\source\parallax_atlas_imagen_key.png"
 $BackgroundDir = Join-Path $Root "assets\backgrounds"
 $SpriteDir = Join-Path $Root "assets\sprites"
 
@@ -507,12 +506,13 @@ function Build-ItemSheet {
   $sheet.Dispose()
 }
 
-function Build-ParallaxSheet {
-  if (!(Test-Path $ParallaxSource)) {
+function Build-SceneItemSheet {
+  $sourcePath = Join-Path $SpriteDir "items_imagen_hd_sheet.png"
+  if (!(Test-Path $sourcePath)) {
     return
   }
 
-  $source = [System.Drawing.Bitmap]::FromFile($ParallaxSource)
+  $source = [System.Drawing.Bitmap]::FromFile($sourcePath)
   $target = New-Bitmap $source.Width $source.Height
   $g = New-Graphics $target
   try {
@@ -533,19 +533,29 @@ function Build-ParallaxSheet {
     $cellH = [int]($target.Height / 2)
     for ($y = 0; $y -lt $target.Height; $y += 1) {
       $row = $y * $data.Stride
+      $localY = $y % $cellH
       for ($x = 0; $x -lt $target.Width; $x += 1) {
         $i = $row + ($x * 4)
         $b = [int]$bytes[$i]
         $gch = [int]$bytes[$i + 1]
         $r = [int]$bytes[$i + 2]
-        $nearMagenta = ($r -gt 205 -and $b -gt 205 -and $gch -lt 95)
-        $onGridX = (($x % $cellW) -le 3 -or ($cellW - ($x % $cellW)) -le 3)
-        $onGridY = (($y % $cellH) -le 3 -or ($cellH - ($y % $cellH)) -le 3)
-        if ($nearMagenta -or $onGridX -or $onGridY) {
+        $a = [int]$bytes[$i + 3]
+        if ($a -le 0) {
+          continue
+        }
+
+        $localX = $x % $cellW
+        $cellEdge = ($localX -lt 10 -or $localY -lt 10 -or ($cellW - $localX) -lt 10 -or ($cellH - $localY) -lt 10)
+        $nearBlack = ($r -lt 18 -and $gch -lt 24 -and $b -lt 26)
+        $darkTeal = ($r -lt 76 -and $gch -gt 22 -and $b -gt 20 -and $gch -ge ($r + 8) -and $b -ge ($r + 2) -and [Math]::Abs($gch - $b) -lt 52)
+        $smokeTeal = ($r -lt 48 -and $gch -lt 92 -and $b -lt 92 -and $gch -gt $r -and $b -ge ($r - 4))
+        if ($cellEdge -or $nearBlack -or $darkTeal -or $smokeTeal) {
           $bytes[$i] = 0
           $bytes[$i + 1] = 0
           $bytes[$i + 2] = 0
           $bytes[$i + 3] = 0
+        } elseif ($a -gt 0) {
+          $bytes[$i + 3] = 255
         }
       }
     }
@@ -554,7 +564,7 @@ function Build-ParallaxSheet {
     $target.UnlockBits($data)
   }
 
-  Save-Png $target (Join-Path $SpriteDir "parallax_imagen_hd_sheet.png")
+  Save-Png $target (Join-Path $SpriteDir "scene_items_imagen_hd_sheet.png")
   $target.Dispose()
 }
 
@@ -564,4 +574,4 @@ if ((Test-Path (Join-Path $Root "assets\source\player_anim_atlas_imagen_key.png"
   & (Join-Path $PSScriptRoot "build_imagen_character_sprites.ps1")
 }
 Build-ItemSheet
-Build-ParallaxSheet
+Build-SceneItemSheet

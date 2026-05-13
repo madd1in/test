@@ -23,8 +23,15 @@
   const continueButton = document.getElementById("continueButton");
   const audioButton = document.getElementById("audioButton");
   const voiceButton = document.getElementById("voiceButton");
+  const fullscreenButton = document.getElementById("fullscreenButton");
   const saveButton = document.getElementById("saveButton");
   const resetButton = document.getElementById("resetButton");
+  const questTracker = document.getElementById("questTracker");
+  const questTitle = document.getElementById("questTitle");
+  const questNext = document.getElementById("questNext");
+  const questNeed = document.getElementById("questNeed");
+  const questSteps = document.getElementById("questSteps");
+  const hintButton = document.getElementById("hintButton");
 
   const imageSources = {
     harbor: "assets/backgrounds/harbor_imagen_hd.png",
@@ -33,7 +40,7 @@
     beach: "assets/backgrounds/beach_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-3279e0dff",
     items: "assets/sprites/items_imagen_hd_sheet.png",
-    parallax: "assets/sprites/parallax_imagen_hd_sheet.png",
+    sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
   };
 
   const audioSources = {
@@ -124,8 +131,8 @@
       ],
       hotspots: [
         { id: "dockmaster", label: "Dockmaster", rect: [1060, 560, 220, 290], walkTo: [1010, 824], verbs: ["look", "talk"] },
-        { id: "rope", label: "Rope Coil", rect: [585, 742, 170, 100], walkTo: [655, 824], hidden: () => state.flags.ropeTaken, verbs: ["look", "take"], item: "rope", itemPos: [645, 770, 106] },
-        { id: "crate", label: "Crates", rect: [772, 710, 180, 145], walkTo: [850, 824], hidden: () => state.flags.tokenTaken, verbs: ["look", "take"], item: "token", itemPos: [850, 742, 82] },
+        { id: "rope", label: "Rope Coil", rect: [585, 742, 170, 100], walkTo: [655, 824], hidden: () => state.flags.ropeTaken, verbs: ["look", "take"], item: "rope", itemPos: [642, 827, 100] },
+        { id: "crate", label: "Crates", rect: [772, 710, 180, 145], walkTo: [850, 824], hidden: () => state.flags.tokenTaken, verbs: ["look", "take"], item: "token", itemPos: [850, 804, 72] },
         { id: "skiff", label: "Jungle Skiff", rect: [1540, 700, 280, 160], walkTo: [1585, 824], verbs: ["look", "use"] },
       ],
     },
@@ -144,9 +151,9 @@
       ],
       hotspots: [
         { id: "barkeep", label: "Barkeep", rect: [1015, 560, 245, 280], walkTo: [930, 818], verbs: ["look", "talk", "use"] },
-        { id: "lime", label: "Lime Bowl", rect: [740, 610, 160, 115], walkTo: [785, 818], hidden: () => state.flags.limeTaken, verbs: ["look", "take"], item: "lime", itemPos: [810, 648, 88] },
+        { id: "lime", label: "Lime Bowl", rect: [740, 610, 160, 115], walkTo: [785, 818], hidden: () => state.flags.limeTaken, verbs: ["look", "take"], item: "lime", itemPos: [808, 704, 74] },
         { id: "chart", label: "Old Sea Chart", rect: [1330, 412, 225, 190], walkTo: [1395, 818], verbs: ["look"] },
-        { id: "spyglass", label: "Brass Spyglass", rect: [585, 676, 180, 95], walkTo: [650, 818], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [665, 700, 106] },
+        { id: "spyglass", label: "Brass Spyglass", rect: [585, 676, 180, 95], walkTo: [650, 818], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [665, 766, 104] },
       ],
     },
     beach: {
@@ -162,8 +169,8 @@
       ],
       hotspots: [
         { id: "wreck", label: "Shipwreck", rect: [850, 410, 480, 330], walkTo: [1000, 836], verbs: ["look", "use"] },
-        { id: "tidepool", label: "Tide Pool", rect: [440, 760, 260, 115], walkTo: [585, 836], hidden: () => state.flags.shellKeyTaken, verbs: ["look", "take"], item: "shellKey", itemPos: [585, 785, 90] },
-        { id: "bottle", label: "Message Bottle", rect: [680, 770, 170, 100], walkTo: [760, 836], hidden: () => state.flags.bottleTaken, verbs: ["look", "take"], item: "bottle", itemPos: [760, 790, 98] },
+        { id: "tidepool", label: "Tide Pool", rect: [440, 760, 260, 115], walkTo: [585, 836], hidden: () => state.flags.shellKeyTaken, verbs: ["look", "take"], item: "shellKey", itemPos: [585, 842, 82] },
+        { id: "bottle", label: "Message Bottle", rect: [680, 770, 170, 100], walkTo: [760, 836], hidden: () => state.flags.bottleTaken, verbs: ["look", "take"], item: "bottle", itemPos: [760, 846, 92] },
         { id: "cliff", label: "Cliff Path", rect: [110, 488, 245, 385], walkTo: [275, 836], verbs: ["look", "use"] },
       ],
     },
@@ -378,6 +385,7 @@
     if (hasItem(id)) return false;
     state.inventory.push(id);
     updateInventory();
+    updateQuestTracker();
     audio.sfx("pickup");
     return true;
   }
@@ -386,6 +394,7 @@
     state.inventory = state.inventory.filter((item) => item !== id);
     if (state.activeItem === id) state.activeItem = null;
     updateInventory();
+    updateQuestTracker();
   }
 
   function updateInventory() {
@@ -412,6 +421,150 @@
       });
       inventoryEl.appendChild(button);
     });
+  }
+
+  function getQuestState() {
+    const hasRope = state.flags.ropeTaken || hasItem("rope");
+    const hasToken = state.flags.tokenTaken || hasItem("token");
+    const hasVerse = state.flags.gotNote || hasItem("brassNote");
+    const hasShell = state.flags.shellKeyTaken || hasItem("shellKey");
+    const skiffReady = state.flags.skiffReady;
+    const solved = state.flags.solved || hasItem("starCompass");
+    const steps = [
+      { id: "rope", label: "Rope from harbor dock", done: hasRope },
+      { id: "token", label: "Copper token from crates", done: hasToken || hasVerse },
+      { id: "verse", label: "Trade token with barkeep", done: hasVerse },
+      { id: "shell", label: "Shell key from tide pool", done: hasShell },
+      { id: "skiff", label: "Tie skiff with rope", done: skiffReady },
+      { id: "door", label: "Use shell key on Moon Door", done: solved },
+    ];
+
+    if (solved) {
+      return {
+        title: "Star Compass",
+        next: "Done: the Star Compass is yours.",
+        need: "Treasure recovered.",
+        hint: "The compass is safe. Keep exploring or reload if you want another run.",
+        current: "door",
+        steps,
+      };
+    }
+
+    if (!hasRope) {
+      return {
+        title: "Step 1",
+        next: "Next: take the Rope Coil on the harbor dock.",
+        need: "Place: Harbor",
+        hint: "Use Take on the Rope Coil near the left-middle dock.",
+        current: "rope",
+        steps,
+      };
+    }
+
+    if (!hasVerse) {
+      if (!hasToken) {
+        return {
+          title: "Step 2",
+          next: "Next: take the Copper Token from the harbor crates.",
+          need: "Place: Harbor",
+          hint: "Use Take on the Crates near the middle of the harbor.",
+          current: "token",
+          steps,
+        };
+      }
+      return {
+        title: "Step 3",
+        next: "Next: talk to the Barkeep and spend the Copper Token.",
+        need: "Place: Tavern",
+        hint: "Walk to the tavern, then Talk to the Barkeep while carrying the token.",
+        current: "verse",
+        steps,
+      };
+    }
+
+    if (!hasShell) {
+      return {
+        title: "Step 4",
+        next: "Next: take the Shell Key from the tide pool.",
+        need: "Place: Wreck Beach",
+        hint: "Go to Wreck Beach and use Take on the Tide Pool near the sand.",
+        current: "shell",
+        steps,
+      };
+    }
+
+    if (!skiffReady) {
+      return {
+        title: "Step 5",
+        next: "Next: use the Rope with the Jungle Skiff.",
+        need: "Item: Rope",
+        hint: "Return to Harbor, choose Use, select the Rope, then click the Jungle Skiff.",
+        current: "skiff",
+        steps,
+      };
+    }
+
+    return {
+      title: "Final Step",
+      next: "Next: sail to the Jungle Shrine and open the Moon Door.",
+      need: "Item: Shell Key",
+      hint: "Click the tied skiff in Harbor to reach the jungle, then Use Shell Key with Moon Door.",
+      current: "door",
+      steps,
+    };
+  }
+
+  function updateQuestTracker() {
+    if (!questTracker || !questTitle || !questNext || !questNeed || !questSteps) return;
+    const quest = getQuestState();
+    questTitle.textContent = quest.title;
+    questNext.textContent = quest.next;
+    questNeed.textContent = quest.need;
+    questSteps.innerHTML = "";
+    quest.steps.forEach((step) => {
+      const item = document.createElement("li");
+      item.textContent = step.label;
+      item.classList.toggle("done", step.done);
+      item.classList.toggle("current", step.id === quest.current && !step.done);
+      questSteps.appendChild(item);
+    });
+  }
+
+  function showQuestHint() {
+    const quest = getQuestState();
+    say("Mara", quest.hint, 5200);
+  }
+
+  function getFullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function updateFullscreenButton() {
+    if (!fullscreenButton) return;
+    const canRequest = Boolean(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+    const canExit = Boolean(document.exitFullscreen || document.webkitExitFullscreen);
+    const active = Boolean(getFullscreenElement());
+    fullscreenButton.disabled = !(canRequest && canExit);
+    fullscreenButton.textContent = active ? "Exit" : "Full";
+    fullscreenButton.title = active ? "Exit fullscreen" : "Fullscreen";
+    fullscreenButton.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+
+  async function toggleFullscreen() {
+    if (!fullscreenButton || fullscreenButton.disabled) return;
+    try {
+      if (getFullscreenElement()) {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+      } else if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        await document.documentElement.webkitRequestFullscreen();
+      }
+    } catch {
+      statusLine.textContent = "Fullscreen is not available here.";
+    }
+    updateFullscreenButton();
   }
 
   function say(who, text, ms = 3600) {
@@ -454,6 +607,7 @@
     sceneName.textContent = scenes[to].title;
     statusLine.textContent = "Choose a command.";
     audio.playMusic(scenes[to].music);
+    updateQuestTracker();
     saveGame(false);
   }
 
@@ -683,6 +837,7 @@
     }
     state.activeItem = null;
     updateInventory();
+    updateQuestTracker();
   }
 
   function useItemOn(item, hotspotId) {
@@ -709,6 +864,7 @@
     }
     state.activeItem = null;
     updateInventory();
+    updateQuestTracker();
   }
 
   function updatePlayer(dt, now) {
@@ -757,96 +913,31 @@
     ctx.drawImage(images.characters, sx, sy, FRAME_W, FRAME_H, x - w / 2, y - h, w, h);
   }
 
-  function drawItemIcon(itemId, x, y, size, alpha = 1) {
+  function drawSceneItemIcon(itemId, x, y, size) {
     const meta = itemMeta[itemId];
     if (!meta) return;
-    const sheet = images.items;
+    const sheet = images.sceneItems || images.items;
     const cellW = sheet.width / 4;
     const cellH = sheet.height / 2;
     const col = meta.icon % 4;
     const row = Math.floor(meta.icon / 4);
     ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-    ctx.shadowBlur = size * 0.16;
-    ctx.shadowOffsetY = size * 0.08;
-    ctx.drawImage(sheet, col * cellW, row * cellH, cellW, cellH, x - size / 2, y - size / 2, size, size);
+    ctx.globalAlpha = 0.24;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
+    ctx.beginPath();
+    ctx.ellipse(x, y - size * 0.06, size * 0.34, size * 0.09, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.drawImage(sheet, col * cellW, row * cellH, cellW, cellH, x - size / 2, y - size, size, size);
     ctx.restore();
   }
 
-  function drawSceneItems(scene, now) {
-    availableHotspots(scene).forEach((spot, index) => {
+  function drawSceneItems(scene) {
+    availableHotspots(scene).forEach((spot) => {
       if (!spot.item || !spot.itemPos) return;
-      const bob = Math.sin(now / 420 + index * 1.7) * 3;
-      drawItemIcon(spot.item, spot.itemPos[0], spot.itemPos[1] + bob, spot.itemPos[2], 0.92);
+      drawSceneItemIcon(spot.item, spot.itemPos[0], spot.itemPos[1], spot.itemPos[2]);
     });
-  }
-
-  function parallaxCell(index) {
-    const sheet = images.parallax;
-    const cellW = sheet.width / 4;
-    const cellH = sheet.height / 2;
-    return {
-      sheet,
-      sx: (index % 4) * cellW,
-      sy: Math.floor(index / 4) * cellH,
-      sw: cellW,
-      sh: cellH,
-    };
-  }
-
-  function drawParallax(index, x, y, w, h, alpha = 1, sway = 0) {
-    const cell = parallaxCell(index);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x + w / 2, y + h / 2);
-    if (sway) ctx.rotate(sway);
-    ctx.drawImage(cell.sheet, cell.sx, cell.sy, cell.sw, cell.sh, -w / 2, -h / 2, w, h);
-    ctx.restore();
-  }
-
-  function drawMode7Ribbon(index, horizonY, height, centerX, maxWidth, now, alpha = 0.38) {
-    const cell = parallaxCell(index);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    for (let i = 0; i < height; i += 8) {
-      const t = i / Math.max(1, height);
-      const perspective = t * t;
-      const srcY = cell.sy + ((i * 2 + now / 18) % (cell.sh - 12));
-      const destW = maxWidth * (0.25 + perspective * 1.15);
-      const destH = 5 + perspective * 17;
-      const destX = centerX - destW / 2 + Math.sin(now / 430 + t * 12) * 18 * t;
-      const destY = horizonY + i;
-      ctx.drawImage(cell.sheet, cell.sx, srcY, cell.sw, 10, destX, destY, destW, destH);
-    }
-    ctx.restore();
-  }
-
-  function drawParallaxBack(scene, now) {
-    if (state.scene === "harbor") {
-      drawParallax(2, 740 + Math.sin(now / 2800) * 36, 86, 510, 190, 0.48);
-      drawMode7Ribbon(4, 742, 170, 960, 1560, now, 0.25);
-    } else if (state.scene === "tavern") {
-      drawParallax(5, 685, 42 + Math.sin(now / 900) * 8, 430, 330, 0.64, Math.sin(now / 1100) * 0.035);
-    } else if (state.scene === "jungle") {
-      drawParallax(0, -70, 44, 520, 320, 0.46);
-      drawParallax(3, 1130, 40 + Math.sin(now / 1300) * 10, 560, 300, 0.58);
-      drawMode7Ribbon(7, 588, 230, 946, 740, now, 0.28);
-    } else if (state.scene === "beach") {
-      drawParallax(2, 690 + Math.sin(now / 2500) * 42, 58, 540, 210, 0.42);
-      drawParallax(6, 760, 458, 650, 315, 0.36);
-      drawMode7Ribbon(4, 716, 230, 905, 1710, now, 0.42);
-    }
-  }
-
-  function drawParallaxFront(scene, now) {
-    if (state.scene === "harbor") {
-      drawParallax(1, 1120, 70 + Math.sin(now / 1200) * 6, 620, 330, 0.5, Math.sin(now / 900) * 0.02);
-    } else if (state.scene === "jungle") {
-      drawParallax(3, 250, -12 + Math.sin(now / 1500) * 7, 620, 300, 0.42, Math.sin(now / 1000) * 0.025);
-    } else if (state.scene === "beach") {
-      drawMode7Ribbon(4, 818, 118, 960, 1860, now + 900, 0.3);
-    }
   }
 
   function drawHover() {
@@ -865,23 +956,12 @@
     const scene = getScene();
     ctx.clearRect(0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(images[scene.bg], 0, 0, WORLD_W, WORLD_H);
-    drawParallaxBack(scene, now);
-
-    const waterShift = Math.sin(now / 520) * 10;
-    ctx.save();
-    ctx.globalAlpha = scene.bg === "tavern" ? 0.04 : 0.1;
-    ctx.fillStyle = "#bfe7de";
-    for (let i = 0; i < 7; i += 1) {
-      const y = 820 + i * 18 + Math.sin(now / 700 + i) * 6;
-      ctx.fillRect((i * 210 + waterShift) % 1920, y, 130, 3);
-    }
-    ctx.restore();
 
     scene.actors.forEach((actor, index) => {
       drawSprite(actor.anim, actor.x, actor.y, actor.scale, index * 3);
     });
 
-    drawSceneItems(scene, now);
+    drawSceneItems(scene);
     drawSprite(state.player.action, state.player.x, state.player.y, 0.86);
 
     if (state.flags.shrineOpen && state.scene === "jungle") {
@@ -894,7 +974,6 @@
       ctx.restore();
     }
 
-    drawParallaxFront(scene, now);
     drawHover();
   }
 
@@ -943,10 +1022,12 @@
   function startGame() {
     state.started = true;
     startScreen.style.display = "none";
+    if (questTracker) questTracker.hidden = false;
     sceneName.textContent = getScene().title;
     statusLine.textContent = "Choose a command.";
     updateVerbButtons();
     updateInventory();
+    updateQuestTracker();
     audio.playMusic(getScene().music);
   }
 
@@ -971,6 +1052,10 @@
       else audio.enable();
     });
     voiceButton.addEventListener("click", () => speech.toggle());
+    fullscreenButton.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", updateFullscreenButton);
+    document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+    hintButton.addEventListener("click", showQuestHint);
     saveButton.addEventListener("click", () => saveGame(true));
     resetButton.addEventListener("click", resetGame);
   }
@@ -983,11 +1068,14 @@
     statusLine.textContent = "Ready.";
     updateVerbButtons();
     updateInventory();
+    updateQuestTracker();
+    updateFullscreenButton();
     window.__COCONUT_READY = true;
     window.__COCONUT_DEBUG_STATE = () => ({
       scene: state.scene,
       inventory: [...state.inventory],
       flags: { ...state.flags },
+      quest: getQuestState(),
       player: { x: state.player.x, y: state.player.y, action: state.player.action },
       started: state.started,
     });

@@ -77,14 +77,13 @@ function checkFiles() {
     "assets/source/player_anim_atlas_imagen_key.png",
     "assets/source/npc_anim_atlas_imagen_key.png",
     "assets/source/item_atlas_imagen_hd.png",
-    "assets/source/parallax_atlas_imagen_key.png",
     "assets/backgrounds/harbor_imagen_hd.png",
     "assets/backgrounds/tavern_imagen_hd.png",
     "assets/backgrounds/jungle_imagen_hd.png",
     "assets/backgrounds/beach_imagen_hd.png",
     "assets/sprites/characters_imagen_hd_sheet.png",
     "assets/sprites/items_imagen_hd_sheet.png",
-    "assets/sprites/parallax_imagen_hd_sheet.png",
+    "assets/sprites/scene_items_imagen_hd_sheet.png",
     "assets/audio/bgm/moonlit-rum-islet.mp3",
     "assets/audio/bgm/tavern-tide.mp3",
     "assets/audio/bgm/tidewheel-cove.mp3",
@@ -135,6 +134,14 @@ async function run() {
   await page.waitForFunction(() => window.__COCONUT_READY === true, null, { timeout: 90000 });
   await page.evaluate(() => document.getElementById("startButton").click());
   await page.waitForTimeout(600);
+  const hud = await page.evaluate(() => ({
+    questHidden: document.getElementById("questTracker").hidden,
+    questText: document.getElementById("questTracker").innerText,
+    fullscreenText: document.getElementById("fullscreenButton").textContent,
+  }));
+  assert(hud.questHidden === false, "Quest tracker did not open after start");
+  assert(hud.questText.includes("Rope"), `Quest tracker missing first clear step: ${hud.questText}`);
+  assert(/Full|Exit/.test(hud.fullscreenText), `Fullscreen toggle label looks wrong: ${hud.fullscreenText}`);
 
   const probe = await page.evaluate(() => {
     const canvas = document.getElementById("gameCanvas");
@@ -168,6 +175,7 @@ async function run() {
   const solved = await page.evaluate(() => window.__COCONUT_DEBUG_STATE());
   assert(solved.flags.solved === true, `Puzzle chain did not solve: ${JSON.stringify(solved)}`);
   assert(solved.inventory.includes("starCompass"), "Star Compass was not awarded");
+  assert(solved.quest.next.includes("Done"), `Quest tracker did not complete: ${JSON.stringify(solved.quest)}`);
 
   assert(consoleErrors.length === 0, `Console errors: ${consoleErrors.join("\n")}`);
   assert(pageErrors.length === 0, `Page errors: ${pageErrors.join("\n")}`);
