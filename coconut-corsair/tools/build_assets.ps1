@@ -1,5 +1,6 @@
 param(
-  [switch]$BackgroundsOnly
+  [switch]$BackgroundsOnly,
+  [switch]$ItemsOnly
 )
 
 Set-StrictMode -Version Latest
@@ -557,16 +558,23 @@ function Build-SceneItemSheet {
         }
 
         $localX = $x % $cellW
-        $cellEdge = ($localX -lt 10 -or $localY -lt 10 -or ($cellW - $localX) -lt 10 -or ($cellH - $localY) -lt 10)
-        $nearBlack = ($r -lt 18 -and $gch -lt 24 -and $b -lt 26)
-        $darkTeal = ($r -lt 76 -and $gch -gt 22 -and $b -gt 20 -and $gch -ge ($r + 8) -and $b -ge ($r + 2) -and [Math]::Abs($gch - $b) -lt 52)
-        $smokeTeal = ($r -lt 48 -and $gch -lt 92 -and $b -lt 92 -and $gch -gt $r -and $b -ge ($r - 4))
-        if ($cellEdge -or $nearBlack -or $darkTeal -or $smokeTeal) {
+        $cellEdge = ($localX -lt 42 -or $localY -lt 42 -or ($cellW - $localX) -lt 42 -or ($cellH - $localY) -lt 42)
+        $max = [Math]::Max($r, [Math]::Max($gch, $b))
+        $min = [Math]::Min($r, [Math]::Min($gch, $b))
+        $warmObject = ($r -gt 54 -and $gch -gt 34 -and $r -gt ($b + 10) -and $gch -gt ($b - 8))
+        $darkWarmObject = ($r -gt 24 -and $r -gt ($b + 6) -and $gch -gt ($b - 10) -and $gch -lt ($r + 28))
+        $copperGold = ($r -gt 74 -and $r -gt ($gch + 5) -and $gch -gt ($b + 4))
+        $limeObject = ($gch -gt 96 -and $r -gt 44 -and $gch -gt ($b + 28))
+        $paleObject = ($r -gt 124 -and $gch -gt 104 -and $b -gt 74)
+        $brightObject = ($max -gt 126 -and ($max - $min) -gt 18)
+        $blueGlass = (($b -gt 84 -or $gch -gt 92) -and $max -gt 112 -and ($gch -gt ($r + 10) -or $b -gt ($r + 12)))
+        $objectPixel = (!$cellEdge -and ($warmObject -or $darkWarmObject -or $copperGold -or $limeObject -or $paleObject -or $brightObject -or $blueGlass))
+        if (!$objectPixel) {
           $bytes[$i] = 0
           $bytes[$i + 1] = 0
           $bytes[$i + 2] = 0
           $bytes[$i + 3] = 0
-        } elseif ($a -gt 0) {
+        } else {
           $bytes[$i + 3] = 255
         }
       }
@@ -578,6 +586,12 @@ function Build-SceneItemSheet {
 
   Save-Png $target (Join-Path $SpriteDir "scene_items_imagen_hd_sheet.png")
   $target.Dispose()
+}
+
+if ($ItemsOnly) {
+  Build-ItemSheet
+  Build-SceneItemSheet
+  return
 }
 
 Build-Backgrounds
