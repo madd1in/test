@@ -343,6 +343,28 @@ async function browserSmoke() {
     return { before, mid, after };
   });
 
+  const tideWardenRecoveryProbe = await page.evaluate(async () => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    window.__NOCTURNE_TEST_SET_KILLED("cavernDepths", "tideWarden1", false);
+    window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 620, 326);
+    window.__NOCTURNE_TEST_SET_PLAYER_RAW(620, 326, true);
+    window.__NOCTURNE_TEST_SET_ENEMY_RAW("tideWarden1", {
+      x: 710,
+      y: 454,
+      vx: 0,
+      vy: 9,
+      hp: 440,
+      awakened: true,
+      lunge: 0,
+      cooldown: 4,
+      specialCooldown: 4
+    });
+    const before = window.__NOCTURNE_DEBUG_STATE();
+    await new Promise((resolve) => setTimeout(resolve, 420));
+    const after = window.__NOCTURNE_DEBUG_STATE();
+    return { before, after };
+  });
+
   const grottoMechanicProbe = await page.evaluate(async () => {
     for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
     window.__NOCTURNE_TEST_TELEPORT("cavernDepths", 360, 260);
@@ -556,7 +578,7 @@ async function browserSmoke() {
 
   await closeBrowser(browser);
   await closeServer(server);
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, puzzleProbe, mapCycleProbe, archiveWardenBoundsProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, puzzleProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -566,8 +588,15 @@ async function browserSmoke() {
 
   const gameJs = read("game.js");
   const indexHtml = read("index.html");
+  const styleCss = read("style.css");
   assert(gameJs.includes("Nocturne Reliquary"), "game title missing in JS");
   assert(indexHtml.includes("canvas"), "canvas missing in HTML");
+  assert(indexHtml.includes('data-title="Nocturne Reliquary"'), "title heading should expose glow text data");
+  assert(gameJs.includes("dom.title.dataset.title = title"), "dynamic title text should keep the glow layer in sync");
+  assert(styleCss.includes("content: attr(data-title)") && styleCss.includes("@keyframes title-aura"), "title screen should include the font-shaped glow aura");
+  assert(gameJs.includes("function playerAnimationPose") && gameJs.includes("sequenceAnimationPose"), "player should use blended high-frame animation poses");
+  assert(gameJs.includes("recoverTideWardenIfUnsafe") && gameJs.includes("enemyFeetOverlapWaterPit"), "Tide Warden should recover from Sapphire Grotto pits");
+  assert(gameJs.includes("SpeechSynthesisUtterance") && gameJs.includes("speakDialogueLine"), "NPC dialogue should support Web Speech voice output");
   assert(!gameJs.includes('playSound("gate"'), "room-transition gate/gong SFX should stay removed");
   const enemyFrameMapPath = path.join(root, "assets/generated/enemy_imagen_zora_panther_frame_map.json");
   assert(fs.existsSync(enemyFrameMapPath), "zora/panther enemy frame map JSON missing");
@@ -653,7 +682,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.drawbridgeAnchorSet === "imagen-trim-anchor-plates-v1", "drawbridge anchors should use existing Imagen HD trim tiles");
   assert(result.state.tuningInfo.drawbridgePerf === "world-layer-warmed-water-v3", "drawbridge should use warmed world layers instead of per-camera cache churn");
   assert(result.state.tuningInfo.cavernSection === "sapphire-grotto-zora-v1", "new cavern section should be wired");
-  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-gates-v3-no-stalagmites", "sapphire grotto moving raft and clean low duck gates should be wired");
+  assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-gates-v4-hd-clean", "sapphire grotto moving raft and HD clean low gates should be wired");
   assert(result.state.tuningInfo.enemyVisibility === "panther-clean-matte-zora-rim-respawn-v2", "zora and panther visibility/matte tuning should be wired");
   assert(result.state.tuningInfo.chestSet === "imagen-hd-treasure-chests-v2", "Imagen HD treasure chest tuning should be wired");
   assert(result.state.tuningInfo.candleSet === "imagen-hd-candles-atlas-v1", "Imagen HD candle atlas tuning should be wired");
@@ -672,17 +701,19 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-full-boss-v2", "quest seal route should force the new sections into full milestone boss progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
-  assert(result.state.tuningInfo.storyNpcSet === "imagen-story-npc-atlas-v1+animated-16f-clean-v1", "Imagen HD story NPC atlas and clean animated strip should be wired");
+  assert(result.state.tuningInfo.storyNpcSet === "imagen-story-npc-atlas-v1+animated-16f-player-scale-voice-v2", "Imagen HD story NPC atlas should use player-scale animated voice-enabled NPCs");
+  assert(result.state.tuningInfo.voiceOver === "web-speech-npc-dialogue-v1", "NPC voice output tuning should be wired");
   assert(result.state.tuningInfo.mapMazeSet === "organic-looped-castle-v2-root-sluice-reservoir", "organic maze loop tuning should be wired");
   assert(result.state.tuningInfo.bossMilestones === "quest-wardens-full-bossfight-v2", "quest wardens should be promoted to full bossfight milestones");
-  assert(result.state.tuningInfo.wardenBounds === "clamped-after-motion-v1", "warden arena bounds should clamp after motion");
+  assert(result.state.tuningInfo.wardenBounds === "clamped-after-motion-water-rescue-v2", "warden arena bounds should clamp after motion and rescue pit falls");
   assert(result.state.tuningInfo.enemyFrameMap === "zora-panther-hd-24f-v2+quest-warden-48f-smooth-v1+archive-warden-imagen-hd-48f-v1", "zora/panther plus smooth quest warden HD frame map tuning should be wired");
   assert(result.state.tuningInfo.objectiveDoorGuide === "in-world-next-exit-v1", "in-world next-exit route guide should be wired");
+  assert(result.state.tuningInfo.playerMotionSet === "imagen-hd-player-72f-blended-motion-v3", "player movement should use blended 72-frame motion tuning");
   assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
   assert(result.state.tuningInfo.controlSkin === "gothic-medallion-controls-v1", "gothic medallion control skin should be wired");
   assert(result.state.tuningInfo.mobileTouch === "transient-joystick-v1-readable-actions", "mobile touch tuning should use the transient joystick and readable action targets");
   assert(result.state.tuningInfo.mobileCeilingDoors === "auto-enter-touch-overlap-v1", "mobile ceiling doors should auto-enter when the player overlaps the hatch");
-  assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-exit-v1", "mobile door reentry guard should prevent immediate bounce-backs");
+  assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-clear-or-side-step-v2", "mobile door reentry guard should clear when side-stepping away from hatches");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
   assert(result.state.tuningInfo.mobilePerformance === "viewport-lite-player-cache-no-vignette-v6", "mobile performance should use viewport-cropped backgrounds, cached player frames, and no mobile vignette");
@@ -712,7 +743,7 @@ async function browserSmoke() {
   assert(grottoState.visuals.mode7, "sapphire grotto should use stretched/Mode7 background fill");
   assert(grottoState.enemyTypes.includes("zora"), `sapphire grotto should spawn zora waterspout enemies: ${JSON.stringify(grottoState.enemyTypes)}`);
   assert(grottoState.enemyTypes.includes("tideWarden"), `sapphire grotto should spawn the Tide Warden quest mini-boss: ${JSON.stringify(grottoState.enemyTypes)}`);
-  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3 && !grottoState.grotto.spikesAsset && grottoState.grotto.gateVisual === "clean-low-gates-no-stalagmites", `sapphire grotto should expose moving raft and clean low gates without spike assets: ${JSON.stringify(grottoState.grotto)}`);
+  assert(grottoState.grotto && grottoState.grotto.platform && grottoState.grotto.duckGates.length === 3 && !grottoState.grotto.spikesAsset && grottoState.grotto.gateVisual === "hd-textured-low-gates-no-vector", `sapphire grotto should expose moving raft and HD textured low gates without vector spike assets: ${JSON.stringify(grottoState.grotto)}`);
   const carryOffsetStart = result.grottoMechanicProbe.carryStart.playerX - result.grottoMechanicProbe.carryStart.grotto.platform.x;
   const carryOffsetEnd = result.grottoMechanicProbe.carryEnd.playerX - result.grottoMechanicProbe.carryEnd.grotto.platform.x;
   assert(Math.abs(carryOffsetEnd - carryOffsetStart) <= 18, `moving grotto raft should carry the player: ${JSON.stringify(result.grottoMechanicProbe)}`);
@@ -731,6 +762,8 @@ async function browserSmoke() {
   const archiveBoundsBoss = result.archiveWardenBoundsProbe.after.milestoneBosses.find((enemy) => enemy.id === "inkWarden1");
   assert(archiveBoundsBoss && archiveBoundsBoss.x >= archiveBoundsBoss.min && archiveBoundsBoss.x <= archiveBoundsBoss.max, `Archive Warden should return inside its arena after an offscreen lunge: ${JSON.stringify(result.archiveWardenBoundsProbe)}`);
   assert(archiveBoundsBoss.x < result.archiveWardenBoundsProbe.before.milestoneBosses[0].x, `Archive Warden should move back from the right edge instead of drifting farther out: ${JSON.stringify(result.archiveWardenBoundsProbe)}`);
+  const tideRecoveryBoss = result.tideWardenRecoveryProbe.after.milestoneBosses.find((enemy) => enemy.id === "tideWarden1");
+  assert(tideRecoveryBoss && tideRecoveryBoss.hp === 440 && tideRecoveryBoss.y < 380 && tideRecoveryBoss.x >= tideRecoveryBoss.min && tideRecoveryBoss.x <= tideRecoveryBoss.max, `Tide Warden should recover onto a valid Grotto platform without losing the boss state: ${JSON.stringify(result.tideWardenRecoveryProbe)}`);
   const archiveState = result.transitionStates.find((entry) => entry.room === "archive");
   assert(archiveState && archiveState.enemyTypes.includes("inkWarden"), `Moonlit Archives should spawn the Ink Warden quest mini-boss: ${JSON.stringify(archiveState && archiveState.enemyTypes)}`);
   assert(archiveState.hdProps && archiveState.hdProps.archiveWarden && archiveState.hdProps.archiveWardenSize === "15360x256", `Moonlit Archives should use the 48-frame Archive Warden HD sheet: ${JSON.stringify(archiveState && archiveState.hdProps)}`);
