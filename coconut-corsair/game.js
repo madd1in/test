@@ -31,7 +31,7 @@
     tavern: "assets/backgrounds/tavern_imagen_hd.png",
     jungle: "assets/backgrounds/jungle_imagen_hd.png",
     beach: "assets/backgrounds/beach_imagen_hd.png",
-    characters: "assets/sprites/characters_imagen_hd_sheet.png",
+    characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-3279e0dff",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     parallax: "assets/sprites/parallax_imagen_hd_sheet.png",
   };
