@@ -114,6 +114,8 @@
   };
 
   const images = {};
+  const outlineCanvas = document.createElement("canvas");
+  const outlineCtx = outlineCanvas.getContext("2d");
 
   const scenes = {
     harbor: {
@@ -194,6 +196,34 @@
         { id: "vines", label: "Jungle Vines", rect: [300, 355, 260, 365], walkTo: [445, 828], verbs: ["look", "use"] },
       ],
     },
+  };
+
+  const exitMarkers = {
+    harbor: {
+      toTavern: { x: 1598, y: 588, dir: "right", label: "To Tavern" },
+      toBeach: { x: 188, y: 606, dir: "left", label: "To Beach" },
+    },
+    tavern: {
+      toHarbor: { x: 172, y: 610, dir: "left", label: "To Harbor" },
+    },
+    beach: {
+      toHarbor: { x: 1658, y: 640, dir: "right", label: "To Harbor" },
+    },
+    jungle: {
+      toHarbor: { x: 156, y: 638, dir: "left", label: "To Harbor" },
+    },
+  };
+
+  const hotspotOutlines = {
+    dockmaster: { kind: "actor", actor: "dockmasterActor" },
+    barkeep: { kind: "actor", actor: "barkeepActor" },
+    keeper: { kind: "actor", actor: "keeperActor" },
+    skiff: { kind: "polygon", points: [[1518, 742], [1678, 703], [1820, 730], [1784, 844], [1588, 858], [1510, 802]] },
+    chart: { kind: "polygon", points: [[1345, 418], [1540, 430], [1530, 590], [1338, 575]] },
+    wreck: { kind: "polygon", points: [[872, 590], [1008, 426], [1285, 500], [1278, 665], [1050, 742], [865, 705]] },
+    cliff: { kind: "polygon", points: [[135, 512], [300, 482], [352, 835], [205, 864], [110, 744]] },
+    shrineDoor: { kind: "polygon", points: [[850, 428], [1045, 428], [1120, 560], [1062, 775], [845, 792], [760, 620]] },
+    vines: { kind: "polygon", points: [[320, 360], [500, 350], [570, 560], [488, 720], [318, 680], [270, 485]] },
   };
 
   const sceneAmbience = {
@@ -988,6 +1018,156 @@
     });
   }
 
+  function drawSheetOutline(sheet, sx, sy, sw, sh, dx, dy, dw, dh, thickness = 5) {
+    if (!sheet || !outlineCtx) return;
+    const pad = Math.ceil(thickness * 2.4);
+    const width = Math.ceil(dw + pad * 2);
+    const height = Math.ceil(dh + pad * 2);
+    if (outlineCanvas.width !== width || outlineCanvas.height !== height) {
+      outlineCanvas.width = width;
+      outlineCanvas.height = height;
+    }
+
+    outlineCtx.clearRect(0, 0, width, height);
+    outlineCtx.globalAlpha = 1;
+    outlineCtx.globalCompositeOperation = "source-over";
+    const offsets = [
+      [-thickness, 0], [thickness, 0], [0, -thickness], [0, thickness],
+      [-thickness * 0.72, -thickness * 0.72], [thickness * 0.72, -thickness * 0.72],
+      [-thickness * 0.72, thickness * 0.72], [thickness * 0.72, thickness * 0.72],
+    ];
+    offsets.forEach(([ox, oy]) => {
+      outlineCtx.drawImage(sheet, sx, sy, sw, sh, pad + ox, pad + oy, dw, dh);
+    });
+    outlineCtx.globalCompositeOperation = "source-in";
+    outlineCtx.fillStyle = "rgba(255, 255, 255, 0.96)";
+    outlineCtx.fillRect(0, 0, width, height);
+    outlineCtx.globalCompositeOperation = "destination-out";
+    outlineCtx.drawImage(sheet, sx, sy, sw, sh, pad, pad, dw, dh);
+    outlineCtx.globalCompositeOperation = "source-over";
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.78)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 2;
+    ctx.drawImage(outlineCanvas, dx - pad, dy - pad);
+    ctx.restore();
+  }
+
+  function drawItemShapeOutline(itemId, x, y, size) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
+    ctx.lineWidth = Math.max(3, size * 0.045);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 2;
+    ctx.beginPath();
+
+    if (itemId === "rope") {
+      ctx.ellipse(x, y - size * 0.47, size * 0.33, size * 0.2, -0.08, 0, Math.PI * 2);
+      ctx.moveTo(x + size * 0.2, y - size * 0.44);
+      ctx.ellipse(x, y - size * 0.47, size * 0.2, size * 0.11, -0.08, 0, Math.PI * 2);
+      ctx.moveTo(x + size * 0.11, y - size * 0.25);
+      ctx.quadraticCurveTo(x + size * 0.26, y - size * 0.18, x + size * 0.2, y - size * 0.07);
+    } else if (itemId === "token") {
+      ctx.ellipse(x, y - size * 0.5, size * 0.28, size * 0.28, 0, 0, Math.PI * 2);
+    } else if (itemId === "lime") {
+      ctx.ellipse(x, y - size * 0.5, size * 0.3, size * 0.27, -0.2, 0, Math.PI * 2);
+    } else if (itemId === "shellKey") {
+      ctx.ellipse(x - size * 0.08, y - size * 0.58, size * 0.23, size * 0.16, -0.18, 0, Math.PI * 2);
+      ctx.moveTo(x + size * 0.08, y - size * 0.48);
+      ctx.lineTo(x + size * 0.28, y - size * 0.25);
+      ctx.moveTo(x + size * 0.2, y - size * 0.31);
+      ctx.lineTo(x + size * 0.34, y - size * 0.35);
+    } else if (itemId === "bottle") {
+      ctx.translate(x, y - size * 0.48);
+      ctx.rotate(-0.42);
+      if (ctx.roundRect) ctx.roundRect(-size * 0.14, -size * 0.34, size * 0.28, size * 0.62, size * 0.08);
+      else ctx.rect(-size * 0.14, -size * 0.34, size * 0.28, size * 0.62);
+      ctx.moveTo(-size * 0.08, -size * 0.4);
+      ctx.lineTo(size * 0.08, -size * 0.4);
+    } else if (itemId === "spyglass") {
+      ctx.translate(x, y - size * 0.5);
+      ctx.rotate(-0.18);
+      ctx.moveTo(-size * 0.36, 0);
+      ctx.lineTo(size * 0.34, 0);
+      ctx.moveTo(-size * 0.38, -size * 0.1);
+      ctx.lineTo(-size * 0.38, size * 0.1);
+      ctx.moveTo(size * 0.36, -size * 0.13);
+      ctx.lineTo(size * 0.36, size * 0.13);
+    } else {
+      ctx.ellipse(x, y - size * 0.5, size * 0.28, size * 0.28, 0, 0, Math.PI * 2);
+    }
+
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawActorShapeOutline(scene, actorId) {
+    const index = scene.actors.findIndex((actor) => actor.id === actorId);
+    if (index < 0) return false;
+    const actor = scene.actors[index];
+    const anim = anims[actor.anim] || anims.idle;
+    const frame = Math.floor((state.player.frameT + index * 3) % anim.frames);
+    const sx = frame * FRAME_W;
+    const sy = anim.row * FRAME_H;
+    const w = FRAME_W * actor.scale;
+    const h = FRAME_H * actor.scale;
+    drawSheetOutline(images.characters, sx, sy, FRAME_W, FRAME_H, actor.x - w / 2, actor.y - h, w, h, 6);
+    return true;
+  }
+
+  function drawPolygonOutline(points) {
+    if (!points?.length) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.94)";
+    ctx.lineWidth = 4;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 2;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const point = points[i];
+      const cx = (prev[0] + point[0]) / 2;
+      const cy = (prev[1] + point[1]) / 2;
+      ctx.quadraticCurveTo(prev[0], prev[1], cx, cy);
+    }
+    const last = points[points.length - 1];
+    const first = points[0];
+    ctx.quadraticCurveTo(last[0], last[1], first[0], first[1]);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawHotspotShapeOutline(scene, spot) {
+    if (spot.item && spot.itemPos) {
+      drawItemShapeOutline(spot.item, spot.itemPos[0], spot.itemPos[1], spot.itemPos[2]);
+      return;
+    }
+
+    const outline = hotspotOutlines[spot.id];
+    if (outline?.kind === "actor" && drawActorShapeOutline(scene, outline.actor)) return;
+    if (outline?.kind === "polygon") {
+      drawPolygonOutline(outline.points);
+      return;
+    }
+
+    const rect = spot.rect;
+    drawPolygonOutline([
+      [rect[0] + rect[2] * 0.12, rect[1] + rect[3] * 0.08],
+      [rect[0] + rect[2] * 0.9, rect[1] + rect[3] * 0.16],
+      [rect[0] + rect[2] * 0.84, rect[1] + rect[3] * 0.9],
+      [rect[0] + rect[2] * 0.18, rect[1] + rect[3] * 0.86],
+    ]);
+  }
+
   function ambientPulse(now, phase = 0, speed = 0.004) {
     return 0.78
       + Math.sin(now * speed + phase) * 0.12
@@ -1123,16 +1303,62 @@
     if (ambience.mist) drawMist(ambience.mist, now);
   }
 
-  function drawHover() {
+  function drawExitIndicator(exit, marker, now, active = false) {
+    if (!marker) return;
+    const pulse = active ? 1 : 0.74 + Math.sin(now * 0.004 + marker.x * 0.01) * 0.08;
+    const dir = marker.dir === "left" ? -1 : 1;
+    const arrowX = marker.x + Math.sin(now * 0.0032) * 3 * dir;
+    const labelX = marker.x + dir * 34;
+    const align = dir < 0 ? "right" : "left";
+
+    ctx.save();
+    ctx.globalAlpha = active ? 0.98 : 0.72;
+    ctx.lineWidth = active ? 5 : 3.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.82 * pulse})`;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 2;
+    ctx.beginPath();
+    ctx.moveTo(arrowX - dir * 18, marker.y - 18);
+    ctx.lineTo(arrowX + dir * 3, marker.y);
+    ctx.lineTo(arrowX - dir * 18, marker.y + 18);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(arrowX - dir * 44, marker.y);
+    ctx.lineTo(arrowX + dir * 4, marker.y);
+    ctx.stroke();
+
+    ctx.font = "900 28px Bookman Old Style, Book Antiqua, Georgia, serif";
+    ctx.textAlign = align;
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "rgba(28, 13, 8, 0.86)";
+    ctx.strokeText(marker.label, labelX, marker.y);
+    ctx.fillStyle = active ? "#fff8dd" : "#ffd56e";
+    ctx.fillText(marker.label, labelX, marker.y);
+    ctx.restore();
+  }
+
+  function drawExitIndicators(scene, now) {
+    const markers = exitMarkers[state.scene] || {};
+    scene.exits.forEach((exit) => {
+      const active = state.hover?.type === "exit" && state.hover.data.id === exit.id;
+      drawExitIndicator(exit, markers[exit.id], now, active);
+    });
+  }
+
+  function drawHover(now) {
     const hit = state.hover;
     if (!hit) return;
-    const rect = hit.data.rect;
-    ctx.save();
-    ctx.strokeStyle = hit.type === "exit" ? "rgba(121, 216, 255, 0.72)" : "rgba(240, 199, 102, 0.72)";
-    ctx.lineWidth = 4;
-    ctx.setLineDash([14, 12]);
-    ctx.strokeRect(rect[0], rect[1], rect[2], rect[3]);
-    ctx.restore();
+    const scene = getScene();
+    if (hit.type === "exit") {
+      const marker = exitMarkers[state.scene]?.[hit.data.id];
+      drawExitIndicator(hit.data, marker, now, true);
+      return;
+    }
+    drawHotspotShapeOutline(scene, hit.data);
   }
 
   function drawScene(now) {
@@ -1158,7 +1384,8 @@
       ctx.restore();
     }
 
-    drawHover();
+    drawExitIndicators(scene, now);
+    drawHover(now);
   }
 
   function loop(now) {

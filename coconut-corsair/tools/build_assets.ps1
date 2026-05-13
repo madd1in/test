@@ -1,3 +1,7 @@
+param(
+  [switch]$BackgroundsOnly
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -98,39 +102,18 @@ function Add-BackgroundGrade {
 function Add-ForegroundHints {
   param([System.Drawing.Graphics]$G, [string]$Scene)
 
-  $line = New-PenColor 105 255 234 166 2.5
   $shadow = New-SolidBrush 60 0 0 0
   try {
     if ($Scene -eq "harbor") {
       $G.FillEllipse($shadow, 344, 795, 312, 34)
-      $G.DrawCurve($line, [System.Drawing.Point[]]@(
-        (New-Object System.Drawing.Point 270, 826),
-        (New-Object System.Drawing.Point 780, 808),
-        (New-Object System.Drawing.Point 1240, 814),
-        (New-Object System.Drawing.Point 1700, 790)
-      ))
     } elseif ($Scene -eq "tavern") {
       $G.FillEllipse($shadow, 710, 792, 370, 42)
-      $G.DrawLine($line, 250, 822, 1680, 818)
     } elseif ($Scene -eq "jungle") {
       $G.FillEllipse($shadow, 420, 810, 470, 46)
-      $G.DrawCurve($line, [System.Drawing.Point[]]@(
-        (New-Object System.Drawing.Point 180, 842),
-        (New-Object System.Drawing.Point 660, 806),
-        (New-Object System.Drawing.Point 1080, 822),
-        (New-Object System.Drawing.Point 1660, 806)
-      ))
     } else {
       $G.FillEllipse($shadow, 915, 815, 440, 42)
-      $G.DrawCurve($line, [System.Drawing.Point[]]@(
-        (New-Object System.Drawing.Point 160, 850),
-        (New-Object System.Drawing.Point 610, 824),
-        (New-Object System.Drawing.Point 1080, 838),
-        (New-Object System.Drawing.Point 1760, 806)
-      ))
     }
   } finally {
-    $line.Dispose()
     $shadow.Dispose()
   }
 }
@@ -569,6 +552,9 @@ function Build-SceneItemSheet {
 }
 
 Build-Backgrounds
+if ($BackgroundsOnly) {
+  return
+}
 Build-CharacterSheet
 if ((Test-Path (Join-Path $Root "assets\source\player_anim_atlas_imagen_key.png")) -and (Test-Path (Join-Path $Root "assets\source\npc_anim_atlas_imagen_key.png"))) {
   & (Join-Path $PSScriptRoot "build_imagen_character_sprites.ps1")
