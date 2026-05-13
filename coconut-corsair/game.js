@@ -12,6 +12,7 @@
   const ctx = canvas.getContext("2d");
   const sceneName = document.getElementById("sceneName");
   const statusLine = document.getElementById("statusLine");
+  const commandSentence = document.getElementById("commandSentence");
   const dialogue = document.getElementById("dialogue");
   const speaker = document.getElementById("speaker");
   const line = document.getElementById("line");
@@ -377,6 +378,11 @@
     });
   }
 
+  function setStatus(text) {
+    statusLine.textContent = text;
+    if (commandSentence) commandSentence.textContent = text;
+  }
+
   function hasItem(id) {
     return state.inventory.includes(id);
   }
@@ -417,7 +423,7 @@
         state.verb = "use";
         updateVerbButtons();
         updateInventory();
-        statusLine.textContent = state.activeItem ? `Use ${meta.name} with...` : "Choose a command.";
+        setStatus(state.activeItem ? `Use ${meta.name} with...` : "Choose a command.");
       });
       inventoryEl.appendChild(button);
     });
@@ -562,7 +568,7 @@
         await document.documentElement.webkitRequestFullscreen();
       }
     } catch {
-      statusLine.textContent = "Fullscreen is not available here.";
+      setStatus("Fullscreen is not available here.");
     }
     updateFullscreenButton();
   }
@@ -605,7 +611,7 @@
     state.pending = null;
     state.hover = null;
     sceneName.textContent = scenes[to].title;
-    statusLine.textContent = "Choose a command.";
+    setStatus("Choose a command.");
     audio.playMusic(scenes[to].music);
     updateQuestTracker();
     saveGame(false);
@@ -647,11 +653,11 @@
     state.hover = hit;
     if (hit?.type === "hotspot") {
       const prefix = state.activeItem ? `Use ${itemMeta[state.activeItem]?.name || "item"} with` : state.verb[0].toUpperCase() + state.verb.slice(1);
-      statusLine.textContent = `${prefix} ${hit.data.label}`;
+      setStatus(`${prefix} ${hit.data.label}`);
     } else if (hit?.type === "exit") {
-      statusLine.textContent = `Walk to ${hit.data.label}`;
+      setStatus(`Walk to ${hit.data.label}`);
     } else {
-      statusLine.textContent = "Walk";
+      setStatus("Walk");
     }
   }
 
@@ -1024,7 +1030,7 @@
     startScreen.style.display = "none";
     if (questTracker) questTracker.hidden = false;
     sceneName.textContent = getScene().title;
-    statusLine.textContent = "Choose a command.";
+    setStatus("Choose a command.");
     updateVerbButtons();
     updateInventory();
     updateQuestTracker();
@@ -1036,7 +1042,7 @@
     canvas.addEventListener("mousemove", handleHover);
     canvas.addEventListener("mouseleave", () => {
       state.hover = null;
-      if (state.started) statusLine.textContent = "Choose a command.";
+      if (state.started) setStatus("Choose a command.");
     });
     verbs.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-verb]");
@@ -1065,7 +1071,7 @@
     loadGame();
     bindEvents();
     sceneName.textContent = getScene().title;
-    statusLine.textContent = "Ready.";
+    setStatus("Ready.");
     updateVerbButtons();
     updateInventory();
     updateQuestTracker();
@@ -1097,6 +1103,6 @@
 
   boot().catch((error) => {
     console.error(error);
-    statusLine.textContent = error.message;
+    setStatus(error.message);
   });
 })();
