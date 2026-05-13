@@ -547,18 +547,44 @@ button:focus-visible {
 }
 
 h1 {
+  position: relative;
+  display: inline-block;
   margin: 0;
   font-family: var(--font-heading);
   font-size: clamp(56px, 11vw, 132px);
   line-height: 0.95;
   font-weight: 700;
-  color: #fff0cf;
+  color: #fff6dc;
   letter-spacing: 2px;
+  isolation: isolate;
+  -webkit-text-stroke: 1px rgba(94, 32, 28, 0.68);
   text-shadow:
     0 4px 0 #000,
-    0 0 24px rgba(216, 56, 56, 0.55),
-    0 0 60px rgba(244, 211, 139, 0.35);
+    0 0 10px rgba(255, 245, 204, 0.92),
+    0 0 28px rgba(244, 211, 139, 0.64),
+    0 0 54px rgba(216, 56, 56, 0.58),
+    0 0 96px rgba(112, 184, 198, 0.22);
+  filter: drop-shadow(0 0 18px rgba(255, 212, 112, 0.34));
   animation: title-glow 4.8s ease-in-out infinite;
+}
+
+h1::before {
+  content: attr(data-title);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: rgba(255, 235, 164, 0.48);
+  -webkit-text-stroke: 8px rgba(222, 65, 55, 0.20);
+  text-shadow:
+    0 0 18px rgba(255, 235, 164, 0.88),
+    0 0 42px rgba(216, 56, 56, 0.64),
+    0 0 82px rgba(244, 211, 139, 0.42);
+  filter: blur(1.2px);
+  opacity: 0.78;
+  transform: scale(1.012);
+  transform-origin: 50% 58%;
+  animation: title-aura 5.6s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .subtitle {
@@ -602,10 +628,32 @@ h1 {
 @keyframes title-glow {
   0%,
   100% {
-    text-shadow: 0 3px 0 #000, 0 0 18px rgba(185, 53, 50, 0.34);
+    text-shadow:
+      0 4px 0 #000,
+      0 0 8px rgba(255, 245, 204, 0.82),
+      0 0 24px rgba(244, 211, 139, 0.58),
+      0 0 52px rgba(185, 53, 50, 0.48),
+      0 0 86px rgba(112, 184, 198, 0.18);
   }
   50% {
-    text-shadow: 0 3px 0 #000, 0 0 26px rgba(244, 211, 139, 0.46);
+    text-shadow:
+      0 4px 0 #000,
+      0 0 14px rgba(255, 245, 204, 1),
+      0 0 34px rgba(244, 211, 139, 0.78),
+      0 0 74px rgba(216, 56, 56, 0.66),
+      0 0 118px rgba(112, 184, 198, 0.28);
+  }
+}
+
+@keyframes title-aura {
+  0%,
+  100% {
+    opacity: 0.56;
+    transform: scale(1.008);
+  }
+  50% {
+    opacity: 0.86;
+    transform: scale(1.026);
   }
 }
 
