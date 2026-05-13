@@ -565,8 +565,10 @@ async function browserSmoke() {
   const archiveWardenMap = JSON.parse(fs.readFileSync(archiveWardenMapPath, "utf8"));
   assert(archiveWardenMap.version === "archive-warden-imagen-hd-48f-v1", "Archive Warden frame map version mismatch");
   assert(archiveWardenMap.animations.inkWarden.frames === 48 && archiveWardenMap.animations.inkWarden.attack.length === 12, "Archive Warden should expose a 48-frame attack-capable HD strip");
-  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_armory_moon_cases.png")), "Candlelit Armory Imagen HD moon/case atlas missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/bg_imagen_armory_hd_v2.png")), "Candlelit Armory clean HD background missing");
   assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_library_switches.png")), "Forgotten Library Imagen HD rune switch atlas missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/para_imagen_crystals_hd.png")), "Forgotten Library Imagen HD crystal layer missing");
+  assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_candles.png")), "Imagen HD candle atlas missing");
   assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_moon_chain_tower.png")), "Moon Chain Tower Imagen HD prop atlas missing");
   assert(fs.existsSync(path.join(root, "assets/generated/props_imagen_hd_gallery_portraits.png")), "Silver Portrait Gallery Imagen HD portrait atlas missing");
 
@@ -599,6 +601,7 @@ async function browserSmoke() {
   assert(result.state.frameInfo.archiveWardenFrameW === 320 && result.state.frameInfo.archiveWardenFrameH === 256 && result.state.frameInfo.archiveWardenFrames === 48, "Archive Warden HD 48-frame strip should be wired");
   assert(result.state.frameInfo.npcFrameW === 192 && result.state.frameInfo.npcFrameH === 256 && result.state.frameInfo.npcFrames === 16, "story NPCs should use the clean 16-frame animated Imagen strip");
   assert(result.state.frameInfo.chestFrameW === 256 && result.state.frameInfo.chestFrameH === 256 && result.state.frameInfo.chestFrames === 4, "Imagen HD treasure chest sheet should expose four 256px frames");
+  assert(result.state.frameInfo.candleFrameW === 256 && result.state.frameInfo.candleFrameH === 256 && result.state.frameInfo.candleFrames === 4, "Imagen HD candle atlas should expose four 256px animation frames");
   assert(result.state.enemyFrameMap.zora.frames === 24 && result.state.enemyFrameMap.blackPanther.frames === 24, "runtime enemy frame map should expose 24-frame zora and panther rows");
   assert(result.state.enemyFrameMap.tideWarden.frames === 48 && result.state.enemyFrameMap.starWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.frames === 48 && result.state.enemyFrameMap.inkWarden.attack.length === 12, "runtime enemy frame map should expose 48-frame quest warden rows");
   assert(result.state.inputInfo.jumpKeys.includes("ArrowUp"), "ArrowUp should trigger jump");
@@ -630,16 +633,19 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-gates-v3-no-stalagmites", "sapphire grotto moving raft and clean low duck gates should be wired");
   assert(result.state.tuningInfo.enemyVisibility === "panther-zora-rim-respawn-v1", "zora and panther visibility tuning should be wired");
   assert(result.state.tuningInfo.chestSet === "imagen-hd-treasure-chests-v2", "Imagen HD treasure chest tuning should be wired");
+  assert(result.state.tuningInfo.candleSet === "imagen-hd-candles-atlas-v1", "Imagen HD candle atlas tuning should be wired");
   assert(result.state.tuningInfo.weaponSet === "hd-subweapons-projectiles-v1", "HD subweapon/projectile sheet should be wired");
   assert(result.state.tuningInfo.doorSet === "imagen-hd-transition-doors-v2", "Imagen HD transition door sheet should be wired");
   assert(result.state.tuningInfo.moatWaterSet === "imagen-hd-mode7-parallax-warmed-v3", "HD moat water tileset should use warmed Mode7 parallax tuning");
   assert(result.state.tuningInfo.puzzleSet === "rune-sequence-gates-v1", "room puzzle gate tuning should be wired");
   assert(result.state.tuningInfo.librarySwitchSet === "imagen-hd-library-rune-switches-v1", "Forgotten Library rune switches should use HD prop assets");
+  assert(result.state.tuningInfo.libraryCrystalSet === "imagen-hd-crystal-clusters-v1", "Forgotten Library crystal clusters should use HD prop assets");
   assert(result.state.tuningInfo.forgePuzzleFlow === "linear-nearby-no-reset-v1", "forge numerals should use a linear no-reset flow");
   assert(result.state.tuningInfo.shrineSet === "imagen-hd-reset-shrine-v1", "reset shrine HD sheet should be wired");
   assert(result.state.tuningInfo.grottoSpikeSet === "removed-stalagmite-shades-v1", "grotto stalagmite shade removal should be wired");
-  assert(result.state.tuningInfo.armoryProps === "imagen-hd-armory-moon-cases-v1", "Candlelit Armory HD moon/case props should be wired");
+  assert(result.state.tuningInfo.armoryBackdrop === "imagen-hd-armory-bg-v2-no-overlay-v1", "Candlelit Armory clean HD background should be wired without the old overlay");
   assert(result.state.tuningInfo.towerGalleryProps === "imagen-hd-moon-chain-gallery-props-v1", "Moon Chain Tower and Gallery Imagen HD prop tuning should be wired");
+  assert(result.state.tuningInfo.galleryBackdrop === "soft-gothic-portrait-light-no-blocks-v1", "Silver Portrait Gallery backdrop cleanup should be wired");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-full-boss-v2", "quest seal route should force the new sections into full milestone boss progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
@@ -705,9 +711,11 @@ async function browserSmoke() {
   assert(observatoryState.visuals.bg === "bgObservatory" && observatoryState.visuals.parallax.includes("paraMoonwellRipples"), `Starfall Observatory should use its HD background/parallax: ${JSON.stringify(observatoryState.visuals)}`);
   const armoryState = result.transitionStates.find((entry) => entry.room === "armory");
   assert(armoryState && armoryState.visuals.bg === "bgArmory" && armoryState.visuals.parallax.includes("paraArches"), `Candlelit Armory should use its HD background/parallax: ${JSON.stringify(armoryState && armoryState.visuals)}`);
-  assert(armoryState.hdProps && armoryState.hdProps.armory && armoryState.hdProps.armorySize === "1920x1080", `Candlelit Armory should replace flat moon/rectangles with the HD moon/case overlay: ${JSON.stringify(armoryState && armoryState.hdProps)}`);
+  assert(armoryState.hdProps && armoryState.hdProps.armoryBg && armoryState.hdProps.armoryBgSize === "1672x941", `Candlelit Armory should use the clean HD v2 background without the old moon/case overlay: ${JSON.stringify(armoryState && armoryState.hdProps)}`);
+  assert(armoryState.hdProps.candlesHd && armoryState.hdProps.candlesHdSize === "1024x512", `Rooms should use the Imagen HD candle atlas: ${JSON.stringify(armoryState && armoryState.hdProps)}`);
   const libraryState = result.transitionStates.find((entry) => entry.room === "library");
   assert(libraryState && libraryState.hdProps && libraryState.hdProps.librarySwitches && libraryState.hdProps.librarySwitchSize === "768x768", `Forgotten Library should render the HD rune switch sheet: ${JSON.stringify(libraryState && libraryState.hdProps)}`);
+  assert(libraryState.hdProps.libraryCrystals && libraryState.hdProps.libraryCrystalSize === "1920x1080", `Forgotten Library should render HD Imagen crystal clusters instead of blocky crystals: ${JSON.stringify(libraryState && libraryState.hdProps)}`);
   const towerState = result.transitionStates.find((entry) => entry.room === "tower");
   assert(towerState && towerState.visuals.bg === "bgTower" && towerState.visuals.parallax.includes("paraMachinery"), `Moon Chain Tower should use its HD background/parallax: ${JSON.stringify(towerState && towerState.visuals)}`);
   assert(towerState.hdProps && towerState.hdProps.tower && towerState.hdProps.towerSize === "1254x1254" && towerState.hdProps.chromaCaches >= 1, `Moon Chain Tower should use the new Imagen HD chain/moon prop atlas: ${JSON.stringify(towerState && towerState.hdProps)}`);

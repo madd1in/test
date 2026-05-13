@@ -73,7 +73,7 @@
     gate: "assets/generated/tile_gate.png",
     chain: "assets/generated/fg_chain.png",
     lamp: "assets/generated/fg_lamp.png",
-    armoryProps: "assets/generated/props_imagen_hd_armory_moon_cases.png",
+    candlesHd: "assets/generated/props_imagen_hd_candles.png",
     librarySwitches: "assets/generated/props_imagen_hd_library_switches.png",
     towerProps: "assets/generated/props_imagen_hd_moon_chain_tower.png",
     galleryPortraits: "assets/generated/props_imagen_hd_gallery_portraits.png",
@@ -101,8 +101,8 @@
     bgLoft: "assets/generated/bg_imagen_loft_hd.png",
     bgForest: "assets/generated/bg_imagen_forest_opening_hd.png",
     bgCastleGarden: "assets/generated/bg_imagen_castle_garden_hd.png",
-    bgArmory: "assets/generated/bg_imagen_armory_hd.png",
-    bgGallery: "assets/generated/bg_imagen_gallery_hd.png",
+    bgArmory: "assets/generated/bg_imagen_armory_hd_v2.png",
+    bgGallery: "assets/generated/bg_imagen_mirror_cloister_hd_v2.png",
     bgChapel: "assets/generated/bg_imagen_chapel_hd.png",
     bgAntechamber: "assets/generated/bg_imagen_antechamber_hd.png",
     bgSanctum: "assets/generated/bg_imagen_sanctum_hd.png",
@@ -357,6 +357,7 @@
     enemyVisibility: "panther-zora-rim-respawn-v1",
     chestSet: "imagen-hd-treasure-chests-v2",
     chestGrounding: "platform-anchored-hd-v1",
+    candleSet: "imagen-hd-candles-atlas-v1",
     weaponSet: WEAPON_ASSET_SET,
     doorSet: DOOR_ASSET_SET,
     doorPresentation: "organic-recess-and-passage-arrows-v1",
@@ -364,11 +365,13 @@
     moatWaterSet: "imagen-hd-mode7-parallax-warmed-v3",
     puzzleSet: ROOM_PUZZLE_SET,
     librarySwitchSet: "imagen-hd-library-rune-switches-v1",
+    libraryCrystalSet: "imagen-hd-crystal-clusters-v1",
     forgePuzzleFlow: "linear-nearby-no-reset-v1",
     shrineSet: "imagen-hd-reset-shrine-v1",
     grottoSpikeSet: "removed-stalagmite-shades-v1",
-    armoryProps: "imagen-hd-armory-moon-cases-v1",
+    armoryBackdrop: "imagen-hd-armory-bg-v2-no-overlay-v1",
     towerGalleryProps: "imagen-hd-moon-chain-gallery-props-v1",
+    galleryBackdrop: "soft-gothic-portrait-light-no-blocks-v1",
     catacombProps: "imagen-hd-bone-bell-catacomb-props-v1",
     mirrorCloisterSet: "imagen-hd-mirror-cloister-v2",
     questSealRoute: "archive-observatory-grotto-full-boss-v2",
@@ -419,7 +422,10 @@
     npcFrames: 16,
     chestFrameW: 256,
     chestFrameH: 256,
-    chestFrames: 4
+    chestFrames: 4,
+    candleFrameW: 256,
+    candleFrameH: 256,
+    candleFrames: 4
   };
   window.__NOCTURNE_FRAME_INFO = SPRITES;
 
@@ -2472,11 +2478,11 @@
       const rng = mulberry(seedHash(id));
       const candles = [];
       const placed = [];
-      const placeNear = (px, py, kind) => {
+      const placeNear = (px, py, kind, wall = false) => {
         for (const o of placed) {
           if (Math.abs(o.x - px) < 64 && Math.abs(o.y - py) < 90) return;
         }
-        candles.push({ id: `c${candles.length}`, x: px, y: py, drop: kind, broken: false });
+        candles.push({ id: `c${candles.length}`, x: px, y: py, drop: kind, broken: false, wall });
         placed.push({ x: px, y: py });
       };
       for (const solid of room.platforms) {
@@ -2486,7 +2492,7 @@
         for (const ex of ends) {
           if (rng() < 0.78) {
             const drop = pickCandleDrop(rng);
-            placeNear(ex, solid.y - 30, drop);
+            placeNear(ex, solid.y, drop, false);
           }
         }
       }
@@ -2496,7 +2502,7 @@
         const wx = 120 + Math.floor(rng() * (room.width - 240));
         const wy = 90 + Math.floor(rng() * 120);
         const drop = pickCandleDrop(rng, true);
-        placeNear(wx, wy, drop);
+        placeNear(wx, wy, drop, true);
       }
       room.candles = candles;
     }
@@ -2603,12 +2609,16 @@
       sceneryWorld: roomSceneryWorldCache.size
     },
     hdProps: {
-      armory: Boolean(images.armoryProps && images.armoryProps.width),
-      armorySize: images.armoryProps && images.armoryProps.width ? `${images.armoryProps.width}x${images.armoryProps.height}` : null,
+      armoryBg: Boolean(images.bgArmory && images.bgArmory.width),
+      armoryBgSize: images.bgArmory && images.bgArmory.width ? `${images.bgArmory.width}x${images.bgArmory.height}` : null,
       exitGuides: Boolean(images.exitGuides && images.exitGuides.width),
       exitGuideSize: images.exitGuides && images.exitGuides.width ? `${images.exitGuides.width}x${images.exitGuides.height}` : null,
       librarySwitches: Boolean(images.librarySwitches && images.librarySwitches.width),
       librarySwitchSize: images.librarySwitches && images.librarySwitches.width ? `${images.librarySwitches.width}x${images.librarySwitches.height}` : null,
+      libraryCrystals: Boolean(images.paraCrystals && images.paraCrystals.width),
+      libraryCrystalSize: images.paraCrystals && images.paraCrystals.width ? `${images.paraCrystals.width}x${images.paraCrystals.height}` : null,
+      candlesHd: Boolean(images.candlesHd && images.candlesHd.width),
+      candlesHdSize: images.candlesHd && images.candlesHd.width ? `${images.candlesHd.width}x${images.candlesHd.height}` : null,
       archiveWarden: Boolean(images.archiveWarden && images.archiveWarden.width),
       archiveWardenSize: images.archiveWarden && images.archiveWarden.width ? `${images.archiveWarden.width}x${images.archiveWarden.height}` : null,
       tower: Boolean(images.towerProps && images.towerProps.width),
@@ -3064,6 +3074,7 @@
       x: c.x, y: c.y, drop: c.drop, id: c.id,
       broken: false,
       consumed: false,
+      wall: Boolean(c.wall),
       flame: Math.random() * Math.PI * 2
     }));
     game.flames = [];
@@ -3880,7 +3891,7 @@
       hits += 1;
     }
     for (const candle of game.candles) {
-      if (!candle.broken && rectsOverlap(box, { x: candle.x - 12, y: candle.y - 18, w: 24, h: 30 })) {
+      if (!candle.broken && rectsOverlap(box, candleHitBox(candle))) {
         breakCandle(candle);
         hits += 1;
       }
@@ -4459,7 +4470,7 @@
         }
         if (shot.life > 0) {
           for (const candle of game.candles) {
-            if (!candle.broken && rectsOverlap(shot, { x: candle.x - 12, y: candle.y - 18, w: 24, h: 30 })) {
+            if (!candle.broken && rectsOverlap(shot, candleHitBox(candle))) {
               breakCandle(candle);
               // Axe and holy water keep flying after breaking a candle (they're heavy/pierce candles)
               if (shot.kind !== "subweapon" || shot.subType === "dagger") shot.life = 0;
@@ -4689,8 +4700,9 @@
 
   function breakCandle(candle) {
     candle.broken = true;
-    burst(candle.x, candle.y - 4, "#f4d38b", 12);
-    burst(candle.x, candle.y - 4, "#ff8e3a", 6);
+    const flame = candleFlamePoint(candle);
+    burst(flame.x, flame.y + 8, "#f4d38b", 12);
+    burst(flame.x, flame.y + 8, "#ff8e3a", 6);
     playSound("pickup", 0.18);
     spawnCandleDrop(candle);
   }
@@ -5000,8 +5012,9 @@
 
   function spawnCandleDrop(candle) {
     const drop = candle.drop;
+    const hit = candleHitBox(candle);
     if (drop === "subAxe" || drop === "subHolyWater" || drop === "subBoomerang") {
-      game.pickups.push({ id: `cd_${candle.id}_${game.time}`, type: drop, x: candle.x - 14, y: candle.y - 6, w: 28, h: 28, bob: 0, fromCandle: true });
+      game.pickups.push({ id: `cd_${candle.id}_${game.time}`, type: drop, x: candle.x - 14, y: hit.y + 4, w: 28, h: 28, bob: 0, fromCandle: true });
       return;
     }
     const sizeBig = drop === "bigHeart";
@@ -5009,7 +5022,7 @@
       id: `cd_${candle.id}_${game.time}_${Math.random()}`,
       type: drop,
       x: candle.x - (sizeBig ? 12 : 9),
-      y: candle.y - 4,
+      y: hit.y + 8,
       w: sizeBig ? 24 : 18,
       h: sizeBig ? 24 : 18,
       vx: (Math.random() - 0.5) * 1.4,
@@ -6479,10 +6492,34 @@
   }
 
   function drawRoomBackgroundProps(room, cameraX, cameraY, rw, rh) {
-    const img = room && room.bg === "bgArmory" ? images.armoryProps : null;
-    if (!img || !img.width) return false;
-    drawParallaxPlane(img, cameraX, cameraY, rw, rh, 0.28, 0.18, 1);
-    return true;
+    if (!room || room.bg !== "bgArmory") return false;
+    return drawArmoryCandlelitRelief(cameraX, cameraY, rw, rh);
+  }
+
+  function drawArmoryCandlelitRelief(cameraX, cameraY, rw, rh) {
+    const driftX = Math.round(cameraX * 0.24);
+    const driftY = Math.round(cameraY * 0.16);
+    let drew = false;
+    ctx.save();
+    ctx.translate(-driftX, -driftY);
+
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 5; i += 1) {
+      const cx = 250 + i * 250;
+      const cy = 150 + Math.sin(game.time * 0.35 + i) * 9;
+      const glow = ctx.createRadialGradient(cx, cy, 8, cx, cy, 190);
+      glow.addColorStop(0, "rgba(235, 188, 91, 0.14)");
+      glow.addColorStop(0.38, "rgba(188, 123, 47, 0.05)");
+      glow.addColorStop(1, "rgba(188, 123, 47, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 190, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    drew = true;
+
+    ctx.restore();
+    return drew;
   }
 
   function drawWorldLayerViewport(layer, cameraX, cameraY, target = ctx) {
@@ -6933,8 +6970,20 @@
     return true;
   }
 
+  function drawHdImageRegion(img, sx, sy, sw, sh, x, y, w, h, alpha = 1, mode = "source-over") {
+    if (!isDrawableImage(img)) return false;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha *= alpha;
+    ctx.globalCompositeOperation = mode;
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    ctx.restore();
+    return true;
+  }
+
   function drawRoomSpecificHdProps(room) {
     if (!room) return false;
+    if (game.roomId === "library") return drawLibraryHdProps(room);
     if (game.roomId === "observatory") return drawObservatoryHdProps();
     if (game.roomId === "chapel") return drawChapelHdProps();
     if (game.roomId === "moonwell") return drawMoonwellHdProps(room);
@@ -6942,6 +6991,44 @@
     if (game.roomId === "emberFoundry") return drawEmberFoundryHdProps(room);
     if (game.roomId === "sanctum") return drawDrownedSanctumHdProps(room);
     return false;
+  }
+
+  function drawLibraryHdProps(room) {
+    let drew = false;
+    const img = images.paraCrystals;
+    const rw = roomWidth(room);
+    const rh = roomHeight(room);
+    if (isDrawableImage(img)) {
+      const sw = img.width;
+      const sh = img.height;
+      drew = drawHdImageRegion(img, 0, sh * 0.40, sw * 0.34, sh * 0.56, 34, 248, 230, 238, 0.42, "screen") || drew;
+      drew = drawHdImageRegion(img, sw * 0.72, sh * 0.26, sw * 0.28, sh * 0.66, rw - 314, 198, 292, 318, 0.46, "screen") || drew;
+      drew = drawHdImageRegion(img, sw * 0.18, 0, sw * 0.34, sh * 0.26, 318, 0, 280, 134, 0.24, "screen") || drew;
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const runeGlow = ctx.createRadialGradient(490, 216, 12, 490, 216, 230);
+    runeGlow.addColorStop(0, "rgba(180, 226, 255, 0.20)");
+    runeGlow.addColorStop(0.48, "rgba(118, 92, 214, 0.08)");
+    runeGlow.addColorStop(1, "rgba(118, 92, 214, 0)");
+    ctx.fillStyle = runeGlow;
+    ctx.fillRect(250, 20, 480, 360);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = "rgba(183, 218, 255, 0.24)";
+    ctx.lineWidth = 2;
+    for (let x = 172; x < rw - 120; x += 176) {
+      const sway = Math.sin(game.time * 0.4 + x * 0.02) * 4;
+      ctx.beginPath();
+      ctx.moveTo(x + sway, 86);
+      ctx.bezierCurveTo(x - 34 + sway, 166, x + 48 + sway, 266, x + 4 + sway, 386);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return drew;
   }
 
   function drawObservatoryHdProps() {
@@ -7258,57 +7345,74 @@
 
   function drawGalleryBackdropCleanup(room) {
     const rw = roomWidth(room);
-    const top = 58;
-    const bottom = Math.min(roomHeight(room), 512);
+    const rh = roomHeight(room);
     ctx.save();
-    const wall = ctx.createLinearGradient(0, top, 0, bottom);
-    wall.addColorStop(0, "#1e0a12");
-    wall.addColorStop(0.48, "#33101e");
-    wall.addColorStop(1, "#12080c");
-    ctx.fillStyle = wall;
-    ctx.fillRect(0, top, rw, bottom - top);
 
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = "rgba(244, 211, 139, 0.26)";
-    ctx.lineWidth = 4;
-    for (let x = 84; x < rw + 120; x += 214) {
+    ctx.globalCompositeOperation = "multiply";
+    const hush = ctx.createLinearGradient(0, 0, 0, rh);
+    hush.addColorStop(0, "rgba(22, 5, 10, 0.08)");
+    hush.addColorStop(0.36, "rgba(58, 12, 22, 0.20)");
+    hush.addColorStop(0.72, "rgba(9, 5, 8, 0.18)");
+    hush.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = hush;
+    ctx.fillRect(0, 0, rw, rh);
+
+    ctx.globalCompositeOperation = "screen";
+    for (let x = 136, i = 0; x < rw + 180; x += 252, i += 1) {
+      const cx = x + Math.sin(game.time * 0.28 + i) * 5;
+      const cy = 174 + (i % 2) * 18;
+      const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 180);
+      glow.addColorStop(0, "rgba(236, 205, 133, 0.18)");
+      glow.addColorStop(0.35, "rgba(166, 64, 76, 0.08)");
+      glow.addColorStop(1, "rgba(166, 64, 76, 0)");
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.moveTo(x, top + 18);
-      ctx.lineTo(x - 18, bottom - 20);
-      ctx.moveTo(x + 66, top + 10);
-      ctx.lineTo(x + 48, bottom - 10);
-      ctx.stroke();
-    }
-
-    const recesses = [
-      { x: 118, y: 116, w: 160, h: 246, a: 0.48 },
-      { x: 386, y: 104, w: 172, h: 266, a: 0.42 },
-      { x: 672, y: 112, w: 168, h: 254, a: 0.50 },
-      { x: 962, y: 104, w: 174, h: 266, a: 0.44 },
-      { x: 1248, y: 118, w: 154, h: 236, a: 0.36 }
-    ];
-    for (const r of recesses) {
-      ctx.globalAlpha = r.a;
-      traceGothicArch(r.x, r.y, r.w, r.h);
-      const recess = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      recess.addColorStop(0, "rgba(10, 7, 11, 0.74)");
-      recess.addColorStop(0.58, "rgba(46, 18, 26, 0.64)");
-      recess.addColorStop(1, "rgba(8, 5, 8, 0.86)");
-      ctx.fillStyle = recess;
+      ctx.arc(cx, cy, 180, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(155, 108, 50, 0.54)";
-      ctx.lineWidth = 5;
-      ctx.stroke();
+    }
 
-      ctx.globalAlpha = r.a * 0.42;
-      traceGothicArch(r.x + 16, r.y + 26, r.w - 32, r.h - 50);
-      ctx.strokeStyle = "rgba(244, 211, 139, 0.34)";
-      ctx.lineWidth = 2;
+    ctx.globalCompositeOperation = "source-over";
+    for (let x = 72, i = 0; x < rw + 160; x += 214, i += 1) {
+      const y = 84 + (i % 3) * 10;
+      const w = 140 + (i % 2) * 24;
+      const h = 330 + (i % 3) * 22;
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = "rgba(232, 198, 138, 0.28)";
+      ctx.lineWidth = 3;
+      traceOpenGothicArch(x, y, w, h);
+      ctx.stroke();
+      ctx.globalAlpha = 0.10;
+      ctx.strokeStyle = "rgba(96, 42, 50, 0.72)";
+      ctx.lineWidth = 8;
+      traceOpenGothicArch(x - 7, y + 9, w + 14, h - 3);
       ctx.stroke();
     }
+
+    ctx.globalAlpha = 0.26;
+    ctx.strokeStyle = "rgba(244, 211, 139, 0.22)";
+    ctx.lineWidth = 2;
+    for (let x = 118; x < rw + 120; x += 188) {
+      const sway = Math.sin(game.time * 0.45 + x * 0.02) * 6;
+      ctx.beginPath();
+      ctx.moveTo(x + sway, 78);
+      ctx.bezierCurveTo(x - 20 + sway, 180, x + 34 + sway, 260, x + 2 + sway, 392);
+      ctx.stroke();
+    }
+
     ctx.globalAlpha = 1;
     ctx.restore();
     return true;
+  }
+
+  function traceOpenGothicArch(x, y, w, h) {
+    const mid = x + w / 2;
+    const shoulder = y + h * 0.34;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x, shoulder);
+    ctx.quadraticCurveTo(x + w * 0.12, y + h * 0.08, mid, y);
+    ctx.quadraticCurveTo(x + w * 0.88, y + h * 0.08, x + w, shoulder);
+    ctx.lineTo(x + w, y + h);
   }
 
   function traceGothicArch(x, y, w, h) {
@@ -8557,7 +8661,9 @@
     const liteFx = mobilePerformanceMode();
     for (const candle of game.candles) {
       if (candle.broken) continue;
-      if (!entityInRenderRange({ x: candle.x - 18, y: candle.y - 32, w: 36, h: 52 }, 80)) continue;
+      const hit = candleHitBox(candle);
+      if (!entityInRenderRange(hit, 80)) continue;
+      if (drawHdCandle(candle, liteFx)) continue;
       // Holder
       ctx.fillStyle = "#3a2a18";
       ctx.fillRect(candle.x - 4, candle.y, 8, 12);
@@ -8582,6 +8688,49 @@
       }
       ctx.shadowBlur = 0;
     }
+  }
+
+  function candleHitBox(candle) {
+    if (candle.wall) return { x: candle.x - 24, y: candle.y - 66, w: 48, h: 82 };
+    return { x: candle.x - 24, y: candle.y - 62, w: 48, h: 68 };
+  }
+
+  function candleFlamePoint(candle) {
+    return candle.wall
+      ? { x: candle.x, y: candle.y - 66 }
+      : { x: candle.x, y: candle.y - 54 };
+  }
+
+  function drawHdCandle(candle, liteFx) {
+    const img = images.candlesHd;
+    if (!img || !img.width) return false;
+    const frame = Math.floor(game.time * 10 + candle.x * 0.03 + (candle.wall ? 1 : 0)) % SPRITES.candleFrames;
+    const row = candle.wall ? 1 : 0;
+    const sw = SPRITES.candleFrameW;
+    const sh = SPRITES.candleFrameH;
+    const dw = candle.wall ? 72 : 82;
+    const dh = candle.wall ? 82 : 84;
+    const dx = candle.x - dw / 2;
+    const dy = candle.wall ? candle.y - 64 : candle.y - 72;
+    const flame = candleFlamePoint(candle);
+    const flick = 0.5 + 0.5 * Math.sin(candle.flame);
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    if (!liteFx) {
+      ctx.globalCompositeOperation = "screen";
+      const glow = ctx.createRadialGradient(flame.x, flame.y, 4, flame.x, flame.y, candle.wall ? 58 : 64);
+      glow.addColorStop(0, "rgba(255, 212, 101, 0.34)");
+      glow.addColorStop(0.46, "rgba(255, 140, 54, 0.12)");
+      glow.addColorStop(1, "rgba(255, 140, 54, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(flame.x, flame.y, candle.wall ? 58 + flick * 4 : 64 + flick * 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+    }
+    ctx.drawImage(img, frame * sw, row * sh, sw, sh, dx, dy, dw, dh);
+    ctx.restore();
+    return true;
   }
 
   function drawFlames() {
