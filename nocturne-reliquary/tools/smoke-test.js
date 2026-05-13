@@ -654,7 +654,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.drawbridgePerf === "world-layer-warmed-water-v3", "drawbridge should use warmed world layers instead of per-camera cache churn");
   assert(result.state.tuningInfo.cavernSection === "sapphire-grotto-zora-v1", "new cavern section should be wired");
   assert(result.state.tuningInfo.grottoMechanic === "moving-water-raft-duck-gates-v3-no-stalagmites", "sapphire grotto moving raft and clean low duck gates should be wired");
-  assert(result.state.tuningInfo.enemyVisibility === "panther-zora-rim-respawn-v1", "zora and panther visibility tuning should be wired");
+  assert(result.state.tuningInfo.enemyVisibility === "panther-clean-matte-zora-rim-respawn-v2", "zora and panther visibility/matte tuning should be wired");
   assert(result.state.tuningInfo.chestSet === "imagen-hd-treasure-chests-v2", "Imagen HD treasure chest tuning should be wired");
   assert(result.state.tuningInfo.candleSet === "imagen-hd-candles-atlas-v1", "Imagen HD candle atlas tuning should be wired");
   assert(result.state.tuningInfo.weaponSet === "hd-subweapons-projectiles-v1", "HD subweapon/projectile sheet should be wired");
@@ -668,7 +668,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.grottoSpikeSet === "removed-stalagmite-shades-v1", "grotto stalagmite shade removal should be wired");
   assert(result.state.tuningInfo.armoryBackdrop === "imagen-hd-armory-bg-v2-no-overlay-v1", "Candlelit Armory clean HD background should be wired without the old overlay");
   assert(result.state.tuningInfo.towerGalleryProps === "imagen-hd-moon-chain-gallery-props-v1", "Moon Chain Tower and Gallery Imagen HD prop tuning should be wired");
-  assert(result.state.tuningInfo.galleryBackdrop === "soft-gothic-portrait-light-no-blocks-v1", "Silver Portrait Gallery backdrop cleanup should be wired");
+  assert(result.state.tuningInfo.galleryBackdrop === "imagen-hd-portrait-wall-no-vector-v1", "Silver Portrait Gallery should use the HD portrait wall without procedural vector overlays");
   assert(result.state.tuningInfo.mapMode === "cycle-off-mini-full-v1", "map mode cycle tuning should be wired");
   assert(result.state.tuningInfo.questSealRoute === "archive-observatory-grotto-full-boss-v2", "quest seal route should force the new sections into full milestone boss progression");
   assert(result.state.tuningInfo.questSealSet === "imagen-quest-seals-hd-v1", "Imagen HD quest seals should be wired");
@@ -693,6 +693,7 @@ async function browserSmoke() {
   assert(result.newRunState.visuals.mode7, "forest opening should use stretched/Mode7 background fill");
   assert(result.newRunState.objectiveDoor && result.newRunState.objectiveDoor.to === "courtyard" && result.newRunState.objectiveDoor.side === "right", `new run should mark the next exit in-world: ${JSON.stringify(result.newRunState.objectiveDoor)}`);
   assert(result.drawbridgeRaisedState.introBridge && result.drawbridgeRaisedState.introBridge.progress > 0.45 && result.drawbridgeRaisedState.introBridge.target === 1, `drawbridge should raise after crossing trigger: ${JSON.stringify(result.drawbridgeRaisedState)}`);
+  assert(result.drawbridgeRaisedState.introBridge.walkY < result.drawbridgeRaisedState.introBridge.y && result.drawbridgeRaisedState.introBridge.walkY <= result.drawbridgeRaisedState.introBridge.y - result.drawbridgeRaisedState.introBridge.h + 6, `drawbridge collision should sit on the upper deck face: ${JSON.stringify(result.drawbridgeRaisedState.introBridge)}`);
   assert(result.drawbridgeRaisedState.drawbridgeCache && result.drawbridgeRaisedState.drawbridgeCache.deck && result.drawbridgeRaisedState.drawbridgeCache.anchor && result.drawbridgeRaisedState.drawbridgeCache.chains > 0 && result.drawbridgeRaisedState.drawbridgeCache.mode7 > 0 && result.drawbridgeRaisedState.drawbridgeCache.backgrounds > 0 && result.drawbridgeRaisedState.drawbridgeCache.scenery > 0, `drawbridge cached render layers should be active: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
   assert(result.drawbridgeRaisedState.drawbridgeCache.chains <= 2, `drawbridge should reuse stable chain strips instead of producing per-frame canvases: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
   assert(result.drawbridgeRaisedState.visuals && result.drawbridgeRaisedState.visuals.parallax.includes("paraStatues"), "castle garden should use statue parallax elements");
@@ -748,6 +749,7 @@ async function browserSmoke() {
   assert(towerState.hdProps && towerState.hdProps.tower && towerState.hdProps.towerSize === "1254x1254" && towerState.hdProps.chromaCaches >= 1, `Moon Chain Tower should use the new Imagen HD chain/moon prop atlas: ${JSON.stringify(towerState && towerState.hdProps)}`);
   const galleryState = result.transitionStates.find((entry) => entry.room === "gallery");
   assert(galleryState && galleryState.hdProps && galleryState.hdProps.galleryPortraits && galleryState.hdProps.gallerySize === "1254x1254" && galleryState.hdProps.chromaCaches >= 1, `Silver Portrait Gallery should use the new Imagen HD portrait atlas: ${JSON.stringify(galleryState && galleryState.hdProps)}`);
+  assert(galleryState.visuals && !galleryState.visuals.parallax.includes("paraArches"), `Silver Portrait Gallery should not reintroduce vector-like arch parallax: ${JSON.stringify(galleryState.visuals)}`);
   const mirrorState = result.transitionStates.find((entry) => entry.room === "mirrorCloister");
   assert(mirrorState && mirrorState.visuals.bg === "bgMirrorCloister" && mirrorState.roomPuzzle && mirrorState.roomPuzzle.id === "mirrorRunes", `Mirror Cloister should expose its HD room and puzzle: ${JSON.stringify(mirrorState)}`);
   assert(result.puzzleProbe.locked.room === "mirrorCloister", `unsolved mirror puzzle should keep chapel door locked: ${JSON.stringify(result.puzzleProbe.locked)}`);

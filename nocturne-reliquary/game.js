@@ -354,7 +354,7 @@
     drawbridgePerf: "world-layer-warmed-water-v3",
     cavernSection: "sapphire-grotto-zora-v1",
     grottoMechanic: "moving-water-raft-duck-gates-v3-no-stalagmites",
-    enemyVisibility: "panther-zora-rim-respawn-v1",
+    enemyVisibility: "panther-clean-matte-zora-rim-respawn-v2",
     chestSet: "imagen-hd-treasure-chests-v2",
     chestGrounding: "platform-anchored-hd-v1",
     candleSet: "imagen-hd-candles-atlas-v1",
@@ -371,7 +371,7 @@
     grottoSpikeSet: "removed-stalagmite-shades-v1",
     armoryBackdrop: "imagen-hd-armory-bg-v2-no-overlay-v1",
     towerGalleryProps: "imagen-hd-moon-chain-gallery-props-v1",
-    galleryBackdrop: "soft-gothic-portrait-light-no-blocks-v1",
+    galleryBackdrop: "imagen-hd-portrait-wall-no-vector-v1",
     catacombProps: "imagen-hd-bone-bell-catacomb-props-v1",
     mirrorCloisterSet: "imagen-hd-mirror-cloister-v2",
     questSealRoute: "archive-observatory-grotto-full-boss-v2",
@@ -486,8 +486,8 @@
       fps: 16,
       blendFrames: true,
       run: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      lunge: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-      recover: [20, 21, 22, 23]
+      lunge: [8, 9, 10, 11, 12, 13, 14, 15],
+      recover: [0, 1, 2, 3, 4, 5, 6, 7]
     },
     tideWarden: {
       image: "enemyQuest",
@@ -1292,7 +1292,7 @@
       enemies: [
         e("z1", "zombie", 602, 386, 510, 760),
         e("bat1", "bat", 720, 195, 650, 850),
-        e("gatePanther1", "blackPanther", 520, 414, 410, 560)
+        e("gatePanther1", "blackPanther", 618, 414, 590, 770)
       ],
       items: [
         item("ringOfArdor", "ringOfArdor", 416, 130)
@@ -1302,7 +1302,8 @@
       name: "Silver Portrait Gallery",
       grid: [1, 1],
       bg: "bgGallery",
-      mid: "paraArches",
+      mid: null,
+      para: ["paraMist"],
       music: "explore",
       palette: "red",
       spawn: { x: 80, y: 330 },
@@ -2273,6 +2274,7 @@
       def.min = min;
       def.max = max;
     };
+    placeEnemy("gate", "gatePanther1", 618, 414, 590, 770);
     placeEnemy("archive", "inkWarden1", 930, 204, 650, 1160);
     placeEnemy("observatory", "starWarden1", 900, 128, 620, 1120);
     placeEnemy("cavernDepths", "tideWarden1", 790, 214, 560, 1080);
@@ -2679,6 +2681,9 @@
     introBridge: game.room && game.room.drawbridge ? {
       progress: Number(game.room.drawbridge.progress.toFixed(2)),
       target: game.room.drawbridge.target,
+      y: game.room.drawbridge.y,
+      h: game.room.drawbridge.h,
+      walkY: drawbridgeWalkY(game.room.drawbridge),
       cycled: Boolean(game.room.drawbridge.cycled),
       reopened: Boolean(game.room.drawbridge.reopened)
     } : null,
@@ -7009,6 +7014,7 @@
   function drawRoomSpecificHdProps(room) {
     if (!room) return false;
     if (game.roomId === "library") return drawLibraryHdProps(room);
+    if (game.roomId === "gallery") return drawGalleryHdProps(room);
     if (game.roomId === "observatory") return drawObservatoryHdProps();
     if (game.roomId === "chapel") return drawChapelHdProps();
     if (game.roomId === "moonwell") return drawMoonwellHdProps(room);
@@ -7016,6 +7022,18 @@
     if (game.roomId === "emberFoundry") return drawEmberFoundryHdProps(room);
     if (game.roomId === "sanctum") return drawDrownedSanctumHdProps(room);
     return false;
+  }
+
+  function drawGalleryHdProps(room) {
+    if (!isDrawableImage(images.galleryPortraits)) return false;
+    const rw = roomWidth(room);
+    const rh = roomHeight(room);
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.fillStyle = "rgba(12, 5, 10, 0.30)";
+    ctx.fillRect(0, 0, rw, rh);
+    ctx.restore();
+    return drawGalleryPortraits(room);
   }
 
   function drawLibraryHdProps(room) {
@@ -7230,18 +7248,17 @@
     const cellW = img.width / 4;
     const cellH = img.height / 2;
     const portraits = [
-      { col: 0, row: 0, x: 76, y: 108, w: 176, h: 258, a: 0.78 },
-      { col: 1, row: 0, x: 276, y: 82, w: 178, h: 260, a: 0.76 },
-      { col: 2, row: 0, x: 504, y: 58, w: 184, h: 268, a: 0.82 },
-      { col: 3, row: 0, x: 742, y: 82, w: 178, h: 260, a: 0.76 },
-      { col: 0, row: 1, x: 990, y: 104, w: 180, h: 262, a: 0.78 },
-      { col: 1, row: 1, x: 1186, y: 150, w: 172, h: 250, a: 0.66 },
-      { col: 2, row: 1, x: 358, y: 350, w: 160, h: 234, a: 0.54 },
-      { col: 3, row: 1, x: 636, y: 318, w: 166, h: 242, a: 0.58 }
+      { col: 0, row: 0, x: -34, y: 40, w: 236, h: 346, a: 0.78 },
+      { col: 1, row: 0, x: 188, y: 4, w: 270, h: 394, a: 0.86 },
+      { col: 2, row: 0, x: 474, y: 28, w: 268, h: 392, a: 0.90 },
+      { col: 3, row: 0, x: 770, y: 8, w: 276, h: 404, a: 0.88 },
+      { col: 0, row: 1, x: 1056, y: 48, w: 254, h: 372, a: 0.78 },
+      { col: 1, row: 1, x: 1240, y: 104, w: 224, h: 328, a: 0.62 },
+      { col: 2, row: 1, x: 242, y: 282, w: 214, h: 314, a: 0.60 },
+      { col: 3, row: 1, x: 610, y: 286, w: 224, h: 328, a: 0.66 }
     ];
     ctx.save();
     for (const portrait of portraits) {
-      const sway = Math.sin(game.time * 0.65 + portrait.x * 0.01) * 1.4;
       drawChromaAtlasSprite(
         img,
         "galleryPortraits",
@@ -7250,20 +7267,12 @@
         cellW,
         cellH,
         portrait.x,
-        portrait.y + sway,
+        portrait.y,
         portrait.w,
         portrait.h,
         portrait.a
       );
     }
-    ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = 0.18 + Math.sin(game.time * 2.2) * 0.04;
-    const gleam = ctx.createRadialGradient(666, 190, 8, 666, 190, 156);
-    gleam.addColorStop(0, "rgba(242, 203, 104, 0.42)");
-    gleam.addColorStop(0.44, "rgba(242, 203, 104, 0.13)");
-    gleam.addColorStop(1, "rgba(242, 203, 104, 0)");
-    ctx.fillStyle = gleam;
-    ctx.fillRect(510, 34, 312, 312);
     ctx.restore();
     return true;
   }
@@ -7368,78 +7377,6 @@
     return true;
   }
 
-  function drawGalleryBackdropCleanup(room) {
-    const rw = roomWidth(room);
-    const rh = roomHeight(room);
-    ctx.save();
-
-    ctx.globalCompositeOperation = "multiply";
-    const hush = ctx.createLinearGradient(0, 0, 0, rh);
-    hush.addColorStop(0, "rgba(22, 5, 10, 0.08)");
-    hush.addColorStop(0.36, "rgba(58, 12, 22, 0.20)");
-    hush.addColorStop(0.72, "rgba(9, 5, 8, 0.18)");
-    hush.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.fillStyle = hush;
-    ctx.fillRect(0, 0, rw, rh);
-
-    ctx.globalCompositeOperation = "screen";
-    for (let x = 136, i = 0; x < rw + 180; x += 252, i += 1) {
-      const cx = x + Math.sin(game.time * 0.28 + i) * 5;
-      const cy = 174 + (i % 2) * 18;
-      const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 180);
-      glow.addColorStop(0, "rgba(236, 205, 133, 0.18)");
-      glow.addColorStop(0.35, "rgba(166, 64, 76, 0.08)");
-      glow.addColorStop(1, "rgba(166, 64, 76, 0)");
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 180, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.globalCompositeOperation = "source-over";
-    for (let x = 72, i = 0; x < rw + 160; x += 214, i += 1) {
-      const y = 84 + (i % 3) * 10;
-      const w = 140 + (i % 2) * 24;
-      const h = 330 + (i % 3) * 22;
-      ctx.globalAlpha = 0.18;
-      ctx.strokeStyle = "rgba(232, 198, 138, 0.28)";
-      ctx.lineWidth = 3;
-      traceOpenGothicArch(x, y, w, h);
-      ctx.stroke();
-      ctx.globalAlpha = 0.10;
-      ctx.strokeStyle = "rgba(96, 42, 50, 0.72)";
-      ctx.lineWidth = 8;
-      traceOpenGothicArch(x - 7, y + 9, w + 14, h - 3);
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 0.26;
-    ctx.strokeStyle = "rgba(244, 211, 139, 0.22)";
-    ctx.lineWidth = 2;
-    for (let x = 118; x < rw + 120; x += 188) {
-      const sway = Math.sin(game.time * 0.45 + x * 0.02) * 6;
-      ctx.beginPath();
-      ctx.moveTo(x + sway, 78);
-      ctx.bezierCurveTo(x - 20 + sway, 180, x + 34 + sway, 260, x + 2 + sway, 392);
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1;
-    ctx.restore();
-    return true;
-  }
-
-  function traceOpenGothicArch(x, y, w, h) {
-    const mid = x + w / 2;
-    const shoulder = y + h * 0.34;
-    ctx.beginPath();
-    ctx.moveTo(x, y + h);
-    ctx.lineTo(x, shoulder);
-    ctx.quadraticCurveTo(x + w * 0.12, y + h * 0.08, mid, y);
-    ctx.quadraticCurveTo(x + w * 0.88, y + h * 0.08, x + w, shoulder);
-    ctx.lineTo(x + w, y + h);
-  }
-
   function traceGothicArch(x, y, w, h) {
     const mid = x + w / 2;
     const shoulder = y + h * 0.34;
@@ -7463,7 +7400,6 @@
   function drawArchitecture(room) {
     if (room.bg === "bgForest" || room.bg === "bgCastleGarden") return;
     drawOrganicMazeContours(room);
-    if (game.roomId === "gallery") drawGalleryBackdropCleanup(room);
 
     const chain = images.chain;
     const lamp = images.lamp;
@@ -7471,7 +7407,7 @@
     const useTowerProps = game.roomId === "tower" && drawTowerHdProps(room);
     const useCatacombProps = game.roomId === "catacomb" && drawCatacombHdProps(room);
     const useRoomProps = drawRoomSpecificHdProps(room);
-    if (game.roomId === "gallery") drawGalleryPortraits(room);
+    if (game.roomId === "gallery" && !useRoomProps) drawGalleryPortraits(room);
     if (!useTowerProps && !useCatacombProps && !useRoomProps) {
       for (let x = 88; x < roomWidth(room); x += 192) {
         ctx.globalAlpha = 0.42;
@@ -9070,6 +9006,16 @@
     if (!isFeaturedVisibleEnemy(enemy)) return;
     const cx = enemy.x + enemy.w / 2;
     const bottom = enemy.y + enemy.h + 8;
+    if (enemy.type === "blackPanther") {
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.42;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+      ctx.beginPath();
+      ctx.ellipse(cx + enemy.facing * 8, bottom - 2, enemy.cfg.dw * 0.34, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     const w = enemy.type === "blackPanther" ? enemy.cfg.dw * 0.72 : enemy.cfg.dw * 0.54;
     const h = enemy.type === "blackPanther" ? 22 : 30;
     const color = enemy.type === "blackPanther" ? "rgba(244, 211, 139, 0.32)" : "rgba(142, 248, 255, 0.32)";
@@ -9117,6 +9063,7 @@
     if (meta && images[meta.image] && images[meta.image].width) {
       const pose = enemyAnimationPose(enemy, meta);
       const flip = meta.facing === "left" ? enemy.facing > 0 : enemy.facing < 0;
+      const cleanFrame = meta.image === "enemyExt" ? `enemyExt:${enemy.type}` : false;
       drawSheetFrame(
         images[meta.image],
         pose.frame,
@@ -9128,7 +9075,9 @@
         enemy.cfg.dw,
         enemy.cfg.dh,
         flip,
-        alpha
+        alpha,
+        false,
+        cleanFrame
       );
       if (!liteFx && pose.nextFrame !== pose.frame && pose.blend > 0.02) {
         drawSheetFrame(
@@ -9142,7 +9091,9 @@
           enemy.cfg.dw,
           enemy.cfg.dh,
           flip,
-          alpha * pose.blend * 0.34
+          alpha * pose.blend * 0.34,
+          false,
+          cleanFrame
         );
       }
       return;
@@ -9254,14 +9205,52 @@
     }
   }
 
-  function cachedSheetFrame(img, col, row, fw, fh) {
+  function applyCachedFrameCleanup(frameCtx, fw, fh, cleanupKey) {
+    if (!cleanupKey || !String(cleanupKey).startsWith("enemyExt:")) return;
+    try {
+      const pixels = frameCtx.getImageData(0, 0, fw, fh);
+      const data = pixels.data;
+      const panther = String(cleanupKey).includes("blackPanther");
+      for (let i = 0; i < data.length; i += 4) {
+        const pixel = i / 4;
+        const y = Math.floor(pixel / fw);
+        const r = data[i];
+        const gr = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        if (!a) continue;
+        const maxRb = Math.max(r, b);
+        const greenEdge = gr > 70 && gr - maxRb > 8 && gr > r * 1.04 && gr > b * 1.02;
+        if (greenEdge) {
+          const dominance = clamp((gr - maxRb - 8) / 78, 0, 1);
+          data[i + 3] = Math.max(0, Math.round(a * (1 - dominance)));
+          data[i + 1] = Math.min(gr, maxRb + 6);
+        }
+        if (panther && y > fh - 28) {
+          const lum = r * 0.299 + gr * 0.587 + b * 0.114;
+          const lowAlphaShadow = data[i + 3] < 190 && lum < 120;
+          const floorSmear = y > fh - 16 && data[i + 3] < 246 && lum < 112;
+          if (lowAlphaShadow || floorSmear) {
+            data[i + 3] = 0;
+          } else if (data[i + 3] < 230 && lum < 150) {
+            data[i + 3] = Math.round(data[i + 3] * 0.34);
+          }
+        }
+      }
+      frameCtx.putImageData(pixels, 0, 0);
+    } catch (err) {
+      // Cross-origin-safe local assets should be readable; keep the source frame if not.
+    }
+  }
+
+  function cachedSheetFrame(img, col, row, fw, fh, cleanupKey = "raw") {
     if (!img || !img.width) return null;
     let cache = sheetFrameCache.get(img);
     if (!cache) {
       cache = new Map();
       sheetFrameCache.set(img, cache);
     }
-    const key = `${col}:${row}:${fw}:${fh}`;
+    const key = `${cleanupKey}:${col}:${row}:${fw}:${fh}`;
     if (cache.has(key)) return cache.get(key);
     if (cache.size > 96) cache.clear();
     const frame = document.createElement("canvas");
@@ -9270,6 +9259,7 @@
     const frameCtx = frame.getContext("2d");
     frameCtx.imageSmoothingEnabled = false;
     frameCtx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, fw, fh);
+    applyCachedFrameCleanup(frameCtx, fw, fh, cleanupKey);
     cache.set(key, frame);
     return frame;
   }
@@ -9285,7 +9275,7 @@
     }
     const prevAlpha = ctx.globalAlpha;
     const prevSmoothing = ctx.imageSmoothingEnabled;
-    const source = cacheFrame ? cachedSheetFrame(img, col, row, fw, fh) : img;
+    const source = cacheFrame ? cachedSheetFrame(img, col, row, fw, fh, typeof cacheFrame === "string" ? cacheFrame : "raw") : img;
     const sx = cacheFrame ? 0 : col * fw;
     const sy = cacheFrame ? 0 : row * fh;
     if (alpha !== prevAlpha) ctx.globalAlpha = alpha;
@@ -9533,12 +9523,16 @@
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
 
+  function drawbridgeWalkY(bridge) {
+    return Math.round(bridge.y - bridge.h + 4);
+  }
+
   function dynamicPlatforms(room = game.room) {
     if (!room) return [];
     const platforms = [];
     if (room.drawbridge) {
       const bridge = room.drawbridge;
-      if (bridge.progress <= 0.35) platforms.push({ x: bridge.x, y: bridge.y, w: bridge.w, h: bridge.h, type: "gardenStone" });
+      if (bridge.progress <= 0.35) platforms.push({ x: bridge.x, y: drawbridgeWalkY(bridge), w: bridge.w, h: 12, type: "gardenStone" });
     }
     const grotto = grottoRidePlatform(room);
     if (grotto) platforms.push(grotto);
