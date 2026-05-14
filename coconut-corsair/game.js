@@ -7,6 +7,11 @@
   const FRAME_H = 256;
   const ITEM_SIZE = 96;
   const PLAYER_WORLD_SCALE = 1.02;
+  const PLAYER_WALK_SPEED = 390;
+  const PLAYER_WALK_PX_PER_FRAME = 16.25;
+  const PLAYER_WALK_BOB = 5.5;
+  const PLAYER_WALK_SWAY = 2.1;
+  const PLAYER_WALK_LEAN = 0.022;
   const NPC_WORLD_SCALE_BOOST = 1.16;
   const STORAGE_KEY = "coconut-corsair-save-v1";
 
@@ -88,8 +93,8 @@
 
   const anims = {
     idle: { row: 0, frames: 16, fps: 7 },
-    walkRight: { row: 1, frames: 16, fps: 14 },
-    walkLeft: { row: 2, frames: 16, fps: 14 },
+    walkRight: { row: 1, frames: 16, fps: 24 },
+    walkLeft: { row: 2, frames: 16, fps: 24 },
     talk: { row: 3, frames: 16, fps: 12 },
     pickup: { row: 4, frames: 10, fps: 13 },
     use: { row: 5, frames: 12, fps: 12 },
@@ -2135,6 +2140,8 @@
 
   function updatePlayer(dt, now) {
     const player = state.player;
+    const previousAction = player.action;
+    let walked = 0;
     if (player.target) {
       const dx = player.target.x - player.x;
       const dy = player.target.y - player.y;
@@ -2146,10 +2153,11 @@
         player.action = "idle";
         interactPending();
       } else {
-        const speed = 470;
+        const speed = PLAYER_WALK_SPEED;
         const step = Math.min(dist, speed * dt);
         player.x += (dx / dist) * step;
         player.y += (dy / dist) * step;
+        walked = step;
         player.facing = dx >= 0 ? 1 : -1;
         player.action = player.facing >= 0 ? "walkRight" : "walkLeft";
       }
@@ -2159,7 +2167,11 @@
     }
 
     const anim = anims[player.action] || anims.idle;
-    player.frameT = (player.frameT + dt * anim.fps) % animFrameCount(anim);
+    if (player.action !== previousAction) player.frameT = 0;
+    const frameStep = player.action.startsWith("walk") && walked > 0
+      ? walked / PLAYER_WALK_PX_PER_FRAME
+      : dt * anim.fps;
+    player.frameT = (player.frameT + frameStep) % animFrameCount(anim);
   }
 
   function animFrameCount(anim) {
@@ -2177,7 +2189,7 @@
     return talking ? (actor.talkAnim || actor.idleAnim || actor.anim) : (actor.idleAnim || actor.anim);
   }
 
-  function drawSpriteFrame(anim, frame, x, y, w, h, alpha = 1) {
+  function drawSpriteFrame(anim, frame, x, y, w, h, alpha = 1, effects = {}) {
     const sheet = images[anim.sheet || "characters"] || images.characters;
     if (!sheet) return;
     const cropTop = anim.cropTop || 0;
@@ -2189,8 +2201,31 @@
     const dh = sourceH * scaleY;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, x - w / 2, y - dh, w, dh);
+    ctx.translate(x + (effects.offsetX || 0), y + (effects.offsetY || 0));
+    if (effects.rotation) ctx.rotate(effects.rotation);
+    ctx.scale(effects.scaleX || 1, effects.scaleY || 1);
+    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, -w / 2, -dh, w, dh);
     ctx.restore();
+  }
+
+  function playerWalkEffects(animName, anim, framePosition, scale) {
+    if (!animName.startsWith("walk")) return null;
+    const count = animFrameCount(anim);
+    const phase = (framePosition / count) * Math.PI * 2;
+    const doublePhase = phase * 2;
+    const lift = Math.max(0, Math.sin(doublePhase));
+    const settle = Math.cos(doublePhase);
+    const facing = state.player.facing >= 0 ? 1 : -1;
+    return {
+      offsetX: Math.sin(phase) * PLAYER_WALK_SWAY * scale * facing,
+      offsetY: -lift * PLAYER_WALK_BOB * scale,
+      rotation: Math.sin(phase) * PLAYER_WALK_LEAN * facing,
+      scaleX: 1 + settle * 0.012,
+      scaleY: 1 - settle * 0.008,
+      shadowX: 1 - lift * 0.08,
+      shadowY: 1 + lift * 0.08,
+      shadowAlpha: 0.28 - lift * 0.05,
+    };
   }
 
   function drawSprite(animName, x, y, scale = 1, frameOffset = 0, timing = {}) {
@@ -2201,11 +2236,20 @@
     const frame = animFrameAt(anim, framePosition);
     const w = FRAME_W * scale;
     const h = FRAME_H * scale;
+    const effects = timing.player ? playerWalkEffects(animName, anim, framePosition, scale) : null;
     ctx.save();
-    ctx.globalAlpha = 0.28;
+    ctx.globalAlpha = effects?.shadowAlpha ?? 0.28;
     ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
     ctx.beginPath();
-    ctx.ellipse(x, y - 8 * scale, 46 * scale, 12 * scale, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      x,
+      y - 8 * scale,
+      46 * scale * (effects?.shadowX || 1),
+      12 * scale * (effects?.shadowY || 1),
+      0,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
     ctx.restore();
     if (anim.blend && !timing.player) {
@@ -2215,7 +2259,7 @@
       if (next !== frame) drawSpriteFrame(anim, next, x, y, w, h, blend * 0.24);
       return;
     }
-    drawSpriteFrame(anim, frame, x, y, w, h);
+    drawSpriteFrame(anim, frame, x, y, w, h, 1, effects || {});
   }
 
   function drawSceneItemIcon(itemId, x, y, size) {
