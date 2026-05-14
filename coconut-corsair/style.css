@@ -175,8 +175,6 @@ button:focus-visible {
 .questHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 #questTitle {
@@ -189,13 +187,6 @@ button:focus-visible {
   text-overflow: ellipsis;
   text-shadow: 0 2px 0 #4b2417;
   white-space: nowrap;
-}
-
-#hintButton {
-  width: 44px;
-  height: 24px;
-  padding: 0;
-  font-size: 12px;
 }
 
 #questNext {

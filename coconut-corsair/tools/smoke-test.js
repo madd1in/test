@@ -147,6 +147,7 @@ async function run() {
   assert(hud.questText.includes("Rope"), `Quest tracker missing first clear step: ${hud.questText}`);
   assert(hud.questText.includes("Location: Harbor"), `Quest tracker missing direct location: ${hud.questText}`);
   assert(!hud.questText.includes("Copper Token"), `Quest tracker should show only one next step: ${hud.questText}`);
+  assert(!hud.questText.includes("Hint"), `Quest tracker should not show extra controls: ${hud.questText}`);
   assert(/Full|Exit/.test(hud.fullscreenText), `Fullscreen toggle label looks wrong: ${hud.fullscreenText}`);
 
   const probe = await page.evaluate(() => {

@@ -31,7 +31,6 @@
   const questTitle = document.getElementById("questTitle");
   const questNext = document.getElementById("questNext");
   const questNeed = document.getElementById("questNeed");
-  const hintButton = document.getElementById("hintButton");
 
   const imageSources = {
     harbor: "assets/backgrounds/harbor_imagen_hd.png",
@@ -611,11 +610,6 @@
     questTitle.textContent = quest.title;
     questNext.textContent = quest.next;
     questNeed.textContent = quest.need;
-  }
-
-  function showQuestHint() {
-    const quest = getQuestState();
-    say("Mara", quest.hint, 5200);
   }
 
   function getFullscreenElement() {
@@ -1627,7 +1621,6 @@
     fullscreenButton.addEventListener("click", toggleFullscreen);
     document.addEventListener("fullscreenchange", updateFullscreenButton);
     document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
-    hintButton.addEventListener("click", showQuestHint);
     saveButton.addEventListener("click", () => saveGame(true));
     resetButton.addEventListener("click", resetGame);
   }
