@@ -40,6 +40,7 @@
     market: "assets/backgrounds/market_imagen_hd.png",
     observatory: "assets/backgrounds/observatory_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
+    npcExtras: "assets/sprites/npcs_market_observatory_imagen_sheet.png?v=imagen-hd-npc-flow",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
   };
@@ -78,12 +79,12 @@
     dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
     barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true, cropTop: 38 },
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
-    smugglerIdle: { row: 6, frames: [8, 9, 10, 9], fps: 0.78, blend: true },
-    smugglerTalk: { row: 6, frames: [10, 11, 12, 13, 14, 15, 14, 13], fps: 3.2, blend: true },
+    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.95, blend: true },
+    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 4.1, blend: true },
     keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.75, blend: true },
     keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 3.3, blend: true },
-    archivistIdle: { row: 9, frames: [4, 5, 6, 5], fps: 0.68, blend: true },
-    archivistTalk: { row: 8, frames: [8, 9, 10, 11, 12, 13, 14, 13], fps: 3.1, blend: true },
+    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.78, blend: true },
+    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.6, blend: true },
   };
 
   const speakerActors = {
@@ -112,7 +113,9 @@
       bottleDecoded: false,
       glyphsRead: false,
       smugglerTip: false,
+      starChartsRead: false,
       telescopeAligned: false,
+      archivistClearance: false,
       hatchPeeked: false,
       shrineOpen: false,
       solved: false,
@@ -373,6 +376,11 @@
       ],
       motes: { x: 120, y: 140, w: 1650, h: 610, count: 24, rgb: "255, 226, 160", alpha: 0.038 },
       smoke: { x: 40, y: 280, w: 760, h: 270, rows: 7, rgb: "226, 201, 164", alpha: 0.024 },
+      cloth: [
+        { x: 72, y: 472, w: 450, h: 86, strips: 5, rgb: "255, 169, 94", alpha: 0.04, phase: 0.2 },
+        { x: 1260, y: 628, w: 360, h: 70, strips: 4, rgb: "255, 213, 122", alpha: 0.036, phase: 2.8 },
+      ],
+      sparkles: { x: 135, y: 170, w: 1590, h: 520, count: 20, rgb: "255, 232, 166", alpha: 0.06 },
     },
     beach: {
       glows: [
@@ -403,6 +411,14 @@
         { x: 710, y: 45, w: 250, h: 520, tilt: -125, rgb: "170, 207, 255", alpha: 0.045, phase: 0.2 },
         { x: 945, y: 0, w: 210, h: 610, tilt: 90, rgb: "158, 196, 255", alpha: 0.036, phase: 2.8 },
       ],
+      cloth: [
+        { x: 1255, y: 348, w: 185, h: 370, strips: 5, rgb: "255, 114, 92", alpha: 0.03, phase: 1.7, vertical: true },
+      ],
+      lens: [
+        { x: 905, y: 462, radius: 84, rgb: "178, 219, 255", alpha: 0.045, phase: 0.9 },
+        { x: 626, y: 536, radius: 46, rgb: "255, 226, 160", alpha: 0.032, phase: 3.2 },
+      ],
+      sparkles: { x: 430, y: 130, w: 835, h: 500, count: 18, rgb: "195, 222, 255", alpha: 0.072 },
     },
   };
 
@@ -694,6 +710,46 @@
       };
     }
 
+    if (!state.flags.smugglerTip) {
+      return {
+        title: "Next Step",
+        next: "Ask the Smuggler about the moon verse.",
+        need: "Location: Moon Market",
+        hint: "Walk from Harbor to the Moon Market, then Talk to the Soft-Spoken Smuggler.",
+        current: "smuggler",
+      };
+    }
+
+    if (!state.flags.starChartsRead) {
+      return {
+        title: "Next Step",
+        next: "Match the Brass Note with the Star Charts.",
+        need: "Location: Observatory",
+        hint: "Go through the Moon Market to the Observatory, select the Brass Note, then use it with the Star Charts.",
+        current: "starCharts",
+      };
+    }
+
+    if (!state.flags.telescopeAligned) {
+      return {
+        title: "Next Step",
+        next: "Align the Moon Telescope with the Spyglass.",
+        need: "Location: Observatory",
+        hint: "Take the Spyglass in the Tavern, then use it with the Moon Telescope.",
+        current: "telescope",
+      };
+    }
+
+    if (!state.flags.archivistClearance) {
+      return {
+        title: "Next Step",
+        next: "Tell the Archivist what the telescope revealed.",
+        need: "Location: Observatory",
+        hint: "Talk to the Sleepless Archivist after the Star Charts and Moon Telescope are aligned.",
+        current: "archivist",
+      };
+    }
+
     if (!hasShell) {
       return {
         title: "Next Step",
@@ -716,7 +772,7 @@
 
     return {
       title: "Next Step",
-      next: "Sail to the Jungle Shrine and open the Moon Door.",
+      next: "Open the Moon Door with the Shell Key.",
       need: "Location: Jungle Shrine",
       hint: "Click the tied skiff in Harbor to reach the jungle, then Use Shell Key with Moon Door.",
       current: "door",
@@ -1013,12 +1069,20 @@
       case "smuggler":
         if (verb === "talk") {
           setAction("talk", 900);
-          state.flags.smugglerTip = true;
-          say("Smuggler", quip("smugglerTalk", [
-            "I sell only legal goods, illegal prices, and directions nobody can prove came from me.",
-            "The observatory archivist owes me a moon map. I owe him plausible deniability.",
-            "If a man in a hat asks about relics, tell him the museum already looked nervous.",
-          ]));
+          if (!state.flags.gotNote) {
+            say("Smuggler", "I adore mysterious strangers, but I only gossip for people carrying tavern-certified brass poetry.");
+          } else if (!state.flags.smugglerTip) {
+            state.flags.smugglerTip = true;
+            say("Smuggler", "That verse is missing its market clause: the third star is fake. Ask the archivist to prove which moon is lying.");
+          } else if (!state.flags.archivistClearance) {
+            say("Smuggler", quip("smugglerTalk", [
+              "The archivist owes me a moon map. I owe him plausible deniability.",
+              "Use the brass note on his star charts. Scholars love paperwork disguised as destiny.",
+              "If the telescope complains, put your spyglass to work. Tools enjoy feeling promoted.",
+            ]));
+          } else {
+            say("Smuggler", "You have the archivist's nod. That is rarer than a cheap souvenir with honest stitching.");
+          }
         } else {
           say("Mara", "He has the relaxed posture of a man who can invoice a shadow.");
         }
@@ -1072,9 +1136,11 @@
             removeItem("token");
             state.flags.gotNote = true;
             addItem("brassNote");
-            say("Barkeep", "For that token, you get the old verse: shell turns moon, moon wakes star.");
+            say("Barkeep", "For that token, you get the old verse: shell turns moon, moon wakes star. Then ask the market why that is not enough.");
           } else if (state.flags.gotNote) {
-            say("Barkeep", "Remember the verse. It has survived three storms and one accordion night.");
+            say("Barkeep", state.flags.smugglerTip
+              ? "The market sent you to the observatory? Good. That means the expensive part of the rumor worked."
+              : "Remember the verse, then find the moon-market smuggler. He sells the missing uncomfortable bit.");
           } else {
             say("Barkeep", "No tab, no tale. Bring a dock token and I might become educational.");
           }
@@ -1104,7 +1170,7 @@
         break;
       case "chart":
         say("Mara", hasItem("spyglass")
-          ? "Through the spyglass, a tiny ink mark points from the wreck to the shrine."
+          ? "Through the spyglass, a tiny ink mark points past the market, into the observatory, then toward the shrine."
           : "The chart marks a wreck, a shrine, and the phrase: shell turns moon.");
         break;
       case "stage":
@@ -1179,9 +1245,11 @@
       case "keeper":
         if (verb === "talk") {
           setAction("talk", 800);
-          say("Keeper", state.flags.gotNote
-            ? "The door listens for the old verse. The shell key is only half the manners."
-            : "The moon door opens for anyone who remembers what the sea forgot.");
+          say("Keeper", state.flags.archivistClearance
+            ? "You carry chart, gossip, and verse. The moon door has run out of excuses."
+            : state.flags.gotNote
+              ? "The verse is old, but not complete. Market tongue and observatory eye must agree before stone listens."
+              : "The moon door opens for anyone who remembers what the sea forgot.");
         } else {
           say("Mara", "The keeper has the calm of someone who has seen many dramatic entrances.");
         }
@@ -1192,6 +1260,14 @@
             say("Mara", "The lock is shaped like a shell. Subtle, but effective.");
           } else if (!state.flags.gotNote) {
             say("Mara", "The shell fits, but the door waits for a spoken verse.");
+          } else if (!state.flags.smugglerTip) {
+            say("Mara", "The verse bounces off the stone. The market still owes me the missing clause.");
+          } else if (!state.flags.starChartsRead) {
+            say("Mara", "The moon symbol is wrong-side-up. I need the observatory charts before I embarrass myself in front of architecture.");
+          } else if (!state.flags.telescopeAligned) {
+            say("Mara", "The door waits for moonlight proof. The telescope needs one final squint.");
+          } else if (!state.flags.archivistClearance) {
+            say("Mara", "The door almost listens, then gets academic. I need the archivist to confirm the line.");
           } else {
             state.flags.shrineOpen = true;
             state.flags.solved = true;
@@ -1246,34 +1322,57 @@
       case "archivist":
         if (verb === "talk") {
           setAction("talk", 900);
-          say("Archivist", quip("archivistTalk", [
-            "The telescope sees stars, ships, and occasionally a hero making poor inventory choices.",
-            "Catalog rule one: if it hums, glows, or judges you, shelve it under nautical.",
-            "The old films got one thing right: never trust a moonlit relic with a simple shape.",
-          ]));
+          if (!state.flags.smugglerTip) {
+            say("Archivist", "I do not open sealed moon records without market testimony. Even questionable smugglers outrank unverified poetry.");
+          } else if (!state.flags.starChartsRead) {
+            say("Archivist", "Lay the brass note across the star charts. If the third star blinks, pretend you expected that.");
+          } else if (!state.flags.telescopeAligned) {
+            say("Archivist", "The chart names the lie, but the telescope must catch it. Spyglass first, dignity later.");
+          } else if (!state.flags.archivistClearance) {
+            state.flags.archivistClearance = true;
+            say("Archivist", "Confirmed: the third star is a moon-door reflection. Say the verse, turn the shell, and do not improvise jazz near ancient locks.");
+          } else {
+            say("Archivist", quip("archivistTalk", [
+              "The telescope sees stars, ships, and occasionally a hero making poor inventory choices.",
+              "Catalog rule one: if it hums, glows, or judges you, shelve it under nautical.",
+              "The old films got one thing right: never trust a moonlit relic with a simple shape.",
+              "If anyone asks, this clearance was always filed under perfectly sensible moon business.",
+            ]));
+          }
         } else {
           say("Mara", "The archivist looks like sleep once asked for an appointment and got filed under 'myth'.");
         }
         break;
       case "telescope":
         if (verb === "use") {
-          state.flags.telescopeAligned = true;
           setAction("use", 820);
-          say("Mara", hasItem("spyglass")
-            ? "Spyglass plus telescope: now I can see my bad decisions in glorious double magnification."
-            : "The telescope points at a moonbeam, a distant shrine, and a star that seems personally involved.");
+          if (!state.flags.starChartsRead) {
+            say("Mara", "The telescope shows too many shiny lies. I need the charts to tell me which moon is pretending to be a star.");
+          } else if (!hasItem("spyglass")) {
+            say("Mara", "The chart gives me the target, but the lens needs something brass and portable to finish the squint.");
+          } else {
+            state.flags.telescopeAligned = true;
+            say("Mara", "Spyglass plus telescope: the fake third star collapses into a moon-door reflection. That feels legally puzzle-shaped.");
+          }
         } else {
-          say("Mara", "A brass moon telescope. It has more knobs than a pirate council.");
+          say("Mara", state.flags.telescopeAligned
+            ? "The telescope is aligned on the moon-door reflection. It looks pleased with itself."
+            : "A brass moon telescope. It has more knobs than a pirate council.");
         }
         break;
       case "starCharts":
         if (verb === "use") {
           setAction("use", 760);
-          say("Mara", hasItem("brassNote")
-            ? "The brass note lines up with the chart. Shell, moon, star. The universe loves a tidy inventory chain."
-            : "One route is labeled with a suspicious round station. Definitely a moon. Probably not a trap.");
+          if (!hasItem("brassNote") && !state.flags.gotNote) {
+            say("Mara", "The chart has a note-shaped blank. Very rude of astronomy to demand paperwork.");
+          } else {
+            state.flags.starChartsRead = true;
+            say("Mara", "The brass note lines up with the chart: the third star is not a star. It is a tiny moon-door reflection with stage fright.");
+          }
         } else {
-          say("Mara", "Star charts pinned with knives. Academics here have commitment issues.");
+          say("Mara", state.flags.starChartsRead
+            ? "The marked route now points from market rumor to telescope proof. Astronomy, but with receipts."
+            : "Star charts pinned with knives. Academics here have commitment issues.");
         }
         break;
       case "fedoraRelic":
@@ -1337,10 +1436,15 @@
     } else if (item === "spyglass" && hotspotId === "shipCabin") {
       say("Mara", "The far scratch under the cabin rail reads: ask the barkeep why the moon owes him money.");
     } else if (item === "spyglass" && hotspotId === "telescope") {
-      state.flags.telescopeAligned = true;
-      say("Mara", "Spyglass through telescope: the moon briefly looks close enough to send an invoice.");
+      if (!state.flags.starChartsRead) {
+        say("Mara", "The spyglass sharpens the telescope, but without the star charts I am just admiring expensive confusion.");
+      } else {
+        state.flags.telescopeAligned = true;
+        say("Mara", "Spyglass through telescope: the fake third star snaps into place as a moon-door reflection.");
+      }
     } else if (item === "brassNote" && hotspotId === "starCharts") {
-      say("Mara", "The note and chart agree: shell, moon, star. When paperwork and astronomy match, I worry.");
+      state.flags.starChartsRead = true;
+      say("Mara", "The note and chart agree: shell, moon, star, except the last star is a reflected moon-door. Helpful and deeply smug.");
     } else if (item === "lime" && hotspotId === "fruitStand") {
       say("Mara", "My lime returns from the fruit stand with a tiny sense of superiority.");
     } else if (item === "bottle" && hotspotId === "dirtJar") {
@@ -1415,6 +1519,8 @@
   }
 
   function drawSpriteFrame(anim, frame, x, y, w, h, alpha = 1) {
+    const sheet = images[anim.sheet || "characters"] || images.characters;
+    if (!sheet) return;
     const cropTop = anim.cropTop || 0;
     const cropBottom = anim.cropBottom || 0;
     const sourceH = FRAME_H - cropTop - cropBottom;
@@ -1423,7 +1529,7 @@
     const sy = anim.row * FRAME_H + cropTop;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(images.characters, sx, sy, FRAME_W, sourceH, x - w / 2, y - h + cropTop * scaleY, w, sourceH * scaleY);
+    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, x - w / 2, y - h + cropTop * scaleY, w, sourceH * scaleY);
     ctx.restore();
   }
 
@@ -1581,7 +1687,8 @@
     const sy = anim.row * FRAME_H + cropTop;
     const w = FRAME_W * actor.scale;
     const h = FRAME_H * actor.scale;
-    drawSheetOutline(images.characters, sx, sy, FRAME_W, sourceH, actor.x - w / 2, actor.y - h + cropTop * actor.scale, w, sourceH * actor.scale, 6);
+    const sheet = images[anim.sheet || "characters"] || images.characters;
+    drawSheetOutline(sheet, sx, sy, FRAME_W, sourceH, actor.x - w / 2, actor.y - h + cropTop * actor.scale, w, sourceH * actor.scale, 6);
     return true;
   }
 
@@ -1783,6 +1890,95 @@
     ctx.restore();
   }
 
+  function drawClothSway(cloths, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineCap = "round";
+    cloths.forEach((cloth) => {
+      const strips = cloth.strips || 5;
+      ctx.strokeStyle = `rgb(${cloth.rgb})`;
+      for (let i = 0; i < strips; i += 1) {
+        const t = strips <= 1 ? 0.5 : i / (strips - 1);
+        const wave = Math.sin(now * 0.0016 + cloth.phase + i * 0.82) * 10;
+        ctx.globalAlpha = cloth.alpha * (0.7 + Math.sin(now * 0.0011 + i) * 0.18);
+        ctx.lineWidth = cloth.vertical ? 4 : 3;
+        ctx.beginPath();
+        if (cloth.vertical) {
+          const x = cloth.x + cloth.w * t + wave * 0.18;
+          ctx.moveTo(x, cloth.y);
+          ctx.bezierCurveTo(
+            x + wave * 0.55,
+            cloth.y + cloth.h * 0.28,
+            x - wave * 0.4,
+            cloth.y + cloth.h * 0.7,
+            x + wave * 0.25,
+            cloth.y + cloth.h,
+          );
+        } else {
+          const y = cloth.y + cloth.h * t + wave * 0.16;
+          ctx.moveTo(cloth.x, y);
+          ctx.bezierCurveTo(
+            cloth.x + cloth.w * 0.28,
+            y - wave * 0.5,
+            cloth.x + cloth.w * 0.68,
+            y + wave * 0.45,
+            cloth.x + cloth.w,
+            y - wave * 0.18,
+          );
+        }
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+
+  function drawSparkles(config, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = `rgb(${config.rgb})`;
+    ctx.lineCap = "round";
+    for (let i = 0; i < config.count; i += 1) {
+      const seed = i * 53.91;
+      const x = config.x + ((seed * 19 + Math.sin(now * 0.00023 + seed) * 18) % config.w);
+      const y = config.y + ((seed * 31 + Math.cos(now * 0.00031 + seed) * 14) % config.h);
+      const twinkle = Math.max(0, Math.sin(now * 0.0025 + seed));
+      const r = 2 + twinkle * 4;
+      ctx.globalAlpha = config.alpha * (0.28 + twinkle * 0.72);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x - r, y);
+      ctx.lineTo(x + r, y);
+      ctx.moveTo(x, y - r * 0.72);
+      ctx.lineTo(x, y + r * 0.72);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLensGlints(lenses, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    lenses.forEach((lens) => {
+      const pulse = 0.66 + Math.sin(now * 0.0018 + lens.phase) * 0.22;
+      const gradient = ctx.createRadialGradient(lens.x, lens.y, 0, lens.x, lens.y, lens.radius);
+      gradient.addColorStop(0, `rgba(${lens.rgb}, ${lens.alpha * pulse})`);
+      gradient.addColorStop(0.34, `rgba(${lens.rgb}, ${lens.alpha * 0.38 * pulse})`);
+      gradient.addColorStop(1, `rgba(${lens.rgb}, 0)`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(lens.x, lens.y, lens.radius, lens.radius * 0.48, -0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = lens.alpha * 1.7 * pulse;
+      ctx.strokeStyle = `rgb(${lens.rgb})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(lens.x - lens.radius * 0.72, lens.y);
+      ctx.lineTo(lens.x + lens.radius * 0.72, lens.y + Math.sin(now * 0.001 + lens.phase) * 4);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
   function drawSceneAmbience(sceneId, now) {
     const ambience = sceneAmbience[sceneId];
     if (!ambience) return;
@@ -1801,6 +1997,9 @@
     if (ambience.mist) drawMist(ambience.mist, now);
     if (ambience.smoke) drawMist(ambience.smoke, now);
     if (ambience.beams) drawMoonbeams(ambience.beams, now);
+    if (ambience.cloth) drawClothSway(ambience.cloth, now);
+    if (ambience.lens) drawLensGlints(ambience.lens, now);
+    if (ambience.sparkles) drawSparkles(ambience.sparkles, now);
   }
 
   function drawExitIndicator(exit, marker, now, active = false) {
