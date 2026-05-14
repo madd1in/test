@@ -17,6 +17,12 @@
   const speaker = document.getElementById("speaker");
   const line = document.getElementById("line");
   const choiceOptions = document.getElementById("choiceOptions");
+  const miniGameEl = document.getElementById("miniGame");
+  const miniTitle = document.getElementById("miniTitle");
+  const miniPrompt = document.getElementById("miniPrompt");
+  const miniStats = document.getElementById("miniStats");
+  const miniChoices = document.getElementById("miniChoices");
+  const miniClose = document.getElementById("miniClose");
   const verbs = document.getElementById("verbs");
   const inventoryEl = document.getElementById("inventory");
   const startScreen = document.getElementById("startScreen");
@@ -134,6 +140,10 @@
       starChartsRead: false,
       telescopeAligned: false,
       archivistClearance: false,
+      reparteeWon: false,
+      bananaShuffleWon: false,
+      telescopeFocusWon: false,
+      citrusSpitWon: false,
       hatchPeeked: false,
       shrineOpen: false,
       solved: false,
@@ -151,6 +161,7 @@
     hover: null,
     actorTalk: null,
     choiceHandlers: [],
+    miniGame: null,
     quips: {},
     lineUntil: 0,
     started: false,
@@ -956,10 +967,231 @@
     if (!option) return false;
     clearChoices();
     if (option.run) option.run();
+    if (option.action) {
+      option.action();
+      updateQuestTracker();
+      saveGame(false);
+      return true;
+    }
     say(option.replyWho || speaker.textContent || "Mara", option.reply, option.ms || 4200);
     updateQuestTracker();
     saveGame(false);
     return true;
+  }
+
+  function closeMiniGame() {
+    state.miniGame = null;
+    if (miniGameEl) miniGameEl.hidden = true;
+    if (miniChoices) miniChoices.innerHTML = "";
+  }
+
+  function openMiniGame(config) {
+    clearChoices();
+    dialogue.classList.remove("visible");
+    state.actorTalk = null;
+    state.lineUntil = 0;
+    state.miniGame = {
+      ...config,
+      round: 0,
+      score: 0,
+      feedback: config.intro || "",
+    };
+    if (miniGameEl) miniGameEl.hidden = false;
+    renderMiniGame();
+  }
+
+  function renderMiniGame() {
+    const game = state.miniGame;
+    if (!game || !miniTitle || !miniPrompt || !miniStats || !miniChoices) return;
+    const round = game.rounds[game.round];
+    miniTitle.textContent = game.title;
+    miniPrompt.textContent = round.prompt;
+    miniStats.textContent = `Round ${game.round + 1}/${game.rounds.length} - Score ${game.score}/${game.rounds.length}${game.feedback ? ` - ${game.feedback}` : ""}`;
+    miniChoices.innerHTML = "";
+    round.choices.forEach((choice, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "miniChoice";
+      button.dataset.choice = String(index);
+      button.textContent = choice;
+      miniChoices.appendChild(button);
+    });
+  }
+
+  function chooseMiniGame(index) {
+    const game = state.miniGame;
+    if (!game) return false;
+    const round = game.rounds[game.round];
+    const correct = index === round.correct;
+    if (correct) {
+      game.score += 1;
+      audio.sfx("confirm");
+    }
+    game.feedback = correct ? (round.good || "Correct.") : (round.bad || "Not quite.");
+    game.round += 1;
+    if (game.round >= game.rounds.length) {
+      const won = game.score >= (game.need || game.rounds.length);
+      const score = game.score;
+      const onFinish = game.onFinish;
+      closeMiniGame();
+      if (onFinish) onFinish(won, score);
+      updateQuestTracker();
+      saveGame(false);
+      return true;
+    }
+    renderMiniGame();
+    return true;
+  }
+
+  function startReparteeGame() {
+    openMiniGame({
+      title: "Moon-Market Repartee",
+      intro: "Choose the comeback with the least dignity loss.",
+      need: 2,
+      rounds: [
+        {
+          prompt: "Smuggler: Your map looks like it was drawn by a sleepy squid.",
+          choices: ["Then your prices must be ink tax.", "At least the squid had depth perception.", "I only read maps upside down."],
+          correct: 1,
+          good: "The smuggler laughs despite himself.",
+          bad: "The smuggler writes that down as evidence.",
+        },
+        {
+          prompt: "Smuggler: I have met seaweed with stronger negotiation skills.",
+          choices: ["Seaweed knows when to cling.", "And I have met invoices with warmer hearts.", "I charge extra for floating."],
+          correct: 1,
+          good: "A small crowd pretends not to listen.",
+          bad: "A barrel nearby wins the exchange.",
+        },
+        {
+          prompt: "Smuggler: You swing wit like a wet mop.",
+          choices: ["Good. I was aiming for your floor-level ethics.", "Wet mops are traditional here.", "My mop has union representation."],
+          correct: 0,
+          good: "He gives the tiniest defeated bow.",
+          bad: "The mop comparison survives.",
+        },
+      ],
+      onFinish: (won, score) => {
+        state.flags.reparteeWon = won || state.flags.reparteeWon;
+        say("Smuggler", won
+          ? `Fine. ${score} clean hits. You may insult my business model, but not my tailoring.`
+          : "A brave attempt. The mop remains undefeated.");
+      },
+    });
+  }
+
+  function startBananaShuffleGame() {
+    openMiniGame({
+      title: "Banana Shell Shuffle",
+      intro: "Follow the banana, distrust the baskets.",
+      need: 2,
+      rounds: [
+        {
+          prompt: "A banana vanishes under three coconut cups. The left cup coughs suspiciously.",
+          choices: ["Left cup", "Middle cup", "Right cup"],
+          correct: 2,
+          good: "The right cup smells faintly of victory.",
+          bad: "That cup contains only stage fright.",
+        },
+        {
+          prompt: "The vendor spins the cups and mutters something about maritime fruit law.",
+          choices: ["Left cup", "Middle cup", "Right cup"],
+          correct: 0,
+          good: "Banana located. Dignity still missing.",
+          bad: "A tiny peel mocks you.",
+        },
+        {
+          prompt: "Final shuffle: one cup glides too smoothly, like it has legal counsel.",
+          choices: ["Left cup", "Middle cup", "Right cup"],
+          correct: 1,
+          good: "The banana surrenders peacefully.",
+          bad: "You have chosen decorative coconut.",
+        },
+      ],
+      onFinish: (won, score) => {
+        state.flags.bananaShuffleWon = won || state.flags.bananaShuffleWon;
+        say("Mara", won
+          ? `I beat the banana shuffle ${score} to 3. Somewhere, a monkey is reconsidering higher education.`
+          : "The banana remains hidden. I respect its commitment to theater.");
+      },
+    });
+  }
+
+  function startTelescopeFocusGame() {
+    openMiniGame({
+      title: "Moon Telescope Focus",
+      intro: "Align lens, knob, phrase. Pretend this is science.",
+      need: 3,
+      rounds: [
+        {
+          prompt: "First, which lens catches the fake third star without making it smug?",
+          choices: ["Salt-crusted wide lens", "Tiny heroic spyglass lens", "Bottle-bottom party lens"],
+          correct: 1,
+          good: "The tiny lens bites into the moonbeam.",
+          bad: "The star gets blurrier and somehow more confident.",
+        },
+        {
+          prompt: "Now choose the knob that moves moonlight instead of furniture.",
+          choices: ["Barnacle knob", "Tax knob", "Moon-silver knob"],
+          correct: 2,
+          good: "The telescope hums in academic approval.",
+          bad: "Something in the rafters files a complaint.",
+        },
+        {
+          prompt: "The reflection waits for the phrase that makes ancient stone nervous.",
+          choices: ["Shell turns moon, moon wakes star", "Star eats shell, moon pays rent", "Open, because I am tired"],
+          correct: 0,
+          good: "The false star folds into a moon-door glint.",
+          bad: "The telescope produces only judgment.",
+        },
+      ],
+      onFinish: (won) => {
+        if (won) {
+          state.flags.telescopeFocusWon = true;
+          state.flags.telescopeAligned = true;
+          say("Mara", "The telescope locks on. The fake third star collapses into a moon-door reflection.");
+        } else {
+          say("Mara", "The telescope refuses the alignment. I need the right lens, knob, and phrase.");
+        }
+      },
+    });
+  }
+
+  function startCitrusSpitGame() {
+    openMiniGame({
+      title: "Citrus Spit Timing",
+      intro: "A tiny stage, a lime, and very little public safety.",
+      need: 2,
+      rounds: [
+        {
+          prompt: "The lantern sways left. The bucket waits in the spotlight.",
+          choices: ["Spit now", "Wait one beat", "Apologize to the lime"],
+          correct: 1,
+          good: "Perfect wind-up. Questionable manners.",
+          bad: "The lime demonstrates gravity.",
+        },
+        {
+          prompt: "A floorboard creaks under your heroic stance.",
+          choices: ["Shift weight", "Ignore physics", "Blame the floorboard"],
+          correct: 0,
+          good: "Balance restored. Audience mildly impressed.",
+          bad: "The floorboard wins the duel.",
+        },
+        {
+          prompt: "Final shot: the bucket, the breeze, the entire concept of dignity.",
+          choices: ["Spit low", "Spit high", "Spit at destiny"],
+          correct: 1,
+          good: "The lime lands with a musical plink.",
+          bad: "Destiny ducks.",
+        },
+      ],
+      onFinish: (won, score) => {
+        state.flags.citrusSpitWon = won || state.flags.citrusSpitWon;
+        say("Mara", won
+          ? `A ${score}-point citrus performance. No refunds, no survivors of taste.`
+          : "The lime and I agree never to discuss this show again.");
+      },
+    });
   }
 
   function quip(key, lines) {
@@ -1008,6 +1240,7 @@
 
   function handleCanvasClick(event) {
     if (!state.started) return;
+    if (state.miniGame) return;
     const point = worldFromEvent(event);
     const hit = findHotspot(point);
     if (!hit) {
@@ -1183,6 +1416,10 @@
                 text: "Are you a villain?",
                 reply: "Only on invoices. In person I prefer 'aggressively helpful'.",
               },
+              {
+                text: "Challenge him to a repartee duel.",
+                action: startReparteeGame,
+              },
             ]);
           } else if (!state.flags.archivistClearance) {
             ask("Smuggler", "The smuggler leans in, smelling faintly of lantern oil and questionable footnotes.", [
@@ -1198,6 +1435,10 @@
                 text: "Why help me?",
                 reply: "A moon door that opens is a market opportunity. A moon door that sulks is architecture.",
               },
+              {
+                text: "Settle this with repartee.",
+                action: startReparteeGame,
+              },
             ]);
           } else {
             ask("Smuggler", "He gives a tiny bow, the kind that probably has a customs fee.", [
@@ -1209,6 +1450,10 @@
                 text: "Any first advice?",
                 reply: "Never buy a map that still has wet ink unless the seller is running.",
               },
+              {
+                text: "One more repartee duel.",
+                action: startReparteeGame,
+              },
             ]);
           }
         } else {
@@ -1218,13 +1463,14 @@
       case "fruitStand":
         if (verb === "use") {
           setAction("use", 650);
-          say("Mara", hasItem("lime")
-            ? "I compare my lime with the stand. Mine has fewer legal problems."
-            : "The fruit looks tropical, suspicious, and already halfway into a cocktail.");
+          startBananaShuffleGame();
+          return;
         } else {
           say("Mara", quip("fruitStand", [
             "A fruit stand. The pineapples look like they know too much.",
-            "The bananas are arranged in a way that implies a trap, or very confident merchandising.",
+            state.flags.bananaShuffleWon
+              ? "The bananas look defeated, but only contractually."
+              : "The bananas are arranged in a way that implies a trap, or very confident merchandising.",
           ]));
         }
         break;
@@ -1345,9 +1591,11 @@
       case "stage":
         if (verb === "use") {
           setAction("use", 680);
-          say("Mara", hasItem("lime")
-            ? "I perform one citrus-themed bow. The room remains emotionally unchanged."
-            : "The stage is ready for a shanty. Unfortunately, so am I.");
+          if (hasItem("lime")) {
+            startCitrusSpitGame();
+            return;
+          }
+          say("Mara", "The stage is ready for a shanty. Unfortunately, so am I.");
         } else {
           say("Mara", "A stage barely large enough for one song, two lies, or half a swordfight.");
         }
@@ -1569,9 +1817,11 @@
             say("Mara", "The telescope shows too many shiny lies. I need the charts to tell me which moon is pretending to be a star.");
           } else if (!hasItem("spyglass")) {
             say("Mara", "The chart gives me the target, but I need the Brass Spyglass from the left tavern table to finish the squint.");
+          } else if (!state.flags.telescopeAligned) {
+            startTelescopeFocusGame();
+            return;
           } else {
-            state.flags.telescopeAligned = true;
-            say("Mara", "Spyglass plus telescope: the fake third star collapses into a moon-door reflection. That feels legally puzzle-shaped.");
+            say("Mara", "The telescope is already aligned. It is enjoying the rare sensation of being useful.");
           }
         } else {
           say("Mara", state.flags.telescopeAligned
@@ -1657,9 +1907,10 @@
     } else if (item === "spyglass" && hotspotId === "telescope") {
       if (!state.flags.starChartsRead) {
         say("Mara", "The spyglass sharpens the telescope, but without the star charts I am just admiring expensive confusion.");
+      } else if (!state.flags.telescopeAligned) {
+        startTelescopeFocusGame();
       } else {
-        state.flags.telescopeAligned = true;
-        say("Mara", "Spyglass through telescope: the fake third star snaps into place as a moon-door reflection.");
+        say("Mara", "Spyglass through telescope: the fake third star is already pinned neatly to the moon-door reflection.");
       }
     } else if (item === "brassNote" && hotspotId === "starCharts") {
       state.flags.starChartsRead = true;
@@ -2415,6 +2666,15 @@
       if (!button) return;
       chooseDialogue(Number(button.dataset.choice));
     });
+    miniChoices?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-choice]");
+      if (!button) return;
+      chooseMiniGame(Number(button.dataset.choice));
+    });
+    miniClose?.addEventListener("click", () => {
+      closeMiniGame();
+      say("Mara", "Mini game politely abandoned. No coconuts were harmed in the paperwork.");
+    });
     startButton.addEventListener("click", startGame);
     continueButton.addEventListener("click", () => {
       endingScreen.hidden = true;
@@ -2452,6 +2712,11 @@
       flags: { ...state.flags },
       quest: getQuestState(),
       choiceOpen: state.choiceHandlers.length,
+      miniGame: state.miniGame ? {
+        id: state.miniGame.title,
+        round: state.miniGame.round,
+        score: state.miniGame.score,
+      } : null,
       player: { x: state.player.x, y: state.player.y, action: state.player.action },
       started: state.started,
     });
@@ -2466,6 +2731,10 @@
     };
     window.__COCONUT_TEST_CHOICE = (index = 0) => {
       chooseDialogue(index);
+      return window.__COCONUT_DEBUG_STATE();
+    };
+    window.__COCONUT_TEST_MINI_CHOICE = (index = 0) => {
+      chooseMiniGame(index);
       return window.__COCONUT_DEBUG_STATE();
     };
     window.__COCONUT_TEST_ADD_ITEM = (id) => {

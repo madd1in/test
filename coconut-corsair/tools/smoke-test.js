@@ -201,9 +201,16 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "smuggler", "talk"));
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "fruitStand", "use"));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(2));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "ledger", "look"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "starCharts", "use", "brassNote"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "telescope", "use", "spyglass"));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(2));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "archivist", "talk"));
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "tidepool", "take"));
@@ -216,10 +223,12 @@ async function run() {
     solved.flags.smugglerTip === true
       && solved.flags.starChartsRead === true
       && solved.flags.telescopeAligned === true
+      && solved.flags.telescopeFocusWon === true
       && solved.flags.archivistClearance === true,
     `Required market/observatory content did not update flags: ${JSON.stringify(solved.flags)}`,
   );
   assert(solved.inventory.includes("starCompass"), "Star Compass was not awarded");
+  assert(solved.flags.bananaShuffleWon === true, "Banana shell mini game did not register a win");
   assert(solved.quest.next.includes("Done"), `Quest tracker did not complete: ${JSON.stringify(solved.quest)}`);
 
   assert(consoleErrors.length === 0, `Console errors: ${consoleErrors.join("\n")}`);

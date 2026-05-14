@@ -275,6 +275,90 @@ button:focus-visible {
   text-align: left;
 }
 
+#miniGame {
+  position: absolute;
+  left: max(14px, calc((100vw - min(100vw, 177.777vh)) / 2 + 22px));
+  right: max(14px, calc((100vw - min(100vw, 177.777vh)) / 2 + 22px));
+  bottom: 120px;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+#miniGame[hidden] {
+  display: none;
+}
+
+.miniPanel {
+  width: min(680px, 100%);
+  padding: 10px;
+  border: 1px solid rgba(255, 240, 201, 0.58);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(33, 20, 12, 0.96), rgba(10, 8, 7, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 201, 0.14),
+    0 18px 48px rgba(0, 0, 0, 0.42);
+}
+
+.miniHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+#miniTitle {
+  color: var(--gold);
+  font-family: var(--display-font);
+  font-size: 19px;
+  line-height: 1;
+  text-shadow: 0 2px 0 #4b2417;
+}
+
+#miniClose {
+  height: 25px;
+  min-width: 44px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+#miniPrompt {
+  margin: 0 0 7px;
+  color: #f7ead0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.26;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.56);
+}
+
+#miniStats {
+  min-height: 16px;
+  margin-bottom: 7px;
+  color: #9fe3da;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+#miniChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.miniChoice {
+  min-height: 34px;
+  padding: 5px 8px;
+  border-color: rgba(200, 145, 61, 0.58);
+  background: rgba(25, 13, 8, 0.84);
+  color: #ffe1a0;
+  font-size: 12px;
+  line-height: 1.12;
+  text-align: center;
+}
+
 #commandBar {
   position: absolute;
   left: 0;
@@ -617,6 +701,34 @@ h2 {
     bottom: 100px;
     min-height: 38px;
     padding: 7px 9px;
+  }
+
+  #miniGame {
+    left: 8px;
+    right: 8px;
+    bottom: 106px;
+  }
+
+  .miniPanel {
+    padding: 8px;
+  }
+
+  #miniTitle {
+    font-size: 15px;
+  }
+
+  #miniPrompt {
+    font-size: 12px;
+  }
+
+  #miniChoices {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .miniChoice {
+    min-height: 27px;
+    font-size: 10px;
   }
 
   #speaker {
