@@ -57,7 +57,7 @@
     portraits: "assets/sprites/dialogue_portraits.png?v=dialogue-portraits-v1",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
-    props: "assets/sprites/observatory_imagen_props_hd_sheet.png?v=observatory-imagen-props-hd-v1",
+    props: "assets/sprites/interactive_props_sheet.png?v=background-matched-props-v1",
     miniGames: "assets/sprites/mini_games_imagen_hd_sheet.png?v=mini-games-imagen-hd-v1",
   };
 
@@ -384,13 +384,13 @@
   };
 
   const propSprites = {
-    telescope: { col: 0, row: 0, x: 785, y: 300, w: 430, h: 520 },
-    starCharts: { col: 1, row: 0, x: 552, y: 388, w: 360, h: 360 },
-    fedoraRelic: { col: 2, row: 0, x: 1114, y: 284, w: 250, h: 168 },
-    crystalMug: { col: 3, row: 0, x: 1286, y: 335, w: 260, h: 232 },
-    archiveHatch: { col: 0, row: 1, x: 350, y: 748, w: 410, h: 300 },
-    redCurtain: { col: 1, row: 1, x: 1178, y: 270, w: 350, h: 540 },
-    skiff: { col: 2, row: 1, x: 1278, y: 600, w: 635, h: 300 },
+    telescope: { col: 0, row: 0, x: 748, y: 304, w: 510, h: 455, draw: false },
+    starCharts: { col: 1, row: 0, x: 560, y: 408, w: 340, h: 330, draw: false },
+    fedoraRelic: { col: 2, row: 0, x: 1138, y: 300, w: 210, h: 150, draw: false },
+    crystalMug: { col: 3, row: 0, x: 1304, y: 350, w: 245, h: 220, draw: false },
+    archiveHatch: { col: 0, row: 1, x: 260, y: 740, w: 570, h: 285, draw: false },
+    redCurtain: { col: 1, row: 1, x: 1218, y: 292, w: 286, h: 510, draw: false },
+    skiff: { col: 2, row: 1, x: 1268, y: 584, w: 652, h: 312, draw: false },
   };
 
   const questTargets = {
@@ -2239,6 +2239,7 @@
   }
 
   function drawPropSprite(prop) {
+    if (prop.draw === false) return false;
     const cell = propCell(prop);
     if (!cell) return false;
     ctx.save();
