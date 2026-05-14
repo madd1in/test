@@ -50,10 +50,11 @@
     market: "assets/backgrounds/market_imagen_hd.png",
     observatory: "assets/backgrounds/observatory_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
-    npcExtras: "assets/sprites/npcs_market_observatory_normalized_sheet.png?v=imagen-hd-npc-clean-v2",
+    npcExtras: "assets/sprites/npcs_market_observatory_normalized_sheet.png?v=imagen-hd-npc-anchor-v3",
     keeperSolid: "assets/sprites/keeper_moon_door_solid_sheet.png?v=keeper-solid-v2",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
+    props: "assets/sprites/interactive_props_sheet.png?v=scene-props-v1",
   };
 
   const audioSources = {
@@ -90,12 +91,12 @@
     dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
     barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true, cropTop: 38 },
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
-    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.62 },
-    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.1 },
+    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.62, cropTop: 24 },
+    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.1, cropTop: 10 },
     keeperIdle: { sheet: "keeperSolid", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5], fps: 0.42 },
     keeperTalk: { sheet: "keeperSolid", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], fps: 2.35 },
-    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.5 },
-    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 2.65 },
+    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.5, cropBottom: 15 },
+    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 2.65, cropTop: 12, cropBottom: 29 },
   };
 
   const loadingLines = [
@@ -192,7 +193,7 @@
         { id: "dockmaster", label: "Dockmaster", rect: [1062, 590, 220, 290], walkTo: [1010, 856], verbs: ["look", "talk"] },
         { id: "rope", label: "Rope Coil", rect: [575, 705, 190, 115], walkTo: [655, 856], hidden: () => state.flags.ropeTaken, verbs: ["look", "take"], item: "rope", itemPos: [650, 794, 88] },
         { id: "crate", label: "Crates", rect: [305, 640, 245, 155], walkTo: [530, 856], hidden: () => state.flags.tokenTaken, verbs: ["look", "take"], item: "token", itemPos: [505, 764, 66] },
-        { id: "skiff", label: "Jungle Skiff", rect: [1385, 660, 500, 195], walkTo: [1515, 856], verbs: ["look", "use"] },
+        { id: "skiff", label: "Jungle Skiff", rect: [1268, 584, 652, 312], walkTo: [1515, 856], verbs: ["look", "use"] },
         { id: "lighthouse", label: "Moon Lighthouse", rect: [420, 185, 155, 285], walkTo: [640, 856], verbs: ["look", "use"] },
         { id: "lanternRig", label: "Lantern Rig", rect: [460, 265, 170, 315], walkTo: [615, 856], verbs: ["look", "use"] },
       ],
@@ -258,12 +259,12 @@
       ],
       hotspots: [
         { id: "archivist", label: "Sleepless Archivist", rect: [1225, 565, 220, 285], walkTo: [1160, 842], verbs: ["look", "talk", "use"] },
-        { id: "telescope", label: "Moon Telescope", rect: [780, 330, 390, 310], walkTo: [930, 842], verbs: ["look", "use"] },
-        { id: "starCharts", label: "Star Charts", rect: [565, 420, 310, 270], walkTo: [650, 842], verbs: ["look", "use"] },
+        { id: "telescope", label: "Moon Telescope", rect: [748, 304, 510, 455], walkTo: [930, 842], verbs: ["look", "use"] },
+        { id: "starCharts", label: "Star Charts", rect: [560, 408, 340, 330], walkTo: [650, 842], verbs: ["look", "use"] },
         { id: "fedoraRelic", label: "Well-Travelled Hat", rect: [1160, 325, 150, 95], walkTo: [1230, 842], verbs: ["look", "use"] },
         { id: "crystalMug", label: "Crystal Skull Mug", rect: [1325, 380, 195, 170], walkTo: [1320, 842], verbs: ["look", "use"] },
-        { id: "archiveHatch", label: "Round Archive Hatch", rect: [415, 790, 360, 185], walkTo: [660, 842], verbs: ["look", "use"] },
-        { id: "redCurtain", label: "Suspicious Red Curtain", rect: [1240, 330, 205, 395], walkTo: [1300, 842], verbs: ["look", "use"] },
+        { id: "archiveHatch", label: "Round Archive Hatch", rect: [260, 740, 570, 285], walkTo: [660, 842], verbs: ["look", "use"] },
+        { id: "redCurtain", label: "Suspicious Red Curtain", rect: [1218, 292, 286, 510], walkTo: [1300, 842], verbs: ["look", "use"] },
       ],
     },
     beach: {
@@ -362,11 +363,32 @@
     dirtJar: { kind: "polygon", smooth: true, points: [[1375, 724], [1468, 714], [1518, 760], [1498, 842], [1405, 858], [1348, 812]] },
     marketSign: { kind: "polygon", points: [[295, 112], [585, 104], [620, 236], [330, 268]] },
     telescope: { kind: "polygon", smooth: true, points: [[805, 432], [885, 378], [1038, 340], [1158, 430], [1130, 488], [1048, 488], [1012, 530], [970, 654], [906, 646], [944, 520], [780, 514]] },
-    starCharts: { kind: "polygon", points: [[585, 458], [828, 424], [846, 638], [604, 690]] },
+    starCharts: { kind: "polygon", points: [[610, 452], [834, 432], [848, 650], [630, 674], [592, 522]] },
     fedoraRelic: { kind: "polygon", smooth: true, points: [[1166, 382], [1218, 336], [1298, 350], [1310, 395], [1235, 424]] },
     crystalMug: { kind: "polygon", points: [[1338, 410], [1494, 386], [1520, 508], [1368, 548]] },
     archiveHatch: { kind: "polygon", smooth: true, points: [[430, 885], [474, 820], [604, 792], [746, 822], [780, 910], [692, 972], [520, 970]] },
     redCurtain: { kind: "polygon", points: [[1274, 342], [1420, 338], [1455, 700], [1350, 758], [1248, 682]] },
+  };
+
+  const propSprites = {
+    telescope: { col: 0, row: 0, x: 748, y: 304, w: 510, h: 455 },
+    archiveHatch: { col: 0, row: 1, x: 260, y: 740, w: 570, h: 285 },
+    redCurtain: { col: 1, row: 1, x: 1218, y: 292, w: 286, h: 510 },
+    skiff: { col: 2, row: 1, x: 1268, y: 584, w: 652, h: 312 },
+  };
+
+  const questTargets = {
+    rope: { scene: "harbor", id: "rope" },
+    token: { scene: "harbor", id: "crate" },
+    verse: { scene: "tavern", id: "barkeep" },
+    spyglass: { scene: "tavern", id: "spyglass" },
+    smuggler: { scene: "market", id: "smuggler" },
+    starCharts: { scene: "observatory", id: "starCharts" },
+    telescope: { scene: "observatory", id: "telescope" },
+    archivist: { scene: "observatory", id: "archivist" },
+    shell: { scene: "beach", id: "tidepool" },
+    skiff: { scene: "harbor", id: "skiff" },
+    door: { scene: "jungle", id: "shrineDoor" },
   };
 
   const sceneAmbience = {
@@ -783,11 +805,20 @@
     }
 
     if (!state.flags.telescopeAligned) {
+      if (!hasItem("spyglass")) {
+        return {
+          title: "Next Step",
+          next: "Take the Brass Spyglass from the tavern table.",
+          need: "Location: Tavern",
+          hint: "Walk to the tavern and use Take on the brass spyglass on the left table.",
+          current: "spyglass",
+        };
+      }
       return {
         title: "Next Step",
-        next: "Align the Moon Telescope with the Spyglass.",
+        next: "Use the Spyglass with the Moon Telescope.",
         need: "Location: Observatory",
-        hint: "Take the Spyglass in the Tavern, then use it with the Moon Telescope.",
+        hint: "Select the Spyglass in your inventory, then click the Moon Telescope.",
         current: "telescope",
       };
     }
@@ -1997,9 +2028,10 @@
     const scaleY = h / FRAME_H;
     const sx = frame * FRAME_W;
     const sy = anim.row * FRAME_H + cropTop;
+    const dh = sourceH * scaleY;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, x - w / 2, y - h + cropTop * scaleY, w, sourceH * scaleY);
+    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, x - w / 2, y - dh, w, dh);
     ctx.restore();
   }
 
@@ -2021,8 +2053,8 @@
     if (anim.blend && !timing.player) {
       const blend = framePosition - Math.floor(framePosition);
       const next = animFrameAt(anim, framePosition + 1);
-      drawSpriteFrame(anim, frame, x, y, w, h, 1 - blend * 0.55);
-      if (next !== frame) drawSpriteFrame(anim, next, x, y, w, h, blend * 0.55);
+      drawSpriteFrame(anim, frame, x, y, w, h, 1);
+      if (next !== frame) drawSpriteFrame(anim, next, x, y, w, h, blend * 0.24);
       return;
     }
     drawSpriteFrame(anim, frame, x, y, w, h);
@@ -2055,7 +2087,49 @@
     });
   }
 
-  function drawSheetOutline(sheet, sx, sy, sw, sh, dx, dy, dw, dh, thickness = 5) {
+  function propCell(prop) {
+    const sheet = images.props;
+    if (!sheet || !prop) return null;
+    const cellW = sheet.width / 4;
+    const cellH = sheet.height / 2;
+    return {
+      sheet,
+      sx: prop.col * cellW,
+      sy: prop.row * cellH,
+      sw: cellW,
+      sh: cellH,
+      dx: prop.x,
+      dy: prop.y,
+      dw: prop.w,
+      dh: prop.h,
+    };
+  }
+
+  function drawPropSprite(prop) {
+    const cell = propCell(prop);
+    if (!cell) return false;
+    ctx.save();
+    ctx.drawImage(cell.sheet, cell.sx, cell.sy, cell.sw, cell.sh, cell.dx, cell.dy, cell.dw, cell.dh);
+    ctx.restore();
+    return true;
+  }
+
+  function drawSceneProps(scene) {
+    availableHotspots(scene).forEach((spot) => {
+      const prop = propSprites[spot.id];
+      if (!prop) return;
+      drawPropSprite(prop);
+    });
+  }
+
+  function drawPropShapeOutline(prop, style = {}) {
+    const cell = propCell(prop);
+    if (!cell) return false;
+    drawSheetOutline(cell.sheet, cell.sx, cell.sy, cell.sw, cell.sh, cell.dx, cell.dy, cell.dw, cell.dh, style.thickness || 6, style);
+    return true;
+  }
+
+  function drawSheetOutline(sheet, sx, sy, sw, sh, dx, dy, dw, dh, thickness = 5, style = {}) {
     if (!sheet || !outlineCtx) return;
     const pad = Math.ceil(thickness * 2.4);
     const width = Math.ceil(dw + pad * 2);
@@ -2077,28 +2151,29 @@
       outlineCtx.drawImage(sheet, sx, sy, sw, sh, pad + ox, pad + oy, dw, dh);
     });
     outlineCtx.globalCompositeOperation = "source-in";
-    outlineCtx.fillStyle = "rgba(255, 255, 255, 0.96)";
+    outlineCtx.fillStyle = style.color || "rgba(255, 255, 255, 0.96)";
     outlineCtx.fillRect(0, 0, width, height);
     outlineCtx.globalCompositeOperation = "destination-out";
     outlineCtx.drawImage(sheet, sx, sy, sw, sh, pad, pad, dw, dh);
     outlineCtx.globalCompositeOperation = "source-over";
 
     ctx.save();
-    ctx.shadowColor = "rgba(0, 0, 0, 0.78)";
-    ctx.shadowBlur = 7;
-    ctx.shadowOffsetY = 2;
+    ctx.globalAlpha = style.alpha ?? ctx.globalAlpha;
+    ctx.shadowColor = style.shadowColor || "rgba(0, 0, 0, 0.78)";
+    ctx.shadowBlur = style.shadowBlur ?? 7;
+    ctx.shadowOffsetY = style.shadowOffsetY ?? 2;
     ctx.drawImage(outlineCanvas, dx - pad, dy - pad);
     ctx.restore();
   }
 
-  function drawItemShapeOutline(itemId, x, y, size) {
+  function drawItemShapeOutline(itemId, x, y, size, style = {}) {
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
-    ctx.lineWidth = Math.max(3, size * 0.045);
+    ctx.strokeStyle = style.color || "rgba(255, 255, 255, 0.96)";
+    ctx.lineWidth = style.thickness || Math.max(3, size * 0.045);
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
-    ctx.shadowBlur = 7;
+    ctx.shadowColor = style.shadowColor || "rgba(0, 0, 0, 0.82)";
+    ctx.shadowBlur = style.shadowBlur ?? 7;
     ctx.shadowOffsetY = 2;
     ctx.beginPath();
 
@@ -2142,7 +2217,7 @@
     ctx.restore();
   }
 
-  function drawActorShapeOutline(scene, actorId) {
+  function drawActorShapeOutline(scene, actorId, style = {}) {
     const index = scene.actors.findIndex((actor) => actor.id === actorId);
     if (index < 0) return false;
     const actor = scene.actors[index];
@@ -2158,20 +2233,21 @@
     const w = FRAME_W * actor.scale;
     const h = FRAME_H * actor.scale;
     const sheet = images[anim.sheet || "characters"] || images.characters;
-    drawSheetOutline(sheet, sx, sy, FRAME_W, sourceH, actor.x - w / 2, actor.y - h + cropTop * actor.scale, w, sourceH * actor.scale, 6);
+    drawSheetOutline(sheet, sx, sy, FRAME_W, sourceH, actor.x - w / 2, actor.y - sourceH * actor.scale, w, sourceH * actor.scale, style.thickness || 6, style);
     return true;
   }
 
-  function drawPolygonOutline(points, smooth = false) {
+  function drawPolygonOutline(points, smooth = false, style = {}) {
     if (!points?.length) return;
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.94)";
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = style.color || "rgba(255, 255, 255, 0.94)";
+    ctx.lineWidth = style.thickness || 4;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
-    ctx.shadowBlur = 7;
-    ctx.shadowOffsetY = 2;
+    ctx.globalAlpha = style.alpha ?? ctx.globalAlpha;
+    ctx.shadowColor = style.shadowColor || "rgba(0, 0, 0, 0.82)";
+    ctx.shadowBlur = style.shadowBlur ?? 7;
+    ctx.shadowOffsetY = style.shadowOffsetY ?? 2;
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
     if (smooth) {
@@ -2195,16 +2271,19 @@
     ctx.restore();
   }
 
-  function drawHotspotShapeOutline(scene, spot) {
+  function drawHotspotShapeOutline(scene, spot, style = {}) {
     if (spot.item && spot.itemPos) {
-      drawItemShapeOutline(spot.item, spot.itemPos[0], spot.itemPos[1], spot.itemPos[2]);
+      drawItemShapeOutline(spot.item, spot.itemPos[0], spot.itemPos[1], spot.itemPos[2], style);
       return;
     }
 
+    const prop = propSprites[spot.id];
+    if (prop && drawPropShapeOutline(prop, style)) return;
+
     const outline = hotspotOutlines[spot.id];
-    if (outline?.kind === "actor" && drawActorShapeOutline(scene, outline.actor)) return;
+    if (outline?.kind === "actor" && drawActorShapeOutline(scene, outline.actor, style)) return;
     if (outline?.kind === "polygon") {
-      drawPolygonOutline(outline.points, outline.smooth === true);
+      drawPolygonOutline(outline.points, outline.smooth === true, style);
       return;
     }
 
@@ -2214,7 +2293,7 @@
       [rect[0] + rect[2] * 0.9, rect[1] + rect[3] * 0.16],
       [rect[0] + rect[2] * 0.84, rect[1] + rect[3] * 0.9],
       [rect[0] + rect[2] * 0.18, rect[1] + rect[3] * 0.86],
-    ]);
+    ], false, style);
   }
 
   function ambientPulse(now, phase = 0, speed = 0.004) {
@@ -2560,11 +2639,31 @@
     drawHotspotShapeOutline(scene, hit.data);
   }
 
+  function drawQuestTargetHint(scene, now) {
+    const quest = getQuestState();
+    const target = questTargets[quest.current];
+    if (!target || target.scene !== state.scene) return;
+    if (state.hover?.type === "hotspot" && state.hover.data.id === target.id) return;
+    const spot = availableHotspots(scene).find((entry) => entry.id === target.id);
+    if (!spot) return;
+
+    const pulse = 0.58 + Math.sin(now * 0.004) * 0.18;
+    drawHotspotShapeOutline(scene, spot, {
+      color: "rgba(255, 236, 164, 0.98)",
+      thickness: 8,
+      alpha: pulse,
+      shadowColor: "rgba(20, 8, 2, 0.92)",
+      shadowBlur: 12,
+      shadowOffsetY: 3,
+    });
+  }
+
   function drawScene(now) {
     const scene = getScene();
     ctx.clearRect(0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(images[scene.bg], 0, 0, WORLD_W, WORLD_H);
     drawSceneAmbience(scene.bg, now);
+    drawSceneProps(scene);
 
     scene.actors.forEach((actor, index) => {
       drawSprite(actorAnimName(actor, now), actor.x, actor.y, actor.scale, index * 2.37, { now });
@@ -2584,6 +2683,7 @@
     }
 
     drawExitIndicators(scene, now);
+    drawQuestTargetHint(scene, now);
     drawHover(now);
   }
 

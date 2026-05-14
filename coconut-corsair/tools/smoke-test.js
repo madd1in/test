@@ -98,6 +98,7 @@ function checkFiles() {
     "assets/sprites/npcs_market_observatory_normalized_sheet.png",
     "assets/sprites/items_imagen_hd_sheet.png",
     "assets/sprites/scene_items_imagen_hd_sheet.png",
+    "assets/sprites/interactive_props_sheet.png",
     "assets/audio/bgm/moonlit-rum-islet.mp3",
     "assets/audio/bgm/tavern-tide.mp3",
     "assets/audio/bgm/tidewheel-cove.mp3",
