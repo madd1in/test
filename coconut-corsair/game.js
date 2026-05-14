@@ -362,7 +362,7 @@
     smuggler: { kind: "actor", actor: "smugglerActor" },
     keeper: { kind: "actor", actor: "keeperActor" },
     archivist: { kind: "actor", actor: "archivistActor" },
-    skiff: { kind: "polygon", smooth: true, points: [[1298, 692], [1405, 652], [1548, 640], [1738, 662], [1842, 710], [1818, 760], [1708, 802], [1512, 814], [1368, 790], [1292, 742]] },
+    skiff: { kind: "polygon", smooth: true, points: [[1278, 704], [1368, 654], [1516, 624], [1682, 640], [1810, 674], [1868, 728], [1834, 778], [1702, 824], [1510, 846], [1362, 812], [1284, 756]] },
     lighthouse: { kind: "polygon", points: [[438, 456], [455, 290], [505, 222], [548, 294], [562, 456], [522, 493], [460, 490]] },
     lanternRig: { kind: "polygon", points: [[492, 258], [604, 264], [620, 548], [580, 568], [510, 560], [472, 420]] },
     chart: { kind: "polygon", points: [[1318, 388], [1570, 408], [1552, 612], [1306, 588]] },
@@ -397,7 +397,7 @@
     crystalMug: { col: 3, row: 0, x: 1304, y: 350, w: 245, h: 220, draw: false },
     archiveHatch: { col: 0, row: 1, x: 260, y: 740, w: 570, h: 285, draw: false },
     redCurtain: { col: 1, row: 1, x: 1218, y: 292, w: 286, h: 510, draw: false },
-    skiff: { col: 2, row: 1, x: 1268, y: 584, w: 652, h: 312, draw: false },
+    skiff: { col: 2, row: 1, x: 1268, y: 584, w: 652, h: 312, draw: false, outline: false },
   };
 
   const questTargets = {
@@ -2481,7 +2481,7 @@
     }
 
     const prop = propSprites[spot.id];
-    if (prop && drawPropShapeOutline(prop, style)) return;
+    if (prop && prop.outline !== false && drawPropShapeOutline(prop, style)) return;
 
     const outline = hotspotOutlines[spot.id];
     if (outline?.kind === "actor" && drawActorShapeOutline(scene, outline.actor, style)) return;
