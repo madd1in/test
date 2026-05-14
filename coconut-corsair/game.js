@@ -31,7 +31,6 @@
   const questTitle = document.getElementById("questTitle");
   const questNext = document.getElementById("questNext");
   const questNeed = document.getElementById("questNeed");
-  const questSteps = document.getElementById("questSteps");
   const hintButton = document.getElementById("hintButton");
 
   const imageSources = {
@@ -538,104 +537,80 @@
     const hasShell = state.flags.shellKeyTaken || hasItem("shellKey");
     const skiffReady = state.flags.skiffReady;
     const solved = state.flags.solved || hasItem("starCompass");
-    const steps = [
-      { id: "rope", label: "Rope from harbor dock", done: hasRope },
-      { id: "token", label: "Copper token from crates", done: hasToken || hasVerse },
-      { id: "verse", label: "Trade token with barkeep", done: hasVerse },
-      { id: "shell", label: "Shell key from tide pool", done: hasShell },
-      { id: "skiff", label: "Tie skiff with rope", done: skiffReady },
-      { id: "door", label: "Use shell key on Moon Door", done: solved },
-    ];
-
     if (solved) {
       return {
-        title: "Star Compass",
+        title: "Complete",
         next: "Done: the Star Compass is yours.",
-        need: "Treasure recovered.",
+        need: "Location: Treasure recovered",
         hint: "The compass is safe. Keep exploring or reload if you want another run.",
         current: "door",
-        steps,
       };
     }
 
     if (!hasRope) {
       return {
-        title: "Step 1",
-        next: "Next: take the Rope Coil on the harbor dock.",
-        need: "Place: Harbor",
+        title: "Next Step",
+        next: "Take the Rope Coil on the harbor dock.",
+        need: "Location: Harbor",
         hint: "Use Take on the Rope Coil near the left-middle dock.",
         current: "rope",
-        steps,
       };
     }
 
     if (!hasVerse) {
       if (!hasToken) {
         return {
-          title: "Step 2",
-          next: "Next: take the Copper Token from the harbor crates.",
-          need: "Place: Harbor",
+          title: "Next Step",
+          next: "Take the Copper Token from the harbor crates.",
+          need: "Location: Harbor",
           hint: "Use Take on the Crates near the middle of the harbor.",
           current: "token",
-          steps,
         };
       }
       return {
-        title: "Step 3",
-        next: "Next: talk to the Barkeep and spend the Copper Token.",
-        need: "Place: Tavern",
+        title: "Next Step",
+        next: "Talk to the Barkeep and spend the Copper Token.",
+        need: "Location: Tavern",
         hint: "Walk to the tavern, then Talk to the Barkeep while carrying the token.",
         current: "verse",
-        steps,
       };
     }
 
     if (!hasShell) {
       return {
-        title: "Step 4",
-        next: "Next: take the Shell Key from the tide pool.",
-        need: "Place: Wreck Beach",
+        title: "Next Step",
+        next: "Take the Shell Key from the tide pool.",
+        need: "Location: Wreck Beach",
         hint: "Go to Wreck Beach and use Take on the Tide Pool near the sand.",
         current: "shell",
-        steps,
       };
     }
 
     if (!skiffReady) {
       return {
-        title: "Step 5",
-        next: "Next: use the Rope with the Jungle Skiff.",
-        need: "Item: Rope",
+        title: "Next Step",
+        next: "Use the Rope with the Jungle Skiff.",
+        need: "Location: Harbor",
         hint: "Return to Harbor, choose Use, select the Rope, then click the Jungle Skiff.",
         current: "skiff",
-        steps,
       };
     }
 
     return {
-      title: "Final Step",
-      next: "Next: sail to the Jungle Shrine and open the Moon Door.",
-      need: "Item: Shell Key",
+      title: "Next Step",
+      next: "Sail to the Jungle Shrine and open the Moon Door.",
+      need: "Location: Jungle Shrine",
       hint: "Click the tied skiff in Harbor to reach the jungle, then Use Shell Key with Moon Door.",
       current: "door",
-      steps,
     };
   }
 
   function updateQuestTracker() {
-    if (!questTracker || !questTitle || !questNext || !questNeed || !questSteps) return;
+    if (!questTracker || !questTitle || !questNext || !questNeed) return;
     const quest = getQuestState();
     questTitle.textContent = quest.title;
     questNext.textContent = quest.next;
     questNeed.textContent = quest.need;
-    questSteps.innerHTML = "";
-    quest.steps.forEach((step) => {
-      const item = document.createElement("li");
-      item.textContent = step.label;
-      item.classList.toggle("done", step.done);
-      item.classList.toggle("current", step.id === quest.current && !step.done);
-      questSteps.appendChild(item);
-    });
   }
 
   function showQuestHint() {
