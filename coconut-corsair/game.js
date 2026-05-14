@@ -14,6 +14,7 @@
   const statusLine = document.getElementById("statusLine");
   const commandSentence = document.getElementById("commandSentence");
   const dialogue = document.getElementById("dialogue");
+  const dialoguePortrait = document.getElementById("dialoguePortrait");
   const speaker = document.getElementById("speaker");
   const line = document.getElementById("line");
   const choiceOptions = document.getElementById("choiceOptions");
@@ -53,6 +54,7 @@
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
     npcExtras: "assets/sprites/npcs_market_observatory_normalized_sheet.png?v=imagen-hd-npc-slice-v4",
     keeperSolid: "assets/sprites/keeper_moon_door_solid_sheet.png?v=keeper-solid-v2",
+    portraits: "assets/sprites/dialogue_portraits.png?v=dialogue-portraits-v1",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
     props: "assets/sprites/observatory_imagen_props_hd_sheet.png?v=observatory-imagen-props-hd-v1",
@@ -120,6 +122,15 @@
     Smuggler: "smugglerActor",
     Keeper: "keeperActor",
     Archivist: "archivistActor",
+  };
+
+  const portraitMap = {
+    Mara: 0,
+    Dockmaster: 1,
+    Barkeep: 2,
+    Smuggler: 3,
+    Keeper: 4,
+    Archivist: 5,
   };
 
   const state = {
@@ -1007,10 +1018,25 @@
     dialogue.classList.remove("hasChoices");
   }
 
+  function setDialoguePortrait(who) {
+    if (!dialoguePortrait) return;
+    const index = portraitMap[who];
+    if (!Number.isInteger(index)) {
+      dialoguePortrait.hidden = true;
+      dialoguePortrait.removeAttribute("data-speaker");
+      return;
+    }
+    dialoguePortrait.hidden = false;
+    dialoguePortrait.dataset.speaker = who;
+    dialoguePortrait.style.setProperty("--portrait-sheet", `url("${imageSources.portraits}")`);
+    dialoguePortrait.style.backgroundPosition = `0 0, ${(index * 100) / 5}% 0`;
+  }
+
   function say(who, text, ms = 3600) {
     clearChoices();
     speaker.textContent = who;
     line.textContent = text;
+    setDialoguePortrait(who);
     dialogue.classList.add("visible");
     state.lineUntil = performance.now() + ms;
     const actorId = speakerActors[who];
@@ -1022,6 +1048,7 @@
     clearChoices();
     speaker.textContent = who;
     line.textContent = prompt;
+    setDialoguePortrait(who);
     state.choiceHandlers = options;
     if (choiceOptions) {
       options.forEach((option, index) => {
@@ -1067,6 +1094,7 @@
   function openMiniGame(config) {
     clearChoices();
     dialogue.classList.remove("visible");
+    setDialoguePortrait(null);
     state.actorTalk = null;
     state.lineUntil = 0;
     state.miniGame = {
@@ -1297,6 +1325,7 @@
       state.lineUntil = 0;
       state.actorTalk = null;
       dialogue.classList.remove("visible");
+      setDialoguePortrait(null);
     }
   }
 
