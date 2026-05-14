@@ -666,7 +666,7 @@
 
   function worldFromEvent(event) {
     const rect = canvas.getBoundingClientRect();
-    const scale = Math.min(rect.width / WORLD_W, rect.height / WORLD_H);
+    const scale = Math.max(rect.width / WORLD_W, rect.height / WORLD_H);
     const drawW = WORLD_W * scale;
     const drawH = WORLD_H * scale;
     const offX = (rect.width - drawW) / 2;
@@ -745,8 +745,10 @@
       button.classList.toggle("active", state.activeItem === id);
       const col = meta.icon % 4;
       const row = Math.floor(meta.icon / 4);
+      const iconCell = 45;
+      const iconInset = 7;
       button.style.setProperty("--icon-sheet", `url("${imageSources.sceneItems}")`);
-      button.style.setProperty("--icon-pos", `${-col * 54 - 9}px ${-row * 54 - 9}px`);
+      button.style.setProperty("--icon-pos", `${-col * iconCell - iconInset}px ${-row * iconCell - iconInset}px`);
       button.addEventListener("click", () => {
         state.activeItem = state.activeItem === id ? null : id;
         state.verb = "use";
