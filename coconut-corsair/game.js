@@ -1091,7 +1091,8 @@
       miniArt.style.setProperty("--mini-sheet", `url("${imageSources.miniGames}")`);
       miniArt.style.backgroundPosition = `${(art[0] * 100) / 3}% ${art[1] * 100}%`;
     }
-    miniStats.textContent = `Round ${game.round + 1}/${game.rounds.length} - Score ${game.score}/${game.rounds.length}${game.feedback ? ` - ${game.feedback}` : ""}`;
+    const goal = game.need || game.rounds.length;
+    miniStats.textContent = `Round ${game.round + 1}/${game.rounds.length} - Score ${game.score}/${goal}${game.feedback ? ` - ${game.feedback}` : ""}`;
     miniChoices.innerHTML = "";
     round.choices.forEach((choice, index) => {
       const button = document.createElement("button");
@@ -1114,7 +1115,7 @@
     }
     game.feedback = correct ? (round.good || "Correct.") : (round.bad || "Not quite.");
     game.round += 1;
-    if (game.round >= game.rounds.length) {
+    if ((game.finishEarly && game.score >= (game.need || game.rounds.length)) || game.round >= game.rounds.length) {
       const won = game.score >= (game.need || game.rounds.length);
       const score = game.score;
       const onFinish = game.onFinish;
@@ -1169,37 +1170,38 @@
   function startBananaShuffleGame() {
     openMiniGame({
       title: "Banana Shell Shuffle",
-      intro: "Follow the banana, distrust the baskets.",
+      intro: "One clean banana catch is enough.",
       art: [1, 0],
-      need: 2,
+      need: 1,
+      finishEarly: true,
       rounds: [
         {
-          prompt: "A banana vanishes under three coconut cups. The left cup coughs suspiciously.",
-          choices: ["Left cup", "Middle cup", "Right cup"],
+          prompt: "The right cup drags a tiny yellow peel-mark across the table.",
+          choices: ["Left cup - coughing decoy", "Middle cup - empty wobble", "Right cup - yellow peel-mark"],
           correct: 2,
-          good: "The right cup smells faintly of victory.",
-          bad: "That cup contains only stage fright.",
+          good: "The banana is caught before it can unionize.",
+          bad: "That was the decoy cup. The peel-mark was the giveaway.",
         },
         {
-          prompt: "The vendor spins the cups and mutters something about maritime fruit law.",
-          choices: ["Left cup", "Middle cup", "Right cup"],
+          prompt: "The vendor sneezes exactly when the banana slides under the left cup.",
+          choices: ["Left cup - sneeze stop", "Middle cup - shiny distraction", "Right cup - confident liar"],
           correct: 0,
-          good: "Banana located. Dignity still missing.",
-          bad: "A tiny peel mocks you.",
+          good: "Banana located. Dignity mostly intact.",
+          bad: "A tiny peel points left, which is rude but useful.",
         },
         {
-          prompt: "Final shuffle: one cup glides too smoothly, like it has legal counsel.",
-          choices: ["Left cup", "Middle cup", "Right cup"],
+          prompt: "Final shuffle: the middle cup casts a suspicious banana-shaped shadow.",
+          choices: ["Left cup - heroic guess", "Middle cup - banana shadow", "Right cup - dramatic flourish"],
           correct: 1,
           good: "The banana surrenders peacefully.",
-          bad: "You have chosen decorative coconut.",
+          bad: "You have chosen decorative coconut. The shadow was doing all the work.",
         },
       ],
       onFinish: (won, score) => {
         state.flags.bananaShuffleWon = won || state.flags.bananaShuffleWon;
         say("Mara", won
-          ? `I beat the banana shuffle ${score} to 3. Somewhere, a monkey is reconsidering higher education.`
-          : "The banana remains hidden. I respect its commitment to theater.");
+          ? "I caught the banana trail. Somewhere, a monkey is reconsidering higher education."
+          : "The banana remains hidden, but at least it left obvious clues for a rematch.");
       },
     });
   }
