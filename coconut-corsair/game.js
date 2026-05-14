@@ -37,6 +37,8 @@
     tavern: "assets/backgrounds/tavern_imagen_hd.png",
     jungle: "assets/backgrounds/jungle_imagen_hd.png",
     beach: "assets/backgrounds/beach_imagen_hd.png",
+    market: "assets/backgrounds/market_imagen_hd.png",
+    observatory: "assets/backgrounds/observatory_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
@@ -76,14 +78,20 @@
     dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
     barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true, cropTop: 38 },
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
+    smugglerIdle: { row: 6, frames: [8, 9, 10, 9], fps: 0.78, blend: true },
+    smugglerTalk: { row: 6, frames: [10, 11, 12, 13, 14, 15, 14, 13], fps: 3.2, blend: true },
     keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.75, blend: true },
     keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 3.3, blend: true },
+    archivistIdle: { row: 9, frames: [4, 5, 6, 5], fps: 0.68, blend: true },
+    archivistTalk: { row: 8, frames: [8, 9, 10, 11, 12, 13, 14, 13], fps: 3.1, blend: true },
   };
 
   const speakerActors = {
     Dockmaster: "dockmasterActor",
     Barkeep: "barkeepActor",
+    Smuggler: "smugglerActor",
     Keeper: "keeperActor",
+    Archivist: "archivistActor",
   };
 
   const state = {
@@ -103,6 +111,9 @@
       lighthouseClue: false,
       bottleDecoded: false,
       glyphsRead: false,
+      smugglerTip: false,
+      telescopeAligned: false,
+      hatchPeeked: false,
       shrineOpen: false,
       solved: false,
     },
@@ -118,6 +129,7 @@
     pending: null,
     hover: null,
     actorTalk: null,
+    quips: {},
     lineUntil: 0,
     started: false,
     lastTime: 0,
@@ -141,6 +153,7 @@
       exits: [
         { id: "toTavern", label: "Tavern", rect: [1395, 415, 445, 365], to: "tavern", spawn: [330, 856], walkTo: [1455, 856] },
         { id: "toBeach", label: "Beach", rect: [0, 430, 315, 430], to: "beach", spawn: [1510, 846], walkTo: [205, 856] },
+        { id: "toMarket", label: "Moon Market", rect: [755, 250, 360, 420], to: "market", spawn: [940, 858], walkTo: [880, 856] },
       ],
       hotspots: [
         { id: "dockmaster", label: "Dockmaster", rect: [1062, 590, 220, 290], walkTo: [1010, 856], verbs: ["look", "talk"] },
@@ -149,6 +162,29 @@
         { id: "skiff", label: "Jungle Skiff", rect: [1385, 660, 500, 195], walkTo: [1515, 856], verbs: ["look", "use"] },
         { id: "lighthouse", label: "Moon Lighthouse", rect: [420, 185, 155, 285], walkTo: [640, 856], verbs: ["look", "use"] },
         { id: "lanternRig", label: "Lantern Rig", rect: [460, 265, 170, 315], walkTo: [615, 856], verbs: ["look", "use"] },
+      ],
+    },
+    market: {
+      title: "Moon Market",
+      bg: "market",
+      music: "harbor",
+      walkY: 858,
+      walkMin: 225,
+      walkMax: 1690,
+      actors: [
+        { id: "smugglerActor", idleAnim: "smugglerIdle", talkAnim: "smugglerTalk", x: 1188, y: 858, scale: 0.74 },
+      ],
+      exits: [
+        { id: "toHarbor", label: "Harbor", rect: [690, 365, 470, 360], to: "harbor", spawn: [880, 856], walkTo: [940, 858] },
+        { id: "toObservatory", label: "Observatory", rect: [1478, 245, 360, 520], to: "observatory", spawn: [315, 842], walkTo: [1530, 858] },
+      ],
+      hotspots: [
+        { id: "smuggler", label: "Soft-Spoken Smuggler", rect: [1090, 600, 230, 270], walkTo: [1045, 858], verbs: ["look", "talk", "use"] },
+        { id: "fruitStand", label: "Questionable Fruit Stand", rect: [45, 455, 500, 285], walkTo: [455, 858], verbs: ["look", "use"] },
+        { id: "pulleyRelic", label: "Rubber Pulley Relic", rect: [155, 160, 240, 225], walkTo: [390, 858], verbs: ["look", "use"] },
+        { id: "ledger", label: "Three-Headed Ledger", rect: [510, 515, 250, 170], walkTo: [640, 858], verbs: ["look", "use"] },
+        { id: "dirtJar", label: "Suspicious Jar", rect: [1350, 708, 170, 145], walkTo: [1360, 858], verbs: ["look", "use"] },
+        { id: "marketSign", label: "Carved Market Sign", rect: [285, 85, 330, 185], walkTo: [560, 858], verbs: ["look"] },
       ],
     },
     tavern: {
@@ -171,6 +207,30 @@
         { id: "spyglass", label: "Brass Spyglass", rect: [65, 760, 430, 210], walkTo: [430, 852], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [248, 915, 128] },
         { id: "stage", label: "Tiny Stage", rect: [1500, 505, 330, 190], walkTo: [1485, 852], verbs: ["look", "use"] },
         { id: "mapChest", label: "Map Chest", rect: [1410, 565, 210, 115], walkTo: [1345, 852], verbs: ["look", "use"] },
+      ],
+    },
+    observatory: {
+      title: "Observatory",
+      bg: "observatory",
+      music: "jungle",
+      walkY: 842,
+      walkMin: 225,
+      walkMax: 1650,
+      actors: [
+        { id: "archivistActor", idleAnim: "archivistIdle", talkAnim: "archivistTalk", x: 1320, y: 842, scale: 0.76 },
+      ],
+      exits: [
+        { id: "toMarket", label: "Moon Market", rect: [0, 230, 325, 570], to: "market", spawn: [1490, 858], walkTo: [280, 842] },
+        { id: "toJungle", label: "Shrine Path", rect: [1590, 185, 300, 520], to: "jungle", spawn: [1425, 822], walkTo: [1570, 842] },
+      ],
+      hotspots: [
+        { id: "archivist", label: "Sleepless Archivist", rect: [1225, 565, 220, 285], walkTo: [1160, 842], verbs: ["look", "talk", "use"] },
+        { id: "telescope", label: "Moon Telescope", rect: [710, 300, 455, 260], walkTo: [900, 842], verbs: ["look", "use"] },
+        { id: "starCharts", label: "Star Charts", rect: [360, 390, 355, 260], walkTo: [610, 842], verbs: ["look", "use"] },
+        { id: "fedoraRelic", label: "Well-Travelled Hat", rect: [1160, 325, 150, 95], walkTo: [1230, 842], verbs: ["look", "use"] },
+        { id: "crystalMug", label: "Crystal Skull Mug", rect: [1325, 380, 195, 170], walkTo: [1320, 842], verbs: ["look", "use"] },
+        { id: "archiveHatch", label: "Round Archive Hatch", rect: [415, 790, 360, 185], walkTo: [660, 842], verbs: ["look", "use"] },
+        { id: "redCurtain", label: "Suspicious Red Curtain", rect: [1240, 330, 205, 395], walkTo: [1300, 842], verbs: ["look", "use"] },
       ],
     },
     beach: {
@@ -221,9 +281,18 @@
     harbor: {
       toTavern: { x: 1708, y: 545, dir: "right", label: "To Tavern" },
       toBeach: { x: 178, y: 605, dir: "left", label: "To Beach" },
+      toMarket: { x: 955, y: 430, dir: "right", label: "To Market" },
+    },
+    market: {
+      toHarbor: { x: 910, y: 520, dir: "left", label: "To Harbor" },
+      toObservatory: { x: 1688, y: 500, dir: "right", label: "To Observatory" },
     },
     tavern: {
       toHarbor: { x: 190, y: 520, dir: "left", label: "To Harbor" },
+    },
+    observatory: {
+      toMarket: { x: 170, y: 548, dir: "left", label: "To Market" },
+      toJungle: { x: 1715, y: 520, dir: "right", label: "To Shrine" },
     },
     beach: {
       toHarbor: { x: 1645, y: 620, dir: "right", label: "To Harbor" },
@@ -236,8 +305,10 @@
   const hotspotOutlines = {
     dockmaster: { kind: "actor", actor: "dockmasterActor" },
     barkeep: { kind: "actor", actor: "barkeepActor" },
+    smuggler: { kind: "actor", actor: "smugglerActor" },
     keeper: { kind: "actor", actor: "keeperActor" },
-    skiff: { kind: "polygon", points: [[1395, 735], [1515, 690], [1695, 666], [1840, 710], [1874, 765], [1762, 825], [1535, 840], [1412, 812]] },
+    archivist: { kind: "actor", actor: "archivistActor" },
+    skiff: { kind: "polygon", points: [[1394, 724], [1492, 688], [1605, 674], [1728, 678], [1824, 708], [1876, 756], [1827, 790], [1730, 817], [1584, 826], [1462, 815], [1410, 784]] },
     lighthouse: { kind: "polygon", points: [[438, 456], [455, 290], [505, 222], [548, 294], [562, 456], [522, 493], [460, 490]] },
     lanternRig: { kind: "polygon", points: [[492, 258], [604, 264], [620, 548], [580, 568], [510, 560], [472, 420]] },
     chart: { kind: "polygon", points: [[1318, 388], [1570, 408], [1552, 612], [1306, 588]] },
@@ -247,11 +318,22 @@
     shipCabin: { kind: "polygon", points: [[620, 492], [710, 315], [932, 338], [1078, 520], [1005, 645], [685, 625]] },
     stormBarrel: { kind: "polygon", points: [[58, 735], [140, 704], [230, 740], [210, 840], [92, 852]] },
     cliff: { kind: "polygon", points: [[1440, 150], [1810, 112], [1800, 555], [1602, 652], [1370, 520]] },
-    shrineDoor: { kind: "polygon", points: [[450, 604], [414, 535], [408, 438], [438, 332], [512, 250], [616, 224], [724, 254], [792, 342], [816, 460], [786, 575], [708, 620], [548, 620]] },
+    shrineDoor: { kind: "polygon", smooth: true, points: [[454, 588], [420, 522], [418, 430], [452, 328], [524, 252], [620, 232], [718, 258], [784, 340], [808, 456], [780, 558], [704, 610], [554, 614], [486, 600]] },
     vines: { kind: "polygon", points: [[160, 42], [342, 35], [430, 330], [390, 612], [214, 650], [120, 320]] },
     waterfall: { kind: "polygon", points: [[1020, 300], [1125, 220], [1320, 238], [1445, 345], [1400, 610], [1112, 668], [960, 560]] },
     bridge: { kind: "polygon", points: [[1215, 645], [1395, 595], [1720, 642], [1765, 752], [1540, 830], [1260, 770]] },
     glyphs: { kind: "polygon", points: [[220, 108], [372, 96], [410, 270], [330, 420], [215, 365], [180, 205]] },
+    fruitStand: { kind: "polygon", points: [[50, 595], [160, 465], [410, 455], [530, 570], [500, 725], [130, 760]] },
+    pulleyRelic: { kind: "polygon", points: [[170, 180], [350, 150], [410, 260], [332, 360], [178, 330]] },
+    ledger: { kind: "polygon", points: [[510, 548], [715, 512], [764, 640], [560, 692]] },
+    dirtJar: { kind: "polygon", smooth: true, points: [[1375, 724], [1468, 714], [1518, 760], [1498, 842], [1405, 858], [1348, 812]] },
+    marketSign: { kind: "polygon", points: [[295, 112], [585, 104], [620, 236], [330, 268]] },
+    telescope: { kind: "polygon", points: [[720, 430], [860, 350], [1120, 420], [1100, 500], [882, 570], [720, 520]] },
+    starCharts: { kind: "polygon", points: [[360, 420], [690, 392], [720, 610], [410, 666]] },
+    fedoraRelic: { kind: "polygon", smooth: true, points: [[1166, 382], [1218, 336], [1298, 350], [1310, 395], [1235, 424]] },
+    crystalMug: { kind: "polygon", points: [[1338, 410], [1494, 386], [1520, 508], [1368, 548]] },
+    archiveHatch: { kind: "polygon", smooth: true, points: [[430, 885], [474, 820], [604, 792], [746, 822], [780, 910], [692, 972], [520, 970]] },
+    redCurtain: { kind: "polygon", points: [[1274, 342], [1420, 338], [1455, 700], [1350, 758], [1248, 682]] },
   };
 
   const sceneAmbience = {
@@ -277,6 +359,21 @@
       ],
       motes: { x: 250, y: 120, w: 1340, h: 510, count: 18, rgb: "255, 220, 154", alpha: 0.048 },
     },
+    market: {
+      glows: [
+        { x: 160, y: 255, radius: 170, rgb: "255, 178, 82", alpha: 0.13, phase: 0.7 },
+        { x: 740, y: 390, radius: 155, rgb: "255, 195, 105", alpha: 0.11, phase: 2.2 },
+        { x: 1390, y: 250, radius: 178, rgb: "255, 168, 80", alpha: 0.12, phase: 4.0 },
+        { x: 1780, y: 592, radius: 140, rgb: "255, 205, 112", alpha: 0.11, phase: 1.3 },
+      ],
+      water: { x: 790, y: 315, w: 420, h: 255, rows: 10, rgb: "120, 198, 228", alpha: 0.045, drift: 0.034 },
+      reflections: [
+        { x: 832, y: 472, h: 120, rgb: "255, 198, 96", phase: 1.1 },
+        { x: 1115, y: 452, h: 126, rgb: "142, 204, 238", phase: 2.6 },
+      ],
+      motes: { x: 120, y: 140, w: 1650, h: 610, count: 24, rgb: "255, 226, 160", alpha: 0.038 },
+      smoke: { x: 40, y: 280, w: 760, h: 270, rows: 7, rgb: "226, 201, 164", alpha: 0.024 },
+    },
     beach: {
       glows: [
         { x: 1578, y: 92, radius: 330, rgb: "214, 232, 210", alpha: 0.07, phase: 0.6 },
@@ -293,6 +390,19 @@
       ],
       motes: { x: 440, y: 90, w: 1040, h: 470, count: 16, rgb: "128, 235, 171", alpha: 0.042 },
       mist: { x: 920, y: 470, w: 780, h: 230, rows: 6, rgb: "164, 226, 204", alpha: 0.032 },
+    },
+    observatory: {
+      glows: [
+        { x: 734, y: 594, radius: 190, rgb: "255, 198, 112", alpha: 0.11, phase: 0.4 },
+        { x: 58, y: 470, radius: 132, rgb: "255, 190, 92", alpha: 0.09, phase: 2.7 },
+        { x: 1625, y: 315, radius: 154, rgb: "255, 179, 90", alpha: 0.085, phase: 4.6 },
+      ],
+      motes: { x: 360, y: 110, w: 960, h: 580, count: 26, rgb: "185, 218, 255", alpha: 0.05 },
+      mist: { x: 550, y: 155, w: 520, h: 470, rows: 6, rgb: "170, 205, 255", alpha: 0.026 },
+      beams: [
+        { x: 710, y: 45, w: 250, h: 520, tilt: -125, rgb: "170, 207, 255", alpha: 0.045, phase: 0.2 },
+        { x: 945, y: 0, w: 210, h: 610, tilt: 90, rgb: "158, 196, 255", alpha: 0.036, phase: 2.8 },
+      ],
     },
   };
 
@@ -403,9 +513,15 @@
       } else if (who === "Barkeep") {
         utterance.rate = 0.98;
         utterance.pitch = 0.92;
+      } else if (who === "Smuggler") {
+        utterance.rate = 0.86;
+        utterance.pitch = 0.78;
       } else if (who === "Keeper") {
         utterance.rate = 0.82;
         utterance.pitch = 0.72;
+      } else if (who === "Archivist") {
+        utterance.rate = 0.9;
+        utterance.pitch = 1.08;
       }
       const voice = this.pickVoice(who);
       if (voice) utterance.voice = voice;
@@ -654,6 +770,12 @@
     speech.say(who, text);
   }
 
+  function quip(key, lines) {
+    const index = state.quips[key] || 0;
+    state.quips[key] = (index + 1) % lines.length;
+    return lines[index % lines.length];
+  }
+
   function hideLine(now) {
     if (state.lineUntil && now > state.lineUntil) {
       state.lineUntil = 0;
@@ -703,7 +825,10 @@
     if (hit.type === "exit") {
       const exit = hit.data;
       if (exit.to === "jungle" && !state.flags.skiffReady) {
-        walkTo(exit.walkTo[0], exit.walkTo[1], { type: "hotspot", id: "skiff", verb: "look" });
+        const pending = state.scene === "harbor"
+          ? { type: "hotspot", id: "skiff", verb: "look" }
+          : { type: "line", who: "Mara", text: "The shrine path is flooded. The skiff still needs a proper harbor knot first." };
+        walkTo(exit.walkTo[0], exit.walkTo[1], pending);
         return;
       }
       walkTo(exit.walkTo[0], exit.walkTo[1], { type: "exit", exit });
@@ -739,6 +864,11 @@
     const pending = state.pending;
     state.pending = null;
     if (!pending) return;
+
+    if (pending.type === "line") {
+      say(pending.who, pending.text);
+      return;
+    }
 
     if (pending.type === "exit") {
       transition(pending.exit.to, pending.exit.spawn);
@@ -824,6 +954,61 @@
         } else {
           say("Mara", "A lantern rig on the dock crane. Excellent for mood, mediocre for subtlety.");
         }
+        break;
+      case "smuggler":
+        if (verb === "talk") {
+          setAction("talk", 900);
+          state.flags.smugglerTip = true;
+          say("Smuggler", quip("smugglerTalk", [
+            "I sell only legal goods, illegal prices, and directions nobody can prove came from me.",
+            "The observatory archivist owes me a moon map. I owe him plausible deniability.",
+            "If a man in a hat asks about relics, tell him the museum already looked nervous.",
+          ]));
+        } else {
+          say("Mara", "He has the relaxed posture of a man who can invoice a shadow.");
+        }
+        break;
+      case "fruitStand":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", hasItem("lime")
+            ? "I compare my lime with the stand. Mine has fewer legal problems."
+            : "The fruit looks tropical, suspicious, and already halfway into a cocktail.");
+        } else {
+          say("Mara", quip("fruitStand", [
+            "A fruit stand. The pineapples look like they know too much.",
+            "The bananas are arranged in a way that implies a trap, or very confident merchandising.",
+          ]));
+        }
+        break;
+      case "pulleyRelic":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", "The rubber pulley stretches, squeaks, and refuses to solve transport puzzles for legal reasons.");
+        } else {
+          say("Mara", "A rubbery pulley relic. Somewhere, an old adventure designer just smiled into his coffee.");
+        }
+        break;
+      case "ledger":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", "I open it to page one: debit, credit, and a third head for sarcasm.");
+        } else {
+          say("Mara", "A three-headed ledger. One head counts coins, one counts curses, one asks for overtime.");
+        }
+        break;
+      case "dirtJar":
+        if (verb === "use") {
+          setAction("use", 620);
+          say("Mara", hasItem("bottle")
+            ? "Bottle meets jar. The dirt remains unimpressed, which is dirt's main talent."
+            : "I shake the jar. It answers with the confidence of a pirate who owns a soundtrack.");
+        } else {
+          say("Mara", "A jar of dirt. Probably valuable to anyone with a dramatic enough escape plan.");
+        }
+        break;
+      case "marketSign":
+        say("Mara", "The sign says nothing readable, but it strongly implies snacks, smuggling, and limited liability.");
         break;
       case "barkeep":
         if (verb === "talk") {
@@ -1003,6 +1188,72 @@
       case "vines":
         say("Mara", "The vines have wrapped themselves into a botanical no-entry sign.");
         break;
+      case "archivist":
+        if (verb === "talk") {
+          setAction("talk", 900);
+          say("Archivist", quip("archivistTalk", [
+            "The telescope sees stars, ships, and occasionally a hero making poor inventory choices.",
+            "Catalog rule one: if it hums, glows, or judges you, shelve it under nautical.",
+            "The old films got one thing right: never trust a moonlit relic with a simple shape.",
+          ]));
+        } else {
+          say("Mara", "The archivist looks like sleep once asked for an appointment and got filed under 'myth'.");
+        }
+        break;
+      case "telescope":
+        if (verb === "use") {
+          state.flags.telescopeAligned = true;
+          setAction("use", 820);
+          say("Mara", hasItem("spyglass")
+            ? "Spyglass plus telescope: now I can see my bad decisions in glorious double magnification."
+            : "The telescope points at a moonbeam, a distant shrine, and a star that seems personally involved.");
+        } else {
+          say("Mara", "A brass moon telescope. It has more knobs than a pirate council.");
+        }
+        break;
+      case "starCharts":
+        if (verb === "use") {
+          setAction("use", 760);
+          say("Mara", hasItem("brassNote")
+            ? "The brass note lines up with the chart. Shell, moon, star. The universe loves a tidy inventory chain."
+            : "One route is labeled with a suspicious round station. Definitely a moon. Probably not a trap.");
+        } else {
+          say("Mara", "Star charts pinned with knives. Academics here have commitment issues.");
+        }
+        break;
+      case "fedoraRelic":
+        if (verb === "use") {
+          setAction("use", 600);
+          say("Mara", "I try the hat angle. It instantly adds confidence and archaeology homework.");
+        } else {
+          say("Mara", "A well-travelled hat. It gives off strong museum-nearby energy.");
+        }
+        break;
+      case "crystalMug":
+        if (verb === "use") {
+          setAction("use", 600);
+          say("Mara", "The mug shows my future: more walking, less dignity, better lighting.");
+        } else {
+          say("Mara", "A crystal skull mug. I do not trust cups with cheekbones.");
+        }
+        break;
+      case "archiveHatch":
+        if (verb === "use") {
+          state.flags.hatchPeeked = true;
+          setAction("use", 780);
+          say("Mara", "The hatch opens three inches, reveals one stair, then changes its mind.");
+        } else {
+          say("Mara", "A round hatch with bite marks in the varnish. Either bad carpentry, or very small critics.");
+        }
+        break;
+      case "redCurtain":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", "I tug the curtain. Behind it: another curtain. That is either secrecy or interior design panic.");
+        } else {
+          say("Mara", "A suspicious red curtain. Theatrical enough to charge admission.");
+        }
+        break;
       default:
         say("Mara", "Nothing happens. It does so with confidence.");
     }
@@ -1030,6 +1281,17 @@
       say("Mara", "The lighthouse shutters blink three stops: wreck, tavern, shrine. Someone made a breadcrumb trail out of moonlight.");
     } else if (item === "spyglass" && hotspotId === "shipCabin") {
       say("Mara", "The far scratch under the cabin rail reads: ask the barkeep why the moon owes him money.");
+    } else if (item === "spyglass" && hotspotId === "telescope") {
+      state.flags.telescopeAligned = true;
+      say("Mara", "Spyglass through telescope: the moon briefly looks close enough to send an invoice.");
+    } else if (item === "brassNote" && hotspotId === "starCharts") {
+      say("Mara", "The note and chart agree: shell, moon, star. When paperwork and astronomy match, I worry.");
+    } else if (item === "lime" && hotspotId === "fruitStand") {
+      say("Mara", "My lime returns from the fruit stand with a tiny sense of superiority.");
+    } else if (item === "bottle" && hotspotId === "dirtJar") {
+      say("Mara", "Bottle plus dirt jar creates archaeology. Bad archaeology, but still.");
+    } else if (item === "starCompass" && hotspotId === "telescope") {
+      say("Archivist", "Ah. The Star Compass. Please do not point that at the moon unless everyone has signed something.");
     } else if (item === "bottle" && hotspotId === "keeper") {
       say("Keeper", "The sea still sends letters. Mostly complaints, but this one is helpful.");
     } else if (item === "bottle" && hotspotId === "waterfall") {
@@ -1440,6 +1702,32 @@
     ctx.restore();
   }
 
+  function drawMoonbeams(beams, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    beams.forEach((beam, index) => {
+      const sway = Math.sin(now * 0.00045 + beam.phase + index) * 10;
+      const pulse = 0.72 + Math.sin(now * 0.001 + beam.phase) * 0.18;
+      const topLeft = beam.x + sway;
+      const topRight = topLeft + beam.w;
+      const bottomLeft = beam.x + beam.tilt - beam.w * 0.18 - sway * 0.4;
+      const bottomRight = bottomLeft + beam.w * 1.36;
+      const gradient = ctx.createLinearGradient(beam.x, beam.y, beam.x + beam.tilt, beam.y + beam.h);
+      gradient.addColorStop(0, `rgba(${beam.rgb}, ${beam.alpha * pulse})`);
+      gradient.addColorStop(0.55, `rgba(${beam.rgb}, ${beam.alpha * 0.38 * pulse})`);
+      gradient.addColorStop(1, `rgba(${beam.rgb}, 0)`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.moveTo(topLeft, beam.y);
+      ctx.lineTo(topRight, beam.y);
+      ctx.lineTo(bottomRight, beam.y + beam.h);
+      ctx.lineTo(bottomLeft, beam.y + beam.h);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
   function drawSceneAmbience(sceneId, now) {
     const ambience = sceneAmbience[sceneId];
     if (!ambience) return;
@@ -1456,6 +1744,8 @@
     if (ambience.surf) drawSurf(ambience.surf, now);
     if (ambience.motes) drawMotes(ambience.motes, now);
     if (ambience.mist) drawMist(ambience.mist, now);
+    if (ambience.smoke) drawMist(ambience.smoke, now);
+    if (ambience.beams) drawMoonbeams(ambience.beams, now);
   }
 
   function drawExitIndicator(exit, marker, now, active = false) {

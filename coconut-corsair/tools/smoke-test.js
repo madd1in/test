@@ -78,6 +78,8 @@ function checkFiles() {
     "assets/source/backgrounds_single/tavern_single_imagen_hd.png",
     "assets/source/backgrounds_single/jungle_single_imagen_hd.png",
     "assets/source/backgrounds_single/beach_single_imagen_hd.png",
+    "assets/source/backgrounds_single/market_single_imagen_hd.png",
+    "assets/source/backgrounds_single/observatory_single_imagen_hd.png",
     "assets/source/player_anim_atlas_imagen_key.png",
     "assets/source/npc_anim_atlas_imagen_key.png",
     "assets/source/item_atlas_imagen_hd.png",
@@ -85,6 +87,8 @@ function checkFiles() {
     "assets/backgrounds/tavern_imagen_hd.png",
     "assets/backgrounds/jungle_imagen_hd.png",
     "assets/backgrounds/beach_imagen_hd.png",
+    "assets/backgrounds/market_imagen_hd.png",
+    "assets/backgrounds/observatory_imagen_hd.png",
     "assets/sprites/characters_imagen_hd_sheet.png",
     "assets/sprites/items_imagen_hd_sheet.png",
     "assets/sprites/scene_items_imagen_hd_sheet.png",
@@ -175,12 +179,17 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "lime", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "spyglass", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "barkeep", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "smuggler", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "ledger", "look"));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "archivist", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "telescope", "use", "spyglass"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "tidepool", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "bottle", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("harbor", "skiff", "use", "rope"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("jungle", "shrineDoor", "use", "shellKey"));
   const solved = await page.evaluate(() => window.__COCONUT_DEBUG_STATE());
   assert(solved.flags.solved === true, `Puzzle chain did not solve: ${JSON.stringify(solved)}`);
+  assert(solved.flags.smugglerTip === true && solved.flags.telescopeAligned === true, `New side content did not update flags: ${JSON.stringify(solved.flags)}`);
   assert(solved.inventory.includes("starCompass"), "Star Compass was not awarded");
   assert(solved.quest.next.includes("Done"), `Quest tracker did not complete: ${JSON.stringify(solved.quest)}`);
 
