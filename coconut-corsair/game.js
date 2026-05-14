@@ -51,7 +51,7 @@
     market: "assets/backgrounds/market_imagen_hd.png",
     observatory: "assets/backgrounds/observatory_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
-    npcExtras: "assets/sprites/npcs_market_observatory_normalized_sheet.png?v=imagen-hd-npc-anchor-v3",
+    npcExtras: "assets/sprites/npcs_market_observatory_normalized_sheet.png?v=imagen-hd-npc-slice-v4",
     keeperSolid: "assets/sprites/keeper_moon_door_solid_sheet.png?v=keeper-solid-v2",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
@@ -93,12 +93,12 @@
     dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
     barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true, cropTop: 38 },
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
-    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.62, cropTop: 24 },
-    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.1, cropTop: 10 },
+    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.62 },
+    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.1 },
     keeperIdle: { sheet: "keeperSolid", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5], fps: 0.42 },
     keeperTalk: { sheet: "keeperSolid", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], fps: 2.35 },
-    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.5, cropBottom: 15 },
-    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 2.65, cropTop: 12, cropBottom: 29 },
+    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.5 },
+    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 2.65 },
   };
 
   const loadingLines = [
@@ -208,7 +208,7 @@
       walkMin: 225,
       walkMax: 1690,
       actors: [
-        { id: "smugglerActor", idleAnim: "smugglerIdle", talkAnim: "smugglerTalk", x: 1188, y: 858, scale: 0.74 },
+        { id: "smugglerActor", idleAnim: "smugglerIdle", talkAnim: "smugglerTalk", x: 1188, y: 858, scale: 0.84 },
       ],
       exits: [
         { id: "toHarbor", label: "Harbor", rect: [690, 365, 470, 360], to: "harbor", spawn: [880, 856], walkTo: [940, 858] },
@@ -253,7 +253,7 @@
       walkMin: 225,
       walkMax: 1650,
       actors: [
-        { id: "archivistActor", idleAnim: "archivistIdle", talkAnim: "archivistTalk", x: 1320, y: 842, scale: 0.76 },
+        { id: "archivistActor", idleAnim: "archivistIdle", talkAnim: "archivistTalk", x: 1320, y: 842, scale: 0.79 },
       ],
       exits: [
         { id: "toMarket", label: "Moon Market", rect: [0, 230, 325, 570], to: "market", spawn: [1490, 858], walkTo: [280, 842] },
