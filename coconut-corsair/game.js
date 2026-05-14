@@ -41,6 +41,7 @@
     observatory: "assets/backgrounds/observatory_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
     npcExtras: "assets/sprites/npcs_market_observatory_imagen_sheet.png?v=imagen-hd-npc-flow",
+    keeperSolid: "assets/sprites/keeper_moon_door_solid_sheet.png?v=keeper-solid-v2",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
   };
@@ -81,8 +82,8 @@
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
     smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.95, blend: true },
     smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 4.1, blend: true },
-    keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.58 },
-    keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 2.7 },
+    keeperIdle: { sheet: "keeperSolid", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5], fps: 0.42 },
+    keeperTalk: { sheet: "keeperSolid", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], fps: 2.35 },
     archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.78, blend: true },
     archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.6, blend: true },
   };
@@ -398,6 +399,8 @@
       ],
       motes: { x: 440, y: 90, w: 1040, h: 470, count: 16, rgb: "128, 235, 171", alpha: 0.042 },
       mist: { x: 920, y: 470, w: 780, h: 230, rows: 6, rgb: "164, 226, 204", alpha: 0.032 },
+      runes: { x: 620, y: 454, rx: 174, ry: 220, count: 18, rgb: "255, 226, 148", alpha: 0.052 },
+      sparkles: { x: 455, y: 270, w: 410, h: 360, count: 16, rgb: "255, 231, 158", alpha: 0.058 },
     },
     observatory: {
       glows: [
@@ -1979,6 +1982,35 @@
     ctx.restore();
   }
 
+  function drawRuneRing(config, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = `rgb(${config.rgb})`;
+    ctx.fillStyle = `rgb(${config.rgb})`;
+    for (let i = 0; i < config.count; i += 1) {
+      const angle = (Math.PI * 2 * i) / config.count + Math.sin(now * 0.00055 + i) * 0.018;
+      const x = config.x + Math.cos(angle) * config.rx;
+      const y = config.y + Math.sin(angle) * config.ry;
+      const pulse = 0.46 + Math.sin(now * 0.0022 + i * 1.7) * 0.3;
+      const tangent = angle + Math.PI / 2;
+      const len = 11 + Math.sin(now * 0.0013 + i) * 3;
+      ctx.globalAlpha = Math.max(0, config.alpha * pulse);
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(tangent) * len, y - Math.sin(tangent) * len);
+      ctx.lineTo(x + Math.cos(tangent) * len, y + Math.sin(tangent) * len);
+      ctx.stroke();
+      if (i % 3 === 0) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, 2.2, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   function drawSceneAmbience(sceneId, now) {
     const ambience = sceneAmbience[sceneId];
     if (!ambience) return;
@@ -1999,6 +2031,7 @@
     if (ambience.beams) drawMoonbeams(ambience.beams, now);
     if (ambience.cloth) drawClothSway(ambience.cloth, now);
     if (ambience.lens) drawLensGlints(ambience.lens, now);
+    if (ambience.runes) drawRuneRing(ambience.runes, now);
     if (ambience.sparkles) drawSparkles(ambience.sparkles, now);
   }
 
