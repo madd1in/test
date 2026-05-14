@@ -564,9 +564,9 @@
 
   class SpeechDesk {
     constructor() {
-      this.enabled = localStorage.getItem("coconut-corsair-voice") === "on";
       this.voices = [];
       this.supported = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+      this.enabled = this.supported && localStorage.getItem("coconut-corsair-voice") !== "off";
       this.updateButton();
       if (this.supported) {
         this.voices = window.speechSynthesis.getVoices();
