@@ -81,8 +81,8 @@
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
     smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.95, blend: true },
     smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 4.1, blend: true },
-    keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.75, blend: true },
-    keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 3.3, blend: true },
+    keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.58 },
+    keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 2.7 },
     archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.78, blend: true },
     archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.6, blend: true },
   };
