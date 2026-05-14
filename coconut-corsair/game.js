@@ -6,6 +6,8 @@
   const FRAME_W = 192;
   const FRAME_H = 256;
   const ITEM_SIZE = 96;
+  const PLAYER_WORLD_SCALE = 1.02;
+  const NPC_WORLD_SCALE_BOOST = 1.16;
   const STORAGE_KEY = "coconut-corsair-save-v1";
 
   const canvas = document.getElementById("gameCanvas");
@@ -2823,11 +2825,11 @@
     drawSceneProps(scene);
 
     scene.actors.forEach((actor, index) => {
-      drawSprite(actorAnimName(actor, now), actor.x, actor.y, actor.scale, index * 2.37, { now });
+      drawSprite(actorAnimName(actor, now), actor.x, actor.y, actor.scale * NPC_WORLD_SCALE_BOOST, index * 2.37, { now });
     });
 
     drawSceneItems(scene);
-    drawSprite(state.player.action, state.player.x, state.player.y, 0.86, 0, { player: true });
+    drawSprite(state.player.action, state.player.x, state.player.y, PLAYER_WORLD_SCALE, 0, { player: true });
 
     if (state.flags.shrineOpen && state.scene === "jungle") {
       ctx.save();
