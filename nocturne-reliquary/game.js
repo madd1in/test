@@ -399,7 +399,8 @@
     mobileDoorReentryGuard: "block-reverse-door-until-clear-or-side-step-v2",
     mobileFont: "compact-cinzel-v1",
     mobileStartFullscreen: "manual-fs-button-v1",
-    mobilePerformance: "viewport-lite-player-cache-no-vignette-v6",
+    mobilePerformance: "cached-world-bg-door-reentry-v7",
+    visualDepthSet: "cached-atmosphere-lightshafts-v1",
     pacingSet: "rite-shortcut-portrait-warp-surge-v1",
     riteSurveyRequired: RITE_SURVEY_REQUIRED,
     riteSealsRequired: RITE_SEALS_REQUIRED,
@@ -556,6 +557,7 @@
   const moatWaterRenderCache = new Map();
   const roomSceneryCache = new Map();
   const roomSceneryWorldCache = new Map();
+  const atmosphereOverlayCache = new Map();
   const chromaCutoutCache = new Map();
   const sheetFrameCache = new WeakMap();
   const perfStats = { enabled: false, update: [], draw: [], frame: [] };
@@ -1699,7 +1701,7 @@
         p(770, 154, 150, 28, "blue")
       ],
       doors: [
-        d(430, 440, 100, 56, "gallery", 470, 72, "down"),
+        d(430, 440, 100, 56, "gallery", 470, 202, "down"),
         d(922, 72, 38, 118, "tower", 60, 112, "right")
       ],
       enemies: [
@@ -2690,7 +2692,8 @@
       moatWater: moatWaterRenderCache.size,
       scenery: roomSceneryCache.size + roomSceneryWorldCache.size,
       sceneryViewports: roomSceneryCache.size,
-      sceneryWorld: roomSceneryWorldCache.size
+      sceneryWorld: roomSceneryWorldCache.size,
+      atmosphere: atmosphereOverlayCache.size
     },
     hdProps: {
       armoryBg: Boolean(images.bgArmory && images.bgArmory.width),
@@ -5594,12 +5597,15 @@
 
   function shouldReleaseDoorReentryBlock(door) {
     if (door.side !== "up" && door.side !== "down") return false;
-    const pcx = player.x + player.w / 2;
-    const dcx = door.x + door.w / 2;
-    const sideClear = Math.abs(pcx - dcx) > Math.max(38, door.w * 0.44);
-    if (sideClear) return true;
+    if (doorReentrySideClear(door)) return true;
     if (door.side === "up") return player.y > door.y + door.h + 18;
     return player.y + player.h < door.y - 10;
+  }
+
+  function doorReentrySideClear(door) {
+    const pcx = player.x + player.w / 2;
+    const dcx = door.x + door.w / 2;
+    return Math.abs(pcx - dcx) > Math.max(38, door.w * 0.44);
   }
 
   function doorReentryBlocked(door) {
@@ -5610,11 +5616,18 @@
       return false;
     }
     if (block.key !== doorKey(door)) return false;
+    const trigger = doorTriggerBox(door);
+    if (rectsOverlap(player, trigger)) {
+      if (doorReentrySideClear(door)) {
+        game.doorReentryBlock = null;
+        return false;
+      }
+      return true;
+    }
     if (shouldReleaseDoorReentryBlock(door)) {
       game.doorReentryBlock = null;
       return false;
     }
-    if (rectsOverlap(player, doorTriggerBox(door))) return true;
     game.doorReentryBlock = null;
     return false;
   }
@@ -6273,6 +6286,7 @@
       return;
     }
     drawRoom();
+    drawRoomAtmosphere();
     ctx.save();
     ctx.translate(-Math.round(game.cameraX), -Math.round(game.cameraY));
     drawDoors();
@@ -6463,6 +6477,80 @@
       }
       ctx.restore();
     }
+  }
+
+  function roomAtmosphereAccent(room) {
+    if (!room) return { warm: "rgba(244, 211, 139,", cool: "rgba(112, 184, 198," };
+    if (room.palette === "red") return { warm: "rgba(255, 104, 86,", cool: "rgba(244, 211, 139," };
+    if (room.palette === "green") return { warm: "rgba(203, 244, 162,", cool: "rgba(86, 188, 142," };
+    if (room.palette === "blue") return { warm: "rgba(112, 184, 198,", cool: "rgba(139, 215, 255," };
+    return { warm: "rgba(244, 211, 139,", cool: "rgba(255, 180, 96," };
+  }
+
+  function getRoomAtmosphereOverlay(room, liteFx) {
+    if (!room) return null;
+    const accent = roomAtmosphereAccent(room);
+    const key = `${room.palette}:${room.bg}:${liteFx ? "lite" : "full"}`;
+    if (atmosphereOverlayCache.has(key)) return atmosphereOverlayCache.get(key);
+    if (atmosphereOverlayCache.size > 10) atmosphereOverlayCache.clear();
+
+    const layer = document.createElement("canvas");
+    layer.width = W;
+    layer.height = H;
+    const g = layer.getContext("2d");
+    g.imageSmoothingEnabled = true;
+
+    const topGlow = g.createLinearGradient(0, 0, W, H * 0.52);
+    topGlow.addColorStop(0, `${accent.cool} 0.12)`);
+    topGlow.addColorStop(0.54, "rgba(255,255,255,0)");
+    topGlow.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = topGlow;
+    g.fillRect(0, 0, W, H);
+
+    if (!liteFx) {
+      g.globalCompositeOperation = "screen";
+      g.globalAlpha = 0.28;
+      for (let i = 0; i < 4; i += 1) {
+        const x = 96 + i * 236;
+        const beam = g.createLinearGradient(x - 88, 0, x + 56, H);
+        beam.addColorStop(0, `${accent.warm} 0.18)`);
+        beam.addColorStop(0.62, `${accent.warm} 0.04)`);
+        beam.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = beam;
+        g.beginPath();
+        g.moveTo(x - 42, 0);
+        g.lineTo(x + 72, 0);
+        g.lineTo(x + 196, H);
+        g.lineTo(x - 58, H);
+        g.closePath();
+        g.fill();
+      }
+    }
+
+    g.globalCompositeOperation = "source-over";
+    g.globalAlpha = 1;
+    const bottom = g.createLinearGradient(0, H * 0.55, 0, H);
+    bottom.addColorStop(0, "rgba(0,0,0,0)");
+    bottom.addColorStop(1, liteFx ? "rgba(0,0,0,0.20)" : "rgba(0,0,0,0.30)");
+    g.fillStyle = bottom;
+    g.fillRect(0, 0, W, H);
+
+    const edge = g.createRadialGradient(W / 2, H * 0.52, H * 0.12, W / 2, H * 0.52, H * 0.86);
+    edge.addColorStop(0, "rgba(0,0,0,0)");
+    edge.addColorStop(1, liteFx ? "rgba(0,0,0,0.18)" : "rgba(0,0,0,0.28)");
+    g.fillStyle = edge;
+    g.fillRect(0, 0, W, H);
+
+    atmosphereOverlayCache.set(key, layer);
+    return layer;
+  }
+
+  function drawRoomAtmosphere() {
+    const overlay = getRoomAtmosphereOverlay(game.room, mobilePerformanceMode());
+    if (!overlay) return;
+    ctx.save();
+    ctx.drawImage(overlay, 0, 0);
+    ctx.restore();
   }
 
   function drawCachedRoomScenery(room, cameraX, cameraY) {
@@ -6734,7 +6822,9 @@
     ctx.imageSmoothingEnabled = true;
 
     if (mobilePerformanceMode()) {
-      drawMobileLiteRoomBackground(room, bg, mid, cameraX, cameraY, rw, rh, outdoor);
+      const mobileCached = getRoomBackgroundWorldLayer(room, bg, mid, rw, rh, outdoor, true);
+      if (mobileCached) drawWorldLayerViewport(mobileCached, cameraX, cameraY);
+      else drawMobileLiteRoomBackground(room, bg, mid, cameraX, cameraY, rw, rh, outdoor);
       ctx.restore();
       ctx.imageSmoothingEnabled = false;
       return;

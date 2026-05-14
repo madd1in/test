@@ -278,6 +278,18 @@ async function browserSmoke() {
     if (!document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
     window.__NOCTURNE_TEST_INPUT("down", true);
   }, "gallery"));
+  const clockGalleryReentryProbe = await page.evaluate(async () => {
+    for (const action of ["left", "right", "up", "down"]) window.__NOCTURNE_TEST_INPUT(action, false);
+    if (!document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
+    window.__NOCTURNE_TEST_TELEPORT("clock", 456, 382);
+    window.__NOCTURNE_TEST_INPUT("down", true);
+    await new Promise((resolve) => setTimeout(resolve, 1700));
+    const heldDown = window.__NOCTURNE_DEBUG_STATE();
+    window.__NOCTURNE_TEST_INPUT("down", false);
+    await new Promise((resolve) => setTimeout(resolve, 520));
+    const released = window.__NOCTURNE_DEBUG_STATE();
+    return { heldDown, released };
+  });
   const galleryPixelProbe = await page.evaluate(() => {
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -638,7 +650,7 @@ async function browserSmoke() {
 
   await closeBrowser(browser);
   await closeServer(server);
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, galleryPixelProbe, puzzleProbe, pacingGateProbe, portraitWarpBefore, portraitWarpAfter, surgeProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, clockGalleryReentryProbe, galleryPixelProbe, puzzleProbe, pacingGateProbe, portraitWarpBefore, portraitWarpAfter, surgeProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -779,7 +791,8 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-clear-or-side-step-v2", "mobile door reentry guard should clear when side-stepping away from hatches");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
   assert(result.state.tuningInfo.mobileStartFullscreen === "manual-fs-button-v1", "mobile start should keep fullscreen manual");
-  assert(result.state.tuningInfo.mobilePerformance === "viewport-lite-player-cache-no-vignette-v6", "mobile performance should use viewport-cropped backgrounds, cached player frames, and no mobile vignette");
+  assert(result.state.tuningInfo.mobilePerformance === "cached-world-bg-door-reentry-v7", "mobile performance should use cached world backgrounds and the stronger door reentry guard");
+  assert(result.state.tuningInfo.visualDepthSet === "cached-atmosphere-lightshafts-v1", "cached atmosphere/lightshaft overlays should be wired");
   assert(result.state.tuningInfo.pacingSet === "rite-shortcut-portrait-warp-surge-v1", "pacing shortcut tuning should be wired");
   assert(result.state.tuningInfo.riteSurveyRequired === 18 && result.state.tuningInfo.riteSealsRequired === 2, "rite gate should require 18 mapped rooms and 2 seals");
   assert(result.state.tuningInfo.progressRoute === "rite-shortcut-18rooms-2seals-v1", "shortened rite route should be wired");
@@ -791,11 +804,14 @@ async function browserSmoke() {
   assert(result.drawbridgeRaisedState.introBridge && result.drawbridgeRaisedState.introBridge.progress > 0.45 && result.drawbridgeRaisedState.introBridge.target === 1, `drawbridge should raise after crossing trigger: ${JSON.stringify(result.drawbridgeRaisedState)}`);
   assert(result.drawbridgeRaisedState.introBridge.walkY < result.drawbridgeRaisedState.introBridge.y && result.drawbridgeRaisedState.introBridge.walkY <= result.drawbridgeRaisedState.introBridge.y - result.drawbridgeRaisedState.introBridge.h + 6, `drawbridge collision should sit on the upper deck face: ${JSON.stringify(result.drawbridgeRaisedState.introBridge)}`);
   assert(result.drawbridgeRaisedState.drawbridgeCache && result.drawbridgeRaisedState.drawbridgeCache.deck && result.drawbridgeRaisedState.drawbridgeCache.anchor && result.drawbridgeRaisedState.drawbridgeCache.chains > 0 && result.drawbridgeRaisedState.drawbridgeCache.mode7 > 0 && result.drawbridgeRaisedState.drawbridgeCache.backgrounds > 0 && result.drawbridgeRaisedState.drawbridgeCache.scenery > 0, `drawbridge cached render layers should be active: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
+  assert(result.drawbridgeRaisedState.drawbridgeCache.atmosphere > 0 || result.state.debugState.drawbridgeCache.atmosphere > 0, `cached atmosphere overlays should be populated: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
   assert(result.drawbridgeRaisedState.drawbridgeCache.chains <= 2, `drawbridge should reuse stable chain strips instead of producing per-frame canvases: ${JSON.stringify(result.drawbridgeRaisedState.drawbridgeCache)}`);
   assert(result.drawbridgeRaisedState.visuals && result.drawbridgeRaisedState.visuals.parallax.includes("paraStatues"), "castle garden should use statue parallax elements");
   assert(result.drawbridgeRaisedState.visuals.mode7, "castle garden should use stretched/Mode7 background fill");
   assert(result.drawbridgeLoweringState.introBridge && result.drawbridgeLoweringState.introBridge.target === 0 && result.drawbridgeLoweringState.introBridge.progress < result.drawbridgeRaisedState.introBridge.progress, `drawbridge should lower for return path: ${JSON.stringify(result.drawbridgeLoweringState)}`);
   assert(result.mobileJumpState.playerY < result.mobileJumpStart.playerY - 35, `mobile tap jump should climb high enough: ${JSON.stringify({ before: result.mobileJumpStart, after: result.mobileJumpState })}`);
+  assert(result.clockGalleryReentryProbe.heldDown.room === "gallery" && result.clockGalleryReentryProbe.released.room === "gallery", `Clockwork Rise down-exit should not auto-beam back into Clockwork while mobile hatch intent is armed: ${JSON.stringify(result.clockGalleryReentryProbe)}`);
+  assert(result.clockGalleryReentryProbe.released.playerY > 180, `Clockwork-to-Gallery spawn should land below the upper hatch trigger, not inside it: ${JSON.stringify(result.clockGalleryReentryProbe.released)}`);
   assert(result.movementState.cameraX > 20, `camera should scroll after moving right: ${JSON.stringify(result.movementState)}`);
   assert(result.movementState.roomHeight > 540, "debug state should expose tall rooms");
   const grottoState = result.transitionStates.find((entry) => entry.room === "cavernDepths");
