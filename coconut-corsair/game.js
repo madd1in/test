@@ -424,7 +424,7 @@
     async enable() {
       this.enabled = true;
       audioButton.textContent = "Mute";
-      await this.playMusic(scenes[state.scene].music);
+      return this.playMusic(scenes[state.scene].music);
     }
 
     mute() {
@@ -435,18 +435,21 @@
     }
 
     async playMusic(key) {
-      if (!this.enabled) return;
-      if (this.current === key) return;
+      if (!this.enabled) return false;
+      if (this.current === key && this.tracks[key] && !this.tracks[key].paused) return true;
       if (this.current && this.tracks[this.current]) this.tracks[this.current].pause();
       const track = this.tracks[key];
-      if (!track) return;
+      if (!track) return false;
       track.currentTime = 0;
-      this.current = key;
       try {
         await track.play();
+        this.current = key;
+        return true;
       } catch {
         this.enabled = false;
+        this.current = null;
         audioButton.textContent = "Audio";
+        return false;
       }
     }
 
@@ -732,6 +735,13 @@
     return document.fullscreenElement || document.webkitFullscreenElement || null;
   }
 
+  function isMobileMode() {
+    const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+    const compact = window.matchMedia?.("(max-width: 820px)")?.matches;
+    const mobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    return Boolean(mobileUA || (coarse && compact) || (navigator.maxTouchPoints > 1 && window.innerWidth <= 980));
+  }
+
   function updateFullscreenButton() {
     if (!fullscreenButton) return;
     const canRequest = Boolean(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
@@ -743,16 +753,61 @@
     fullscreenButton.setAttribute("aria-pressed", active ? "true" : "false");
   }
 
+  async function requestAppFullscreen() {
+    if (getFullscreenElement()) return true;
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    } else if (document.documentElement.webkitRequestFullscreen) {
+      await document.documentElement.webkitRequestFullscreen();
+    } else {
+      return false;
+    }
+    updateFullscreenButton();
+    return true;
+  }
+
+  async function exitAppFullscreen() {
+    if (screen.orientation?.unlock) screen.orientation.unlock();
+    if (document.exitFullscreen) await document.exitFullscreen();
+    else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+    updateFullscreenButton();
+  }
+
+  async function lockLandscapeOrientation() {
+    if (!screen.orientation?.lock) return false;
+    for (const mode of ["landscape", "landscape-primary"]) {
+      try {
+        await screen.orientation.lock(mode);
+        return true;
+      } catch {
+        // Try the next browser-supported spelling.
+      }
+    }
+    return false;
+  }
+
+  async function enterMobileImmersiveMode() {
+    if (!isMobileMode()) return false;
+    let fullscreenOk = false;
+    try {
+      fullscreenOk = await requestAppFullscreen();
+    } catch {
+      fullscreenOk = false;
+    }
+    if (fullscreenOk) await lockLandscapeOrientation();
+    if (window.innerHeight > window.innerWidth) setStatus("Rotate to landscape for the full view.");
+    updateFullscreenButton();
+    return fullscreenOk;
+  }
+
   async function toggleFullscreen() {
     if (!fullscreenButton || fullscreenButton.disabled) return;
     try {
       if (getFullscreenElement()) {
-        if (document.exitFullscreen) await document.exitFullscreen();
-        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
-      } else if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen({ navigationUI: "hide" });
-      } else if (document.documentElement.webkitRequestFullscreen) {
-        await document.documentElement.webkitRequestFullscreen();
+        await exitAppFullscreen();
+      } else {
+        await requestAppFullscreen();
+        if (isMobileMode()) await lockLandscapeOrientation();
       }
     } catch {
       setStatus("Fullscreen is not available here.");
@@ -1884,7 +1939,15 @@
     updateVerbButtons();
     updateInventory();
     updateQuestTracker();
-    audio.playMusic(getScene().music);
+    if (isMobileMode()) {
+      const audioStart = audio.enable();
+      const immersiveStart = enterMobileImmersiveMode();
+      Promise.allSettled([audioStart, immersiveStart]).then(() => {
+        if (!audio.enabled) setStatus("Tap Audio if music stays muted.");
+      });
+    } else {
+      audio.playMusic(getScene().music);
+    }
   }
 
   function bindEvents() {
@@ -1926,6 +1989,8 @@
     updateQuestTracker();
     updateFullscreenButton();
     window.__COCONUT_READY = true;
+    window.__COCONUT_IS_MOBILE_MODE = isMobileMode;
+    window.__COCONUT_ENTER_MOBILE_IMMERSIVE = enterMobileImmersiveMode;
     window.__COCONUT_DEBUG_STATE = () => ({
       scene: state.scene,
       inventory: [...state.inventory],

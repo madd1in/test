@@ -146,6 +146,9 @@ async function run() {
     questHidden: document.getElementById("questTracker").hidden,
     questText: document.getElementById("questTracker").innerText,
     fullscreenText: document.getElementById("fullscreenButton").textContent,
+    viewport: document.querySelector("meta[name='viewport']")?.content || "",
+    hasMobileModeHook: typeof window.__COCONUT_IS_MOBILE_MODE === "function",
+    hasMobileImmersiveHook: typeof window.__COCONUT_ENTER_MOBILE_IMMERSIVE === "function",
   }));
   assert(hud.questHidden === false, "Quest tracker did not open after start");
   assert(hud.questText.includes("Rope"), `Quest tracker missing first clear step: ${hud.questText}`);
@@ -153,6 +156,8 @@ async function run() {
   assert(!hud.questText.includes("Copper Token"), `Quest tracker should show only one next step: ${hud.questText}`);
   assert(!hud.questText.includes("Hint"), `Quest tracker should not show extra controls: ${hud.questText}`);
   assert(/Full|Exit/.test(hud.fullscreenText), `Fullscreen toggle label looks wrong: ${hud.fullscreenText}`);
+  assert(hud.viewport.includes("viewport-fit=cover"), `Viewport is not mobile fullscreen friendly: ${hud.viewport}`);
+  assert(hud.hasMobileModeHook && hud.hasMobileImmersiveHook, "Mobile immersive hooks are missing");
 
   const probe = await page.evaluate(() => {
     const canvas = document.getElementById("gameCanvas");
