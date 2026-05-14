@@ -677,8 +677,20 @@
     };
   }
 
-  function pointInRect(point, rect) {
-    return point.x >= rect[0] && point.y >= rect[1] && point.x <= rect[0] + rect[2] && point.y <= rect[1] + rect[3];
+  function pointInRect(point, rect, pad = 0) {
+    return (
+      point.x >= rect[0] - pad &&
+      point.y >= rect[1] - pad &&
+      point.x <= rect[0] + rect[2] + pad &&
+      point.y <= rect[1] + rect[3] + pad
+    );
+  }
+
+  function mobileHitPad(type) {
+    if (!isMobileMode()) return 0;
+    const shortSide = Math.min(window.innerWidth, window.innerHeight);
+    const scale = shortSide <= 480 ? 1.18 : 1;
+    return Math.round((type === "exit" ? 92 : 38) * scale);
   }
 
   function availableHotspots(scene = getScene()) {
@@ -687,10 +699,21 @@
 
   function findHotspot(point) {
     const scene = getScene();
-    const hotspot = availableHotspots(scene).find((spot) => pointInRect(point, spot.rect));
+    const hotspots = availableHotspots(scene);
+    const hotspot = hotspots.find((spot) => pointInRect(point, spot.rect));
     if (hotspot) return { type: "hotspot", data: hotspot };
     const exit = scene.exits.find((candidate) => pointInRect(point, candidate.rect));
     if (exit) return { type: "exit", data: exit };
+    const exitPad = mobileHitPad("exit");
+    if (exitPad) {
+      const mobileExit = scene.exits.find((candidate) => pointInRect(point, candidate.rect, exitPad));
+      if (mobileExit) return { type: "exit", data: mobileExit, expanded: true };
+    }
+    const hotspotPad = mobileHitPad("hotspot");
+    if (hotspotPad) {
+      const mobileHotspot = hotspots.find((spot) => pointInRect(point, spot.rect, hotspotPad));
+      if (mobileHotspot) return { type: "hotspot", data: mobileHotspot, expanded: true };
+    }
     return null;
   }
 
