@@ -6,13 +6,13 @@
   const FRAME_W = 192;
   const FRAME_H = 256;
   const ITEM_SIZE = 96;
-  const PLAYER_WORLD_SCALE = 1.02;
-  const PLAYER_WALK_SPEED = 390;
+  const PLAYER_WORLD_SCALE = 1.24;
+  const PLAYER_WALK_SPEED = 360;
   const PLAYER_WALK_PX_PER_FRAME = 16.25;
-  const PLAYER_WALK_BOB = 5.5;
-  const PLAYER_WALK_SWAY = 2.1;
-  const PLAYER_WALK_LEAN = 0.022;
-  const NPC_WORLD_SCALE_BOOST = 1.16;
+  const PLAYER_WALK_BOB = 1.8;
+  const PLAYER_WALK_SWAY = 1.35;
+  const PLAYER_WALK_LEAN = 0.014;
+  const NPC_WORLD_SCALE_BOOST = 1.34;
   const STORAGE_KEY = "coconut-corsair-save-v1";
 
   const canvas = document.getElementById("gameCanvas");
@@ -192,6 +192,7 @@
   const images = {};
   const outlineCanvas = document.createElement("canvas");
   const outlineCtx = outlineCanvas.getContext("2d");
+  const spriteAnchors = new Map();
 
   const scenes = {
     harbor: {
@@ -661,6 +662,50 @@
       return img;
     })));
     updateLoading(entries.length, entries.length, true);
+  }
+
+  function prepareSpriteAnchors() {
+    ["characters", "npcExtras", "keeperSolid"].forEach((key) => {
+      const sheet = images[key];
+      if (!sheet) return;
+      const cols = Math.floor(sheet.width / FRAME_W);
+      const rows = Math.floor(sheet.height / FRAME_H);
+      const scratch = document.createElement("canvas");
+      scratch.width = FRAME_W;
+      scratch.height = FRAME_H;
+      const scratchCtx = scratch.getContext("2d", { willReadFrequently: true });
+      if (!scratchCtx) return;
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let frame = 0; frame < cols; frame += 1) {
+          scratchCtx.clearRect(0, 0, FRAME_W, FRAME_H);
+          scratchCtx.drawImage(sheet, frame * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+          let pixels;
+          try {
+            pixels = scratchCtx.getImageData(0, 0, FRAME_W, FRAME_H).data;
+          } catch {
+            return;
+          }
+          let minX = FRAME_W;
+          let maxX = -1;
+          let maxY = -1;
+          for (let y = 0; y < FRAME_H; y += 1) {
+            for (let x = 0; x < FRAME_W; x += 1) {
+              if (pixels[(y * FRAME_W + x) * 4 + 3] <= 24) continue;
+              minX = Math.min(minX, x);
+              maxX = Math.max(maxX, x);
+              maxY = Math.max(maxY, y);
+            }
+          }
+          if (maxX >= minX && maxY >= 0) {
+            spriteAnchors.set(`${key}:${row}:${frame}`, {
+              x: (minX + maxX + 1) / 2,
+              y: maxY + 1,
+            });
+          }
+        }
+      }
+    });
   }
 
   function clamp(value, min, max) {
@@ -2189,22 +2234,39 @@
     return talking ? (actor.talkAnim || actor.idleAnim || actor.anim) : (actor.idleAnim || actor.anim);
   }
 
+  function spriteAnchorFor(sheetKey, anim, frame) {
+    const anchor = spriteAnchors.get(`${sheetKey}:${anim.row}:${frame}`);
+    if (!anchor) return null;
+    const cropTop = anim.cropTop || 0;
+    const cropBottom = anim.cropBottom || 0;
+    const sourceH = FRAME_H - cropTop - cropBottom;
+    return {
+      x: anchor.x,
+      y: clamp(anchor.y - cropTop, 0, sourceH),
+    };
+  }
+
   function drawSpriteFrame(anim, frame, x, y, w, h, alpha = 1, effects = {}) {
-    const sheet = images[anim.sheet || "characters"] || images.characters;
+    const sheetKey = anim.sheet || "characters";
+    const sheet = images[sheetKey] || images.characters;
     if (!sheet) return;
     const cropTop = anim.cropTop || 0;
     const cropBottom = anim.cropBottom || 0;
     const sourceH = FRAME_H - cropTop - cropBottom;
     const scaleY = h / FRAME_H;
+    const scaleX = w / FRAME_W;
     const sx = frame * FRAME_W;
     const sy = anim.row * FRAME_H + cropTop;
     const dh = sourceH * scaleY;
+    const anchor = spriteAnchorFor(sheetKey, anim, frame);
+    const dx = anchor ? -anchor.x * scaleX : -w / 2;
+    const dy = anchor ? -anchor.y * scaleY : -dh;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(x + (effects.offsetX || 0), y + (effects.offsetY || 0));
     if (effects.rotation) ctx.rotate(effects.rotation);
     ctx.scale(effects.scaleX || 1, effects.scaleY || 1);
-    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, -w / 2, -dh, w, dh);
+    ctx.drawImage(sheet, sx, sy, FRAME_W, sourceH, dx, dy, w, dh);
     ctx.restore();
   }
 
@@ -2433,10 +2495,14 @@
     const sourceH = FRAME_H - cropTop - cropBottom;
     const sx = frame * FRAME_W;
     const sy = anim.row * FRAME_H + cropTop;
-    const w = FRAME_W * actor.scale;
-    const h = FRAME_H * actor.scale;
-    const sheet = images[anim.sheet || "characters"] || images.characters;
-    drawSheetOutline(sheet, sx, sy, FRAME_W, sourceH, actor.x - w / 2, actor.y - sourceH * actor.scale, w, sourceH * actor.scale, style.thickness || 6, style);
+    const scale = actor.scale * NPC_WORLD_SCALE_BOOST;
+    const w = FRAME_W * scale;
+    const sheetKey = anim.sheet || "characters";
+    const sheet = images[sheetKey] || images.characters;
+    const anchor = spriteAnchorFor(sheetKey, anim, frame);
+    const dx = anchor ? actor.x - anchor.x * scale : actor.x - w / 2;
+    const dy = anchor ? actor.y - anchor.y * scale : actor.y - sourceH * scale;
+    drawSheetOutline(sheet, sx, sy, FRAME_W, sourceH, dx, dy, w, sourceH * scale, style.thickness || 6, style);
     return true;
   }
 
@@ -3005,6 +3071,7 @@
 
   async function boot() {
     await preloadImages();
+    prepareSpriteAnchors();
     loadGame();
     bindEvents();
     sceneName.textContent = getScene().title;
