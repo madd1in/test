@@ -1934,7 +1934,9 @@
       case "telescope":
         if (verb === "use") {
           setAction("use", 820);
-          if (!state.flags.starChartsRead) {
+          if (!state.flags.smugglerTip) {
+            say("Mara", "The telescope is impressive, but the market still owes me the fake-star clause first.");
+          } else if (!state.flags.starChartsRead) {
             say("Mara", "The telescope shows too many shiny lies. I need the charts to tell me which moon is pretending to be a star.");
           } else if (!hasItem("spyglass")) {
             say("Mara", "The chart gives me the target, but I need the Brass Spyglass from the left tavern table to finish the squint.");
@@ -1955,6 +1957,8 @@
           setAction("use", 760);
           if (!hasItem("brassNote") && !state.flags.gotNote) {
             say("Mara", "The chart has a note-shaped blank. Very rude of astronomy to demand paperwork.");
+          } else if (!state.flags.smugglerTip) {
+            say("Mara", "The charts refuse to make sense until I win the market's banana shuffle and repartee nonsense.");
           } else {
             state.flags.starChartsRead = true;
             say("Mara", "The brass note lines up with the chart: the third star is not a star. It is a tiny moon-door reflection with stage fright.");
@@ -2026,7 +2030,9 @@
     } else if (item === "spyglass" && hotspotId === "shipCabin") {
       say("Mara", "The far scratch under the cabin rail reads: ask the barkeep why the moon owes him money.");
     } else if (item === "spyglass" && hotspotId === "telescope") {
-      if (!state.flags.starChartsRead) {
+      if (!state.flags.smugglerTip) {
+        say("Mara", "Spyglass meets telescope, but without the market mini-games I still do not know which star is lying.");
+      } else if (!state.flags.starChartsRead) {
         say("Mara", "The spyglass sharpens the telescope, but without the star charts I am just admiring expensive confusion.");
       } else if (!state.flags.telescopeAligned) {
         startTelescopeFocusGame();
@@ -2034,8 +2040,12 @@
         say("Mara", "Spyglass through telescope: the fake third star is already pinned neatly to the moon-door reflection.");
       }
     } else if (item === "brassNote" && hotspotId === "starCharts") {
-      state.flags.starChartsRead = true;
-      say("Mara", "The note and chart agree: shell, moon, star, except the last star is a reflected moon-door. Helpful and deeply smug.");
+      if (!state.flags.smugglerTip) {
+        say("Mara", "The note needs the smuggler's market clause first. Banana shuffle, repartee, then astronomy.");
+      } else {
+        state.flags.starChartsRead = true;
+        say("Mara", "The note and chart agree: shell, moon, star, except the last star is a reflected moon-door. Helpful and deeply smug.");
+      }
     } else if (item === "lime" && hotspotId === "fruitStand") {
       say("Mara", "My lime returns from the fruit stand with a tiny sense of superiority.");
     } else if (item === "bottle" && hotspotId === "dirtJar") {

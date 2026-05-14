@@ -204,6 +204,13 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "spyglass", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "barkeep", "talk"));
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
+  const earlyCharts = await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "starCharts", "use", "brassNote"));
+  assert(earlyCharts.flags.starChartsRead === false, "Star charts should be blocked until market mini games are complete");
+  const earlyTelescope = await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "telescope", "use", "spyglass"));
+  assert(
+    earlyTelescope.flags.telescopeAligned === false && earlyTelescope.miniGame === null,
+    "Telescope focus should not start before the market mini-game gates",
+  );
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "fruitStand", "use"));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(2));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
@@ -223,6 +230,11 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "archivist", "talk"));
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
+  const earlyShell = await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "tidepool", "take"));
+  assert(
+    earlyShell.flags.shellKeyTaken === false && !earlyShell.inventory.includes("shellKey"),
+    "Shell Key should be blocked until the citrus mini game is complete",
+  );
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "stage", "use"));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
