@@ -20,6 +20,7 @@
   const miniGameEl = document.getElementById("miniGame");
   const miniTitle = document.getElementById("miniTitle");
   const miniPrompt = document.getElementById("miniPrompt");
+  const miniArt = document.getElementById("miniArt");
   const miniStats = document.getElementById("miniStats");
   const miniChoices = document.getElementById("miniChoices");
   const miniClose = document.getElementById("miniClose");
@@ -54,7 +55,8 @@
     keeperSolid: "assets/sprites/keeper_moon_door_solid_sheet.png?v=keeper-solid-v2",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
-    props: "assets/sprites/interactive_props_sheet.png?v=scene-props-v1",
+    props: "assets/sprites/observatory_imagen_props_hd_sheet.png?v=observatory-imagen-props-hd-v1",
+    miniGames: "assets/sprites/mini_games_imagen_hd_sheet.png?v=mini-games-imagen-hd-v1",
   };
 
   const audioSources = {
@@ -371,21 +373,28 @@
   };
 
   const propSprites = {
-    telescope: { col: 0, row: 0, x: 748, y: 304, w: 510, h: 455 },
-    archiveHatch: { col: 0, row: 1, x: 260, y: 740, w: 570, h: 285 },
-    redCurtain: { col: 1, row: 1, x: 1218, y: 292, w: 286, h: 510 },
-    skiff: { col: 2, row: 1, x: 1268, y: 584, w: 652, h: 312 },
+    telescope: { col: 0, row: 0, x: 785, y: 300, w: 430, h: 520 },
+    starCharts: { col: 1, row: 0, x: 552, y: 388, w: 360, h: 360 },
+    fedoraRelic: { col: 2, row: 0, x: 1114, y: 284, w: 250, h: 168 },
+    crystalMug: { col: 3, row: 0, x: 1286, y: 335, w: 260, h: 232 },
+    archiveHatch: { col: 0, row: 1, x: 350, y: 748, w: 410, h: 300 },
+    redCurtain: { col: 1, row: 1, x: 1178, y: 270, w: 350, h: 540 },
+    skiff: { col: 2, row: 1, x: 1278, y: 600, w: 635, h: 300 },
   };
 
   const questTargets = {
     rope: { scene: "harbor", id: "rope" },
     token: { scene: "harbor", id: "crate" },
     verse: { scene: "tavern", id: "barkeep" },
+    banana: { scene: "market", id: "fruitStand" },
+    repartee: { scene: "market", id: "smuggler" },
     spyglass: { scene: "tavern", id: "spyglass" },
     smuggler: { scene: "market", id: "smuggler" },
     starCharts: { scene: "observatory", id: "starCharts" },
     telescope: { scene: "observatory", id: "telescope" },
     archivist: { scene: "observatory", id: "archivist" },
+    lime: { scene: "tavern", id: "lime" },
+    citrus: { scene: "tavern", id: "stage" },
     shell: { scene: "beach", id: "tidepool" },
     skiff: { scene: "harbor", id: "skiff" },
     door: { scene: "jungle", id: "shrineDoor" },
@@ -785,9 +794,27 @@
     }
 
     if (!state.flags.smugglerTip) {
+      if (!state.flags.bananaShuffleWon) {
+        return {
+          title: "Next Step",
+          next: "Win the Banana Shell Shuffle at the fruit stand.",
+          need: "Location: Moon Market",
+          hint: "Walk from Harbor to the Moon Market, then Use the Questionable Fruit Stand.",
+          current: "banana",
+        };
+      }
+      if (!state.flags.reparteeWon) {
+        return {
+          title: "Next Step",
+          next: "Beat the Smuggler in a repartee duel.",
+          need: "Location: Moon Market",
+          hint: "Talk to the Soft-Spoken Smuggler and choose the repartee duel.",
+          current: "repartee",
+        };
+      }
       return {
         title: "Next Step",
-        next: "Ask the Smuggler about the moon verse.",
+        next: "Ask the Smuggler for the missing moon clause.",
         need: "Location: Moon Market",
         hint: "Walk from Harbor to the Moon Market, then Talk to the Soft-Spoken Smuggler.",
         current: "smuggler",
@@ -830,6 +857,26 @@
         need: "Location: Observatory",
         hint: "Talk to the Sleepless Archivist after the Star Charts and Moon Telescope are aligned.",
         current: "archivist",
+      };
+    }
+
+    if (!state.flags.limeTaken && !hasItem("lime")) {
+      return {
+        title: "Next Step",
+        next: "Take a lime from the tavern bowl.",
+        need: "Location: Tavern",
+        hint: "Walk to the tavern and use Take on the Lime Bowl.",
+        current: "lime",
+      };
+    }
+
+    if (!state.flags.citrusSpitWon) {
+      return {
+        title: "Next Step",
+        next: "Win Citrus Spit Timing on the tiny stage.",
+        need: "Location: Tavern",
+        hint: "Use the Tiny Stage while carrying the lime.",
+        current: "citrus",
       };
     }
 
@@ -1013,6 +1060,7 @@
   function closeMiniGame() {
     state.miniGame = null;
     if (miniGameEl) miniGameEl.hidden = true;
+    if (miniArt) miniArt.hidden = true;
     if (miniChoices) miniChoices.innerHTML = "";
   }
 
@@ -1028,6 +1076,7 @@
       feedback: config.intro || "",
     };
     if (miniGameEl) miniGameEl.hidden = false;
+    if (miniArt) miniArt.hidden = false;
     renderMiniGame();
   }
 
@@ -1037,6 +1086,11 @@
     const round = game.rounds[game.round];
     miniTitle.textContent = game.title;
     miniPrompt.textContent = round.prompt;
+    if (miniArt) {
+      const art = game.art || [0, 0];
+      miniArt.style.setProperty("--mini-sheet", `url("${imageSources.miniGames}")`);
+      miniArt.style.backgroundPosition = `${(art[0] * 100) / 3}% ${art[1] * 100}%`;
+    }
     miniStats.textContent = `Round ${game.round + 1}/${game.rounds.length} - Score ${game.score}/${game.rounds.length}${game.feedback ? ` - ${game.feedback}` : ""}`;
     miniChoices.innerHTML = "";
     round.choices.forEach((choice, index) => {
@@ -1078,6 +1132,7 @@
     openMiniGame({
       title: "Moon-Market Repartee",
       intro: "Choose the comeback with the least dignity loss.",
+      art: [0, 0],
       need: 2,
       rounds: [
         {
@@ -1115,6 +1170,7 @@
     openMiniGame({
       title: "Banana Shell Shuffle",
       intro: "Follow the banana, distrust the baskets.",
+      art: [1, 0],
       need: 2,
       rounds: [
         {
@@ -1152,6 +1208,7 @@
     openMiniGame({
       title: "Moon Telescope Focus",
       intro: "Align lens, knob, phrase. Pretend this is science.",
+      art: [2, 0],
       need: 3,
       rounds: [
         {
@@ -1192,6 +1249,7 @@
     openMiniGame({
       title: "Citrus Spit Timing",
       intro: "A tiny stage, a lime, and very little public safety.",
+      art: [3, 0],
       need: 2,
       rounds: [
         {
@@ -1430,6 +1488,36 @@
                 reply: "You can. The door will enjoy the comedy.",
               },
             ]);
+          } else if (!state.flags.bananaShuffleWon) {
+            ask("Smuggler", "He glances at the fruit stand as if the bananas are witnesses.", [
+              {
+                text: "What is missing from shell, moon, star?",
+                reply: "First beat the fruit stand's banana shell shuffle. I do not trust a pirate who cannot track produce under pressure.",
+              },
+              {
+                text: "Why is fruit part of astronomy?",
+                reply: "Because the market has standards and none of them survived committee.",
+              },
+              {
+                text: "Fine. Point me at the bananas.",
+                reply: "Use the fruit stand. Watch the cups. Distrust anything with a peel.",
+              },
+            ]);
+          } else if (!state.flags.reparteeWon) {
+            ask("Smuggler", "He folds his arms. The missing clause apparently requires ceremonial nonsense.", [
+              {
+                text: "Challenge him to a repartee duel.",
+                action: startReparteeGame,
+              },
+              {
+                text: "Can I skip the repartee?",
+                reply: "Absolutely. You can also skip breathing while underwater. Both save time briefly.",
+              },
+              {
+                text: "Why insults?",
+                reply: "A proper moon secret must survive light mockery before it gets promoted to clue.",
+              },
+            ]);
           } else if (!state.flags.smugglerTip) {
             ask("Smuggler", "He taps the brass note twice, then once more for dramatic accounting.", [
               {
@@ -1437,7 +1525,7 @@
                 run: () => {
                   state.flags.smugglerTip = true;
                 },
-                reply: "The market clause: the third star is fake. Ask the archivist to prove which moon is lying.",
+                reply: "You passed fruit and verbal combat. The market clause: the third star is fake. Ask the archivist to prove which moon is lying.",
               },
               {
                 text: "Can you sell me a shortcut?",
@@ -1446,10 +1534,6 @@
               {
                 text: "Are you a villain?",
                 reply: "Only on invoices. In person I prefer 'aggressively helpful'.",
-              },
-              {
-                text: "Challenge him to a repartee duel.",
-                action: startReparteeGame,
               },
             ]);
           } else if (!state.flags.archivistClearance) {
@@ -1669,12 +1753,18 @@
         break;
       case "tidepool":
         if (verb === "take") {
+          if (!state.flags.citrusSpitWon) {
+            say("Mara", "A tiny crab guards the shell key like it signed a contract. I need a lime distraction from the tavern stage first.");
+            break;
+          }
           state.flags.shellKeyTaken = true;
           addItem("shellKey");
           setAction("pickup", 650);
           say("Mara", "A shell key, polished by tides and possibly smug about it.");
         } else {
-          say("Mara", "Something bright is caught between the stones.");
+          say("Mara", state.flags.citrusSpitWon
+            ? "Something bright is caught between the stones. The crab is still thinking about citrus."
+            : "Something bright is caught between the stones, guarded by a crab with management energy.");
         }
         break;
       case "bottle":
@@ -2750,6 +2840,15 @@
   }
 
   function bindEvents() {
+    document.addEventListener("contextmenu", (event) => {
+      if (event.target.closest("#app")) event.preventDefault();
+    });
+    document.addEventListener("selectstart", (event) => {
+      if (event.target.closest("#app")) event.preventDefault();
+    });
+    document.addEventListener("dragstart", (event) => {
+      if (event.target.closest("#app")) event.preventDefault();
+    });
     canvas.addEventListener("click", handleCanvasClick);
     canvas.addEventListener("mousemove", handleHover);
     canvas.addEventListener("mouseleave", () => {

@@ -85,6 +85,8 @@ function checkFiles() {
     "assets/source/keeper_moon_door_solid_sheet_source.png",
     "assets/source/npcs_market_observatory_imagen_sheet_source.png",
     "assets/source/npcs_market_observatory_normalized_sheet_source.png",
+    "assets/source/observatory_props_imagen_hd_raw.png",
+    "assets/source/mini_games_imagen_hd_raw.png",
     "assets/source/item_atlas_imagen_hd.png",
     "assets/backgrounds/harbor_imagen_hd.png",
     "assets/backgrounds/tavern_imagen_hd.png",
@@ -99,6 +101,8 @@ function checkFiles() {
     "assets/sprites/items_imagen_hd_sheet.png",
     "assets/sprites/scene_items_imagen_hd_sheet.png",
     "assets/sprites/interactive_props_sheet.png",
+    "assets/sprites/observatory_imagen_props_hd_sheet.png",
+    "assets/sprites/mini_games_imagen_hd_sheet.png",
     "assets/audio/bgm/moonlit-rum-islet.mp3",
     "assets/audio/bgm/tavern-tide.mp3",
     "assets/audio/bgm/tidewheel-cove.mp3",
@@ -200,12 +204,17 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "spyglass", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "barkeep", "talk"));
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
-  await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "smuggler", "talk"));
-  await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "fruitStand", "use"));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(2));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "smuggler", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "smuggler", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "ledger", "look"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "starCharts", "use", "brassNote"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "telescope", "use", "spyglass"));
@@ -214,6 +223,10 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "archivist", "talk"));
   await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
+  await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "stage", "use"));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(0));
+  await page.evaluate(() => window.__COCONUT_TEST_MINI_CHOICE(1));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "tidepool", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "bottle", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("harbor", "skiff", "use", "rope"));
@@ -230,6 +243,8 @@ async function run() {
   );
   assert(solved.inventory.includes("starCompass"), "Star Compass was not awarded");
   assert(solved.flags.bananaShuffleWon === true, "Banana shell mini game did not register a win");
+  assert(solved.flags.reparteeWon === true, "Repartee mini game did not register a win");
+  assert(solved.flags.citrusSpitWon === true, "Citrus mini game did not register a win");
   assert(solved.quest.next.includes("Done"), `Quest tracker did not complete: ${JSON.stringify(solved.quest)}`);
 
   assert(consoleErrors.length === 0, `Console errors: ${consoleErrors.join("\n")}`);
