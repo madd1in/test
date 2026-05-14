@@ -76,8 +76,8 @@
     use: { row: 5, frames: 12, fps: 12 },
     dockmasterIdle: { row: 6, frames: [0, 1, 2, 1], fps: 0.9, blend: true },
     dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
-    barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true },
-    barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true },
+    barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true, cropTop: 38 },
+    barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
     keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.75, blend: true },
     keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 3.3, blend: true },
   };
@@ -1129,11 +1129,15 @@
   }
 
   function drawSpriteFrame(anim, frame, x, y, w, h, alpha = 1) {
+    const cropTop = anim.cropTop || 0;
+    const cropBottom = anim.cropBottom || 0;
+    const sourceH = FRAME_H - cropTop - cropBottom;
+    const scaleY = h / FRAME_H;
     const sx = frame * FRAME_W;
-    const sy = anim.row * FRAME_H;
+    const sy = anim.row * FRAME_H + cropTop;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(images.characters, sx, sy, FRAME_W, FRAME_H, x - w / 2, y - h, w, h);
+    ctx.drawImage(images.characters, sx, sy, FRAME_W, sourceH, x - w / 2, y - h + cropTop * scaleY, w, sourceH * scaleY);
     ctx.restore();
   }
 
@@ -1284,11 +1288,14 @@
     const anim = anims[animName] || anims.idle;
     const framePosition = ((state.lastTime || performance.now()) / 1000) * anim.fps + index * 2.37;
     const frame = animFrameAt(anim, framePosition);
+    const cropTop = anim.cropTop || 0;
+    const cropBottom = anim.cropBottom || 0;
+    const sourceH = FRAME_H - cropTop - cropBottom;
     const sx = frame * FRAME_W;
-    const sy = anim.row * FRAME_H;
+    const sy = anim.row * FRAME_H + cropTop;
     const w = FRAME_W * actor.scale;
     const h = FRAME_H * actor.scale;
-    drawSheetOutline(images.characters, sx, sy, FRAME_W, FRAME_H, actor.x - w / 2, actor.y - h, w, h, 6);
+    drawSheetOutline(images.characters, sx, sy, FRAME_W, sourceH, actor.x - w / 2, actor.y - h + cropTop * actor.scale, w, sourceH * actor.scale, 6);
     return true;
   }
 
