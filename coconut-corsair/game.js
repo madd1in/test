@@ -74,10 +74,18 @@
     talk: { row: 3, frames: 16, fps: 12 },
     pickup: { row: 4, frames: 10, fps: 13 },
     use: { row: 5, frames: 12, fps: 12 },
-    dockmaster: { row: 6, frames: 16, fps: 8 },
-    barkeep: { row: 7, frames: 16, fps: 10 },
-    keeper: { row: 8, frames: 16, fps: 9 },
-    keeperIdle: { row: 9, frames: 16, fps: 6 },
+    dockmasterIdle: { row: 6, frames: [0, 1, 2, 1], fps: 0.9, blend: true },
+    dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
+    barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true },
+    barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true },
+    keeperIdle: { row: 9, frames: [0, 1, 2, 3, 2, 1], fps: 0.75, blend: true },
+    keeperTalk: { row: 8, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5], fps: 3.3, blend: true },
+  };
+
+  const speakerActors = {
+    Dockmaster: "dockmasterActor",
+    Barkeep: "barkeepActor",
+    Keeper: "keeperActor",
   };
 
   const state = {
@@ -94,6 +102,9 @@
       spyglassTaken: false,
       gotNote: false,
       skiffReady: false,
+      lighthouseClue: false,
+      bottleDecoded: false,
+      glyphsRead: false,
       shrineOpen: false,
       solved: false,
     },
@@ -108,6 +119,7 @@
     },
     pending: null,
     hover: null,
+    actorTalk: null,
     lineUntil: 0,
     started: false,
     lastTime: 0,
@@ -126,7 +138,7 @@
       walkMin: 165,
       walkMax: 1715,
       actors: [
-        { id: "dockmasterActor", anim: "dockmaster", x: 1168, y: 856, scale: 0.82 },
+        { id: "dockmasterActor", idleAnim: "dockmasterIdle", talkAnim: "dockmasterTalk", x: 1168, y: 856, scale: 0.82 },
       ],
       exits: [
         { id: "toTavern", label: "Tavern", rect: [1395, 415, 445, 365], to: "tavern", spawn: [330, 856], walkTo: [1455, 856] },
@@ -136,7 +148,9 @@
         { id: "dockmaster", label: "Dockmaster", rect: [1062, 590, 220, 290], walkTo: [1010, 856], verbs: ["look", "talk"] },
         { id: "rope", label: "Rope Coil", rect: [575, 705, 190, 115], walkTo: [655, 856], hidden: () => state.flags.ropeTaken, verbs: ["look", "take"], item: "rope", itemPos: [650, 794, 88] },
         { id: "crate", label: "Crates", rect: [305, 640, 245, 155], walkTo: [530, 856], hidden: () => state.flags.tokenTaken, verbs: ["look", "take"], item: "token", itemPos: [505, 764, 66] },
-        { id: "skiff", label: "Jungle Skiff", rect: [1425, 620, 455, 250], walkTo: [1515, 856], verbs: ["look", "use"] },
+        { id: "skiff", label: "Jungle Skiff", rect: [1385, 660, 500, 195], walkTo: [1515, 856], verbs: ["look", "use"] },
+        { id: "lighthouse", label: "Moon Lighthouse", rect: [420, 185, 155, 285], walkTo: [640, 856], verbs: ["look", "use"] },
+        { id: "lanternRig", label: "Lantern Rig", rect: [460, 265, 170, 315], walkTo: [615, 856], verbs: ["look", "use"] },
       ],
     },
     tavern: {
@@ -147,7 +161,7 @@
       walkMin: 230,
       walkMax: 1660,
       actors: [
-        { id: "barkeepActor", anim: "barkeep", x: 1135, y: 842, scale: 0.84 },
+        { id: "barkeepActor", idleAnim: "barkeepIdle", talkAnim: "barkeepTalk", x: 1135, y: 842, scale: 0.84 },
       ],
       exits: [
         { id: "toHarbor", label: "Harbor", rect: [105, 300, 310, 470], to: "harbor", spawn: [1385, 856], walkTo: [305, 852] },
@@ -157,6 +171,8 @@
         { id: "lime", label: "Lime Bowl", rect: [640, 510, 160, 120], walkTo: [735, 852], hidden: () => state.flags.limeTaken, verbs: ["look", "take"], item: "lime", itemPos: [708, 618, 70] },
         { id: "chart", label: "Old Sea Chart", rect: [1308, 374, 292, 248], walkTo: [1395, 852], verbs: ["look"] },
         { id: "spyglass", label: "Brass Spyglass", rect: [65, 760, 430, 210], walkTo: [430, 852], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [248, 915, 128] },
+        { id: "stage", label: "Tiny Stage", rect: [1500, 505, 330, 190], walkTo: [1485, 852], verbs: ["look", "use"] },
+        { id: "mapChest", label: "Map Chest", rect: [1410, 565, 210, 115], walkTo: [1345, 852], verbs: ["look", "use"] },
       ],
     },
     beach: {
@@ -171,10 +187,12 @@
         { id: "toHarbor", label: "Harbor", rect: [1355, 150, 500, 610], to: "harbor", spawn: [250, 856], walkTo: [1485, 846] },
       ],
       hotspots: [
+        { id: "shipCabin", label: "Broken Captain's Cabin", rect: [640, 330, 420, 300], walkTo: [895, 846], verbs: ["look", "use"] },
         { id: "wreck", label: "Shipwreck", rect: [500, 245, 650, 450], walkTo: [930, 846], verbs: ["look", "use"] },
         { id: "tidepool", label: "Tide Pool", rect: [780, 670, 520, 230], walkTo: [970, 846], hidden: () => state.flags.shellKeyTaken, verbs: ["look", "take"], item: "shellKey", itemPos: [1030, 866, 74] },
         { id: "bottle", label: "Message Bottle", rect: [1610, 735, 190, 120], walkTo: [1510, 846], hidden: () => state.flags.bottleTaken, verbs: ["look", "take"], item: "bottle", itemPos: [1695, 862, 84] },
-        { id: "cliff", label: "Cliff Path", rect: [1365, 120, 470, 500], walkTo: [1455, 846], verbs: ["look", "use"] },
+        { id: "cliff", label: "Cliff Path", rect: [1365, 120, 470, 450], walkTo: [1455, 846], verbs: ["look", "use"] },
+        { id: "stormBarrel", label: "Storm Barrel", rect: [45, 695, 195, 145], walkTo: [260, 846], verbs: ["look", "use"] },
       ],
     },
     jungle: {
@@ -185,15 +203,18 @@
       walkMin: 250,
       walkMax: 1620,
       actors: [
-        { id: "keeperActor", anim: "keeperIdle", x: 1185, y: 822, scale: 0.82 },
+        { id: "keeperActor", idleAnim: "keeperIdle", talkAnim: "keeperTalk", x: 1185, y: 822, scale: 0.82 },
       ],
       exits: [
         { id: "toHarbor", label: "Harbor", rect: [1230, 560, 565, 330], to: "harbor", spawn: [1555, 856], walkTo: [1425, 822] },
       ],
       hotspots: [
         { id: "keeper", label: "Shrine Keeper", rect: [1090, 555, 220, 285], walkTo: [1015, 822], verbs: ["look", "talk"] },
-        { id: "shrineDoor", label: "Moon Door", rect: [392, 205, 492, 455], walkTo: [640, 822], verbs: ["look", "use"] },
+        { id: "shrineDoor", label: "Moon Door", rect: [405, 215, 430, 425], walkTo: [640, 822], verbs: ["look", "use"] },
         { id: "vines", label: "Jungle Vines", rect: [150, 30, 285, 600], walkTo: [420, 822], verbs: ["look", "use"] },
+        { id: "waterfall", label: "Mist Falls", rect: [980, 210, 470, 430], walkTo: [1120, 822], verbs: ["look", "use"] },
+        { id: "bridge", label: "Rope Bridge", rect: [1220, 610, 300, 190], walkTo: [1390, 822], verbs: ["look", "use"] },
+        { id: "glyphs", label: "Stone Glyphs", rect: [220, 105, 190, 300], walkTo: [455, 822], verbs: ["look", "use"] },
       ],
     },
   };
@@ -218,12 +239,21 @@
     dockmaster: { kind: "actor", actor: "dockmasterActor" },
     barkeep: { kind: "actor", actor: "barkeepActor" },
     keeper: { kind: "actor", actor: "keeperActor" },
-    skiff: { kind: "polygon", points: [[1432, 730], [1588, 637], [1836, 665], [1880, 768], [1728, 860], [1500, 842]] },
+    skiff: { kind: "polygon", points: [[1395, 735], [1515, 690], [1695, 666], [1840, 710], [1874, 765], [1762, 825], [1535, 840], [1412, 812]] },
+    lighthouse: { kind: "polygon", points: [[438, 456], [455, 290], [505, 222], [548, 294], [562, 456], [522, 493], [460, 490]] },
+    lanternRig: { kind: "polygon", points: [[492, 258], [604, 264], [620, 548], [580, 568], [510, 560], [472, 420]] },
     chart: { kind: "polygon", points: [[1318, 388], [1570, 408], [1552, 612], [1306, 588]] },
+    stage: { kind: "polygon", points: [[1484, 588], [1625, 520], [1830, 532], [1840, 690], [1550, 704]] },
+    mapChest: { kind: "polygon", points: [[1414, 580], [1588, 558], [1624, 648], [1458, 684], [1392, 628]] },
     wreck: { kind: "polygon", points: [[520, 545], [660, 170], [910, 265], [1135, 520], [1010, 705], [610, 690]] },
+    shipCabin: { kind: "polygon", points: [[620, 492], [710, 315], [932, 338], [1078, 520], [1005, 645], [685, 625]] },
+    stormBarrel: { kind: "polygon", points: [[58, 735], [140, 704], [230, 740], [210, 840], [92, 852]] },
     cliff: { kind: "polygon", points: [[1440, 150], [1810, 112], [1800, 555], [1602, 652], [1370, 520]] },
-    shrineDoor: { kind: "polygon", points: [[455, 238], [758, 226], [868, 392], [812, 633], [505, 650], [392, 430]] },
+    shrineDoor: { kind: "polygon", points: [[450, 604], [414, 535], [408, 438], [438, 332], [512, 250], [616, 224], [724, 254], [792, 342], [816, 460], [786, 575], [708, 620], [548, 620]] },
     vines: { kind: "polygon", points: [[160, 42], [342, 35], [430, 330], [390, 612], [214, 650], [120, 320]] },
+    waterfall: { kind: "polygon", points: [[1020, 300], [1125, 220], [1320, 238], [1445, 345], [1400, 610], [1112, 668], [960, 560]] },
+    bridge: { kind: "polygon", points: [[1215, 645], [1395, 595], [1720, 642], [1765, 752], [1540, 830], [1260, 770]] },
+    glyphs: { kind: "polygon", points: [[220, 108], [372, 96], [410, 270], [330, 420], [215, 365], [180, 205]] },
   };
 
   const sceneAmbience = {
@@ -650,12 +680,15 @@
     line.textContent = text;
     dialogue.classList.add("visible");
     state.lineUntil = performance.now() + ms;
+    const actorId = speakerActors[who];
+    state.actorTalk = actorId ? { id: actorId, until: state.lineUntil } : null;
     speech.say(who, text);
   }
 
   function hideLine(now) {
     if (state.lineUntil && now > state.lineUntil) {
       state.lineUntil = 0;
+      state.actorTalk = null;
       dialogue.classList.remove("visible");
     }
   }
@@ -802,6 +835,27 @@
           say("Mara", state.flags.skiffReady ? "A tied skiff, ready for shrine business." : "A skiff tugging at the dock like it wants a better plan.");
         }
         break;
+      case "lighthouse":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", hasItem("spyglass")
+            ? "Through the spyglass, the lighthouse beam taps a route: wreck, tavern, shrine."
+            : "The lighthouse is too far to read without something brass and telescopic.");
+          if (hasItem("spyglass")) state.flags.lighthouseClue = true;
+        } else {
+          say("Mara", "The moon lighthouse blinks over the cove like it knows the punchline early.");
+        }
+        break;
+      case "lanternRig":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", state.flags.skiffReady
+            ? "The lantern rig swings toward the tied skiff, politely implying: yes, that is the way."
+            : "If I fixed the skiff line, this lantern could mark a very dramatic departure.");
+        } else {
+          say("Mara", "A lantern rig on the dock crane. Excellent for mood, mediocre for subtlety.");
+        }
+        break;
       case "barkeep":
         if (verb === "talk") {
           setAction("talk", 900);
@@ -844,12 +898,50 @@
           ? "Through the spyglass, a tiny ink mark points from the wreck to the shrine."
           : "The chart marks a wreck, a shrine, and the phrase: shell turns moon.");
         break;
+      case "stage":
+        if (verb === "use") {
+          setAction("use", 680);
+          say("Mara", hasItem("lime")
+            ? "I perform one citrus-themed bow. The room remains emotionally unchanged."
+            : "The stage is ready for a shanty. Unfortunately, so am I.");
+        } else {
+          say("Mara", "A stage barely large enough for one song, two lies, or half a swordfight.");
+        }
+        break;
+      case "mapChest":
+        if (verb === "use") {
+          setAction("use", 700);
+          say("Mara", state.flags.gotNote
+            ? "Inside is a damp receipt for candles and one very smug moon symbol."
+            : "Locked. The tavern clearly respects paperwork more than pirates.");
+        } else {
+          say("Mara", "A chest beneath the chart. It smells of wax seals, old salt, and missing context.");
+        }
+        break;
       case "wreck":
         if (verb === "use") {
           setAction("use", 700);
           say("Mara", "The planks groan a sea shanty in a key nobody asked for.");
         } else {
           say("Mara", "A proud ship, now mostly an argument with sand.");
+        }
+        break;
+      case "shipCabin":
+        if (verb === "use") {
+          setAction("use", 720);
+          say("Mara", hasItem("spyglass")
+            ? "With the spyglass I spot a scratched moon mark under the cabin rail."
+            : "The cabin is cracked open, but the useful scratches are too far in the shade.");
+        } else {
+          say("Mara", "The captain's cabin still points at the horizon, mostly out of habit.");
+        }
+        break;
+      case "stormBarrel":
+        if (verb === "use") {
+          setAction("use", 680);
+          say("Mara", "The barrel replies with a hollow thunk. That is barrel for 'please stop'.");
+        } else {
+          say("Mara", "Storm-tossed barrel, half-buried. It has survived worse plans than mine.");
         }
         break;
       case "tidepool":
@@ -907,6 +999,38 @@
           say("Mara", "A stone moon door, carved with little stars that seem inconveniently awake.");
         }
         break;
+      case "waterfall":
+        if (verb === "use") {
+          setAction("use", 700);
+          say("Mara", hasItem("bottle")
+            ? "A splash of waterfall water wakes hidden ink in the bottle note: speak the verse before the shell."
+            : "Mist from the falls makes the stones glow like they have secrets to sell.");
+          if (hasItem("bottle")) state.flags.bottleDecoded = true;
+        } else {
+          say("Mara", "Mist Falls keeps the shrine cool, loud, and just mysterious enough.");
+        }
+        break;
+      case "bridge":
+        if (verb === "use") {
+          setAction("use", 650);
+          say("Mara", hasItem("rope")
+            ? "My rope is better than this bridge. The bridge seems offended but not surprised."
+            : "The bridge creaks in a dialect I understand as 'single file, please'.");
+        } else {
+          say("Mara", "A rope bridge vanishing into mist. It was built by people with confidence or poor depth perception.");
+        }
+        break;
+      case "glyphs":
+        if (verb === "use") {
+          setAction("use", 700);
+          state.flags.glyphsRead = true;
+          say("Mara", hasItem("brassNote")
+            ? "The note matches the glyphs: shell turns moon, moon wakes star. Officially not a coincidence."
+            : "The glyphs show a shell, a moon, and a star. Ancient people loved visual spoilers.");
+        } else {
+          say("Mara", "Weathered stone glyphs. The moon symbol has been touched smooth by nervous hands.");
+        }
+        break;
       case "vines":
         say("Mara", "The vines have wrapped themselves into a botanical no-entry sign.");
         break;
@@ -932,10 +1056,25 @@
       return;
     } else if (item === "spyglass" && hotspotId === "chart") {
       say("Mara", "The magnified note says: shell turns moon, moon wakes star.");
+    } else if (item === "spyglass" && hotspotId === "lighthouse") {
+      state.flags.lighthouseClue = true;
+      say("Mara", "The lighthouse shutters blink three stops: wreck, tavern, shrine. Someone made a breadcrumb trail out of moonlight.");
+    } else if (item === "spyglass" && hotspotId === "shipCabin") {
+      say("Mara", "The far scratch under the cabin rail reads: ask the barkeep why the moon owes him money.");
     } else if (item === "bottle" && hotspotId === "keeper") {
       say("Keeper", "The sea still sends letters. Mostly complaints, but this one is helpful.");
+    } else if (item === "bottle" && hotspotId === "waterfall") {
+      state.flags.bottleDecoded = true;
+      say("Mara", "Fresh waterfall water reveals hidden ink: speak first, shell second. Rude, but useful.");
     } else if (item === "lime" && hotspotId === "wreck") {
       say("Mara", "The wreck refuses the lime. Fair.");
+    } else if (item === "lime" && hotspotId === "stage") {
+      say("Mara", "I leave the lime on stage. It gets the best reviews of the evening.");
+    } else if (item === "brassNote" && hotspotId === "glyphs") {
+      state.flags.glyphsRead = true;
+      say("Mara", "The brass note matches the old glyphs exactly. The verse is a key, not just tavern poetry.");
+    } else if (item === "rope" && hotspotId === "bridge") {
+      say("Mara", "I add a sensible knot to the bridge rail. The bridge looks marginally less theatrical.");
     } else {
       const name = itemMeta[item]?.name || "that";
       say("Mara", `${name} does not help here.`);
@@ -971,14 +1110,39 @@
     }
 
     const anim = anims[player.action] || anims.idle;
-    player.frameT = (player.frameT + dt * anim.fps) % anim.frames;
+    player.frameT = (player.frameT + dt * anim.fps) % animFrameCount(anim);
   }
 
-  function drawSprite(animName, x, y, scale = 1, frameOffset = 0) {
-    const anim = anims[animName] || anims.idle;
-    const frame = Math.floor((state.player.frameT + frameOffset) % anim.frames);
+  function animFrameCount(anim) {
+    return Array.isArray(anim.frames) ? anim.frames.length : anim.frames;
+  }
+
+  function animFrameAt(anim, framePosition) {
+    const count = animFrameCount(anim);
+    const index = ((Math.floor(framePosition) % count) + count) % count;
+    return Array.isArray(anim.frames) ? anim.frames[index] : index;
+  }
+
+  function actorAnimName(actor, now) {
+    const talking = state.actorTalk?.id === actor.id && now < state.actorTalk.until;
+    return talking ? (actor.talkAnim || actor.idleAnim || actor.anim) : (actor.idleAnim || actor.anim);
+  }
+
+  function drawSpriteFrame(anim, frame, x, y, w, h, alpha = 1) {
     const sx = frame * FRAME_W;
     const sy = anim.row * FRAME_H;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(images.characters, sx, sy, FRAME_W, FRAME_H, x - w / 2, y - h, w, h);
+    ctx.restore();
+  }
+
+  function drawSprite(animName, x, y, scale = 1, frameOffset = 0, timing = {}) {
+    const anim = anims[animName] || anims.idle;
+    const framePosition = timing.player
+      ? state.player.frameT + frameOffset
+      : ((timing.now || state.lastTime || performance.now()) / 1000) * anim.fps + frameOffset;
+    const frame = animFrameAt(anim, framePosition);
     const w = FRAME_W * scale;
     const h = FRAME_H * scale;
     ctx.save();
@@ -988,7 +1152,14 @@
     ctx.ellipse(x, y - 8 * scale, 46 * scale, 12 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    ctx.drawImage(images.characters, sx, sy, FRAME_W, FRAME_H, x - w / 2, y - h, w, h);
+    if (anim.blend && !timing.player) {
+      const blend = framePosition - Math.floor(framePosition);
+      const next = animFrameAt(anim, framePosition + 1);
+      drawSpriteFrame(anim, frame, x, y, w, h, 1 - blend * 0.55);
+      if (next !== frame) drawSpriteFrame(anim, next, x, y, w, h, blend * 0.55);
+      return;
+    }
+    drawSpriteFrame(anim, frame, x, y, w, h);
   }
 
   function drawSceneItemIcon(itemId, x, y, size) {
@@ -1109,8 +1280,10 @@
     const index = scene.actors.findIndex((actor) => actor.id === actorId);
     if (index < 0) return false;
     const actor = scene.actors[index];
-    const anim = anims[actor.anim] || anims.idle;
-    const frame = Math.floor((state.player.frameT + index * 3) % anim.frames);
+    const animName = actorAnimName(actor, state.lastTime || performance.now());
+    const anim = anims[animName] || anims.idle;
+    const framePosition = ((state.lastTime || performance.now()) / 1000) * anim.fps + index * 2.37;
+    const frame = animFrameAt(anim, framePosition);
     const sx = frame * FRAME_W;
     const sy = anim.row * FRAME_H;
     const w = FRAME_W * actor.scale;
@@ -1119,7 +1292,7 @@
     return true;
   }
 
-  function drawPolygonOutline(points) {
+  function drawPolygonOutline(points, smooth = false) {
     if (!points?.length) return;
     ctx.save();
     ctx.strokeStyle = "rgba(255, 255, 255, 0.94)";
@@ -1131,16 +1304,22 @@
     ctx.shadowOffsetY = 2;
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
-    for (let i = 1; i < points.length; i += 1) {
-      const prev = points[i - 1];
-      const point = points[i];
-      const cx = (prev[0] + point[0]) / 2;
-      const cy = (prev[1] + point[1]) / 2;
-      ctx.quadraticCurveTo(prev[0], prev[1], cx, cy);
+    if (smooth) {
+      for (let i = 1; i < points.length; i += 1) {
+        const prev = points[i - 1];
+        const point = points[i];
+        const cx = (prev[0] + point[0]) / 2;
+        const cy = (prev[1] + point[1]) / 2;
+        ctx.quadraticCurveTo(prev[0], prev[1], cx, cy);
+      }
+      const last = points[points.length - 1];
+      const first = points[0];
+      ctx.quadraticCurveTo(last[0], last[1], first[0], first[1]);
+    } else {
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
     }
-    const last = points[points.length - 1];
-    const first = points[0];
-    ctx.quadraticCurveTo(last[0], last[1], first[0], first[1]);
     ctx.closePath();
     ctx.stroke();
     ctx.restore();
@@ -1155,7 +1334,7 @@
     const outline = hotspotOutlines[spot.id];
     if (outline?.kind === "actor" && drawActorShapeOutline(scene, outline.actor)) return;
     if (outline?.kind === "polygon") {
-      drawPolygonOutline(outline.points);
+      drawPolygonOutline(outline.points, outline.smooth === true);
       return;
     }
 
@@ -1368,11 +1547,11 @@
     drawSceneAmbience(scene.bg, now);
 
     scene.actors.forEach((actor, index) => {
-      drawSprite(actor.anim, actor.x, actor.y, actor.scale, index * 3);
+      drawSprite(actorAnimName(actor, now), actor.x, actor.y, actor.scale, index * 2.37, { now });
     });
 
     drawSceneItems(scene);
-    drawSprite(state.player.action, state.player.x, state.player.y, 0.86);
+    drawSprite(state.player.action, state.player.x, state.player.y, 0.86, 0, { player: true });
 
     if (state.flags.shrineOpen && state.scene === "jungle") {
       ctx.save();
