@@ -16,6 +16,7 @@
   const dialogue = document.getElementById("dialogue");
   const speaker = document.getElementById("speaker");
   const line = document.getElementById("line");
+  const choiceOptions = document.getElementById("choiceOptions");
   const verbs = document.getElementById("verbs");
   const inventoryEl = document.getElementById("inventory");
   const startScreen = document.getElementById("startScreen");
@@ -31,6 +32,9 @@
   const questTitle = document.getElementById("questTitle");
   const questNext = document.getElementById("questNext");
   const questNeed = document.getElementById("questNeed");
+  const loadingFill = document.getElementById("loadingFill");
+  const loadingText = document.getElementById("loadingText");
+  const loadingCounter = document.getElementById("loadingCounter");
 
   const imageSources = {
     harbor: "assets/backgrounds/harbor_imagen_hd.png",
@@ -40,7 +44,7 @@
     market: "assets/backgrounds/market_imagen_hd.png",
     observatory: "assets/backgrounds/observatory_imagen_hd.png",
     characters: "assets/sprites/characters_imagen_hd_sheet.png?v=imagen-hd-characters-npc-size-lock",
-    npcExtras: "assets/sprites/npcs_market_observatory_imagen_sheet.png?v=imagen-hd-npc-flow",
+    npcExtras: "assets/sprites/npcs_market_observatory_normalized_sheet.png?v=imagen-hd-npc-clean-v2",
     keeperSolid: "assets/sprites/keeper_moon_door_solid_sheet.png?v=keeper-solid-v2",
     items: "assets/sprites/items_imagen_hd_sheet.png",
     sceneItems: "assets/sprites/scene_items_imagen_hd_sheet.png",
@@ -80,13 +84,26 @@
     dockmasterTalk: { row: 6, frames: [2, 3, 4, 5, 6, 7, 8, 7, 6, 5], fps: 3.8, blend: true },
     barkeepIdle: { row: 7, frames: [0, 1, 2, 1], fps: 0.85, blend: true, cropTop: 38 },
     barkeepTalk: { row: 7, frames: [2, 3, 4, 5, 6, 7, 8, 9, 8, 7], fps: 3.6, blend: true, cropTop: 38 },
-    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.95, blend: true },
-    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 4.1, blend: true },
+    smugglerIdle: { sheet: "npcExtras", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.62 },
+    smugglerTalk: { sheet: "npcExtras", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.1 },
     keeperIdle: { sheet: "keeperSolid", row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5], fps: 0.42 },
     keeperTalk: { sheet: "keeperSolid", row: 0, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], fps: 2.35 },
-    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.78, blend: true },
-    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 3.6, blend: true },
+    archivistIdle: { sheet: "npcExtras", row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 5, 4, 3], fps: 0.5 },
+    archivistTalk: { sheet: "npcExtras", row: 3, frames: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fps: 2.65 },
   };
+
+  const loadingLines = [
+    "Füttere Affen mit Bananen",
+    "Rücke die Augenklappe zurecht",
+    "Sortiere Beleidigungen alphabetisch",
+    "Poliere Messing, bis es wichtig wirkt",
+    "Besteche den Papagei mit falschen Keksen",
+    "Verstecke Gummihuhn im Inventar",
+    "Stimme Mondtür auf dramatisches Knarzen",
+    "Male weiße Umrisse auf echte Gegenstände",
+    "Zähle Kokosnüsse, verliere Absicht",
+    "Lade Rumfässer ohne Rum",
+  ];
 
   const speakerActors = {
     Dockmaster: "dockmasterActor",
@@ -133,6 +150,7 @@
     pending: null,
     hover: null,
     actorTalk: null,
+    choiceHandlers: [],
     quips: {},
     lineUntil: 0,
     started: false,
@@ -208,7 +226,7 @@
         { id: "barkeep", label: "Barkeep", rect: [1008, 552, 250, 290], walkTo: [935, 852], verbs: ["look", "talk", "use"] },
         { id: "lime", label: "Lime Bowl", rect: [640, 510, 160, 120], walkTo: [735, 852], hidden: () => state.flags.limeTaken, verbs: ["look", "take"], item: "lime", itemPos: [708, 618, 70] },
         { id: "chart", label: "Old Sea Chart", rect: [1308, 374, 292, 248], walkTo: [1395, 852], verbs: ["look"] },
-        { id: "spyglass", label: "Brass Spyglass", rect: [65, 760, 430, 210], walkTo: [430, 852], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [248, 915, 128] },
+        { id: "spyglass", label: "Brass Spyglass on Table", rect: [58, 690, 440, 225], walkTo: [390, 852], hidden: () => state.flags.spyglassTaken, verbs: ["look", "take"], item: "spyglass", itemPos: [244, 846, 112] },
         { id: "stage", label: "Tiny Stage", rect: [1500, 505, 330, 190], walkTo: [1485, 852], verbs: ["look", "use"] },
         { id: "mapChest", label: "Map Chest", rect: [1410, 565, 210, 115], walkTo: [1345, 852], verbs: ["look", "use"] },
       ],
@@ -229,8 +247,8 @@
       ],
       hotspots: [
         { id: "archivist", label: "Sleepless Archivist", rect: [1225, 565, 220, 285], walkTo: [1160, 842], verbs: ["look", "talk", "use"] },
-        { id: "telescope", label: "Moon Telescope", rect: [710, 300, 455, 260], walkTo: [900, 842], verbs: ["look", "use"] },
-        { id: "starCharts", label: "Star Charts", rect: [360, 390, 355, 260], walkTo: [610, 842], verbs: ["look", "use"] },
+        { id: "telescope", label: "Moon Telescope", rect: [780, 330, 390, 310], walkTo: [930, 842], verbs: ["look", "use"] },
+        { id: "starCharts", label: "Star Charts", rect: [565, 420, 310, 270], walkTo: [650, 842], verbs: ["look", "use"] },
         { id: "fedoraRelic", label: "Well-Travelled Hat", rect: [1160, 325, 150, 95], walkTo: [1230, 842], verbs: ["look", "use"] },
         { id: "crystalMug", label: "Crystal Skull Mug", rect: [1325, 380, 195, 170], walkTo: [1320, 842], verbs: ["look", "use"] },
         { id: "archiveHatch", label: "Round Archive Hatch", rect: [415, 790, 360, 185], walkTo: [660, 842], verbs: ["look", "use"] },
@@ -312,7 +330,7 @@
     smuggler: { kind: "actor", actor: "smugglerActor" },
     keeper: { kind: "actor", actor: "keeperActor" },
     archivist: { kind: "actor", actor: "archivistActor" },
-    skiff: { kind: "polygon", points: [[1394, 724], [1492, 688], [1605, 674], [1728, 678], [1824, 708], [1876, 756], [1827, 790], [1730, 817], [1584, 826], [1462, 815], [1410, 784]] },
+    skiff: { kind: "polygon", smooth: true, points: [[1298, 692], [1405, 652], [1548, 640], [1738, 662], [1842, 710], [1818, 760], [1708, 802], [1512, 814], [1368, 790], [1292, 742]] },
     lighthouse: { kind: "polygon", points: [[438, 456], [455, 290], [505, 222], [548, 294], [562, 456], [522, 493], [460, 490]] },
     lanternRig: { kind: "polygon", points: [[492, 258], [604, 264], [620, 548], [580, 568], [510, 560], [472, 420]] },
     chart: { kind: "polygon", points: [[1318, 388], [1570, 408], [1552, 612], [1306, 588]] },
@@ -322,7 +340,7 @@
     shipCabin: { kind: "polygon", points: [[620, 492], [710, 315], [932, 338], [1078, 520], [1005, 645], [685, 625]] },
     stormBarrel: { kind: "polygon", points: [[58, 735], [140, 704], [230, 740], [210, 840], [92, 852]] },
     cliff: { kind: "polygon", points: [[1440, 150], [1810, 112], [1800, 555], [1602, 652], [1370, 520]] },
-    shrineDoor: { kind: "polygon", smooth: true, points: [[454, 588], [420, 522], [418, 430], [452, 328], [524, 252], [620, 232], [718, 258], [784, 340], [808, 456], [780, 558], [704, 610], [554, 614], [486, 600]] },
+    shrineDoor: { kind: "polygon", smooth: true, points: [[454, 600], [404, 544], [392, 442], [426, 322], [506, 220], [616, 176], [728, 208], [798, 306], [834, 430], [804, 558], [734, 640], [600, 666], [500, 640]] },
     vines: { kind: "polygon", points: [[160, 42], [342, 35], [430, 330], [390, 612], [214, 650], [120, 320]] },
     waterfall: { kind: "polygon", points: [[1020, 300], [1125, 220], [1320, 238], [1445, 345], [1400, 610], [1112, 668], [960, 560]] },
     bridge: { kind: "polygon", points: [[1215, 645], [1395, 595], [1720, 642], [1765, 752], [1540, 830], [1260, 770]] },
@@ -332,8 +350,8 @@
     ledger: { kind: "polygon", points: [[510, 548], [715, 512], [764, 640], [560, 692]] },
     dirtJar: { kind: "polygon", smooth: true, points: [[1375, 724], [1468, 714], [1518, 760], [1498, 842], [1405, 858], [1348, 812]] },
     marketSign: { kind: "polygon", points: [[295, 112], [585, 104], [620, 236], [330, 268]] },
-    telescope: { kind: "polygon", points: [[720, 430], [860, 350], [1120, 420], [1100, 500], [882, 570], [720, 520]] },
-    starCharts: { kind: "polygon", points: [[360, 420], [690, 392], [720, 610], [410, 666]] },
+    telescope: { kind: "polygon", smooth: true, points: [[805, 432], [885, 378], [1038, 340], [1158, 430], [1130, 488], [1048, 488], [1012, 530], [970, 654], [906, 646], [944, 520], [780, 514]] },
+    starCharts: { kind: "polygon", points: [[585, 458], [828, 424], [846, 638], [604, 690]] },
     fedoraRelic: { kind: "polygon", smooth: true, points: [[1166, 382], [1218, 336], [1298, 350], [1310, 395], [1235, 424]] },
     crystalMug: { kind: "polygon", points: [[1338, 410], [1494, 386], [1520, 508], [1368, 548]] },
     archiveHatch: { kind: "polygon", smooth: true, points: [[430, 885], [474, 820], [604, 792], [746, 822], [780, 910], [692, 972], [520, 970]] },
@@ -563,6 +581,26 @@
       img.onerror = () => reject(new Error(`Could not load ${src}`));
       img.src = src;
     });
+  }
+
+  function updateLoading(done, total, ready = false) {
+    if (!loadingFill || !loadingText || !loadingCounter) return;
+    const count = ready ? 70 : Math.min(69, Math.max(1, Math.round((done / Math.max(1, total)) * 68)));
+    loadingFill.style.width = `${(count / 70) * 100}%`;
+    loadingCounter.textContent = `${count}/70`;
+    loadingText.textContent = ready ? "Abenteuer entkorkt" : loadingLines[done % loadingLines.length];
+  }
+
+  async function preloadImages() {
+    const entries = Object.entries(imageSources);
+    let done = 0;
+    updateLoading(0, entries.length);
+    await Promise.all(entries.map(([key, src]) => loadImage(key, src).then((img) => {
+      done += 1;
+      updateLoading(done, entries.length);
+      return img;
+    })));
+    updateLoading(entries.length, entries.length, true);
   }
 
   function clamp(value, min, max) {
@@ -874,7 +912,14 @@
     updateFullscreenButton();
   }
 
+  function clearChoices() {
+    state.choiceHandlers = [];
+    if (choiceOptions) choiceOptions.innerHTML = "";
+    dialogue.classList.remove("hasChoices");
+  }
+
   function say(who, text, ms = 3600) {
+    clearChoices();
     speaker.textContent = who;
     line.textContent = text;
     dialogue.classList.add("visible");
@@ -884,6 +929,39 @@
     speech.say(who, text);
   }
 
+  function ask(who, prompt, options) {
+    clearChoices();
+    speaker.textContent = who;
+    line.textContent = prompt;
+    state.choiceHandlers = options;
+    if (choiceOptions) {
+      options.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "choiceButton";
+        button.dataset.choice = String(index);
+        button.textContent = option.text;
+        choiceOptions.appendChild(button);
+      });
+    }
+    dialogue.classList.add("visible", "hasChoices");
+    state.lineUntil = 0;
+    const actorId = speakerActors[who];
+    state.actorTalk = actorId ? { id: actorId, until: performance.now() + 10000 } : null;
+    speech.say(who, prompt);
+  }
+
+  function chooseDialogue(index) {
+    const option = state.choiceHandlers[index];
+    if (!option) return false;
+    clearChoices();
+    if (option.run) option.run();
+    say(option.replyWho || speaker.textContent || "Mara", option.reply, option.ms || 4200);
+    updateQuestTracker();
+    saveGame(false);
+    return true;
+  }
+
   function quip(key, lines) {
     const index = state.quips[key] || 0;
     state.quips[key] = (index + 1) % lines.length;
@@ -891,6 +969,7 @@
   }
 
   function hideLine(now) {
+    if (state.choiceHandlers.length) return;
     if (state.lineUntil && now > state.lineUntil) {
       state.lineUntil = 0;
       state.actorTalk = null;
@@ -1073,18 +1152,64 @@
         if (verb === "talk") {
           setAction("talk", 900);
           if (!state.flags.gotNote) {
-            say("Smuggler", "I adore mysterious strangers, but I only gossip for people carrying tavern-certified brass poetry.");
+            ask("Smuggler", "The smuggler smiles like a locked drawer. He waits for a proper conversational bribe.", [
+              {
+                text: "Do you accept heroic confidence?",
+                reply: "Confidence is legal tender only in very small countries and very large mistakes.",
+              },
+              {
+                text: "Where do I get tavern-certified brass poetry?",
+                reply: "Try the barkeep. He sells verses by the token and regret by the barrel.",
+              },
+              {
+                text: "Can I just guess the moon secret?",
+                reply: "You can. The door will enjoy the comedy.",
+              },
+            ]);
           } else if (!state.flags.smugglerTip) {
-            state.flags.smugglerTip = true;
-            say("Smuggler", "That verse is missing its market clause: the third star is fake. Ask the archivist to prove which moon is lying.");
+            ask("Smuggler", "He taps the brass note twice, then once more for dramatic accounting.", [
+              {
+                text: "What is missing from shell, moon, star?",
+                run: () => {
+                  state.flags.smugglerTip = true;
+                },
+                reply: "The market clause: the third star is fake. Ask the archivist to prove which moon is lying.",
+              },
+              {
+                text: "Can you sell me a shortcut?",
+                reply: "Certainly. It is called 'walking to the observatory' and costs your patience.",
+              },
+              {
+                text: "Are you a villain?",
+                reply: "Only on invoices. In person I prefer 'aggressively helpful'.",
+              },
+            ]);
           } else if (!state.flags.archivistClearance) {
-            say("Smuggler", quip("smugglerTalk", [
-              "The archivist owes me a moon map. I owe him plausible deniability.",
-              "Use the brass note on his star charts. Scholars love paperwork disguised as destiny.",
-              "If the telescope complains, put your spyglass to work. Tools enjoy feeling promoted.",
-            ]));
+            ask("Smuggler", "The smuggler leans in, smelling faintly of lantern oil and questionable footnotes.", [
+              {
+                text: "Remind me where the proof is.",
+                reply: "Use the brass note on the observatory star charts. Scholars love paperwork disguised as destiny.",
+              },
+              {
+                text: "What if the telescope complains?",
+                reply: "Put your spyglass to work. Tools enjoy feeling promoted.",
+              },
+              {
+                text: "Why help me?",
+                reply: "A moon door that opens is a market opportunity. A moon door that sulks is architecture.",
+              },
+            ]);
           } else {
-            say("Smuggler", "You have the archivist's nod. That is rarer than a cheap souvenir with honest stitching.");
+            ask("Smuggler", "He gives a tiny bow, the kind that probably has a customs fee.", [
+              {
+                text: "Any last advice?",
+                reply: "You have the archivist's nod. That is rarer than a cheap souvenir with honest stitching.",
+              },
+              {
+                text: "Any first advice?",
+                reply: "Never buy a map that still has wet ink unless the seller is running.",
+              },
+            ]);
           }
         } else {
           say("Mara", "He has the relaxed posture of a man who can invoice a shadow.");
@@ -1136,16 +1261,57 @@
         if (verb === "talk") {
           setAction("talk", 900);
           if (hasItem("token") && !state.flags.gotNote) {
-            removeItem("token");
-            state.flags.gotNote = true;
-            addItem("brassNote");
-            say("Barkeep", "For that token, you get the old verse: shell turns moon, moon wakes star. Then ask the market why that is not enough.");
+            ask("Barkeep", "The barkeep eyes your copper token like it owes him rent.", [
+              {
+                text: "Trade the token for the old verse.",
+                run: () => {
+                  removeItem("token");
+                  state.flags.gotNote = true;
+                  addItem("brassNote");
+                },
+                reply: "For that token: shell turns moon, moon wakes star. Then ask the market why that is not enough.",
+              },
+              {
+                text: "Ask for something with bananas.",
+                reply: "This is a tavern, not a monkey catering service. Though I admire the ambition.",
+              },
+              {
+                text: "Haggle using a dramatic eyebrow.",
+                reply: "That eyebrow has potential. The token still pays retail.",
+              },
+            ]);
           } else if (state.flags.gotNote) {
-            say("Barkeep", state.flags.smugglerTip
-              ? "The market sent you to the observatory? Good. That means the expensive part of the rumor worked."
-              : "Remember the verse, then find the moon-market smuggler. He sells the missing uncomfortable bit.");
+            ask("Barkeep", "He polishes the same mug with the determination of a man avoiding plot responsibility.", [
+              {
+                text: state.flags.smugglerTip ? "The market sent me to the observatory." : "Where does the verse go next?",
+                reply: state.flags.smugglerTip
+                  ? "Good. That means the expensive part of the rumor worked. Now make the charts and telescope agree."
+                  : "Find the moon-market smuggler. He sells the missing uncomfortable bit.",
+              },
+              {
+                text: "Why are old verses always incomplete?",
+                reply: "Complete verses get taxed as books. Pirates have always been strong on loopholes.",
+              },
+              {
+                text: "Any tavern wisdom?",
+                reply: "Never trust a quiet parrot, a dry mop, or a treasure map with decorative confidence.",
+              },
+            ]);
           } else {
-            say("Barkeep", "No tab, no tale. Bring a dock token and I might become educational.");
+            ask("Barkeep", "The barkeep drums his fingers beside a tiny brass note.", [
+              {
+                text: "Can I hear the old verse?",
+                reply: "No tab, no tale. Bring a dock token and I might become educational.",
+              },
+              {
+                text: "Where might a dock token hide?",
+                reply: "Dock crates collect coins, splinters, and poor decisions. Start there.",
+              },
+              {
+                text: "Can I pay with charm?",
+                reply: "Charm is accepted only after copper, silver, gold, and sincere apologizing.",
+              },
+            ]);
           }
         } else {
           say("Mara", "A keeper of mugs, rumors, and extremely specific prices.");
@@ -1326,21 +1492,71 @@
         if (verb === "talk") {
           setAction("talk", 900);
           if (!state.flags.smugglerTip) {
-            say("Archivist", "I do not open sealed moon records without market testimony. Even questionable smugglers outrank unverified poetry.");
+            ask("Archivist", "The archivist peers over his spectacles as if you are filed under 'miscellaneous damp'.", [
+              {
+                text: "Can you read my moon verse?",
+                reply: "I do not open sealed moon records without market testimony. Even questionable smugglers outrank unverified poetry.",
+              },
+              {
+                text: "What counts as testimony?",
+                reply: "A smuggler with a secret, a note with a lie, and a hero with comfortable shoes.",
+              },
+            ]);
           } else if (!state.flags.starChartsRead) {
-            say("Archivist", "Lay the brass note across the star charts. If the third star blinks, pretend you expected that.");
+            ask("Archivist", "He points at the chart board with the patience of a man who has alphabetized moonlight.", [
+              {
+                text: "What do I do with the brass note?",
+                reply: "Lay it across the star charts. If the third star blinks, pretend you expected that.",
+              },
+              {
+                text: "Can you do it for me?",
+                reply: "I am an archivist, not a plot forklift.",
+              },
+            ]);
           } else if (!state.flags.telescopeAligned) {
-            say("Archivist", "The chart names the lie, but the telescope must catch it. Spyglass first, dignity later.");
+            ask("Archivist", "He checks a ledger titled 'Things Adventurers Could Have Seen If They Looked Slightly Left'.", [
+              {
+                text: "The charts say the third star is false.",
+                reply: "Correct. Now use the Spyglass from the tavern table on the Moon Telescope. Spyglass first, dignity later.",
+              },
+              {
+                text: "Where was the Spyglass again?",
+                reply: "On the left tavern table, large, brass, and practically begging to be overused.",
+              },
+            ]);
           } else if (!state.flags.archivistClearance) {
-            state.flags.archivistClearance = true;
-            say("Archivist", "Confirmed: the third star is a moon-door reflection. Say the verse, turn the shell, and do not improvise jazz near ancient locks.");
+            ask("Archivist", "The telescope hums. The archivist waits for you to say the part that makes the lock nervous.", [
+              {
+                text: "The third star is a moon-door reflection.",
+                run: () => {
+                  state.flags.archivistClearance = true;
+                },
+                reply: "Confirmed. Say the verse, turn the shell, and do not improvise jazz near ancient locks.",
+              },
+              {
+                text: "The third star is probably cheese.",
+                reply: "A courageous theory, rejected by astronomy, dairy, and the lock.",
+              },
+              {
+                text: "Can I call it a shiny lie?",
+                reply: "Informally yes. Officially, please use 'moon-door reflection' so the door feels respected.",
+              },
+            ]);
           } else {
-            say("Archivist", quip("archivistTalk", [
-              "The telescope sees stars, ships, and occasionally a hero making poor inventory choices.",
-              "Catalog rule one: if it hums, glows, or judges you, shelve it under nautical.",
-              "The old films got one thing right: never trust a moonlit relic with a simple shape.",
-              "If anyone asks, this clearance was always filed under perfectly sensible moon business.",
-            ]));
+            ask("Archivist", "The archivist has relaxed all the way from 'stern' to 'professionally concerned'.", [
+              {
+                text: "Anything else in the records?",
+                reply: "The telescope sees stars, ships, and occasionally a hero making poor inventory choices.",
+              },
+              {
+                text: "How do you catalog magical objects?",
+                reply: "Rule one: if it hums, glows, or judges you, shelve it under nautical.",
+              },
+              {
+                text: "Was this clearance official?",
+                reply: "If anyone asks, this clearance was always filed under perfectly sensible moon business.",
+              },
+            ]);
           }
         } else {
           say("Mara", "The archivist looks like sleep once asked for an appointment and got filed under 'myth'.");
@@ -1352,7 +1568,7 @@
           if (!state.flags.starChartsRead) {
             say("Mara", "The telescope shows too many shiny lies. I need the charts to tell me which moon is pretending to be a star.");
           } else if (!hasItem("spyglass")) {
-            say("Mara", "The chart gives me the target, but the lens needs something brass and portable to finish the squint.");
+            say("Mara", "The chart gives me the target, but I need the Brass Spyglass from the left tavern table to finish the squint.");
           } else {
             state.flags.telescopeAligned = true;
             say("Mara", "Spyglass plus telescope: the fake third star collapses into a moon-door reflection. That feels legally puzzle-shaped.");
@@ -2194,6 +2410,11 @@
       if (!button) return;
       setVerb(button.dataset.verb);
     });
+    choiceOptions?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-choice]");
+      if (!button) return;
+      chooseDialogue(Number(button.dataset.choice));
+    });
     startButton.addEventListener("click", startGame);
     continueButton.addEventListener("click", () => {
       endingScreen.hidden = true;
@@ -2211,11 +2432,13 @@
   }
 
   async function boot() {
-    await Promise.all(Object.entries(imageSources).map(([key, src]) => loadImage(key, src)));
+    await preloadImages();
     loadGame();
     bindEvents();
     sceneName.textContent = getScene().title;
     setStatus("Ready.");
+    startButton.disabled = false;
+    startButton.textContent = "Start";
     updateVerbButtons();
     updateInventory();
     updateQuestTracker();
@@ -2228,6 +2451,7 @@
       inventory: [...state.inventory],
       flags: { ...state.flags },
       quest: getQuestState(),
+      choiceOpen: state.choiceHandlers.length,
       player: { x: state.player.x, y: state.player.y, action: state.player.action },
       started: state.started,
     });
@@ -2238,6 +2462,10 @@
         state.player.y = scenes[sceneId].walkY;
       }
       interact(hotspotId, verb, item);
+      return window.__COCONUT_DEBUG_STATE();
+    };
+    window.__COCONUT_TEST_CHOICE = (index = 0) => {
+      chooseDialogue(index);
       return window.__COCONUT_DEBUG_STATE();
     };
     window.__COCONUT_TEST_ADD_ITEM = (id) => {

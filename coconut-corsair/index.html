@@ -33,6 +33,7 @@
       <section id="dialogue" aria-live="polite">
         <strong id="speaker"></strong>
         <span id="line"></span>
+        <div id="choiceOptions" aria-label="Dialogue choices"></div>
       </section>
 
       <section id="commandBar" aria-label="Commands">
@@ -52,7 +53,12 @@
           <p class="kicker">A new HD pirate adventure</p>
           <h1>Coconut Corsair</h1>
           <p class="subtitle">The Star Compass</p>
-          <button id="startButton" type="button">Start</button>
+          <div id="loadingPanel" aria-live="polite">
+            <div id="loadingMeter"><span id="loadingFill"></span></div>
+            <p id="loadingText">Füttere Affen mit Bananen</p>
+            <span id="loadingCounter">0/70</span>
+          </div>
+          <button id="startButton" type="button" disabled>Loading</button>
         </div>
       </section>
 

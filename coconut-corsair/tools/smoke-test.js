@@ -84,6 +84,7 @@ function checkFiles() {
     "assets/source/npc_anim_atlas_imagen_key.png",
     "assets/source/keeper_moon_door_solid_sheet_source.png",
     "assets/source/npcs_market_observatory_imagen_sheet_source.png",
+    "assets/source/npcs_market_observatory_normalized_sheet_source.png",
     "assets/source/item_atlas_imagen_hd.png",
     "assets/backgrounds/harbor_imagen_hd.png",
     "assets/backgrounds/tavern_imagen_hd.png",
@@ -94,6 +95,7 @@ function checkFiles() {
     "assets/sprites/characters_imagen_hd_sheet.png",
     "assets/sprites/keeper_moon_door_solid_sheet.png",
     "assets/sprites/npcs_market_observatory_imagen_sheet.png",
+    "assets/sprites/npcs_market_observatory_normalized_sheet.png",
     "assets/sprites/items_imagen_hd_sheet.png",
     "assets/sprites/scene_items_imagen_hd_sheet.png",
     "assets/audio/bgm/moonlit-rum-islet.mp3",
@@ -144,6 +146,14 @@ async function run() {
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__COCONUT_READY === true, null, { timeout: 90000 });
+  const loading = await page.evaluate(() => ({
+    counter: document.getElementById("loadingCounter")?.textContent || "",
+    text: document.getElementById("loadingText")?.textContent || "",
+    disabled: document.getElementById("startButton")?.disabled,
+  }));
+  assert(loading.counter === "70/70", `Loading counter should be themed 70-step progress: ${JSON.stringify(loading)}`);
+  assert(!/asset/i.test(loading.text), `Loading text should not expose asset counts: ${JSON.stringify(loading)}`);
+  assert(loading.disabled === false, "Start button stayed disabled after loading");
   await page.evaluate(() => document.getElementById("startButton").click());
   await page.waitForTimeout(600);
   const hud = await page.evaluate(() => ({
@@ -188,11 +198,14 @@ async function run() {
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "lime", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "spyglass", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("tavern", "barkeep", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "smuggler", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("market", "ledger", "look"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "starCharts", "use", "brassNote"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "telescope", "use", "spyglass"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("observatory", "archivist", "talk"));
+  await page.evaluate(() => window.__COCONUT_TEST_CHOICE(0));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "tidepool", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("beach", "bottle", "take"));
   await page.evaluate(() => window.__COCONUT_TEST_ACTION("harbor", "skiff", "use", "rope"));
