@@ -15,6 +15,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Deutsche Browser-Sprachausgabe fuer Start, Level-ups, Bosswarnungen, niedrige HP und Endscreen.
 - Ruhigere SFX, Tastatur, dynamischer Vollbild-Mobile-Joystick, Dash, Pause, Vollbild und Audio-Schalter.
 - Mobile Kamera zoomt weiter raus; Portrait- und Querformat-HUD bleiben minimal.
+- Flowigerer Balance-Pass mit Cutlass+Coconut-Start, schnellerem Dash, starker XP-Magnet-/Undertow-Logik, frueheren Level-ups, Level-Heilung und weicheren Boss-/Spawn-Kurven.
 - Transparentere Adventure-Piraten-GUI mit groesserem Monkey-Island-Einschlag.
 
 ## Spielen

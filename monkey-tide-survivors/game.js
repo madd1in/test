@@ -99,6 +99,13 @@ const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
+const BALANCE = {
+  normalSpawnIntensity: 1.04,
+  quickSpawnIntensity: 1.26,
+  enemyHpGrowth: 390,
+  enemySpeedGrowth: 1080,
+  bossHpMult: 2.32,
+};
 
 const iconMap = {
   rope: { x: 0, y: 0 },
@@ -142,16 +149,16 @@ const gothicPropMap = {
 };
 
 const enemyTypes = [
-  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 24, speed: 82, radius: 22, damage: 9, scale: 0.44, xp: 4, tint: "#f0c45d" },
-  { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 30, speed: 118, radius: 20, damage: 8, scale: 0.18, xp: 5, tint: "#ff8b46" },
-  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 26, speed: 142, radius: 20, damage: 9, scale: 0.44, xp: 6, tint: "#9f6cff" },
-  { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 54, speed: 72, radius: 24, damage: 14, scale: 0.48, xp: 10, tint: "#d8e3b0" },
-  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 116, speed: 68, radius: 34, damage: 22, scale: 0.56, xp: 18, tint: "#8bd7b4" },
-  { id: "cook", name: "Grog Cook", row: 8, hp: 46, speed: 62, radius: 26, damage: 13, scale: 0.45, xp: 7, tint: "#ff765f" },
-  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 58, speed: 88, radius: 25, damage: 16, scale: 0.18, xp: 9, tint: "#79e0d8" },
-  { id: "oracle", name: "Shell Oracle", row: 9, hp: 72, speed: 54, radius: 28, damage: 18, scale: 0.47, xp: 12, tint: "#79e0b7" },
-  { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 260, speed: 42, radius: 46, damage: 28, scale: 0.24, xp: 38, tint: "#d07cff" },
-  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 340, speed: 56, radius: 50, damage: 31, scale: 0.52, xp: 46, tint: "#53ffe5" },
+  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d" },
+  { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
+  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff" },
+  { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 46, speed: 68, radius: 24, damage: 9, scale: 0.48, xp: 12, tint: "#d8e3b0" },
+  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4" },
+  { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f" },
+  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
+  { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7" },
+  { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
+  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5" },
 ];
 
 const upgrades = [
@@ -258,14 +265,14 @@ function makeState() {
     coins: 0,
     level: 1,
     xp: 0,
-    nextXp: 28,
+    nextXp: 22,
     camera: { x: WORLD.w / 2, y: WORLD.h / 2 },
     player: {
       x: WORLD.w / 2,
       y: WORLD.h / 2,
       r: 24,
-      hp: 110,
-      maxHp: 110,
+      hp: 150,
+      maxHp: 150,
       invuln: 0,
       dash: 0,
       dashCooldown: 0,
@@ -274,23 +281,23 @@ function makeState() {
       moveY: 0,
     },
     stats: {
-      speed: 224,
-      damage: 1,
-      armor: 0,
-      magnet: 138,
-      pickupValue: 1,
-      dashCooldown: 0.82,
+      speed: 258,
+      damage: 1.12,
+      armor: 2,
+      magnet: 280,
+      pickupValue: 1.12,
+      dashCooldown: 0.68,
     },
     weapons: {
       cutlass: { level: 1, timer: 0 },
-      coconut: { level: 0, timer: 0 },
+      coconut: { level: 1, timer: 0 },
       compass: { level: 0, timer: 0, angle: 0, hits: new Map() },
       bottle: { level: 0, timer: 0 },
       rope: { level: 0, angle: 0, tick: 0 },
     },
     upgradeCounts: {
       cutlass: 1,
-      coconut: 0,
+      coconut: 1,
       compass: 0,
       bottle: 0,
       rope: 0,
@@ -499,7 +506,7 @@ function startGame(options = {}) {
     raiseWeapon("coconut");
     raiseWeapon("compass");
     state.level = 4;
-    state.nextXp = 76;
+    state.nextXp = 62;
   }
   ui.startOverlay.hidden = true;
   ui.endOverlay.hidden = true;
@@ -587,7 +594,7 @@ function updatePlayer(dt) {
   p.invuln = Math.max(0, p.invuln - dt);
   p.dashCooldown = Math.max(0, p.dashCooldown - dt);
   p.dash = Math.max(0, p.dash - dt);
-  const dashBoost = p.dash > 0 ? 2.7 : 1;
+  const dashBoost = p.dash > 0 ? 2.95 : 1;
   p.x = clamp(p.x + input.x * state.stats.speed * dashBoost * dt, 90, WORLD.w - 90);
   p.y = clamp(p.y + input.y * state.stats.speed * dashBoost * dt, 90, WORLD.h - 90);
   state.camera.x += (p.x - state.camera.x) * Math.min(1, dt * 7.5);
@@ -598,9 +605,9 @@ function dash() {
   if (state.phase !== "playing") return;
   const p = state.player;
   if (p.dashCooldown > 0) return;
-  p.dash = 0.16;
+  p.dash = 0.2;
   p.dashCooldown = state.stats.dashCooldown;
-  p.invuln = Math.max(p.invuln, 0.22);
+  p.invuln = Math.max(p.invuln, 0.3);
   playSound("gate");
 }
 
@@ -627,15 +634,15 @@ function updateWeapons(dt) {
   w.cutlass.timer -= dt;
   if (w.cutlass.timer <= 0) {
     const lvl = w.cutlass.level;
-    const cooldown = Math.max(0.28, 0.68 - lvl * 0.045);
+    const cooldown = Math.max(0.24, 0.6 - lvl * 0.05);
     w.cutlass.timer = cooldown;
     const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
-    slash(direction, 104 + lvl * 16, 38 + lvl * 7, 24 + lvl * 9);
+    slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10);
   }
   if (w.coconut.level > 0) {
     w.coconut.timer -= dt;
     if (w.coconut.timer <= 0) {
-      w.coconut.timer = Math.max(0.26, 0.92 - w.coconut.level * 0.075);
+      w.coconut.timer = Math.max(0.22, 0.82 - w.coconut.level * 0.08);
       fireCoconut(w.coconut.level);
     }
   }
@@ -644,14 +651,14 @@ function updateWeapons(dt) {
     w.compass.timer -= dt;
     updateCompassDamage(dt);
     if (w.compass.timer <= 0) {
-      w.compass.timer = Math.max(0.42, 1.4 - w.compass.level * 0.12);
+      w.compass.timer = Math.max(0.36, 1.22 - w.compass.level * 0.12);
       fireCompassBeam(w.compass.level);
     }
   }
   if (w.bottle.level > 0) {
     w.bottle.timer -= dt;
     if (w.bottle.timer <= 0) {
-      w.bottle.timer = Math.max(0.72, 2.18 - w.bottle.level * 0.18);
+      w.bottle.timer = Math.max(0.62, 1.92 - w.bottle.level * 0.18);
       throwBottle(w.bottle.level);
     }
   }
@@ -659,7 +666,7 @@ function updateWeapons(dt) {
     w.rope.angle += dt * 2.2;
     w.rope.tick -= dt;
     if (w.rope.tick <= 0) {
-      w.rope.tick = 0.24;
+      w.rope.tick = 0.2;
       ropeDamage(w.rope.level);
     }
   }
@@ -695,7 +702,7 @@ function fireCoconut(level) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     r: 17,
-    damage: 20 + level * 8,
+    damage: 23 + level * 9,
     life: 3.15,
     pierce: 3 + Math.floor(level / 2),
     spin: 0,
@@ -706,7 +713,7 @@ function fireCompassBeam(level) {
   const target = nearestEnemy();
   if (!target) return;
   const p = state.player;
-  const damage = 16 + level * 8;
+  const damage = 18 + level * 9;
   hurtEnemy(target, damage, Math.sign(target.x - p.x), Math.sign(target.y - p.y));
   state.zones.push({ type: "beam", x: p.x, y: p.y, tx: target.x, ty: target.y, life: 0.16, maxLife: 0.16 });
   playSound("chime");
@@ -725,8 +732,8 @@ function throwBottle(level) {
     vx: Math.cos(angle) * 280,
     vy: Math.sin(angle) * 280,
     r: 15,
-    damage: 22 + level * 10,
-    radius: 92 + level * 11,
+    damage: 25 + level * 11,
+    radius: 102 + level * 12,
     life: 1.15,
     target,
     spin: 0,
@@ -747,8 +754,8 @@ function updateCompassDamage(dt) {
       if (hits.has(enemy.id)) continue;
       const dist = Math.hypot(enemy.x - point.x, enemy.y - point.y);
       if (dist < enemy.r + 24) {
-        hurtEnemy(enemy, 12 + level * 5, Math.sign(enemy.x - point.x), Math.sign(enemy.y - point.y));
-        hits.set(enemy.id, 0.38);
+        hurtEnemy(enemy, 14 + level * 6, Math.sign(enemy.x - point.x), Math.sign(enemy.y - point.y));
+        hits.set(enemy.id, 0.32);
       }
     }
   }
@@ -760,7 +767,7 @@ function ropeDamage(level) {
   for (const enemy of state.enemies) {
     const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
     if (dist > radius - 16 && dist < radius + 28) {
-      hurtEnemy(enemy, 10 + level * 5, (enemy.x - p.x) / dist, (enemy.y - p.y) / dist);
+      hurtEnemy(enemy, 12 + level * 6, (enemy.x - p.x) / dist, (enemy.y - p.y) / dist);
     }
   }
 }
@@ -768,15 +775,15 @@ function ropeDamage(level) {
 function updateSpawns(dt) {
   state.spawnTimer -= dt;
   state.bossTimer -= dt;
-  const intensity = quickMode ? 1.38 : 1.12;
-  const interval = Math.max(0.15, (0.74 - state.elapsed * 0.00145) / intensity);
+  const intensity = quickMode ? BALANCE.quickSpawnIntensity : BALANCE.normalSpawnIntensity;
+  const interval = Math.max(0.2, (0.86 - state.elapsed * 0.00125) / intensity);
   if (state.spawnTimer <= 0) {
     state.spawnTimer = interval;
-    const count = 1 + Math.floor(state.elapsed / 68) + (Math.random() < 0.26 ? 1 : 0);
+    const count = 1 + Math.floor(state.elapsed / 88) + (Math.random() < 0.16 ? 1 : 0);
     for (let i = 0; i < count; i += 1) spawnEnemy(pickEnemyType());
   }
-  if (state.elapsed > 205 && state.bossTimer <= 0) {
-    state.bossTimer = 80;
+  if (state.elapsed > 222 && state.bossTimer <= 0) {
+    state.bossTimer = 92;
     const bossType = state.bossCount % 2 === 0 ? enemyType("spectralCaptain") : enemyType("idol");
     state.bossCount += 1;
     spawnEnemy(bossType, true);
@@ -795,13 +802,13 @@ function enemyType(id) {
 function pickEnemyType() {
   const t = state.elapsed;
   const roll = Math.random();
-  if (t > 235 && roll < 0.12) return enemyType("gargoyle");
-  if (t > 190 && roll < 0.22) return enemyType("oracle");
-  if (t > 150 && roll < 0.34) return enemyType("hand");
-  if (t > 100 && roll < 0.48) return enemyType("boneCorsair");
-  if (t > 70 && roll < 0.58) return enemyType("cook");
-  if (t > 34 && roll < 0.68) return enemyType("cryptBat");
-  if (t > 20 && roll < 0.76) return enemyType("crab");
+  if (t > 250 && roll < 0.1) return enemyType("gargoyle");
+  if (t > 205 && roll < 0.18) return enemyType("oracle");
+  if (t > 162 && roll < 0.28) return enemyType("hand");
+  if (t > 118 && roll < 0.4) return enemyType("boneCorsair");
+  if (t > 82 && roll < 0.5) return enemyType("cook");
+  if (t > 42 && roll < 0.62) return enemyType("cryptBat");
+  if (t > 24 && roll < 0.72) return enemyType("crab");
   return enemyType("deckhand");
 }
 
@@ -825,7 +832,7 @@ function spawnEnemy(type, boss = false) {
     x += (Math.random() - 0.5) * (scene.w + margin);
     y += scene.h / 2 + margin;
   }
-  const scaledHp = type.hp * (1 + state.elapsed / 310) * (boss ? 2.8 : 1);
+  const scaledHp = type.hp * (1 + state.elapsed / BALANCE.enemyHpGrowth) * (boss ? BALANCE.bossHpMult : 1);
   state.enemies.push({
     id: cryptoId(),
     type,
@@ -834,7 +841,7 @@ function spawnEnemy(type, boss = false) {
     hp: scaledHp,
     maxHp: scaledHp,
     r: type.radius * (boss ? 1.25 : 1),
-    speed: type.speed * (1 + state.elapsed / 900),
+    speed: type.speed * (1 + state.elapsed / BALANCE.enemySpeedGrowth),
     damage: type.damage,
     row: type.row,
     frameOffset: Math.floor(Math.random() * 16),
@@ -853,11 +860,11 @@ function updateEnemies(dt) {
     enemy.x += (dx / dist) * enemy.speed * dt;
     enemy.y += (dy / dist) * enemy.speed * dt;
     if (dist < p.r + enemy.r && p.invuln <= 0) {
-      const damage = Math.max(2, enemy.damage - state.stats.armor);
+      const damage = Math.max(1, enemy.damage - state.stats.armor);
       p.hp -= damage;
-      p.invuln = 0.68;
-      p.x -= (dx / dist) * 18;
-      p.y -= (dy / dist) * 18;
+      p.invuln = 0.88;
+      p.x -= (dx / dist) * 30;
+      p.y -= (dy / dist) * 30;
       shake(0.8);
       floatingText(`-${Math.round(damage)}`, p.x, p.y - 58, "#ff765f");
       playSound("gate");
@@ -938,9 +945,13 @@ function updateGems(dt) {
     const dx = p.x - gem.x;
     const dy = p.y - gem.y;
     const dist = Math.hypot(dx, dy);
-    const range = state.stats.magnet + (gem.kind === "coin" ? 55 : 0);
+    if (gem.kind === "xp" && gem.life < 8) {
+      collectGem(gem);
+      continue;
+    }
+    const range = state.stats.magnet + (gem.kind === "xp" ? 140 : gem.kind === "heart" ? 120 : 55);
     if (dist < range) {
-      const pull = (1 - dist / range) * 740 + 170;
+      const pull = (1 - dist / range) * 920 + 240;
       gem.x += (dx / Math.max(1, dist)) * pull * dt;
       gem.y += (dy / Math.max(1, dist)) * pull * dt;
     }
@@ -952,7 +963,7 @@ function updateGems(dt) {
 function collectGem(gem) {
   gem.collected = true;
   if (gem.kind === "heart") {
-    state.player.hp = Math.min(state.player.maxHp, state.player.hp + 28);
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + 36);
     floatingText("+HP", state.player.x, state.player.y - 72, "#79e0b7");
   } else if (gem.kind === "coin") {
     state.coins += gem.value;
@@ -1008,10 +1019,10 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
 
 function killEnemy(enemy) {
   state.killCount += 1;
-  const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.5 : 1) * (1 + state.elapsed / 900));
+  const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.8 : 1) * (1 + state.elapsed / 760));
   state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
   if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
-  if (Math.random() < 0.025) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
+  if (Math.random() < 0.06) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
   if (enemy.boss) {
     state.warningTimer = 2;
     const downText = enemy.type.id === "spectralCaptain" ? "Captain verbannt" : "Idol gebrochen";
@@ -1028,7 +1039,8 @@ function killEnemy(enemy) {
 
 function levelUp() {
   state.level += 1;
-  state.nextXp = Math.round(28 + state.level * 18 + state.level * state.level * 1.8);
+  state.nextXp = Math.round(22 + state.level * 14 + state.level * state.level * 1.35);
+  state.player.hp = Math.min(state.player.maxHp, state.player.hp + 16);
   state.phase = "levelup";
   playSound("chime", { force: true });
   speak("Relikt gefunden. Waehle deine Verstaerkung.", { key: "level-up", interrupt: true, cooldown: 1000 });
@@ -1118,6 +1130,7 @@ function updateLoadout() {
 }
 
 function render() {
+  syncCanvasSize();
   if (!ready) {
     ctx.fillStyle = "#071312";
     ctx.fillRect(0, 0, viewW, viewH);
@@ -1569,15 +1582,32 @@ function getSceneZoom() {
   return 1;
 }
 
-function resize() {
-  dpr = Math.min(2, window.devicePixelRatio || 1);
-  viewW = window.innerWidth;
-  viewH = window.innerHeight;
-  updateSceneViewport();
+function syncCanvasSize() {
+  const nextDpr = Math.min(2, window.devicePixelRatio || 1);
+  const nextW = window.innerWidth;
+  const nextH = window.innerHeight;
+  if (
+    nextDpr === dpr
+    && nextW === viewW
+    && nextH === viewH
+    && canvas.width === Math.floor(viewW * dpr)
+    && canvas.height === Math.floor(viewH * dpr)
+  ) {
+    updateSceneViewport();
+    return;
+  }
+  dpr = nextDpr;
+  viewW = nextW;
+  viewH = nextH;
   canvas.width = Math.floor(viewW * dpr);
   canvas.height = Math.floor(viewH * dpr);
   canvas.style.width = `${viewW}px`;
   canvas.style.height = `${viewH}px`;
+  updateSceneViewport();
+}
+
+function resize() {
+  syncCanvasSize();
   render();
 }
 
@@ -1759,6 +1789,8 @@ window.__MONKEY_TIDE_DEBUG = () => ({
   hp: state.player.hp,
   bosses: state.enemies.filter((enemy) => enemy.boss).map((enemy) => enemy.type.id),
   player: { x: state.player.x, y: state.player.y },
+  stats: { ...state.stats, nextXp: state.nextXp },
+  balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
   fullscreenSupported: document.fullscreenEnabled,
