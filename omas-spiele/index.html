@@ -484,18 +484,19 @@
       display: none;
     }
     #cw-clue {
-      display: flex;
-      align-items: center;
-      min-height: 36px;
-      max-height: 40px;
-      padding: 4px 9px;
+      display: block;
+      min-height: 42px;
+      max-height: 48px;
+      padding: 4px 10px;
       margin: 0;
       border-width: 2px;
       border-radius: 8px;
       box-shadow: none;
-      font-size: 0.9rem;
-      line-height: 1.12;
+      font-size: 1.08rem;
+      font-weight: 800;
+      line-height: 1.08;
       overflow: hidden;
+      overflow-wrap: anywhere;
     }
     #cw-grid {
       flex: 0 0 auto;
@@ -1889,10 +1890,10 @@ function renderCwGrid() {
   if (compact) {
     const headerH = $('header')?.offsetHeight || 58;
     const keyboardH = $('#cw-kb')?.offsetHeight || 228;
-    const reservedH = headerH + keyboardH + 126;
+    const reservedH = headerH + keyboardH + 134;
     const cellByWidth = Math.floor((window.innerWidth - 24 - (p.cols - 1) * 2 - 6) / p.cols);
     const cellByHeight = Math.floor((window.innerHeight - reservedH - (p.rows - 1) * 2 - 6) / p.rows);
-    const cellSize = Math.max(21, Math.min(40, cellByWidth, cellByHeight));
+    const cellSize = Math.max(20, Math.min(40, cellByWidth, cellByHeight));
     grid.style.setProperty('--cw-cell-size', `${cellSize}px`);
     grid.style.gridTemplateColumns = `repeat(${p.cols}, ${cellSize}px)`;
   } else {
