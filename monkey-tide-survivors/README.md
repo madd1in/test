@@ -8,6 +8,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neues Imagen-HD-Top-down-Strandfeld ohne sichtbare Kachelraster.
 - Repeatable Strand-Map mit periodischen HD-Details fuer endlose Kamera-Bewegung ohne rechteckige Kachelkanten.
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
+- Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle, Blutrosen-Relikt und Kerzenprops.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Musiklastiger Mix mit lauterem BGM, frueherem Rush-Loop und zurueckgenommenen SFX.
 - Deutsche Browser-Sprachausgabe fuer Start, Level-ups, Bosswarnungen, niedrige HP und Endscreen.

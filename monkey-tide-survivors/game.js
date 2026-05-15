@@ -42,6 +42,9 @@ const imageSources = {
   characters: "assets/sprites/characters_imagen_hd_sheet.png",
   items: "assets/sprites/scene_items_imagen_hd_sheet.png",
   newSprites: "assets/sprites/new_sprites_imagen_hd.png",
+  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.png",
+  gothicItems: "assets/sprites/gothic_items_hd_sheet.png",
+  gothicProps: "assets/sprites/gothic_props_hd_sheet.png",
 };
 
 const audioSources = {
@@ -89,6 +92,9 @@ let quickMode = false;
 const CHAR = { w: 192, h: 256, cols: 16 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
+const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
+const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
+const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
 
@@ -114,9 +120,31 @@ const newSpriteMap = {
   speedCharm: { x: 3, y: 1 },
 };
 
+const gothicItemMap = {
+  gothicBoots: { x: 0, y: 0 },
+  moonSlash: { x: 1, y: 0 },
+  moonSigil: { x: 2, y: 0 },
+  bloodRose: { x: 3, y: 0 },
+  cryptBatRelic: { x: 0, y: 1 },
+  rubyRing: { x: 1, y: 1 },
+  nightCloak: { x: 2, y: 1 },
+  gothicArmor: { x: 3, y: 1 },
+  gothicAxe: { x: 1, y: 2 },
+  blueVial: { x: 2, y: 2 },
+  rubyHeart: { x: 3, y: 2 },
+};
+
+const gothicPropMap = {
+  gothicCandelabra: { x: 0, y: 0 },
+  wallCandle: { x: 0, y: 1 },
+};
+
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 24, speed: 82, radius: 22, damage: 9, scale: 0.44, xp: 4, tint: "#f0c45d" },
   { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 30, speed: 118, radius: 20, damage: 8, scale: 0.18, xp: 5, tint: "#ff8b46" },
+  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 26, speed: 142, radius: 20, damage: 9, scale: 0.44, xp: 6, tint: "#9f6cff" },
+  { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 54, speed: 72, radius: 24, damage: 14, scale: 0.48, xp: 10, tint: "#d8e3b0" },
+  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 116, speed: 68, radius: 34, damage: 22, scale: 0.56, xp: 18, tint: "#8bd7b4" },
   { id: "cook", name: "Grog Cook", row: 8, hp: 46, speed: 62, radius: 26, damage: 13, scale: 0.45, xp: 7, tint: "#ff765f" },
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 58, speed: 88, radius: 25, damage: 16, scale: 0.18, xp: 9, tint: "#79e0d8" },
   { id: "oracle", name: "Shell Oracle", row: 9, hp: 72, speed: 54, radius: 28, damage: 18, scale: 0.47, xp: 12, tint: "#79e0b7" },
@@ -163,6 +191,17 @@ const upgrades = [
     desc: "Ein rotierender Schutzkreis aus Tauwerk.",
     max: 5,
     apply: () => raiseWeapon("rope"),
+  },
+  {
+    id: "bloodRose",
+    name: "Blutrosenpakt",
+    icon: "bloodRose",
+    desc: "Mehr Schaden, etwas Ruestung und Schlossfluch.",
+    max: 4,
+    apply: () => {
+      state.stats.damage += 0.08;
+      state.stats.armor += 1;
+    },
   },
   {
     id: "speed",
@@ -251,6 +290,7 @@ function makeState() {
       compass: 0,
       bottle: 0,
       rope: 0,
+      bloodRose: 0,
       speed: 0,
       magnet: 0,
       heart: 0,
@@ -272,16 +312,39 @@ function makeState() {
 
 function makeProps() {
   const props = [];
-  const choices = ["rope", "map", "compass", "rumBomb", "telescope", "skullCoin", "key", "speedCharm"];
+  const choices = [
+    "rope",
+    "map",
+    "compass",
+    "rumBomb",
+    "telescope",
+    "skullCoin",
+    "key",
+    "speedCharm",
+    "gothicCandelabra",
+    "wallCandle",
+    "cryptBatRelic",
+    "bloodRose",
+    "gothicArmor",
+    "moonSigil",
+  ];
   for (let gx = 320; gx < WORLD.w - 320; gx += 520) {
     for (let gy = 320; gy < WORLD.h - 320; gy += 470) {
       const h = hash2(Math.floor(gx / 50), Math.floor(gy / 50));
       if (h % 13 < 4) {
+        const icon = choices[h % choices.length];
+        const scale = newSpriteMap[icon]
+          ? 0.15 + (h % 5) * 0.012
+          : gothicPropMap[icon]
+            ? 0.17 + (h % 5) * 0.012
+            : gothicItemMap[icon]
+              ? 0.12 + (h % 5) * 0.012
+              : 0.18 + (h % 5) * 0.014;
         props.push({
           x: gx + ((h >> 4) % 240) - 120,
           y: gy + ((h >> 10) % 220) - 110,
-          icon: choices[h % choices.length],
-          scale: newSpriteMap[choices[h % choices.length]] ? 0.15 + (h % 5) * 0.012 : 0.18 + (h % 5) * 0.014,
+          icon,
+          scale,
           spin: ((h >> 8) % 100) / 100,
         });
       }
@@ -716,14 +779,21 @@ function updateSpawns(dt) {
   }
 }
 
+function enemyType(id) {
+  return enemyTypes.find((type) => type.id === id) || enemyTypes[0];
+}
+
 function pickEnemyType() {
   const t = state.elapsed;
   const roll = Math.random();
-  if (t > 235 && roll < 0.16) return enemyTypes[4];
-  if (t > 150 && roll < 0.28) return enemyTypes[3];
-  if (t > 80 && roll < 0.42) return enemyTypes[2];
-  if (t > 20 && roll < 0.62) return enemyTypes[1];
-  return enemyTypes[0];
+  if (t > 235 && roll < 0.12) return enemyType("gargoyle");
+  if (t > 190 && roll < 0.22) return enemyType("oracle");
+  if (t > 150 && roll < 0.34) return enemyType("hand");
+  if (t > 100 && roll < 0.48) return enemyType("boneCorsair");
+  if (t > 70 && roll < 0.58) return enemyType("cook");
+  if (t > 34 && roll < 0.68) return enemyType("cryptBat");
+  if (t > 20 && roll < 0.76) return enemyType("crab");
+  return enemyType("deckhand");
 }
 
 function spawnEnemy(type, boss = false) {
@@ -1174,7 +1244,15 @@ function drawEnemies() {
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
     ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
-    if (enemy.type.sprite) {
+    if (enemy.type.gothicRow !== undefined) {
+      const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
+      const sx = frame * GOTHIC_ENEMY.w;
+      const sy = enemy.type.gothicRow * GOTHIC_ENEMY.h;
+      const bob = enemy.type.id === "cryptBat" ? Math.sin(state.elapsed * 8 + enemy.frameOffset) * 8 : 0;
+      w = GOTHIC_ENEMY.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      h = GOTHIC_ENEMY.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.sprite) {
       const src = newSpriteMap[enemy.type.sprite];
       const bob = Math.sin(state.elapsed * (enemy.type.id === "crab" ? 10 : 6) + enemy.frameOffset) * (enemy.type.id === "crab" ? 5 : 3);
       w = NEWSPRITE.w * enemy.type.scale * (enemy.boss ? 1.22 : 1);
@@ -1361,6 +1439,14 @@ function drawItemAt(icon, x, y, w, h) {
     drawNewSpriteAt(icon, x, y, w, h);
     return;
   }
+  if (gothicItemMap[icon]) {
+    drawGothicItemAt(icon, x, y, w, h);
+    return;
+  }
+  if (gothicPropMap[icon]) {
+    drawGothicPropAt(icon, x, y, w, h);
+    return;
+  }
   const src = iconMap[icon] || iconMap.coin;
   ctx.drawImage(images.items, src.x * ITEM.w, src.y * ITEM.h, ITEM.w, ITEM.h, x, y, w, h);
 }
@@ -1370,12 +1456,34 @@ function drawNewSpriteAt(icon, x, y, w, h) {
   ctx.drawImage(images.newSprites, src.x * NEWSPRITE.w, src.y * NEWSPRITE.h, NEWSPRITE.w, NEWSPRITE.h, x, y, w, h);
 }
 
+function drawGothicItemAt(icon, x, y, w, h) {
+  const src = gothicItemMap[icon] || gothicItemMap.bloodRose;
+  ctx.drawImage(images.gothicItems, src.x * GOTHIC_ITEM.w, src.y * GOTHIC_ITEM.h, GOTHIC_ITEM.w, GOTHIC_ITEM.h, x, y, w, h);
+}
+
+function drawGothicPropAt(icon, x, y, w, h) {
+  const src = gothicPropMap[icon] || gothicPropMap.gothicCandelabra;
+  ctx.drawImage(images.gothicProps, src.x * GOTHIC_PROP.w, src.y * GOTHIC_PROP.h, GOTHIC_PROP.w, GOTHIC_PROP.h, x, y, w, h);
+}
+
 function iconStyle(icon) {
   if (newSpriteMap[icon]) {
     const src = newSpriteMap[icon];
     const bx = src.x / (NEWSPRITE.cols - 1) * 100;
     const by = src.y / (NEWSPRITE.rows - 1) * 100;
     return `background-image:url('assets/sprites/new_sprites_imagen_hd.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+  }
+  if (gothicItemMap[icon]) {
+    const src = gothicItemMap[icon];
+    const bx = src.x / (GOTHIC_ITEM.cols - 1) * 100;
+    const by = src.y / (GOTHIC_ITEM.rows - 1) * 100;
+    return `background-image:url('assets/sprites/gothic_items_hd_sheet.png');background-size:400% 300%;background-position:${bx}% ${by}%;`;
+  }
+  if (gothicPropMap[icon]) {
+    const src = gothicPropMap[icon];
+    const bx = src.x / (GOTHIC_PROP.cols - 1) * 100;
+    const by = src.y / (GOTHIC_PROP.rows - 1) * 100;
+    return `background-image:url('assets/sprites/gothic_props_hd_sheet.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
   }
   const src = iconMap[icon] || iconMap.coin;
   const bx = src.x / (ITEM.cols - 1) * 100;
@@ -1642,6 +1750,14 @@ window.__MONKEY_TIDE_DEBUG = () => ({
     supported: speechState.supported,
     voice: speechState.voice ? `${speechState.voice.name} (${speechState.voice.lang})` : null,
     muted,
+  },
+  crossoverAssets: {
+    gothicEnemies: !!images.gothicEnemies,
+    gothicItems: !!images.gothicItems,
+    gothicProps: !!images.gothicProps,
+    gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
+    gothicPropTypes: Object.keys(gothicPropMap),
+    gothicItemTypes: Object.keys(gothicItemMap),
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
 });
