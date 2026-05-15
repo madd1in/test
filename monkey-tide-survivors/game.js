@@ -16,6 +16,7 @@ const ui = {
   restartButton: document.getElementById("restartButton"),
   pauseButton: document.getElementById("pauseButton"),
   audioButton: document.getElementById("audioButton"),
+  fullscreenButton: document.getElementById("fullscreenButton"),
   dashButton: document.getElementById("dashButton"),
   stickBase: document.getElementById("stickBase"),
   stickKnob: document.getElementById("stickKnob"),
@@ -54,6 +55,13 @@ const audioSources = {
 
 const images = {};
 const soundPools = {};
+const soundLastPlayed = new Map();
+const soundConfig = {
+  pickup: { volume: 0.09, cooldown: 150 },
+  chime: { volume: 0.16, cooldown: 420 },
+  gate: { volume: 0.11, cooldown: 520 },
+  confirm: { volume: 0.14, cooldown: 260 },
+};
 let music = null;
 let rushMusic = null;
 let muted = false;
@@ -66,6 +74,7 @@ let ready = false;
 let dpr = 1;
 let viewW = 1280;
 let viewH = 720;
+const scene = { zoom: 1, w: 1280, h: 720 };
 let lastTime = 0;
 let raf = 0;
 let quickMode = false;
@@ -293,7 +302,7 @@ function prepareAudio() {
     soundPools[key] = Array.from({ length: 5 }, () => {
       const audio = new Audio(src);
       audio.preload = "auto";
-      audio.volume = key === "gate" ? 0.25 : 0.42;
+      audio.volume = soundConfig[key]?.volume ?? 0.16;
       return audio;
     });
   }
@@ -338,8 +347,12 @@ async function boot() {
   render();
 }
 
-function playSound(key) {
+function playSound(key, options = {}) {
   if (muted || !soundPools[key]) return;
+  const now = performance.now();
+  const cooldown = options.cooldown ?? soundConfig[key]?.cooldown ?? 0;
+  if (!options.force && now - (soundLastPlayed.get(key) || -Infinity) < cooldown) return;
+  soundLastPlayed.set(key, now);
   const pool = soundPools[key];
   const clip = pool.find((a) => a.paused || a.ended) || pool[0];
   try {
@@ -384,6 +397,7 @@ function cancelSpeech() {
 
 function resetSpeechForRun() {
   speechState.lastSaid.clear();
+  soundLastPlayed.clear();
   cancelSpeech();
 }
 
@@ -713,17 +727,17 @@ function spawnEnemy(type, boss = false) {
   let x = p.x;
   let y = p.y;
   if (side === 0) {
-    x -= viewW / 2 + margin;
-    y += (Math.random() - 0.5) * (viewH + margin);
+    x -= scene.w / 2 + margin;
+    y += (Math.random() - 0.5) * (scene.h + margin);
   } else if (side === 1) {
-    x += viewW / 2 + margin;
-    y += (Math.random() - 0.5) * (viewH + margin);
+    x += scene.w / 2 + margin;
+    y += (Math.random() - 0.5) * (scene.h + margin);
   } else if (side === 2) {
-    x += (Math.random() - 0.5) * (viewW + margin);
-    y -= viewH / 2 + margin;
+    x += (Math.random() - 0.5) * (scene.w + margin);
+    y -= scene.h / 2 + margin;
   } else {
-    x += (Math.random() - 0.5) * (viewW + margin);
-    y += viewH / 2 + margin;
+    x += (Math.random() - 0.5) * (scene.w + margin);
+    y += scene.h / 2 + margin;
   }
   const scaledHp = type.hp * (1 + state.elapsed / 310) * (boss ? 2.8 : 1);
   state.enemies.push({
@@ -916,15 +930,17 @@ function killEnemy(enemy) {
     state.warningTimer = 2;
     floatingText("Idol gebrochen", enemy.x, enemy.y - 80, "#fff2c7");
     speak("Idol gebrochen. Sammel die Beute!", { key: "boss-down", interrupt: true, cooldown: 2000 });
+    playSound("chime", { force: true });
+  } else if (Math.random() < 0.08) {
+    playSound("pickup", { cooldown: 650 });
   }
-  playSound("pickup");
 }
 
 function levelUp() {
   state.level += 1;
   state.nextXp = Math.round(28 + state.level * 18 + state.level * state.level * 1.8);
   state.phase = "levelup";
-  playSound("chime");
+  playSound("chime", { force: true });
   speak("Relikt gefunden. Waehle deine Verstaerkung.", { key: "level-up", interrupt: true, cooldown: 1000 });
   showUpgrades();
 }
@@ -987,6 +1003,8 @@ function updateDom() {
   ui.coinText.textContent = state.coins;
   ui.audioButton.textContent = muted ? "OFF" : "ON";
   ui.pauseButton.textContent = state.phase === "paused" ? ">" : "II";
+  ui.fullscreenButton.textContent = document.fullscreenElement ? "MIN" : "FS";
+  ui.fullscreenButton.title = document.fullscreenElement ? "Vollbild verlassen" : "Vollbild";
   updateLoadout();
 }
 
@@ -1015,9 +1033,14 @@ function render() {
     ctx.fillRect(0, 0, viewW, viewH);
     return;
   }
+  updateSceneViewport();
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = true;
+  ctx.save();
+  ctx.translate(viewW / 2, viewH / 2);
+  ctx.scale(scene.zoom, scene.zoom);
+  ctx.translate(-scene.w / 2, -scene.h / 2);
   drawWorld();
   if (state.phase !== "menu") {
     drawProps();
@@ -1032,12 +1055,13 @@ function render() {
     if (state.warningTimer > 0) drawWarning();
   }
   ctx.restore();
+  ctx.restore();
 }
 
 function drawWorld() {
   const cam = state.camera;
-  const ox = viewW / 2 - cam.x;
-  const oy = viewH / 2 - cam.y;
+  const ox = scene.w / 2 - cam.x;
+  const oy = scene.h / 2 - cam.y;
   drawRepeatingMap(images.repeatBeach, ox, oy);
   drawNaturalGroundDetails(ox, oy);
 }
@@ -1047,8 +1071,8 @@ function drawRepeatingMap(image, ox, oy) {
   const tileH = image.height;
   const startX = positiveModulo(ox, tileW) - tileW;
   const startY = positiveModulo(oy, tileH) - tileH;
-  for (let x = startX; x < viewW + tileW; x += tileW) {
-    for (let y = startY; y < viewH + tileH; y += tileH) {
+  for (let x = startX; x < scene.w + tileW; x += tileW) {
+    for (let y = startY; y < scene.h + tileH; y += tileH) {
       ctx.drawImage(image, x, y, tileW, tileH);
     }
   }
@@ -1057,10 +1081,10 @@ function drawRepeatingMap(image, ox, oy) {
 function drawNaturalGroundDetails(ox, oy) {
   const tile = 220;
   const cam = state.camera;
-  const minX = Math.floor((cam.x - viewW / 2) / tile) - 1;
-  const maxX = Math.ceil((cam.x + viewW / 2) / tile) + 1;
-  const minY = Math.floor((cam.y - viewH / 2) / tile) - 1;
-  const maxY = Math.ceil((cam.y + viewH / 2) / tile) + 1;
+  const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
+  const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
+  const minY = Math.floor((cam.y - scene.h / 2) / tile) - 1;
+  const maxY = Math.ceil((cam.y + scene.h / 2) / tile) + 1;
   ctx.save();
   for (let gx = minX; gx <= maxX; gx += 1) {
     for (let gy = minY; gy <= maxY; gy += 1) {
@@ -1097,8 +1121,8 @@ function drawNaturalGroundDetails(ox, oy) {
 }
 
 function drawProps() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   for (const prop of state.props) {
     if (!onScreen(prop.x, prop.y, 140)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
@@ -1107,8 +1131,8 @@ function drawProps() {
 }
 
 function drawGems() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   for (const gem of state.gems) {
     if (!onScreen(gem.x, gem.y, 80)) continue;
     const t = performance.now() / 260;
@@ -1128,8 +1152,8 @@ function drawGems() {
 }
 
 function drawEnemies() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   const enemies = [...state.enemies].sort((a, b) => a.y - b.y);
   for (const enemy of enemies) {
     if (!onScreen(enemy.x, enemy.y, 220)) continue;
@@ -1170,8 +1194,8 @@ function drawEnemies() {
 
 function drawPlayer() {
   const p = state.player;
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   const moving = Math.hypot(p.moveX, p.moveY) > 0.05;
   const row = moving ? 1 : 0;
   const frame = moving ? Math.floor(state.elapsed * 12) % 16 : Math.floor(state.elapsed * 3) % 4;
@@ -1195,8 +1219,8 @@ function drawPlayer() {
 }
 
 function drawProjectiles() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   for (const projectile of state.projectiles) {
     if (!onScreen(projectile.x, projectile.y, 100)) continue;
     const size = projectile.type === "bottle" ? 44 : 38;
@@ -1210,8 +1234,8 @@ function drawProjectiles() {
 }
 
 function drawWeaponEffects() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   for (const zone of state.zones) {
     const a = clamp(zone.life / zone.maxLife, 0, 1);
     ctx.save();
@@ -1267,8 +1291,8 @@ function drawWeaponEffects() {
 }
 
 function drawParticles() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   for (const particle of state.particles) {
     ctx.globalAlpha = clamp(particle.life / 0.4, 0, 1);
     ctx.fillStyle = particle.color;
@@ -1280,8 +1304,8 @@ function drawParticles() {
 }
 
 function drawTexts() {
-  const ox = viewW / 2 - state.camera.x;
-  const oy = viewH / 2 - state.camera.y;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
   ctx.save();
   ctx.textAlign = "center";
   ctx.font = "900 18px Trebuchet MS, sans-serif";
@@ -1297,22 +1321,22 @@ function drawTexts() {
 }
 
 function drawVignette() {
-  const gradient = ctx.createRadialGradient(viewW / 2, viewH / 2, Math.min(viewW, viewH) * 0.2, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.7);
+  const gradient = ctx.createRadialGradient(scene.w / 2, scene.h / 2, Math.min(scene.w, scene.h) * 0.2, scene.w / 2, scene.h / 2, Math.max(scene.w, scene.h) * 0.7);
   gradient.addColorStop(0, "rgba(0,0,0,0)");
   gradient.addColorStop(1, "rgba(47,24,6,0.2)");
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, viewW, viewH);
+  ctx.fillRect(0, 0, scene.w, scene.h);
 }
 
 function drawWarning() {
   ctx.save();
   ctx.globalAlpha = clamp(state.warningTimer / 2, 0, 1);
   ctx.fillStyle = "rgba(4, 9, 9, 0.35)";
-  ctx.fillRect(0, viewH * 0.42, viewW, 76);
+  ctx.fillRect(0, scene.h * 0.42, scene.w, 76);
   ctx.fillStyle = "#fff2c7";
   ctx.textAlign = "center";
   ctx.font = "900 30px Trebuchet MS, sans-serif";
-  ctx.fillText("MONKEY IDOL RISES", viewW / 2, viewH * 0.42 + 48);
+  ctx.fillText("MONKEY IDOL RISES", scene.w / 2, scene.h * 0.42 + 48);
   ctx.restore();
 }
 
@@ -1390,13 +1414,30 @@ function shake(power) {
 }
 
 function onScreen(x, y, margin = 0) {
-  return Math.abs(x - state.camera.x) < viewW / 2 + margin && Math.abs(y - state.camera.y) < viewH / 2 + margin;
+  return Math.abs(x - state.camera.x) < scene.w / 2 + margin && Math.abs(y - state.camera.y) < scene.h / 2 + margin;
+}
+
+function updateSceneViewport() {
+  scene.zoom = getSceneZoom();
+  scene.w = viewW / scene.zoom;
+  scene.h = viewH / scene.zoom;
+}
+
+function getSceneZoom() {
+  const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
+  const mobileSized = Math.min(viewW, viewH) <= 520 || Math.max(viewW, viewH) <= 920;
+  if (coarsePointer || mobileSized) {
+    return viewW > viewH ? 0.62 : 0.7;
+  }
+  if (viewW < 980) return 0.86;
+  return 1;
 }
 
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   viewW = window.innerWidth;
   viewH = window.innerHeight;
+  updateSceneViewport();
   canvas.width = Math.floor(viewW * dpr);
   canvas.height = Math.floor(viewH * dpr);
   canvas.style.width = `${viewW}px`;
@@ -1462,6 +1503,7 @@ ui.quickButton.addEventListener("click", () => startGame({ quick: true }));
 ui.restartButton.addEventListener("click", () => startGame({ quick: quickMode }));
 ui.pauseButton.addEventListener("click", togglePause);
 ui.audioButton.addEventListener("click", toggleMute);
+ui.fullscreenButton.addEventListener("click", toggleFullscreen);
 ui.dashButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   dash();
@@ -1491,6 +1533,20 @@ function toggleMute() {
   syncMusic();
   updateDom();
 }
+
+function toggleFullscreen() {
+  if (!document.fullscreenEnabled) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+document.addEventListener("fullscreenchange", () => {
+  resize();
+  updateDom();
+});
 
 window.addEventListener("pointerdown", handleWorldPointerDown, { passive: false });
 window.addEventListener("pointermove", handleWorldPointerMove, { passive: false });
@@ -1567,6 +1623,8 @@ window.__MONKEY_TIDE_DEBUG = () => ({
   hp: state.player.hp,
   player: { x: state.player.x, y: state.player.y },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
+  scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
+  fullscreenSupported: document.fullscreenEnabled,
   speech: {
     supported: speechState.supported,
     voice: speechState.voice ? `${speechState.voice.name} (${speechState.voice.lang})` : null,
