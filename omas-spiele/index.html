@@ -474,7 +474,7 @@
       height: calc(100svh - 58px);
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
       overflow: hidden;
     }
     #wordle h2,
@@ -486,15 +486,15 @@
     #cw-clue {
       display: flex;
       align-items: center;
-      min-height: 32px;
-      max-height: 38px;
-      padding: 4px 8px;
+      min-height: 36px;
+      max-height: 40px;
+      padding: 4px 9px;
       margin: 0;
       border-width: 2px;
       border-radius: 8px;
       box-shadow: none;
-      font-size: 0.78rem;
-      line-height: 1.15;
+      font-size: 0.9rem;
+      line-height: 1.12;
       overflow: hidden;
     }
     #cw-grid {
@@ -508,7 +508,7 @@
     .cw-cell {
       width: var(--cw-cell-size, 40px);
       height: var(--cw-cell-size, 40px);
-      font-size: calc(var(--cw-cell-size, 40px) * 0.48);
+      font-size: calc(var(--cw-cell-size, 40px) * 0.68);
       border-radius: 3px;
     }
     .cw-cell.active { outline-width: 3px; }
@@ -519,44 +519,44 @@
       gap: 4px;
     }
     #crossword .row-actions .btn {
-      min-height: 28px;
-      padding: 4px 8px;
+      min-height: 26px;
+      padding: 3px 8px;
       border-width: 2px;
       border-radius: 7px;
       box-shadow: none;
-      font-size: 0.74rem;
+      font-size: 0.86rem;
     }
     #cw-status,
     #wo-status {
       flex: 0 0 auto;
-      min-height: 18px;
+      min-height: 16px;
       margin: 0;
-      font-size: 0.74rem;
+      font-size: 0.84rem;
       line-height: 1.15;
     }
     #wo-grid {
-      width: min(66vw, 220px);
-      max-width: 220px;
-      gap: 3px;
-      margin: 2px auto;
+      width: min(62vw, 210px);
+      max-width: 210px;
+      gap: 2px;
+      margin: 1px auto;
     }
-    .wo-row { gap: 3px; }
+    .wo-row { gap: 2px; }
     .wo-tile {
       border-width: 2px;
       border-radius: 6px;
-      font-size: 1.08rem;
+      font-size: 1.35rem;
     }
     #wordle .row-actions {
       margin: 2px 0 0;
       justify-content: center;
     }
     #wordle .row-actions .btn {
-      min-height: 30px;
-      padding: 4px 10px;
+      min-height: 28px;
+      padding: 3px 10px;
       border-width: 2px;
       border-radius: 7px;
       box-shadow: none;
-      font-size: 0.72rem;
+      font-size: 0.86rem;
     }
     .keyboard {
       flex: 0 0 auto;
@@ -570,16 +570,16 @@
       flex: 1 1 0;
       min-width: 0;
       max-width: none;
-      height: 42px;
+      height: 44px;
       padding: 0;
       border-width: 2px;
       border-radius: 6px;
       box-shadow: none;
-      font-size: 1.05rem;
+      font-size: 1.32rem;
     }
     .key.wide {
       flex: 1.2 1 0;
-      font-size: 1.1rem;
+      font-size: 1.34rem;
     }
     .math-q { font-size: 2em; margin: 16px 0; padding: 18px; }
     .math-opt { padding: 18px; font-size: 1.3em; min-height: 70px; }
@@ -1889,7 +1889,7 @@ function renderCwGrid() {
   if (compact) {
     const headerH = $('header')?.offsetHeight || 58;
     const keyboardH = $('#cw-kb')?.offsetHeight || 228;
-    const reservedH = headerH + keyboardH + 128;
+    const reservedH = headerH + keyboardH + 126;
     const cellByWidth = Math.floor((window.innerWidth - 24 - (p.cols - 1) * 2 - 6) / p.cols);
     const cellByHeight = Math.floor((window.innerHeight - reservedH - (p.rows - 1) * 2 - 6) / p.rows);
     const cellSize = Math.max(21, Math.min(40, cellByWidth, cellByHeight));
