@@ -34,6 +34,7 @@ const ui = {
 };
 
 const imageSources = {
+  repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
   topdownBeach: "assets/backgrounds/topdown_beach_imagen_hd.png",
   beach: "assets/backgrounds/beach_imagen_hd.png",
   jungle: "assets/backgrounds/jungle_imagen_hd.png",
@@ -935,19 +936,20 @@ function drawWorld() {
   const cam = state.camera;
   const ox = viewW / 2 - cam.x;
   const oy = viewH / 2 - cam.y;
-  drawCoverPan(images.topdownBeach, cam.x / WORLD.w, cam.y / WORLD.h, 1.02);
+  drawRepeatingMap(images.repeatBeach, ox, oy);
   drawNaturalGroundDetails(ox, oy);
 }
 
-function drawCoverPan(image, panX, panY, zoom = 1) {
-  const scale = Math.max(viewW / image.width, viewH / image.height) * zoom;
-  const sw = Math.min(image.width, viewW / scale);
-  const sh = Math.min(image.height, viewH / scale);
-  const maxX = Math.max(1, image.width - sw);
-  const maxY = Math.max(1, image.height - sh);
-  const sx = maxX * clamp(panX, 0, 1);
-  const sy = maxY * clamp(panY, 0, 1);
-  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, viewW, viewH);
+function drawRepeatingMap(image, ox, oy) {
+  const tileW = image.width;
+  const tileH = image.height;
+  const startX = positiveModulo(ox, tileW) - tileW;
+  const startY = positiveModulo(oy, tileH) - tileH;
+  for (let x = startX; x < viewW + tileW; x += tileW) {
+    for (let y = startY; y < viewH + tileH; y += tileH) {
+      ctx.drawImage(image, x, y, tileW, tileH);
+    }
+  }
 }
 
 function drawNaturalGroundDetails(ox, oy) {
@@ -1308,6 +1310,10 @@ function formatTime(seconds) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function positiveModulo(value, modulo) {
+  return ((value % modulo) + modulo) % modulo;
 }
 
 function shortAngle(angle) {

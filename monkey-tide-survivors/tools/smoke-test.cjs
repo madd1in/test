@@ -65,6 +65,7 @@ async function run() {
     "index.html",
     "style.css",
     "game.js",
+    "assets/backgrounds/topdown_beach_repeatable_hd.png",
     "assets/backgrounds/topdown_beach_imagen_hd.png",
     "assets/backgrounds/beach_imagen_hd.png",
     "assets/backgrounds/jungle_imagen_hd.png",
