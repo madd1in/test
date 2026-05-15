@@ -1557,7 +1557,6 @@ function handleWorldPointerDown(event) {
   if (event.pointerType === "mouse") return;
   if (state.phase !== "playing") return;
   if (event.target.closest("button, .overlay")) return;
-  if (event.clientX > viewW * 0.58) return;
   event.preventDefault();
   startStick(event);
 }
@@ -1571,11 +1570,12 @@ function handleWorldPointerMove(event) {
 function startStick(event) {
   pointer.active = true;
   pointer.id = event.pointerId;
-  pointer.originX = clamp(event.clientX, 58, Math.max(58, viewW * 0.58 - 20));
+  pointer.originX = clamp(event.clientX, 58, Math.max(58, viewW - 58));
   pointer.originY = clamp(event.clientY, 68, Math.max(68, viewH - 68));
   ui.stickBase.classList.add("active");
-  ui.stickBase.style.left = `${pointer.originX - 56}px`;
-  ui.stickBase.style.top = `${pointer.originY - 56}px`;
+  const baseSize = ui.stickBase.offsetWidth || 112;
+  ui.stickBase.style.left = `${pointer.originX - baseSize / 2}px`;
+  ui.stickBase.style.top = `${pointer.originY - baseSize / 2}px`;
   updateStick(event);
 }
 

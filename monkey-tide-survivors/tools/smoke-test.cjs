@@ -155,13 +155,43 @@ async function run() {
       clientX: 82,
       clientY: 650,
     }));
-    return { before, active, moved, after: window.__MONKEY_TIDE_DEBUG() };
+    const after = window.__MONKEY_TIDE_DEBUG();
+    const rightTarget = document.elementFromPoint(330, 420) || document.getElementById("gameCanvas");
+    rightTarget.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 78,
+      pointerType: "touch",
+      clientX: 330,
+      clientY: 420,
+    }));
+    window.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 78,
+      pointerType: "touch",
+      clientX: 260,
+      clientY: 420,
+    }));
+    const rightActive = window.__MONKEY_TIDE_DEBUG();
+    window.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 78,
+      pointerType: "touch",
+      clientX: 260,
+      clientY: 420,
+    }));
+    return { before, active, moved, after, rightActive, rightAfter: window.__MONKEY_TIDE_DEBUG() };
   });
   assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.scene.zoom <= 0.72, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.rightActive.pointer.active === true, `Right-side thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.rightActive.pointer.dx < -0.6, `Right-side thumbstick did not point left: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.rightAfter.pointer.active === false, `Right-side thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
 
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(200);
