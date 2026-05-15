@@ -11,6 +11,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle, Blutrosen-Relikt und Kerzenprops.
 - Imagen-HD-Frameset fuer einen LeChuck-artigen Fluchkapitaen als neuen Boss.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
+- Neuere Download-SFX fuer Dash, Pickup-Akzent, Upgrade, Heavy-Hit und Boss-Momente, leise unter die Musik gemischt.
 - Musiklastiger Mix mit lauterem BGM, frueherem Rush-Loop und zurueckgenommenen SFX.
 - Deutsche Browser-Sprachausgabe fuer Start, Level-ups, Bosswarnungen, niedrige HP und Endscreen.
 - Ruhigere SFX, Tastatur, dynamischer Vollbild-Mobile-Joystick, Dash, Pause, Vollbild und Audio-Schalter.

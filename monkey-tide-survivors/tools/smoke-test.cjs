@@ -82,6 +82,12 @@ async function run() {
     "assets/audio/sfx/chime.wav",
     "assets/audio/sfx/gate.wav",
     "assets/audio/sfx/ui_confirm.wav",
+    "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
+    "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
+    "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
+    "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
+    "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
+    "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
   ].forEach((rel) => {
     const target = path.join(root, rel);
     assert(fs.existsSync(target), `Missing ${rel}`);
@@ -128,6 +134,7 @@ async function run() {
   assert(debug.audio.mainVolume >= 0.5, `Main music should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.4 && debug.audio.music.rushStart <= 190, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.pickup <= 0.05 && debug.audio.sfx.gate <= 0.07, `SFX should sit under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.downloadBossWarning <= 0.06 && debug.audio.mainVolume > debug.audio.sfx.downloadBossWarning * 8, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult <= 2.4 && debug.balance.normalSpawnIntensity <= 1.06, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);

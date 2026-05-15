@@ -55,16 +55,28 @@ const audioSources = {
   chime: "assets/audio/sfx/chime.wav",
   gate: "assets/audio/sfx/gate.wav",
   confirm: "assets/audio/sfx/ui_confirm.wav",
+  downloadPickup: "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
+  downloadDash: "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
+  downloadHit: "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
+  downloadUpgrade: "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
+  downloadBossWarning: "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
+  downloadBossDown: "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
 };
 
 const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
 const soundConfig = {
-  pickup: { volume: 0.045, cooldown: 260 },
-  chime: { volume: 0.09, cooldown: 520 },
-  gate: { volume: 0.06, cooldown: 650 },
-  confirm: { volume: 0.08, cooldown: 340 },
+  pickup: { volume: 0.028, cooldown: 260 },
+  chime: { volume: 0.055, cooldown: 520 },
+  gate: { volume: 0.032, cooldown: 650 },
+  confirm: { volume: 0.045, cooldown: 340 },
+  downloadPickup: { volume: 0.014, cooldown: 380 },
+  downloadDash: { volume: 0.022, cooldown: 520 },
+  downloadHit: { volume: 0.026, cooldown: 900 },
+  downloadUpgrade: { volume: 0.04, cooldown: 800 },
+  downloadBossWarning: { volume: 0.055, cooldown: 45000 },
+  downloadBossDown: { volume: 0.055, cooldown: 2500 },
 };
 const musicConfig = {
   main: 0.54,
@@ -609,6 +621,7 @@ function dash() {
   p.dashCooldown = state.stats.dashCooldown;
   p.invuln = Math.max(p.invuln, 0.3);
   playSound("gate");
+  playSound("downloadDash");
 }
 
 function readInput() {
@@ -791,6 +804,7 @@ function updateSpawns(dt) {
     const warning = bossType.id === "spectralCaptain"
       ? "Fluchkapitaen voraus. Raus aus der Klinge!"
       : "Affenidol voraus. Bleib in Bewegung!";
+    playSound("downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
 }
@@ -974,6 +988,7 @@ function collectGem(gem) {
       state.xp -= state.nextXp;
       levelUp();
     }
+    if (Math.random() < 0.18) playSound("downloadPickup");
   }
   playSound("pickup");
 }
@@ -1002,6 +1017,7 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   enemy.hit = 0.14;
   enemy.x += clamp(nx, -1, 1) * 7;
   enemy.y += clamp(ny, -1, 1) * 7;
+  if ((enemy.boss || amount >= 42) && Math.random() < 0.45) playSound("downloadHit");
   if (Math.random() < 0.12) floatingText(String(Math.round(amount)), enemy.x, enemy.y - enemy.r - 20, enemy.type.tint);
   for (let i = 0; i < 2; i += 1) {
     state.particles.push({
@@ -1032,6 +1048,7 @@ function killEnemy(enemy) {
     floatingText(downText, enemy.x, enemy.y - 80, "#fff2c7");
     speak(downVoice, { key: `boss-down-${enemy.type.id}`, interrupt: true, cooldown: 2000 });
     playSound("chime", { force: true });
+    playSound("downloadBossDown", { force: true });
   } else if (Math.random() < 0.08) {
     playSound("pickup", { cooldown: 650 });
   }
@@ -1043,6 +1060,7 @@ function levelUp() {
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + 16);
   state.phase = "levelup";
   playSound("chime", { force: true });
+  playSound("downloadUpgrade", { force: true });
   speak("Relikt gefunden. Waehle deine Verstaerkung.", { key: "level-up", interrupt: true, cooldown: 1000 });
   showUpgrades();
 }
