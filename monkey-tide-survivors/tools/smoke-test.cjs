@@ -119,6 +119,8 @@ async function run() {
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
+  assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
+  assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
