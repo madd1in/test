@@ -34,10 +34,12 @@ const ui = {
 };
 
 const imageSources = {
+  topdownBeach: "assets/backgrounds/topdown_beach_imagen_hd.png",
   beach: "assets/backgrounds/beach_imagen_hd.png",
   jungle: "assets/backgrounds/jungle_imagen_hd.png",
   characters: "assets/sprites/characters_imagen_hd_sheet.png",
   items: "assets/sprites/scene_items_imagen_hd_sheet.png",
+  newSprites: "assets/sprites/new_sprites_imagen_hd.png",
 };
 
 const audioSources = {
@@ -64,8 +66,9 @@ let quickMode = false;
 
 const CHAR = { w: 192, h: 256, cols: 16 };
 const ITEM = { w: 512, h: 512, cols: 4 };
+const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 6400, h: 6400 };
-const TARGET_TIME = 360;
+const TARGET_TIME = 330;
 
 const iconMap = {
   rope: { x: 0, y: 0 },
@@ -78,11 +81,24 @@ const iconMap = {
   telescope: { x: 3, y: 1 },
 };
 
+const newSpriteMap = {
+  monkeyIdol: { x: 0, y: 0 },
+  crab: { x: 1, y: 0 },
+  banana: { x: 2, y: 0 },
+  skullCoin: { x: 3, y: 0 },
+  voodooBurst: { x: 0, y: 1 },
+  rumBomb: { x: 1, y: 1 },
+  seaHand: { x: 2, y: 1 },
+  speedCharm: { x: 3, y: 1 },
+};
+
 const enemyTypes = [
-  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 26, speed: 62, radius: 22, damage: 10, scale: 0.47, xp: 4, tint: "#f0c45d" },
-  { id: "cook", name: "Grog Cook", row: 8, hp: 48, speed: 44, radius: 26, damage: 15, scale: 0.49, xp: 7, tint: "#ff765f" },
-  { id: "oracle", name: "Shell Oracle", row: 9, hp: 70, speed: 35, radius: 28, damage: 18, scale: 0.5, xp: 11, tint: "#79e0b7" },
-  { id: "idol", name: "Monkey Idol", row: 9, hp: 240, speed: 28, radius: 42, damage: 28, scale: 0.72, xp: 32, tint: "#d07cff" },
+  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 24, speed: 82, radius: 22, damage: 9, scale: 0.44, xp: 4, tint: "#f0c45d" },
+  { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 30, speed: 118, radius: 20, damage: 8, scale: 0.18, xp: 5, tint: "#ff8b46" },
+  { id: "cook", name: "Grog Cook", row: 8, hp: 46, speed: 62, radius: 26, damage: 13, scale: 0.45, xp: 7, tint: "#ff765f" },
+  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 58, speed: 88, radius: 25, damage: 16, scale: 0.18, xp: 9, tint: "#79e0d8" },
+  { id: "oracle", name: "Shell Oracle", row: 9, hp: 72, speed: 54, radius: 28, damage: 18, scale: 0.47, xp: 12, tint: "#79e0b7" },
+  { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 260, speed: 42, radius: 46, damage: 28, scale: 0.24, xp: 38, tint: "#d07cff" },
 ];
 
 const upgrades = [
@@ -97,7 +113,7 @@ const upgrades = [
   {
     id: "coconut",
     name: "Kokos-Bumerang",
-    icon: "lime",
+    icon: "banana",
     desc: "Wirft springende Kokoskerne.",
     max: 7,
     apply: () => raiseWeapon("coconut"),
@@ -113,7 +129,7 @@ const upgrades = [
   {
     id: "bottle",
     name: "Flaschenpost-Bombe",
-    icon: "bottle",
+    icon: "rumBomb",
     desc: "Explodiert bei der dichtesten Geistercrew.",
     max: 6,
     apply: () => raiseWeapon("bottle"),
@@ -128,24 +144,24 @@ const upgrades = [
   },
   {
     id: "speed",
-    name: "Salziger Sprint",
-    icon: "telescope",
+    name: "Palmwedel-Trick",
+    icon: "speedCharm",
     desc: "Mehr Bewegung und kuerzerer Dash.",
     max: 5,
     apply: () => {
-      state.stats.speed += 18;
-      state.stats.dashCooldown = Math.max(0.72, state.stats.dashCooldown - 0.08);
+      state.stats.speed += 24;
+      state.stats.dashCooldown = Math.max(0.58, state.stats.dashCooldown - 0.1);
     },
   },
   {
     id: "magnet",
-    name: "Beutemagnet",
-    icon: "coin",
+    name: "Totenkopf-Dublone",
+    icon: "skullCoin",
     desc: "Zieht Erfahrung und Dublonen schneller an.",
     max: 5,
     apply: () => {
-      state.stats.magnet += 38;
-      state.stats.pickupValue += 0.08;
+      state.stats.magnet += 42;
+      state.stats.pickupValue += 0.1;
     },
   },
   {
@@ -193,12 +209,12 @@ function makeState() {
       moveY: 0,
     },
     stats: {
-      speed: 170,
+      speed: 224,
       damage: 1,
       armor: 0,
-      magnet: 105,
+      magnet: 138,
       pickupValue: 1,
-      dashCooldown: 1.05,
+      dashCooldown: 0.82,
     },
     weapons: {
       cutlass: { level: 1, timer: 0 },
@@ -229,16 +245,16 @@ function makeState() {
 
 function makeProps() {
   const props = [];
-  const choices = ["rope", "map", "compass", "bottle", "telescope", "coin", "key"];
-  for (let gx = 320; gx < WORLD.w - 320; gx += 430) {
-    for (let gy = 320; gy < WORLD.h - 320; gy += 360) {
+  const choices = ["rope", "map", "compass", "rumBomb", "telescope", "skullCoin", "key", "speedCharm"];
+  for (let gx = 320; gx < WORLD.w - 320; gx += 520) {
+    for (let gy = 320; gy < WORLD.h - 320; gy += 470) {
       const h = hash2(Math.floor(gx / 50), Math.floor(gy / 50));
-      if (h % 11 < 3) {
+      if (h % 13 < 4) {
         props.push({
-          x: gx + ((h >> 4) % 170) - 85,
-          y: gy + ((h >> 10) % 150) - 75,
+          x: gx + ((h >> 4) % 240) - 120,
+          y: gy + ((h >> 10) % 220) - 110,
           icon: choices[h % choices.length],
-          scale: 0.22 + (h % 5) * 0.018,
+          scale: newSpriteMap[choices[h % choices.length]] ? 0.15 + (h % 5) * 0.012 : 0.18 + (h % 5) * 0.014,
           spin: ((h >> 8) % 100) / 100,
         });
       }
@@ -424,15 +440,15 @@ function updateWeapons(dt) {
   w.cutlass.timer -= dt;
   if (w.cutlass.timer <= 0) {
     const lvl = w.cutlass.level;
-    const cooldown = Math.max(0.38, 0.9 - lvl * 0.055);
+    const cooldown = Math.max(0.28, 0.68 - lvl * 0.045);
     w.cutlass.timer = cooldown;
     const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
-    slash(direction, 92 + lvl * 15, 34 + lvl * 7, 21 + lvl * 9);
+    slash(direction, 104 + lvl * 16, 38 + lvl * 7, 24 + lvl * 9);
   }
   if (w.coconut.level > 0) {
     w.coconut.timer -= dt;
     if (w.coconut.timer <= 0) {
-      w.coconut.timer = Math.max(0.35, 1.22 - w.coconut.level * 0.095);
+      w.coconut.timer = Math.max(0.26, 0.92 - w.coconut.level * 0.075);
       fireCoconut(w.coconut.level);
     }
   }
@@ -448,7 +464,7 @@ function updateWeapons(dt) {
   if (w.bottle.level > 0) {
     w.bottle.timer -= dt;
     if (w.bottle.timer <= 0) {
-      w.bottle.timer = Math.max(0.9, 2.8 - w.bottle.level * 0.22);
+      w.bottle.timer = Math.max(0.72, 2.18 - w.bottle.level * 0.18);
       throwBottle(w.bottle.level);
     }
   }
@@ -486,15 +502,15 @@ function fireCoconut(level) {
   const speed = 420 + level * 18;
   state.projectiles.push({
     type: "coconut",
-    icon: "lime",
+    icon: level >= 3 ? "banana" : "lime",
     x: p.x + Math.cos(angle) * 32,
     y: p.y + Math.sin(angle) * 32,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     r: 17,
-    damage: 18 + level * 8,
-    life: 2.8,
-    pierce: 2 + Math.floor(level / 2),
+    damage: 20 + level * 8,
+    life: 3.15,
+    pierce: 3 + Math.floor(level / 2),
     spin: 0,
   });
 }
@@ -516,7 +532,7 @@ function throwBottle(level) {
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
   state.projectiles.push({
     type: "bottle",
-    icon: "bottle",
+    icon: "rumBomb",
     x: p.x,
     y: p.y,
     vx: Math.cos(angle) * 280,
@@ -565,24 +581,27 @@ function ropeDamage(level) {
 function updateSpawns(dt) {
   state.spawnTimer -= dt;
   state.bossTimer -= dt;
-  const intensity = quickMode ? 1.28 : 1;
-  const interval = Math.max(0.18, (0.9 - state.elapsed * 0.0017) / intensity);
+  const intensity = quickMode ? 1.38 : 1.12;
+  const interval = Math.max(0.15, (0.74 - state.elapsed * 0.00145) / intensity);
   if (state.spawnTimer <= 0) {
     state.spawnTimer = interval;
-    const count = 1 + Math.floor(state.elapsed / 75) + (Math.random() < 0.18 ? 1 : 0);
+    const count = 1 + Math.floor(state.elapsed / 68) + (Math.random() < 0.26 ? 1 : 0);
     for (let i = 0; i < count; i += 1) spawnEnemy(pickEnemyType());
   }
-  if (state.elapsed > 230 && state.bossTimer <= 0) {
+  if (state.elapsed > 205 && state.bossTimer <= 0) {
     state.bossTimer = 80;
-    spawnEnemy(enemyTypes[3], true);
+    spawnEnemy(enemyTypes.find((type) => type.id === "idol"), true);
     state.warningTimer = 3.2;
   }
 }
 
 function pickEnemyType() {
   const t = state.elapsed;
-  if (t > 210 && Math.random() < 0.18) return enemyTypes[2];
-  if (t > 90 && Math.random() < 0.35) return enemyTypes[1];
+  const roll = Math.random();
+  if (t > 235 && roll < 0.16) return enemyTypes[4];
+  if (t > 150 && roll < 0.28) return enemyTypes[3];
+  if (t > 80 && roll < 0.42) return enemyTypes[2];
+  if (t > 20 && roll < 0.62) return enemyTypes[1];
   return enemyTypes[0];
 }
 
@@ -790,8 +809,8 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
 function killEnemy(enemy) {
   state.killCount += 1;
   const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.5 : 1) * (1 + state.elapsed / 900));
-  state.gems.push({ kind: "xp", icon: "coin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
-  if (Math.random() < 0.08 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
+  state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
+  if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
   if (Math.random() < 0.025) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
   if (enemy.boss) {
     state.warningTimer = 2;
@@ -916,13 +935,8 @@ function drawWorld() {
   const cam = state.camera;
   const ox = viewW / 2 - cam.x;
   const oy = viewH / 2 - cam.y;
-  const base = images.beach;
-  drawCoverPan(base, cam.x * 0.055, cam.y * 0.052, 1);
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  drawCoverPan(images.jungle, cam.x * 0.032 + 260, cam.y * 0.028 + 140, 1.08);
-  ctx.restore();
-  drawTileOverlay(ox, oy);
+  drawCoverPan(images.topdownBeach, cam.x / WORLD.w, cam.y / WORLD.h, 1.02);
+  drawNaturalGroundDetails(ox, oy);
 }
 
 function drawCoverPan(image, panX, panY, zoom = 1) {
@@ -931,13 +945,13 @@ function drawCoverPan(image, panX, panY, zoom = 1) {
   const sh = Math.min(image.height, viewH / scale);
   const maxX = Math.max(1, image.width - sw);
   const maxY = Math.max(1, image.height - sh);
-  const sx = ((panX % maxX) + maxX) % maxX;
-  const sy = ((panY % maxY) + maxY) % maxY;
+  const sx = maxX * clamp(panX, 0, 1);
+  const sy = maxY * clamp(panY, 0, 1);
   ctx.drawImage(image, sx, sy, sw, sh, 0, 0, viewW, viewH);
 }
 
-function drawTileOverlay(ox, oy) {
-  const tile = 128;
+function drawNaturalGroundDetails(ox, oy) {
+  const tile = 220;
   const cam = state.camera;
   const minX = Math.floor((cam.x - viewW / 2) / tile) - 1;
   const maxX = Math.ceil((cam.x + viewW / 2) / tile) + 1;
@@ -949,22 +963,30 @@ function drawTileOverlay(ox, oy) {
       const x = gx * tile;
       const y = gy * tile;
       const h = hash2(gx, gy);
-      if (h % 17 === 0) {
-        ctx.fillStyle = "rgba(57, 118, 112, 0.11)";
+      if (h % 5 === 0) {
+        ctx.fillStyle = "rgba(255, 244, 190, 0.12)";
         ctx.beginPath();
-        ctx.ellipse(ox + x + tile * 0.5, oy + y + tile * 0.55, tile * 0.38, tile * 0.24, (h % 100) / 100, 0, Math.PI * 2);
+        ctx.ellipse(
+          ox + x + 30 + ((h >> 6) % 160),
+          oy + y + 30 + ((h >> 13) % 150),
+          12 + (h % 17),
+          4 + (h % 9),
+          ((h >> 18) % 628) / 100,
+          0,
+          Math.PI * 2,
+        );
         ctx.fill();
       }
-      if (h % 23 === 0) {
-        ctx.strokeStyle = "rgba(245, 224, 173, 0.13)";
-        ctx.lineWidth = 2;
+      if (h % 11 === 0) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.moveTo(ox + x + 14, oy + y + tile * 0.7);
-        ctx.bezierCurveTo(ox + x + 48, oy + y + 32, ox + x + 88, oy + y + 120, ox + x + 116, oy + y + 45);
+        const px = ox + x + 24 + ((h >> 5) % 170);
+        const py = oy + y + 24 + ((h >> 14) % 160);
+        ctx.moveTo(px, py);
+        ctx.bezierCurveTo(px + 20, py - 8, px + 44, py + 10, px + 66, py - 4);
         ctx.stroke();
       }
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
-      ctx.strokeRect(ox + x + 0.5, oy + y + 0.5, tile - 1, tile - 1);
     }
   }
   ctx.restore();
@@ -1007,20 +1029,30 @@ function drawEnemies() {
   const enemies = [...state.enemies].sort((a, b) => a.y - b.y);
   for (const enemy of enemies) {
     if (!onScreen(enemy.x, enemy.y, 220)) continue;
-    const frame = (Math.floor(state.elapsed * 9) + enemy.frameOffset) % 16;
-    const sx = frame * CHAR.w;
-    const sy = enemy.row * CHAR.h;
-    const w = CHAR.w * enemy.type.scale * (enemy.boss ? 1.15 : 1);
-    const h = CHAR.h * enemy.type.scale * (enemy.boss ? 1.15 : 1);
     const px = ox + enemy.x;
     const py = oy + enemy.y;
     const flip = enemy.x > state.player.x ? -1 : 1;
+    let w = 0;
+    let h = 0;
     ctx.save();
     ctx.translate(px, py);
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
     ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
-    ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h);
+    if (enemy.type.sprite) {
+      const src = newSpriteMap[enemy.type.sprite];
+      const bob = Math.sin(state.elapsed * (enemy.type.id === "crab" ? 10 : 6) + enemy.frameOffset) * (enemy.type.id === "crab" ? 5 : 3);
+      w = NEWSPRITE.w * enemy.type.scale * (enemy.boss ? 1.22 : 1);
+      h = NEWSPRITE.h * enemy.type.scale * (enemy.boss ? 1.22 : 1);
+      ctx.drawImage(images.newSprites, src.x * NEWSPRITE.w, src.y * NEWSPRITE.h, NEWSPRITE.w, NEWSPRITE.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else {
+      const frame = (Math.floor(state.elapsed * 9) + enemy.frameOffset) % 16;
+      const sx = frame * CHAR.w;
+      const sy = enemy.row * CHAR.h;
+      w = CHAR.w * enemy.type.scale * (enemy.boss ? 1.15 : 1);
+      h = CHAR.h * enemy.type.scale * (enemy.boss ? 1.15 : 1);
+      ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h);
+    }
     ctx.restore();
     const hpPct = clamp(enemy.hp / enemy.maxHp, 0, 1);
     if (hpPct < 0.98 || enemy.boss) {
@@ -1163,7 +1195,7 @@ function drawTexts() {
 function drawVignette() {
   const gradient = ctx.createRadialGradient(viewW / 2, viewH / 2, Math.min(viewW, viewH) * 0.2, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.7);
   gradient.addColorStop(0, "rgba(0,0,0,0)");
-  gradient.addColorStop(1, "rgba(0,0,0,0.38)");
+  gradient.addColorStop(1, "rgba(47,24,6,0.2)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, viewW, viewH);
 }
@@ -1190,14 +1222,29 @@ function drawItem(icon, x, y, w, h, rotation = 0, alpha = 1) {
 }
 
 function drawItemAt(icon, x, y, w, h) {
+  if (newSpriteMap[icon]) {
+    drawNewSpriteAt(icon, x, y, w, h);
+    return;
+  }
   const src = iconMap[icon] || iconMap.coin;
   ctx.drawImage(images.items, src.x * ITEM.w, src.y * ITEM.h, ITEM.w, ITEM.h, x, y, w, h);
 }
 
+function drawNewSpriteAt(icon, x, y, w, h) {
+  const src = newSpriteMap[icon] || newSpriteMap.skullCoin;
+  ctx.drawImage(images.newSprites, src.x * NEWSPRITE.w, src.y * NEWSPRITE.h, NEWSPRITE.w, NEWSPRITE.h, x, y, w, h);
+}
+
 function iconStyle(icon) {
+  if (newSpriteMap[icon]) {
+    const src = newSpriteMap[icon];
+    const bx = src.x / (NEWSPRITE.cols - 1) * 100;
+    const by = src.y / (NEWSPRITE.rows - 1) * 100;
+    return `background-image:url('assets/sprites/new_sprites_imagen_hd.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+  }
   const src = iconMap[icon] || iconMap.coin;
-  const bx = src.x * -100;
-  const by = src.y * -100;
+  const bx = src.x / (ITEM.cols - 1) * 100;
+  const by = src.y * 100;
   return `background-image:url('assets/sprites/scene_items_imagen_hd_sheet.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
 }
 
