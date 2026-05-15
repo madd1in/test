@@ -72,6 +72,9 @@ async function run() {
     "assets/sprites/characters_imagen_hd_sheet.png",
     "assets/sprites/scene_items_imagen_hd_sheet.png",
     "assets/sprites/new_sprites_imagen_hd.png",
+    "assets/sprites/gothic_enemies_hd_sheet.png",
+    "assets/sprites/gothic_items_hd_sheet.png",
+    "assets/sprites/gothic_props_hd_sheet.png",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
     "assets/audio/sfx/pickup.wav",
@@ -124,6 +127,9 @@ async function run() {
   assert(debug.audio.mainVolume >= 0.5, `Main music should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.4 && debug.audio.music.rushStart <= 190, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.pickup <= 0.05 && debug.audio.sfx.gate <= 0.07, `SFX should sit under music: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
