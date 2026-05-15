@@ -710,8 +710,9 @@ const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
    STATS / STORAGE
    ============================================================ */
 const STATS_KEY = 'os-stats-v5';
+const CW_VERSION = 'rich-crossword-v1';
 const DEFAULT_STATS = {
-  cw:   { solved: [] },
+  cw:   { solved: [], version: CW_VERSION },
   wo:   { played: 0, won: 0, usedWords: [], streak: 0, bestStreak: 0 },
   mem:  { gamesWon: 0, bestMoves: null },
   math: { correct: 0, total: 0, streak: 0, bestStreak: 0 },
@@ -1168,9 +1169,9 @@ function buildKeyboard(container, onKey) {
 }
 
 /* ============================================================
-   1) KREUZWORTRÄTSEL — 10 Rätsel
+   1) KREUZWORTRÄTSEL — 15 große Rätsel
    ============================================================ */
-const CW_PUZZLES = [
+let CW_PUZZLES = [
   // 1) HAUS × KATZE
   { rows: 5, cols: 5, solution: [
       ['#','H','#','#','#'],
@@ -1427,6 +1428,274 @@ const CW_PUZZLES = [
                '0,4': { num: 2, text: 'Aus der Lampe, vertreibt Dunkelheit (5)' } } } },
 ];
 
+function buildRichCrosswordPuzzles() {
+  const richLayouts = [
+    {
+      id: 'tomate-sorte',
+      rows: 7,
+      cols: 6,
+      entries: [
+        { word: 'TOMATE', r: 0, c: 0, dir: 'across', clue: 'Rotes Gemüse für Soße und Salat' },
+        { word: 'SORTE',  r: 3, c: 0, dir: 'across', clue: 'Eine Art, zum Beispiel bei Obst' },
+        { word: 'TASSE',  r: 0, c: 0, dir: 'down',   clue: 'Daraus trinkt man Kaffee oder Tee' },
+        { word: 'MEER',   r: 0, c: 2, dir: 'down',   clue: 'Sehr großes Wasser' },
+        { word: 'TAGE',   r: 0, c: 4, dir: 'down',   clue: 'Montag, Dienstag und Mittwoch sind drei davon' },
+        { word: 'TIER',   r: 3, c: 3, dir: 'down',   clue: 'Hund, Katze oder Pferd' },
+      ],
+    },
+    {
+      id: 'sorte-insel',
+      rows: 5,
+      cols: 5,
+      entries: [
+        { word: 'SORTE', r: 0, c: 0, dir: 'across', clue: 'Eine Art, zum Beispiel Apfelsorte' },
+        { word: 'INSEL', r: 3, c: 0, dir: 'across', clue: 'Land, ringsherum Wasser' },
+        { word: 'STEIN', r: 0, c: 0, dir: 'down',   clue: 'Hartes Stück aus der Natur' },
+        { word: 'REISE', r: 0, c: 2, dir: 'down',   clue: 'Fahrt in den Urlaub' },
+        { word: 'ESEL',  r: 0, c: 4, dir: 'down',   clue: 'Tier mit langen Ohren' },
+      ],
+    },
+    {
+      id: 'garten-schule',
+      rows: 6,
+      cols: 6,
+      entries: [
+        { word: 'GARTEN', r: 0, c: 0, dir: 'across', clue: 'Dort wachsen Blumen und Gemüse' },
+        { word: 'SCHULE', r: 3, c: 0, dir: 'across', clue: 'Ort zum Lernen' },
+        { word: 'GLAS',   r: 0, c: 0, dir: 'down',   clue: 'Daraus trinkt man Wasser' },
+        { word: 'TRAUBE', r: 0, c: 3, dir: 'down',   clue: 'Kleine Frucht am Weinstock' },
+        { word: 'NASE',   r: 0, c: 5, dir: 'down',   clue: 'Damit riecht man' },
+      ],
+    },
+    {
+      id: 'wasser-schule',
+      rows: 8,
+      cols: 6,
+      entries: [
+        { word: 'WASSER', r: 0, c: 0, dir: 'across', clue: 'Klares Getränk aus dem Hahn' },
+        { word: 'SCHULE', r: 3, c: 0, dir: 'across', clue: 'Ort mit Tafeln, Heften und Unterricht' },
+        { word: 'WIESE',  r: 0, c: 0, dir: 'down',   clue: 'Grüne Fläche mit Gras' },
+        { word: 'STUHL',  r: 0, c: 2, dir: 'down',   clue: 'Darauf sitzt man' },
+        { word: 'ROSE',   r: 0, c: 5, dir: 'down',   clue: 'Blume mit Dornen' },
+        { word: 'LAMPE',  r: 3, c: 4, dir: 'down',   clue: 'Macht Licht im Zimmer' },
+      ],
+    },
+    {
+      id: 'pirat-segel',
+      rows: 8,
+      cols: 5,
+      entries: [
+        { word: 'PIRAT',  r: 0, c: 0, dir: 'across', clue: 'Seeräuber aus Geschichten' },
+        { word: 'SEGEL',  r: 3, c: 0, dir: 'across', clue: 'Tuch, das ein Boot im Wind antreibt' },
+        { word: 'RING',   r: 0, c: 2, dir: 'down',   clue: 'Schmuck für den Finger' },
+        { word: 'TELLER', r: 0, c: 4, dir: 'down',   clue: 'Darauf liegt das Essen' },
+        { word: 'SONNE',  r: 3, c: 0, dir: 'down',   clue: 'Scheint am Tag am Himmel' },
+      ],
+    },
+    {
+      id: 'winter-drache',
+      rows: 8,
+      cols: 6,
+      entries: [
+        { word: 'WINTER', r: 0, c: 0, dir: 'across', clue: 'Kalte Jahreszeit' },
+        { word: 'DRACHE', r: 3, c: 0, dir: 'across', clue: 'Fabelwesen, oft mit Feuer' },
+        { word: 'WALD',   r: 0, c: 0, dir: 'down',   clue: 'Viele Bäume zusammen' },
+        { word: 'TISCH',  r: 0, c: 3, dir: 'down',   clue: 'Möbel zum Essen oder Schreiben' },
+        { word: 'ROSE',   r: 0, c: 5, dir: 'down',   clue: 'Blume mit Dornen' },
+        { word: 'REGEN',  r: 3, c: 1, dir: 'down',   clue: 'Fällt aus Wolken' },
+      ],
+    },
+    {
+      id: 'wasser-traube',
+      rows: 7,
+      cols: 6,
+      entries: [
+        { word: 'WASSER', r: 0, c: 0, dir: 'across', clue: 'Man trinkt es aus Glas oder Flasche' },
+        { word: 'TRAUBE', r: 3, c: 0, dir: 'across', clue: 'Frucht für Saft oder Wein' },
+        { word: 'WORT',   r: 0, c: 0, dir: 'down',   clue: 'Kleiner Teil eines Satzes' },
+        { word: 'SALAT',  r: 0, c: 2, dir: 'down',   clue: 'Grünes Essen aus Blättern' },
+        { word: 'ROSE',   r: 0, c: 5, dir: 'down',   clue: 'Rote Blume mit Dornen' },
+        { word: 'BALL',   r: 3, c: 4, dir: 'down',   clue: 'Rundes Spielzeug zum Werfen' },
+      ],
+    },
+    {
+      id: 'schule-ritter',
+      rows: 6,
+      cols: 6,
+      entries: [
+        { word: 'SCHULE', r: 0, c: 0, dir: 'across', clue: 'Dort lernt man Lesen und Rechnen' },
+        { word: 'RITTER', r: 3, c: 0, dir: 'across', clue: 'Kämpfer mit Rüstung und Schwert' },
+        { word: 'STERNE', r: 0, c: 0, dir: 'down',   clue: 'Sie funkeln nachts am Himmel' },
+        { word: 'HEFT',   r: 0, c: 2, dir: 'down',   clue: 'Darin schreibt man in der Schule' },
+        { word: 'LINEAL', r: 0, c: 4, dir: 'down',   clue: 'Damit zieht man gerade Linien' },
+      ],
+    },
+    {
+      id: 'malen-suppe',
+      rows: 5,
+      cols: 5,
+      entries: [
+        { word: 'MALEN', r: 0, c: 0, dir: 'across', clue: 'Mit Pinsel oder Stift ein Bild machen' },
+        { word: 'SUPPE', r: 3, c: 0, dir: 'across', clue: 'Warmes Essen aus dem Topf' },
+        { word: 'MAUS',  r: 0, c: 0, dir: 'down',   clue: 'Kleines Tier, mag Käse' },
+        { word: 'LAMPE', r: 0, c: 2, dir: 'down',   clue: 'Macht Licht' },
+        { word: 'NASE',  r: 0, c: 4, dir: 'down',   clue: 'Damit riecht man' },
+      ],
+    },
+    {
+      id: 'drache-herbst',
+      rows: 7,
+      cols: 6,
+      entries: [
+        { word: 'DRACHE', r: 0, c: 0, dir: 'across', clue: 'Fabelwesen mit Flügeln' },
+        { word: 'HERBST', r: 3, c: 0, dir: 'across', clue: 'Jahreszeit mit bunten Blättern' },
+        { word: 'DACH',   r: 0, c: 0, dir: 'down',   clue: 'Oben auf dem Haus' },
+        { word: 'HAUS',   r: 0, c: 4, dir: 'down',   clue: 'Gebäude zum Wohnen' },
+        { word: 'RING',   r: 3, c: 2, dir: 'down',   clue: 'Runder Schmuck für den Finger' },
+      ],
+    },
+    {
+      id: 'musik-spiel',
+      rows: 8,
+      cols: 5,
+      entries: [
+        { word: 'MUSIK', r: 0, c: 0, dir: 'across', clue: 'Töne und Melodien' },
+        { word: 'SPIEL', r: 3, c: 0, dir: 'across', clue: 'Macht Spaß, alleine oder zusammen' },
+        { word: 'MAUS',  r: 0, c: 0, dir: 'down',   clue: 'Kleines Tier, mag Käse' },
+        { word: 'STEIN', r: 0, c: 2, dir: 'down',   clue: 'Hartes Stück aus der Natur' },
+        { word: 'LAMPE', r: 3, c: 4, dir: 'down',   clue: 'Macht Licht im Zimmer' },
+      ],
+    },
+    {
+      id: 'puzzle-ritter',
+      rows: 6,
+      cols: 6,
+      entries: [
+        { word: 'PUZZLE', r: 0, c: 0, dir: 'across', clue: 'Spiel mit vielen Teilen' },
+        { word: 'RITTER', r: 3, c: 0, dir: 'across', clue: 'Kämpfer mit Rüstung' },
+        { word: 'PFERD',  r: 0, c: 0, dir: 'down',   clue: 'Tier zum Reiten' },
+        { word: 'ZELT',   r: 0, c: 2, dir: 'down',   clue: 'Kleines Haus aus Stoff beim Camping' },
+        { word: 'LINEAL', r: 0, c: 4, dir: 'down',   clue: 'Damit misst und zeichnet man gerade' },
+      ],
+    },
+    {
+      id: 'kuchen-traube',
+      rows: 7,
+      cols: 6,
+      entries: [
+        { word: 'KUCHEN', r: 0, c: 0, dir: 'across', clue: 'Süßes Gebäck zum Kaffee' },
+        { word: 'TRAUBE', r: 3, c: 0, dir: 'across', clue: 'Frucht am Weinstock' },
+        { word: 'KARTE',  r: 0, c: 0, dir: 'down',   clue: 'Zeigt Wege, Orte oder Länder' },
+        { word: 'NASE',   r: 0, c: 5, dir: 'down',   clue: 'Damit riecht man' },
+        { word: 'UFER',   r: 3, c: 3, dir: 'down',   clue: 'Rand von Fluss oder See' },
+      ],
+    },
+    {
+      id: 'freund-melone',
+      rows: 7,
+      cols: 6,
+      entries: [
+        { word: 'FREUND', r: 0, c: 0, dir: 'across', clue: 'Lieber Mensch, dem man vertraut' },
+        { word: 'MELONE', r: 3, c: 0, dir: 'across', clue: 'Große süße Frucht' },
+        { word: 'ROSE',   r: 0, c: 1, dir: 'down',   clue: 'Blume mit Dornen' },
+        { word: 'DOSE',   r: 0, c: 5, dir: 'down',   clue: 'Runder Behälter aus Metall' },
+        { word: 'MOND',   r: 3, c: 0, dir: 'down',   clue: 'Scheint nachts am Himmel' },
+      ],
+    },
+    {
+      id: 'pirat-beere',
+      rows: 8,
+      cols: 5,
+      entries: [
+        { word: 'PIRAT', r: 0, c: 0, dir: 'across', clue: 'Seeräuber aus Geschichten' },
+        { word: 'BEERE', r: 3, c: 0, dir: 'across', clue: 'Kleine Frucht, oft im Sommer' },
+        { word: 'ROSE',  r: 0, c: 2, dir: 'down',   clue: 'Blume mit Dornen' },
+        { word: 'TAGE',  r: 0, c: 4, dir: 'down',   clue: 'Mehrere Kalendertage' },
+        { word: 'BIRNE', r: 3, c: 0, dir: 'down',   clue: 'Süßes Obst mit schmalem Hals' },
+      ],
+    },
+  ];
+
+  return richLayouts.map(makeCrosswordPuzzle);
+}
+
+function makeCrosswordPuzzle(layout) {
+  const solution = Array.from({ length: layout.rows }, () => Array(layout.cols).fill('#'));
+
+  layout.entries.forEach(entry => {
+    for (let i = 0; i < entry.word.length; i++) {
+      const r = entry.r + (entry.dir === 'down' ? i : 0);
+      const c = entry.c + (entry.dir === 'across' ? i : 0);
+      if (r < 0 || r >= layout.rows || c < 0 || c >= layout.cols) {
+        throw new Error(`Crossword "${layout.id}" places "${entry.word}" outside the grid.`);
+      }
+      if (solution[r][c] !== '#' && solution[r][c] !== entry.word[i]) {
+        throw new Error(`Crossword "${layout.id}" has a letter conflict at ${r},${c}.`);
+      }
+      solution[r][c] = entry.word[i];
+    }
+  });
+
+  validateCrosswordLayout(layout, solution);
+
+  const starts = new Map();
+  layout.entries.forEach(entry => starts.set(`${entry.r},${entry.c}`, { r: entry.r, c: entry.c }));
+  const numbers = new Map(
+    Array.from(starts.values())
+      .sort((a, b) => a.r - b.r || a.c - b.c)
+      .map((start, index) => [`${start.r},${start.c}`, index + 1])
+  );
+  const clues = { across: {}, down: {} };
+
+  layout.entries.forEach(entry => {
+    clues[entry.dir][`${entry.r},${entry.c}`] = {
+      num: numbers.get(`${entry.r},${entry.c}`),
+      text: `${entry.clue} (${entry.word.length})`,
+    };
+  });
+
+  return { rows: layout.rows, cols: layout.cols, solution, clues };
+}
+
+function validateCrosswordLayout(layout, solution) {
+  const intended = new Set(layout.entries.map(entry => `${entry.dir}:${entry.r},${entry.c}:${entry.word}`));
+  const found = [];
+
+  for (let r = 0; r < layout.rows; r++) {
+    for (let c = 0; c < layout.cols; c++) {
+      if (solution[r][c] === '#') continue;
+      if ((c === 0 || solution[r][c - 1] === '#') && c + 1 < layout.cols && solution[r][c + 1] !== '#') {
+        let word = '', cc = c;
+        while (cc < layout.cols && solution[r][cc] !== '#') word += solution[r][cc++];
+        found.push(`across:${r},${c}:${word}`);
+      }
+      if ((r === 0 || solution[r - 1][c] === '#') && r + 1 < layout.rows && solution[r + 1][c] !== '#') {
+        let word = '', rr = r;
+        while (rr < layout.rows && solution[rr][c] !== '#') word += solution[rr++][c];
+        found.push(`down:${r},${c}:${word}`);
+      }
+    }
+  }
+
+  const extra = found.filter(slot => !intended.has(slot));
+  const missing = Array.from(intended).filter(slot => !found.includes(slot));
+  if (extra.length || missing.length) {
+    throw new Error(`Crossword "${layout.id}" has unmatched slots: ${extra.concat(missing).join(', ')}`);
+  }
+}
+
+function migrateCrosswordStats() {
+  if (!STATS.cw) STATS.cw = { solved: [], version: '' };
+  if (STATS.cw.version === CW_VERSION) return;
+  STATS.cw.solved = [];
+  STATS.cw.version = CW_VERSION;
+  STATS.achievements = (STATS.achievements || []).filter(id => id !== 'cw_3' && id !== 'cw_all');
+  localStorage.setItem(STATS_KEY, JSON.stringify(STATS));
+}
+
+CW_PUZZLES = buildRichCrosswordPuzzles();
+migrateCrosswordStats();
+
 let cwIdx = 0, cwState = null, cwActive = null;
 function initCrossword() {
   let firstUnsolved = CW_PUZZLES.findIndex((_, i) => !STATS.cw.solved.includes(i));
@@ -1520,8 +1789,13 @@ function renderCwGrid() {
   refreshCwActive();
 }
 function onCwCellClick(r, c) {
-  if (cwActive && cwActive.r === r && cwActive.c === c) cwActive.dir = cwActive.dir === 'across' ? 'down' : 'across';
-  else setCwActive(r, c);
+  const p = CW_PUZZLES[cwIdx];
+  if (cwActive && cwActive.r === r && cwActive.c === c) {
+    const nextDir = cwActive.dir === 'across' ? 'down' : 'across';
+    if (wordExists(p, r, c, nextDir)) cwActive.dir = nextDir;
+  } else {
+    setCwActive(r, c);
+  }
   refreshCwActive();
   renderCwClueList();
 }
@@ -1532,15 +1806,8 @@ function setCwActive(r, c) {
   cwActive = { r, c, dir: ha ? 'across' : (hd ? 'down' : 'across') };
 }
 function wordExists(p, r, c, dir) {
-  let len = 0;
-  if (dir === 'across') {
-    let cc = c; while (cc < p.cols && p.solution[r][cc] !== '#') { len++; cc++; }
-    cc = c-1;   while (cc >= 0       && p.solution[r][cc] !== '#') { len++; cc--; }
-  } else {
-    let rr = r; while (rr < p.rows && p.solution[rr][c] !== '#') { len++; rr++; }
-    rr = r-1;   while (rr >= 0       && p.solution[rr][c] !== '#') { len++; rr--; }
-  }
-  return len >= 2;
+  const [sr, sc] = findWordStart(p, r, c, dir);
+  return Boolean(p.clues?.[dir]?.[`${sr},${sc}`]);
 }
 function findWordStart(p, r, c, dir) {
   if (dir === 'across') { let cc = c; while (cc > 0 && p.solution[r][cc-1] !== '#') cc--; return [r, cc]; }
