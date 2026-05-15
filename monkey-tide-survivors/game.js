@@ -57,6 +57,11 @@ const soundPools = {};
 let music = null;
 let rushMusic = null;
 let muted = false;
+const speechState = {
+  supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
+  voice: null,
+  lastSaid: new Map(),
+};
 let ready = false;
 let dpr = 1;
 let viewW = 1280;
@@ -241,6 +246,11 @@ function makeState() {
     particles: [],
     texts: [],
     props: makeProps(),
+    voice: {
+      nextLowHpAt: 0,
+      minuteMark: 0,
+      finalWarned: false,
+    },
   };
 }
 
@@ -295,12 +305,31 @@ function prepareAudio() {
   rushMusic.volume = 0;
 }
 
+function prepareSpeech() {
+  if (!speechState.supported) return;
+  selectSpeechVoice();
+  try {
+    window.speechSynthesis.onvoiceschanged = selectSpeechVoice;
+  } catch {}
+}
+
+function selectSpeechVoice() {
+  if (!speechState.supported) return;
+  const voices = window.speechSynthesis.getVoices?.() || [];
+  speechState.voice = voices.find((voice) => /^de[-_]?/i.test(voice.lang))
+    || voices.find((voice) => /deutsch|german/i.test(`${voice.name} ${voice.lang}`))
+    || voices.find((voice) => /^en[-_]?/i.test(voice.lang))
+    || voices[0]
+    || null;
+}
+
 async function boot() {
   state = makeState();
   resize();
   const entries = Object.entries(imageSources);
   await Promise.all(entries.map(([key, src], index) => loadImage(key, src, index, entries.length)));
   prepareAudio();
+  prepareSpeech();
   ready = true;
   window.__MONKEY_TIDE_READY = true;
   ui.loadingText.textContent = "Bereit fuer die Flut";
@@ -319,6 +348,45 @@ function playSound(key) {
   } catch {}
 }
 
+function speak(line, options = {}) {
+  if (muted || !speechState.supported) return false;
+  const synth = window.speechSynthesis;
+  if (!synth) return false;
+  const key = options.key || line;
+  const cooldown = options.cooldown ?? 3500;
+  const now = performance.now();
+  if (now - (speechState.lastSaid.get(key) || -Infinity) < cooldown) return false;
+  if ((synth.speaking || synth.pending) && !options.interrupt) return false;
+  speechState.lastSaid.set(key, now);
+  if (!speechState.voice) selectSpeechVoice();
+  if (options.interrupt) synth.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(line);
+  utterance.lang = speechState.voice?.lang || "de-DE";
+  utterance.voice = speechState.voice;
+  utterance.rate = options.rate || 1.02;
+  utterance.pitch = options.pitch || 0.86;
+  utterance.volume = options.volume || 0.86;
+  try {
+    synth.speak(utterance);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function cancelSpeech() {
+  if (!speechState.supported) return;
+  try {
+    window.speechSynthesis.cancel();
+  } catch {}
+}
+
+function resetSpeechForRun() {
+  speechState.lastSaid.clear();
+  cancelSpeech();
+}
+
 function syncMusic() {
   if (!music || !rushMusic) return;
   music.muted = muted;
@@ -335,6 +403,7 @@ function syncMusic() {
 function startGame(options = {}) {
   if (!ready) return;
   quickMode = options.quick === true;
+  resetSpeechForRun();
   state = makeState();
   state.phase = "playing";
   if (quickMode) {
@@ -352,6 +421,10 @@ function startGame(options = {}) {
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
   playSound("confirm");
+  speak(
+    quickMode ? "Schnelle Welle. Die Flut steht schon am Bug!" : "Kaeptnin bereit. Halt den Strand!",
+    { key: "start", interrupt: true, cooldown: 0 },
+  );
   syncMusic();
   lastTime = performance.now();
   cancelAnimationFrame(raf);
@@ -365,6 +438,10 @@ function endGame(victory) {
   ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level}`;
   ui.endOverlay.hidden = false;
   playSound(victory ? "chime" : "gate");
+  speak(
+    victory ? "Strand gehalten. Die Affenflut zieht ab!" : "Die Geistercrew war schneller. Nochmal in die Flut!",
+    { key: victory ? "victory" : "gameover", interrupt: true, cooldown: 0 },
+  );
 }
 
 function loop(now) {
@@ -386,9 +463,30 @@ function update(dt) {
   updateGems(dt);
   updateParticles(dt);
   updateDom();
+  updateVoiceCues();
   syncMusic();
   if (state.elapsed >= TARGET_TIME && !state.enemies.some((e) => e.type.id === "idol")) {
     endGame(true);
+  }
+}
+
+function updateVoiceCues() {
+  if (!state.voice || state.phase !== "playing") return;
+  const hpPct = state.player.hp / state.player.maxHp;
+  if (hpPct <= 0.32 && state.elapsed >= state.voice.nextLowHpAt) {
+    state.voice.nextLowHpAt = state.elapsed + 16;
+    speak("Vorsicht, Kaeptnin. Such Limetten!", { key: "low-hp", interrupt: true, cooldown: 12000, rate: 1.04 });
+  }
+
+  const minuteMark = Math.floor(state.elapsed / 60);
+  if (minuteMark > state.voice.minuteMark && minuteMark > 0 && state.elapsed < TARGET_TIME - 35) {
+    state.voice.minuteMark = minuteMark;
+    speak(`${minuteMark} Minuten ueberlebt. Weiter so!`, { key: `minute-${minuteMark}`, cooldown: 1000, rate: 1.05 });
+  }
+
+  if (!state.voice.finalWarned && state.elapsed >= TARGET_TIME - 42) {
+    state.voice.finalWarned = true;
+    speak("Letzte Flut. Alles auf den Strand!", { key: "final-wave", interrupt: true, cooldown: 0, rate: 1.05 });
   }
 }
 
@@ -593,6 +691,7 @@ function updateSpawns(dt) {
     state.bossTimer = 80;
     spawnEnemy(enemyTypes.find((type) => type.id === "idol"), true);
     state.warningTimer = 3.2;
+    speak("Affenidol voraus. Bleib in Bewegung!", { key: "boss-warning", interrupt: true, cooldown: 45000, rate: 1.06 });
   }
 }
 
@@ -816,6 +915,7 @@ function killEnemy(enemy) {
   if (enemy.boss) {
     state.warningTimer = 2;
     floatingText("Idol gebrochen", enemy.x, enemy.y - 80, "#fff2c7");
+    speak("Idol gebrochen. Sammel die Beute!", { key: "boss-down", interrupt: true, cooldown: 2000 });
   }
   playSound("pickup");
 }
@@ -825,6 +925,7 @@ function levelUp() {
   state.nextXp = Math.round(28 + state.level * 18 + state.level * state.level * 1.8);
   state.phase = "levelup";
   playSound("chime");
+  speak("Relikt gefunden. Waehle deine Verstaerkung.", { key: "level-up", interrupt: true, cooldown: 1000 });
   showUpgrades();
 }
 
@@ -846,6 +947,7 @@ function showUpgrades() {
       state.phase = "playing";
       ui.upgradeOverlay.hidden = true;
       playSound("confirm");
+      speak(`${upgrade.name} bereit.`, { key: `upgrade-${upgrade.id}`, interrupt: true, cooldown: 1200, rate: 1.06 });
       updateDom();
     });
     ui.upgradeChoices.appendChild(button);
@@ -1369,16 +1471,23 @@ function togglePause() {
   if (state.phase === "playing") {
     state.phase = "paused";
     playSound("confirm");
+    speak("Pause.", { key: "pause", interrupt: true, cooldown: 0 });
   } else if (state.phase === "paused") {
     state.phase = "playing";
     lastTime = performance.now();
     playSound("confirm");
+    speak("Weiter geht's.", { key: "resume", interrupt: true, cooldown: 0 });
   }
   updateDom();
 }
 
 function toggleMute() {
   muted = !muted;
+  if (muted) {
+    cancelSpeech();
+  } else {
+    speak("Audio und Stimme an.", { key: "audio-on", interrupt: true, cooldown: 0 });
+  }
   syncMusic();
   updateDom();
 }
@@ -1458,6 +1567,11 @@ window.__MONKEY_TIDE_DEBUG = () => ({
   hp: state.player.hp,
   player: { x: state.player.x, y: state.player.y },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
+  speech: {
+    supported: speechState.supported,
+    voice: speechState.voice ? `${speechState.voice.name} (${speechState.voice.lang})` : null,
+    muted,
+  },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
 });
 
