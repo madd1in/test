@@ -128,6 +128,8 @@ async function run() {
   assert(debug.audio.mainVolume >= 0.5, `Main music should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.4 && debug.audio.music.rushStart <= 190, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.pickup <= 0.05 && debug.audio.sfx.gate <= 0.07, `SFX should sit under music: ${JSON.stringify(debug)}`);
+  assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult <= 2.4 && debug.balance.normalSpawnIntensity <= 1.06, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
