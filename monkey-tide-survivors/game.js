@@ -57,10 +57,17 @@ const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
 const soundConfig = {
-  pickup: { volume: 0.09, cooldown: 150 },
-  chime: { volume: 0.16, cooldown: 420 },
-  gate: { volume: 0.11, cooldown: 520 },
-  confirm: { volume: 0.14, cooldown: 260 },
+  pickup: { volume: 0.045, cooldown: 260 },
+  chime: { volume: 0.09, cooldown: 520 },
+  gate: { volume: 0.06, cooldown: 650 },
+  confirm: { volume: 0.08, cooldown: 340 },
+};
+const musicConfig = {
+  main: 0.54,
+  mainRushDuck: 0.22,
+  rush: 0.42,
+  rushStart: 185,
+  rushFade: 95,
 };
 let music = null;
 let rushMusic = null;
@@ -308,7 +315,7 @@ function prepareAudio() {
   }
   music = new Audio(audioSources.bgmMain);
   music.loop = true;
-  music.volume = 0.36;
+  music.volume = musicConfig.main;
   rushMusic = new Audio(audioSources.bgmRush);
   rushMusic.loop = true;
   rushMusic.volume = 0;
@@ -379,7 +386,7 @@ function speak(line, options = {}) {
   utterance.voice = speechState.voice;
   utterance.rate = options.rate || 1.02;
   utterance.pitch = options.pitch || 0.86;
-  utterance.volume = options.volume || 0.86;
+  utterance.volume = options.volume || 0.72;
   try {
     synth.speak(utterance);
     return true;
@@ -405,9 +412,9 @@ function syncMusic() {
   if (!music || !rushMusic) return;
   music.muted = muted;
   rushMusic.muted = muted;
-  const rush = state.phase === "playing" ? clamp((state.elapsed - 210) / 120, 0, 1) : 0;
-  music.volume = muted ? 0 : 0.36 * (1 - rush * 0.72);
-  rushMusic.volume = muted ? 0 : 0.24 * rush;
+  const rush = state.phase === "playing" ? clamp((state.elapsed - musicConfig.rushStart) / musicConfig.rushFade, 0, 1) : 0;
+  music.volume = muted ? 0 : musicConfig.main * (1 - rush * musicConfig.mainRushDuck);
+  rushMusic.volume = muted ? 0 : musicConfig.rush * rush;
   if (state.phase === "playing") {
     music.play().catch(() => {});
     rushMusic.play().catch(() => {});
@@ -1625,6 +1632,12 @@ window.__MONKEY_TIDE_DEBUG = () => ({
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
   fullscreenSupported: document.fullscreenEnabled,
+  audio: {
+    mainVolume: music?.volume ?? 0,
+    rushVolume: rushMusic?.volume ?? 0,
+    sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
+    music: { ...musicConfig },
+  },
   speech: {
     supported: speechState.supported,
     voice: speechState.voice ? `${speechState.voice.name} (${speechState.voice.lang})` : null,
