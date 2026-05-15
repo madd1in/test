@@ -258,6 +258,7 @@
   .mem-back::before { content: '🎴'; font-size: 1em; }
   .mem-front { background: var(--tile); color: var(--fg); transform: rotateY(180deg); box-shadow: 0 3px 0 var(--border); }
   .mem-card.matched .mem-front { background: var(--good); color: #fff; border-color: #3d6932; }
+  .mem-card.hint .mem-front { background: #fff3a8; color: #1c2331; border-color: var(--accent); }
 
   /* ===== Math ===== */
   .math-q { text-align: center; font-size: 2.4em; font-weight: 800; margin: 24px 0; padding: 22px; background: var(--tile); border: 3px solid var(--border); border-radius: 16px; box-shadow: 0 4px 0 var(--border); color: var(--primary); }
@@ -266,6 +267,9 @@
   .math-opt:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border); }
   .math-opt.right { background: var(--good); color: #fff; border-color: #3d6932; }
   .math-opt.wrong { background: var(--bad);  color: #fff; border-color: #802626; }
+  .math-opt.hint-off, .qz-opt.hint-off {
+    opacity: 0.32; text-decoration: line-through; filter: grayscale(1);
+  }
 
   /* ===== Hangman ===== */
   .hm-svg { width: 200px; height: 220px; margin: 0 auto 12px; display: block; background: var(--tile); border: 3px solid var(--border); border-radius: 14px; padding: 8px; box-shadow: 0 3px 0 var(--border); }
@@ -698,6 +702,7 @@
     <div id="mem-grid"></div>
     <div class="status" id="mem-status"></div>
     <div class="row-actions" style="justify-content:center;margin-top:18px;">
+      <button class="btn accent" id="mem-hint">💡 Tipp</button>
       <button class="btn primary" id="mem-new">Neues Spiel</button>
     </div>
   </section>
@@ -714,6 +719,7 @@
     <div class="math-options" id="math-opts"></div>
     <div class="status" id="math-status"></div>
     <div class="row-actions" style="justify-content:center;margin-top:18px;">
+      <button class="btn accent" id="math-hint">💡 Tipp</button>
       <button class="btn" id="math-new">Neue Aufgabe</button>
     </div>
   </section>
@@ -740,6 +746,7 @@
     <div class="status" id="hm-status"></div>
     <div class="keyboard" id="hm-kb"></div>
     <div class="row-actions" style="justify-content:center;margin-top:14px;">
+      <button class="btn accent" id="hm-hint">💡 Tipp</button>
       <button class="btn primary" id="hm-new">Neues Wort</button>
     </div>
   </section>
@@ -756,6 +763,7 @@
     <div class="qz-options" id="qz-opts"></div>
     <div class="status" id="qz-status"></div>
     <div class="row-actions" style="justify-content:center;margin-top:14px;">
+      <button class="btn accent" id="qz-hint">💡 Tipp</button>
       <button class="btn" id="qz-new">Nächste Frage</button>
     </div>
   </section>
@@ -772,6 +780,7 @@
     <div class="qz-options" id="sp-opts"></div>
     <div class="status" id="sp-status"></div>
     <div class="row-actions" style="justify-content:center;margin-top:14px;">
+      <button class="btn accent" id="sp-hint">💡 Tipp</button>
       <button class="btn" id="sp-new">Nächstes Sprichwort</button>
     </div>
   </section>
@@ -787,6 +796,7 @@
     <div class="ws-words" id="ws-words"></div>
     <div class="status" id="ws-status"></div>
     <div class="row-actions" style="justify-content:center;margin-top:14px;">
+      <button class="btn accent" id="ws-hint">💡 Tipp</button>
       <button class="btn primary" id="ws-new">Neues Rätsel</button>
     </div>
   </section>
@@ -2217,13 +2227,13 @@ $('#wo-hint').addEventListener('click', revealWordleHint);
    3) MEMORY
    ============================================================ */
 const MEM_SYMBOLS = ['🌻','🐱','🐶','🍎','🍓','🌹','🦋','⭐','🍀','🐝','🍰','☕','🎵','🌸','🦔','🐢','🍒','🌷','🦊','🐞'];
-let memCards = [], memOpen = [], memMatched = new Set();
+let memCards = [], memOpen = [], memMatched = new Set(), memHintOpen = new Set();
 let memMoves = 0, memLock = false;
 const MEM_PAIRS = 6;
 function initMemory() {
   const pool = [...MEM_SYMBOLS].sort(() => Math.random() - 0.5).slice(0, MEM_PAIRS);
   memCards = [...pool, ...pool].sort(() => Math.random() - 0.5);
-  memOpen = []; memMatched = new Set(); memMoves = 0; memLock = false;
+  memOpen = []; memMatched = new Set(); memHintOpen = new Set(); memMoves = 0; memLock = false;
   $('#mem-total').textContent = MEM_PAIRS;
   $('#mem-best').textContent = STATS.mem.bestMoves || '—';
   renderMemory();
@@ -2233,7 +2243,9 @@ function renderMemory() {
   const grid = $('#mem-grid'); grid.innerHTML = '';
   memCards.forEach((sym, i) => {
     const card = document.createElement('div');
-    card.className = 'mem-card' + (memMatched.has(i) ? ' matched' : (memOpen.includes(i) ? ' flipped' : ''));
+    const hinted = memHintOpen.has(i);
+    const open = memOpen.includes(i) || hinted;
+    card.className = 'mem-card' + (memMatched.has(i) ? ' matched' : (open ? ' flipped' : '')) + (hinted ? ' hint' : '');
     card.innerHTML = `<div class="mem-face mem-back"></div><div class="mem-face mem-front">${sym}</div>`;
     card.addEventListener('click', () => onMemClick(i));
     grid.appendChild(card);
@@ -2269,12 +2281,32 @@ function onMemClick(i) {
     }
   } else renderMemory();
 }
+function revealMemoryHint() {
+  if (memLock || memMatched.size >= MEM_PAIRS * 2) return;
+  const choices = [];
+  for (let i = 0; i < memCards.length; i++) {
+    if (memMatched.has(i)) continue;
+    const j = memCards.findIndex((sym, idx) => idx > i && !memMatched.has(idx) && sym === memCards[i]);
+    if (j >= 0) choices.push([i, j]);
+  }
+  if (!choices.length) return;
+  const pair = choices[Math.floor(Math.random() * choices.length)];
+  memOpen = [];
+  memHintOpen = new Set(pair);
+  memLock = true;
+  $('#mem-status').textContent = 'Tipp: Dieses Paar merken';
+  $('#mem-status').className = 'status good';
+  sndGood();
+  renderMemory();
+  setTimeout(() => { memHintOpen = new Set(); memLock = false; renderMemory(); }, 1400);
+}
 $('#mem-new').addEventListener('click', initMemory);
+$('#mem-hint').addEventListener('click', revealMemoryHint);
 
 /* ============================================================
    4) MATH
    ============================================================ */
-let mathScore = 0, mathNum = 0, mathRight = null;
+let mathScore = 0, mathNum = 0, mathRight = null, mathHintUsed = false;
 function initMath() {
   mathScore = 0; mathNum = 0;
   $('#math-score').textContent = mathScore;
@@ -2285,6 +2317,7 @@ function initMath() {
 function rand(a,b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
 function newMath() {
   mathNum++;
+  mathHintUsed = false;
   $('#math-num').textContent = mathNum;
   $('#math-status').textContent = ''; $('#math-status').className = 'status';
   const type = rand(1, 4);
@@ -2346,7 +2379,20 @@ function onMathPick(btn, val) {
   saveStats();
   all.forEach(o => o.disabled = true);
 }
+function revealMathHint() {
+  if (mathRight === null || mathHintUsed) return;
+  const wrong = $$('#math-opts .math-opt').filter(o => !o.disabled && parseInt(o.textContent, 10) !== mathRight);
+  if (!wrong.length) return;
+  const btn = wrong[Math.floor(Math.random() * wrong.length)];
+  btn.classList.add('hint-off');
+  btn.disabled = true;
+  mathHintUsed = true;
+  $('#math-status').textContent = 'Tipp: Eine falsche Antwort ist gestrichen';
+  $('#math-status').className = 'status good';
+  sndGood();
+}
 $('#math-new').addEventListener('click', newMath);
+$('#math-hint').addEventListener('click', revealMathHint);
 
 /* ============================================================
    5) HANGMAN — 80+ Wörter
@@ -2418,7 +2464,18 @@ function onHmKey(key) {
     }
   }
 }
+function revealHangmanHint() {
+  if (hmDone) return;
+  const missing = [...new Set(hmTarget.split('').filter(ch => !hmGuessed.has(ch)))];
+  if (!missing.length) return;
+  const key = missing[Math.floor(Math.random() * missing.length)];
+  onHmKey(key);
+  if (hmDone) return;
+  $('#hm-status').textContent = `Tipp: ${key} ist im Wort`;
+  $('#hm-status').className = 'status good';
+}
 $('#hm-new').addEventListener('click', initHangman);
+$('#hm-hint').addEventListener('click', revealHangmanHint);
 
 /* ============================================================
    6) QUIZ — 50 Fragen
@@ -2476,7 +2533,7 @@ const QUIZ = [
   { q: 'Welches Land hat die Form eines Stiefels?',                   o: ['Spanien','Italien','Griechenland','Türkei'], a: 1 },
 ];
 
-let qzIdx = -1, qzScore = 0;
+let qzIdx = -1, qzScore = 0, qzHintUsed = false;
 function initQuiz() {
   qzScore = 0;
   $('#qz-score').textContent = 0;
@@ -2487,6 +2544,7 @@ function initQuiz() {
 }
 function newQuiz() {
   $('#qz-status').textContent = ''; $('#qz-status').className = 'status';
+  qzHintUsed = false;
   let candidates = QUIZ.map((_, i) => i).filter(i => !STATS.qz.answeredIds.includes(i));
   if (candidates.length === 0) {
     STATS.qz.answeredIds = [];
@@ -2502,6 +2560,7 @@ function newQuiz() {
   q.o.forEach((text, i) => {
     const b = document.createElement('button');
     b.className = 'qz-opt'; b.textContent = text;
+    b.dataset.idx = i;
     b.addEventListener('click', () => onQzPick(b, i));
     opts.appendChild(b);
   });
@@ -2530,7 +2589,21 @@ function onQzPick(btn, idx) {
   saveStats();
   setTimeout(newQuiz, 1800);
 }
+function revealQuizHint() {
+  if (qzIdx < 0 || qzHintUsed) return;
+  const q = QUIZ[qzIdx];
+  const wrong = $$('#qz-opts .qz-opt').filter(o => !o.disabled && parseInt(o.dataset.idx, 10) !== q.a);
+  if (!wrong.length) return;
+  const btn = wrong[Math.floor(Math.random() * wrong.length)];
+  btn.classList.add('hint-off');
+  btn.disabled = true;
+  qzHintUsed = true;
+  $('#qz-status').textContent = 'Tipp: Eine falsche Antwort ist gestrichen';
+  $('#qz-status').className = 'status good';
+  sndGood();
+}
 $('#qz-new').addEventListener('click', newQuiz);
+$('#qz-hint').addEventListener('click', revealQuizHint);
 
 /* ============================================================
    7) SPRICHWÖRTER — 35
@@ -2573,7 +2646,7 @@ const SPRICHWORTER = [
   { p: 'Lieber den Spatz in der Hand als die Taube auf dem ___',   a: 'Dach',          w: ['Baum','Feld','Markt'] },
 ];
 
-let spIdx = -1;
+let spIdx = -1, spHintUsed = false;
 function initSprichwort() {
   $('#sp-score').textContent = STATS.sp.correct;
   $('#sp-done').textContent = STATS.sp.answeredIds.length;
@@ -2583,6 +2656,7 @@ function initSprichwort() {
 }
 function newSprichwort() {
   $('#sp-status').textContent = ''; $('#sp-status').className = 'status';
+  spHintUsed = false;
   let candidates = SPRICHWORTER.map((_, i) => i).filter(i => !STATS.sp.answeredIds.includes(i));
   if (candidates.length === 0) {
     STATS.sp.answeredIds = [];
@@ -2629,7 +2703,21 @@ function onSpPick(btn, text) {
   saveStats();
   setTimeout(newSprichwort, 2200);
 }
+function revealSprichwortHint() {
+  if (spIdx < 0 || spHintUsed) return;
+  const s = SPRICHWORTER[spIdx];
+  const wrong = $$('#sp-opts .qz-opt').filter(o => !o.disabled && o.textContent !== s.a);
+  if (!wrong.length) return;
+  const btn = wrong[Math.floor(Math.random() * wrong.length)];
+  btn.classList.add('hint-off');
+  btn.disabled = true;
+  spHintUsed = true;
+  $('#sp-status').textContent = 'Tipp: Eine falsche Antwort ist gestrichen';
+  $('#sp-status').className = 'status good';
+  sndGood();
+}
 $('#sp-new').addEventListener('click', newSprichwort);
+$('#sp-hint').addEventListener('click', revealSprichwortHint);
 
 /* ============================================================
    8) WORTSUCHE — 7 Themen, zufällig gebaut
@@ -2775,7 +2863,17 @@ function onWsClick(r, c) {
   }
   renderWs();
 }
+function revealWortsucheHint() {
+  const target = wsWords.find(w => !w.found);
+  if (!target) return;
+  wsStart = target.cells[0];
+  $('#ws-status').textContent = `Tipp: ${target.word} beginnt hier`;
+  $('#ws-status').className = 'status good';
+  sndGood();
+  renderWs();
+}
 $('#ws-new').addEventListener('click', initWortsuche);
+$('#ws-hint').addEventListener('click', revealWortsucheHint);
 
 /* ============================================================
    STATS PAGE
