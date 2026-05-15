@@ -1,0 +1,151 @@
+const fs = require("fs");
+const http = require("http");
+const path = require("path");
+
+const root = path.resolve(__dirname, "..");
+const bundledNodeModules = "C:/Users/User/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
+
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function mime(file) {
+  if (file.endsWith(".html")) return "text/html; charset=utf-8";
+  if (file.endsWith(".css")) return "text/css; charset=utf-8";
+  if (file.endsWith(".js")) return "text/javascript; charset=utf-8";
+  if (file.endsWith(".png")) return "image/png";
+  if (file.endsWith(".mp3")) return "audio/mpeg";
+  if (file.endsWith(".wav")) return "audio/wav";
+  return "application/octet-stream";
+}
+
+function staticServer() {
+  const server = http.createServer((req, res) => {
+    const urlPath = decodeURIComponent(new URL(req.url, "http://127.0.0.1").pathname);
+    const rel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
+    if (rel === "favicon.ico") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    const target = path.resolve(root, rel);
+    if (!target.startsWith(root) || !fs.existsSync(target) || fs.statSync(target).isDirectory()) {
+      res.writeHead(404);
+      res.end("not found");
+      return;
+    }
+    res.writeHead(200, { "content-type": mime(target) });
+    fs.createReadStream(target).pipe(res);
+  });
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve(server));
+  });
+}
+
+function resolvePlaywright() {
+  try {
+    return require("playwright");
+  } catch {
+    try {
+      return require(path.join(bundledNodeModules, "playwright"));
+    } catch {
+      return require(path.join(bundledNodeModules, ".pnpm", "playwright@1.59.1", "node_modules", "playwright"));
+    }
+  }
+}
+
+async function closeServer(server) {
+  if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
+  if (typeof server.closeAllConnections === "function") server.closeAllConnections();
+  await new Promise((resolve) => server.close(() => resolve()));
+}
+
+async function run() {
+  [
+    "index.html",
+    "style.css",
+    "game.js",
+    "assets/backgrounds/beach_imagen_hd.png",
+    "assets/backgrounds/jungle_imagen_hd.png",
+    "assets/sprites/characters_imagen_hd_sheet.png",
+    "assets/sprites/scene_items_imagen_hd_sheet.png",
+    "assets/audio/bgm/shoreline-rum-riddle.mp3",
+    "assets/audio/bgm/coconut-caper-loop.mp3",
+    "assets/audio/sfx/pickup.wav",
+    "assets/audio/sfx/chime.wav",
+    "assets/audio/sfx/gate.wav",
+    "assets/audio/sfx/ui_confirm.wav",
+  ].forEach((rel) => {
+    const target = path.join(root, rel);
+    assert(fs.existsSync(target), `Missing ${rel}`);
+    assert(fs.statSync(target).size > 500, `${rel} looks empty`);
+  });
+
+  const { chromium } = resolvePlaywright();
+  const server = await staticServer();
+  const port = server.address().port;
+  const url = `http://127.0.0.1:${port}/index.html`;
+  const chromeCandidates = [
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    "C:/Users/User/AppData/Local/Google/Chrome/Application/chrome.exe",
+  ];
+  const executablePath = chromeCandidates.find((candidate) => fs.existsSync(candidate));
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath,
+    args: ["--autoplay-policy=no-user-gesture-required"],
+  });
+  const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
+  const consoleErrors = [];
+  const pageErrors = [];
+  const badResponses = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("pageerror", (err) => pageErrors.push(err.message));
+  page.on("response", (res) => {
+    if (res.status() >= 400) badResponses.push(`${res.status()} ${res.url()}`);
+  });
+
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
+  await page.evaluate(() => window.__MONKEY_TIDE_START());
+  await page.waitForTimeout(500);
+  const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
+  assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
+  assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
+  assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
+
+  const probe = await page.evaluate(() => {
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let lit = 0;
+    let alpha = 0;
+    let checksum = 0;
+    for (let i = 0; i < data.length; i += 128) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      if (a > 0) alpha += 1;
+      if (r + g + b > 60) lit += 1;
+      checksum = (checksum + r * 3 + g * 5 + b * 7 + a * 11 + i) % 1000000007;
+    }
+    return { lit, alpha, checksum };
+  });
+  assert(probe.alpha > 1000 && probe.lit > 1000, `Canvas appears blank: ${JSON.stringify(probe)}`);
+  assert(consoleErrors.length === 0, `Console errors:\n${consoleErrors.join("\n")}`);
+  assert(pageErrors.length === 0, `Page errors:\n${pageErrors.join("\n")}`);
+  assert(badResponses.length === 0, `Bad responses:\n${badResponses.join("\n")}`);
+
+  await browser.close();
+  await closeServer(server);
+  console.log(`smoke ok ${url}`);
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
