@@ -75,6 +75,7 @@ async function run() {
     "assets/sprites/gothic_enemies_hd_sheet.png",
     "assets/sprites/gothic_items_hd_sheet.png",
     "assets/sprites/gothic_props_hd_sheet.png",
+    "assets/sprites/spectral_captain_hd_sheet.png",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
     "assets/audio/sfx/pickup.wav",
@@ -130,6 +131,8 @@ async function run() {
   assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.spectralCaptain, `Spectral captain sheet missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain"), `Spectral captain boss missing: ${JSON.stringify(debug)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);

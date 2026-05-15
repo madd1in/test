@@ -45,6 +45,7 @@ const imageSources = {
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.png",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.png",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.png",
+  spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.png",
 };
 
 const audioSources = {
@@ -95,6 +96,7 @@ const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
 const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
+const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
 
@@ -149,6 +151,7 @@ const enemyTypes = [
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 58, speed: 88, radius: 25, damage: 16, scale: 0.18, xp: 9, tint: "#79e0d8" },
   { id: "oracle", name: "Shell Oracle", row: 9, hp: 72, speed: 54, radius: 28, damage: 18, scale: 0.47, xp: 12, tint: "#79e0b7" },
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 260, speed: 42, radius: 46, damage: 28, scale: 0.24, xp: 38, tint: "#d07cff" },
+  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 340, speed: 56, radius: 50, damage: 31, scale: 0.52, xp: 46, tint: "#53ffe5" },
 ];
 
 const upgrades = [
@@ -248,6 +251,7 @@ function makeState() {
     elapsed: 0,
     spawnTimer: 0,
     bossTimer: 0,
+    bossCount: 0,
     warningTimer: 0,
     wave: 1,
     killCount: 0,
@@ -549,7 +553,7 @@ function update(dt) {
   updateDom();
   updateVoiceCues();
   syncMusic();
-  if (state.elapsed >= TARGET_TIME && !state.enemies.some((e) => e.type.id === "idol")) {
+  if (state.elapsed >= TARGET_TIME && !state.enemies.some((e) => e.boss)) {
     endGame(true);
   }
 }
@@ -773,9 +777,14 @@ function updateSpawns(dt) {
   }
   if (state.elapsed > 205 && state.bossTimer <= 0) {
     state.bossTimer = 80;
-    spawnEnemy(enemyTypes.find((type) => type.id === "idol"), true);
+    const bossType = state.bossCount % 2 === 0 ? enemyType("spectralCaptain") : enemyType("idol");
+    state.bossCount += 1;
+    spawnEnemy(bossType, true);
     state.warningTimer = 3.2;
-    speak("Affenidol voraus. Bleib in Bewegung!", { key: "boss-warning", interrupt: true, cooldown: 45000, rate: 1.06 });
+    const warning = bossType.id === "spectralCaptain"
+      ? "Fluchkapitaen voraus. Raus aus der Klinge!"
+      : "Affenidol voraus. Bleib in Bewegung!";
+    speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
 }
 
@@ -1005,8 +1014,12 @@ function killEnemy(enemy) {
   if (Math.random() < 0.025) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
   if (enemy.boss) {
     state.warningTimer = 2;
-    floatingText("Idol gebrochen", enemy.x, enemy.y - 80, "#fff2c7");
-    speak("Idol gebrochen. Sammel die Beute!", { key: "boss-down", interrupt: true, cooldown: 2000 });
+    const downText = enemy.type.id === "spectralCaptain" ? "Captain verbannt" : "Idol gebrochen";
+    const downVoice = enemy.type.id === "spectralCaptain"
+      ? "Fluchkapitaen verbannt. Sammel die Beute!"
+      : "Idol gebrochen. Sammel die Beute!";
+    floatingText(downText, enemy.x, enemy.y - 80, "#fff2c7");
+    speak(downVoice, { key: `boss-down-${enemy.type.id}`, interrupt: true, cooldown: 2000 });
     playSound("chime", { force: true });
   } else if (Math.random() < 0.08) {
     playSound("pickup", { cooldown: 650 });
@@ -1244,7 +1257,15 @@ function drawEnemies() {
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
     ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
-    if (enemy.type.gothicRow !== undefined) {
+    if (enemy.type.captainSheet) {
+      const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
+      const sx = frame * SPECTRAL_CAPTAIN.w;
+      const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
+      w = SPECTRAL_CAPTAIN.w * enemy.type.scale * (enemy.boss ? 1.05 : 1);
+      h = SPECTRAL_CAPTAIN.h * enemy.type.scale * (enemy.boss ? 1.05 : 1);
+      ctx.shadowBlur = enemy.hit > 0 ? 28 : 18;
+      ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.gothicRow !== undefined) {
       const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
       const sx = frame * GOTHIC_ENEMY.w;
       const sy = enemy.type.gothicRow * GOTHIC_ENEMY.h;
@@ -1736,6 +1757,7 @@ window.__MONKEY_TIDE_DEBUG = () => ({
   gems: state.gems.length,
   kills: state.killCount,
   hp: state.player.hp,
+  bosses: state.enemies.filter((enemy) => enemy.boss).map((enemy) => enemy.type.id),
   player: { x: state.player.x, y: state.player.y },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
@@ -1758,6 +1780,8 @@ window.__MONKEY_TIDE_DEBUG = () => ({
     gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),
+    spectralCaptain: !!images.spectralCaptain,
+    bossTypes: enemyTypes.filter((type) => type.sprite === "monkeyIdol" || type.captainSheet).map((type) => type.id),
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
 });
