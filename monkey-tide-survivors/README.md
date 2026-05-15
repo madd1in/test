@@ -5,7 +5,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 ## Inhalt
 
 - Top-down-Survivors-Loop mit Auto-Waffen, XP, Level-ups, Bosswellen und Sieg-Timer.
-- Lokale HD-Grafiken fuer Hintergrund, Figur, Gegner, Gegenstaende und Weltprops.
+- Neues Imagen-HD-Top-down-Strandfeld ohne sichtbare Kachelraster.
+- Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Tastatur, Touch-Joystick, Dash, Pause und Audio-Schalter.
 
