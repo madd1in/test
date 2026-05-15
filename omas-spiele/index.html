@@ -474,7 +474,7 @@
       height: calc(100svh - 58px);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       overflow: hidden;
     }
     #wordle h2,
@@ -486,14 +486,14 @@
     #cw-clue {
       display: flex;
       align-items: center;
-      min-height: 34px;
-      max-height: 42px;
-      padding: 5px 8px;
+      min-height: 32px;
+      max-height: 38px;
+      padding: 4px 8px;
       margin: 0;
       border-width: 2px;
       border-radius: 8px;
       box-shadow: none;
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       line-height: 1.15;
       overflow: hidden;
     }
@@ -508,7 +508,7 @@
     .cw-cell {
       width: var(--cw-cell-size, 40px);
       height: var(--cw-cell-size, 40px);
-      font-size: calc(var(--cw-cell-size, 40px) * 0.42);
+      font-size: calc(var(--cw-cell-size, 40px) * 0.48);
       border-radius: 3px;
     }
     .cw-cell.active { outline-width: 3px; }
@@ -519,7 +519,7 @@
       gap: 4px;
     }
     #crossword .row-actions .btn {
-      min-height: 32px;
+      min-height: 28px;
       padding: 4px 8px;
       border-width: 2px;
       border-radius: 7px;
@@ -535,8 +535,8 @@
       line-height: 1.15;
     }
     #wo-grid {
-      width: min(78vw, 250px);
-      max-width: 250px;
+      width: min(66vw, 220px);
+      max-width: 220px;
       gap: 3px;
       margin: 2px auto;
     }
@@ -565,25 +565,22 @@
       gap: 3px;
       margin-top: 2px;
     }
-    .kb-row { gap: 3px; }
+    .kb-row { gap: 4px; }
     .key {
       flex: 1 1 0;
       min-width: 0;
       max-width: none;
-      height: 36px;
+      height: 42px;
       padding: 0;
       border-width: 2px;
       border-radius: 6px;
       box-shadow: none;
-      font-size: 0.78rem;
+      font-size: 1.05rem;
     }
     .key.wide {
-      flex: 1.15 1 0;
-      font-size: 0;
+      flex: 1.2 1 0;
+      font-size: 1.1rem;
     }
-    .key[data-k="ENTER"]::after { content: '✓'; font-size: 1rem; }
-    .key[data-k="BACK"]::after  { content: '←'; font-size: 1.05rem; }
-    #wo-kb .key[data-k="ENTER"] { display: none; }
     .math-q { font-size: 2em; margin: 16px 0; padding: 18px; }
     .math-opt { padding: 18px; font-size: 1.3em; min-height: 70px; }
     .hm-svg { width: 160px; height: 180px; }
@@ -1262,7 +1259,14 @@ function processAchQueue() {
    SHARED KEYBOARD
    ============================================================ */
 function buildKeyboard(container, onKey) {
-  const rows = [
+  const compact = window.matchMedia('(max-width: 560px)').matches;
+  const rows = compact ? [
+    ['Q','W','E','R','T','Z'],
+    ['U','I','O','P','Ü','A'],
+    ['S','D','F','G','H','J'],
+    ['K','L','Ö','Ä','Y','X'],
+    ['C','V','B','N','M','BACK'],
+  ] : [
     ['Q','W','E','R','T','Z','U','I','O','P','Ü'],
     ['A','S','D','F','G','H','J','K','L','Ö','Ä'],
     ['ENTER','Y','X','C','V','B','N','M','BACK'],
@@ -1274,7 +1278,7 @@ function buildKeyboard(container, onKey) {
     r.forEach(k => {
       const btn = document.createElement('button');
       btn.className = 'key' + (k === 'ENTER' || k === 'BACK' ? ' wide' : '');
-      btn.textContent = k === 'ENTER' ? 'Prüfen' : (k === 'BACK' ? '← Zurück' : k);
+      btn.textContent = k === 'ENTER' ? 'Prüfen' : (k === 'BACK' ? (compact ? '←' : '← Zurück') : k);
       btn.dataset.k = k;
       btn.addEventListener('click', () => { sndClick(); onKey(k); });
       row.appendChild(btn);
@@ -1815,8 +1819,8 @@ let cwIdx = 0, cwState = null, cwActive = null;
 function initCrossword() {
   let firstUnsolved = CW_PUZZLES.findIndex((_, i) => !STATS.cw.solved.includes(i));
   cwIdx = firstUnsolved >= 0 ? firstUnsolved : 0;
-  loadCwPuzzle();
   buildKeyboard($('#cw-kb'), onCwKey);
+  loadCwPuzzle();
 }
 function loadCwPuzzle() {
   const p = CW_PUZZLES[cwIdx];
@@ -1884,10 +1888,11 @@ function renderCwGrid() {
   const compact = window.matchMedia('(max-width: 560px)').matches;
   if (compact) {
     const headerH = $('header')?.offsetHeight || 58;
-    const reservedH = headerH + 230;
+    const keyboardH = $('#cw-kb')?.offsetHeight || 228;
+    const reservedH = headerH + keyboardH + 128;
     const cellByWidth = Math.floor((window.innerWidth - 24 - (p.cols - 1) * 2 - 6) / p.cols);
     const cellByHeight = Math.floor((window.innerHeight - reservedH - (p.rows - 1) * 2 - 6) / p.rows);
-    const cellSize = Math.max(29, Math.min(42, cellByWidth, cellByHeight));
+    const cellSize = Math.max(21, Math.min(40, cellByWidth, cellByHeight));
     grid.style.setProperty('--cw-cell-size', `${cellSize}px`);
     grid.style.gridTemplateColumns = `repeat(${p.cols}, ${cellSize}px)`;
   } else {
@@ -2063,8 +2068,8 @@ function initWordle() {
   STATS.wo.played++;
   saveStats();
   woAttempts = []; woCurrent = ''; woGameOver = false;
-  renderWordle();
   buildKeyboard($('#wo-kb'), onWoKey);
+  renderWordle();
   $('#wo-status').textContent = `Versuch 1 von 6 · gespielt: ${STATS.wo.played}`;
   $('#wo-status').className = 'status';
 }
@@ -2849,7 +2854,15 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('resize', () => {
   const active = $$('.game.active')[0];
-  if (active?.id === 'crossword' && cwState) renderCwGrid();
+  if (active?.id === 'crossword' && cwState) {
+    buildKeyboard($('#cw-kb'), onCwKey);
+    renderCwGrid();
+    renderCwClueList();
+  }
+  if (active?.id === 'wordle') {
+    buildKeyboard($('#wo-kb'), onWoKey);
+    renderWordle();
+  }
 });
 
 /* Initial */
