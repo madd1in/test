@@ -119,6 +119,46 @@ async function run() {
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(150);
+  const touchProbe = await page.evaluate(() => {
+    if (window.__MONKEY_TIDE_DEBUG().phase === "levelup") document.querySelector(".upgrade-card")?.click();
+    const before = window.__MONKEY_TIDE_DEBUG();
+    const target = document.elementFromPoint(82, 570) || document.getElementById("gameCanvas");
+    target.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 77,
+      pointerType: "touch",
+      clientX: 82,
+      clientY: 570,
+    }));
+    window.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 77,
+      pointerType: "touch",
+      clientX: 82,
+      clientY: 650,
+    }));
+    const active = window.__MONKEY_TIDE_DEBUG();
+    window.__MONKEY_TIDE_STEP(0.35);
+    const moved = window.__MONKEY_TIDE_DEBUG();
+    window.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 77,
+      pointerType: "touch",
+      clientX: 82,
+      clientY: 650,
+    }));
+    return { before, active, moved, after: window.__MONKEY_TIDE_DEBUG() };
+  });
+  assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
+
   const probe = await page.evaluate(() => {
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");

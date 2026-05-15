@@ -8,7 +8,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neues Imagen-HD-Top-down-Strandfeld ohne sichtbare Kachelraster.
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
-- Tastatur, Touch-Joystick, Dash, Pause und Audio-Schalter.
+- Tastatur, dynamischer linker Mobile-Joystick, Dash, Pause und Audio-Schalter.
 
 ## Spielen
 

@@ -179,7 +179,7 @@ const upgrades = [
 
 let state = null;
 const keys = new Set();
-const pointer = { active: false, id: null, dx: 0, dy: 0 };
+const pointer = { active: false, id: null, dx: 0, dy: 0, originX: 0, originY: 0, radius: 48 };
 
 function makeState() {
   return {
@@ -1377,41 +1377,59 @@ function toggleMute() {
   updateDom();
 }
 
-ui.stickBase.addEventListener("pointerdown", (event) => {
+window.addEventListener("pointerdown", handleWorldPointerDown, { passive: false });
+window.addEventListener("pointermove", handleWorldPointerMove, { passive: false });
+window.addEventListener("pointerup", resetStick, { passive: false });
+window.addEventListener("pointercancel", resetStick, { passive: false });
+
+function handleWorldPointerDown(event) {
+  if (event.pointerType === "mouse") return;
+  if (state.phase !== "playing") return;
+  if (event.target.closest("button, .overlay")) return;
+  if (event.clientX > viewW * 0.58) return;
+  event.preventDefault();
+  startStick(event);
+}
+
+function handleWorldPointerMove(event) {
+  if (!pointer.active || pointer.id !== event.pointerId) return;
+  event.preventDefault();
+  updateStick(event);
+}
+
+function startStick(event) {
   pointer.active = true;
   pointer.id = event.pointerId;
-  ui.stickBase.setPointerCapture(event.pointerId);
+  pointer.originX = clamp(event.clientX, 58, Math.max(58, viewW * 0.58 - 20));
+  pointer.originY = clamp(event.clientY, 68, Math.max(68, viewH - 68));
+  ui.stickBase.classList.add("active");
+  ui.stickBase.style.left = `${pointer.originX - 56}px`;
+  ui.stickBase.style.top = `${pointer.originY - 56}px`;
   updateStick(event);
-});
-
-ui.stickBase.addEventListener("pointermove", (event) => {
-  if (pointer.active && pointer.id === event.pointerId) updateStick(event);
-});
-
-ui.stickBase.addEventListener("pointerup", resetStick);
-ui.stickBase.addEventListener("pointercancel", resetStick);
+}
 
 function updateStick(event) {
-  const rect = ui.stickBase.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const dx = event.clientX - cx;
-  const dy = event.clientY - cy;
-  const len = Math.min(44, Math.hypot(dx, dy));
+  const dx = event.clientX - pointer.originX;
+  const dy = event.clientY - pointer.originY;
+  const len = Math.min(pointer.radius, Math.hypot(dx, dy));
   const angle = Math.atan2(dy, dx);
   const nx = Math.cos(angle) * len;
   const ny = Math.sin(angle) * len;
-  pointer.dx = nx / 44;
-  pointer.dy = ny / 44;
+  pointer.dx = nx / pointer.radius;
+  pointer.dy = ny / pointer.radius;
   ui.stickKnob.style.transform = `translate(${nx}px, ${ny}px)`;
 }
 
 function resetStick(event) {
   if (event && pointer.id !== event.pointerId) return;
+  if (event && pointer.active) event.preventDefault();
   pointer.active = false;
   pointer.id = null;
   pointer.dx = 0;
   pointer.dy = 0;
+  pointer.originX = 0;
+  pointer.originY = 0;
+  ui.stickBase.classList.remove("active");
   ui.stickKnob.style.transform = "translate(0, 0)";
 }
 
@@ -1432,6 +1450,8 @@ window.__MONKEY_TIDE_DEBUG = () => ({
   gems: state.gems.length,
   kills: state.killCount,
   hp: state.player.hp,
+  player: { x: state.player.x, y: state.player.y },
+  pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
 });
 
