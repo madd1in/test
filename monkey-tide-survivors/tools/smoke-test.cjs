@@ -160,7 +160,30 @@ async function run() {
   assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.moved.scene.zoom <= 0.72, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(200);
+  const landscapeUi = await page.evaluate(() => {
+    const box = (selector) => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom };
+    };
+    return {
+      debug: window.__MONKEY_TIDE_DEBUG(),
+      hud: box("#hud"),
+      controls: box("#cornerControls"),
+      loadout: box("#loadout"),
+      dash: box("#dashButton"),
+      fullscreenText: document.getElementById("fullscreenButton").textContent,
+    };
+  });
+  assert(landscapeUi.debug.scene.zoom <= 0.64, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
+  assert(landscapeUi.hud.width <= 360 && landscapeUi.hud.bottom <= 58, `Landscape HUD covers too much playfield: ${JSON.stringify(landscapeUi)}`);
+  assert(landscapeUi.loadout.height <= 54, `Landscape loadout is too tall: ${JSON.stringify(landscapeUi)}`);
+  assert(landscapeUi.dash.width <= 72 && landscapeUi.dash.height <= 72, `Landscape dash button is too large: ${JSON.stringify(landscapeUi)}`);
+  assert(["FS", "MIN"].includes(landscapeUi.fullscreenText), `Fullscreen toggle missing: ${JSON.stringify(landscapeUi)}`);
 
   const probe = await page.evaluate(() => {
     const canvas = document.getElementById("gameCanvas");

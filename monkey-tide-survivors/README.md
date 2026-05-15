@@ -10,7 +10,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Deutsche Browser-Sprachausgabe fuer Start, Level-ups, Bosswarnungen, niedrige HP und Endscreen.
-- Tastatur, dynamischer linker Mobile-Joystick, Dash, Pause und Audio-Schalter.
+- Ruhigere SFX, Tastatur, dynamischer linker Mobile-Joystick, Dash, Pause, Vollbild und Audio-Schalter.
+- Mobile Kamera zoomt weiter raus; Portrait- und Querformat-HUD bleiben minimal.
 
 ## Spielen
 
