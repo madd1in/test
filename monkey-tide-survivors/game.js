@@ -1795,7 +1795,9 @@ window.__MONKEY_TIDE_STEP = (seconds = 5) => {
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
-window.__MONKEY_TIDE_DEBUG = () => ({
+window.__MONKEY_TIDE_DEBUG = () => {
+  syncCanvasSize();
+  return ({
   ready,
   phase: state.phase,
   elapsed: state.elapsed,
@@ -1834,7 +1836,8 @@ window.__MONKEY_TIDE_DEBUG = () => ({
     bossTypes: enemyTypes.filter((type) => type.sprite === "monkeyIdol" || type.captainSheet).map((type) => type.id),
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
-});
+  });
+};
 
 boot().catch((error) => {
   ui.loadingText.textContent = "Assets konnten nicht geladen werden";
