@@ -13,6 +13,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.
 - Neues Imagen-HD-Walkcycle-Frameset mit 8 Frames fuer jeden alternativen Spieler-Skin.
 - Erkundbare Huetten, Wracks, Schatzstellen und Muschelschreine droppen XP, Muenzen, kurze Rettungsfenster und kleine Notfall-Heilung.
+- Massive Strandhindernisse aus Hecken, Huetten, Wracks und Schreinen blockieren Spieler und Bodengegner; Geister und fliegende Gegner koennen sie durchqueren.
 - Runtime-Sprite-Sheets laufen ueber kompakte WebP-Varianten fuer schnelleren Mobile-Start.
 - Neues Imagen-HD-WebP-Projektilsheet fuer Saebelbogen, Kokos-Bumerang, Flaschenbombe, Kompassblitz, Taukreis, Blutrosenburst, Geisterkugel und Affenfluch.
 - Extra Imagen-HD-FX-Sheet fuer Tau-Aura, Kompass-Beam, Rum-Schockwelle, Curse-Burst, Cutlass-Afterglow und Schatz-Glints.

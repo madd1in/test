@@ -227,6 +227,16 @@ async function run() {
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache === 18, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
+  assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
+  assert(debug.obstacles.blockingPropTypes.includes("beachHut") && debug.obstacles.blockingPropTypes.includes("boatWreck"), `Huts and wrecks are not blocking: ${JSON.stringify(debug.obstacles)}`);
+  assert(debug.obstacles.blockingPropTypes.includes("hedgeCluster") || debug.obstacles.blockingPropTypes.includes("palmHedge"), `Hedge blockers are missing: ${JSON.stringify(debug.obstacles)}`);
+  assert(debug.obstacles.passThroughEnemyTypes.includes("cryptBat") && debug.obstacles.passThroughEnemyTypes.includes("gargoyle"), `Flying enemies should ignore obstacles: ${JSON.stringify(debug.obstacles)}`);
+  assert(debug.obstacles.passThroughEnemyTypes.includes("lanternWraith") && debug.obstacles.passThroughEnemyTypes.includes("spectralCaptain"), `Ghost enemies should phase through obstacles: ${JSON.stringify(debug.obstacles)}`);
+
+  const obstacleProbe = await page.evaluate(() => window.__MONKEY_TIDE_OBSTACLE_PROBE());
+  assert(obstacleProbe.playerBlocked && obstacleProbe.playerStayedOnApproachSide, `Player did not route around blocker: ${JSON.stringify(obstacleProbe)}`);
+  assert(obstacleProbe.groundPushed, `Ground enemy was not pushed out of blocker: ${JSON.stringify(obstacleProbe)}`);
+  assert(obstacleProbe.ghostCanPass, `Ghost/flying pass-through rule failed: ${JSON.stringify(obstacleProbe)}`);
 
   const upgradeProbe = await page.evaluate(() => {
     if (window.__MONKEY_TIDE_DEBUG().phase !== "levelup") window.__MONKEY_TIDE_FORCE_LEVELUP();
