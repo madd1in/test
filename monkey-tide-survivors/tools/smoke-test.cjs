@@ -259,8 +259,9 @@ async function run() {
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.powerups.randomDropChance <= 0.014 && progressProbe.powerups.streakDropEvery >= 24, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[2] === 7, `Level-up interruptions were not reduced: ${JSON.stringify(progressProbe.levelFlow)}`);
+  assert(progressProbe.powerups.randomDropChance <= 0.004 && progressProbe.powerups.streakDropEvery >= 40, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.combatCooldown >= 40 && progressProbe.powerups.magnetRange <= 90, `Power-up pickups are too intrusive: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[2] === 10, `Level-up interruptions were not reduced: ${JSON.stringify(progressProbe.levelFlow)}`);
   assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
   assert(progressProbe.map.unlocked.includes("gothicCove") && progressProbe.map.unlocked.includes("treasureAtoll"), `Unlockable maps did not unlock: ${JSON.stringify(progressProbe.map)}`);
   assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);
