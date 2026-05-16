@@ -225,6 +225,14 @@ const extraEnemyMap = {
   stormDuelist: { x: 3, y: 1 },
 };
 
+const blockingPropShapes = {
+  hedgeCluster: { rx: 145, ry: 62, oy: 8 },
+  palmHedge: { rx: 136, ry: 52, oy: 4 },
+  beachHut: { rx: 142, ry: 86, oy: 28 },
+  boatWreck: { rx: 154, ry: 70, oy: 22 },
+  conchShrine: { rx: 58, ry: 76, oy: 18 },
+};
+
 const beachPropMap = {
   clearPuddle: { image: "beachClearPuddle", w: 420, h: 304, decal: true },
   tidePuddle: { image: "beachTidePuddle", w: 410, h: 318, decal: true },
@@ -263,22 +271,22 @@ const playerEffectMap = {
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d" },
   { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
-  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff" },
+  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff", flying: true },
   { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 46, speed: 68, radius: 24, damage: 9, scale: 0.48, xp: 12, tint: "#d8e3b0" },
-  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4" },
+  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4", flying: true },
   { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f" },
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
   { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
   { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7" },
   { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0" },
-  { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5" },
+  { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5", phase: true },
   { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7" },
   { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf" },
   { id: "barrelMaw", name: "Barrel Maw", extraSprite: "barrelMaw", hp: 110, speed: 58, radius: 32, damage: 16, scale: 0.26, xp: 25, tint: "#f0a04d" },
   { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5" },
   { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
-  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5" },
+  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true },
 ];
 
 const upgrades = [
@@ -606,6 +614,31 @@ function makeProps() {
       }
     }
   }
+  const blockerIcons = ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"];
+  for (let gx = 520; gx < WORLD.w - 520; gx += 920) {
+    for (let gy = 560; gy < WORLD.h - 520; gy += 820) {
+      const h = hash2(Math.floor(gx / 90), Math.floor(gy / 90));
+      if (h % 11 > 4) continue;
+      if (Math.hypot(gx - WORLD.w / 2, gy - WORLD.h / 2) < 620) continue;
+      const clusterSize = h % 5 === 0 ? 3 : 2;
+      for (let i = 0; i < clusterSize; i += 1) {
+        const icon = blockerIcons[(h + i * 3) % blockerIcons.length];
+        const angle = ((h >> (i * 3 + 2)) % 628) / 100;
+        const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : 132;
+        const x = gx + Math.cos(angle) * spread + ((h >> (i + 6)) % 90) - 45;
+        const y = gy + Math.sin(angle) * spread + ((h >> (i + 11)) % 80) - 40;
+        props.push({
+          x: clamp(x, 180, WORLD.w - 180),
+          y: clamp(y, 180, WORLD.h - 180),
+          icon,
+          scale: propScaleForIcon(icon, h + i * 41) * (icon === "hedgeCluster" || icon === "palmHedge" ? 1.1 : 1),
+          spin: ((h >> (i + 8)) % 100) / 120,
+          interactive: beachPropMap[icon]?.interactive === true,
+          blocking: true,
+        });
+      }
+    }
+  }
   return props;
 }
 
@@ -902,8 +935,7 @@ function updatePlayer(dt) {
   p.dashCooldown = Math.max(0, p.dashCooldown - dt);
   p.dash = Math.max(0, p.dash - dt);
   const dashBoost = p.dash > 0 ? 2.95 : 1;
-  p.x = clamp(p.x + input.x * state.stats.speed * dashBoost * dt, 90, WORLD.w - 90);
-  p.y = clamp(p.y + input.y * state.stats.speed * dashBoost * dt, 90, WORLD.h - 90);
+  moveActorWithObstacles(p, input.x * state.stats.speed * dashBoost, input.y * state.stats.speed * dashBoost, dt, p.r);
   state.camera.x += (p.x - state.camera.x) * Math.min(1, dt * 7.5);
   state.camera.y += (p.y - state.camera.y) * Math.min(1, dt * 7.5);
 }
@@ -917,6 +949,113 @@ function dash() {
   p.invuln = Math.max(p.invuln, 0.3);
   playSound("gate");
   playSound("downloadDash");
+}
+
+function actorIgnoresObstacles(actor) {
+  return actor?.type?.phase === true || actor?.type?.flying === true;
+}
+
+function propBlocksMovement(prop) {
+  return !!blockingPropShapes[prop.icon];
+}
+
+function propObstacleShape(prop) {
+  const shape = blockingPropShapes[prop.icon];
+  if (!shape) return null;
+  const scale = prop.scale || 1;
+  return {
+    x: prop.x,
+    y: prop.y + (shape.oy || 0) * scale,
+    rx: shape.rx * scale,
+    ry: shape.ry * scale,
+    prop,
+  };
+}
+
+function obstacleContainment(actor, prop, radius = actor.r || 20) {
+  const shape = propObstacleShape(prop);
+  if (!shape) return 999;
+  const rx = shape.rx + radius;
+  const ry = shape.ry + radius * 0.88;
+  const dx = actor.x - shape.x;
+  const dy = actor.y - shape.y;
+  return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+}
+
+function moveActorWithObstacles(actor, vx, vy, dt, radius = actor.r || 20, ignores = false) {
+  actor.x = clamp(actor.x + vx * dt, 90, WORLD.w - 90);
+  if (!ignores) resolveObstacleCollisions(actor, radius);
+  actor.y = clamp(actor.y + vy * dt, 90, WORLD.h - 90);
+  if (!ignores) resolveObstacleCollisions(actor, radius);
+}
+
+function resolveObstacleCollisions(actor, radius = actor.r || 20) {
+  for (const prop of state.props) {
+    if (!propBlocksMovement(prop)) continue;
+    const shape = propObstacleShape(prop);
+    const rx = shape.rx + radius;
+    const ry = shape.ry + radius * 0.88;
+    const dx = actor.x - shape.x;
+    const dy = actor.y - shape.y;
+    const n = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+    if (n >= 1) continue;
+    const angle = Math.abs(dx) + Math.abs(dy) < 0.001
+      ? ((hash2(Math.floor(shape.x), Math.floor(shape.y)) % 628) / 100)
+      : Math.atan2(dy / ry, dx / rx);
+    actor.x = shape.x + Math.cos(angle) * rx;
+    actor.y = shape.y + Math.sin(angle) * ry;
+  }
+  actor.x = clamp(actor.x, 90, WORLD.w - 90);
+  actor.y = clamp(actor.y, 90, WORLD.h - 90);
+}
+
+function obstacleInfluencingActor(actor, moveX, moveY, radius = actor.r || 20) {
+  const lookX = actor.x + moveX * (radius + 92);
+  const lookY = actor.y + moveY * (radius + 92);
+  let best = null;
+  let bestN = Infinity;
+  for (const prop of state.props) {
+    if (!propBlocksMovement(prop)) continue;
+    const shape = propObstacleShape(prop);
+    const rx = shape.rx + radius + 30;
+    const ry = shape.ry + radius + 24;
+    const dx = lookX - shape.x;
+    const dy = lookY - shape.y;
+    const n = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+    if (n < bestN && n < 1.28) {
+      bestN = n;
+      best = shape;
+    }
+  }
+  return best;
+}
+
+function steerAroundObstacles(actor, desiredX, desiredY) {
+  if (actorIgnoresObstacles(actor)) return { x: desiredX, y: desiredY };
+  const shape = obstacleInfluencingActor(actor, desiredX, desiredY, actor.r);
+  if (!shape) return { x: desiredX, y: desiredY };
+  const dx = actor.x - shape.x;
+  const dy = actor.y - shape.y;
+  const normal = normalizeVector(dx / Math.max(1, shape.rx), dy / Math.max(1, shape.ry));
+  let tangent = { x: -normal.y, y: normal.x };
+  const otherTangent = { x: normal.y, y: -normal.x };
+  if (dotVector(otherTangent.x, otherTangent.y, desiredX, desiredY) > dotVector(tangent.x, tangent.y, desiredX, desiredY)) {
+    tangent = otherTangent;
+  }
+  return normalizeVector(
+    desiredX * 0.42 + tangent.x * 0.96 + normal.x * 0.34,
+    desiredY * 0.42 + tangent.y * 0.96 + normal.y * 0.34,
+  );
+}
+
+function normalizeVector(x, y) {
+  const len = Math.hypot(x, y);
+  if (len <= 0.0001) return { x: 0, y: 0 };
+  return { x: x / len, y: y / len };
+}
+
+function dotVector(ax, ay, bx, by) {
+  return ax * bx + ay * by;
 }
 
 function readInput() {
@@ -1153,7 +1292,7 @@ function spawnEnemy(type, boss = false) {
     y += scene.h / 2 + margin;
   }
   const scaledHp = type.hp * (1 + state.elapsed / BALANCE.enemyHpGrowth) * (boss ? BALANCE.bossHpMult : 1);
-  state.enemies.push({
+  const enemy = {
     id: cryptoId(),
     type,
     x: clamp(x, 80, WORLD.w - 80),
@@ -1168,7 +1307,9 @@ function spawnEnemy(type, boss = false) {
     hit: 0,
     boss,
     shootTimer: 0.8 + Math.random() * 1.2,
-  });
+  };
+  if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
+  state.enemies.push(enemy);
 }
 
 function updateEnemies(dt) {
@@ -1178,8 +1319,8 @@ function updateEnemies(dt) {
     const dx = p.x - enemy.x;
     const dy = p.y - enemy.y;
     const dist = Math.max(1, Math.hypot(dx, dy));
-    enemy.x += (dx / dist) * enemy.speed * dt;
-    enemy.y += (dy / dist) * enemy.speed * dt;
+    const desired = steerAroundObstacles(enemy, dx / dist, dy / dist);
+    moveActorWithObstacles(enemy, desired.x * enemy.speed, desired.y * enemy.speed, dt, enemy.r, actorIgnoresObstacles(enemy));
     updateEnemyRangedAttack(enemy, dt, dist, dx, dy);
     if (dist < p.r + enemy.r && p.invuln <= 0) {
       const damage = Math.max(1, enemy.damage - state.stats.armor);
@@ -1187,6 +1328,7 @@ function updateEnemies(dt) {
       p.invuln = 0.88;
       p.x -= (dx / dist) * 30;
       p.y -= (dy / dist) * 30;
+      resolveObstacleCollisions(p, p.r);
       shake(0.8);
       floatingText(`-${Math.round(damage)}`, p.x, p.y - 58, "#ff765f");
       playSound("gate");
@@ -1293,6 +1435,7 @@ function updateProjectiles(dt) {
           p.invuln = 0.7;
           p.x += (p.x - projectile.x) / Math.max(1, dist) * 20;
           p.y += (p.y - projectile.y) / Math.max(1, dist) * 20;
+          resolveObstacleCollisions(p, p.r);
           shake(0.55);
           floatingText(`-${Math.round(damage)}`, p.x, p.y - 58, "#ff765f");
           playSound("downloadHit");
@@ -1419,6 +1562,7 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   enemy.hit = 0.14;
   enemy.x += clamp(nx, -1, 1) * 7;
   enemy.y += clamp(ny, -1, 1) * 7;
+  if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   if ((enemy.boss || amount >= 42) && Math.random() < 0.45) playSound("downloadHit");
   if (Math.random() < 0.12) floatingText(String(Math.round(amount)), enemy.x, enemy.y - enemy.r - 20, enemy.type.tint);
   for (let i = 0; i < 2; i += 1) {
@@ -1727,7 +1871,7 @@ function drawProps() {
     if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
     const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
-    const alpha = prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : 0.62;
+    const alpha = prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : propBlocksMovement(prop) ? 0.82 : 0.62;
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
     if (prop.interactive && !prop.discovered) {
       const glint = Math.min(124, Math.max(76, size.w * 0.32));
@@ -2373,6 +2517,70 @@ window.__MONKEY_TIDE_FORCE_LEVELUP = () => {
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
+window.__MONKEY_TIDE_SPAWN_ENEMY = (id, x = state.player.x + 260, y = state.player.y, boss = false) => {
+  const type = enemyType(id);
+  const scaledHp = type.hp * (1 + state.elapsed / BALANCE.enemyHpGrowth) * (boss ? BALANCE.bossHpMult : 1);
+  const enemy = {
+    id: cryptoId(),
+    type,
+    x: clamp(x, 80, WORLD.w - 80),
+    y: clamp(y, 80, WORLD.h - 80),
+    hp: scaledHp,
+    maxHp: scaledHp,
+    r: type.radius * (boss ? 1.25 : 1),
+    speed: type.speed * (1 + state.elapsed / BALANCE.enemySpeedGrowth),
+    damage: type.damage,
+    row: type.row,
+    frameOffset: Math.floor(Math.random() * 16),
+    hit: 0,
+    boss,
+    shootTimer: 0.8 + Math.random() * 1.2,
+  };
+  if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
+  state.enemies.push(enemy);
+  return window.__MONKEY_TIDE_DEBUG();
+};
+window.__MONKEY_TIDE_OBSTACLE_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  const p = state.player;
+  const original = { x: p.x, y: p.y };
+  const obstacle = {
+    x: clamp(p.x + 220, 240, WORLD.w - 240),
+    y: p.y,
+    icon: "hedgeCluster",
+    scale: 1.18,
+    spin: 0,
+    interactive: false,
+    blocking: true,
+    probe: true,
+  };
+  state.props.push(obstacle);
+  const before = { x: p.x, y: p.y };
+  for (let i = 0; i < 30; i += 1) moveActorWithObstacles(p, 520, 0, 1 / 60, p.r);
+  const ground = { type: enemyType("reefRaider"), x: obstacle.x, y: obstacle.y, r: enemyType("reefRaider").radius };
+  resolveObstacleCollisions(ground, ground.r);
+  const ghost = { type: enemyType("lanternWraith"), x: obstacle.x, y: obstacle.y, r: enemyType("lanternWraith").radius };
+  if (!actorIgnoresObstacles(ghost)) resolveObstacleCollisions(ghost, ghost.r);
+  const playerContainment = obstacleContainment(p, obstacle, p.r);
+  const groundContainment = obstacleContainment(ground, obstacle, ground.r);
+  const ghostContainment = obstacleContainment(ghost, obstacle, ghost.r);
+  const outsideObstacle = 0.985;
+  render();
+  return {
+    before,
+    after: { x: p.x, y: p.y },
+    obstacle: { x: obstacle.x, y: obstacle.y },
+    playerContainment,
+    groundContainment,
+    ghostContainment,
+    playerBlocked: playerContainment >= outsideObstacle && p.x < obstacle.x,
+    playerStayedOnApproachSide: p.x < obstacle.x,
+    groundPushed: groundContainment >= outsideObstacle,
+    ghostCanPass: actorIgnoresObstacles(ghost) && ghostContainment < 1,
+    playerMoved: Math.hypot(p.x - original.x, p.y - original.y) > 8,
+    blockingProps: state.props.filter(propBlocksMovement).length,
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -2401,6 +2609,15 @@ window.__MONKEY_TIDE_DEBUG = () => {
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
+  obstacles: {
+    blockingProps: state.props.filter(propBlocksMovement).length,
+    blockingPropTypes: [...new Set(state.props.filter(propBlocksMovement).map((prop) => prop.icon))],
+    obstacleShapes: Object.keys(blockingPropShapes),
+    passThroughEnemyTypes: enemyTypes.filter((type) => type.phase || type.flying).map((type) => type.id),
+    phasingEnemyTypes: enemyTypes.filter((type) => type.phase).map((type) => type.id),
+    flyingEnemyTypes: enemyTypes.filter((type) => type.flying).map((type) => type.id),
+    groundedEnemyTypes: enemyTypes.filter((type) => !type.phase && !type.flying).map((type) => type.id),
+  },
   fullscreenSupported: document.fullscreenEnabled,
   preloadedAssetKeys: Object.keys(imageSources),
   loading: { ...loadingState },
