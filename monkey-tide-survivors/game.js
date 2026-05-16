@@ -62,8 +62,8 @@ const imageSources = {
 };
 
 const audioSources = {
-  bgmMain: "assets/audio/bgm/shoreline-rum-riddle.mp3",
-  bgmRush: "assets/audio/bgm/coconut-caper-loop.mp3",
+  bgmMain: "assets/audio/bgm/crimson-galleon.mp3",
+  bgmRush: "assets/audio/bgm/gargoyle-chapel-run.mp3",
   pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
   chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
   gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -92,11 +92,11 @@ const soundConfig = {
   downloadBossDown: { volume: 0.048, cooldown: 2800 },
 };
 const musicConfig = {
-  main: 0.54,
-  mainRushDuck: 0.22,
-  rush: 0.42,
-  rushStart: 185,
-  rushFade: 95,
+  main: 0.62,
+  mainRushDuck: 0.1,
+  rush: 0.5,
+  rushStart: 112,
+  rushFade: 74,
 };
 let music = null;
 let rushMusic = null;
