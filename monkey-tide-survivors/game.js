@@ -219,6 +219,15 @@ const powerUpTypes = [
   { id: "pearlMagnet", name: "Flutmagnet", icon: "cursedPearl", duration: 12, magnet: 130, color: "#53ffe5" },
   { id: "voodooWard", name: "Voodoo-Schutz", icon: "voodooDoll", duration: 8, armor: 2, color: "#d07cff" },
 ];
+const powerupDropTuning = {
+  randomDropChance: 0.004,
+  streakDropEvery: 40,
+  combatCooldown: 42,
+  chestChance: 0.16,
+  cacheChance: 0.22,
+  magnetRange: 84,
+  life: 18,
+};
 
 let metaProgress = loadMetaProgress();
 let selectedMap = normalizeSelectedMap(readStoredValue("monkeyTideMap", "shipwreckBeach"));
@@ -631,6 +640,7 @@ function makeState() {
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
     runStats: { landmarks: 0, powerups: 0, flowRewards: 0, unlocked: [] },
+    powerupDropCooldown: 0,
     coins: 0,
     level: 1,
     xp: 0,
@@ -1710,7 +1720,9 @@ function updateGems(dt) {
       collectGem(gem);
       continue;
     }
-    const range = state.stats.magnet + activePowerBonus("magnet") + (gem.kind === "xp" ? 140 : gem.kind === "heart" ? 120 : gem.kind === "powerup" ? 155 : 55);
+    const range = gem.kind === "powerup"
+      ? powerupDropTuning.magnetRange + activePowerBonus("magnet") * 0.12
+      : state.stats.magnet + activePowerBonus("magnet") + (gem.kind === "xp" ? 140 : gem.kind === "heart" ? 120 : 55);
     if (dist < range) {
       const pull = (1 - dist / range) * 920 + 240;
       gem.x += (dx / Math.max(1, dist)) * pull * dt;
@@ -1741,7 +1753,10 @@ function updateExploration() {
     state.gems.push({ kind: "xp", icon: "skullCoin", x: prop.x, y: prop.y - 18, r: 12, value: xpValue, life: 34 });
     state.gems.push({ kind: "coin", icon: "coin", x: prop.x + 24, y: prop.y + 8, r: 12, value: coinValue, life: 34 });
     if (!isChest) state.gems.push({ kind: "heart", icon: "lime", x: prop.x - 24, y: prop.y + 8, r: 13, value: 1, life: 28 });
-    if (isShrine || prop.streakCache || (isChest && Math.random() < 0.42)) spawnPowerup(prop.x - 36, prop.y + 18, isShrine ? "voodooWard" : null);
+    const routePowerup = isShrine
+      || (prop.streakCache && Math.random() < powerupDropTuning.cacheChance)
+      || (isChest && Math.random() < powerupDropTuning.chestChance);
+    if (routePowerup) spawnPowerup(prop.x - 36, prop.y + 18, isShrine ? "voodooWard" : null, { life: 22 });
     if (isShrine) {
       state.player.invuln = Math.max(state.player.invuln, 1.25);
       state.zones.push({ type: "curseBurst", x: prop.x, y: prop.y, radius: 96, life: 0.32, maxLife: 0.32, fx: "monkeyCurseOrb" });
@@ -1757,6 +1772,7 @@ function updateExploration() {
 function updatePowerups(dt) {
   for (const powerup of state.powerups) powerup.timer -= dt;
   state.powerups = state.powerups.filter((powerup) => powerup.timer > 0);
+  state.powerupDropCooldown = Math.max(0, state.powerupDropCooldown - dt);
 }
 
 function powerUpType(id) {
@@ -1779,15 +1795,16 @@ function activatePowerup(id) {
   if (type.armor) state.player.invuln = Math.max(state.player.invuln, 0.95);
   state.runStats.powerups += 1;
   metaProgress.powerups += 1;
-  floatingText(type.name, state.player.x, state.player.y - 92, type.color);
+  floatingText(type.name, state.player.x, state.player.y - 70, type.color, 0.55, 14);
   unlockAchievements();
   saveMetaProgress();
   renderMetaProgress();
 }
 
-function spawnPowerup(x, y, forcedId = null) {
+function spawnPowerup(x, y, forcedId = null, options = {}) {
   const type = forcedId ? powerUpType(forcedId) : powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
-  state.gems.push({ kind: "powerup", powerup: type.id, icon: type.icon, x, y, r: 16, value: 1, life: 24 });
+  state.gems.push({ kind: "powerup", powerup: type.id, icon: type.icon, x, y, r: 16, value: 1, life: options.life || powerupDropTuning.life });
+  if (options.cooldown) state.powerupDropCooldown = Math.max(state.powerupDropCooldown, options.cooldown);
 }
 
 function collectGem(gem) {
@@ -1797,7 +1814,8 @@ function collectGem(gem) {
     floatingText("+HP", state.player.x, state.player.y - 72, "#79e0b7");
   } else if (gem.kind === "powerup") {
     activatePowerup(gem.powerup);
-    playSound("downloadUpgrade", { force: true });
+    playSound("pickup", { cooldown: 800 });
+    return;
   } else if (gem.kind === "coin") {
     state.coins += gem.value;
     metaProgress.coins += gem.value;
@@ -1873,8 +1891,17 @@ function killEnemy(enemy) {
   state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
   if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
   if (Math.random() < 0.06) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
-  const streakPowerDrop = state.streak.count > 0 && state.streak.count % 24 === 0;
-  if (enemy.boss || Math.random() < 0.014 || streakPowerDrop) spawnPowerup(enemy.x - 18, enemy.y + 16);
+  const streakPowerDrop = state.streak.count > 0 && state.streak.count % powerupDropTuning.streakDropEvery === 0;
+  if (enemy.boss) {
+    spawnPowerup(enemy.x - 18, enemy.y + 16, null, { life: 26, cooldown: 18 });
+  } else if (
+    state.elapsed > 35
+    && state.powerupDropCooldown <= 0
+    && state.powerups.length === 0
+    && (Math.random() < powerupDropTuning.randomDropChance || streakPowerDrop)
+  ) {
+    spawnPowerup(enemy.x - 18, enemy.y + 16, null, { cooldown: powerupDropTuning.combatCooldown });
+  }
   if (enemy.boss) {
     state.warningTimer = 2;
     const downText = enemy.type.id === "spectralCaptain"
@@ -1995,7 +2022,7 @@ function levelUp(options = {}) {
 }
 
 function shouldShowUpgradeChoice(level) {
-  return level === 2 || level === 4 || (level >= 7 && (level - 4) % 3 === 0);
+  return level === 2 || (level >= 6 && (level - 2) % 4 === 0);
 }
 
 function applyFlowLevelReward() {
@@ -2486,9 +2513,9 @@ function drawTexts() {
   const oy = scene.h / 2 - state.camera.y;
   ctx.save();
   ctx.textAlign = "center";
-  ctx.font = "900 18px Trebuchet MS, sans-serif";
   for (const text of state.texts) {
-    ctx.globalAlpha = clamp(text.life / 0.9, 0, 1);
+    ctx.font = `900 ${text.size || 18}px Trebuchet MS, sans-serif`;
+    ctx.globalAlpha = clamp(text.life / (text.maxLife || 0.9), 0, 1);
     ctx.fillStyle = text.color;
     ctx.strokeStyle = "rgba(0,0,0,0.65)";
     ctx.lineWidth = 4;
@@ -2680,8 +2707,8 @@ function nearestEnemy(exclude = null) {
   return best;
 }
 
-function floatingText(value, x, y, color) {
-  state.texts.push({ value, x, y, color, life: 0.9 });
+function floatingText(value, x, y, color, life = 0.9, size = 18) {
+  state.texts.push({ value, x, y, color, life, maxLife: life, size });
 }
 
 function shake(power) {
@@ -3037,10 +3064,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
     active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })),
     types: powerUpTypes.map((powerup) => powerup.id),
     collectedThisRun: state.runStats.powerups,
-    randomDropChance: 0.014,
-    streakDropEvery: 24,
+    dropCooldown: state.powerupDropCooldown,
+    randomDropChance: powerupDropTuning.randomDropChance,
+    streakDropEvery: powerupDropTuning.streakDropEvery,
+    combatCooldown: powerupDropTuning.combatCooldown,
+    magnetRange: powerupDropTuning.magnetRange,
   },
-  levelFlow: { flowRewards: state.runStats.flowRewards, choiceLevels: [2, 4, 7, 10, 13], reducedInterruptions: true },
+  levelFlow: { flowRewards: state.runStats.flowRewards, choiceLevels: [2, 6, 10, 14, 18], reducedInterruptions: true },
   progression: {
     kills: metaProgress.kills,
     landmarks: metaProgress.landmarks,

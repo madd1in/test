@@ -28,9 +28,10 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Alle Runtime-SFX stammen aus den lokalen Downloads und sind leise unter die Musik gemischt.
 - Treibenderer lokaler BGM-Mix aus `Crimson Galleon` als Main-Track und `Gargoyle Chapel Run` als frueher Rush-Layer; SFX bleiben leise darunter.
 - BGM laeuft jetzt als ein eindeutiger aktiver Track mit Rush-Handoff statt zwei ueberlappender MP3-Spuren.
-- Upgrade-Auswahl pausiert den Run seltener; Zwischenlevel geben nicht-blockierende Flow-Boni.
+- Upgrade-Auswahl pausiert den Run nur noch in groesseren Abstaenden; Zwischenlevel geben nicht-blockierende Flow-Boni.
 - Vier Kartenvarianten mit Map-Auswahl, gespeicherten Achievements, freischaltbaren Karten und kleinen Startrelikten.
 - Temporäre Power-up-Drops wie Grog-Tempo, Pulverfieber, Flutmagnet und Voodoo-Schutz sorgen fuer Zwischenziele im Run.
+- Power-up-Pickups haben kleineren Text, weniger Magnet-Sog und deutlich leisere Sounds, damit der Run nicht staendig stolpert.
 - Deutsche Browser-Sprachausgabe fuer Start, Level-ups, Bosswarnungen, niedrige HP und Endscreen.
 - Ruhigere SFX, Tastatur, dynamischer Vollbild-Mobile-Joystick, Dash, Pause, Vollbild und Audio-Schalter.
 - Upgrade-Karten lassen sich auf Desktop per Pfeilen/WASD, 1-3 und Enter/Space waehlen, ohne den Mausgriff im Spielfluss.

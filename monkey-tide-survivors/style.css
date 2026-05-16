@@ -197,6 +197,14 @@ button:disabled {
   background-size: 100% 100%, 100% 100%;
 }
 
+.loadout-item.powerup {
+  opacity: 0.72;
+}
+
+.loadout-item.powerup .loadout-icon {
+  opacity: 0.82;
+}
+
 .loadout-icon {
   width: 34px;
   height: 34px;
