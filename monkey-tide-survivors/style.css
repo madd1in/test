@@ -273,6 +273,70 @@ button:disabled {
   line-height: 1.5;
 }
 
+.skin-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(76px, 1fr));
+  width: min(690px, 100%);
+  gap: 8px;
+  margin: -6px auto 18px;
+}
+
+.skin-option {
+  display: grid;
+  min-width: 0;
+  min-height: 86px;
+  grid-template-rows: 50px auto;
+  gap: 5px;
+  align-items: center;
+  justify-items: center;
+  padding: 7px 5px 6px;
+  border: 2px solid rgba(72, 38, 12, 0.36);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255, 246, 198, 0.58), transparent 42%),
+    linear-gradient(180deg, rgba(255, 224, 128, 0.62), rgba(149, 82, 30, 0.32));
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.16), 0 4px 0 rgba(83, 41, 12, 0.18);
+  color: #3a200c;
+}
+
+.skin-option.active {
+  border-color: rgba(255, 198, 83, 0.92);
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255, 249, 210, 0.72), transparent 42%),
+    linear-gradient(180deg, rgba(255, 214, 96, 0.82), rgba(229, 117, 55, 0.48));
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.28), 0 4px 0 #7c3d12;
+}
+
+.skin-option:hover,
+.skin-option:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.skin-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 7px;
+  background-color: rgba(49, 26, 9, 0.28);
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 219, 0.18);
+}
+
+.skin-name {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: #3a200c;
+  font-size: 0.67rem;
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 244, 199, 0.52);
+}
+
 .menu-actions {
   display: flex;
   flex-wrap: wrap;
@@ -541,6 +605,27 @@ button:disabled {
   .touch-controls {
     display: block;
   }
+
+  .skin-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .skin-option {
+    min-height: 70px;
+    grid-template-rows: 40px auto;
+    padding: 5px 4px;
+  }
+
+  .skin-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .skin-name {
+    font-size: 0.58rem;
+  }
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
@@ -621,6 +706,27 @@ button:disabled {
     display: block;
   }
 
+  .skin-picker {
+    grid-template-columns: repeat(7, minmax(58px, 1fr));
+    gap: 5px;
+    margin: -10px auto 12px;
+  }
+
+  .skin-option {
+    min-height: 60px;
+    grid-template-rows: 34px auto;
+    padding: 4px 3px;
+  }
+
+  .skin-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .skin-name {
+    font-size: 0.52rem;
+  }
+
   .dash-button {
     right: max(12px, env(safe-area-inset-right));
     bottom: max(10px, env(safe-area-inset-bottom));
@@ -677,6 +783,10 @@ button:disabled {
 
   .story {
     font-size: 0.95rem;
+  }
+
+  .skin-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .primary,

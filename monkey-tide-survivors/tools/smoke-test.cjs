@@ -68,6 +68,7 @@ async function run() {
     "game.js",
     "assets/backgrounds/topdown_beach_repeatable_hd.png",
     "assets/sprites/characters_imagen_hd_sheet.webp",
+    "assets/sprites/player_skins_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -130,11 +131,24 @@ async function run() {
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
+  const skinUi = await page.evaluate(() => Array.from(document.querySelectorAll("#skinPicker [data-skin]")).map((button) => ({
+    id: button.dataset.skin,
+    checked: button.getAttribute("aria-checked") === "true",
+    label: button.textContent.trim(),
+  })));
+  assert(skinUi.length >= 7, `Player skin picker is missing options: ${JSON.stringify(skinUi)}`);
+  assert(skinUi.some((skin) => skin.id === "curseMonkey") && skinUi.some((skin) => skin.id === "freelanceDuo"), `Requested alternate skins missing: ${JSON.stringify(skinUi)}`);
+  await page.click('[data-skin="curseMonkey"]');
+  const pickedSkin = await page.evaluate(() => document.querySelector('[data-skin="curseMonkey"]')?.getAttribute("aria-checked"));
+  assert(pickedSkin === "true", `Skin picker did not select curseMonkey: ${pickedSkin}`);
   await page.evaluate(() => window.__MONKEY_TIDE_START());
   await page.waitForTimeout(500);
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
