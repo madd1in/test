@@ -39,7 +39,7 @@ const imageSources = {
   repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
-  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
+  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp?v=starfarmboy-clean",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
