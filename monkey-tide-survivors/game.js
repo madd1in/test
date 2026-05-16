@@ -9,6 +9,7 @@ const ui = {
   endOverlay: document.getElementById("endOverlay"),
   hud: document.getElementById("hud"),
   loadout: document.getElementById("loadout"),
+  skinPicker: document.getElementById("skinPicker"),
   cornerControls: document.getElementById("cornerControls"),
   touchControls: document.getElementById("touchControls"),
   startButton: document.getElementById("startButton"),
@@ -37,6 +38,7 @@ const ui = {
 const imageSources = {
   repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
+  playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -110,6 +112,7 @@ let quickMode = false;
 const loadingState = { loaded: 0, total: 0, last: "" };
 
 const CHAR = { w: 192, h: 256, cols: 16 };
+const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
@@ -129,6 +132,25 @@ const BALANCE = {
   bossInterval: 78,
   rangedPressureAt: 88,
 };
+
+const playerSkinMap = {
+  default: { name: "Kaeptnin", sheet: "characters", w: 104, h: 138 },
+  islandPirate: { name: "Insel-Pirat", sheet: "playerSkins", x: 109, y: 22, w: 323, h: 478, drawH: 142, cellX: 0, cellY: 0 },
+  curseMonkey: { name: "Fluchaffe", sheet: "playerSkins", x: 613, y: 112, w: 411, h: 369, drawH: 118, cellX: 1, cellY: 0 },
+  dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, cellX: 2, cellY: 0 },
+  rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, cellX: 0, cellY: 1 },
+  starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, cellX: 1, cellY: 1 },
+  freelanceDuo: { name: "Freelance-Duo", sheet: "playerSkins", x: 1054, y: 512, w: 319, h: 485, drawH: 140, cellX: 2, cellY: 1 },
+};
+const playerSkinIds = Object.keys(playerSkinMap);
+let selectedSkin = (() => {
+  try {
+    const stored = window.localStorage?.getItem("monkeyTidePlayerSkin");
+    return playerSkinMap[stored] ? stored : "default";
+  } catch {
+    return "default";
+  }
+})();
 
 const iconMap = {
   rope: { x: 0, y: 0 },
@@ -326,6 +348,7 @@ function makeState() {
       facing: 1,
       moveX: 0,
       moveY: 0,
+      skin: selectedSkin,
     },
     stats: {
       speed: 258,
@@ -499,6 +522,7 @@ function selectSpeechVoice() {
 async function boot() {
   state = makeState();
   resize();
+  renderSkinPicker();
   const entries = Object.entries(imageSources);
   let loadedImages = 0;
   setLoadingProgress(0, entries.length);
@@ -514,6 +538,41 @@ async function boot() {
   ui.startButton.disabled = false;
   ui.quickButton.disabled = false;
   render();
+}
+
+function skinIconStyle(id) {
+  const skin = playerSkinMap[id] || playerSkinMap.default;
+  if (skin.sheet === "characters") {
+    return `background-image:url('${imageSources.characters}');background-size:${CHAR.cols * 100}% 200%;background-position:0% 0%;`;
+  }
+  const x = skin.cellX / Math.max(1, PLAYER_SKIN.cols - 1) * 100;
+  const y = skin.cellY / Math.max(1, PLAYER_SKIN.rows - 1) * 100;
+  return `background-image:url('${imageSources.playerSkins}');background-size:${PLAYER_SKIN.cols * 100}% ${PLAYER_SKIN.rows * 100}%;background-position:${x}% ${y}%;`;
+}
+
+function renderSkinPicker() {
+  if (!ui.skinPicker) return;
+  ui.skinPicker.innerHTML = playerSkinIds.map((id) => {
+    const skin = playerSkinMap[id];
+    const active = id === selectedSkin;
+    return `
+      <button class="skin-option${active ? " active" : ""}" type="button" data-skin="${id}" role="radio" aria-checked="${active}" title="${skin.name}">
+        <span class="skin-icon" style="${skinIconStyle(id)}"></span>
+        <span class="skin-name">${skin.name}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function setPlayerSkin(id) {
+  if (!playerSkinMap[id]) return;
+  selectedSkin = id;
+  if (state?.player) state.player.skin = id;
+  try {
+    window.localStorage?.setItem("monkeyTidePlayerSkin", id);
+  } catch {}
+  renderSkinPicker();
+  if (ready) playSound("confirm");
 }
 
 function playSound(key, options = {}) {
@@ -604,8 +663,9 @@ function startGame(options = {}) {
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
   playSound("confirm");
+  const skinName = playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name;
   speak(
-    quickMode ? "Schnelle Welle. Die Flut steht schon am Bug!" : "Kaeptnin bereit. Halt den Strand!",
+    quickMode ? `Schnelle Welle. ${skinName} steht schon am Bug!` : `${skinName} bereit. Halt den Strand!`,
     { key: "start", interrupt: true, cooldown: 0 },
   );
   syncMusic();
@@ -1489,12 +1549,7 @@ function drawPlayer() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
   const moving = Math.hypot(p.moveX, p.moveY) > 0.05;
-  const row = moving ? 1 : 0;
-  const frame = moving ? Math.floor(state.elapsed * 12) % 16 : Math.floor(state.elapsed * 3) % 4;
-  const sx = frame * CHAR.w;
-  const sy = row * CHAR.h;
-  const w = 104;
-  const h = 138;
+  const skin = playerSkinMap[p.skin] || playerSkinMap.default;
   ctx.save();
   ctx.translate(ox + p.x, oy + p.y);
   ctx.scale(p.facing, 1);
@@ -1506,7 +1561,21 @@ function drawPlayer() {
     ctx.shadowColor = "rgba(0,0,0,0.55)";
     ctx.shadowBlur = 14;
   }
-  ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + 26, w, h);
+  if (skin.sheet === "playerSkins" && images.playerSkins) {
+    const bob = moving ? Math.sin(state.elapsed * 13) * 4 : Math.sin(state.elapsed * 3.2) * 1.5;
+    const stretch = moving ? 1 + Math.sin(state.elapsed * 20) * 0.025 : 1;
+    const h = skin.drawH * stretch;
+    const w = h * (skin.w / skin.h);
+    ctx.drawImage(images.playerSkins, skin.x, skin.y, skin.w, skin.h, -w / 2, -h + 30 + bob, w, h);
+  } else {
+    const row = moving ? 1 : 0;
+    const frame = moving ? Math.floor(state.elapsed * 12) % 16 : Math.floor(state.elapsed * 3) % 4;
+    const sx = frame * CHAR.w;
+    const sy = row * CHAR.h;
+    const w = skin.w;
+    const h = skin.h;
+    ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + 26, w, h);
+  }
   ctx.restore();
 }
 
@@ -1894,6 +1963,11 @@ window.addEventListener("keyup", (event) => {
 ui.startButton.addEventListener("click", () => startGame());
 ui.quickButton.addEventListener("click", () => startGame({ quick: true }));
 ui.restartButton.addEventListener("click", () => startGame({ quick: quickMode }));
+ui.skinPicker.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-skin]");
+  if (!button) return;
+  setPlayerSkin(button.dataset.skin);
+});
 ui.pauseButton.addEventListener("click", togglePause);
 ui.audioButton.addEventListener("click", toggleMute);
 ui.fullscreenButton.addEventListener("click", toggleFullscreen);
@@ -2017,7 +2091,11 @@ window.__MONKEY_TIDE_DEBUG = () => {
   kills: state.killCount,
   hp: state.player.hp,
   bosses: state.enemies.filter((enemy) => enemy.boss).map((enemy) => enemy.type.id),
-  player: { x: state.player.x, y: state.player.y },
+  player: { x: state.player.x, y: state.player.y, skin: state.player.skin },
+  playerSkin: state.player.skin,
+  playerSkinName: playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name,
+  playerSkinTypes: playerSkinIds,
+  playerSkinAsset: !!images.playerSkins,
   stats: { ...state.stats, nextXp: state.nextXp },
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
