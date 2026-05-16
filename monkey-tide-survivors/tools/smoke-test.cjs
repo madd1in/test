@@ -170,6 +170,7 @@ async function run() {
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
+  assert(debug.scene.zoom <= 0.84, `Desktop camera is not zoomed out: ${JSON.stringify(debug.scene)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
@@ -258,6 +259,8 @@ async function run() {
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.randomDropChance <= 0.014 && progressProbe.powerups.streakDropEvery >= 24, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[2] === 7, `Level-up interruptions were not reduced: ${JSON.stringify(progressProbe.levelFlow)}`);
   assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
   assert(progressProbe.map.unlocked.includes("gothicCove") && progressProbe.map.unlocked.includes("treasureAtoll"), `Unlockable maps did not unlock: ${JSON.stringify(progressProbe.map)}`);
   assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);
