@@ -226,6 +226,10 @@ async function run() {
   assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
+  assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
+  assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
+  assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
+  assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache === 18, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
   assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("beachHut") && debug.obstacles.blockingPropTypes.includes("boatWreck"), `Huts and wrecks are not blocking: ${JSON.stringify(debug.obstacles)}`);

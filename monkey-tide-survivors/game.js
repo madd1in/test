@@ -301,7 +301,7 @@ const upgrades = [
   {
     id: "coconut",
     name: "Kokos-Bumerang",
-    icon: "banana",
+    icon: "coconutBoomerang",
     desc: "Wirft springende Kokoskerne.",
     max: 7,
     apply: () => raiseWeapon("coconut"),
@@ -325,7 +325,7 @@ const upgrades = [
   {
     id: "rope",
     name: "Tauer-Ring",
-    icon: "rope",
+    icon: "ropeRing",
     desc: "Ein rotierender Schutzkreis aus Tauwerk.",
     max: 5,
     apply: () => raiseWeapon("rope"),
@@ -464,6 +464,14 @@ const upgrades = [
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + 44);
     },
   },
+];
+
+const weaponLoadoutItems = [
+  ["cutlass", "Saebel", "key"],
+  ["coconut", "Kokos", "coconutBoomerang"],
+  ["compass", "Kompass", "compass"],
+  ["bottle", "Bombe", "bottle"],
+  ["rope", "Tau", "ropeRing"],
 ];
 
 let state = null;
@@ -1143,7 +1151,7 @@ function fireCoconut(level) {
   const speed = 420 + level * 18;
   state.projectiles.push({
     type: "coconut",
-    icon: level >= 3 ? "banana" : "lime",
+    icon: "coconutBoomerang",
     x: p.x + Math.cos(angle) * 32,
     y: p.y + Math.sin(angle) * 32,
     vx: Math.cos(angle) * speed,
@@ -1768,13 +1776,7 @@ function updateDom() {
 }
 
 function updateLoadout() {
-  const weaponEntries = [
-    ["cutlass", "Saebel", "key"],
-    ["coconut", "Kokos", "lime"],
-    ["compass", "Kompass", "compass"],
-    ["bottle", "Bombe", "bottle"],
-    ["rope", "Tau", "rope"],
-  ].filter(([id]) => state.weapons[id].level > 0);
+  const weaponEntries = weaponLoadoutItems.filter(([id]) => state.weapons[id].level > 0);
   ui.loadout.innerHTML = weaponEntries.map(([id, name, icon]) => `
     <div class="loadout-item">
       <span class="loadout-icon" style="${iconStyle(icon)}"></span>
@@ -2067,8 +2069,21 @@ function drawWeaponEffects() {
   if (state.weapons.rope.level > 0) {
     const p = state.player;
     const radius = 86 + state.weapons.rope.level * 14;
-    drawPlayerEffect("ropeAura", ox + p.x, oy + p.y, radius * 2.32, radius * 2.32, state.weapons.rope.angle, 0.58);
-    drawPlayerEffect("tidePulse", ox + p.x, oy + p.y, radius * 1.52, radius * 1.52, -state.weapons.rope.angle * 0.45, 0.18);
+    drawRopeWard(ox + p.x, oy + p.y, radius, state.weapons.rope.level, state.weapons.rope.angle);
+  }
+}
+
+function drawRopeWard(x, y, radius, level, angle) {
+  const pulse = 1 + Math.sin(state.elapsed * 4.2) * 0.035;
+  drawPlayerEffect("tidePulse", x, y, radius * 2.12 * pulse, radius * 2.12 * pulse, 0, 0.2);
+  const count = Math.min(18, 10 + level * 2);
+  for (let i = 0; i < count; i += 1) {
+    const a = angle * 0.72 + (i / count) * Math.PI * 2;
+    const ripple = Math.sin(state.elapsed * 5.4 + i * 0.9) * 3.5;
+    const px = x + Math.cos(a) * (radius + ripple);
+    const py = y + Math.sin(a) * (radius + ripple * 0.7);
+    const size = 34 + level * 2 + Math.sin(state.elapsed * 4.8 + i) * 2;
+    drawProjectileFx("ropeRing", px, py, size, size, a + Math.PI / 2, 0.68);
   }
 }
 
@@ -2168,6 +2183,10 @@ function drawProjectileFxAt(icon, x, y, w, h) {
 }
 
 function drawItemAt(icon, x, y, w, h) {
+  if (projectileFxMap[icon]) {
+    drawProjectileFxAt(icon, x, y, w, h);
+    return;
+  }
   if (newSpriteMap[icon]) {
     drawNewSpriteAt(icon, x, y, w, h);
     return;
@@ -2218,6 +2237,12 @@ function drawBeachPropAt(icon, x, y, w, h) {
 }
 
 function iconStyle(icon) {
+  if (projectileFxMap[icon]) {
+    const src = projectileFxMap[icon];
+    const bx = src.x / (PROJECTILE_FX.cols - 1) * 100;
+    const by = src.y / (PROJECTILE_FX.rows - 1) * 100;
+    return `background-image:url('${imageSources.projectileFx}');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+  }
   if (newSpriteMap[icon]) {
     const src = newSpriteMap[icon];
     const bx = src.x / (NEWSPRITE.cols - 1) * 100;
@@ -2606,6 +2631,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
+  upgradeIcons: Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, upgrade.icon])),
+  weaponLoadoutIcons: Object.fromEntries(weaponLoadoutItems.map(([id, , icon]) => [id, icon])),
+  ropeVisual: { renderMode: "ropeWardSprites", sprite: "ropeRing", pulse: "tidePulse" },
+  uiIconSources: {
+    projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
+  },
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
