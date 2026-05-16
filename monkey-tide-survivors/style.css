@@ -320,12 +320,12 @@ button:disabled {
 .skin-option {
   display: grid;
   min-width: 0;
-  min-height: 86px;
-  grid-template-rows: 50px auto;
-  gap: 5px;
+  min-height: 106px;
+  grid-template-rows: 76px auto;
+  gap: 4px;
   align-items: center;
   justify-items: center;
-  padding: 7px 5px 6px;
+  padding: 8px 5px 7px;
   border: 2px solid rgba(72, 38, 12, 0.36);
   border-radius: 8px;
   background-image:
@@ -350,13 +350,13 @@ button:disabled {
 }
 
 .skin-icon {
-  width: 50px;
-  height: 50px;
+  width: 82px;
+  height: 76px;
   border-radius: 7px;
-  background-color: rgba(49, 26, 9, 0.28);
+  background-color: rgba(49, 26, 9, 0.12);
   background-position: center;
   background-repeat: no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(255, 250, 219, 0.18);
+  filter: drop-shadow(0 5px 3px rgba(36, 15, 3, 0.34));
 }
 
 .skin-name {
@@ -669,14 +669,14 @@ button:disabled {
   }
 
   .skin-option {
-    min-height: 70px;
-    grid-template-rows: 40px auto;
+    min-height: 88px;
+    grid-template-rows: 60px auto;
     padding: 5px 4px;
   }
 
   .skin-icon {
-    width: 40px;
-    height: 40px;
+    width: 64px;
+    height: 60px;
   }
 
   .skin-name {
@@ -769,14 +769,14 @@ button:disabled {
   }
 
   .skin-option {
-    min-height: 60px;
-    grid-template-rows: 34px auto;
+    min-height: 70px;
+    grid-template-rows: 46px auto;
     padding: 4px 3px;
   }
 
   .skin-icon {
-    width: 34px;
-    height: 34px;
+    width: 54px;
+    height: 46px;
   }
 
   .skin-name {

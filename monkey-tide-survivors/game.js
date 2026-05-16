@@ -40,6 +40,7 @@ const imageSources = {
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
+  playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -113,9 +114,9 @@ let quickMode = false;
 const loadingState = { loaded: 0, total: 0, last: "" };
 
 const CHAR = { w: 192, h: 256, cols: 16 };
-const CHAR_ICON_ROWS = 12;
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
 const PLAYER_SKIN_WALK = { w: 256, h: 256, cols: 8, rows: 6 };
+const PLAYER_SKIN_SELECT = { w: 256, h: 256, cols: 7 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
@@ -544,13 +545,9 @@ async function boot() {
 }
 
 function skinIconStyle(id) {
-  const skin = playerSkinMap[id] || playerSkinMap.default;
-  if (skin.sheet === "characters") {
-    return `background-image:url('${imageSources.characters}');background-size:${CHAR.cols * 100}% ${CHAR_ICON_ROWS * 100}%;background-position:0% 0%;`;
-  }
-  const x = skin.cellX / Math.max(1, PLAYER_SKIN.cols - 1) * 100;
-  const y = skin.cellY / Math.max(1, PLAYER_SKIN.rows - 1) * 100;
-  return `background-image:url('${imageSources.playerSkins}');background-size:${PLAYER_SKIN.cols * 100}% ${PLAYER_SKIN.rows * 100}%;background-position:${x}% ${y}%;`;
+  const index = Math.max(0, playerSkinIds.indexOf(id));
+  const x = index / Math.max(1, PLAYER_SKIN_SELECT.cols - 1) * 100;
+  return `background-image:url('${imageSources.playerSkinSelect}');background-size:${PLAYER_SKIN_SELECT.cols * 100}% 100%;background-position:${x}% 100%;`;
 }
 
 function renderSkinPicker() {
@@ -2110,6 +2107,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinTypes: playerSkinIds,
   playerSkinAsset: !!images.playerSkins,
   playerSkinAnimationAsset: !!images.playerSkinWalks,
+  playerSkinSelectAsset: !!images.playerSkinSelect,
   playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
   playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
   stats: { ...state.stats, nextXp: state.nextXp },

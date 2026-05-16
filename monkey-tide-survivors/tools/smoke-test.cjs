@@ -70,6 +70,7 @@ async function run() {
     "assets/sprites/characters_imagen_hd_sheet.webp",
     "assets/sprites/player_skins_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
+    "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -146,6 +147,8 @@ async function run() {
   })));
   assert(skinUi.length >= 7, `Player skin picker is missing options: ${JSON.stringify(skinUi)}`);
   assert(skinUi.some((skin) => skin.id === "curseMonkey") && skinUi.some((skin) => skin.id === "freelanceDuo"), `Requested alternate skins missing: ${JSON.stringify(skinUi)}`);
+  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd.webp"));
+  assert(pickerUsesSelectSheet, "Character picker is not using the normalized first-sheet selection atlas");
   await page.click('[data-skin="curseMonkey"]');
   const pickedSkin = await page.evaluate(() => document.querySelector('[data-skin="curseMonkey"]')?.getAttribute("aria-checked"));
   assert(pickedSkin === "true", `Skin picker did not select curseMonkey: ${pickedSkin}`);
@@ -157,6 +160,7 @@ async function run() {
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
