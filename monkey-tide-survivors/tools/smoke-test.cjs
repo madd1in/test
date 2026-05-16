@@ -78,16 +78,16 @@ async function run() {
     "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
-    "assets/audio/sfx/pickup.wav",
-    "assets/audio/sfx/chime.wav",
-    "assets/audio/sfx/gate.wav",
-    "assets/audio/sfx/ui_confirm.wav",
-    "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
-    "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
-    "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
-    "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
-    "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
-    "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
+    "assets/audio/sfx/from-downloads/pickup-gem.mp3",
+    "assets/audio/sfx/from-downloads/soft-chime.mp3",
+    "assets/audio/sfx/from-downloads/curse-gate.mp3",
+    "assets/audio/sfx/from-downloads/ui-confirm.mp3",
+    "assets/audio/sfx/from-downloads/coin-pickup.mp3",
+    "assets/audio/sfx/from-downloads/dash-swish.mp3",
+    "assets/audio/sfx/from-downloads/cursed-hit.mp3",
+    "assets/audio/sfx/from-downloads/upgrade-card.mp3",
+    "assets/audio/sfx/from-downloads/boss-warning.mp3",
+    "assets/audio/sfx/from-downloads/boss-down.mp3",
   ].forEach((rel) => {
     const target = path.join(root, rel);
     assert(fs.existsSync(target), `Missing ${rel}`);
@@ -133,8 +133,9 @@ async function run() {
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
   assert(debug.audio.mainVolume >= 0.5, `Main music should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.4 && debug.audio.music.rushStart <= 190, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.pickup <= 0.05 && debug.audio.sfx.gate <= 0.07, `SFX should sit under music: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.downloadBossWarning <= 0.06 && debug.audio.mainVolume > debug.audio.sfx.downloadBossWarning * 8, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.mainVolume > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult >= 2.45 && debug.balance.normalSpawnIntensity >= 1.1, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult <= 2.65 && debug.balance.normalSpawnIntensity <= 1.18, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);

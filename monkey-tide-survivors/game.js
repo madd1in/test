@@ -50,32 +50,32 @@ const imageSources = {
 const audioSources = {
   bgmMain: "assets/audio/bgm/shoreline-rum-riddle.mp3",
   bgmRush: "assets/audio/bgm/coconut-caper-loop.mp3",
-  pickup: "assets/audio/sfx/pickup.wav",
-  chime: "assets/audio/sfx/chime.wav",
-  gate: "assets/audio/sfx/gate.wav",
-  confirm: "assets/audio/sfx/ui_confirm.wav",
-  downloadPickup: "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
-  downloadDash: "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
-  downloadHit: "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
-  downloadUpgrade: "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
-  downloadBossWarning: "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
-  downloadBossDown: "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
+  pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
+  chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
+  gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
+  confirm: "assets/audio/sfx/from-downloads/ui-confirm.mp3",
+  downloadPickup: "assets/audio/sfx/from-downloads/coin-pickup.mp3",
+  downloadDash: "assets/audio/sfx/from-downloads/dash-swish.mp3",
+  downloadHit: "assets/audio/sfx/from-downloads/cursed-hit.mp3",
+  downloadUpgrade: "assets/audio/sfx/from-downloads/upgrade-card.mp3",
+  downloadBossWarning: "assets/audio/sfx/from-downloads/boss-warning.mp3",
+  downloadBossDown: "assets/audio/sfx/from-downloads/boss-down.mp3",
 };
 
 const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
 const soundConfig = {
-  pickup: { volume: 0.028, cooldown: 260 },
-  chime: { volume: 0.055, cooldown: 520 },
-  gate: { volume: 0.032, cooldown: 650 },
-  confirm: { volume: 0.045, cooldown: 340 },
-  downloadPickup: { volume: 0.014, cooldown: 380 },
-  downloadDash: { volume: 0.022, cooldown: 520 },
-  downloadHit: { volume: 0.026, cooldown: 900 },
-  downloadUpgrade: { volume: 0.04, cooldown: 800 },
-  downloadBossWarning: { volume: 0.055, cooldown: 45000 },
-  downloadBossDown: { volume: 0.055, cooldown: 2500 },
+  pickup: { volume: 0.018, cooldown: 300 },
+  chime: { volume: 0.026, cooldown: 620 },
+  gate: { volume: 0.018, cooldown: 760 },
+  confirm: { volume: 0.024, cooldown: 380 },
+  downloadPickup: { volume: 0.012, cooldown: 420 },
+  downloadDash: { volume: 0.018, cooldown: 560 },
+  downloadHit: { volume: 0.022, cooldown: 980 },
+  downloadUpgrade: { volume: 0.032, cooldown: 900 },
+  downloadBossWarning: { volume: 0.045, cooldown: 45000 },
+  downloadBossDown: { volume: 0.048, cooldown: 2800 },
 };
 const musicConfig = {
   main: 0.54,
@@ -2025,6 +2025,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     mainVolume: music?.volume ?? 0,
     rushVolume: rushMusic?.volume ?? 0,
     sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
+    sources: { ...audioSources },
     music: { ...musicConfig },
   },
   speech: {
