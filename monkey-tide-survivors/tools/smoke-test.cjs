@@ -14,6 +14,7 @@ function mime(file) {
   if (file.endsWith(".css")) return "text/css; charset=utf-8";
   if (file.endsWith(".js")) return "text/javascript; charset=utf-8";
   if (file.endsWith(".png")) return "image/png";
+  if (file.endsWith(".webp")) return "image/webp";
   if (file.endsWith(".mp3")) return "audio/mpeg";
   if (file.endsWith(".wav")) return "audio/wav";
   return "application/octet-stream";
@@ -66,16 +67,14 @@ async function run() {
     "style.css",
     "game.js",
     "assets/backgrounds/topdown_beach_repeatable_hd.png",
-    "assets/backgrounds/topdown_beach_imagen_hd.png",
-    "assets/backgrounds/beach_imagen_hd.png",
-    "assets/backgrounds/jungle_imagen_hd.png",
-    "assets/sprites/characters_imagen_hd_sheet.png",
-    "assets/sprites/scene_items_imagen_hd_sheet.png",
-    "assets/sprites/new_sprites_imagen_hd.png",
-    "assets/sprites/gothic_enemies_hd_sheet.png",
-    "assets/sprites/gothic_items_hd_sheet.png",
-    "assets/sprites/gothic_props_hd_sheet.png",
-    "assets/sprites/spectral_captain_hd_sheet.png",
+    "assets/sprites/characters_imagen_hd_sheet.webp",
+    "assets/sprites/scene_items_imagen_hd_sheet.webp",
+    "assets/sprites/new_sprites_imagen_hd.webp",
+    "assets/sprites/gothic_enemies_hd_sheet.webp",
+    "assets/sprites/gothic_items_hd_sheet.webp",
+    "assets/sprites/gothic_props_hd_sheet.webp",
+    "assets/sprites/spectral_captain_hd_sheet.webp",
+    "assets/sprites/beach_exploration_props_imagen_hd.webp",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
     "assets/audio/sfx/pickup.wav",
@@ -142,6 +141,12 @@ async function run() {
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.spectralCaptain, `Spectral captain sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain"), `Spectral captain boss missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.beachProps, `Beach exploration prop sheet missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.beachPropTypes.includes("beachHut") && debug.explorationAssets.beachPropTypes.includes("boatWreck"), `Explorable landmarks missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.beachPropTypes.includes("clearPuddle") && debug.explorationAssets.beachPropTypes.includes("hedgeCluster"), `HD puddles or hedges missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.interactiveProps >= 3, `Not enough explorable props: ${JSON.stringify(debug)}`);
+  assert(debug.preloadedAssetKeys.includes("beachProps"), `Beach props not preloaded: ${JSON.stringify(debug)}`);
+  assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
