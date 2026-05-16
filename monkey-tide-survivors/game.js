@@ -112,6 +112,7 @@ let quickMode = false;
 const loadingState = { loaded: 0, total: 0, last: "" };
 
 const CHAR = { w: 192, h: 256, cols: 16 };
+const CHAR_ICON_ROWS = 12;
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
@@ -543,7 +544,7 @@ async function boot() {
 function skinIconStyle(id) {
   const skin = playerSkinMap[id] || playerSkinMap.default;
   if (skin.sheet === "characters") {
-    return `background-image:url('${imageSources.characters}');background-size:${CHAR.cols * 100}% 200%;background-position:0% 0%;`;
+    return `background-image:url('${imageSources.characters}');background-size:${CHAR.cols * 100}% ${CHAR_ICON_ROWS * 100}%;background-position:0% 0%;`;
   }
   const x = skin.cellX / Math.max(1, PLAYER_SKIN.cols - 1) * 100;
   const y = skin.cellY / Math.max(1, PLAYER_SKIN.rows - 1) * 100;
@@ -1890,7 +1891,7 @@ function syncCanvasSize() {
     && canvas.height === Math.floor(viewH * dpr)
   ) {
     updateSceneViewport();
-    return;
+    return false;
   }
   dpr = nextDpr;
   viewW = nextW;
@@ -1900,6 +1901,7 @@ function syncCanvasSize() {
   canvas.style.width = `${viewW}px`;
   canvas.style.height = `${viewH}px`;
   updateSceneViewport();
+  return true;
 }
 
 function resize() {
@@ -2079,7 +2081,8 @@ window.__MONKEY_TIDE_STEP = (seconds = 5) => {
   return window.__MONKEY_TIDE_DEBUG();
 };
 window.__MONKEY_TIDE_DEBUG = () => {
-  syncCanvasSize();
+  const resized = syncCanvasSize();
+  if (resized) render();
   return ({
   ready,
   phase: state.phase,

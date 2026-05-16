@@ -84,6 +84,10 @@ async function run() {
     "assets/sprites/beach-props-v2/beach_hut.webp",
     "assets/sprites/beach-props-v2/boat_wreck.webp",
     "assets/sprites/projectile_fx_imagen_hd.webp",
+    "assets/ui/parchment_panel_imagen_hd.webp",
+    "assets/ui/parchment_button_imagen_hd.webp",
+    "assets/ui/parchment_card_imagen_hd.webp",
+    "assets/ui/parchment_scrap_imagen_hd.webp",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
@@ -101,6 +105,9 @@ async function run() {
     assert(fs.existsSync(target), `Missing ${rel}`);
     assert(fs.statSync(target).size > 500, `${rel} looks empty`);
   });
+
+  const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
+  assert(css.includes("parchment_panel_imagen_hd.webp") && css.includes("parchment_button_imagen_hd.webp"), "Parchment UI assets are not wired into CSS");
 
   const { chromium } = resolvePlaywright();
   const server = await staticServer();

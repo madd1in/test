@@ -1,14 +1,21 @@
 :root {
   --ink: #241407;
-  --panel: rgba(255, 226, 154, 0.58);
-  --panel-strong: rgba(76, 43, 17, 0.82);
-  --line: rgba(72, 38, 12, 0.46);
+  --panel: rgba(236, 176, 82, 0.62);
+  --panel-strong: rgba(72, 34, 10, 0.86);
+  --line: rgba(72, 38, 12, 0.62);
   --etch: rgba(77, 39, 12, 0.74);
-  --gold: #ffc653;
+  --gold: #f2b649;
   --coral: #e7553f;
   --mint: #36bea2;
-  --foam: #fff4c7;
+  --foam: #fff0bd;
+  --paper: #f2c775;
+  --paper-light: #ffe3a0;
+  --paper-dark: #6b3511;
   --shadow: rgba(45, 22, 4, 0.32);
+  --ui-panel: url("assets/ui/parchment_panel_imagen_hd.webp");
+  --ui-button: url("assets/ui/parchment_button_imagen_hd.webp");
+  --ui-card: url("assets/ui/parchment_card_imagen_hd.webp");
+  --ui-scrap: url("assets/ui/parchment_scrap_imagen_hd.webp");
 }
 
 * {
@@ -84,9 +91,12 @@ button:disabled {
 .icon-button,
 .dash-button,
 .stick-base {
-  border: 2px solid var(--line);
-  box-shadow: 0 5px 0 rgba(66, 32, 9, 0.22), 0 14px 26px rgba(45, 22, 4, 0.22);
-  backdrop-filter: blur(6px);
+  border: 2px solid rgba(70, 35, 12, 0.68);
+  box-shadow:
+    0 4px 0 rgba(66, 32, 9, 0.32),
+    0 13px 26px rgba(45, 22, 4, 0.28),
+    inset 0 0 0 1px rgba(255, 234, 170, 0.16);
+  backdrop-filter: blur(5px);
 }
 
 .hud-card {
@@ -94,10 +104,13 @@ button:disabled {
   min-height: 58px;
   padding: 9px 10px;
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 244, 198, 0.58), rgba(216, 141, 58, 0.34)),
-    rgba(255, 218, 131, 0.34);
-  color: #3a200c;
+  background-image:
+    linear-gradient(180deg, rgba(255, 236, 169, 0.52), rgba(139, 73, 23, 0.16)),
+    var(--ui-scrap);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
+  background-blend-mode: multiply, normal;
+  color: #331806;
 }
 
 .hud-card.compact {
@@ -158,9 +171,12 @@ button:disabled {
   gap: 8px;
   padding: 8px;
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 237, 176, 0.44), rgba(211, 134, 51, 0.24)),
-    rgba(255, 226, 151, 0.26);
+  background-image:
+    linear-gradient(180deg, rgba(255, 224, 142, 0.4), rgba(107, 53, 17, 0.18)),
+    var(--ui-scrap);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
+  background-blend-mode: multiply, normal;
   pointer-events: none;
 }
 
@@ -174,7 +190,11 @@ button:disabled {
   padding: 5px 7px;
   border: 1px solid rgba(72, 38, 12, 0.36);
   border-radius: 8px;
-  background: rgba(93, 48, 13, 0.08);
+  background-image:
+    linear-gradient(180deg, rgba(255, 225, 137, 0.26), rgba(82, 41, 13, 0.12)),
+    var(--ui-scrap);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
 }
 
 .loadout-icon {
@@ -215,12 +235,14 @@ button:disabled {
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 35% 20%, rgba(255, 244, 184, 0.62), transparent 42%),
-    linear-gradient(180deg, rgba(255, 208, 92, 0.76), rgba(156, 84, 25, 0.6));
-  font-size: 0.82rem;
-  color: #3a200c;
-  text-shadow: 0 1px 0 rgba(255, 238, 174, 0.6);
+  background-image:
+    radial-gradient(circle at 35% 22%, rgba(255, 219, 132, 0.18), transparent 42%),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
+  font-size: 0.8rem;
+  color: #ffe8ad;
+  text-shadow: 0 2px 0 #321304, 0 0 8px rgba(255, 217, 108, 0.26);
 }
 
 .overlay {
@@ -234,15 +256,29 @@ button:disabled {
 }
 
 .panel {
+  position: relative;
+  overflow: hidden;
   width: min(760px, calc(100vw - 28px));
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(255, 249, 213, 0.46), transparent 34%),
-    linear-gradient(180deg, rgba(255, 240, 189, 0.82), rgba(216, 136, 55, 0.66)),
-    var(--panel);
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(255, 248, 210, 0.2), transparent 34%),
+    linear-gradient(180deg, rgba(255, 225, 141, 0.22), rgba(96, 48, 15, 0.16)),
+    var(--ui-panel);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-blend-mode: soft-light, multiply, normal;
   padding: clamp(18px, 4vw, 34px);
   text-align: center;
   color: #3a200c;
+}
+
+.panel::after {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(82, 37, 10, 0.24);
+  border-radius: 6px;
+  content: "";
+  pointer-events: none;
 }
 
 .start-panel h1,
@@ -292,19 +328,19 @@ button:disabled {
   padding: 7px 5px 6px;
   border: 2px solid rgba(72, 38, 12, 0.36);
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 16%, rgba(255, 246, 198, 0.58), transparent 42%),
-    linear-gradient(180deg, rgba(255, 224, 128, 0.62), rgba(149, 82, 30, 0.32));
+  background-image:
+    radial-gradient(circle at 50% 16%, rgba(255, 230, 151, 0.2), transparent 42%),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
   box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.16), 0 4px 0 rgba(83, 41, 12, 0.18);
-  color: #3a200c;
+  color: #ffe6a6;
 }
 
 .skin-option.active {
   border-color: rgba(255, 198, 83, 0.92);
-  background:
-    radial-gradient(circle at 50% 16%, rgba(255, 249, 210, 0.72), transparent 42%),
-    linear-gradient(180deg, rgba(255, 214, 96, 0.82), rgba(229, 117, 55, 0.48));
-  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.28), 0 4px 0 #7c3d12;
+  filter: saturate(1.12) brightness(1.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.28), 0 4px 0 #7c3d12, 0 0 18px rgba(255, 198, 83, 0.24);
 }
 
 .skin-option:hover,
@@ -327,14 +363,14 @@ button:disabled {
   display: block;
   width: 100%;
   overflow: hidden;
-  color: #3a200c;
+  color: #ffe7aa;
   font-size: 0.67rem;
   font-weight: 900;
   line-height: 1.05;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 0 rgba(255, 244, 199, 0.52);
+  text-shadow: 0 2px 0 #321304, 0 0 7px rgba(255, 224, 144, 0.2);
 }
 
 .menu-actions {
@@ -352,13 +388,25 @@ button:disabled {
 }
 
 .primary {
-  background: linear-gradient(180deg, #ffe28a, #f6a23c);
-  box-shadow: 0 5px 0 #7c3d12;
+  background-image:
+    radial-gradient(circle at 50% 20%, rgba(255, 222, 129, 0.18), transparent 46%),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
+  box-shadow: 0 5px 0 #4f2209, 0 11px 22px rgba(45, 22, 4, 0.28);
+  color: #ffe7a4;
+  text-shadow: 0 2px 0 #2c1103, 0 0 9px rgba(255, 214, 91, 0.24);
 }
 
 .secondary {
-  background: linear-gradient(180deg, #8ce7c7, #2cb395);
-  box-shadow: 0 5px 0 #0f6657;
+  background-image:
+    linear-gradient(180deg, rgba(64, 184, 158, 0.18), rgba(18, 96, 82, 0.16)),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
+  box-shadow: 0 5px 0 #4f2209, 0 11px 22px rgba(45, 22, 4, 0.28);
+  color: #dfffe8;
+  text-shadow: 0 2px 0 #123c33, 0 0 8px rgba(140, 231, 199, 0.22);
 }
 
 .loading-bar {
@@ -367,7 +415,8 @@ button:disabled {
   margin: 24px auto 0;
   overflow: hidden;
   border-radius: 99px;
-  background: rgba(80, 43, 12, 0.18);
+  border: 1px solid rgba(72, 38, 12, 0.42);
+  background: rgba(80, 43, 12, 0.28);
 }
 
 .loading-bar span {
@@ -401,9 +450,13 @@ button:disabled {
   padding: 14px;
   border: 2px solid rgba(72, 38, 12, 0.5);
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255, 249, 210, 0.46), transparent 38%),
-    linear-gradient(180deg, rgba(255, 239, 187, 0.78), rgba(207, 130, 52, 0.62));
+  background-image:
+    radial-gradient(circle at 18% 18%, rgba(255, 239, 178, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(255, 220, 134, 0.18), rgba(89, 44, 13, 0.12)),
+    var(--ui-card);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-blend-mode: soft-light, multiply, normal;
   color: #3a200c;
   text-align: left;
 }
@@ -486,11 +539,14 @@ button:disabled {
   width: 86px;
   height: 86px;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 34% 22%, rgba(255, 225, 162, 0.42), transparent 42%),
-    rgba(255, 118, 95, 0.72);
+  background-image:
+    radial-gradient(circle at 34% 22%, rgba(255, 118, 95, 0.38), transparent 42%),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
   pointer-events: auto;
-  color: #3a200c;
+  color: #ffd9ac;
+  text-shadow: 0 2px 0 #3a1604, 0 0 8px rgba(255, 118, 95, 0.24);
 }
 
 @media (max-width: 820px) {
