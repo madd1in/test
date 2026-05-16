@@ -254,7 +254,7 @@ async function run() {
   assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
-  assert(touchProbe.moved.scene.zoom <= 0.72, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.moved.scene.zoom <= 0.66, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.active === true, `Right-side thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.dx < -0.6, `Right-side thumbstick did not point left: ${JSON.stringify(touchProbe)}`);
@@ -276,7 +276,7 @@ async function run() {
       fullscreenText: document.getElementById("fullscreenButton").textContent,
     };
   });
-  assert(landscapeUi.debug.scene.zoom <= 0.64, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
+  assert(landscapeUi.debug.scene.zoom <= 0.58, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.hud.width <= 360 && landscapeUi.hud.bottom <= 58, `Landscape HUD covers too much playfield: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.loadout.height <= 54, `Landscape loadout is too tall: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.dash.width <= 72 && landscapeUi.dash.height <= 72, `Landscape dash button is too large: ${JSON.stringify(landscapeUi)}`);

@@ -1883,7 +1883,7 @@ function getSceneZoom() {
   const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
   const mobileSized = Math.min(viewW, viewH) <= 520 || Math.max(viewW, viewH) <= 920;
   if (coarsePointer || mobileSized) {
-    return viewW > viewH ? 0.62 : 0.7;
+    return viewW > viewH ? 0.56 : 0.64;
   }
   if (viewW < 980) return 0.86;
   return 1;
