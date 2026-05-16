@@ -10,6 +10,7 @@ function mime(file) {
   if (file.endsWith(".css")) return "text/css; charset=utf-8";
   if (file.endsWith(".js")) return "text/javascript; charset=utf-8";
   if (file.endsWith(".png")) return "image/png";
+  if (file.endsWith(".webp")) return "image/webp";
   if (file.endsWith(".mp3")) return "audio/mpeg";
   if (file.endsWith(".wav")) return "audio/wav";
   return "application/octet-stream";

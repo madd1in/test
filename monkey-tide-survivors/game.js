@@ -36,16 +36,14 @@ const ui = {
 
 const imageSources = {
   repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
-  topdownBeach: "assets/backgrounds/topdown_beach_imagen_hd.png",
-  beach: "assets/backgrounds/beach_imagen_hd.png",
-  jungle: "assets/backgrounds/jungle_imagen_hd.png",
-  characters: "assets/sprites/characters_imagen_hd_sheet.png",
-  items: "assets/sprites/scene_items_imagen_hd_sheet.png",
-  newSprites: "assets/sprites/new_sprites_imagen_hd.png",
-  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.png",
-  gothicItems: "assets/sprites/gothic_items_hd_sheet.png",
-  gothicProps: "assets/sprites/gothic_props_hd_sheet.png",
-  spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.png",
+  characters: "assets/sprites/characters_imagen_hd_sheet.webp",
+  items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
+  newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
+  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
+  gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
+  gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
+  spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
+  beachProps: "assets/sprites/beach_exploration_props_imagen_hd.webp",
 };
 
 const audioSources = {
@@ -109,6 +107,7 @@ const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
 const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
+const BEACH_PROP = { w: 320, h: 427, cols: 4, rows: 2 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
 const BALANCE = {
@@ -158,6 +157,17 @@ const gothicItemMap = {
 const gothicPropMap = {
   gothicCandelabra: { x: 0, y: 0 },
   wallCandle: { x: 0, y: 1 },
+};
+
+const beachPropMap = {
+  clearPuddle: { x: 0, y: 0 },
+  tidePuddle: { x: 1, y: 0 },
+  hedgeCluster: { x: 2, y: 0 },
+  palmHedge: { x: 3, y: 0 },
+  treasureChest: { x: 0, y: 1 },
+  openTreasureChest: { x: 1, y: 1 },
+  beachHut: { x: 2, y: 1 },
+  boatWreck: { x: 3, y: 1 },
 };
 
 const enemyTypes = [
@@ -350,30 +360,55 @@ function makeProps() {
     "bloodRose",
     "gothicArmor",
     "moonSigil",
+    "hedgeCluster",
+    "palmHedge",
+    "treasureChest",
   ];
   for (let gx = 320; gx < WORLD.w - 320; gx += 520) {
     for (let gy = 320; gy < WORLD.h - 320; gy += 470) {
       const h = hash2(Math.floor(gx / 50), Math.floor(gy / 50));
       if (h % 13 < 4) {
         const icon = choices[h % choices.length];
-        const scale = newSpriteMap[icon]
-          ? 0.15 + (h % 5) * 0.012
-          : gothicPropMap[icon]
-            ? 0.17 + (h % 5) * 0.012
-            : gothicItemMap[icon]
-              ? 0.12 + (h % 5) * 0.012
-              : 0.18 + (h % 5) * 0.014;
         props.push({
           x: gx + ((h >> 4) % 240) - 120,
           y: gy + ((h >> 10) % 220) - 110,
           icon,
-          scale,
+          scale: propScaleForIcon(icon, h),
           spin: ((h >> 8) % 100) / 100,
+          interactive: icon === "treasureChest",
+        });
+      }
+    }
+  }
+  const landmarks = ["beachHut", "boatWreck", "treasureChest"];
+  for (let gx = 700; gx < WORLD.w - 520; gx += 1150) {
+    for (let gy = 740; gy < WORLD.h - 520; gy += 1080) {
+      const h = hash2(Math.floor(gx / 70), Math.floor(gy / 70));
+      if (h % 9 < 3) {
+        const icon = landmarks[h % landmarks.length];
+        props.push({
+          x: gx + ((h >> 5) % 320) - 160,
+          y: gy + ((h >> 12) % 280) - 140,
+          icon,
+          scale: propScaleForIcon(icon, h),
+          spin: ((h >> 9) % 100) / 130,
+          interactive: true,
         });
       }
     }
   }
   return props;
+}
+
+function propScaleForIcon(icon, h = 0) {
+  if (newSpriteMap[icon]) return 0.15 + (h % 5) * 0.012;
+  if (gothicPropMap[icon]) return 0.17 + (h % 5) * 0.012;
+  if (gothicItemMap[icon]) return 0.12 + (h % 5) * 0.012;
+  if (icon === "beachHut" || icon === "boatWreck") return 0.72 + (h % 4) * 0.035;
+  if (icon === "hedgeCluster" || icon === "palmHedge") return 0.46 + (h % 5) * 0.026;
+  if (icon === "treasureChest" || icon === "openTreasureChest") return 0.42 + (h % 4) * 0.02;
+  if (beachPropMap[icon]) return 0.42 + (h % 4) * 0.02;
+  return 0.18 + (h % 5) * 0.014;
 }
 
 function loadImage(key, src, index, total) {
@@ -566,6 +601,7 @@ function update(dt) {
   updateWeapons(dt);
   updateSpawns(dt);
   updateEnemies(dt);
+  updateExploration();
   updateProjectiles(dt);
   updateGems(dt);
   updateParticles(dt);
@@ -974,6 +1010,28 @@ function updateGems(dt) {
   state.gems = state.gems.filter((gem) => !gem.collected && gem.life > 0);
 }
 
+function updateExploration() {
+  const p = state.player;
+  for (const prop of state.props) {
+    if (!prop.interactive || prop.discovered) continue;
+    const dist = Math.hypot(prop.x - p.x, prop.y - p.y);
+    const radius = prop.icon === "beachHut" || prop.icon === "boatWreck" ? 150 : 105;
+    if (dist > radius) continue;
+    prop.discovered = true;
+    const isChest = prop.icon === "treasureChest";
+    if (isChest) prop.icon = "openTreasureChest";
+    const label = isChest ? "Schatz gefunden" : prop.icon === "beachHut" ? "Huette erkundet" : "Wrack gepluendert";
+    floatingText(label, prop.x, prop.y - 80, "#fff2c7");
+    const xpValue = isChest ? 34 : 46;
+    const coinValue = isChest ? 12 : 18;
+    state.gems.push({ kind: "xp", icon: "skullCoin", x: prop.x, y: prop.y - 18, r: 12, value: xpValue, life: 34 });
+    state.gems.push({ kind: "coin", icon: "coin", x: prop.x + 24, y: prop.y + 8, r: 12, value: coinValue, life: 34 });
+    if (!isChest) state.gems.push({ kind: "heart", icon: "lime", x: prop.x - 24, y: prop.y + 8, r: 13, value: 1, life: 28 });
+    playSound("downloadUpgrade", { force: true });
+    playSound("chime", { force: true });
+  }
+}
+
 function collectGem(gem) {
   gem.collected = true;
   if (gem.kind === "heart") {
@@ -1213,18 +1271,12 @@ function drawNaturalGroundDetails(ox, oy) {
       const y = gy * tile;
       const h = hash2(gx, gy);
       if (h % 5 === 0) {
-        ctx.fillStyle = "rgba(255, 244, 190, 0.12)";
-        ctx.beginPath();
-        ctx.ellipse(
-          ox + x + 30 + ((h >> 6) % 160),
-          oy + y + 30 + ((h >> 13) % 150),
-          12 + (h % 17),
-          4 + (h % 9),
-          ((h >> 18) % 628) / 100,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
+        const icon = h % 10 === 0 ? "tidePuddle" : "clearPuddle";
+        const px = ox + x + 30 + ((h >> 6) % 160);
+        const py = oy + y + 30 + ((h >> 13) % 150);
+        const w = 120 + (h % 38);
+        const ph = 92 + ((h >> 4) % 34);
+        drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, 0.68);
       }
       if (h % 11 === 0) {
         ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
@@ -1245,10 +1297,17 @@ function drawProps() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
   for (const prop of state.props) {
-    if (!onScreen(prop.x, prop.y, 140)) continue;
+    if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
-    drawItem(prop.icon, ox + prop.x, oy + prop.y, ITEM.w * prop.scale * pulse, ITEM.h * prop.scale * pulse, prop.spin * 0.18 - 0.08, 0.54);
+    const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
+    const alpha = prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : 0.62;
+    drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
   }
+}
+
+function getPropDisplaySize(icon, scale) {
+  if (beachPropMap[icon]) return { w: BEACH_PROP.w * scale, h: BEACH_PROP.h * scale };
+  return { w: ITEM.w * scale, h: ITEM.h * scale };
 }
 
 function drawGems() {
@@ -1499,6 +1558,10 @@ function drawItemAt(icon, x, y, w, h) {
     drawGothicPropAt(icon, x, y, w, h);
     return;
   }
+  if (beachPropMap[icon]) {
+    drawBeachPropAt(icon, x, y, w, h);
+    return;
+  }
   const src = iconMap[icon] || iconMap.coin;
   ctx.drawImage(images.items, src.x * ITEM.w, src.y * ITEM.h, ITEM.w, ITEM.h, x, y, w, h);
 }
@@ -1518,29 +1581,40 @@ function drawGothicPropAt(icon, x, y, w, h) {
   ctx.drawImage(images.gothicProps, src.x * GOTHIC_PROP.w, src.y * GOTHIC_PROP.h, GOTHIC_PROP.w, GOTHIC_PROP.h, x, y, w, h);
 }
 
+function drawBeachPropAt(icon, x, y, w, h) {
+  const src = beachPropMap[icon] || beachPropMap.clearPuddle;
+  ctx.drawImage(images.beachProps, src.x * BEACH_PROP.w, src.y * BEACH_PROP.h, BEACH_PROP.w, BEACH_PROP.h, x, y, w, h);
+}
+
 function iconStyle(icon) {
   if (newSpriteMap[icon]) {
     const src = newSpriteMap[icon];
     const bx = src.x / (NEWSPRITE.cols - 1) * 100;
     const by = src.y / (NEWSPRITE.rows - 1) * 100;
-    return `background-image:url('assets/sprites/new_sprites_imagen_hd.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+    return `background-image:url('assets/sprites/new_sprites_imagen_hd.webp');background-size:400% 200%;background-position:${bx}% ${by}%;`;
   }
   if (gothicItemMap[icon]) {
     const src = gothicItemMap[icon];
     const bx = src.x / (GOTHIC_ITEM.cols - 1) * 100;
     const by = src.y / (GOTHIC_ITEM.rows - 1) * 100;
-    return `background-image:url('assets/sprites/gothic_items_hd_sheet.png');background-size:400% 300%;background-position:${bx}% ${by}%;`;
+    return `background-image:url('assets/sprites/gothic_items_hd_sheet.webp');background-size:400% 300%;background-position:${bx}% ${by}%;`;
   }
   if (gothicPropMap[icon]) {
     const src = gothicPropMap[icon];
     const bx = src.x / (GOTHIC_PROP.cols - 1) * 100;
     const by = src.y / (GOTHIC_PROP.rows - 1) * 100;
-    return `background-image:url('assets/sprites/gothic_props_hd_sheet.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+    return `background-image:url('assets/sprites/gothic_props_hd_sheet.webp');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+  }
+  if (beachPropMap[icon]) {
+    const src = beachPropMap[icon];
+    const bx = src.x / (BEACH_PROP.cols - 1) * 100;
+    const by = src.y / (BEACH_PROP.rows - 1) * 100;
+    return `background-image:url('assets/sprites/beach_exploration_props_imagen_hd.webp');background-size:400% 200%;background-position:${bx}% ${by}%;`;
   }
   const src = iconMap[icon] || iconMap.coin;
   const bx = src.x / (ITEM.cols - 1) * 100;
   const by = src.y * 100;
-  return `background-image:url('assets/sprites/scene_items_imagen_hd_sheet.png');background-size:400% 200%;background-position:${bx}% ${by}%;`;
+  return `background-image:url('assets/sprites/scene_items_imagen_hd_sheet.webp');background-size:400% 200%;background-position:${bx}% ${by}%;`;
 }
 
 function compassPoints() {
@@ -1814,6 +1888,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
   fullscreenSupported: document.fullscreenEnabled,
+  preloadedAssetKeys: Object.keys(imageSources),
   audio: {
     mainVolume: music?.volume ?? 0,
     rushVolume: rushMusic?.volume ?? 0,
@@ -1834,6 +1909,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
     gothicItemTypes: Object.keys(gothicItemMap),
     spectralCaptain: !!images.spectralCaptain,
     bossTypes: enemyTypes.filter((type) => type.sprite === "monkeyIdol" || type.captainSheet).map((type) => type.id),
+  },
+  explorationAssets: {
+    beachProps: !!images.beachProps,
+    beachPropTypes: Object.keys(beachPropMap),
+    interactiveProps: state.props.filter((prop) => prop.interactive).length,
+    discoveredProps: state.props.filter((prop) => prop.discovered).length,
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
   });
