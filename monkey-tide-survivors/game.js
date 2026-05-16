@@ -57,6 +57,8 @@ const imageSources = {
   beachBoatWreck: "assets/sprites/beach-props-v2/boat_wreck.webp",
   projectileFx: "assets/sprites/projectile_fx_imagen_hd.webp",
   playerEffects: "assets/sprites/player_effects_imagen_hd.webp",
+  extraEnemies: "assets/sprites/extra_enemies_imagen_hd.webp",
+  extraItems: "assets/sprites/extra_items_imagen_hd.webp",
 };
 
 const audioSources = {
@@ -126,6 +128,8 @@ const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
+const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
+const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
 const BALANCE = {
@@ -199,6 +203,28 @@ const gothicPropMap = {
   wallCandle: { x: 0, y: 1 },
 };
 
+const extraItemMap = {
+  cursedPearl: { x: 0, y: 0 },
+  powderPouch: { x: 1, y: 0 },
+  monkeyPaw: { x: 2, y: 0 },
+  captainSeal: { x: 3, y: 0 },
+  tideBoots: { x: 0, y: 1 },
+  voodooDoll: { x: 1, y: 1 },
+  obsidianCompass: { x: 2, y: 1 },
+  grogLantern: { x: 3, y: 1 },
+};
+
+const extraEnemyMap = {
+  reefRaider: { x: 0, y: 0 },
+  powderImp: { x: 1, y: 0 },
+  tideWitch: { x: 2, y: 0 },
+  saltboneFencer: { x: 3, y: 0 },
+  lanternWraith: { x: 0, y: 1 },
+  coralBrute: { x: 1, y: 1 },
+  barrelMaw: { x: 2, y: 1 },
+  stormDuelist: { x: 3, y: 1 },
+};
+
 const beachPropMap = {
   clearPuddle: { image: "beachClearPuddle", w: 420, h: 304, decal: true },
   tidePuddle: { image: "beachTidePuddle", w: 410, h: 318, decal: true },
@@ -242,7 +268,15 @@ const enemyTypes = [
   { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4" },
   { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f" },
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
+  { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
+  { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7" },
+  { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0" },
+  { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5" },
   { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7" },
+  { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf" },
+  { id: "barrelMaw", name: "Barrel Maw", extraSprite: "barrelMaw", hp: 110, speed: 58, radius: 32, damage: 16, scale: 0.26, xp: 25, tint: "#f0a04d" },
+  { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5" },
+  { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
   { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5" },
 ];
@@ -297,6 +331,96 @@ const upgrades = [
     apply: () => {
       state.stats.damage += 0.08;
       state.stats.armor += 1;
+    },
+  },
+  {
+    id: "cursedPearl",
+    name: "Flutperle",
+    icon: "cursedPearl",
+    desc: "Mehr Magnet und bessere XP-Beute.",
+    max: 4,
+    apply: () => {
+      state.stats.magnet += 30;
+      state.stats.pickupValue += 0.08;
+    },
+  },
+  {
+    id: "powderPouch",
+    name: "Schwarzpulverbeutel",
+    icon: "powderPouch",
+    desc: "Staerkere Bomben und etwas mehr Schaden.",
+    max: 4,
+    apply: () => {
+      raiseWeapon("bottle");
+      state.stats.damage += 0.035;
+    },
+  },
+  {
+    id: "monkeyPaw",
+    name: "Affenpfote",
+    icon: "monkeyPaw",
+    desc: "Mehr Schaden und groessere Beute.",
+    max: 3,
+    apply: () => {
+      state.stats.damage += 0.075;
+      state.stats.pickupValue += 0.04;
+    },
+  },
+  {
+    id: "captainSeal",
+    name: "Kaeptninsiegel",
+    icon: "captainSeal",
+    desc: "Mehr Ruestung und Lebenspunkte.",
+    max: 3,
+    apply: () => {
+      state.stats.armor += 1;
+      state.player.maxHp += 14;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 20);
+    },
+  },
+  {
+    id: "tideBoots",
+    name: "Flutstiefel",
+    icon: "tideBoots",
+    desc: "Schneller laufen, Dash flotter bereit.",
+    max: 4,
+    apply: () => {
+      state.stats.speed += 16;
+      state.stats.dashCooldown = Math.max(0.5, state.stats.dashCooldown - 0.06);
+    },
+  },
+  {
+    id: "voodooDoll",
+    name: "Voodoo-Puppe",
+    icon: "voodooDoll",
+    desc: "Schutzfenster und Fluchschaden.",
+    max: 3,
+    apply: () => {
+      state.player.invuln = Math.max(state.player.invuln, 1.1);
+      state.stats.damage += 0.045;
+    },
+  },
+  {
+    id: "obsidianCompass",
+    name: "Obsidian-Kompass",
+    icon: "obsidianCompass",
+    desc: "Kompasskraft und Magnetzug.",
+    max: 4,
+    apply: () => {
+      raiseWeapon("compass");
+      state.stats.magnet += 18;
+    },
+  },
+  {
+    id: "grogLantern",
+    name: "Grog-Laterne",
+    icon: "grogLantern",
+    desc: "Mehr Leben und Ruestung im Gedraenge.",
+    max: 3,
+    apply: () => {
+      state.stats.armor += 1;
+      state.player.maxHp += 10;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 26);
     },
   },
   {
@@ -392,6 +516,14 @@ function makeState() {
       bottle: 0,
       rope: 0,
       bloodRose: 0,
+      cursedPearl: 0,
+      powderPouch: 0,
+      monkeyPaw: 0,
+      captainSeal: 0,
+      tideBoots: 0,
+      voodooDoll: 0,
+      obsidianCompass: 0,
+      grogLantern: 0,
       speed: 0,
       magnet: 0,
       heart: 0,
@@ -426,6 +558,14 @@ function makeProps() {
     "wallCandle",
     "cryptBatRelic",
     "bloodRose",
+    "cursedPearl",
+    "powderPouch",
+    "monkeyPaw",
+    "captainSeal",
+    "tideBoots",
+    "voodooDoll",
+    "obsidianCompass",
+    "grogLantern",
     "gothicArmor",
     "moonSigil",
     "hedgeCluster",
@@ -473,6 +613,7 @@ function propScaleForIcon(icon, h = 0) {
   if (newSpriteMap[icon]) return 0.15 + (h % 5) * 0.012;
   if (gothicPropMap[icon]) return 0.17 + (h % 5) * 0.012;
   if (gothicItemMap[icon]) return 0.12 + (h % 5) * 0.012;
+  if (extraItemMap[icon]) return 0.13 + (h % 5) * 0.012;
   if (icon === "beachHut" || icon === "boatWreck") return 0.78 + (h % 4) * 0.035;
   if (icon === "hedgeCluster" || icon === "palmHedge") return 0.58 + (h % 5) * 0.026;
   if (icon === "conchShrine") return 0.62 + (h % 4) * 0.026;
@@ -951,13 +1092,16 @@ function updateSpawns(dt) {
   }
   if (state.elapsed > BALANCE.firstBossAt && state.bossTimer <= 0) {
     state.bossTimer = BALANCE.bossInterval;
-    const bossType = state.bossCount % 2 === 0 ? enemyType("spectralCaptain") : enemyType("idol");
+    const bossCycle = ["spectralCaptain", "idol", "coralBrute"];
+    const bossType = enemyType(bossCycle[state.bossCount % bossCycle.length]);
     state.bossCount += 1;
     spawnEnemy(bossType, true);
     state.warningTimer = 3.2;
     const warning = bossType.id === "spectralCaptain"
       ? "Fluchkapitaen voraus. Raus aus der Klinge!"
-      : "Affenidol voraus. Bleib in Bewegung!";
+      : bossType.id === "coralBrute"
+        ? "Korallenbrecher voraus. Lass dich nicht festnageln!"
+        : "Affenidol voraus. Bleib in Bewegung!";
     playSound("downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
@@ -970,6 +1114,14 @@ function enemyType(id) {
 function pickEnemyType() {
   const t = state.elapsed;
   const roll = Math.random();
+  if (t > 282 && roll < 0.16) return enemyType("stormDuelist");
+  if (t > 238 && roll < 0.2) return enemyType("coralBrute");
+  if (t > 220 && roll < 0.26) return enemyType("barrelMaw");
+  if (t > 192 && roll < 0.31) return enemyType("tideWitch");
+  if (t > 150 && roll < 0.36) return enemyType("lanternWraith");
+  if (t > 126 && roll < 0.42) return enemyType("saltboneFencer");
+  if (t > 88 && roll < 0.48) return enemyType("reefRaider");
+  if (t > 56 && roll < 0.54) return enemyType("powderImp");
   if (t > 250 && roll < 0.1) return enemyType("gargoyle");
   if (t > 205 && roll < 0.18) return enemyType("oracle");
   if (t > 162 && roll < 0.28) return enemyType("hand");
@@ -1292,10 +1444,16 @@ function killEnemy(enemy) {
   if (Math.random() < 0.06) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
   if (enemy.boss) {
     state.warningTimer = 2;
-    const downText = enemy.type.id === "spectralCaptain" ? "Captain verbannt" : "Idol gebrochen";
+    const downText = enemy.type.id === "spectralCaptain"
+      ? "Captain verbannt"
+      : enemy.type.id === "coralBrute"
+        ? "Korallenbrecher versenkt"
+        : "Idol gebrochen";
     const downVoice = enemy.type.id === "spectralCaptain"
       ? "Fluchkapitaen verbannt. Sammel die Beute!"
-      : "Idol gebrochen. Sammel die Beute!";
+      : enemy.type.id === "coralBrute"
+        ? "Korallenbrecher versenkt. Sammel die Beute!"
+        : "Idol gebrochen. Sammel die Beute!";
     floatingText(downText, enemy.x, enemy.y - 80, "#fff2c7");
     speak(downVoice, { key: `boss-down-${enemy.type.id}`, interrupt: true, cooldown: 2000 });
     playSound("chime", { force: true });
@@ -1634,6 +1792,12 @@ function drawEnemies() {
       w = GOTHIC_ENEMY.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = GOTHIC_ENEMY.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.extraSprite) {
+      const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
+      const bob = Math.sin(state.elapsed * (enemy.type.id === "powderImp" ? 9 : 5.5) + enemy.frameOffset) * (enemy.type.id === "lanternWraith" ? 7 : 3.5);
+      w = EXTRA_ENEMY.w * enemy.type.scale * (enemy.boss ? 1.16 : 1);
+      h = EXTRA_ENEMY.h * enemy.type.scale * (enemy.boss ? 1.16 : 1);
+      ctx.drawImage(images.extraEnemies, src.x * EXTRA_ENEMY.w, src.y * EXTRA_ENEMY.h, EXTRA_ENEMY.w, EXTRA_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.sprite) {
       const src = newSpriteMap[enemy.type.sprite];
       const bob = Math.sin(state.elapsed * (enemy.type.id === "crab" ? 10 : 6) + enemy.frameOffset) * (enemy.type.id === "crab" ? 5 : 3);
@@ -1868,6 +2032,10 @@ function drawItemAt(icon, x, y, w, h) {
     drawGothicItemAt(icon, x, y, w, h);
     return;
   }
+  if (extraItemMap[icon]) {
+    drawExtraItemAt(icon, x, y, w, h);
+    return;
+  }
   if (gothicPropMap[icon]) {
     drawGothicPropAt(icon, x, y, w, h);
     return;
@@ -1888,6 +2056,11 @@ function drawNewSpriteAt(icon, x, y, w, h) {
 function drawGothicItemAt(icon, x, y, w, h) {
   const src = gothicItemMap[icon] || gothicItemMap.bloodRose;
   ctx.drawImage(images.gothicItems, src.x * GOTHIC_ITEM.w, src.y * GOTHIC_ITEM.h, GOTHIC_ITEM.w, GOTHIC_ITEM.h, x, y, w, h);
+}
+
+function drawExtraItemAt(icon, x, y, w, h) {
+  const src = extraItemMap[icon] || extraItemMap.cursedPearl;
+  ctx.drawImage(images.extraItems, src.x * EXTRA_ITEM.w, src.y * EXTRA_ITEM.h, EXTRA_ITEM.w, EXTRA_ITEM.h, x, y, w, h);
 }
 
 function drawGothicPropAt(icon, x, y, w, h) {
@@ -1912,6 +2085,12 @@ function iconStyle(icon) {
     const bx = src.x / (GOTHIC_ITEM.cols - 1) * 100;
     const by = src.y / (GOTHIC_ITEM.rows - 1) * 100;
     return `background-image:url('assets/sprites/gothic_items_hd_sheet.webp');background-size:400% 300%;background-position:${bx}% ${by}%;`;
+  }
+  if (extraItemMap[icon]) {
+    const src = extraItemMap[icon];
+    const bx = src.x / (EXTRA_ITEM.cols - 1) * 100;
+    const by = src.y / (EXTRA_ITEM.rows - 1) * 100;
+    return `background-image:url('${imageSources.extraItems}');background-size:400% 200%;background-position:${bx}% ${by}%;`;
   }
   if (gothicPropMap[icon]) {
     const src = gothicPropMap[icon];
@@ -2245,7 +2424,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),
     spectralCaptain: !!images.spectralCaptain,
-    bossTypes: enemyTypes.filter((type) => type.sprite === "monkeyIdol" || type.captainSheet).map((type) => type.id),
+    bossTypes: enemyTypes.filter((type) => type.sprite === "monkeyIdol" || type.captainSheet || type.bossCandidate).map((type) => type.id),
+  },
+  extraAssets: {
+    extraEnemies: !!images.extraEnemies,
+    extraItems: !!images.extraItems,
+    extraEnemyTypes: enemyTypes.filter((type) => type.extraSprite).map((type) => type.id),
+    extraItemTypes: Object.keys(extraItemMap),
+    extraUpgradeTypes: upgrades.filter((upgrade) => extraItemMap[upgrade.icon]).map((upgrade) => upgrade.id),
   },
   explorationAssets: {
     beachProps: Object.values(beachPropMap).every((prop) => !!images[prop.image]),
