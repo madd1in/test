@@ -44,6 +44,7 @@ const imageSources = {
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
   beachProps: "assets/sprites/beach_exploration_props_imagen_hd.webp",
+  projectileFx: "assets/sprites/projectile_fx_imagen_hd.webp",
 };
 
 const audioSources = {
@@ -99,6 +100,7 @@ const scene = { zoom: 1, w: 1280, h: 720 };
 let lastTime = 0;
 let raf = 0;
 let quickMode = false;
+const loadingState = { loaded: 0, total: 0, last: "" };
 
 const CHAR = { w: 192, h: 256, cols: 16 };
 const ITEM = { w: 512, h: 512, cols: 4 };
@@ -108,14 +110,18 @@ const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const BEACH_PROP = { w: 320, h: 427, cols: 4, rows: 2 };
+const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
 const BALANCE = {
-  normalSpawnIntensity: 1.04,
-  quickSpawnIntensity: 1.26,
-  enemyHpGrowth: 390,
-  enemySpeedGrowth: 1080,
-  bossHpMult: 2.32,
+  normalSpawnIntensity: 1.12,
+  quickSpawnIntensity: 1.36,
+  enemyHpGrowth: 345,
+  enemySpeedGrowth: 960,
+  bossHpMult: 2.5,
+  firstBossAt: 184,
+  bossInterval: 78,
+  rangedPressureAt: 88,
 };
 
 const iconMap = {
@@ -168,6 +174,17 @@ const beachPropMap = {
   openTreasureChest: { x: 1, y: 1 },
   beachHut: { x: 2, y: 1 },
   boatWreck: { x: 3, y: 1 },
+};
+
+const projectileFxMap = {
+  cutlassSlash: { x: 0, y: 0 },
+  coconutBoomerang: { x: 1, y: 0 },
+  rumBombFx: { x: 2, y: 0 },
+  compassBolt: { x: 3, y: 0 },
+  ropeRing: { x: 0, y: 1 },
+  bloodRoseBurst: { x: 1, y: 1 },
+  ghostCannonball: { x: 2, y: 1 },
+  monkeyCurseOrb: { x: 3, y: 1 },
 };
 
 const enemyTypes = [
@@ -411,12 +428,21 @@ function propScaleForIcon(icon, h = 0) {
   return 0.18 + (h % 5) * 0.014;
 }
 
-function loadImage(key, src, index, total) {
+function setLoadingProgress(loaded, total, label = "") {
+  loadingState.loaded = loaded;
+  loadingState.total = total;
+  loadingState.last = label;
+  const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
+  ui.loadingBar.style.width = `${percent}%`;
+  ui.loadingText.textContent = loaded >= total ? "Bereit fuer die Flut" : `Lade ${loaded}/${total}`;
+}
+
+function loadImage(key, src, onLoaded) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       images[key] = img;
-      ui.loadingBar.style.width = `${Math.round(((index + 1) / total) * 100)}%`;
+      onLoaded(key);
       resolve();
     };
     img.onerror = () => reject(new Error(`Could not load ${src}`));
@@ -464,12 +490,17 @@ async function boot() {
   state = makeState();
   resize();
   const entries = Object.entries(imageSources);
-  await Promise.all(entries.map(([key, src], index) => loadImage(key, src, index, entries.length)));
+  let loadedImages = 0;
+  setLoadingProgress(0, entries.length);
+  await Promise.all(entries.map(([key, src]) => loadImage(key, src, (loadedKey) => {
+    loadedImages += 1;
+    setLoadingProgress(loadedImages, entries.length, loadedKey);
+  })));
   prepareAudio();
   prepareSpeech();
   ready = true;
   window.__MONKEY_TIDE_READY = true;
-  ui.loadingText.textContent = "Bereit fuer die Flut";
+  setLoadingProgress(entries.length, entries.length, "ready");
   ui.startButton.disabled = false;
   ui.quickButton.disabled = false;
   render();
@@ -825,14 +856,14 @@ function updateSpawns(dt) {
   state.spawnTimer -= dt;
   state.bossTimer -= dt;
   const intensity = quickMode ? BALANCE.quickSpawnIntensity : BALANCE.normalSpawnIntensity;
-  const interval = Math.max(0.2, (0.86 - state.elapsed * 0.00125) / intensity);
+  const interval = Math.max(0.18, (0.78 - state.elapsed * 0.00135) / intensity);
   if (state.spawnTimer <= 0) {
     state.spawnTimer = interval;
-    const count = 1 + Math.floor(state.elapsed / 88) + (Math.random() < 0.16 ? 1 : 0);
+    const count = 1 + Math.floor(state.elapsed / 78) + (Math.random() < 0.24 ? 1 : 0);
     for (let i = 0; i < count; i += 1) spawnEnemy(pickEnemyType());
   }
-  if (state.elapsed > 222 && state.bossTimer <= 0) {
-    state.bossTimer = 92;
+  if (state.elapsed > BALANCE.firstBossAt && state.bossTimer <= 0) {
+    state.bossTimer = BALANCE.bossInterval;
     const bossType = state.bossCount % 2 === 0 ? enemyType("spectralCaptain") : enemyType("idol");
     state.bossCount += 1;
     spawnEnemy(bossType, true);
@@ -897,6 +928,7 @@ function spawnEnemy(type, boss = false) {
     frameOffset: Math.floor(Math.random() * 16),
     hit: 0,
     boss,
+    shootTimer: 0.8 + Math.random() * 1.2,
   });
 }
 
@@ -909,6 +941,7 @@ function updateEnemies(dt) {
     const dist = Math.max(1, Math.hypot(dx, dy));
     enemy.x += (dx / dist) * enemy.speed * dt;
     enemy.y += (dy / dist) * enemy.speed * dt;
+    updateEnemyRangedAttack(enemy, dt, dist, dx, dy);
     if (dist < p.r + enemy.r && p.invuln <= 0) {
       const damage = Math.max(1, enemy.damage - state.stats.armor);
       p.hp -= damage;
@@ -922,6 +955,45 @@ function updateEnemies(dt) {
     }
   }
   state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
+}
+
+function updateEnemyRangedAttack(enemy, dt, dist, dx, dy) {
+  if (state.elapsed < BALANCE.rangedPressureAt) return;
+  const profile = enemyProjectileProfile(enemy);
+  if (!profile || dist > profile.range) return;
+  enemy.shootTimer -= dt;
+  if (enemy.shootTimer > 0) return;
+  enemy.shootTimer = profile.cooldown * (0.82 + Math.random() * 0.36);
+  const angle = Math.atan2(dy, dx);
+  const speed = profile.speed + state.elapsed * 0.1;
+  state.projectiles.push({
+    type: "curseOrb",
+    fx: profile.fx,
+    x: enemy.x + Math.cos(angle) * enemy.r,
+    y: enemy.y + Math.sin(angle) * enemy.r,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    r: profile.radius,
+    damage: profile.damage,
+    life: profile.life,
+    spin: Math.random() * Math.PI * 2,
+  });
+}
+
+function enemyProjectileProfile(enemy) {
+  if (enemy.boss && enemy.type.id === "spectralCaptain") {
+    return { fx: "ghostCannonball", range: 760, cooldown: 2.1, speed: 248, radius: 18, damage: 13, life: 4.2 };
+  }
+  if (enemy.boss && enemy.type.id === "idol") {
+    return { fx: "monkeyCurseOrb", range: 820, cooldown: 1.9, speed: 226, radius: 20, damage: 15, life: 4.4 };
+  }
+  if (enemy.type.id === "oracle") {
+    return { fx: "compassBolt", range: 650, cooldown: 2.35, speed: 258, radius: 14, damage: 9, life: 3.6 };
+  }
+  if (enemy.type.id === "gargoyle") {
+    return { fx: "ghostCannonball", range: 690, cooldown: 2.65, speed: 222, radius: 16, damage: 12, life: 4.0 };
+  }
+  return null;
 }
 
 function updateProjectiles(dt) {
@@ -970,6 +1042,24 @@ function updateProjectiles(dt) {
         }
       }
       if (projectile.life <= 0) explode(projectile.x, projectile.y, projectile.radius, projectile.damage);
+    } else if (projectile.type === "curseOrb") {
+      const p = state.player;
+      const dist = Math.hypot(p.x - projectile.x, p.y - projectile.y);
+      if (dist < p.r + projectile.r) {
+        state.zones.push({ type: "curseBurst", x: projectile.x, y: projectile.y, radius: 78, life: 0.24, maxLife: 0.24, fx: projectile.fx });
+        projectile.life = 0;
+        if (p.invuln <= 0) {
+          const damage = Math.max(1, projectile.damage - Math.floor(state.stats.armor * 0.45));
+          p.hp -= damage;
+          p.invuln = 0.7;
+          p.x += (p.x - projectile.x) / Math.max(1, dist) * 20;
+          p.y += (p.y - projectile.y) / Math.max(1, dist) * 20;
+          shake(0.55);
+          floatingText(`-${Math.round(damage)}`, p.x, p.y - 58, "#ff765f");
+          playSound("downloadHit");
+          if (p.hp <= 0) endGame(false);
+        }
+      }
     }
   }
   state.projectiles = state.projectiles.filter((projectile) => projectile.life > 0);
@@ -1419,12 +1509,17 @@ function drawProjectiles() {
   const oy = scene.h / 2 - state.camera.y;
   for (const projectile of state.projectiles) {
     if (!onScreen(projectile.x, projectile.y, 100)) continue;
-    const size = projectile.type === "bottle" ? 44 : 38;
-    drawItem(projectile.icon, ox + projectile.x, oy + projectile.y, size, size, projectile.spin, 0.96);
+    const fx = projectile.type === "bottle"
+      ? "rumBombFx"
+      : projectile.type === "curseOrb"
+        ? projectile.fx || "monkeyCurseOrb"
+        : "coconutBoomerang";
+    const size = projectile.type === "bottle" ? 58 : projectile.type === "curseOrb" ? 50 : 52;
+    drawProjectileFx(fx, ox + projectile.x, oy + projectile.y, size, size, projectile.spin, 0.98);
   }
   if (state.weapons.compass.level > 0) {
     for (const point of compassPoints()) {
-      drawItem("compass", ox + point.x, oy + point.y, 48, 48, state.weapons.compass.angle, 0.95);
+      drawProjectileFx("compassBolt", ox + point.x, oy + point.y, 54, 54, state.weapons.compass.angle, 0.9);
     }
   }
 }
@@ -1439,6 +1534,8 @@ function drawWeaponEffects() {
     if (zone.type === "slash") {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate(zone.angle);
+      const slashSize = zone.radius * 1.85;
+      drawProjectileFxAt("cutlassSlash", -slashSize * 0.42, -slashSize * 0.58, slashSize, slashSize);
       ctx.strokeStyle = "rgba(255, 236, 174, 0.9)";
       ctx.lineWidth = 9;
       ctx.beginPath();
@@ -1456,8 +1553,17 @@ function drawWeaponEffects() {
       ctx.moveTo(ox + zone.x, oy + zone.y - 48);
       ctx.lineTo(ox + zone.tx, oy + zone.ty - 48);
       ctx.stroke();
+      const bx = ox + (zone.x + zone.tx) / 2;
+      const by = oy + (zone.y + zone.ty) / 2 - 48;
+      const angle = Math.atan2(zone.ty - zone.y, zone.tx - zone.x);
+      const len = Math.min(220, Math.hypot(zone.tx - zone.x, zone.ty - zone.y));
+      ctx.translate(bx, by);
+      ctx.rotate(angle);
+      drawProjectileFxAt("compassBolt", -len / 2, -46, len, 92);
     } else if (zone.type === "explosion") {
       ctx.translate(ox + zone.x, oy + zone.y);
+      const blastSize = zone.radius * 2.6;
+      drawProjectileFxAt("rumBombFx", -blastSize / 2, -blastSize / 2, blastSize, blastSize);
       ctx.fillStyle = "rgba(255, 118, 95, 0.22)";
       ctx.beginPath();
       ctx.arc(0, 0, zone.radius * (1.2 - a * 0.2), 0, Math.PI * 2);
@@ -1466,6 +1572,15 @@ function drawWeaponEffects() {
       ctx.lineWidth = 5;
       ctx.beginPath();
       ctx.arc(0, 0, zone.radius * (1 - a * 0.28), 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (zone.type === "curseBurst") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      const burstSize = zone.radius * 2.2;
+      drawProjectileFxAt(zone.fx === "ghostCannonball" ? "ghostCannonball" : "monkeyCurseOrb", -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+      ctx.strokeStyle = "rgba(83,255,229,0.34)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, zone.radius * (1.1 - a * 0.2), 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.restore();
@@ -1482,6 +1597,8 @@ function drawWeaponEffects() {
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.globalAlpha = 0.36;
+    drawProjectileFxAt("ropeRing", -radius * 1.05, -radius * 1.05, radius * 2.1, radius * 2.1);
     ctx.restore();
   }
 }
@@ -1543,6 +1660,20 @@ function drawItem(icon, x, y, w, h, rotation = 0, alpha = 1) {
   ctx.rotate(rotation);
   drawItemAt(icon, -w / 2, -h / 2, w, h);
   ctx.restore();
+}
+
+function drawProjectileFx(icon, x, y, w, h, rotation = 0, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  drawProjectileFxAt(icon, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+function drawProjectileFxAt(icon, x, y, w, h) {
+  const src = projectileFxMap[icon] || projectileFxMap.coconutBoomerang;
+  ctx.drawImage(images.projectileFx, src.x * PROJECTILE_FX.w, src.y * PROJECTILE_FX.h, PROJECTILE_FX.w, PROJECTILE_FX.h, x, y, w, h);
 }
 
 function drawItemAt(icon, x, y, w, h) {
@@ -1889,6 +2020,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
   fullscreenSupported: document.fullscreenEnabled,
   preloadedAssetKeys: Object.keys(imageSources),
+  loading: { ...loadingState },
   audio: {
     mainVolume: music?.volume ?? 0,
     rushVolume: rushMusic?.volume ?? 0,
@@ -1915,6 +2047,11 @@ window.__MONKEY_TIDE_DEBUG = () => {
     beachPropTypes: Object.keys(beachPropMap),
     interactiveProps: state.props.filter((prop) => prop.interactive).length,
     discoveredProps: state.props.filter((prop) => prop.discovered).length,
+  },
+  combatAssets: {
+    projectileFx: !!images.projectileFx,
+    projectileFxTypes: Object.keys(projectileFxMap),
+    enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
   });

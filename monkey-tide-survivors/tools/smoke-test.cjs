@@ -75,6 +75,7 @@ async function run() {
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
     "assets/sprites/beach_exploration_props_imagen_hd.webp",
+    "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
     "assets/audio/sfx/pickup.wav",
@@ -135,7 +136,10 @@ async function run() {
   assert(debug.audio.sfx.pickup <= 0.05 && debug.audio.sfx.gate <= 0.07, `SFX should sit under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.downloadBossWarning <= 0.06 && debug.audio.mainVolume > debug.audio.sfx.downloadBossWarning * 8, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
-  assert(debug.balance.bossHpMult <= 2.4 && debug.balance.normalSpawnIntensity <= 1.06, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult >= 2.45 && debug.balance.normalSpawnIntensity >= 1.1, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult <= 2.65 && debug.balance.normalSpawnIntensity <= 1.18, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
+  assert(debug.balance.firstBossAt <= 190 && debug.balance.rangedPressureAt <= 95, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
+  assert(debug.loading.loaded === debug.loading.total && debug.loading.total === debug.preloadedAssetKeys.length, `Loading progress is inaccurate: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
@@ -146,7 +150,10 @@ async function run() {
   assert(debug.explorationAssets.beachPropTypes.includes("clearPuddle") && debug.explorationAssets.beachPropTypes.includes("hedgeCluster"), `HD puddles or hedges missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.interactiveProps >= 3, `Not enough explorable props: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("beachProps"), `Beach props not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
+  assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);

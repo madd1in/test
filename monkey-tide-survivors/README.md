@@ -10,6 +10,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neue kompakte Imagen-HD-WebP-Props fuer Pfuetzen, Hecken, Schatztruhen, verlassene Strandhuetten und Bootswracks.
 - Erkundbare Huetten, Wracks und Schatztruhen droppen XP, Muenzen und kleine Notfall-Heilung.
 - Runtime-Sprite-Sheets laufen ueber kompakte WebP-Varianten fuer schnelleren Mobile-Start.
+- Neues Imagen-HD-WebP-Projektilsheet fuer Saebelbogen, Kokos-Bumerang, Flaschenbombe, Kompassblitz, Taukreis, Blutrosenburst, Geisterkugel und Affenfluch.
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle, Blutrosen-Relikt und Kerzenprops.
 - Imagen-HD-Frameset fuer einen LeChuck-artigen Fluchkapitaen als neuen Boss.
@@ -20,7 +21,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Ruhigere SFX, Tastatur, dynamischer Vollbild-Mobile-Joystick, Dash, Pause, Vollbild und Audio-Schalter.
 - Mobile Kamera zoomt weiter raus; Portrait- und Querformat-HUD bleiben minimal.
 - Mobile Preload ist leichter, weil alte ungenutzte HD-Hintergruende nicht mehr vor Spielstart geladen werden.
-- Flowigerer Balance-Pass mit Cutlass+Coconut-Start, schnellerem Dash, starker XP-Magnet-/Undertow-Logik, frueheren Level-ups, Level-Heilung und weicheren Boss-/Spawn-Kurven.
+- Exakterer Ladebalken, der wirklich abgeschlossene Bild-Assets zaehlt statt parallel geladene Indexwerte zu raten.
+- Strafferer Balance-Pass mit frueheren Bossen, mehr Spawn-Druck, Gegner-Projektilen, Cutlass+Coconut-Start, schnellerem Dash, starker XP-Magnet-/Undertow-Logik, Level-Heilung und besserer Bedrohungskurve.
 - Transparentere Adventure-Piraten-GUI mit groesserem Monkey-Island-Einschlag.
 
 ## Spielen
