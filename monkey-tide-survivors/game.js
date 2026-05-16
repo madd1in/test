@@ -630,7 +630,7 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, unlocked: [] },
     coins: 0,
     level: 1,
     xp: 0,
@@ -1741,7 +1741,7 @@ function updateExploration() {
     state.gems.push({ kind: "xp", icon: "skullCoin", x: prop.x, y: prop.y - 18, r: 12, value: xpValue, life: 34 });
     state.gems.push({ kind: "coin", icon: "coin", x: prop.x + 24, y: prop.y + 8, r: 12, value: coinValue, life: 34 });
     if (!isChest) state.gems.push({ kind: "heart", icon: "lime", x: prop.x - 24, y: prop.y + 8, r: 13, value: 1, life: 28 });
-    if (isChest || isShrine || prop.streakCache) spawnPowerup(prop.x - 36, prop.y + 18, isShrine ? "voodooWard" : null);
+    if (isShrine || prop.streakCache || (isChest && Math.random() < 0.42)) spawnPowerup(prop.x - 36, prop.y + 18, isShrine ? "voodooWard" : null);
     if (isShrine) {
       state.player.invuln = Math.max(state.player.invuln, 1.25);
       state.zones.push({ type: "curseBurst", x: prop.x, y: prop.y, radius: 96, life: 0.32, maxLife: 0.32, fx: "monkeyCurseOrb" });
@@ -1873,7 +1873,8 @@ function killEnemy(enemy) {
   state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
   if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
   if (Math.random() < 0.06) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
-  if (enemy.boss || Math.random() < 0.032 || state.streak.count === 8) spawnPowerup(enemy.x - 18, enemy.y + 16);
+  const streakPowerDrop = state.streak.count > 0 && state.streak.count % 24 === 0;
+  if (enemy.boss || Math.random() < 0.014 || streakPowerDrop) spawnPowerup(enemy.x - 18, enemy.y + 16);
   if (enemy.boss) {
     state.warningTimer = 2;
     const downText = enemy.type.id === "spectralCaptain"
@@ -1977,16 +1978,38 @@ function recordRunProgress(victory) {
   renderMetaProgress();
 }
 
-function levelUp() {
+function levelUp(options = {}) {
   state.level += 1;
   metaProgress.bestLevel = Math.max(metaProgress.bestLevel, state.level);
   state.nextXp = Math.round(22 + state.level * 14 + state.level * state.level * 1.35);
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + 16);
+  if (!options.forceChoice && !shouldShowUpgradeChoice(state.level)) {
+    applyFlowLevelReward();
+    return;
+  }
   state.phase = "levelup";
   playSound("chime", { force: true });
   playSound("downloadUpgrade", { force: true });
   speak("Relikt gefunden. Waehle deine Verstaerkung.", { key: "level-up", interrupt: true, cooldown: 1000 });
   showUpgrades();
+}
+
+function shouldShowUpgradeChoice(level) {
+  return level === 2 || level === 4 || (level >= 7 && (level - 4) % 3 === 0);
+}
+
+function applyFlowLevelReward() {
+  const rewards = [
+    { name: "Flow: Tempo", apply: () => { state.stats.speed += 5; }, color: "#f0c45d" },
+    { name: "Flow: Schaden", apply: () => { state.stats.damage += 0.018; }, color: "#ffb14c" },
+    { name: "Flow: Magnet", apply: () => { state.stats.magnet += 12; }, color: "#53ffe5" },
+    { name: "Flow: Atem", apply: () => { state.player.hp = Math.min(state.player.maxHp, state.player.hp + 20); }, color: "#79e0b7" },
+  ];
+  const reward = rewards[state.level % rewards.length];
+  reward.apply();
+  state.runStats.flowRewards += 1;
+  floatingText(reward.name, state.player.x, state.player.y - 96, reward.color);
+  playSound("downloadPickup", { cooldown: 1100 });
 }
 
 function showUpgrades() {
@@ -2682,8 +2705,8 @@ function getSceneZoom() {
   if (coarsePointer || mobileSized) {
     return viewW > viewH ? 0.48 : 0.54;
   }
-  if (viewW < 980) return 0.86;
-  return 1;
+  if (viewW < 980) return 0.76;
+  return 0.82;
 }
 
 function syncCanvasSize() {
@@ -2895,7 +2918,7 @@ window.__MONKEY_TIDE_STEP = (seconds = 5) => {
 };
 window.__MONKEY_TIDE_FORCE_LEVELUP = () => {
   if (state.phase !== "playing") state.phase = "playing";
-  levelUp();
+  levelUp({ forceChoice: true });
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
@@ -3010,7 +3033,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
   map: { selected: state.map, selectedName: mapVariant(state.map).name, variants: mapVariants.map((map) => map.id), unlocked: [...metaProgress.unlockedMaps] },
-  powerups: { active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })), types: powerUpTypes.map((powerup) => powerup.id), collectedThisRun: state.runStats.powerups },
+  powerups: {
+    active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })),
+    types: powerUpTypes.map((powerup) => powerup.id),
+    collectedThisRun: state.runStats.powerups,
+    randomDropChance: 0.014,
+    streakDropEvery: 24,
+  },
+  levelFlow: { flowRewards: state.runStats.flowRewards, choiceLevels: [2, 4, 7, 10, 13], reducedInterruptions: true },
   progression: {
     kills: metaProgress.kills,
     landmarks: metaProgress.landmarks,
