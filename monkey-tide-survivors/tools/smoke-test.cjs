@@ -93,8 +93,8 @@ async function run() {
     "assets/ui/parchment_button_imagen_hd.webp",
     "assets/ui/parchment_card_imagen_hd.webp",
     "assets/ui/parchment_scrap_imagen_hd.webp",
-    "assets/audio/bgm/shoreline-rum-riddle.mp3",
-    "assets/audio/bgm/coconut-caper-loop.mp3",
+    "assets/audio/bgm/crimson-galleon.mp3",
+    "assets/audio/bgm/gargoyle-chapel-run.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -192,8 +192,9 @@ async function run() {
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
-  assert(debug.audio.mainVolume >= 0.5, `Main music should be prominent: ${JSON.stringify(debug)}`);
-  assert(debug.audio.music.rush >= 0.4 && debug.audio.music.rushStart <= 190, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
+  assert(debug.audio.mainVolume >= 0.55, `Main music should be prominent: ${JSON.stringify(debug)}`);
+  assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125 && debug.audio.music.mainRushDuck <= 0.12, `Rush music should enter earlier and louder without burying the main track: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sources.bgmMain.includes("crimson-galleon.mp3") && debug.audio.sources.bgmRush.includes("gargoyle-chapel-run.mp3"), `Driving BGM tracks are not selected: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.mainVolume > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
