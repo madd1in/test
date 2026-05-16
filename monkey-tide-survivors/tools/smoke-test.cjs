@@ -164,6 +164,29 @@ async function run() {
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
+  const starFarmboySlice = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd.webp?slice-guard";
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const row = 4;
+    const cell = 256;
+    const counts = [];
+    for (let col = 0; col < 8; col += 1) {
+      const data = ctx.getImageData(col * cell, row * cell + 200, cell, 56).data;
+      let pixels = 0;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 48) pixels += 1;
+      }
+      counts.push(pixels);
+    }
+    return counts;
+  });
+  assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
