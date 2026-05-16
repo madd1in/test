@@ -10,6 +10,8 @@ const ui = {
   hud: document.getElementById("hud"),
   loadout: document.getElementById("loadout"),
   skinPicker: document.getElementById("skinPicker"),
+  mapPicker: document.getElementById("mapPicker"),
+  metaProgress: document.getElementById("metaProgress"),
   cornerControls: document.getElementById("cornerControls"),
   touchControls: document.getElementById("touchControls"),
   startButton: document.getElementById("startButton"),
@@ -100,6 +102,7 @@ const musicConfig = {
 };
 let music = null;
 let rushMusic = null;
+let activeMusicTrack = null;
 let muted = false;
 const speechState = {
   supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
@@ -161,6 +164,64 @@ let selectedSkin = (() => {
     return "default";
   }
 })();
+
+const mapVariants = [
+  {
+    id: "shipwreckBeach",
+    name: "Wrackstrand",
+    desc: "Ausgewogen",
+    tint: "rgba(255, 222, 142, 0.08)",
+    detail: "beach",
+    unlockedByDefault: true,
+    propBoost: ["boatWreck", "buriedTreasure", "palmHedge"],
+  },
+  {
+    id: "moonlitLagoon",
+    name: "Mondlagune",
+    desc: "Mehr Sog",
+    tint: "rgba(83, 255, 229, 0.12)",
+    detail: "lagoon",
+    unlockedByDefault: true,
+    propBoost: ["clearPuddle", "tidePuddle", "conchShrine"],
+  },
+  {
+    id: "gothicCove",
+    name: "Blutbucht",
+    desc: "Gothic-Druck",
+    tint: "rgba(116, 70, 180, 0.16)",
+    detail: "gothic",
+    achievement: "nightRaid",
+    propBoost: ["gothicCandelabra", "wallCandle", "bloodRose"],
+    enemyFavor: ["cryptBat", "boneCorsair", "gargoyle", "lanternWraith"],
+  },
+  {
+    id: "treasureAtoll",
+    name: "Schatzatoll",
+    desc: "Mehr Verstecke",
+    tint: "rgba(240, 196, 93, 0.13)",
+    detail: "treasure",
+    achievement: "wreckDiver",
+    propBoost: ["buriedTreasure", "beachHut", "boatWreck", "treasureChest"],
+  },
+];
+
+const achievementDefinitions = [
+  { id: "firstBlood", name: "Erster Fluch", desc: "40 Gegner insgesamt", field: "kills", target: 40, unlockRelic: "Flutkompass" },
+  { id: "powerCollector", name: "Reliktlaeufer", desc: "3 Power-ups sammeln", field: "powerups", target: 3, unlockRelic: "Grog-Stiefel" },
+  { id: "wreckDiver", name: "Wracktaucher", desc: "4 Orte erkunden", field: "landmarks", target: 4, unlockMap: "treasureAtoll" },
+  { id: "nightRaid", name: "Nachtkaperfahrt", desc: "150 Sekunden ueberleben", field: "bestSurvival", target: 150, unlockMap: "gothicCove" },
+  { id: "streakCarver", name: "Streak-Saebel", desc: "12er Streak schaffen", field: "bestStreak", target: 12, unlockRelic: "Saebelkerbe" },
+];
+
+const powerUpTypes = [
+  { id: "rumRush", name: "Grog-Tempo", icon: "grogLantern", duration: 10, speed: 1.22, color: "#f0c45d" },
+  { id: "blackPowder", name: "Pulverfieber", icon: "powderPouch", duration: 9, damage: 1.2, color: "#ffb14c" },
+  { id: "pearlMagnet", name: "Flutmagnet", icon: "cursedPearl", duration: 12, magnet: 130, color: "#53ffe5" },
+  { id: "voodooWard", name: "Voodoo-Schutz", icon: "voodooDoll", duration: 8, armor: 2, color: "#d07cff" },
+];
+
+let metaProgress = loadMetaProgress();
+let selectedMap = normalizeSelectedMap(readStoredValue("monkeyTideMap", "shipwreckBeach"));
 
 const iconMap = {
   rope: { x: 0, y: 0 },
@@ -474,6 +535,82 @@ const weaponLoadoutItems = [
   ["rope", "Tau", "ropeRing"],
 ];
 
+function readStoredValue(key, fallback) {
+  try {
+    return window.localStorage?.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function defaultMetaProgress() {
+  return {
+    kills: 0,
+    coins: 0,
+    landmarks: 0,
+    powerups: 0,
+    runs: 0,
+    wins: 0,
+    bestLevel: 1,
+    bestStreak: 0,
+    bestSurvival: 0,
+    achievements: {},
+    unlockedMaps: mapVariants.filter((map) => map.unlockedByDefault).map((map) => map.id),
+    unlockedRelics: [],
+  };
+}
+
+function loadMetaProgress() {
+  const base = defaultMetaProgress();
+  try {
+    const raw = window.localStorage?.getItem("monkeyTideProgress");
+    if (!raw) return base;
+    const parsed = JSON.parse(raw);
+    return normalizeMetaProgress({ ...base, ...parsed });
+  } catch {
+    return base;
+  }
+}
+
+function normalizeMetaProgress(progress) {
+  const base = defaultMetaProgress();
+  const normalized = { ...base, ...progress };
+  normalized.achievements = { ...(progress.achievements || {}) };
+  normalized.unlockedRelics = [...new Set([...(progress.unlockedRelics || [])])];
+  normalized.unlockedMaps = [...new Set([...base.unlockedMaps, ...(progress.unlockedMaps || [])])]
+    .filter((id) => mapVariants.some((map) => map.id === id));
+  return normalized;
+}
+
+function saveMetaProgress() {
+  try {
+    window.localStorage?.setItem("monkeyTideProgress", JSON.stringify(metaProgress));
+  } catch {}
+}
+
+function mapVariant(id = selectedMap) {
+  return mapVariants.find((map) => map.id === id) || mapVariants[0];
+}
+
+function mapUnlocked(id) {
+  return metaProgress.unlockedMaps.includes(id);
+}
+
+function normalizeSelectedMap(id) {
+  const fallback = mapVariants[0].id;
+  return mapUnlocked(id) ? id : fallback;
+}
+
+function metaRelicBonuses() {
+  const relics = new Set(metaProgress.unlockedRelics || []);
+  return {
+    magnet: relics.has("Flutkompass") ? 28 : 0,
+    speed: relics.has("Grog-Stiefel") ? 12 : 0,
+    damage: relics.has("Saebelkerbe") ? 0.04 : 0,
+    armor: 0,
+  };
+}
+
 let state = null;
 const keys = new Set();
 const pointer = { active: false, id: null, dx: 0, dy: 0, originX: 0, originY: 0, radius: 48 };
@@ -481,8 +618,10 @@ let activeUpgradeChoices = [];
 let selectedUpgradeIndex = 0;
 
 function makeState() {
+  const relicBonus = metaRelicBonuses();
   return {
     phase: "menu",
+    map: selectedMap,
     elapsed: 0,
     spawnTimer: 0,
     bossTimer: 0,
@@ -491,6 +630,7 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
+    runStats: { landmarks: 0, powerups: 0, unlocked: [] },
     coins: 0,
     level: 1,
     xp: 0,
@@ -511,10 +651,10 @@ function makeState() {
       skin: selectedSkin,
     },
     stats: {
-      speed: 258,
-      damage: 1.12,
-      armor: 2,
-      magnet: 280,
+      speed: 258 + relicBonus.speed,
+      damage: 1.12 + relicBonus.damage,
+      armor: 2 + relicBonus.armor,
+      magnet: 280 + relicBonus.magnet,
       pickupValue: 1.12,
       dashCooldown: 0.68,
     },
@@ -550,7 +690,8 @@ function makeState() {
     zones: [],
     particles: [],
     texts: [],
-    props: makeProps(),
+    powerups: [],
+    props: makeProps(selectedMap),
     voice: {
       nextLowHpAt: 0,
       minuteMark: 0,
@@ -559,7 +700,8 @@ function makeState() {
   };
 }
 
-function makeProps() {
+function makeProps(mapId = selectedMap) {
+  const variant = mapVariant(mapId);
   const props = [];
   const choices = [
     "rope",
@@ -588,11 +730,13 @@ function makeProps() {
     "palmHedge",
     "buriedTreasure",
     "conchShrine",
+    ...(variant.propBoost || []),
   ];
   for (let gx = 320; gx < WORLD.w - 320; gx += 520) {
     for (let gy = 320; gy < WORLD.h - 320; gy += 470) {
       const h = hash2(Math.floor(gx / 50), Math.floor(gy / 50));
-      if (h % 13 < 4) {
+      const detailBoost = variant.detail === "treasure" ? 5 : variant.detail === "lagoon" ? 4 : 3;
+      if (h % 13 < detailBoost) {
         const icon = choices[h % choices.length];
         props.push({
           x: gx + ((h >> 4) % 240) - 120,
@@ -605,11 +749,11 @@ function makeProps() {
       }
     }
   }
-  const landmarks = ["beachHut", "boatWreck", "buriedTreasure", "conchShrine"];
+  const landmarks = ["beachHut", "boatWreck", "buriedTreasure", "conchShrine", ...(variant.propBoost || [])];
   for (let gx = 700; gx < WORLD.w - 520; gx += 1150) {
     for (let gy = 740; gy < WORLD.h - 520; gy += 1080) {
       const h = hash2(Math.floor(gx / 70), Math.floor(gy / 70));
-      if (h % 9 < 3) {
+      if (h % 9 < (variant.detail === "treasure" ? 5 : 3)) {
         const icon = landmarks[h % landmarks.length];
         props.push({
           x: gx + ((h >> 5) % 320) - 160,
@@ -622,7 +766,9 @@ function makeProps() {
       }
     }
   }
-  const blockerIcons = ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"];
+  const blockerIcons = variant.detail === "gothic"
+    ? ["hedgeCluster", "palmHedge", "gothicCandelabra", "boatWreck", "beachHut"]
+    : ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"];
   for (let gx = 520; gx < WORLD.w - 520; gx += 920) {
     for (let gy = 560; gy < WORLD.h - 520; gy += 820) {
       const h = hash2(Math.floor(gx / 90), Math.floor(gy / 90));
@@ -697,10 +843,13 @@ function prepareAudio() {
   }
   music = new Audio(audioSources.bgmMain);
   music.loop = true;
+  music.preload = "auto";
   music.volume = musicConfig.main;
   rushMusic = new Audio(audioSources.bgmRush);
   rushMusic.loop = true;
+  rushMusic.preload = "auto";
   rushMusic.volume = 0;
+  activeMusicTrack = null;
 }
 
 function prepareSpeech() {
@@ -725,6 +874,8 @@ async function boot() {
   state = makeState();
   resize();
   renderSkinPicker();
+  renderMapPicker();
+  renderMetaProgress();
   const entries = Object.entries(imageSources);
   let loadedImages = 0;
   setLoadingProgress(0, entries.length);
@@ -760,6 +911,44 @@ function renderSkinPicker() {
       </button>
     `;
   }).join("");
+}
+
+function renderMapPicker() {
+  if (!ui.mapPicker) return;
+  selectedMap = normalizeSelectedMap(selectedMap);
+  ui.mapPicker.innerHTML = mapVariants.map((map) => {
+    const unlocked = mapUnlocked(map.id);
+    const active = selectedMap === map.id;
+    const unlock = map.achievement ? achievementDefinitions.find((achievement) => achievement.id === map.achievement) : null;
+    const desc = unlocked ? map.desc : `Gesperrt: ${unlock?.name || "Fortschritt"}`;
+    return `
+      <button class="map-option ${active ? "active" : ""} ${unlocked ? "" : "locked"}" type="button" data-map="${map.id}" aria-checked="${active ? "true" : "false"}" ${unlocked ? "" : "disabled"}>
+        <span class="map-name">${map.name}</span>
+        <span class="map-desc">${desc}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderMetaProgress() {
+  if (!ui.metaProgress) return;
+  const done = achievementDefinitions.filter((achievement) => metaProgress.achievements[achievement.id]).length;
+  const relicText = metaProgress.unlockedRelics.length ? metaProgress.unlockedRelics.join(", ") : "keine";
+  ui.metaProgress.innerHTML = `
+    <span class="progress-chip"><strong>${done}/${achievementDefinitions.length}</strong> Achievements</span>
+    <span class="progress-chip"><strong>${metaProgress.unlockedMaps.length}/${mapVariants.length}</strong> Karten</span>
+    <span class="progress-chip"><strong>${metaProgress.bestStreak}</strong> Best-Streak</span>
+    <span class="progress-chip"><strong>${relicText}</strong> Startrelikte</span>
+  `;
+}
+
+function setSelectedMap(id) {
+  if (!mapUnlocked(id)) return;
+  selectedMap = id;
+  try {
+    window.localStorage?.setItem("monkeyTideMap", id);
+  } catch {}
+  renderMapPicker();
 }
 
 function setPlayerSkin(id) {
@@ -831,19 +1020,48 @@ function syncMusic() {
   if (!music || !rushMusic) return;
   music.muted = muted;
   rushMusic.muted = muted;
-  const rush = state.phase === "playing" ? clamp((state.elapsed - musicConfig.rushStart) / musicConfig.rushFade, 0, 1) : 0;
-  music.volume = muted ? 0 : musicConfig.main * (1 - rush * musicConfig.mainRushDuck);
-  rushMusic.volume = muted ? 0 : musicConfig.rush * rush;
-  if (state.phase === "playing") {
-    music.play().catch(() => {});
-    rushMusic.play().catch(() => {});
+  if (muted || state.phase !== "playing") {
+    stopMusicTracks();
+    return;
   }
+  const nextTrack = state.elapsed >= musicConfig.rushStart ? "rush" : "main";
+  if (activeMusicTrack !== nextTrack) switchMusicTrack(nextTrack);
+  music.volume = nextTrack === "main" ? musicConfig.main : 0;
+  rushMusic.volume = nextTrack === "rush" ? musicConfig.rush : 0;
+}
+
+function switchMusicTrack(track) {
+  const from = track === "rush" ? music : rushMusic;
+  const to = track === "rush" ? rushMusic : music;
+  from.pause();
+  from.volume = 0;
+  to.volume = track === "rush" ? musicConfig.rush : musicConfig.main;
+  to.play().catch(() => {});
+  activeMusicTrack = track;
+}
+
+function stopMusicTracks() {
+  music.pause();
+  rushMusic.pause();
+  music.volume = 0;
+  rushMusic.volume = 0;
+  activeMusicTrack = null;
+}
+
+function resetMusicTracks() {
+  stopMusicTracks();
+  try {
+    music.currentTime = 0;
+    rushMusic.currentTime = 0;
+  } catch {}
 }
 
 function startGame(options = {}) {
   if (!ready) return;
   quickMode = options.quick === true;
   resetSpeechForRun();
+  resetMusicTracks();
+  selectedMap = normalizeSelectedMap(selectedMap);
   state = makeState();
   state.phase = "playing";
   if (quickMode) {
@@ -873,12 +1091,14 @@ function startGame(options = {}) {
 }
 
 function endGame(victory) {
+  recordRunProgress(victory);
   state.phase = victory ? "victory" : "gameover";
   ui.endEyebrow.textContent = victory ? "Flut gebrochen" : "Vertrag beendet";
   ui.endTitle.textContent = victory ? "Strand gehalten" : "Die Geistercrew war schneller";
   ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level}`;
   ui.endOverlay.hidden = false;
   playSound(victory ? "chime" : "gate");
+  syncMusic();
   speak(
     victory ? "Strand gehalten. Die Affenflut zieht ab!" : "Die Geistercrew war schneller. Nochmal in die Flut!",
     { key: victory ? "victory" : "gameover", interrupt: true, cooldown: 0 },
@@ -895,8 +1115,14 @@ function loop(now) {
 
 function update(dt) {
   state.elapsed += dt;
+  const survived = Math.floor(state.elapsed);
+  if (survived > metaProgress.bestSurvival) {
+    metaProgress.bestSurvival = survived;
+    unlockAchievements();
+  }
   state.warningTimer = Math.max(0, state.warningTimer - dt);
   updatePlayer(dt);
+  updatePowerups(dt);
   updateWeapons(dt);
   updateSpawns(dt);
   updateEnemies(dt);
@@ -943,7 +1169,8 @@ function updatePlayer(dt) {
   p.dashCooldown = Math.max(0, p.dashCooldown - dt);
   p.dash = Math.max(0, p.dash - dt);
   const dashBoost = p.dash > 0 ? 2.95 : 1;
-  moveActorWithObstacles(p, input.x * state.stats.speed * dashBoost, input.y * state.stats.speed * dashBoost, dt, p.r);
+  const speedBoost = activePowerMultiplier("speed");
+  moveActorWithObstacles(p, input.x * state.stats.speed * speedBoost * dashBoost, input.y * state.stats.speed * speedBoost * dashBoost, dt, p.r);
   state.camera.x += (p.x - state.camera.x) * Math.min(1, dt * 7.5);
   state.camera.y += (p.y - state.camera.y) * Math.min(1, dt * 7.5);
 }
@@ -1261,6 +1488,10 @@ function enemyType(id) {
 function pickEnemyType() {
   const t = state.elapsed;
   const roll = Math.random();
+  const variant = mapVariant(state.map);
+  if (variant.enemyFavor && roll < 0.22) return enemyType(variant.enemyFavor[Math.floor(Math.random() * variant.enemyFavor.length)]);
+  if (variant.detail === "lagoon" && t > 42 && roll < 0.32) return enemyType("hand");
+  if (variant.detail === "treasure" && t > 56 && roll < 0.34) return enemyType("powderImp");
   if (t > 282 && roll < 0.16) return enemyType("stormDuelist");
   if (t > 238 && roll < 0.2) return enemyType("coralBrute");
   if (t > 220 && roll < 0.26) return enemyType("barrelMaw");
@@ -1331,7 +1562,7 @@ function updateEnemies(dt) {
     moveActorWithObstacles(enemy, desired.x * enemy.speed, desired.y * enemy.speed, dt, enemy.r, actorIgnoresObstacles(enemy));
     updateEnemyRangedAttack(enemy, dt, dist, dx, dy);
     if (dist < p.r + enemy.r && p.invuln <= 0) {
-      const damage = Math.max(1, enemy.damage - state.stats.armor);
+      const damage = Math.max(1, enemy.damage - state.stats.armor - activePowerBonus("armor"));
       p.hp -= damage;
       p.invuln = 0.88;
       p.x -= (dx / dist) * 30;
@@ -1438,7 +1669,7 @@ function updateProjectiles(dt) {
         state.zones.push({ type: "curseBurst", x: projectile.x, y: projectile.y, radius: 78, life: 0.24, maxLife: 0.24, fx: projectile.fx });
         projectile.life = 0;
         if (p.invuln <= 0) {
-          const damage = Math.max(1, projectile.damage - Math.floor(state.stats.armor * 0.45));
+          const damage = Math.max(1, projectile.damage - Math.floor((state.stats.armor + activePowerBonus("armor")) * 0.45));
           p.hp -= damage;
           p.invuln = 0.7;
           p.x += (p.x - projectile.x) / Math.max(1, dist) * 20;
@@ -1479,7 +1710,7 @@ function updateGems(dt) {
       collectGem(gem);
       continue;
     }
-    const range = state.stats.magnet + (gem.kind === "xp" ? 140 : gem.kind === "heart" ? 120 : 55);
+    const range = state.stats.magnet + activePowerBonus("magnet") + (gem.kind === "xp" ? 140 : gem.kind === "heart" ? 120 : gem.kind === "powerup" ? 155 : 55);
     if (dist < range) {
       const pull = (1 - dist / range) * 920 + 240;
       gem.x += (dx / Math.max(1, dist)) * pull * dt;
@@ -1505,16 +1736,58 @@ function updateExploration() {
     floatingText(label, prop.x, prop.y - 80, "#fff2c7");
     const xpValue = isShrine ? 58 : isChest ? 36 : 46;
     const coinValue = isShrine ? 8 : isChest ? 18 : 18;
+    state.runStats.landmarks += 1;
+    metaProgress.landmarks += 1;
     state.gems.push({ kind: "xp", icon: "skullCoin", x: prop.x, y: prop.y - 18, r: 12, value: xpValue, life: 34 });
     state.gems.push({ kind: "coin", icon: "coin", x: prop.x + 24, y: prop.y + 8, r: 12, value: coinValue, life: 34 });
     if (!isChest) state.gems.push({ kind: "heart", icon: "lime", x: prop.x - 24, y: prop.y + 8, r: 13, value: 1, life: 28 });
+    if (isChest || isShrine || prop.streakCache) spawnPowerup(prop.x - 36, prop.y + 18, isShrine ? "voodooWard" : null);
     if (isShrine) {
       state.player.invuln = Math.max(state.player.invuln, 1.25);
       state.zones.push({ type: "curseBurst", x: prop.x, y: prop.y, radius: 96, life: 0.32, maxLife: 0.32, fx: "monkeyCurseOrb" });
     }
+    unlockAchievements();
+    saveMetaProgress();
+    renderMetaProgress();
     playSound("downloadUpgrade", { force: true });
     playSound("chime", { force: true });
   }
+}
+
+function updatePowerups(dt) {
+  for (const powerup of state.powerups) powerup.timer -= dt;
+  state.powerups = state.powerups.filter((powerup) => powerup.timer > 0);
+}
+
+function powerUpType(id) {
+  return powerUpTypes.find((powerup) => powerup.id === id) || powerUpTypes[0];
+}
+
+function activePowerMultiplier(stat) {
+  return state.powerups.reduce((value, powerup) => value * (powerUpType(powerup.id)[stat] || 1), 1);
+}
+
+function activePowerBonus(stat) {
+  return state.powerups.reduce((value, powerup) => value + (powerUpType(powerup.id)[stat] || 0), 0);
+}
+
+function activatePowerup(id) {
+  const type = powerUpType(id);
+  const existing = state.powerups.find((powerup) => powerup.id === type.id);
+  if (existing) existing.timer = Math.max(existing.timer, type.duration);
+  else state.powerups.push({ id: type.id, timer: type.duration, duration: type.duration });
+  if (type.armor) state.player.invuln = Math.max(state.player.invuln, 0.95);
+  state.runStats.powerups += 1;
+  metaProgress.powerups += 1;
+  floatingText(type.name, state.player.x, state.player.y - 92, type.color);
+  unlockAchievements();
+  saveMetaProgress();
+  renderMetaProgress();
+}
+
+function spawnPowerup(x, y, forcedId = null) {
+  const type = forcedId ? powerUpType(forcedId) : powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+  state.gems.push({ kind: "powerup", powerup: type.id, icon: type.icon, x, y, r: 16, value: 1, life: 24 });
 }
 
 function collectGem(gem) {
@@ -1522,8 +1795,12 @@ function collectGem(gem) {
   if (gem.kind === "heart") {
     state.player.hp = Math.min(state.player.maxHp, state.player.hp + 36);
     floatingText("+HP", state.player.x, state.player.y - 72, "#79e0b7");
+  } else if (gem.kind === "powerup") {
+    activatePowerup(gem.powerup);
+    playSound("downloadUpgrade", { force: true });
   } else if (gem.kind === "coin") {
     state.coins += gem.value;
+    metaProgress.coins += gem.value;
     floatingText(`+${gem.value}`, gem.x, gem.y - 18, "#f0c45d");
   } else {
     const streakBonus = state.streak?.count >= 10 ? 1.16 : state.streak?.count >= 5 ? 1.08 : 1;
@@ -1566,6 +1843,7 @@ function updateParticles(dt) {
 
 function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   if (enemy.hp <= 0) return;
+  amount *= activePowerMultiplier("damage");
   enemy.hp -= amount;
   enemy.hit = 0.14;
   enemy.x += clamp(nx, -1, 1) * 7;
@@ -1589,11 +1867,13 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
 
 function killEnemy(enemy) {
   state.killCount += 1;
+  metaProgress.kills += 1;
   recordStreakKill(enemy);
   const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.8 : 1) * (1 + state.elapsed / 760));
   state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
   if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
   if (Math.random() < 0.06) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
+  if (enemy.boss || Math.random() < 0.032 || state.streak.count === 8) spawnPowerup(enemy.x - 18, enemy.y + 16);
   if (enemy.boss) {
     state.warningTimer = 2;
     const downText = enemy.type.id === "spectralCaptain"
@@ -1613,6 +1893,8 @@ function killEnemy(enemy) {
   } else if (Math.random() < 0.08) {
     playSound("pickup", { cooldown: 650 });
   }
+  unlockAchievements();
+  saveMetaProgress();
 }
 
 function recordStreakKill(enemy) {
@@ -1621,6 +1903,7 @@ function recordStreakKill(enemy) {
   streak.count += 1;
   streak.timer = Math.min(5.2, 3.1 + streak.count * 0.035);
   streak.best = Math.max(streak.best, streak.count);
+  metaProgress.bestStreak = Math.max(metaProgress.bestStreak, streak.best);
   if (streak.count === 8 || streak.count % 12 === 0) {
     floatingText(`Streak x${streak.count}`, enemy.x, enemy.y - enemy.r - 48, "#fff2c7");
     playSound("downloadPickup", { cooldown: 650 });
@@ -1629,6 +1912,7 @@ function recordStreakKill(enemy) {
     spawnStreakCache(streak.count);
     streak.nextCache += 16;
   }
+  unlockAchievements();
 }
 
 function spawnStreakCache(count) {
@@ -1652,8 +1936,50 @@ function spawnStreakCache(count) {
   speak("Streak-Schatz gesichtet.", { key: "streak-cache", cooldown: 9000, rate: 1.06 });
 }
 
+function unlockAchievements() {
+  let changed = false;
+  for (const achievement of achievementDefinitions) {
+    if (metaProgress.achievements[achievement.id]) continue;
+    if ((metaProgress[achievement.field] || 0) < achievement.target) continue;
+    metaProgress.achievements[achievement.id] = true;
+    changed = true;
+    if (achievement.unlockMap && !metaProgress.unlockedMaps.includes(achievement.unlockMap)) {
+      metaProgress.unlockedMaps.push(achievement.unlockMap);
+      state?.runStats?.unlocked?.push(achievement.unlockMap);
+    }
+    if (achievement.unlockRelic && !metaProgress.unlockedRelics.includes(achievement.unlockRelic)) {
+      metaProgress.unlockedRelics.push(achievement.unlockRelic);
+      state?.runStats?.unlocked?.push(achievement.unlockRelic);
+    }
+    if (state?.phase === "playing") {
+      floatingText(`Erfolg: ${achievement.name}`, state.player.x, state.player.y - 118, "#fff2c7");
+      playSound("downloadUpgrade", { force: true });
+    }
+  }
+  if (changed) {
+    metaProgress = normalizeMetaProgress(metaProgress);
+    saveMetaProgress();
+    renderMapPicker();
+    renderMetaProgress();
+  }
+  return changed;
+}
+
+function recordRunProgress(victory) {
+  metaProgress.runs += 1;
+  if (victory) metaProgress.wins += 1;
+  metaProgress.bestLevel = Math.max(metaProgress.bestLevel, state.level);
+  metaProgress.bestSurvival = Math.max(metaProgress.bestSurvival, Math.floor(state.elapsed));
+  metaProgress.bestStreak = Math.max(metaProgress.bestStreak, state.streak.best);
+  unlockAchievements();
+  saveMetaProgress();
+  renderMapPicker();
+  renderMetaProgress();
+}
+
 function levelUp() {
   state.level += 1;
+  metaProgress.bestLevel = Math.max(metaProgress.bestLevel, state.level);
   state.nextXp = Math.round(22 + state.level * 14 + state.level * state.level * 1.35);
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + 16);
   state.phase = "levelup";
@@ -1777,7 +2103,7 @@ function updateDom() {
 
 function updateLoadout() {
   const weaponEntries = weaponLoadoutItems.filter(([id]) => state.weapons[id].level > 0);
-  ui.loadout.innerHTML = weaponEntries.map(([id, name, icon]) => `
+  const weaponHtml = weaponEntries.map(([id, name, icon]) => `
     <div class="loadout-item">
       <span class="loadout-icon" style="${iconStyle(icon)}"></span>
       <span>
@@ -1786,6 +2112,19 @@ function updateLoadout() {
       </span>
     </div>
   `).join("");
+  const powerHtml = state.powerups.map((powerup) => {
+    const type = powerUpType(powerup.id);
+    return `
+      <div class="loadout-item powerup">
+        <span class="loadout-icon" style="${iconStyle(type.icon)}"></span>
+        <span>
+          <span class="loadout-name">${type.name}</span>
+          <span class="loadout-level">${Math.ceil(powerup.timer)}s</span>
+        </span>
+      </div>
+    `;
+  }).join("");
+  ui.loadout.innerHTML = weaponHtml + powerHtml;
 }
 
 function render() {
@@ -1824,8 +2163,10 @@ function drawWorld() {
   const cam = state.camera;
   const ox = scene.w / 2 - cam.x;
   const oy = scene.h / 2 - cam.y;
+  const variant = mapVariant(state.map);
   drawRepeatingMap(images.repeatBeach, ox, oy);
-  drawNaturalGroundDetails(ox, oy);
+  drawMapTint(variant);
+  drawNaturalGroundDetails(ox, oy, variant);
 }
 
 function drawRepeatingMap(image, ox, oy) {
@@ -1840,7 +2181,15 @@ function drawRepeatingMap(image, ox, oy) {
   }
 }
 
-function drawNaturalGroundDetails(ox, oy) {
+function drawMapTint(variant) {
+  if (!variant?.tint) return;
+  ctx.save();
+  ctx.fillStyle = variant.tint;
+  ctx.fillRect(0, 0, scene.w, scene.h);
+  ctx.restore();
+}
+
+function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
   const tile = 220;
   const cam = state.camera;
   const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
@@ -1853,12 +2202,15 @@ function drawNaturalGroundDetails(ox, oy) {
       const x = gx * tile;
       const y = gy * tile;
       const h = hash2(gx, gy);
-      if (h % 17 === 0 || h % 31 === 0) {
-        const icon = h % 31 === 0 ? "tidePuddle" : "clearPuddle";
+      const lagoon = variant.detail === "lagoon";
+      const gothic = variant.detail === "gothic";
+      const treasure = variant.detail === "treasure";
+      if (h % (lagoon ? 11 : 17) === 0 || h % (treasure ? 23 : 31) === 0) {
+        const icon = gothic && h % 23 === 0 ? "gothicCandelabra" : h % 31 === 0 ? "tidePuddle" : "clearPuddle";
         const px = ox + x + 30 + ((h >> 6) % 160);
         const py = oy + y + 30 + ((h >> 13) % 150);
-        const w = 104 + (h % 42);
-        const ph = 74 + ((h >> 4) % 28);
+        const w = gothic && icon === "gothicCandelabra" ? 54 : 104 + (h % 42);
+        const ph = gothic && icon === "gothicCandelabra" ? 54 : 74 + ((h >> 4) % 28);
         drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, icon === "tidePuddle" ? 0.34 : 0.3);
       }
     }
@@ -1894,7 +2246,7 @@ function drawGems() {
   for (const gem of state.gems) {
     if (!onScreen(gem.x, gem.y, 80)) continue;
     const t = performance.now() / 260;
-    const size = gem.kind === "xp" ? 28 : 34;
+    const size = gem.kind === "xp" ? 28 : gem.kind === "powerup" ? 42 : 34;
     ctx.save();
     ctx.translate(ox + gem.x, oy + gem.y + Math.sin(t + gem.x) * 4);
     ctx.rotate(Math.sin(t) * 0.1);
@@ -2328,7 +2680,7 @@ function getSceneZoom() {
   const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
   const mobileSized = Math.min(viewW, viewH) <= 520 || Math.max(viewW, viewH) <= 920;
   if (coarsePointer || mobileSized) {
-    return viewW > viewH ? 0.56 : 0.64;
+    return viewW > viewH ? 0.48 : 0.54;
   }
   if (viewW < 980) return 0.86;
   return 1;
@@ -2425,6 +2777,11 @@ ui.skinPicker.addEventListener("click", (event) => {
   const button = event.target.closest("[data-skin]");
   if (!button) return;
   setPlayerSkin(button.dataset.skin);
+});
+ui.mapPicker.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-map]");
+  if (!button) return;
+  setSelectedMap(button.dataset.map);
 });
 ui.pauseButton.addEventListener("click", togglePause);
 ui.audioButton.addEventListener("click", toggleMute);
@@ -2542,6 +2899,10 @@ window.__MONKEY_TIDE_FORCE_LEVELUP = () => {
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
+window.__MONKEY_TIDE_SET_MAP = (id) => {
+  if (mapUnlocked(id)) setSelectedMap(id);
+  return window.__MONKEY_TIDE_DEBUG();
+};
 window.__MONKEY_TIDE_SPAWN_ENEMY = (id, x = state.player.x + 260, y = state.player.y, boss = false) => {
   const type = enemyType(id);
   const scaledHp = type.hp * (1 + state.elapsed / BALANCE.enemyHpGrowth) * (boss ? BALANCE.bossHpMult : 1);
@@ -2606,6 +2967,23 @@ window.__MONKEY_TIDE_OBSTACLE_PROBE = () => {
     blockingProps: state.props.filter(propBlocksMovement).length,
   };
 };
+window.__MONKEY_TIDE_PROGRESS_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  spawnPowerup(state.player.x + 36, state.player.y, "rumRush");
+  spawnPowerup(state.player.x + 72, state.player.y, "blackPowder");
+  spawnPowerup(state.player.x + 108, state.player.y, "pearlMagnet");
+  for (const gem of state.gems.filter((gem) => gem.kind === "powerup")) collectGem(gem);
+  metaProgress.landmarks = Math.max(metaProgress.landmarks, 4);
+  metaProgress.bestSurvival = Math.max(metaProgress.bestSurvival, 160);
+  metaProgress.kills = Math.max(metaProgress.kills, 40);
+  metaProgress.bestStreak = Math.max(metaProgress.bestStreak, 12);
+  unlockAchievements();
+  saveMetaProgress();
+  renderMapPicker();
+  renderMetaProgress();
+  render();
+  return window.__MONKEY_TIDE_DEBUG();
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -2631,6 +3009,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
+  map: { selected: state.map, selectedName: mapVariant(state.map).name, variants: mapVariants.map((map) => map.id), unlocked: [...metaProgress.unlockedMaps] },
+  powerups: { active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })), types: powerUpTypes.map((powerup) => powerup.id), collectedThisRun: state.runStats.powerups },
+  progression: {
+    kills: metaProgress.kills,
+    landmarks: metaProgress.landmarks,
+    powerups: metaProgress.powerups,
+    bestSurvival: metaProgress.bestSurvival,
+    achievements: { ...metaProgress.achievements },
+    unlockedRelics: [...metaProgress.unlockedRelics],
+  },
   upgradeIcons: Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, upgrade.icon])),
   weaponLoadoutIcons: Object.fromEntries(weaponLoadoutItems.map(([id, , icon]) => [id, icon])),
   ropeVisual: { renderMode: "ropeWardSprites", sprite: "ropeRing", pulse: "tidePulse" },
@@ -2655,6 +3043,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
   audio: {
     mainVolume: music?.volume ?? 0,
     rushVolume: rushMusic?.volume ?? 0,
+    activeTrack: activeMusicTrack,
+    tracksPlaying: {
+      main: music ? !music.paused : false,
+      rush: rushMusic ? !rushMusic.paused : false,
+    },
+    overlapSafe: !music || !rushMusic || music.paused || rushMusic.paused || music.volume === 0 || rushMusic.volume === 0,
     sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
     sources: { ...audioSources },
     music: { ...musicConfig },

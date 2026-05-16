@@ -155,6 +155,16 @@ async function run() {
   await page.click('[data-skin="curseMonkey"]');
   const pickedSkin = await page.evaluate(() => document.querySelector('[data-skin="curseMonkey"]')?.getAttribute("aria-checked"));
   assert(pickedSkin === "true", `Skin picker did not select curseMonkey: ${pickedSkin}`);
+  const mapUi = await page.evaluate(() => Array.from(document.querySelectorAll("#mapPicker [data-map]")).map((button) => ({
+    id: button.dataset.map,
+    checked: button.getAttribute("aria-checked") === "true",
+    locked: button.disabled,
+    label: button.textContent.trim(),
+  })));
+  assert(mapUi.length >= 4 && mapUi.filter((map) => !map.locked).length >= 2, `Map picker is missing variants or default unlocks: ${JSON.stringify(mapUi)}`);
+  await page.click('[data-map="moonlitLagoon"]');
+  const pickedMap = await page.evaluate(() => document.querySelector('[data-map="moonlitLagoon"]')?.getAttribute("aria-checked"));
+  assert(pickedMap === "true", `Map picker did not select moonlitLagoon: ${pickedMap}`);
   await page.evaluate(() => window.__MONKEY_TIDE_START());
   await page.waitForTimeout(500);
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
@@ -192,11 +202,14 @@ async function run() {
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
-  assert(debug.audio.mainVolume >= 0.55, `Main music should be prominent: ${JSON.stringify(debug)}`);
-  assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125 && debug.audio.music.mainRushDuck <= 0.12, `Rush music should enter earlier and louder without burying the main track: ${JSON.stringify(debug)}`);
+  assert(debug.map.selected === "moonlitLagoon" && debug.map.variants.length >= 4, `Selected map did not reach runtime: ${JSON.stringify(debug.map)}`);
+  assert(debug.audio.music.main >= 0.6, `Main music config should be prominent: ${JSON.stringify(debug)}`);
+  assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
+  assert(debug.audio.activeTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to rush BGM: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.sources.bgmMain.includes("crimson-galleon.mp3") && debug.audio.sources.bgmRush.includes("gargoyle-chapel-run.mp3"), `Driving BGM tracks are not selected: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.mainVolume > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult >= 2.45 && debug.balance.normalSpawnIntensity >= 1.1, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
@@ -242,6 +255,12 @@ async function run() {
   assert(obstacleProbe.playerBlocked && obstacleProbe.playerStayedOnApproachSide, `Player did not route around blocker: ${JSON.stringify(obstacleProbe)}`);
   assert(obstacleProbe.groundPushed, `Ground enemy was not pushed out of blocker: ${JSON.stringify(obstacleProbe)}`);
   assert(obstacleProbe.ghostCanPass, `Ghost/flying pass-through rule failed: ${JSON.stringify(obstacleProbe)}`);
+
+  const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
+  assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
+  assert(progressProbe.map.unlocked.includes("gothicCove") && progressProbe.map.unlocked.includes("treasureAtoll"), `Unlockable maps did not unlock: ${JSON.stringify(progressProbe.map)}`);
+  assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);
 
   const upgradeProbe = await page.evaluate(() => {
     if (window.__MONKEY_TIDE_DEBUG().phase !== "levelup") window.__MONKEY_TIDE_FORCE_LEVELUP();
@@ -320,7 +339,7 @@ async function run() {
   assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
-  assert(touchProbe.moved.scene.zoom <= 0.66, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.moved.scene.zoom <= 0.56, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.active === true, `Right-side thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.dx < -0.6, `Right-side thumbstick did not point left: ${JSON.stringify(touchProbe)}`);
@@ -342,7 +361,7 @@ async function run() {
       fullscreenText: document.getElementById("fullscreenButton").textContent,
     };
   });
-  assert(landscapeUi.debug.scene.zoom <= 0.58, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
+  assert(landscapeUi.debug.scene.zoom <= 0.5, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.hud.width <= 360 && landscapeUi.hud.bottom <= 58, `Landscape HUD covers too much playfield: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.loadout.height <= 54, `Landscape loadout is too tall: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.dash.width <= 72 && landscapeUi.dash.height <= 72, `Landscape dash button is too large: ${JSON.stringify(landscapeUi)}`);

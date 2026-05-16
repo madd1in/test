@@ -373,6 +373,79 @@ button:disabled {
   text-shadow: 0 2px 0 #321304, 0 0 7px rgba(255, 224, 144, 0.2);
 }
 
+.map-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(104px, 1fr));
+  width: min(690px, 100%);
+  gap: 8px;
+  margin: -6px auto 12px;
+}
+
+.map-option {
+  display: grid;
+  min-width: 0;
+  min-height: 82px;
+  gap: 3px;
+  align-content: center;
+  padding: 9px 8px;
+  border: 2px solid rgba(72, 38, 12, 0.34);
+  border-radius: 8px;
+  background-image:
+    linear-gradient(135deg, rgba(255, 224, 137, 0.18), rgba(43, 132, 123, 0.12)),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.13), 0 4px 0 rgba(83, 41, 12, 0.18);
+  color: #ffe7aa;
+  text-align: left;
+}
+
+.map-option.active {
+  border-color: rgba(255, 198, 83, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.25), 0 4px 0 #7c3d12, 0 0 18px rgba(255, 198, 83, 0.24);
+}
+
+.map-option.locked {
+  opacity: 0.58;
+  filter: grayscale(0.38);
+}
+
+.map-name,
+.progress-chip strong {
+  color: #ffe7aa;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.05;
+  text-shadow: 0 2px 0 #321304;
+}
+
+.map-desc {
+  color: rgba(255, 235, 186, 0.74);
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.18;
+}
+
+.meta-progress {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  width: min(690px, 100%);
+  margin: 0 auto 16px;
+}
+
+.progress-chip {
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid rgba(92, 51, 16, 0.32);
+  border-radius: 8px;
+  background: rgba(74, 37, 12, 0.34);
+  color: rgba(255, 235, 186, 0.78);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
 .menu-actions {
   display: flex;
   flex-wrap: wrap;
@@ -675,6 +748,12 @@ button:disabled {
     margin-bottom: 14px;
   }
 
+  .map-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
   .skin-option {
     min-height: 88px;
     grid-template-rows: 60px auto;
@@ -775,6 +854,17 @@ button:disabled {
     margin: -10px auto 12px;
   }
 
+  .map-picker {
+    grid-template-columns: repeat(4, minmax(82px, 1fr));
+    gap: 5px;
+    margin: -8px auto 8px;
+  }
+
+  .map-option {
+    min-height: 62px;
+    padding: 6px;
+  }
+
   .skin-option {
     min-height: 70px;
     grid-template-rows: 46px auto;
@@ -849,6 +939,10 @@ button:disabled {
   }
 
   .skin-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .map-picker {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
