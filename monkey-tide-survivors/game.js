@@ -39,6 +39,7 @@ const imageSources = {
   repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
+  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -114,6 +115,7 @@ const loadingState = { loaded: 0, total: 0, last: "" };
 const CHAR = { w: 192, h: 256, cols: 16 };
 const CHAR_ICON_ROWS = 12;
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
+const PLAYER_SKIN_WALK = { w: 256, h: 256, cols: 8, rows: 6 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
@@ -136,12 +138,12 @@ const BALANCE = {
 
 const playerSkinMap = {
   default: { name: "Kaeptnin", sheet: "characters", w: 104, h: 138 },
-  islandPirate: { name: "Insel-Pirat", sheet: "playerSkins", x: 109, y: 22, w: 323, h: 478, drawH: 142, cellX: 0, cellY: 0 },
-  curseMonkey: { name: "Fluchaffe", sheet: "playerSkins", x: 613, y: 112, w: 411, h: 369, drawH: 118, cellX: 1, cellY: 0 },
-  dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, cellX: 2, cellY: 0 },
-  rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, cellX: 0, cellY: 1 },
-  starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, cellX: 1, cellY: 1 },
-  freelanceDuo: { name: "Freelance-Duo", sheet: "playerSkins", x: 1054, y: 512, w: 319, h: 485, drawH: 140, cellX: 2, cellY: 1 },
+  islandPirate: { name: "Insel-Pirat", sheet: "playerSkins", x: 109, y: 22, w: 323, h: 478, drawH: 142, animH: 170, animRow: 0, cellX: 0, cellY: 0 },
+  curseMonkey: { name: "Fluchaffe", sheet: "playerSkins", x: 613, y: 112, w: 411, h: 369, drawH: 118, animH: 162, animRow: 1, cellX: 1, cellY: 0 },
+  dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, animH: 176, animRow: 2, cellX: 2, cellY: 0 },
+  rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, animH: 178, animRow: 3, cellX: 0, cellY: 1 },
+  starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, animH: 168, animRow: 4, cellX: 1, cellY: 1 },
+  freelanceDuo: { name: "Freelance-Duo", sheet: "playerSkins", x: 1054, y: 512, w: 319, h: 485, drawH: 140, animH: 176, animRow: 5, cellX: 2, cellY: 1 },
 };
 const playerSkinIds = Object.keys(playerSkinMap);
 let selectedSkin = (() => {
@@ -1562,7 +1564,15 @@ function drawPlayer() {
     ctx.shadowColor = "rgba(0,0,0,0.55)";
     ctx.shadowBlur = 14;
   }
-  if (skin.sheet === "playerSkins" && images.playerSkins) {
+  if (skin.animRow !== undefined && images.playerSkinWalks) {
+    const frame = moving ? Math.floor(state.elapsed * 12) % PLAYER_SKIN_WALK.cols : 0;
+    const sx = frame * PLAYER_SKIN_WALK.w;
+    const sy = skin.animRow * PLAYER_SKIN_WALK.h;
+    const bob = moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.3;
+    const h = skin.animH;
+    const w = h;
+    ctx.drawImage(images.playerSkinWalks, sx, sy, PLAYER_SKIN_WALK.w, PLAYER_SKIN_WALK.h, -w / 2, -h + 32 + bob, w, h);
+  } else if (skin.sheet === "playerSkins" && images.playerSkins) {
     const bob = moving ? Math.sin(state.elapsed * 13) * 4 : Math.sin(state.elapsed * 3.2) * 1.5;
     const stretch = moving ? 1 + Math.sin(state.elapsed * 20) * 0.025 : 1;
     const h = skin.drawH * stretch;
@@ -2099,6 +2109,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinName: playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name,
   playerSkinTypes: playerSkinIds,
   playerSkinAsset: !!images.playerSkins,
+  playerSkinAnimationAsset: !!images.playerSkinWalks,
+  playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
+  playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
   stats: { ...state.stats, nextXp: state.nextXp },
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },

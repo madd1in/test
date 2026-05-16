@@ -69,6 +69,7 @@ async function run() {
     "assets/backgrounds/topdown_beach_repeatable_hd.png",
     "assets/sprites/characters_imagen_hd_sheet.webp",
     "assets/sprites/player_skins_imagen_hd.webp",
+    "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -155,6 +156,8 @@ async function run() {
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
