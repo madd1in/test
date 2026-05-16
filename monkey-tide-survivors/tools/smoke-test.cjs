@@ -87,6 +87,8 @@ async function run() {
     "assets/sprites/beach-props-v2/boat_wreck.webp",
     "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/sprites/player_effects_imagen_hd.webp",
+    "assets/sprites/extra_enemies_imagen_hd.webp",
+    "assets/sprites/extra_items_imagen_hd.webp",
     "assets/ui/parchment_panel_imagen_hd.webp",
     "assets/ui/parchment_button_imagen_hd.webp",
     "assets/ui/parchment_card_imagen_hd.webp",
@@ -204,7 +206,12 @@ async function run() {
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.spectralCaptain, `Spectral captain sheet missing: ${JSON.stringify(debug)}`);
-  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain"), `Spectral captain boss missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute"), `Boss roster missing: ${JSON.stringify(debug)}`);
+  assert(debug.extraAssets.extraEnemies && debug.extraAssets.extraItems, `Extra Imagen sheets missing: ${JSON.stringify(debug)}`);
+  assert(debug.extraAssets.extraEnemyTypes.length >= 8 && debug.extraAssets.extraEnemyTypes.includes("tideWitch") && debug.extraAssets.extraEnemyTypes.includes("stormDuelist"), `Extra enemies missing: ${JSON.stringify(debug)}`);
+  assert(debug.extraAssets.extraItemTypes.length >= 8 && debug.extraAssets.extraItemTypes.includes("cursedPearl") && debug.extraAssets.extraItemTypes.includes("grogLantern"), `Extra item icons missing: ${JSON.stringify(debug)}`);
+  assert(debug.extraAssets.extraUpgradeTypes.length >= 8 && debug.extraAssets.extraUpgradeTypes.includes("powderPouch"), `Extra item upgrades missing: ${JSON.stringify(debug)}`);
+  assert(debug.preloadedAssetKeys.includes("extraEnemies") && debug.preloadedAssetKeys.includes("extraItems"), `Extra sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachProps, `Beach exploration prop sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("beachHut") && debug.explorationAssets.beachPropTypes.includes("boatWreck"), `Explorable landmarks missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("clearPuddle") && debug.explorationAssets.beachPropTypes.includes("hedgeCluster"), `HD puddles or hedges missing: ${JSON.stringify(debug)}`);
