@@ -462,9 +462,16 @@ button:disabled {
 }
 
 .upgrade-card:hover,
-.upgrade-card:focus-visible {
+.upgrade-card:focus-visible,
+.upgrade-card.selected {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
+}
+
+.upgrade-card.selected {
+  border-color: rgba(119, 65, 17, 0.9);
+  box-shadow: 0 0 0 3px rgba(240, 196, 93, 0.22), 0 13px 24px rgba(51, 28, 12, 0.2);
+  transform: translateY(-2px);
 }
 
 .upgrade-icon {

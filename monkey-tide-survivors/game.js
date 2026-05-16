@@ -56,6 +56,7 @@ const imageSources = {
   beachHut: "assets/sprites/beach-props-v2/beach_hut.webp",
   beachBoatWreck: "assets/sprites/beach-props-v2/boat_wreck.webp",
   projectileFx: "assets/sprites/projectile_fx_imagen_hd.webp",
+  playerEffects: "assets/sprites/player_effects_imagen_hd.webp",
 };
 
 const audioSources = {
@@ -124,6 +125,7 @@ const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
+const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 6400, h: 6400 };
 const TARGET_TIME = 330;
 const BALANCE = {
@@ -198,8 +200,8 @@ const gothicPropMap = {
 };
 
 const beachPropMap = {
-  clearPuddle: { image: "beachClearPuddle", w: 362, h: 318, decal: true },
-  tidePuddle: { image: "beachTidePuddle", w: 353, h: 335, decal: true },
+  clearPuddle: { image: "beachClearPuddle", w: 420, h: 304, decal: true },
+  tidePuddle: { image: "beachTidePuddle", w: 410, h: 318, decal: true },
   hedgeCluster: { image: "beachHedgeCluster", w: 421, h: 299 },
   palmHedge: { image: "beachPalmHedge", w: 385, h: 239 },
   treasureChest: { image: "beachTreasure", w: 340, h: 280, interactive: true },
@@ -219,6 +221,17 @@ const projectileFxMap = {
   bloodRoseBurst: { x: 1, y: 1 },
   ghostCannonball: { x: 2, y: 1 },
   monkeyCurseOrb: { x: 3, y: 1 },
+};
+
+const playerEffectMap = {
+  ropeAura: { x: 0, y: 0 },
+  rumShockwave: { x: 1, y: 0 },
+  curseBurst: { x: 2, y: 0 },
+  compassBeam: { x: 3, y: 0 },
+  treasureGlint: { x: 0, y: 1 },
+  cutlassAfterglow: { x: 1, y: 1 },
+  tidePulse: { x: 2, y: 1 },
+  chestReward: { x: 3, y: 1 },
 };
 
 const enemyTypes = [
@@ -324,6 +337,8 @@ const upgrades = [
 let state = null;
 const keys = new Set();
 const pointer = { active: false, id: null, dx: 0, dy: 0, originX: 0, originY: 0, radius: 48 };
+let activeUpgradeChoices = [];
+let selectedUpgradeIndex = 0;
 
 function makeState() {
   return {
@@ -335,6 +350,7 @@ function makeState() {
     warningTimer: 0,
     wave: 1,
     killCount: 0,
+    streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
     coins: 0,
     level: 1,
     xp: 0,
@@ -705,6 +721,7 @@ function update(dt) {
   updateExploration();
   updateProjectiles(dt);
   updateGems(dt);
+  updateStreak(dt);
   updateParticles(dt);
   updateDom();
   updateVoiceCues();
@@ -1206,7 +1223,8 @@ function collectGem(gem) {
     state.coins += gem.value;
     floatingText(`+${gem.value}`, gem.x, gem.y - 18, "#f0c45d");
   } else {
-    state.xp += Math.ceil(gem.value * state.stats.pickupValue);
+    const streakBonus = state.streak?.count >= 10 ? 1.16 : state.streak?.count >= 5 ? 1.08 : 1;
+    state.xp += Math.ceil(gem.value * state.stats.pickupValue * streakBonus);
     while (state.xp >= state.nextXp && state.phase === "playing") {
       state.xp -= state.nextXp;
       levelUp();
@@ -1214,6 +1232,15 @@ function collectGem(gem) {
     if (Math.random() < 0.18) playSound("downloadPickup");
   }
   playSound("pickup");
+}
+
+function updateStreak(dt) {
+  if (!state.streak || state.streak.timer <= 0) return;
+  state.streak.timer = Math.max(0, state.streak.timer - dt);
+  if (state.streak.timer === 0) {
+    state.streak.count = 0;
+    state.streak.nextCache = 18;
+  }
 }
 
 function updateParticles(dt) {
@@ -1258,6 +1285,7 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
 
 function killEnemy(enemy) {
   state.killCount += 1;
+  recordStreakKill(enemy);
   const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.8 : 1) * (1 + state.elapsed / 760));
   state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
   if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
@@ -1277,6 +1305,43 @@ function killEnemy(enemy) {
   }
 }
 
+function recordStreakKill(enemy) {
+  const streak = state.streak;
+  if (!streak) return;
+  streak.count += 1;
+  streak.timer = Math.min(5.2, 3.1 + streak.count * 0.035);
+  streak.best = Math.max(streak.best, streak.count);
+  if (streak.count === 8 || streak.count % 12 === 0) {
+    floatingText(`Streak x${streak.count}`, enemy.x, enemy.y - enemy.r - 48, "#fff2c7");
+    playSound("downloadPickup", { cooldown: 650 });
+  }
+  if (streak.count >= streak.nextCache) {
+    spawnStreakCache(streak.count);
+    streak.nextCache += 16;
+  }
+}
+
+function spawnStreakCache(count) {
+  const streak = state.streak;
+  const p = state.player;
+  const angle = Math.random() * Math.PI * 2;
+  const distance = 260 + Math.random() * 220;
+  const x = clamp(p.x + Math.cos(angle) * distance, 180, WORLD.w - 180);
+  const y = clamp(p.y + Math.sin(angle) * distance, 180, WORLD.h - 180);
+  state.props.push({
+    x,
+    y,
+    icon: "buriedTreasure",
+    scale: 0.72 + Math.min(0.16, count * 0.002),
+    spin: Math.random(),
+    interactive: true,
+    streakCache: true,
+  });
+  streak.caches += 1;
+  floatingText("Streak-Schatz", x, y - 92, "#fff2c7");
+  speak("Streak-Schatz gesichtet.", { key: "streak-cache", cooldown: 9000, rate: 1.06 });
+}
+
 function levelUp() {
   state.level += 1;
   state.nextXp = Math.round(22 + state.level * 14 + state.level * state.level * 1.35);
@@ -1290,28 +1355,77 @@ function levelUp() {
 
 function showUpgrades() {
   ui.upgradeChoices.innerHTML = "";
-  const choices = chooseUpgrades();
-  for (const upgrade of choices) {
+  activeUpgradeChoices = chooseUpgrades();
+  selectedUpgradeIndex = 0;
+  activeUpgradeChoices.forEach((upgrade, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "upgrade-card";
+    button.dataset.upgradeIndex = String(index);
     button.innerHTML = `
       <span class="upgrade-icon" style="${iconStyle(upgrade.icon)}"></span>
       <span class="upgrade-name">${upgrade.name}</span>
       <span class="upgrade-desc">${upgrade.desc}</span>
     `;
-    button.addEventListener("click", () => {
-      upgrade.apply();
-      state.upgradeCounts[upgrade.id] = (state.upgradeCounts[upgrade.id] || 0) + 1;
-      state.phase = "playing";
-      ui.upgradeOverlay.hidden = true;
-      playSound("confirm");
-      speak(`${upgrade.name} bereit.`, { key: `upgrade-${upgrade.id}`, interrupt: true, cooldown: 1200, rate: 1.06 });
-      updateDom();
-    });
+    button.addEventListener("mouseenter", () => setUpgradeSelection(index));
+    button.addEventListener("focus", () => setUpgradeSelection(index));
+    button.addEventListener("click", () => chooseUpgradeAt(index));
     ui.upgradeChoices.appendChild(button);
-  }
+  });
   ui.upgradeOverlay.hidden = false;
+  requestAnimationFrame(() => setUpgradeSelection(0, true));
+}
+
+function setUpgradeSelection(index, focus = false) {
+  const cards = [...ui.upgradeChoices.querySelectorAll(".upgrade-card")];
+  if (!cards.length) return;
+  selectedUpgradeIndex = positiveModulo(index, cards.length);
+  cards.forEach((card, cardIndex) => {
+    const selected = cardIndex === selectedUpgradeIndex;
+    card.classList.toggle("selected", selected);
+    card.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+  if (focus) cards[selectedUpgradeIndex].focus({ preventScroll: true });
+}
+
+function chooseUpgradeAt(index = selectedUpgradeIndex) {
+  if (state.phase !== "levelup") return;
+  const upgrade = activeUpgradeChoices[index];
+  if (!upgrade) return;
+  upgrade.apply();
+  state.upgradeCounts[upgrade.id] = (state.upgradeCounts[upgrade.id] || 0) + 1;
+  state.phase = "playing";
+  activeUpgradeChoices = [];
+  ui.upgradeOverlay.hidden = true;
+  playSound("confirm");
+  speak(`${upgrade.name} bereit.`, { key: `upgrade-${upgrade.id}`, interrupt: true, cooldown: 1200, rate: 1.06 });
+  updateDom();
+}
+
+function handleUpgradeKey(event) {
+  if (state.phase !== "levelup") return false;
+  const key = event.key.toLowerCase();
+  if (key === "arrowleft" || key === "a" || key === "arrowup" || key === "w") {
+    setUpgradeSelection(selectedUpgradeIndex - 1, true);
+    event.preventDefault();
+    return true;
+  }
+  if (key === "arrowright" || key === "d" || key === "arrowdown" || key === "s") {
+    setUpgradeSelection(selectedUpgradeIndex + 1, true);
+    event.preventDefault();
+    return true;
+  }
+  if (key === "enter" || key === " " || key === "e") {
+    chooseUpgradeAt(selectedUpgradeIndex);
+    event.preventDefault();
+    return true;
+  }
+  if (/^[1-3]$/.test(key)) {
+    chooseUpgradeAt(Number(key) - 1);
+    event.preventDefault();
+    return true;
+  }
+  return false;
 }
 
 function chooseUpgrades() {
@@ -1457,6 +1571,10 @@ function drawProps() {
     const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
     const alpha = prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : 0.62;
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
+    if (prop.interactive && !prop.discovered) {
+      const glint = Math.min(124, Math.max(76, size.w * 0.32));
+      drawPlayerEffect("treasureGlint", ox + prop.x, oy + prop.y - size.h * 0.24, glint, glint, state.elapsed * 0.6 + prop.spin, 0.28);
+    }
   }
 }
 
@@ -1477,10 +1595,7 @@ function drawGems() {
     ctx.translate(ox + gem.x, oy + gem.y + Math.sin(t + gem.x) * 4);
     ctx.rotate(Math.sin(t) * 0.1);
     if (gem.kind === "xp") {
-      ctx.fillStyle = "rgba(77, 219, 255, 0.28)";
-      ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
-      ctx.fill();
+      drawPlayerEffectAt("tidePulse", -size * 0.72, -size * 0.72, size * 1.44, size * 1.44);
     }
     drawItemAt(gem.icon, -size / 2, -size / 2, size, size);
     ctx.restore();
@@ -1618,71 +1733,34 @@ function drawWeaponEffects() {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate(zone.angle);
       const slashSize = zone.radius * 1.85;
+      drawPlayerEffectAt("cutlassAfterglow", -slashSize * 0.58, -slashSize * 0.64, slashSize * 1.28, slashSize * 1.28);
       drawProjectileFxAt("cutlassSlash", -slashSize * 0.42, -slashSize * 0.58, slashSize, slashSize);
-      ctx.strokeStyle = "rgba(255, 236, 174, 0.9)";
-      ctx.lineWidth = 9;
-      ctx.beginPath();
-      ctx.arc(0, 0, zone.radius, -zone.arc, zone.arc);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(121, 224, 183, 0.38)";
-      ctx.lineWidth = 22;
-      ctx.beginPath();
-      ctx.arc(0, 0, zone.radius - 6, -zone.arc * 0.8, zone.arc * 0.8);
-      ctx.stroke();
     } else if (zone.type === "beam") {
-      ctx.strokeStyle = "rgba(121, 224, 183, 0.82)";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(ox + zone.x, oy + zone.y - 48);
-      ctx.lineTo(ox + zone.tx, oy + zone.ty - 48);
-      ctx.stroke();
       const bx = ox + (zone.x + zone.tx) / 2;
       const by = oy + (zone.y + zone.ty) / 2 - 48;
       const angle = Math.atan2(zone.ty - zone.y, zone.tx - zone.x);
       const len = Math.min(220, Math.hypot(zone.tx - zone.x, zone.ty - zone.y));
       ctx.translate(bx, by);
       ctx.rotate(angle);
-      drawProjectileFxAt("compassBolt", -len / 2, -46, len, 92);
+      drawPlayerEffectAt("compassBeam", -len * 0.6, -70, len * 1.2, 140);
     } else if (zone.type === "explosion") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const blastSize = zone.radius * 2.6;
+      drawPlayerEffectAt("rumShockwave", -blastSize / 2, -blastSize / 2, blastSize, blastSize);
       drawProjectileFxAt("rumBombFx", -blastSize / 2, -blastSize / 2, blastSize, blastSize);
-      ctx.fillStyle = "rgba(255, 118, 95, 0.22)";
-      ctx.beginPath();
-      ctx.arc(0, 0, zone.radius * (1.2 - a * 0.2), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255, 225, 138, 0.8)";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(0, 0, zone.radius * (1 - a * 0.28), 0, Math.PI * 2);
-      ctx.stroke();
     } else if (zone.type === "curseBurst") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const burstSize = zone.radius * 2.2;
+      drawPlayerEffectAt("curseBurst", -burstSize * 0.56, -burstSize * 0.56, burstSize * 1.12, burstSize * 1.12);
       drawProjectileFxAt(zone.fx === "ghostCannonball" ? "ghostCannonball" : "monkeyCurseOrb", -burstSize / 2, -burstSize / 2, burstSize, burstSize);
-      ctx.strokeStyle = "rgba(83,255,229,0.34)";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(0, 0, zone.radius * (1.1 - a * 0.2), 0, Math.PI * 2);
-      ctx.stroke();
     }
     ctx.restore();
   }
   if (state.weapons.rope.level > 0) {
     const p = state.player;
     const radius = 86 + state.weapons.rope.level * 14;
-    ctx.save();
-    ctx.translate(ox + p.x, oy + p.y);
-    ctx.rotate(state.weapons.rope.angle);
-    ctx.strokeStyle = "rgba(238, 200, 123, 0.62)";
-    ctx.lineWidth = 7;
-    ctx.setLineDash([18, 10]);
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 0.36;
-    drawProjectileFxAt("ropeRing", -radius * 1.05, -radius * 1.05, radius * 2.1, radius * 2.1);
-    ctx.restore();
+    drawPlayerEffect("ropeAura", ox + p.x, oy + p.y, radius * 2.32, radius * 2.32, state.weapons.rope.angle, 0.58);
+    drawPlayerEffect("tidePulse", ox + p.x, oy + p.y, radius * 1.52, radius * 1.52, -state.weapons.rope.angle * 0.45, 0.18);
   }
 }
 
@@ -1690,11 +1768,17 @@ function drawParticles() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
   for (const particle of state.particles) {
-    ctx.globalAlpha = clamp(particle.life / 0.4, 0, 1);
-    ctx.fillStyle = particle.color;
-    ctx.beginPath();
-    ctx.arc(ox + particle.x, oy + particle.y, particle.size, 0, Math.PI * 2);
-    ctx.fill();
+    const alpha = clamp(particle.life / 0.4, 0, 1);
+    if (images.playerEffects) {
+      const size = particle.size * 8.5;
+      drawPlayerEffect("treasureGlint", ox + particle.x, oy + particle.y, size, size, particle.vx * 0.015, alpha * 0.34);
+    } else {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = particle.color;
+      ctx.beginPath();
+      ctx.arc(ox + particle.x, oy + particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 }
@@ -1752,6 +1836,22 @@ function drawProjectileFx(icon, x, y, w, h, rotation = 0, alpha = 1) {
   ctx.rotate(rotation);
   drawProjectileFxAt(icon, -w / 2, -h / 2, w, h);
   ctx.restore();
+}
+
+function drawPlayerEffect(icon, x, y, w, h, rotation = 0, alpha = 1) {
+  if (!images.playerEffects) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  drawPlayerEffectAt(icon, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+function drawPlayerEffectAt(icon, x, y, w, h) {
+  if (!images.playerEffects) return;
+  const src = playerEffectMap[icon] || playerEffectMap.ropeAura;
+  ctx.drawImage(images.playerEffects, src.x * PLAYER_EFFECT_FX.w, src.y * PLAYER_EFFECT_FX.h, PLAYER_EFFECT_FX.w, PLAYER_EFFECT_FX.h, x, y, w, h);
 }
 
 function drawProjectileFxAt(icon, x, y, w, h) {
@@ -1956,6 +2056,7 @@ window.addEventListener("resize", resize);
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+  if (handleUpgradeKey(event)) return;
   keys.add(key);
   if (key === " " || key === "shift") {
     event.preventDefault();
@@ -2087,6 +2188,12 @@ window.__MONKEY_TIDE_STEP = (seconds = 5) => {
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
+window.__MONKEY_TIDE_FORCE_LEVELUP = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  levelUp();
+  render();
+  return window.__MONKEY_TIDE_DEBUG();
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -2111,6 +2218,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
   playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
   stats: { ...state.stats, nextXp: state.nextXp },
+  engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
@@ -2148,7 +2256,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
   },
   combatAssets: {
     projectileFx: !!images.projectileFx,
+    playerEffects: !!images.playerEffects,
     projectileFxTypes: Object.keys(projectileFxMap),
+    playerEffectTypes: Object.keys(playerEffectMap),
     enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),

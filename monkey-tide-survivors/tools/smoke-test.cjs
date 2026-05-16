@@ -86,6 +86,7 @@ async function run() {
     "assets/sprites/beach-props-v2/beach_hut.webp",
     "assets/sprites/beach-props-v2/boat_wreck.webp",
     "assets/sprites/projectile_fx_imagen_hd.webp",
+    "assets/sprites/player_effects_imagen_hd.webp",
     "assets/ui/parchment_panel_imagen_hd.webp",
     "assets/ui/parchment_button_imagen_hd.webp",
     "assets/ui/parchment_card_imagen_hd.webp",
@@ -189,9 +190,25 @@ async function run() {
   assert(debug.explorationAssets.beachPropAssetKeys.every((key) => debug.preloadedAssetKeys.includes(key)), `Clean beach props are not preloaded: ${JSON.stringify(debug)}`);
   assert(!debug.preloadedAssetKeys.includes("beachProps"), `Old sliced beach atlas is still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.preloadedAssetKeys.includes("playerEffects"), `Player raster effect FX not preloaded: ${JSON.stringify(debug)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
+  assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
+  assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
+  assert(debug.engagement?.streak?.nextCache === 18, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
+
+  const upgradeProbe = await page.evaluate(() => {
+    if (window.__MONKEY_TIDE_DEBUG().phase !== "levelup") window.__MONKEY_TIDE_FORCE_LEVELUP();
+    const before = window.__MONKEY_TIDE_DEBUG();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    const selected = document.querySelector(".upgrade-card.selected")?.dataset.upgradeIndex;
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    return { before, selected, after: window.__MONKEY_TIDE_DEBUG() };
+  });
+  assert(upgradeProbe.before.phase === "levelup", `Forced level-up did not open upgrades: ${JSON.stringify(upgradeProbe)}`);
+  assert(upgradeProbe.selected === "1", `Keyboard did not move upgrade focus: ${JSON.stringify(upgradeProbe)}`);
+  assert(upgradeProbe.after.phase === "playing", `Enter did not choose upgrade: ${JSON.stringify(upgradeProbe)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
