@@ -74,7 +74,14 @@ async function run() {
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
-    "assets/sprites/beach_exploration_props_imagen_hd.webp",
+    "assets/sprites/beach-props-v2/clear_puddle.webp",
+    "assets/sprites/beach-props-v2/tide_puddle.webp",
+    "assets/sprites/beach-props-v2/hedge_cluster.webp",
+    "assets/sprites/beach-props-v2/palm_hedge.webp",
+    "assets/sprites/beach-props-v2/buried_treasure.webp",
+    "assets/sprites/beach-props-v2/conch_shrine.webp",
+    "assets/sprites/beach-props-v2/beach_hut.webp",
+    "assets/sprites/beach-props-v2/boat_wreck.webp",
     "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
@@ -149,8 +156,10 @@ async function run() {
   assert(debug.explorationAssets.beachProps, `Beach exploration prop sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("beachHut") && debug.explorationAssets.beachPropTypes.includes("boatWreck"), `Explorable landmarks missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("clearPuddle") && debug.explorationAssets.beachPropTypes.includes("hedgeCluster"), `HD puddles or hedges missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.beachPropTypes.includes("conchShrine") && debug.explorationAssets.beachPropTypes.includes("buriedTreasure"), `New exploration ideas missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.interactiveProps >= 3, `Not enough explorable props: ${JSON.stringify(debug)}`);
-  assert(debug.preloadedAssetKeys.includes("beachProps"), `Beach props not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.beachPropAssetKeys.every((key) => debug.preloadedAssetKeys.includes(key)), `Clean beach props are not preloaded: ${JSON.stringify(debug)}`);
+  assert(!debug.preloadedAssetKeys.includes("beachProps"), `Old sliced beach atlas is still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
