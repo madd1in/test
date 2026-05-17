@@ -208,9 +208,9 @@ async function run() {
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
-  assert(debug.scene.zoom <= 0.7, `Desktop camera is not zoomed out: ${JSON.stringify(debug.scene)}`);
+  assert(debug.scene.zoom <= 0.66, `Desktop camera is not zoomed out: ${JSON.stringify(debug.scene)}`);
   assert(debug.world.repeatable === true && debug.world.width >= 1000000 && debug.world.activePropChunks > 0, `World is still behaving like a bounded arena: ${JSON.stringify(debug.world)}`);
-  assert(debug.world.backgroundSeamBleed >= 8, `Map background tiles do not overlap enough to hide seams: ${JSON.stringify(debug.world)}`);
+  assert(debug.world.backgroundSeamBleed >= 48 && debug.world.backgroundSourceInset >= 32, `Map background tiles do not hide seams aggressively enough: ${JSON.stringify(debug.world)}`);
   assert(debug.world.immersivePropSpawning === true && debug.world.recentVisiblePropSpawns === 0, `Runtime props can still pop into view: ${JSON.stringify(debug.world)}`);
   assert(debug.performance.enemyCap <= 230 && debug.performance.dpr <= 1.75, `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
@@ -421,7 +421,7 @@ async function run() {
   assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
-  assert(touchProbe.moved.scene.zoom <= 0.43, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.moved.scene.zoom <= 0.39, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.active === true, `Right-side thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.dx < -0.6, `Right-side thumbstick did not point left: ${JSON.stringify(touchProbe)}`);
@@ -443,7 +443,7 @@ async function run() {
       fullscreenText: document.getElementById("fullscreenButton").textContent,
     };
   });
-  assert(landscapeUi.debug.scene.zoom <= 0.4, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
+  assert(landscapeUi.debug.scene.zoom <= 0.36, `Landscape camera is not zoomed out: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.hud.width <= 360 && landscapeUi.hud.bottom <= 58, `Landscape HUD covers too much playfield: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.loadout.height <= 54, `Landscape loadout is too tall: ${JSON.stringify(landscapeUi)}`);
   assert(landscapeUi.dash.width <= 72 && landscapeUi.dash.height <= 72, `Landscape dash button is too large: ${JSON.stringify(landscapeUi)}`);
