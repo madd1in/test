@@ -284,8 +284,44 @@ async function run() {
   await page.click('[data-map="moonlitLagoon"]');
   const pickedMap = await page.evaluate(() => document.querySelector('[data-map="moonlitLagoon"]')?.getAttribute("aria-checked"));
   assert(pickedMap === "true", `Map picker did not select moonlitLagoon: ${pickedMap}`);
-  await page.evaluate(() => window.__MONKEY_TIDE_START());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => {
+    window.__MONKEY_TIDE_TEST_FULLSCREEN_REQUESTED = false;
+    window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS = [];
+    document.documentElement.requestFullscreen = () => {
+      window.__MONKEY_TIDE_TEST_FULLSCREEN_REQUESTED = true;
+      return Promise.resolve();
+    };
+    try {
+      Object.defineProperty(document, "fullscreenEnabled", { configurable: true, get: () => true });
+    } catch {}
+    const lock = async (mode) => window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS.push(mode);
+    if (!screen.orientation) {
+      Object.defineProperty(screen, "orientation", {
+        configurable: true,
+        value: { type: "portrait-primary", lock },
+      });
+    } else {
+      try {
+        Object.defineProperty(screen.orientation, "lock", { configurable: true, value: lock });
+      } catch {
+        screen.orientation.lock = lock;
+      }
+    }
+  });
+  await page.click("#quickButton");
   await page.waitForTimeout(500);
+  const mobileStartDisplay = await page.evaluate(() => ({
+    debug: window.__MONKEY_TIDE_DEBUG(),
+    fullscreenRequested: window.__MONKEY_TIDE_TEST_FULLSCREEN_REQUESTED,
+    orientationLocks: window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS,
+  }));
+  assert(mobileStartDisplay.debug.phase === "playing", `Mobile quick start did not enter gameplay: ${JSON.stringify(mobileStartDisplay)}`);
+  assert(mobileStartDisplay.fullscreenRequested === true, `Mobile start did not request fullscreen: ${JSON.stringify(mobileStartDisplay)}`);
+  assert(mobileStartDisplay.debug.mobileDisplay.requested === true && mobileStartDisplay.debug.mobileDisplay.orientationPreference === "portrait-primary", `Mobile start should prefer portrait fullscreen: ${JSON.stringify(mobileStartDisplay.debug.mobileDisplay)}`);
+  assert(mobileStartDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")) && !mobileStartDisplay.orientationLocks.includes("landscape"), `Mobile start requested the wrong orientation: ${JSON.stringify(mobileStartDisplay)}`);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.waitForTimeout(100);
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);

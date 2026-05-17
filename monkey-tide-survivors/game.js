@@ -133,6 +133,17 @@ const scene = { zoom: 1, w: 1280, h: 720 };
 let lastTime = 0;
 let raf = 0;
 let quickMode = false;
+const mobileDisplayState = {
+  requested: false,
+  orientationPreference: "portrait-primary",
+  orientationFallback: "portrait",
+  orientationRequested: null,
+  orientationLocked: false,
+  orientationError: null,
+  fullscreenRequested: false,
+  fullscreenAvailable: false,
+  fullscreenError: null,
+};
 const loadingState = { loaded: 0, total: 0, last: "" };
 
 const CHAR = { w: 192, h: 256, cols: 16 };
@@ -3370,14 +3381,17 @@ window.addEventListener("keyup", (event) => {
 });
 
 ui.startButton.addEventListener("click", () => {
-  requestMobileLandscape();
+  requestMobilePortraitFullscreen();
   startGame();
 });
 ui.quickButton.addEventListener("click", () => {
-  requestMobileLandscape();
+  requestMobilePortraitFullscreen();
   startGame({ quick: true });
 });
-ui.restartButton.addEventListener("click", () => startGame({ quick: quickMode }));
+ui.restartButton.addEventListener("click", () => {
+  requestMobilePortraitFullscreen();
+  startGame({ quick: quickMode });
+});
 ui.skinPicker.addEventListener("click", (event) => {
   const button = event.target.closest("[data-skin]");
   if (!button) return;
@@ -3426,23 +3440,61 @@ function toggleFullscreen() {
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
   } else {
-    document.documentElement.requestFullscreen().catch(() => {});
+    document.documentElement.requestFullscreen({ navigationUI: "hide" })
+      .then(() => {
+        if (isMobileLike()) lockMobilePortraitOrientation();
+      })
+      .catch(() => {
+        if (isMobileLike()) lockMobilePortraitOrientation();
+      });
   }
 }
 
-function requestMobileLandscape() {
+function lockMobilePortraitOrientation() {
+  mobileDisplayState.orientationRequested = mobileDisplayState.orientationPreference;
+  mobileDisplayState.orientationLocked = false;
+  mobileDisplayState.orientationError = null;
+  if (!screen.orientation?.lock) return;
+  screen.orientation.lock(mobileDisplayState.orientationPreference)
+    .then(() => {
+      mobileDisplayState.orientationLocked = true;
+    })
+    .catch((error) => {
+      mobileDisplayState.orientationError = error?.name || error?.message || "portrait-primary failed";
+      mobileDisplayState.orientationRequested = mobileDisplayState.orientationFallback;
+      screen.orientation.lock(mobileDisplayState.orientationFallback)
+        .then(() => {
+          mobileDisplayState.orientationLocked = true;
+          mobileDisplayState.orientationError = null;
+        })
+        .catch((fallbackError) => {
+          mobileDisplayState.orientationError = fallbackError?.name || fallbackError?.message || "portrait failed";
+        });
+    });
+}
+
+function requestMobilePortraitFullscreen() {
   if (!isMobileLike()) return;
-  const lockLandscape = () => {
-    if (screen.orientation?.lock) screen.orientation.lock("landscape").catch(() => {});
-  };
+  mobileDisplayState.requested = true;
+  mobileDisplayState.orientationPreference = "portrait-primary";
+  mobileDisplayState.orientationFallback = "portrait";
+  mobileDisplayState.fullscreenAvailable = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
   if (!document.fullscreenElement && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
+    mobileDisplayState.fullscreenRequested = true;
+    mobileDisplayState.fullscreenError = null;
     try {
-      document.documentElement.requestFullscreen({ navigationUI: "hide" }).then(lockLandscape).catch(lockLandscape);
-    } catch {
-      lockLandscape();
+      document.documentElement.requestFullscreen({ navigationUI: "hide" })
+        .then(() => lockMobilePortraitOrientation())
+        .catch((error) => {
+          mobileDisplayState.fullscreenError = error?.name || error?.message || "fullscreen failed";
+          lockMobilePortraitOrientation();
+        });
+    } catch (error) {
+      mobileDisplayState.fullscreenError = error?.name || error?.message || "fullscreen threw";
+      lockMobilePortraitOrientation();
     }
   } else {
-    lockLandscape();
+    lockMobilePortraitOrientation();
   }
 }
 
@@ -3815,6 +3867,11 @@ window.__MONKEY_TIDE_DEBUG = () => {
     groundedEnemyTypes: enemyTypes.filter((type) => !type.phase && !type.flying).map((type) => type.id),
   },
   fullscreenSupported: document.fullscreenEnabled,
+  mobileDisplay: {
+    ...mobileDisplayState,
+    fullscreenElement: !!document.fullscreenElement,
+    screenOrientation: screen.orientation?.type || null,
+  },
   preloadedAssetKeys: Object.keys(imageSources),
   loading: { ...loadingState },
   audio: {
