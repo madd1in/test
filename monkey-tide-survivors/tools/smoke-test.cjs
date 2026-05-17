@@ -86,6 +86,7 @@ async function run() {
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
     "assets/sprites/bosses/three_headed_monkey_imagen_hd.webp",
+    "assets/sprites/bosses/blackbeard_imagen_hd.webp",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
     "assets/sprites/beach-props-v2/tide_puddle.webp",
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -268,7 +269,8 @@ async function run() {
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.spectralCaptain, `Spectral captain sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.threeHeadedMonkey && debug.preloadedAssetKeys.includes("threeHeadedMonkey"), `Three-headed monkey boss asset missing: ${JSON.stringify(debug)}`);
-  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey"), `Boss roster missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.blackbeard && debug.preloadedAssetKeys.includes("blackbeard"), `Blackbeard boss asset missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey") && debug.crossoverAssets.bossTypes.includes("blackbeard"), `Boss roster missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemies && debug.extraAssets.extraItems, `Extra Imagen sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemyTypes.length >= 8 && debug.extraAssets.extraEnemyTypes.includes("tideWitch") && debug.extraAssets.extraEnemyTypes.includes("stormDuelist"), `Extra enemies missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraItemTypes.length >= 8 && debug.extraAssets.extraItemTypes.includes("cursedPearl") && debug.extraAssets.extraItemTypes.includes("grogLantern"), `Extra item icons missing: ${JSON.stringify(debug)}`);
@@ -292,6 +294,7 @@ async function run() {
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
   assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
@@ -318,6 +321,10 @@ async function run() {
   const monkeyProbe = await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
   assert(monkeyProbe.assetLoaded && monkeyProbe.boss?.id === "threeHeadedMonkey", `Three-headed monkey boss did not spawn: ${JSON.stringify(monkeyProbe)}`);
   assert(monkeyProbe.profile?.count === 3 && monkeyProbe.monkeyProjectiles >= 3, `Three-headed monkey volley did not fire: ${JSON.stringify(monkeyProbe)}`);
+
+  const blackbeardProbe = await page.evaluate(() => window.__MONKEY_TIDE_BLACKBEARD_PROBE());
+  assert(blackbeardProbe.assetLoaded && blackbeardProbe.boss?.id === "blackbeard", `Blackbeard boss did not spawn: ${JSON.stringify(blackbeardProbe)}`);
+  assert(blackbeardProbe.profile?.count === 3 && blackbeardProbe.cannonballs >= 3, `Blackbeard broadside did not fire: ${JSON.stringify(blackbeardProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
