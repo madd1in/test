@@ -90,6 +90,7 @@ async function run() {
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
     "assets/sprites/beach-props-v2/palm_hedge.webp",
     "assets/sprites/beach-props-v2/buried_treasure.webp",
+    "assets/sprites/beach-props-v2/open_treasure_chest_imagen_hd.webp",
     "assets/sprites/beach-props-v2/conch_shrine.webp",
     "assets/sprites/beach-props-v2/beach_hut.webp",
     "assets/sprites/beach-props-v2/boat_wreck.webp",
@@ -275,6 +276,8 @@ async function run() {
   assert(debug.explorationAssets.beachPropTypes.includes("clearPuddle") && debug.explorationAssets.beachPropTypes.includes("hedgeCluster"), `HD puddles or hedges missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.visiblePuddles >= 8, `HD puddle decals are not visible enough in the generated chunks: ${JSON.stringify(debug.explorationAssets)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("conchShrine") && debug.explorationAssets.beachPropTypes.includes("buriedTreasure"), `New exploration ideas missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.openTreasureUsesDedicatedAsset === true, `Opened chests should use the Imagen open-chest asset: ${JSON.stringify(debug.explorationAssets)}`);
+  assert(debug.explorationAssets.discoveredPropsStayPainted === true, `Discovered huts/bushes/chests should not be greyed out: ${JSON.stringify(debug.explorationAssets)}`);
   assert(debug.explorationAssets.interactiveProps >= 3, `Not enough explorable props: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropAssetKeys.every((key) => debug.preloadedAssetKeys.includes(key)), `Clean beach props are not preloaded: ${JSON.stringify(debug)}`);
   assert(!debug.preloadedAssetKeys.includes("beachProps"), `Old sliced beach atlas is still preloaded: ${JSON.stringify(debug)}`);
@@ -300,6 +303,10 @@ async function run() {
   assert(obstacleProbe.playerBlocked && obstacleProbe.playerStayedOnApproachSide, `Player did not route around blocker: ${JSON.stringify(obstacleProbe)}`);
   assert(obstacleProbe.groundPushed, `Ground enemy was not pushed out of blocker: ${JSON.stringify(obstacleProbe)}`);
   assert(obstacleProbe.ghostCanPass, `Ghost/flying pass-through rule failed: ${JSON.stringify(obstacleProbe)}`);
+
+  const propProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROP_VISUAL_PROBE());
+  assert(propProbe.props.some((prop) => prop.icon === "openTreasureChest" && prop.image === "beachOpenTreasure"), `Open chest probe did not use the Imagen asset: ${JSON.stringify(propProbe)}`);
+  assert(propProbe.props.filter((prop) => prop.discovered).every((prop) => prop.alpha >= 0.7), `Discovered props are still being greyed out: ${JSON.stringify(propProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
