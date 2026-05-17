@@ -146,6 +146,7 @@ const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 10000000, h: 10000000, bgTile: 4096 };
+const WORLD_BG_SEAM_BLEED = 12;
 const PROP_CHUNK = 960;
 const PROP_CHUNK_RADIUS = 3;
 const PROP_CHUNK_PRUNE_RADIUS = 5;
@@ -2524,6 +2525,7 @@ function mapBackgroundImage(variant = mapVariant(state.map)) {
 
 function drawWorldMap(image, ox, oy) {
   const tile = WORLD.bgTile;
+  const drawSize = tile + WORLD_BG_SEAM_BLEED * 2;
   const cam = state.camera;
   const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
   const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
@@ -2536,7 +2538,7 @@ function drawWorldMap(image, ox, oy) {
       ctx.save();
       ctx.translate(px + tile / 2, py + tile / 2);
       ctx.scale(gx % 2 === 0 ? 1 : -1, gy % 2 === 0 ? 1 : -1);
-      ctx.drawImage(image, -tile / 2, -tile / 2, tile, tile);
+      ctx.drawImage(image, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
       ctx.restore();
     }
   }
@@ -3551,6 +3553,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     width: WORLD.w,
     height: WORLD.h,
     backgroundTile: WORLD.bgTile,
+    backgroundSeamBleed: WORLD_BG_SEAM_BLEED,
     propChunkSize: PROP_CHUNK,
     activePropChunks: state.propChunks?.size || 0,
     immersivePropSpawning: true,
