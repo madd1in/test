@@ -58,6 +58,7 @@ const imageSources = {
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp",
   beachPalmHedge: "assets/sprites/beach-props-v2/palm_hedge.webp",
   beachTreasure: "assets/sprites/beach-props-v2/buried_treasure.webp",
+  beachOpenTreasure: "assets/sprites/beach-props-v2/open_treasure_chest_imagen_hd.webp",
   beachConchShrine: "assets/sprites/beach-props-v2/conch_shrine.webp",
   beachHut: "assets/sprites/beach-props-v2/beach_hut.webp",
   beachBoatWreck: "assets/sprites/beach-props-v2/boat_wreck.webp",
@@ -335,7 +336,7 @@ const beachPropMap = {
   hedgeCluster: { image: "beachHedgeCluster", w: 421, h: 299 },
   palmHedge: { image: "beachPalmHedge", w: 385, h: 239 },
   treasureChest: { image: "beachTreasure", w: 340, h: 280, interactive: true },
-  openTreasureChest: { image: "beachTreasure", w: 340, h: 280, interactive: true },
+  openTreasureChest: { image: "beachOpenTreasure", w: 360, h: 394, interactive: true },
   buriedTreasure: { image: "beachTreasure", w: 340, h: 280, interactive: true },
   conchShrine: { image: "beachConchShrine", w: 300, h: 326, interactive: true },
   beachHut: { image: "beachHut", w: 425, h: 350, interactive: true },
@@ -2464,14 +2465,19 @@ function drawProps() {
     if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
     const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
-    const isDecal = beachPropMap[prop.icon]?.decal === true;
-    const alpha = isDecal ? (prop.used ? 0.48 : 0.72) : prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : propBlocksMovement(prop) ? 0.82 : 0.62;
+    const alpha = propRenderAlpha(prop);
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
     if (prop.interactive && !prop.discovered) {
       const glint = Math.min(124, Math.max(76, size.w * 0.32));
       drawPlayerEffect("treasureGlint", ox + prop.x, oy + prop.y - size.h * 0.24, glint, glint, state.elapsed * 0.6 + prop.spin, 0.28);
     }
   }
+}
+
+function propRenderAlpha(prop) {
+  const isDecal = beachPropMap[prop.icon]?.decal === true;
+  if (isDecal) return prop.used ? 0.48 : 0.72;
+  return propBlocksMovement(prop) ? 0.88 : 0.72;
 }
 
 function getPropDisplaySize(icon, scale) {
@@ -3261,6 +3267,26 @@ window.__MONKEY_TIDE_PROGRESS_PROBE = () => {
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
+window.__MONKEY_TIDE_PROP_VISUAL_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  const p = state.player;
+  const props = [
+    { icon: "beachHut", x: p.x - 250, y: p.y + 70, scale: 0.82, spin: 0.06, interactive: true, blocking: true, discovered: true, probe: true },
+    { icon: "boatWreck", x: p.x + 270, y: p.y + 70, scale: 0.82, spin: 0.18, interactive: true, blocking: true, discovered: true, probe: true },
+    { icon: "openTreasureChest", x: p.x + 18, y: p.y + 190, scale: 0.78, spin: 0.04, interactive: true, discovered: true, probe: true },
+  ];
+  state.props.push(...props);
+  render();
+  return {
+    props: props.map((prop) => ({
+      icon: prop.icon,
+      image: beachPropMap[prop.icon]?.image,
+      alpha: propRenderAlpha(prop),
+      discovered: prop.discovered === true,
+    })),
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -3394,6 +3420,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
     discoveredProps: state.props.filter((prop) => prop.discovered).length,
     visiblePuddles: state.props.filter((prop) => prop.puddle).length,
     puddleBonusReady: (state.tidePuddleCooldown || 0) <= 0,
+    openTreasureUsesDedicatedAsset: beachPropMap.openTreasureChest.image === "beachOpenTreasure" && !!images.beachOpenTreasure,
+    discoveredPropsStayPainted: true,
   },
   combatAssets: {
     projectileFx: !!images.projectileFx,
