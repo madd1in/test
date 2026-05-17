@@ -148,7 +148,8 @@ const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 10000000, h: 10000000, bgTile: 4096 };
-const WORLD_BG_SEAM_BLEED = 12;
+const WORLD_BG_SEAM_BLEED = 64;
+const WORLD_BG_SOURCE_INSET = 48;
 const PROP_CHUNK = 960;
 const PROP_CHUNK_RADIUS = 3;
 const PROP_CHUNK_PRUNE_RADIUS = 5;
@@ -2593,6 +2594,9 @@ function mapBackgroundImage(variant = mapVariant(state.map)) {
 function drawWorldMap(image, ox, oy) {
   const tile = WORLD.bgTile;
   const drawSize = tile + WORLD_BG_SEAM_BLEED * 2;
+  const sourceInset = Math.min(WORLD_BG_SOURCE_INSET, Math.floor(Math.min(image.width, image.height) * 0.08));
+  const sourceW = image.width - sourceInset * 2;
+  const sourceH = image.height - sourceInset * 2;
   const cam = state.camera;
   const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
   const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
@@ -2604,8 +2608,17 @@ function drawWorldMap(image, ox, oy) {
       const py = oy + gy * tile;
       ctx.save();
       ctx.translate(px + tile / 2, py + tile / 2);
-      ctx.scale(gx % 2 === 0 ? 1 : -1, gy % 2 === 0 ? 1 : -1);
-      ctx.drawImage(image, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+      ctx.drawImage(
+        image,
+        sourceInset,
+        sourceInset,
+        sourceW,
+        sourceH,
+        -drawSize / 2,
+        -drawSize / 2,
+        drawSize,
+        drawSize,
+      );
       ctx.restore();
     }
   }
@@ -3215,10 +3228,10 @@ function updateSceneViewport() {
 
 function getSceneZoom() {
   if (isMobileLike()) {
-    return viewW > viewH ? 0.38 : 0.41;
+    return viewW > viewH ? 0.35 : 0.38;
   }
-  if (viewW < 980) return 0.62;
-  return 0.68;
+  if (viewW < 980) return 0.58;
+  return 0.64;
 }
 
 function isMobileLike() {
@@ -3690,6 +3703,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     height: WORLD.h,
     backgroundTile: WORLD.bgTile,
     backgroundSeamBleed: WORLD_BG_SEAM_BLEED,
+    backgroundSourceInset: WORLD_BG_SOURCE_INSET,
     propChunkSize: PROP_CHUNK,
     activePropChunks: state.propChunks?.size || 0,
     immersivePropSpawning: true,
