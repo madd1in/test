@@ -47,6 +47,7 @@ const imageSources = {
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp?v=starfarmboy-clean",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
+  samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -138,6 +139,7 @@ const CHAR = { w: 192, h: 256, cols: 16 };
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
 const PLAYER_SKIN_WALK = { w: 256, h: 256, cols: 8, rows: 6 };
 const PLAYER_SKIN_SELECT = { w: 256, h: 256, cols: 7 };
+const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
@@ -178,7 +180,7 @@ const playerSkinMap = {
   dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, animH: 176, animRow: 2, cellX: 2, cellY: 0 },
   rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, animH: 178, animRow: 3, cellX: 0, cellY: 1 },
   starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, animH: 168, animRow: 4, cellX: 1, cellY: 1 },
-  freelanceDuo: { name: "Freelance-Duo", sheet: "samMaxDuo", drawH: 150, cellX: 2, cellY: 1 },
+  freelanceDuo: { name: "Freelance-Duo", sheet: "samMaxDuo", animSheet: "samMaxDuoWalk", drawH: 150, animH: 178, cellX: 2, cellY: 1 },
 };
 const playerSkinIds = Object.keys(playerSkinMap);
 let selectedSkin = (() => {
@@ -2838,7 +2840,15 @@ function drawPlayer() {
     ctx.shadowColor = "rgba(0,0,0,0.55)";
     ctx.shadowBlur = 14;
   }
-  if (skin.sheet === "samMaxDuo" && images.samMaxDuo) {
+  if (skin.animSheet === "samMaxDuoWalk" && images.samMaxDuoWalk) {
+    const frame = moving ? Math.floor(state.elapsed * 12) % SAM_MAX_DUO_WALK.frames : 0;
+    const sx = (frame % SAM_MAX_DUO_WALK.cols) * SAM_MAX_DUO_WALK.w;
+    const sy = Math.floor(frame / SAM_MAX_DUO_WALK.cols) * SAM_MAX_DUO_WALK.h;
+    const bob = moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.2;
+    const h = skin.animH;
+    const w = h * (SAM_MAX_DUO_WALK.w / SAM_MAX_DUO_WALK.h);
+    ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
+  } else if (skin.sheet === "samMaxDuo" && images.samMaxDuo) {
     const bob = moving ? Math.sin(state.elapsed * 13) * 3.4 : Math.sin(state.elapsed * 3.2) * 1.2;
     const stretch = moving ? 1 + Math.sin(state.elapsed * 18) * 0.018 : 1;
     const h = skin.drawH * stretch;
@@ -3722,8 +3732,11 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimationAsset: !!images.playerSkinWalks,
   playerSkinSelectAsset: !!images.playerSkinSelect,
   playerSkinFixedDuoAsset: !!images.samMaxDuo,
+  playerSkinDuoWalkAsset: !!images.samMaxDuoWalk,
   playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
-  playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
+  playerSkinDuoWalkFrames: { ...SAM_MAX_DUO_WALK },
+  playerSkinAnimated: (playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks)
+    || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },

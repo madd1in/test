@@ -79,6 +79,7 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/sam_max_duo_fixed_hd.png",
+    "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -231,6 +232,45 @@ async function run() {
   assert(pickerUsesSelectSheet, "Character picker is not using the normalized first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
   assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
+  await page.click('[data-skin="freelanceDuo"]');
+  const pickedDuoSkin = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG());
+  assert(pickedDuoSkin.playerSkin === "freelanceDuo" && pickedDuoSkin.playerSkinAnimated === true && pickedDuoSkin.playerSkinDuoWalkAsset === true, `Sam and Max/Freelance Duo runtime is not using the walk animation sheet: ${JSON.stringify(pickedDuoSkin)}`);
+  assert(pickedDuoSkin.playerSkinDuoWalkFrames.frames === 8 && pickedDuoSkin.playerSkinDuoWalkFrames.w === 384 && pickedDuoSkin.playerSkinDuoWalkFrames.h === 512, `Sam and Max/Freelance Duo walk frames are misconfigured: ${JSON.stringify(pickedDuoSkin.playerSkinDuoWalkFrames)}`);
+  const duoWalkProbe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/sam_max_duo_walk_imagen_hd.webp?alpha-clean";
+    await img.decode();
+    const frameW = 384;
+    const frameH = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const frames = [];
+    for (let frame = 0; frame < 8; frame += 1) {
+      const data = ctx.getImageData(frame % 4 * frameW, Math.floor(frame / 4) * frameH, frameW, frameH).data;
+      let edgeAlpha = 0;
+      let visible = 0;
+      let sampleHash = 0;
+      for (let y = 0; y < frameH; y += 1) {
+        for (let x = 0; x < frameW; x += 1) {
+          const index = (y * frameW + x) * 4;
+          const alpha = data[index + 3];
+          if (alpha > 8) {
+            visible += 1;
+            if (x === 0 || y === 0 || x === frameW - 1 || y === frameH - 1) edgeAlpha += 1;
+          }
+          if (x % 17 === 0 && y % 19 === 0) sampleHash = (sampleHash + data[index] * 3 + data[index + 1] * 5 + data[index + 2] * 7 + alpha * 11) % 1000003;
+        }
+      }
+      frames.push({ frame, edgeAlpha, visible, sampleHash });
+    }
+    return { size: [canvas.width, canvas.height], frames };
+  });
+  assert(duoWalkProbe.size[0] === 1536 && duoWalkProbe.size[1] === 1024, `Sam and Max/Freelance Duo walk sheet has the wrong dimensions: ${JSON.stringify(duoWalkProbe)}`);
+  assert(duoWalkProbe.frames.every((frame) => frame.edgeAlpha === 0 && frame.visible > 40000), `Sam and Max/Freelance Duo walk frames are still sliced: ${JSON.stringify(duoWalkProbe)}`);
+  assert(new Set(duoWalkProbe.frames.map((frame) => frame.sampleHash)).size >= 4, `Sam and Max/Freelance Duo walk frames do not vary enough: ${JSON.stringify(duoWalkProbe)}`);
   await page.click('[data-skin="curseMonkey"]');
   const pickedSkin = await page.evaluate(() => document.querySelector('[data-skin="curseMonkey"]')?.getAttribute("aria-checked"));
   assert(pickedSkin === "true", `Skin picker did not select curseMonkey: ${pickedSkin}`);

@@ -34,6 +34,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Jede Karte nutzt ein eigenes leichtes HD-Background-Asset und ein eigenes lokales BGM-Profil.
 - Strand-Backgrounds sind pfuetzenfrei; sichtbare Wasserstellen kommen als separate HD-Raster-Decals und Chunk-Props.
 - Sam-und-Max/Freelance-Duo nutzt ein eigenes sauber gecropptes HD-Duo-Sprite statt der zu engen Walkcycle-Zelle.
+- Sam-und-Max/Freelance-Duo hat wieder ein eigenes sauberes Imagen-HD-8-Frame-Walksheet ohne oben abgeschnittene Huete/Ohren.
 - Welt laeuft jetzt als grosse repeatable Chunk-Map ohne spuerbare Strandkante; Props, Wracks, Hecken und Pfuetzen werden um den Spieler nachgeladen.
 - Neue Welt-Props und Streak-Schaetze materialisieren nur ausserhalb des aktuellen Sichtfelds und blenden am Rand weich ein, damit keine Assets mitten im Bild aufploppen.
 - Mobile rendert mit niedrigerem DPR, kleinerem Gegner-Cap und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Querformat/Vollbild.
