@@ -85,6 +85,7 @@ async function run() {
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
+    "assets/sprites/bosses/three_headed_monkey_imagen_hd.webp",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
     "assets/sprites/beach-props-v2/tide_puddle.webp",
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -265,7 +266,8 @@ async function run() {
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicItemTypes.includes("bloodRose"), `Blood rose upgrade icon missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.spectralCaptain, `Spectral captain sheet missing: ${JSON.stringify(debug)}`);
-  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute"), `Boss roster missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.threeHeadedMonkey && debug.preloadedAssetKeys.includes("threeHeadedMonkey"), `Three-headed monkey boss asset missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey"), `Boss roster missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemies && debug.extraAssets.extraItems, `Extra Imagen sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemyTypes.length >= 8 && debug.extraAssets.extraEnemyTypes.includes("tideWitch") && debug.extraAssets.extraEnemyTypes.includes("stormDuelist"), `Extra enemies missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraItemTypes.length >= 8 && debug.extraAssets.extraItemTypes.includes("cursedPearl") && debug.extraAssets.extraItemTypes.includes("grogLantern"), `Extra item icons missing: ${JSON.stringify(debug)}`);
@@ -288,6 +290,7 @@ async function run() {
   assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
+  assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
   assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
@@ -307,6 +310,10 @@ async function run() {
   const propProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROP_VISUAL_PROBE());
   assert(propProbe.props.some((prop) => prop.icon === "openTreasureChest" && prop.image === "beachOpenTreasure"), `Open chest probe did not use the Imagen asset: ${JSON.stringify(propProbe)}`);
   assert(propProbe.props.filter((prop) => prop.discovered).every((prop) => prop.alpha >= 0.7), `Discovered props are still being greyed out: ${JSON.stringify(propProbe)}`);
+
+  const monkeyProbe = await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
+  assert(monkeyProbe.assetLoaded && monkeyProbe.boss?.id === "threeHeadedMonkey", `Three-headed monkey boss did not spawn: ${JSON.stringify(monkeyProbe)}`);
+  assert(monkeyProbe.profile?.count === 3 && monkeyProbe.monkeyProjectiles >= 3, `Three-headed monkey volley did not fire: ${JSON.stringify(monkeyProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
