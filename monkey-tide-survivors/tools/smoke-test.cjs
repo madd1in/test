@@ -208,6 +208,7 @@ async function run() {
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
   assert(debug.scene.zoom <= 0.84, `Desktop camera is not zoomed out: ${JSON.stringify(debug.scene)}`);
   assert(debug.world.repeatable === true && debug.world.width >= 1000000 && debug.world.activePropChunks > 0, `World is still behaving like a bounded arena: ${JSON.stringify(debug.world)}`);
+  assert(debug.world.immersivePropSpawning === true && debug.world.recentVisiblePropSpawns === 0, `Runtime props can still pop into view: ${JSON.stringify(debug.world)}`);
   assert(debug.performance.enemyCap <= 230 && debug.performance.dpr <= 1.75, `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
@@ -310,6 +311,9 @@ async function run() {
   const propProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROP_VISUAL_PROBE());
   assert(propProbe.props.some((prop) => prop.icon === "openTreasureChest" && prop.image === "beachOpenTreasure"), `Open chest probe did not use the Imagen asset: ${JSON.stringify(propProbe)}`);
   assert(propProbe.props.filter((prop) => prop.discovered).every((prop) => prop.alpha >= 0.7), `Discovered props are still being greyed out: ${JSON.stringify(propProbe)}`);
+
+  const streakProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREAK_CACHE_PROBE());
+  assert(streakProbe.cache?.hasFade && !streakProbe.cache.inSightline && streakProbe.cache.distance >= 900, `Streak cache spawned inside the visible playfield: ${JSON.stringify(streakProbe)}`);
 
   const monkeyProbe = await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
   assert(monkeyProbe.assetLoaded && monkeyProbe.boss?.id === "threeHeadedMonkey", `Three-headed monkey boss did not spawn: ${JSON.stringify(monkeyProbe)}`);

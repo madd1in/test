@@ -146,6 +146,8 @@ const WORLD = { w: 10000000, h: 10000000, bgTile: 4096 };
 const PROP_CHUNK = 960;
 const PROP_CHUNK_RADIUS = 3;
 const PROP_CHUNK_PRUNE_RADIUS = 5;
+const PROP_SPAWN_BUFFER = 360;
+const PROP_FADE_SECONDS = 1.25;
 const TARGET_TIME = 330;
 const BALANCE = {
   normalSpawnIntensity: 1.12,
@@ -768,7 +770,7 @@ function ensurePropChunks(target = state, force = false) {
       if (!force && target.propChunks.has(key)) continue;
       if (target.propChunks.has(key)) continue;
       target.propChunks.add(key);
-      addChunkProps(target, cx, cy, key);
+      addChunkProps(target, cx, cy, key, { force });
     }
   }
   target.props = target.props.filter((prop) => {
@@ -788,9 +790,10 @@ function chunkKey(cx, cy) {
   return `${cx}:${cy}`;
 }
 
-function addChunkProps(target, chunkX, chunkY, chunkKeyValue) {
+function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {}) {
   const variant = mapVariant(target.map);
   const props = target.props;
+  const runtimeSpawn = !chunkOptions.force && target === state && target.phase === "playing" && (target.elapsed || 0) > 0.2;
   const choices = [
     "rope",
     "map",
@@ -826,6 +829,7 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue) {
   const baseY = chunkY * PROP_CHUNK;
   const addProp = (x, y, icon, h, options = {}) => {
     if (Math.hypot(x - target.player.x, y - target.player.y) < (options.safeRadius || 0)) return;
+    if (runtimeSpawn && !options.allowVisibleSpawn && isInSpawnSightline(x, y, target, options.spawnBuffer)) return;
     props.push({
       x,
       y,
@@ -838,6 +842,8 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue) {
       chunkX,
       chunkY,
       chunkKey: chunkKeyValue,
+      createdAt: runtimeSpawn ? target.elapsed : undefined,
+      fadeIn: runtimeSpawn ? (options.fadeIn || PROP_FADE_SECONDS) : undefined,
     });
   };
 
@@ -2139,10 +2145,16 @@ function recordStreakKill(enemy) {
 function spawnStreakCache(count) {
   const streak = state.streak;
   const p = state.player;
-  const angle = Math.random() * Math.PI * 2;
-  const distance = 260 + Math.random() * 220;
-  const x = clamp(p.x + Math.cos(angle) * distance, 180, WORLD.w - 180);
-  const y = clamp(p.y + Math.sin(angle) * distance, 180, WORLD.h - 180);
+  let x = p.x;
+  let y = p.y;
+  const baseDistance = offscreenRewardDistance();
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = baseDistance + Math.random() * 420;
+    x = clamp(p.x + Math.cos(angle) * distance, 180, WORLD.w - 180);
+    y = clamp(p.y + Math.sin(angle) * distance, 180, WORLD.h - 180);
+    if (!isInSpawnSightline(x, y, state, 120)) break;
+  }
   state.props.push({
     x,
     y,
@@ -2151,10 +2163,12 @@ function spawnStreakCache(count) {
     spin: Math.random(),
     interactive: true,
     streakCache: true,
+    createdAt: state.elapsed,
+    fadeIn: 1,
   });
   streak.caches += 1;
-  floatingText("Streak-Schatz", x, y - 92, "#fff2c7");
-  speak("Streak-Schatz gesichtet.", { key: "streak-cache", cooldown: 9000, rate: 1.06 });
+  floatingText("Streak-Schatz am Horizont", p.x, p.y - 106, "#fff2c7", 0.82, 14);
+  speak("Streak-Schatz am Horizont gesichtet.", { key: "streak-cache", cooldown: 9000, rate: 1.06 });
 }
 
 function unlockAchievements() {
@@ -2481,11 +2495,13 @@ function drawProps() {
     if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
     const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
-    const alpha = propRenderAlpha(prop);
+    const spawnProgress = propSpawnProgress(prop);
+    const alpha = propRenderAlpha(prop) * spawnProgress;
+    if (alpha <= 0.02) continue;
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
-    if (prop.interactive && !prop.discovered) {
+    if (prop.interactive && !prop.discovered && spawnProgress > 0.45) {
       const glint = Math.min(124, Math.max(76, size.w * 0.32));
-      drawPlayerEffect("treasureGlint", ox + prop.x, oy + prop.y - size.h * 0.24, glint, glint, state.elapsed * 0.6 + prop.spin, 0.28);
+      drawPlayerEffect("treasureGlint", ox + prop.x, oy + prop.y - size.h * 0.24, glint, glint, state.elapsed * 0.6 + prop.spin, 0.28 * spawnProgress);
     }
   }
 }
@@ -2949,6 +2965,28 @@ function onScreen(x, y, margin = 0) {
   return Math.abs(x - state.camera.x) < scene.w / 2 + margin && Math.abs(y - state.camera.y) < scene.h / 2 + margin;
 }
 
+function spawnSightlineBuffer(customBuffer) {
+  if (Number.isFinite(customBuffer)) return customBuffer;
+  return Math.max(PROP_SPAWN_BUFFER, Math.min(860, Math.max(scene.w, scene.h) * 0.28));
+}
+
+function isInSpawnSightline(x, y, target = state, customBuffer) {
+  const camera = target?.camera || target?.player || state?.camera || state?.player;
+  if (!camera) return false;
+  const buffer = spawnSightlineBuffer(customBuffer);
+  return Math.abs(x - camera.x) < scene.w / 2 + buffer && Math.abs(y - camera.y) < scene.h / 2 + buffer;
+}
+
+function propSpawnProgress(prop) {
+  if (!Number.isFinite(prop.createdAt)) return 1;
+  const fade = Math.max(0.1, prop.fadeIn || PROP_FADE_SECONDS);
+  return clamp((state.elapsed - prop.createdAt) / fade, 0, 1);
+}
+
+function offscreenRewardDistance() {
+  return Math.max(900, Math.min(1650, Math.max(scene.w, scene.h) * 0.62 + 260));
+}
+
 function updateSceneViewport() {
   scene.zoom = getSceneZoom();
   scene.w = viewW / scene.zoom;
@@ -3309,6 +3347,25 @@ window.__MONKEY_TIDE_PROP_VISUAL_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_STREAK_CACHE_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  const p = state.player;
+  const before = state.props.length;
+  spawnStreakCache(Math.max(48, state.streak?.count || 0));
+  const cache = state.props.slice(before).find((prop) => prop.streakCache);
+  render();
+  return {
+    cache: cache ? {
+      x: cache.x,
+      y: cache.y,
+      distance: Math.round(Math.hypot(cache.x - p.x, cache.y - p.y)),
+      inSightline: isInSpawnSightline(cache.x, cache.y, state, 0),
+      hasFade: Number.isFinite(cache.createdAt) && cache.fadeIn > 0,
+      alphaProgress: propSpawnProgress(cache),
+    } : null,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_THREE_MONKEY_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
@@ -3376,6 +3433,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
     backgroundTile: WORLD.bgTile,
     propChunkSize: PROP_CHUNK,
     activePropChunks: state.propChunks?.size || 0,
+    immersivePropSpawning: true,
+    propSpawnBuffer: spawnSightlineBuffer(),
+    propFadeSeconds: PROP_FADE_SECONDS,
+    recentVisiblePropSpawns: state.props.filter((prop) => (
+      Number.isFinite(prop.createdAt)
+      && state.elapsed - prop.createdAt < 0.2
+      && isInSpawnSightline(prop.x, prop.y, state, 0)
+    )).length,
   },
   powerups: {
     active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })),
