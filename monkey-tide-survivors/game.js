@@ -3095,10 +3095,10 @@ function updateSceneViewport() {
 
 function getSceneZoom() {
   if (isMobileLike()) {
-    return viewW > viewH ? 0.42 : 0.46;
+    return viewW > viewH ? 0.38 : 0.41;
   }
-  if (viewW < 980) return 0.68;
-  return 0.74;
+  if (viewW < 980) return 0.62;
+  return 0.68;
 }
 
 function isMobileLike() {
