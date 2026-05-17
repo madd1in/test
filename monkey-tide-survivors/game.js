@@ -140,7 +140,10 @@ const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
-const WORLD = { w: 6400, h: 6400 };
+const WORLD = { w: 10000000, h: 10000000, bgTile: 4096 };
+const PROP_CHUNK = 960;
+const PROP_CHUNK_RADIUS = 3;
+const PROP_CHUNK_PRUNE_RADIUS = 5;
 const TARGET_TIME = 330;
 const BALANCE = {
   normalSpawnIntensity: 1.12,
@@ -651,7 +654,9 @@ let selectedUpgradeIndex = 0;
 
 function makeState() {
   const relicBonus = metaRelicBonuses();
-  return {
+  const startX = WORLD.w / 2;
+  const startY = WORLD.h / 2;
+  const next = {
     phase: "menu",
     map: selectedMap,
     elapsed: 0,
@@ -668,10 +673,10 @@ function makeState() {
     level: 1,
     xp: 0,
     nextXp: 22,
-    camera: { x: WORLD.w / 2, y: WORLD.h / 2 },
+    camera: { x: startX, y: startY },
     player: {
-      x: WORLD.w / 2,
-      y: WORLD.h / 2,
+      x: startX,
+      y: startY,
       r: 24,
       hp: 150,
       maxHp: 150,
@@ -724,18 +729,65 @@ function makeState() {
     particles: [],
     texts: [],
     powerups: [],
-    props: makeProps(selectedMap),
+    props: [],
+    propChunks: new Set(),
+    tidePuddleCooldown: 0,
     voice: {
       nextLowHpAt: 0,
       minuteMark: 0,
       finalWarned: false,
     },
   };
+  ensurePropChunks(next, true);
+  return next;
 }
 
 function makeProps(mapId = selectedMap) {
-  const variant = mapVariant(mapId);
-  const props = [];
+  const target = {
+    map: mapId,
+    player: { x: WORLD.w / 2, y: WORLD.h / 2 },
+    props: [],
+    propChunks: new Set(),
+  };
+  ensurePropChunks(target, true);
+  return target.props;
+}
+
+function ensurePropChunks(target = state, force = false) {
+  if (!target?.player) return;
+  if (!target.propChunks) target.propChunks = new Set();
+  if (!target.props) target.props = [];
+  const centerX = Math.floor(target.player.x / PROP_CHUNK);
+  const centerY = Math.floor(target.player.y / PROP_CHUNK);
+  for (let cx = centerX - PROP_CHUNK_RADIUS; cx <= centerX + PROP_CHUNK_RADIUS; cx += 1) {
+    for (let cy = centerY - PROP_CHUNK_RADIUS; cy <= centerY + PROP_CHUNK_RADIUS; cy += 1) {
+      const key = chunkKey(cx, cy);
+      if (!force && target.propChunks.has(key)) continue;
+      if (target.propChunks.has(key)) continue;
+      target.propChunks.add(key);
+      addChunkProps(target, cx, cy, key);
+    }
+  }
+  target.props = target.props.filter((prop) => {
+    if (!prop.chunkKey) return true;
+    return Math.abs(prop.chunkX - centerX) <= PROP_CHUNK_PRUNE_RADIUS
+      && Math.abs(prop.chunkY - centerY) <= PROP_CHUNK_PRUNE_RADIUS;
+  });
+  for (const key of [...target.propChunks]) {
+    const [cx, cy] = key.split(":").map(Number);
+    if (Math.abs(cx - centerX) > PROP_CHUNK_PRUNE_RADIUS || Math.abs(cy - centerY) > PROP_CHUNK_PRUNE_RADIUS) {
+      target.propChunks.delete(key);
+    }
+  }
+}
+
+function chunkKey(cx, cy) {
+  return `${cx}:${cy}`;
+}
+
+function addChunkProps(target, chunkX, chunkY, chunkKeyValue) {
+  const variant = mapVariant(target.map);
+  const props = target.props;
   const choices = [
     "rope",
     "map",
@@ -763,89 +815,101 @@ function makeProps(mapId = selectedMap) {
     "palmHedge",
     "buriedTreasure",
     "conchShrine",
+    "clearPuddle",
+    "tidePuddle",
     ...(variant.propBoost || []),
   ];
-  for (let gx = 320; gx < WORLD.w - 320; gx += 520) {
-    for (let gy = 320; gy < WORLD.h - 320; gy += 470) {
-      const h = hash2(Math.floor(gx / 50), Math.floor(gy / 50));
-      const detailBoost = variant.detail === "treasure" ? 5 : variant.detail === "lagoon" ? 4 : 3;
-      if (h % 13 < detailBoost) {
-        const icon = choices[h % choices.length];
-        props.push({
-          x: gx + ((h >> 4) % 240) - 120,
-          y: gy + ((h >> 10) % 220) - 110,
-          icon,
-          scale: propScaleForIcon(icon, h),
-          spin: ((h >> 8) % 100) / 100,
-          interactive: beachPropMap[icon]?.interactive === true,
-        });
-      }
-    }
+  const baseX = chunkX * PROP_CHUNK;
+  const baseY = chunkY * PROP_CHUNK;
+  const addProp = (x, y, icon, h, options = {}) => {
+    if (Math.hypot(x - target.player.x, y - target.player.y) < (options.safeRadius || 0)) return;
+    props.push({
+      x,
+      y,
+      icon,
+      scale: propScaleForIcon(icon, h) * (options.scale || 1),
+      spin: options.spin ?? ((h >> 8) % 100) / 100,
+      interactive: options.interactive ?? beachPropMap[icon]?.interactive === true,
+      blocking: options.blocking,
+      puddle: beachPropMap[icon]?.decal === true,
+      chunkX,
+      chunkY,
+      chunkKey: chunkKeyValue,
+    });
+  };
+
+  const detailSlots = variant.detail === "treasure" ? 3 : 2;
+  for (let i = 0; i < detailSlots; i += 1) {
+    const h = hash2(chunkX * 17 + i * 13, chunkY * 19 - i * 7);
+    const detailBoost = variant.detail === "treasure" ? 8 : variant.detail === "lagoon" ? 7 : 6;
+    if (h % 12 >= detailBoost) continue;
+    const icon = choices[h % choices.length];
+    const x = baseX + 160 + ((h >> 4) % (PROP_CHUNK - 320));
+    const y = baseY + 150 + ((h >> 11) % (PROP_CHUNK - 300));
+    addProp(x, y, icon, h, { safeRadius: 560 });
   }
+
+  const puddleHash = hash2(chunkX * 31 + 5, chunkY * 37 - 9);
+  const puddleCount = variant.detail === "lagoon" ? 2 : puddleHash % 3 === 0 ? 2 : 1;
+  for (let i = 0; i < puddleCount; i += 1) {
+    const h = hash2(chunkX * 41 + i * 23, chunkY * 43 + i * 17);
+    const icon = variant.detail === "lagoon" || h % 5 === 0 ? "tidePuddle" : "clearPuddle";
+    const x = baseX + 150 + ((h >> 5) % (PROP_CHUNK - 300));
+    const y = baseY + 140 + ((h >> 12) % (PROP_CHUNK - 280));
+    addProp(x, y, icon, h, { safeRadius: 360, scale: 0.88 + (h % 5) * 0.04, interactive: false });
+  }
+
   const landmarks = ["beachHut", "boatWreck", "buriedTreasure", "conchShrine", ...(variant.propBoost || [])];
-  for (let gx = 700; gx < WORLD.w - 520; gx += 1150) {
-    for (let gy = 740; gy < WORLD.h - 520; gy += 1080) {
-      const h = hash2(Math.floor(gx / 70), Math.floor(gy / 70));
-      if (h % 9 < (variant.detail === "treasure" ? 5 : 3)) {
-        const icon = landmarks[h % landmarks.length];
-        props.push({
-          x: gx + ((h >> 5) % 320) - 160,
-          y: gy + ((h >> 12) % 280) - 140,
-          icon,
-          scale: propScaleForIcon(icon, h),
-          spin: ((h >> 9) % 100) / 130,
-          interactive: true,
-        });
-      }
-    }
+  const landmarkHash = hash2(chunkX * 53, chunkY * 59);
+  if (landmarkHash % 10 < (variant.detail === "treasure" ? 5 : 3)) {
+    const icon = landmarks[landmarkHash % landmarks.length];
+    const x = baseX + 220 + ((landmarkHash >> 5) % (PROP_CHUNK - 440));
+    const y = baseY + 210 + ((landmarkHash >> 12) % (PROP_CHUNK - 420));
+    addProp(x, y, icon, landmarkHash, {
+      safeRadius: 760,
+      spin: ((landmarkHash >> 9) % 100) / 130,
+      interactive: true,
+      blocking: propBlocksMovement({ icon }),
+    });
   }
+
   const blockerIcons = variant.blockerIcons || (variant.detail === "gothic"
     ? ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"]
     : ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"]);
   const blockerDensity = variant.blockerDensity ?? 5;
-  const blockerStepX = variant.detail === "lagoon" ? 780 : variant.detail === "treasure" ? 820 : 880;
-  const blockerStepY = variant.detail === "gothic" ? 720 : 780;
-  for (let gx = 520; gx < WORLD.w - 520; gx += blockerStepX) {
-    for (let gy = 560; gy < WORLD.h - 520; gy += blockerStepY) {
-      const h = hash2(Math.floor(gx / 90), Math.floor(gy / 90));
-      if (h % 11 >= blockerDensity) continue;
-      if (Math.hypot(gx - WORLD.w / 2, gy - WORLD.h / 2) < 620) continue;
-      const clusterSize = h % 5 === 0 || variant.detail === "treasure" ? 3 : 2;
-      for (let i = 0; i < clusterSize; i += 1) {
-        const icon = blockerIcons[(h + i * 3) % blockerIcons.length];
-        const angle = ((h >> (i * 3 + 2)) % 628) / 100;
-        const isHedge = icon === "hedgeCluster" || icon === "palmHedge";
-        const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : isHedge ? 152 : 118;
-        const x = gx + Math.cos(angle) * spread + ((h >> (i + 6)) % 90) - 45;
-        const y = gy + Math.sin(angle) * spread + ((h >> (i + 11)) % 80) - 40;
-        props.push({
-          x: clamp(x, 180, WORLD.w - 180),
-          y: clamp(y, 180, WORLD.h - 180),
-          icon,
-          scale: propScaleForIcon(icon, h + i * 41) * (isHedge ? (variant.detail === "gothic" ? 1.24 : 1.18) : 1),
-          spin: ((h >> (i + 8)) % 100) / 120,
-          interactive: beachPropMap[icon]?.interactive === true,
-          blocking: true,
-        });
-      }
+  const blockerHash = hash2(chunkX * 67 + 3, chunkY * 71 - 11);
+  if (blockerHash % 11 < blockerDensity) {
+    const clusterSize = blockerHash % 5 === 0 || variant.detail === "treasure" ? 3 : 2;
+    const cx = baseX + 250 + ((blockerHash >> 7) % (PROP_CHUNK - 500));
+    const cy = baseY + 260 + ((blockerHash >> 14) % (PROP_CHUNK - 520));
+    for (let i = 0; i < clusterSize; i += 1) {
+      const h = blockerHash + i * 41;
+      const icon = blockerIcons[(blockerHash + i * 3) % blockerIcons.length];
+      const angle = ((blockerHash >> (i * 3 + 2)) % 628) / 100;
+      const isHedge = icon === "hedgeCluster" || icon === "palmHedge";
+      const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : isHedge ? 152 : 118;
+      const x = cx + Math.cos(angle) * spread + ((blockerHash >> (i + 6)) % 90) - 45;
+      const y = cy + Math.sin(angle) * spread + ((blockerHash >> (i + 11)) % 80) - 40;
+      addProp(x, y, icon, h, {
+        safeRadius: 720,
+        scale: isHedge ? (variant.detail === "gothic" ? 1.24 : 1.18) : 1,
+        spin: ((blockerHash >> (i + 8)) % 100) / 120,
+        interactive: beachPropMap[icon]?.interactive === true,
+        blocking: true,
+      });
     }
   }
-  const anchorBlockers = variant.anchorBlockers || [
-    { icon: "beachHut", x: 0.18, y: 0.24, spin: 0.09 },
-    { icon: "boatWreck", x: 0.82, y: 0.76, spin: 0.18 },
-  ];
-  for (const anchor of anchorBlockers) {
-    props.push({
-      x: Math.round(WORLD.w * anchor.x),
-      y: Math.round(WORLD.h * anchor.y),
-      icon: anchor.icon,
-      scale: propScaleForIcon(anchor.icon, Math.round(anchor.x * 1000 + anchor.y * 1000)),
-      spin: anchor.spin || 0,
-      interactive: beachPropMap[anchor.icon]?.interactive === true,
+
+  if ((chunkX + chunkY) % 6 === 0) {
+    const h = hash2(chunkX * 83, chunkY * 89);
+    const icon = h % 2 === 0 ? "boatWreck" : "beachHut";
+    addProp(baseX + 360 + (h % 240), baseY + 340 + ((h >> 8) % 220), icon, h, {
+      safeRadius: 900,
+      spin: ((h >> 9) % 100) / 160,
+      interactive: true,
       blocking: true,
     });
   }
-  return props;
 }
 
 function propScaleForIcon(icon, h = 0) {
@@ -1211,6 +1275,8 @@ function update(dt) {
   }
   state.warningTimer = Math.max(0, state.warningTimer - dt);
   updatePlayer(dt);
+  ensurePropChunks();
+  updateTidePuddles(dt);
   updatePowerups(dt);
   updateWeapons(dt);
   updateSpawns(dt);
@@ -1316,6 +1382,7 @@ function moveActorWithObstacles(actor, vx, vy, dt, radius = actor.r || 20, ignor
 function resolveObstacleCollisions(actor, radius = actor.r || 20) {
   for (const prop of state.props) {
     if (!propBlocksMovement(prop)) continue;
+    if (Math.abs(prop.x - actor.x) > radius + 360 || Math.abs(prop.y - actor.y) > radius + 320) continue;
     const shape = propObstacleShape(prop);
     const rx = shape.rx + radius;
     const ry = shape.ry + radius * 0.88;
@@ -1340,6 +1407,7 @@ function obstacleInfluencingActor(actor, moveX, moveY, radius = actor.r || 20) {
   let bestN = Infinity;
   for (const prop of state.props) {
     if (!propBlocksMovement(prop)) continue;
+    if (Math.abs(prop.x - lookX) > radius + 420 || Math.abs(prop.y - lookY) > radius + 380) continue;
     const shape = propObstacleShape(prop);
     const rx = shape.rx + radius + 30;
     const ry = shape.ry + radius + 24;
@@ -1600,7 +1668,7 @@ function pickEnemyType() {
 }
 
 function spawnEnemy(type, boss = false) {
-  if (state.enemies.length > 260 && !boss) return;
+  if (state.enemies.length > enemyCap() && !boss) return;
   const p = state.player;
   const side = Math.floor(Math.random() * 4);
   const margin = boss ? 460 : 620;
@@ -1638,6 +1706,10 @@ function spawnEnemy(type, boss = false) {
   };
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   state.enemies.push(enemy);
+}
+
+function enemyCap() {
+  return isMobileLike() ? 170 : 230;
 }
 
 function updateEnemies(dt) {
@@ -1848,6 +1920,26 @@ function updateExploration() {
   }
 }
 
+function updateTidePuddles(dt) {
+  state.tidePuddleCooldown = Math.max(0, (state.tidePuddleCooldown || 0) - dt);
+  if (state.tidePuddleCooldown > 0) return;
+  const p = state.player;
+  for (const prop of state.props) {
+    if (!prop.puddle || prop.used) continue;
+    const dist = Math.hypot(prop.x - p.x, prop.y - p.y);
+    if (dist > 92) continue;
+    prop.used = true;
+    state.tidePuddleCooldown = 2.2;
+    p.dash = Math.max(p.dash, 0.12);
+    p.invuln = Math.max(p.invuln, 0.16);
+    state.xp += prop.icon === "tidePuddle" ? 3 : 2;
+    floatingText(prop.icon === "tidePuddle" ? "Gezeiten-Slip" : "Spritzspur", p.x, p.y - 78, "#bfffea", 0.55, 14);
+    state.zones.push({ type: "tideRipple", x: prop.x, y: prop.y, radius: 72, life: 0.24, maxLife: 0.24 });
+    playSound("downloadPickup", { cooldown: 900 });
+    break;
+  }
+}
+
 function updatePowerups(dt) {
   for (const powerup of state.powerups) powerup.timer -= dt;
   state.powerups = state.powerups.filter((powerup) => powerup.timer > 0);
@@ -1936,6 +2028,10 @@ function updateParticles(dt) {
   state.zones = state.zones.filter((zone) => zone.life > 0);
   state.particles = state.particles.filter((particle) => particle.life > 0);
   state.texts = state.texts.filter((text) => text.life > 0);
+  if (isMobileLike()) {
+    if (state.particles.length > 90) state.particles.splice(0, state.particles.length - 90);
+    if (state.texts.length > 28) state.texts.splice(0, state.texts.length - 28);
+  }
 }
 
 function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
@@ -1948,7 +2044,8 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   if ((enemy.boss || amount >= 42) && Math.random() < 0.45) playSound("downloadHit");
   if (Math.random() < 0.12) floatingText(String(Math.round(amount)), enemy.x, enemy.y - enemy.r - 20, enemy.type.tint);
-  for (let i = 0; i < 2; i += 1) {
+  const particleCount = isMobileLike() ? 1 : 2;
+  for (let i = 0; i < particleCount; i += 1) {
     state.particles.push({
       x: enemy.x,
       y: enemy.y - 24,
@@ -2303,7 +2400,23 @@ function mapBackgroundImage(variant = mapVariant(state.map)) {
 }
 
 function drawWorldMap(image, ox, oy) {
-  ctx.drawImage(image, ox, oy, WORLD.w, WORLD.h);
+  const tile = WORLD.bgTile;
+  const cam = state.camera;
+  const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
+  const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
+  const minY = Math.floor((cam.y - scene.h / 2) / tile) - 1;
+  const maxY = Math.ceil((cam.y + scene.h / 2) / tile) + 1;
+  for (let gx = minX; gx <= maxX; gx += 1) {
+    for (let gy = minY; gy <= maxY; gy += 1) {
+      const px = ox + gx * tile;
+      const py = oy + gy * tile;
+      ctx.save();
+      ctx.translate(px + tile / 2, py + tile / 2);
+      ctx.scale(gx % 2 === 0 ? 1 : -1, gy % 2 === 0 ? 1 : -1);
+      ctx.drawImage(image, -tile / 2, -tile / 2, tile, tile);
+      ctx.restore();
+    }
+  }
 }
 
 function drawMapTint(variant) {
@@ -2315,7 +2428,8 @@ function drawMapTint(variant) {
 }
 
 function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
-  const tile = 220;
+  const mobile = isMobileLike();
+  const tile = mobile ? 340 : 260;
   const cam = state.camera;
   const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
   const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
@@ -2330,13 +2444,13 @@ function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
       const lagoon = variant.detail === "lagoon";
       const gothic = variant.detail === "gothic";
       const treasure = variant.detail === "treasure";
-      if (h % (lagoon ? 19 : 41) === 0 || (treasure && h % 47 === 0)) {
+      if (h % (lagoon ? 5 : treasure ? 7 : 9) === 0) {
         const icon = gothic && h % 23 === 0 ? "gothicCandelabra" : lagoon ? "tidePuddle" : "clearPuddle";
         const px = ox + x + 30 + ((h >> 6) % 160);
         const py = oy + y + 30 + ((h >> 13) % 150);
-        const w = gothic && icon === "gothicCandelabra" ? 54 : 104 + (h % 42);
-        const ph = gothic && icon === "gothicCandelabra" ? 54 : 74 + ((h >> 4) % 28);
-        drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, icon === "tidePuddle" ? 0.4 : 0.34);
+        const w = gothic && icon === "gothicCandelabra" ? 54 : 148 + (h % 56);
+        const ph = gothic && icon === "gothicCandelabra" ? 54 : 106 + ((h >> 4) % 36);
+        drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, icon === "tidePuddle" ? 0.68 : 0.58);
       }
     }
   }
@@ -2350,7 +2464,8 @@ function drawProps() {
     if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
     const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
-    const alpha = prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : propBlocksMovement(prop) ? 0.82 : 0.62;
+    const isDecal = beachPropMap[prop.icon]?.decal === true;
+    const alpha = isDecal ? (prop.used ? 0.48 : 0.72) : prop.discovered && prop.icon !== "openTreasureChest" ? 0.44 : propBlocksMovement(prop) ? 0.82 : 0.62;
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
     if (prop.interactive && !prop.discovered) {
       const glint = Math.min(124, Math.max(76, size.w * 0.32));
@@ -2386,6 +2501,7 @@ function drawGems() {
 function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
+  const mobile = isMobileLike();
   const enemies = [...state.enemies].sort((a, b) => a.y - b.y);
   for (const enemy of enemies) {
     if (!onScreen(enemy.x, enemy.y, 220)) continue;
@@ -2437,7 +2553,7 @@ function drawEnemies() {
     }
     ctx.restore();
     const hpPct = clamp(enemy.hp / enemy.maxHp, 0, 1);
-    if (hpPct < 0.98 || enemy.boss) {
+    if ((!mobile && hpPct < 0.98) || enemy.boss || enemy.hit > 0) {
       ctx.fillStyle = "rgba(0,0,0,0.48)";
       ctx.fillRect(px - 28, py - h - 8, 56, 5);
       ctx.fillStyle = enemy.type.tint;
@@ -2546,6 +2662,10 @@ function drawWeaponEffects() {
       const burstSize = zone.radius * 2.2;
       drawPlayerEffectAt("curseBurst", -burstSize * 0.56, -burstSize * 0.56, burstSize * 1.12, burstSize * 1.12);
       drawProjectileFxAt(zone.fx === "ghostCannonball" ? "ghostCannonball" : "monkeyCurseOrb", -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+    } else if (zone.type === "tideRipple") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      const rippleSize = zone.radius * 2.2;
+      drawPlayerEffectAt("tidePulse", -rippleSize / 2, -rippleSize / 2, rippleSize, rippleSize);
     }
     ctx.restore();
   }
@@ -2808,23 +2928,29 @@ function updateSceneViewport() {
 }
 
 function getSceneZoom() {
-  const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
-  const mobileSized = Math.min(viewW, viewH) <= 520 || Math.max(viewW, viewH) <= 920;
-  if (coarsePointer || mobileSized) {
-    return viewW > viewH ? 0.48 : 0.54;
+  if (isMobileLike()) {
+    return viewW > viewH ? 0.42 : 0.46;
   }
-  if (viewW < 980) return 0.76;
-  return 0.82;
+  if (viewW < 980) return 0.68;
+  return 0.74;
+}
+
+function isMobileLike() {
+  const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
+  const mobileSized = Math.min(viewW, viewH) <= 560 || Math.max(viewW, viewH) <= 940;
+  return !!coarsePointer || mobileSized;
 }
 
 function syncCanvasSize() {
-  const nextDpr = Math.min(2, window.devicePixelRatio || 1);
   const nextW = window.innerWidth;
   const nextH = window.innerHeight;
+  viewW = nextW;
+  viewH = nextH;
+  const nextDpr = Math.min(isMobileLike() ? 1.25 : 1.75, window.devicePixelRatio || 1);
   if (
     nextDpr === dpr
-    && nextW === viewW
-    && nextH === viewH
+    && nextW === canvas.clientWidth
+    && nextH === canvas.clientHeight
     && canvas.width === Math.floor(viewW * dpr)
     && canvas.height === Math.floor(viewH * dpr)
   ) {
@@ -2832,8 +2958,6 @@ function syncCanvasSize() {
     return false;
   }
   dpr = nextDpr;
-  viewW = nextW;
-  viewH = nextH;
   canvas.width = Math.floor(viewW * dpr);
   canvas.height = Math.floor(viewH * dpr);
   canvas.style.width = `${viewW}px`;
@@ -2901,8 +3025,14 @@ window.addEventListener("keyup", (event) => {
   keys.delete(event.key.toLowerCase());
 });
 
-ui.startButton.addEventListener("click", () => startGame());
-ui.quickButton.addEventListener("click", () => startGame({ quick: true }));
+ui.startButton.addEventListener("click", () => {
+  requestMobileLandscape();
+  startGame();
+});
+ui.quickButton.addEventListener("click", () => {
+  requestMobileLandscape();
+  startGame({ quick: true });
+});
 ui.restartButton.addEventListener("click", () => startGame({ quick: quickMode }));
 ui.skinPicker.addEventListener("click", (event) => {
   const button = event.target.closest("[data-skin]");
@@ -2953,6 +3083,22 @@ function toggleFullscreen() {
     document.exitFullscreen().catch(() => {});
   } else {
     document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+function requestMobileLandscape() {
+  if (!isMobileLike()) return;
+  const lockLandscape = () => {
+    if (screen.orientation?.lock) screen.orientation.lock("landscape").catch(() => {});
+  };
+  if (!document.fullscreenElement && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
+    try {
+      document.documentElement.requestFullscreen({ navigationUI: "hide" }).then(lockLandscape).catch(lockLandscape);
+    } catch {
+      lockLandscape();
+    }
+  } else {
+    lockLandscape();
   }
 }
 
@@ -3153,6 +3299,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
     musicProfiles: Object.fromEntries(mapVariants.map((map) => [map.id, mapMusicProfile(map.id)])),
     unlocked: [...metaProgress.unlockedMaps],
   },
+  world: {
+    repeatable: true,
+    width: WORLD.w,
+    height: WORLD.h,
+    backgroundTile: WORLD.bgTile,
+    propChunkSize: PROP_CHUNK,
+    activePropChunks: state.propChunks?.size || 0,
+  },
   powerups: {
     active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })),
     types: powerUpTypes.map((powerup) => powerup.id),
@@ -3181,6 +3335,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
+  performance: { mobile: isMobileLike(), dpr, enemyCap: enemyCap(), propCount: state.props.length },
   obstacles: {
     blockingProps: state.props.filter(propBlocksMovement).length,
     blockingPropTypes: [...new Set(state.props.filter(propBlocksMovement).map((prop) => prop.icon))],
@@ -3237,6 +3392,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
     beachPropAssetKeys: [...new Set(Object.values(beachPropMap).map((prop) => prop.image))],
     interactiveProps: state.props.filter((prop) => prop.interactive).length,
     discoveredProps: state.props.filter((prop) => prop.discovered).length,
+    visiblePuddles: state.props.filter((prop) => prop.puddle).length,
+    puddleBonusReady: (state.tidePuddleCooldown || 0) <= 0,
   },
   combatAssets: {
     projectileFx: !!images.projectileFx,

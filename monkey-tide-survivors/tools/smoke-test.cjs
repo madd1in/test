@@ -59,7 +59,10 @@ function resolvePlaywright() {
 async function closeServer(server) {
   if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
   if (typeof server.closeAllConnections === "function") server.closeAllConnections();
-  await new Promise((resolve) => server.close(() => resolve()));
+  await Promise.race([
+    new Promise((resolve) => server.close(() => resolve())),
+    new Promise((resolve) => setTimeout(resolve, 5000)),
+  ]);
 }
 
 async function run() {
@@ -150,6 +153,28 @@ async function run() {
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
+  const readMenuFit = () => {
+    const panel = document.querySelector("#startOverlay .start-panel");
+    const start = document.getElementById("startButton");
+    const panelRect = panel.getBoundingClientRect();
+    const startRect = start.getBoundingClientRect();
+    const style = getComputedStyle(panel);
+    return {
+      viewport: { w: innerWidth, h: innerHeight },
+      panel: { top: panelRect.top, bottom: panelRect.bottom, height: panelRect.height, scrollHeight: panel.scrollHeight, overflowY: style.overflowY },
+      startVisible: startRect.bottom <= panelRect.bottom + 1 && startRect.top >= panelRect.top - 1,
+    };
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(100);
+  const portraitMenu = await page.evaluate(readMenuFit);
+  assert(portraitMenu.panel.top >= -1 && portraitMenu.panel.bottom <= portraitMenu.viewport.h + 1 && portraitMenu.panel.overflowY !== "visible", `Portrait mobile menu is clipped: ${JSON.stringify(portraitMenu)}`);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(100);
+  const landscapeMenu = await page.evaluate(readMenuFit);
+  assert(landscapeMenu.panel.top >= -1 && landscapeMenu.panel.bottom <= landscapeMenu.viewport.h + 1 && landscapeMenu.startVisible, `Landscape mobile menu is clipped: ${JSON.stringify(landscapeMenu)}`);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.waitForTimeout(100);
   const skinUi = await page.evaluate(() => Array.from(document.querySelectorAll("#skinPicker [data-skin]")).map((button) => ({
     id: button.dataset.skin,
     checked: button.getAttribute("aria-checked") === "true",
@@ -180,6 +205,8 @@ async function run() {
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
   assert(debug.scene.zoom <= 0.84, `Desktop camera is not zoomed out: ${JSON.stringify(debug.scene)}`);
+  assert(debug.world.repeatable === true && debug.world.width >= 1000000 && debug.world.activePropChunks > 0, `World is still behaving like a bounded arena: ${JSON.stringify(debug.world)}`);
+  assert(debug.performance.enemyCap <= 230 && debug.performance.dpr <= 1.75, `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
@@ -246,6 +273,7 @@ async function run() {
   assert(debug.explorationAssets.beachProps, `Beach exploration prop sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("beachHut") && debug.explorationAssets.beachPropTypes.includes("boatWreck"), `Explorable landmarks missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("clearPuddle") && debug.explorationAssets.beachPropTypes.includes("hedgeCluster"), `HD puddles or hedges missing: ${JSON.stringify(debug)}`);
+  assert(debug.explorationAssets.visiblePuddles >= 8, `HD puddle decals are not visible enough in the generated chunks: ${JSON.stringify(debug.explorationAssets)}`);
   assert(debug.explorationAssets.beachPropTypes.includes("conchShrine") && debug.explorationAssets.beachPropTypes.includes("buriedTreasure"), `New exploration ideas missing: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.interactiveProps >= 3, `Not enough explorable props: ${JSON.stringify(debug)}`);
   assert(debug.explorationAssets.beachPropAssetKeys.every((key) => debug.preloadedAssetKeys.includes(key)), `Clean beach props are not preloaded: ${JSON.stringify(debug)}`);
@@ -410,9 +438,10 @@ async function run() {
   assert(pageErrors.length === 0, `Page errors:\n${pageErrors.join("\n")}`);
   assert(badResponses.length === 0, `Bad responses:\n${badResponses.join("\n")}`);
 
-  await browser.close();
+  await Promise.race([browser.close(), new Promise((resolve) => setTimeout(resolve, 5000))]);
   await closeServer(server);
   console.log(`smoke ok ${url}`);
+  process.exit(0);
 }
 
 run().catch((error) => {

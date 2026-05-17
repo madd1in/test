@@ -109,11 +109,12 @@ async function run() {
       clientY: 690,
     }));
   });
-  await browser.close();
+  await Promise.race([browser.close(), new Promise((resolve) => setTimeout(resolve, 5000))]);
   if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
   if (typeof server.closeAllConnections === "function") server.closeAllConnections();
-  await new Promise((resolve) => server.close(resolve));
+  await Promise.race([new Promise((resolve) => server.close(resolve)), new Promise((resolve) => setTimeout(resolve, 5000))]);
   console.log(`mobile visual ok ${url}`);
+  process.exit(0);
 }
 
 run().catch((error) => {
