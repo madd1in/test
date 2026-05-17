@@ -37,6 +37,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.
 - Erkunderte Buesche, Huetten und Wracks bleiben voll gemalt statt ausgegraut; Schatzfunde wechseln auf ein eigenes offenes Imagen-HD-Truhenasset.
 - Dreikoepfiger Affe ist als eigener Imagen-HD-Boss im Boss-Zyklus und feuert eine dreifache Fluchsalve.
+- Blackbeard ist als eigener Imagen-HD-Boss im Boss-Zyklus und feuert eine dreifache Geisterkanonen-Breitseite.
 - Map-spezifische Busch-/Hecken-Hindernisse nutzen die HD-Prop-Assets und bleiben Teil der Kollisionslogik.
 - Upgrade-Auswahl pausiert den Run nur noch in groesseren Abstaenden; Zwischenlevel geben nicht-blockierende Flow-Boni.
 - Vier Kartenvarianten mit Map-Auswahl, gespeicherten Achievements, freischaltbaren Karten und kleinen Startrelikten.

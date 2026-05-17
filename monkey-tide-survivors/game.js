@@ -54,6 +54,7 @@ const imageSources = {
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
   threeHeadedMonkey: "assets/sprites/bosses/three_headed_monkey_imagen_hd.webp",
+  blackbeard: "assets/sprites/bosses/blackbeard_imagen_hd.webp",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -388,6 +389,7 @@ const enemyTypes = [
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
   { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true },
   { id: "threeHeadedMonkey", name: "Dreikopf-Affe", threeHeadedMonkey: true, hp: 235, speed: 66, radius: 56, damage: 22, scale: 0.34, xp: 64, tint: "#80ff9e", bossCandidate: true },
+  { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true },
 ];
 
 const upgrades = [
@@ -1632,7 +1634,7 @@ function updateSpawns(dt) {
   }
   if (state.elapsed > BALANCE.firstBossAt && state.bossTimer <= 0) {
     state.bossTimer = BALANCE.bossInterval;
-    const bossCycle = ["spectralCaptain", "idol", "coralBrute", "threeHeadedMonkey"];
+    const bossCycle = ["spectralCaptain", "idol", "coralBrute", "threeHeadedMonkey", "blackbeard"];
     const bossType = enemyType(bossCycle[state.bossCount % bossCycle.length]);
     state.bossCount += 1;
     spawnEnemy(bossType, true);
@@ -1643,7 +1645,9 @@ function updateSpawns(dt) {
         ? "Korallenbrecher voraus. Lass dich nicht festnageln!"
         : bossType.id === "threeHeadedMonkey"
           ? "Dreikoepfiger Affe voraus. Nicht alle Koepfe anstarren!"
-          : "Affenidol voraus. Bleib in Bewegung!";
+          : bossType.id === "blackbeard"
+            ? "Blackbeard voraus. Deckung vor der Breitseite!"
+            : "Affenidol voraus. Bleib in Bewegung!";
     playSound("downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
@@ -1786,6 +1790,9 @@ function enemyProjectileProfile(enemy) {
   }
   if (enemy.boss && enemy.type.id === "threeHeadedMonkey") {
     return { fx: "monkeyCurseOrb", range: 840, cooldown: 2.25, speed: 236, radius: 18, damage: 13, life: 4.2, count: 3, spread: 0.22 };
+  }
+  if (enemy.boss && enemy.type.id === "blackbeard") {
+    return { fx: "ghostCannonball", range: 880, cooldown: 2.4, speed: 254, radius: 19, damage: 14, life: 4.5, count: 3, spread: 0.18 };
   }
   if (enemy.type.id === "oracle") {
     return { fx: "compassBolt", range: 650, cooldown: 2.35, speed: 258, radius: 14, damage: 9, life: 3.6 };
@@ -2105,14 +2112,18 @@ function killEnemy(enemy) {
         ? "Korallenbrecher versenkt"
         : enemy.type.id === "threeHeadedMonkey"
           ? "Dreikopf-Affe vertrieben"
-          : "Idol gebrochen";
+          : enemy.type.id === "blackbeard"
+            ? "Blackbeard entwaffnet"
+            : "Idol gebrochen";
     const downVoice = enemy.type.id === "spectralCaptain"
       ? "Fluchkapitaen verbannt. Sammel die Beute!"
       : enemy.type.id === "coralBrute"
         ? "Korallenbrecher versenkt. Sammel die Beute!"
         : enemy.type.id === "threeHeadedMonkey"
           ? "Dreikoepfiger Affe vertrieben. Sammel die Beute!"
-          : "Idol gebrochen. Sammel die Beute!";
+          : enemy.type.id === "blackbeard"
+            ? "Blackbeard entwaffnet. Sammel die Beute!"
+            : "Idol gebrochen. Sammel die Beute!";
     floatingText(downText, enemy.x, enemy.y - 80, "#fff2c7");
     speak(downVoice, { key: `boss-down-${enemy.type.id}`, interrupt: true, cooldown: 2000 });
     playSound("chime", { force: true });
@@ -2559,6 +2570,12 @@ function drawEnemies() {
       h = images.threeHeadedMonkey.height * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.blackbeard && images.blackbeard) {
+      const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
+      w = images.blackbeard.width * enemy.type.scale * (enemy.boss ? 1.08 : 1);
+      h = images.blackbeard.height * enemy.type.scale * (enemy.boss ? 1.08 : 1);
+      ctx.shadowBlur = enemy.hit > 0 ? 32 : 20;
+      ctx.drawImage(images.blackbeard, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.captainSheet) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
       const sx = frame * SPECTRAL_CAPTAIN.w;
@@ -3388,6 +3405,28 @@ window.__MONKEY_TIDE_THREE_MONKEY_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_BLACKBEARD_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
+  const p = state.player;
+  window.__MONKEY_TIDE_SPAWN_ENEMY("blackbeard", p.x + 440, p.y - 18, true);
+  const boss = [...state.enemies].reverse().find((enemy) => enemy.type.id === "blackbeard");
+  if (boss) {
+    boss.shootTimer = 0;
+    const dx = p.x - boss.x;
+    const dy = p.y - boss.y;
+    updateEnemyRangedAttack(boss, 1 / 60, Math.hypot(dx, dy), dx, dy);
+  }
+  render();
+  const profile = boss ? enemyProjectileProfile(boss) : null;
+  return {
+    boss: boss ? { id: boss.type.id, name: boss.type.name, hp: boss.hp, boss: boss.boss } : null,
+    assetLoaded: !!images.blackbeard,
+    profile,
+    cannonballs: state.projectiles.filter((projectile) => projectile.type === "curseOrb" && projectile.fx === "ghostCannonball").length,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -3509,6 +3548,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     gothicItems: !!images.gothicItems,
     gothicProps: !!images.gothicProps,
     threeHeadedMonkey: !!images.threeHeadedMonkey,
+    blackbeard: !!images.blackbeard,
     gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),
@@ -3540,6 +3580,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
     playerEffectTypes: Object.keys(playerEffectMap),
     enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
     threeHeadedMonkeyVolley: enemyProjectileProfile({ type: enemyType("threeHeadedMonkey"), boss: true })?.count === 3,
+    blackbeardBroadside: enemyProjectileProfile({ type: enemyType("blackbeard"), boss: true })?.fx === "ghostCannonball"
+      && enemyProjectileProfile({ type: enemyType("blackbeard"), boss: true })?.count === 3,
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
   });
