@@ -49,7 +49,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Ruhigere SFX, Tastatur, dynamischer Vollbild-Mobile-Joystick, Dash, Pause, Vollbild und Audio-Schalter.
 - Upgrade-Karten lassen sich auf Desktop per Pfeilen/WASD, 1-3 und Enter/Space waehlen, ohne den Mausgriff im Spielfluss.
 - Kill-Streaks geben XP-Sog und spawnen Streak-Schaetze, damit aggressive Routen mehr Belohnung und kleine Ziele bekommen.
-- Kamera zoomt auf Desktop und Mobile weiter raus; Portrait- und Querformat-HUD bleiben minimal.
+- Kamera zoomt auf Desktop und Mobile nochmals weiter raus; Portrait- und Querformat-HUD bleiben minimal.
 - Mobile Preload ist leichter, weil alte ungenutzte HD-Hintergruende nicht mehr vor Spielstart geladen werden.
 - Exakterer Ladebalken, der wirklich abgeschlossene Bild-Assets zaehlt statt parallel geladene Indexwerte zu raten.
 - Strafferer Balance-Pass mit frueheren Bossen, mehr Spawn-Druck, Gegner-Projektilen, Cutlass+Coconut-Start, schnellerem Dash, starker XP-Magnet-/Undertow-Logik, Level-Heilung und besserer Bedrohungskurve.
