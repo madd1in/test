@@ -98,6 +98,7 @@ async function run() {
     "assets/sprites/beach-props-v2/boat_wreck.webp",
     "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/sprites/player_effects_imagen_hd.webp",
+    "assets/sprites/weapon_evolution_fx_imagen_hd.png",
     "assets/sprites/extra_enemies_imagen_hd.webp",
     "assets/sprites/extra_items_imagen_hd.webp",
     "assets/ui/parchment_panel_imagen_hd.webp",
@@ -295,6 +296,8 @@ async function run() {
   assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
+  assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
@@ -327,6 +330,10 @@ async function run() {
   const blackbeardProbe = await page.evaluate(() => window.__MONKEY_TIDE_BLACKBEARD_PROBE());
   assert(blackbeardProbe.assetLoaded && blackbeardProbe.boss?.id === "blackbeard", `Blackbeard boss did not spawn: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.profile?.count === 3 && blackbeardProbe.cannonballs >= 3, `Blackbeard broadside did not fire: ${JSON.stringify(blackbeardProbe)}`);
+
+  const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
+  assert(weaponEvolutionProbe.assetLoaded && weaponEvolutionProbe.slash?.blades === 5, `Fivefold cutlass animation did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
+  assert(weaponEvolutionProbe.tornado?.fused === true && weaponEvolutionProbe.debug.weaponEvolution.saberTornadoFusionReady, `Saber tornado fusion did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);

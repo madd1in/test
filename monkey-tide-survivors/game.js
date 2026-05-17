@@ -66,6 +66,7 @@ const imageSources = {
   beachBoatWreck: "assets/sprites/beach-props-v2/boat_wreck.webp",
   projectileFx: "assets/sprites/projectile_fx_imagen_hd.webp",
   playerEffects: "assets/sprites/player_effects_imagen_hd.webp",
+  weaponEvolutionFx: "assets/sprites/weapon_evolution_fx_imagen_hd.png",
   extraEnemies: "assets/sprites/extra_enemies_imagen_hd.webp",
   extraItems: "assets/sprites/extra_items_imagen_hd.webp",
 };
@@ -143,6 +144,7 @@ const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
+const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 10000000, h: 10000000, bgTile: 4096 };
@@ -372,6 +374,25 @@ const playerEffectMap = {
   chestReward: { x: 3, y: 1 },
 };
 
+const weaponEvolutionFxMap = {
+  cutlass2: { x: 0, y: 0 },
+  cutlass3: { x: 1, y: 0 },
+  cutlass4: { x: 2, y: 0 },
+  cutlass5: { x: 3, y: 0 },
+  tornado0: { x: 0, y: 1 },
+  tornado1: { x: 1, y: 1 },
+  tornado2: { x: 2, y: 1 },
+  tornado3: { x: 3, y: 1 },
+  aura1: { x: 0, y: 2 },
+  aura2: { x: 1, y: 2 },
+  aura3: { x: 2, y: 2 },
+  aura4: { x: 3, y: 2 },
+  fusion0: { x: 0, y: 3 },
+  fusion1: { x: 1, y: 3 },
+  fusion2: { x: 2, y: 3 },
+  fusion3: { x: 3, y: 3 },
+};
+
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d" },
   { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
@@ -400,7 +421,7 @@ const upgrades = [
     id: "cutlass",
     name: "Geistersaebel",
     icon: "key",
-    desc: "Breitere Hiebe und mehr Schaden.",
+    desc: "Levelt zu Doppel-, Drei-, Vier- und Fuenffach-Saebeln.",
     max: 7,
     apply: () => raiseWeapon("cutlass"),
   },
@@ -432,7 +453,7 @@ const upgrades = [
     id: "rope",
     name: "Tauer-Ring",
     icon: "ropeRing",
-    desc: "Ein rotierender Schutzkreis aus Tauwerk.",
+    desc: "Wachsende Aura. Fusioniert spaet mit Saebeln zum Tornado.",
     max: 5,
     apply: () => raiseWeapon("rope"),
   },
@@ -1569,7 +1590,8 @@ function updateWeapons(dt) {
     const cooldown = Math.max(0.24, 0.6 - lvl * 0.05);
     w.cutlass.timer = cooldown;
     const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
-    slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10);
+    slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10, lvl);
+    if (saberTornadoReady()) castSaberTornado(direction, lvl, w.rope.level);
   }
   if (w.coconut.level > 0) {
     w.coconut.timer -= dt;
@@ -1604,19 +1626,64 @@ function updateWeapons(dt) {
   }
 }
 
-function slash(angle, radius, arc, damage) {
+function slash(angle, radius, arc, damage, level = 1) {
   const p = state.player;
-  state.zones.push({ type: "slash", x: p.x, y: p.y, angle, radius, arc: arc * Math.PI / 180, life: 0.18, maxLife: 0.18 });
+  const blades = cutlassBladeCount(level);
+  state.zones.push({ type: "slash", x: p.x, y: p.y, angle, radius, arc: arc * Math.PI / 180, level, blades, life: 0.2, maxLife: 0.2 });
   playSound("gate");
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
     const dist = Math.hypot(dx, dy);
     if (dist > radius + enemy.r) continue;
-    const delta = Math.abs(shortAngle(Math.atan2(dy, dx) - angle));
-    if (delta < arc * Math.PI / 180 || dist < 46) {
+    const targetAngle = Math.atan2(dy, dx);
+    const bladeSpread = blades > 1 ? Math.min(0.58, 0.12 * (blades - 1)) : 0;
+    let caught = dist < 46;
+    for (let i = 0; i < blades && !caught; i += 1) {
+      const bladeAngle = angle + (i - (blades - 1) / 2) * bladeSpread;
+      const delta = Math.abs(shortAngle(targetAngle - bladeAngle));
+      caught = delta < arc * Math.PI / 180 * (blades > 1 ? 0.64 : 1);
+    }
+    if (caught) {
       hurtEnemy(enemy, damage * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
     }
+  }
+}
+
+function cutlassBladeCount(level = state?.weapons?.cutlass?.level || 1) {
+  return Math.min(5, Math.max(1, Math.floor(level)));
+}
+
+function auraEvolutionStage(level = state?.weapons?.rope?.level || 0) {
+  if (level <= 0) return 0;
+  return Math.min(4, Math.max(1, Math.ceil(level)));
+}
+
+function saberTornadoReady() {
+  return (state?.weapons?.cutlass?.level || 0) >= 5 && (state?.weapons?.rope?.level || 0) >= 3;
+}
+
+function castSaberTornado(angle, cutlassLevel, auraLevel) {
+  const p = state.player;
+  const radius = 116 + cutlassLevel * 8 + auraLevel * 14;
+  state.zones.push({
+    type: "saberTornado",
+    x: p.x,
+    y: p.y,
+    angle,
+    radius,
+    level: cutlassLevel,
+    auraLevel,
+    life: 0.58,
+    maxLife: 0.58,
+    fused: true,
+  });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - p.x;
+    const dy = enemy.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > radius + enemy.r) continue;
+    hurtEnemy(enemy, (12 + cutlassLevel * 3 + auraLevel * 5) * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
   }
 }
 
@@ -2787,7 +2854,13 @@ function drawWeaponEffects() {
       ctx.rotate(zone.angle);
       const slashSize = zone.radius * 1.85;
       drawPlayerEffectAt("cutlassAfterglow", -slashSize * 0.58, -slashSize * 0.64, slashSize * 1.28, slashSize * 1.28);
-      drawProjectileFxAt("cutlassSlash", -slashSize * 0.42, -slashSize * 0.58, slashSize, slashSize);
+      const blades = zone.blades || cutlassBladeCount(zone.level);
+      if (images.weaponEvolutionFx && blades >= 2) {
+        const frame = `cutlass${Math.min(5, blades)}`;
+        drawWeaponEvolutionFxAt(frame, -slashSize * 0.58, -slashSize * 0.66, slashSize * 1.22, slashSize * 1.22);
+      } else {
+        drawProjectileFxAt("cutlassSlash", -slashSize * 0.42, -slashSize * 0.58, slashSize, slashSize);
+      }
     } else if (zone.type === "beam") {
       const bx = ox + (zone.x + zone.tx) / 2;
       const by = oy + (zone.y + zone.ty) / 2 - 48;
@@ -2810,6 +2883,17 @@ function drawWeaponEffects() {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
       drawPlayerEffectAt("tidePulse", -rippleSize / 2, -rippleSize / 2, rippleSize, rippleSize);
+    } else if (zone.type === "saberTornado") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(zone.angle + state.elapsed * 1.1);
+      const frame = Math.min(3, Math.floor((1 - a) * 4 + state.elapsed * 10) % 4);
+      const size = zone.radius * (zone.fused ? 2.65 : 2.25);
+      const key = `${zone.fused ? "fusion" : "tornado"}${frame}`;
+      if (images.weaponEvolutionFx) {
+        drawWeaponEvolutionFxAt(key, -size / 2, -size / 2, size, size);
+      } else {
+        drawPlayerEffectAt("tidePulse", -size / 2, -size / 2, size, size);
+      }
     }
     ctx.restore();
   }
@@ -2822,7 +2906,17 @@ function drawWeaponEffects() {
 
 function drawRopeWard(x, y, radius, level, angle) {
   const pulse = 1 + Math.sin(state.elapsed * 4.2) * 0.035;
-  drawPlayerEffect("tidePulse", x, y, radius * 2.12 * pulse, radius * 2.12 * pulse, 0, 0.2);
+  const auraStage = auraEvolutionStage(level);
+  if (images.weaponEvolutionFx && auraStage > 0) {
+    const auraSize = radius * (2.24 + auraStage * 0.12) * pulse;
+    drawWeaponEvolutionFx(`aura${auraStage}`, x, y, auraSize, auraSize, angle * 0.12, 0.34 + auraStage * 0.05);
+    if (saberTornadoReady()) {
+      const frame = Math.floor(state.elapsed * 8) % 4;
+      drawWeaponEvolutionFx(`fusion${frame}`, x, y, auraSize * 1.12, auraSize * 1.12, -angle * 0.18, 0.18);
+    }
+  } else {
+    drawPlayerEffect("tidePulse", x, y, radius * 2.12 * pulse, radius * 2.12 * pulse, 0, 0.2);
+  }
   const count = Math.min(18, 10 + level * 2);
   for (let i = 0; i < count; i += 1) {
     const a = angle * 0.72 + (i / count) * Math.PI * 2;
@@ -2922,6 +3016,32 @@ function drawPlayerEffectAt(icon, x, y, w, h) {
   if (!images.playerEffects) return;
   const src = playerEffectMap[icon] || playerEffectMap.ropeAura;
   ctx.drawImage(images.playerEffects, src.x * PLAYER_EFFECT_FX.w, src.y * PLAYER_EFFECT_FX.h, PLAYER_EFFECT_FX.w, PLAYER_EFFECT_FX.h, x, y, w, h);
+}
+
+function drawWeaponEvolutionFx(icon, x, y, w, h, rotation = 0, alpha = 1) {
+  if (!images.weaponEvolutionFx) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  drawWeaponEvolutionFxAt(icon, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+function drawWeaponEvolutionFxAt(icon, x, y, w, h) {
+  if (!images.weaponEvolutionFx) return;
+  const src = weaponEvolutionFxMap[icon] || weaponEvolutionFxMap.cutlass2;
+  ctx.drawImage(
+    images.weaponEvolutionFx,
+    src.x * WEAPON_EVOLUTION_FX.w,
+    src.y * WEAPON_EVOLUTION_FX.h,
+    WEAPON_EVOLUTION_FX.w,
+    WEAPON_EVOLUTION_FX.h,
+    x,
+    y,
+    w,
+    h,
+  );
 }
 
 function drawProjectileFxAt(icon, x, y, w, h) {
@@ -3510,6 +3630,22 @@ window.__MONKEY_TIDE_BLACKBEARD_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
+  state.weapons.rope.level = Math.max(state.weapons.rope.level, 4);
+  slash(0, 214, 86, 84, state.weapons.cutlass.level);
+  castSaberTornado(0, state.weapons.cutlass.level, state.weapons.rope.level);
+  render();
+  const slashZone = [...state.zones].reverse().find((zone) => zone.type === "slash");
+  const tornadoZone = [...state.zones].reverse().find((zone) => zone.type === "saberTornado");
+  return {
+    assetLoaded: !!images.weaponEvolutionFx,
+    slash: slashZone ? { blades: slashZone.blades, level: slashZone.level, radius: slashZone.radius } : null,
+    tornado: tornadoZone ? { fused: tornadoZone.fused, radius: tornadoZone.radius, auraLevel: tornadoZone.auraLevel } : null,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -3587,6 +3723,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
   upgradeIcons: Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, upgrade.icon])),
   weaponLoadoutIcons: Object.fromEntries(weaponLoadoutItems.map(([id, , icon]) => [id, icon])),
   ropeVisual: { renderMode: "ropeWardSprites", sprite: "ropeRing", pulse: "tidePulse" },
+  weaponEvolution: {
+    asset: !!images.weaponEvolutionFx,
+    frames: { cols: WEAPON_EVOLUTION_FX.cols, rows: WEAPON_EVOLUTION_FX.rows },
+    cutlassBlades: cutlassBladeCount(state.weapons.cutlass.level),
+    auraStage: auraEvolutionStage(state.weapons.rope.level),
+    saberTornadoFusionReady: saberTornadoReady(),
+  },
   uiIconSources: {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
   },
@@ -3661,8 +3804,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
   combatAssets: {
     projectileFx: !!images.projectileFx,
     playerEffects: !!images.playerEffects,
+    weaponEvolutionFx: !!images.weaponEvolutionFx,
     projectileFxTypes: Object.keys(projectileFxMap),
     playerEffectTypes: Object.keys(playerEffectMap),
+    weaponEvolutionFxTypes: Object.keys(weaponEvolutionFxMap),
     enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
     threeHeadedMonkeyVolley: enemyProjectileProfile({ type: enemyType("threeHeadedMonkey"), boss: true })?.count === 3,
     blackbeardBroadside: enemyProjectileProfile({ type: enemyType("blackbeard"), boss: true })?.fx === "ghostCannonball"
