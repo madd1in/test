@@ -53,6 +53,7 @@ const imageSources = {
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
+  threeHeadedMonkey: "assets/sprites/bosses/three_headed_monkey_imagen_hd.webp",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -384,6 +385,7 @@ const enemyTypes = [
   { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
   { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true },
+  { id: "threeHeadedMonkey", name: "Dreikopf-Affe", threeHeadedMonkey: true, hp: 235, speed: 66, radius: 56, damage: 22, scale: 0.34, xp: 64, tint: "#80ff9e", bossCandidate: true },
 ];
 
 const upgrades = [
@@ -1624,7 +1626,7 @@ function updateSpawns(dt) {
   }
   if (state.elapsed > BALANCE.firstBossAt && state.bossTimer <= 0) {
     state.bossTimer = BALANCE.bossInterval;
-    const bossCycle = ["spectralCaptain", "idol", "coralBrute"];
+    const bossCycle = ["spectralCaptain", "idol", "coralBrute", "threeHeadedMonkey"];
     const bossType = enemyType(bossCycle[state.bossCount % bossCycle.length]);
     state.bossCount += 1;
     spawnEnemy(bossType, true);
@@ -1633,7 +1635,9 @@ function updateSpawns(dt) {
       ? "Fluchkapitaen voraus. Raus aus der Klinge!"
       : bossType.id === "coralBrute"
         ? "Korallenbrecher voraus. Lass dich nicht festnageln!"
-        : "Affenidol voraus. Bleib in Bewegung!";
+        : bossType.id === "threeHeadedMonkey"
+          ? "Dreikoepfiger Affe voraus. Nicht alle Koepfe anstarren!"
+          : "Affenidol voraus. Bleib in Bewegung!";
     playSound("downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
@@ -1748,18 +1752,23 @@ function updateEnemyRangedAttack(enemy, dt, dist, dx, dy) {
   enemy.shootTimer = profile.cooldown * (0.82 + Math.random() * 0.36);
   const angle = Math.atan2(dy, dx);
   const speed = profile.speed + state.elapsed * 0.1;
-  state.projectiles.push({
-    type: "curseOrb",
-    fx: profile.fx,
-    x: enemy.x + Math.cos(angle) * enemy.r,
-    y: enemy.y + Math.sin(angle) * enemy.r,
-    vx: Math.cos(angle) * speed,
-    vy: Math.sin(angle) * speed,
-    r: profile.radius,
-    damage: profile.damage,
-    life: profile.life,
-    spin: Math.random() * Math.PI * 2,
-  });
+  const count = profile.count || 1;
+  const spread = profile.spread || 0;
+  for (let i = 0; i < count; i += 1) {
+    const shotAngle = angle + (i - (count - 1) / 2) * spread;
+    state.projectiles.push({
+      type: "curseOrb",
+      fx: profile.fx,
+      x: enemy.x + Math.cos(shotAngle) * enemy.r,
+      y: enemy.y + Math.sin(shotAngle) * enemy.r,
+      vx: Math.cos(shotAngle) * speed,
+      vy: Math.sin(shotAngle) * speed,
+      r: profile.radius,
+      damage: profile.damage,
+      life: profile.life,
+      spin: Math.random() * Math.PI * 2,
+    });
+  }
 }
 
 function enemyProjectileProfile(enemy) {
@@ -1768,6 +1777,9 @@ function enemyProjectileProfile(enemy) {
   }
   if (enemy.boss && enemy.type.id === "idol") {
     return { fx: "monkeyCurseOrb", range: 820, cooldown: 1.9, speed: 226, radius: 20, damage: 15, life: 4.4 };
+  }
+  if (enemy.boss && enemy.type.id === "threeHeadedMonkey") {
+    return { fx: "monkeyCurseOrb", range: 840, cooldown: 2.25, speed: 236, radius: 18, damage: 13, life: 4.2, count: 3, spread: 0.22 };
   }
   if (enemy.type.id === "oracle") {
     return { fx: "compassBolt", range: 650, cooldown: 2.35, speed: 258, radius: 14, damage: 9, life: 3.6 };
@@ -2085,12 +2097,16 @@ function killEnemy(enemy) {
       ? "Captain verbannt"
       : enemy.type.id === "coralBrute"
         ? "Korallenbrecher versenkt"
-        : "Idol gebrochen";
+        : enemy.type.id === "threeHeadedMonkey"
+          ? "Dreikopf-Affe vertrieben"
+          : "Idol gebrochen";
     const downVoice = enemy.type.id === "spectralCaptain"
       ? "Fluchkapitaen verbannt. Sammel die Beute!"
       : enemy.type.id === "coralBrute"
         ? "Korallenbrecher versenkt. Sammel die Beute!"
-        : "Idol gebrochen. Sammel die Beute!";
+        : enemy.type.id === "threeHeadedMonkey"
+          ? "Dreikoepfiger Affe vertrieben. Sammel die Beute!"
+          : "Idol gebrochen. Sammel die Beute!";
     floatingText(downText, enemy.x, enemy.y - 80, "#fff2c7");
     speak(downVoice, { key: `boss-down-${enemy.type.id}`, interrupt: true, cooldown: 2000 });
     playSound("chime", { force: true });
@@ -2521,7 +2537,13 @@ function drawEnemies() {
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
     ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
-    if (enemy.type.captainSheet) {
+    if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
+      const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
+      w = images.threeHeadedMonkey.width * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      h = images.threeHeadedMonkey.height * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
+      ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.captainSheet) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
       const sx = frame * SPECTRAL_CAPTAIN.w;
       const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
@@ -3287,6 +3309,28 @@ window.__MONKEY_TIDE_PROP_VISUAL_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_THREE_MONKEY_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
+  const p = state.player;
+  window.__MONKEY_TIDE_SPAWN_ENEMY("threeHeadedMonkey", p.x + 420, p.y + 24, true);
+  const boss = [...state.enemies].reverse().find((enemy) => enemy.type.id === "threeHeadedMonkey");
+  if (boss) {
+    boss.shootTimer = 0;
+    const dx = p.x - boss.x;
+    const dy = p.y - boss.y;
+    updateEnemyRangedAttack(boss, 1 / 60, Math.hypot(dx, dy), dx, dy);
+  }
+  render();
+  const profile = boss ? enemyProjectileProfile(boss) : null;
+  return {
+    boss: boss ? { id: boss.type.id, name: boss.type.name, hp: boss.hp, boss: boss.boss } : null,
+    assetLoaded: !!images.threeHeadedMonkey,
+    profile,
+    monkeyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb" && projectile.fx === "monkeyCurseOrb").length,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -3399,6 +3443,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     gothicEnemies: !!images.gothicEnemies,
     gothicItems: !!images.gothicItems,
     gothicProps: !!images.gothicProps,
+    threeHeadedMonkey: !!images.threeHeadedMonkey,
     gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),
@@ -3429,6 +3474,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     projectileFxTypes: Object.keys(projectileFxMap),
     playerEffectTypes: Object.keys(playerEffectMap),
     enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
+    threeHeadedMonkeyVolley: enemyProjectileProfile({ type: enemyType("threeHeadedMonkey"), boss: true })?.count === 3,
   },
   weapons: Object.fromEntries(Object.entries(state.weapons).map(([key, value]) => [key, value.level])),
   });
