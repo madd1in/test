@@ -55,6 +55,8 @@ const imageSources = {
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
   threeHeadedMonkey: "assets/sprites/bosses/three_headed_monkey_imagen_hd.webp",
   blackbeard: "assets/sprites/bosses/blackbeard_imagen_hd.webp",
+  threeHeadedMonkeyAnim: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
+  blackbeardAnim: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp?v=clean-hedges",
@@ -142,6 +144,8 @@ const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
 const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
+const THREE_HEADED_MONKEY_ANIM = { w: 706, h: 720, cols: 4, rows: 2, frames: 8, fps: 6.8 };
+const BLACKBEARD_ANIM = { w: 758, h: 900, cols: 4, rows: 2, frames: 8, fps: 6.4 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
@@ -1868,6 +1872,8 @@ function spawnEnemy(type, boss = false) {
     hit: 0,
     boss,
     shootTimer: 0.8 + Math.random() * 1.2,
+    actionPulse: 0,
+    actionKind: null,
   };
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   state.enemies.push(enemy);
@@ -1881,6 +1887,7 @@ function updateEnemies(dt) {
   const p = state.player;
   for (const enemy of state.enemies) {
     enemy.hit = Math.max(0, enemy.hit - dt);
+    enemy.actionPulse = Math.max(0, (enemy.actionPulse || 0) - dt);
     const dx = p.x - enemy.x;
     const dy = p.y - enemy.y;
     const dist = Math.max(1, Math.hypot(dx, dy));
@@ -1914,6 +1921,8 @@ function updateEnemyRangedAttack(enemy, dt, dist, dx, dy) {
   const speed = profile.speed + state.elapsed * 0.1;
   const count = profile.count || 1;
   const spread = profile.spread || 0;
+  enemy.actionPulse = 0.55;
+  enemy.actionKind = profile.fx;
   for (let i = 0; i < count; i += 1) {
     const shotAngle = angle + (i - (count - 1) / 2) * spread;
     state.projectiles.push({
@@ -2710,6 +2719,14 @@ function drawGems() {
   }
 }
 
+function bossAnimFrame(enemy, anim, attackFrames) {
+  if (enemy.actionPulse > 0) {
+    const progress = clamp(1 - enemy.actionPulse / 0.55, 0, 0.999);
+    return attackFrames[Math.floor(progress * attackFrames.length)] ?? attackFrames[0];
+  }
+  return (Math.floor(state.elapsed * anim.fps) + enemy.frameOffset) % anim.frames;
+}
+
 function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
@@ -2727,12 +2744,30 @@ function drawEnemies() {
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
     ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
-    if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
+    if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkeyAnim) {
+      const frame = bossAnimFrame(enemy, THREE_HEADED_MONKEY_ANIM, [4, 5, 6, 7]);
+      const sx = (frame % THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.w;
+      const sy = Math.floor(frame / THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.h;
+      const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
+      w = THREE_HEADED_MONKEY_ANIM.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      h = THREE_HEADED_MONKEY_ANIM.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
+      ctx.drawImage(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = images.threeHeadedMonkey.width * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = images.threeHeadedMonkey.height * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.blackbeard && images.blackbeardAnim) {
+      const frame = bossAnimFrame(enemy, BLACKBEARD_ANIM, enemy.actionKind === "ghostCannonball" ? [3, 4, 6, 7] : [5, 6, 7, 0]);
+      const sx = (frame % BLACKBEARD_ANIM.cols) * BLACKBEARD_ANIM.w;
+      const sy = Math.floor(frame / BLACKBEARD_ANIM.cols) * BLACKBEARD_ANIM.h;
+      const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
+      w = BLACKBEARD_ANIM.w * enemy.type.scale * (enemy.boss ? 1.08 : 1);
+      h = BLACKBEARD_ANIM.h * enemy.type.scale * (enemy.boss ? 1.08 : 1);
+      ctx.shadowBlur = enemy.hit > 0 ? 32 : 20;
+      ctx.drawImage(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeard) {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = images.blackbeard.width * enemy.type.scale * (enemy.boss ? 1.08 : 1);
@@ -3497,6 +3532,8 @@ window.__MONKEY_TIDE_SPAWN_ENEMY = (id, x = state.player.x + 260, y = state.play
     hit: 0,
     boss,
     shootTimer: 0.8 + Math.random() * 1.2,
+    actionPulse: 0,
+    actionKind: null,
   };
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   state.enemies.push(enemy);
@@ -3616,6 +3653,8 @@ window.__MONKEY_TIDE_THREE_MONKEY_PROBE = () => {
   return {
     boss: boss ? { id: boss.type.id, name: boss.type.name, hp: boss.hp, boss: boss.boss } : null,
     assetLoaded: !!images.threeHeadedMonkey,
+    animationLoaded: !!images.threeHeadedMonkeyAnim,
+    animationFrames: { ...THREE_HEADED_MONKEY_ANIM },
     profile,
     monkeyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb" && projectile.fx === "monkeyCurseOrb").length,
     debug: window.__MONKEY_TIDE_DEBUG(),
@@ -3638,6 +3677,8 @@ window.__MONKEY_TIDE_BLACKBEARD_PROBE = () => {
   return {
     boss: boss ? { id: boss.type.id, name: boss.type.name, hp: boss.hp, boss: boss.boss } : null,
     assetLoaded: !!images.blackbeard,
+    animationLoaded: !!images.blackbeardAnim,
+    animationFrames: { ...BLACKBEARD_ANIM },
     profile,
     cannonballs: state.projectiles.filter((projectile) => projectile.type === "curseOrb" && projectile.fx === "ghostCannonball").length,
     debug: window.__MONKEY_TIDE_DEBUG(),
@@ -3791,6 +3832,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
     gothicProps: !!images.gothicProps,
     threeHeadedMonkey: !!images.threeHeadedMonkey,
     blackbeard: !!images.blackbeard,
+    threeHeadedMonkeyAnim: !!images.threeHeadedMonkeyAnim,
+    blackbeardAnim: !!images.blackbeardAnim,
+    bossAnimationFrames: {
+      threeHeadedMonkey: { ...THREE_HEADED_MONKEY_ANIM },
+      blackbeard: { ...BLACKBEARD_ANIM },
+    },
     gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),
