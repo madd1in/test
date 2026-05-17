@@ -39,6 +39,9 @@ const ui = {
 
 const imageSources = {
   repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
+  mapMoonlitLagoon: "assets/backgrounds/map_moonlit_lagoon_hd.jpg",
+  mapGothicCove: "assets/backgrounds/map_gothic_cove_hd.jpg",
+  mapTreasureAtoll: "assets/backgrounds/map_treasure_atoll_hd.jpg",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp?v=starfarmboy-clean",
@@ -66,6 +69,8 @@ const imageSources = {
 const audioSources = {
   bgmMain: "assets/audio/bgm/crimson-galleon.mp3",
   bgmRush: "assets/audio/bgm/gargoyle-chapel-run.mp3",
+  bgmCaper: "assets/audio/bgm/coconut-caper-loop.mp3",
+  bgmShoreline: "assets/audio/bgm/shoreline-rum-riddle.mp3",
   pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
   chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
   gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -103,6 +108,7 @@ const musicConfig = {
 let music = null;
 let rushMusic = null;
 let activeMusicTrack = null;
+let musicTrackKeys = { main: null, rush: null };
 let muted = false;
 const speechState = {
   supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
@@ -172,8 +178,12 @@ const mapVariants = [
     desc: "Ausgewogen",
     tint: "rgba(255, 222, 142, 0.08)",
     detail: "beach",
+    background: "repeatBeach",
+    music: { main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5, rushStart: 112 },
     unlockedByDefault: true,
     propBoost: ["boatWreck", "buriedTreasure", "palmHedge"],
+    blockerIcons: ["palmHedge", "hedgeCluster", "boatWreck", "beachHut"],
+    blockerDensity: 5,
   },
   {
     id: "moonlitLagoon",
@@ -181,8 +191,12 @@ const mapVariants = [
     desc: "Mehr Sog",
     tint: "rgba(83, 255, 229, 0.12)",
     detail: "lagoon",
+    background: "mapMoonlitLagoon",
+    music: { main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.6, rushVolume: 0.54, rushStart: 96 },
     unlockedByDefault: true,
     propBoost: ["clearPuddle", "tidePuddle", "conchShrine"],
+    blockerIcons: ["palmHedge", "hedgeCluster", "conchShrine"],
+    blockerDensity: 6,
   },
   {
     id: "gothicCove",
@@ -190,8 +204,12 @@ const mapVariants = [
     desc: "Gothic-Druck",
     tint: "rgba(116, 70, 180, 0.16)",
     detail: "gothic",
+    background: "mapGothicCove",
+    music: { main: "bgmRush", rush: "bgmMain", mainVolume: 0.56, rushVolume: 0.58, rushStart: 78 },
     achievement: "nightRaid",
-    propBoost: ["gothicCandelabra", "wallCandle", "bloodRose"],
+    propBoost: ["gothicCandelabra", "wallCandle", "bloodRose", "hedgeCluster", "palmHedge"],
+    blockerIcons: ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"],
+    blockerDensity: 7,
     enemyFavor: ["cryptBat", "boneCorsair", "gargoyle", "lanternWraith"],
   },
   {
@@ -200,8 +218,12 @@ const mapVariants = [
     desc: "Mehr Verstecke",
     tint: "rgba(240, 196, 93, 0.13)",
     detail: "treasure",
+    background: "mapTreasureAtoll",
+    music: { main: "bgmCaper", rush: "bgmShoreline", mainVolume: 0.62, rushVolume: 0.52, rushStart: 104 },
     achievement: "wreckDiver",
-    propBoost: ["buriedTreasure", "beachHut", "boatWreck", "treasureChest"],
+    propBoost: ["buriedTreasure", "beachHut", "boatWreck", "treasureChest", "palmHedge", "hedgeCluster"],
+    blockerIcons: ["palmHedge", "hedgeCluster", "beachHut", "boatWreck"],
+    blockerDensity: 7,
   },
 ];
 
@@ -776,32 +798,51 @@ function makeProps(mapId = selectedMap) {
       }
     }
   }
-  const blockerIcons = variant.detail === "gothic"
-    ? ["hedgeCluster", "palmHedge", "gothicCandelabra", "boatWreck", "beachHut"]
-    : ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"];
-  for (let gx = 520; gx < WORLD.w - 520; gx += 920) {
-    for (let gy = 560; gy < WORLD.h - 520; gy += 820) {
+  const blockerIcons = variant.blockerIcons || (variant.detail === "gothic"
+    ? ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"]
+    : ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"]);
+  const blockerDensity = variant.blockerDensity ?? 5;
+  const blockerStepX = variant.detail === "lagoon" ? 780 : variant.detail === "treasure" ? 820 : 880;
+  const blockerStepY = variant.detail === "gothic" ? 720 : 780;
+  for (let gx = 520; gx < WORLD.w - 520; gx += blockerStepX) {
+    for (let gy = 560; gy < WORLD.h - 520; gy += blockerStepY) {
       const h = hash2(Math.floor(gx / 90), Math.floor(gy / 90));
-      if (h % 11 > 4) continue;
+      if (h % 11 >= blockerDensity) continue;
       if (Math.hypot(gx - WORLD.w / 2, gy - WORLD.h / 2) < 620) continue;
-      const clusterSize = h % 5 === 0 ? 3 : 2;
+      const clusterSize = h % 5 === 0 || variant.detail === "treasure" ? 3 : 2;
       for (let i = 0; i < clusterSize; i += 1) {
         const icon = blockerIcons[(h + i * 3) % blockerIcons.length];
         const angle = ((h >> (i * 3 + 2)) % 628) / 100;
-        const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : 132;
+        const isHedge = icon === "hedgeCluster" || icon === "palmHedge";
+        const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : isHedge ? 152 : 118;
         const x = gx + Math.cos(angle) * spread + ((h >> (i + 6)) % 90) - 45;
         const y = gy + Math.sin(angle) * spread + ((h >> (i + 11)) % 80) - 40;
         props.push({
           x: clamp(x, 180, WORLD.w - 180),
           y: clamp(y, 180, WORLD.h - 180),
           icon,
-          scale: propScaleForIcon(icon, h + i * 41) * (icon === "hedgeCluster" || icon === "palmHedge" ? 1.1 : 1),
+          scale: propScaleForIcon(icon, h + i * 41) * (isHedge ? (variant.detail === "gothic" ? 1.24 : 1.18) : 1),
           spin: ((h >> (i + 8)) % 100) / 120,
           interactive: beachPropMap[icon]?.interactive === true,
           blocking: true,
         });
       }
     }
+  }
+  const anchorBlockers = variant.anchorBlockers || [
+    { icon: "beachHut", x: 0.18, y: 0.24, spin: 0.09 },
+    { icon: "boatWreck", x: 0.82, y: 0.76, spin: 0.18 },
+  ];
+  for (const anchor of anchorBlockers) {
+    props.push({
+      x: Math.round(WORLD.w * anchor.x),
+      y: Math.round(WORLD.h * anchor.y),
+      icon: anchor.icon,
+      scale: propScaleForIcon(anchor.icon, Math.round(anchor.x * 1000 + anchor.y * 1000)),
+      spin: anchor.spin || 0,
+      interactive: beachPropMap[anchor.icon]?.interactive === true,
+      blocking: true,
+    });
   }
   return props;
 }
@@ -851,14 +892,16 @@ function prepareAudio() {
       return audio;
     });
   }
-  music = new Audio(audioSources.bgmMain);
+  music = new Audio();
   music.loop = true;
   music.preload = "auto";
   music.volume = musicConfig.main;
-  rushMusic = new Audio(audioSources.bgmRush);
+  rushMusic = new Audio();
   rushMusic.loop = true;
   rushMusic.preload = "auto";
   rushMusic.volume = 0;
+  musicTrackKeys = { main: null, rush: null };
+  configureMusicForMap(selectedMap);
   activeMusicTrack = null;
 }
 
@@ -1026,26 +1069,57 @@ function resetSpeechForRun() {
   cancelSpeech();
 }
 
+function mapMusicProfile(mapId = selectedMap) {
+  const profile = mapVariant(mapId).music || {};
+  return {
+    mainKey: profile.main || "bgmMain",
+    rushKey: profile.rush || "bgmRush",
+    mainVolume: profile.mainVolume ?? musicConfig.main,
+    rushVolume: profile.rushVolume ?? musicConfig.rush,
+    rushStart: profile.rushStart ?? musicConfig.rushStart,
+    rushFade: profile.rushFade ?? musicConfig.rushFade,
+  };
+}
+
+function configureMusicForMap(mapId = selectedMap) {
+  const profile = mapMusicProfile(mapId);
+  setMusicSource("main", profile.mainKey);
+  setMusicSource("rush", profile.rushKey);
+  return profile;
+}
+
+function setMusicSource(slot, key) {
+  const audio = slot === "rush" ? rushMusic : music;
+  if (!audio || musicTrackKeys[slot] === key) return;
+  audio.pause();
+  audio.src = audioSources[key] || audioSources.bgmMain;
+  audio.load();
+  audio.volume = 0;
+  musicTrackKeys[slot] = key;
+  activeMusicTrack = null;
+}
+
 function syncMusic() {
   if (!music || !rushMusic) return;
+  const profile = configureMusicForMap(state.map);
   music.muted = muted;
   rushMusic.muted = muted;
   if (muted || state.phase !== "playing") {
     stopMusicTracks();
     return;
   }
-  const nextTrack = state.elapsed >= musicConfig.rushStart ? "rush" : "main";
-  if (activeMusicTrack !== nextTrack) switchMusicTrack(nextTrack);
-  music.volume = nextTrack === "main" ? musicConfig.main : 0;
-  rushMusic.volume = nextTrack === "rush" ? musicConfig.rush : 0;
+  const nextTrack = state.elapsed >= profile.rushStart ? "rush" : "main";
+  if (activeMusicTrack !== nextTrack) switchMusicTrack(nextTrack, profile);
+  music.volume = nextTrack === "main" ? profile.mainVolume : 0;
+  rushMusic.volume = nextTrack === "rush" ? profile.rushVolume : 0;
 }
 
-function switchMusicTrack(track) {
+function switchMusicTrack(track, profile = mapMusicProfile(state.map)) {
   const from = track === "rush" ? music : rushMusic;
   const to = track === "rush" ? rushMusic : music;
   from.pause();
   from.volume = 0;
-  to.volume = track === "rush" ? musicConfig.rush : musicConfig.main;
+  to.volume = track === "rush" ? profile.rushVolume : profile.mainVolume;
   to.play().catch(() => {});
   activeMusicTrack = track;
 }
@@ -1069,9 +1143,10 @@ function resetMusicTracks() {
 function startGame(options = {}) {
   if (!ready) return;
   quickMode = options.quick === true;
+  selectedMap = normalizeSelectedMap(selectedMap);
+  configureMusicForMap(selectedMap);
   resetSpeechForRun();
   resetMusicTracks();
-  selectedMap = normalizeSelectedMap(selectedMap);
   state = makeState();
   state.phase = "playing";
   if (quickMode) {
@@ -2214,9 +2289,13 @@ function drawWorld() {
   const ox = scene.w / 2 - cam.x;
   const oy = scene.h / 2 - cam.y;
   const variant = mapVariant(state.map);
-  drawRepeatingMap(images.repeatBeach, ox, oy);
+  drawRepeatingMap(mapBackgroundImage(variant), ox, oy);
   drawMapTint(variant);
   drawNaturalGroundDetails(ox, oy, variant);
+}
+
+function mapBackgroundImage(variant = mapVariant(state.map)) {
+  return images[variant.background] || images.repeatBeach;
 }
 
 function drawRepeatingMap(image, ox, oy) {
@@ -3059,7 +3138,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
-  map: { selected: state.map, selectedName: mapVariant(state.map).name, variants: mapVariants.map((map) => map.id), unlocked: [...metaProgress.unlockedMaps] },
+  map: {
+    selected: state.map,
+    selectedName: mapVariant(state.map).name,
+    selectedBackground: mapVariant(state.map).background,
+    selectedMusic: mapMusicProfile(state.map),
+    variants: mapVariants.map((map) => map.id),
+    backgrounds: Object.fromEntries(mapVariants.map((map) => [map.id, map.background])),
+    musicProfiles: Object.fromEntries(mapVariants.map((map) => [map.id, mapMusicProfile(map.id)])),
+    unlocked: [...metaProgress.unlockedMaps],
+  },
   powerups: {
     active: state.powerups.map((powerup) => ({ id: powerup.id, timer: powerup.timer })),
     types: powerUpTypes.map((powerup) => powerup.id),
@@ -3110,8 +3198,11 @@ window.__MONKEY_TIDE_DEBUG = () => {
     },
     overlapSafe: !music || !rushMusic || music.paused || rushMusic.paused || music.volume === 0 || rushMusic.volume === 0,
     sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
+    sfxLocalDownloads: Object.entries(audioSources)
+      .filter(([key]) => !key.startsWith("bgm"))
+      .every(([, src]) => src.includes("/from-downloads/")),
     sources: { ...audioSources },
-    music: { ...musicConfig },
+    music: { ...musicConfig, ...mapMusicProfile(state.map), trackKeys: { ...musicTrackKeys } },
   },
   speech: {
     supported: speechState.supported,
