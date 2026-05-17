@@ -113,6 +113,8 @@ let music = null;
 let rushMusic = null;
 let activeMusicTrack = null;
 let musicTrackKeys = { main: null, rush: null };
+const musicBlobUrls = {};
+const musicPreloadState = { ready: false, loaded: 0, total: 0, decoded: 0, failed: [], keys: [] };
 let muted = false;
 const speechState = {
   supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
@@ -958,6 +960,80 @@ function loadImage(key, src, onLoaded) {
   });
 }
 
+function musicSourceEntries() {
+  return Object.entries(audioSources).filter(([key]) => key.startsWith("bgm"));
+}
+
+function resolvedAudioSource(key) {
+  return musicBlobUrls[key] || audioSources[key] || audioSources.bgmMain;
+}
+
+async function preloadMusicAssets(onLoaded) {
+  const entries = musicSourceEntries();
+  musicPreloadState.ready = false;
+  musicPreloadState.loaded = 0;
+  musicPreloadState.decoded = 0;
+  musicPreloadState.total = entries.length;
+  musicPreloadState.keys = entries.map(([key]) => key);
+  musicPreloadState.failed = [];
+  await Promise.all(entries.map(async ([key, src]) => {
+    try {
+      const response = await fetch(src, { cache: "force-cache" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      musicBlobUrls[key] = objectUrl;
+      await warmAudioForPlayback(objectUrl);
+      musicPreloadState.loaded += 1;
+      musicPreloadState.decoded += 1;
+      onLoaded(key);
+    } catch (error) {
+      musicPreloadState.failed.push(key);
+      throw new Error(`Could not preload ${src}: ${error.message}`);
+    }
+  }));
+  musicPreloadState.ready = musicPreloadState.loaded === musicPreloadState.total && musicPreloadState.failed.length === 0;
+}
+
+function warmAudioForPlayback(src) {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timeout);
+      audio.removeEventListener("canplaythrough", finish);
+      audio.removeEventListener("canplay", finish);
+      audio.removeEventListener("loadeddata", finish);
+      audio.removeEventListener("error", fail);
+      audio.src = "";
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("audio decode failed"));
+    };
+    const timeout = setTimeout(() => {
+      if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) finish();
+      else fail();
+    }, 12000);
+    audio.preload = "auto";
+    audio.muted = true;
+    audio.addEventListener("canplaythrough", finish);
+    audio.addEventListener("canplay", finish);
+    audio.addEventListener("loadeddata", finish);
+    audio.addEventListener("error", fail);
+    audio.src = src;
+    audio.load();
+  });
+}
+
 function prepareAudio() {
   for (const [key, src] of Object.entries(audioSources)) {
     if (key.startsWith("bgm")) continue;
@@ -1005,18 +1081,23 @@ async function boot() {
   renderSkinPicker();
   renderMapPicker();
   renderMetaProgress();
-  const entries = Object.entries(imageSources);
-  let loadedImages = 0;
-  setLoadingProgress(0, entries.length);
-  await Promise.all(entries.map(([key, src]) => loadImage(key, src, (loadedKey) => {
-    loadedImages += 1;
-    setLoadingProgress(loadedImages, entries.length, loadedKey);
-  })));
+  const imageEntries = Object.entries(imageSources);
+  const totalAssets = imageEntries.length + musicSourceEntries().length;
+  let loadedAssets = 0;
+  const markLoaded = (loadedKey) => {
+    loadedAssets += 1;
+    setLoadingProgress(loadedAssets, totalAssets, loadedKey);
+  };
+  setLoadingProgress(0, totalAssets);
+  await Promise.all([
+    ...imageEntries.map(([key, src]) => loadImage(key, src, markLoaded)),
+    preloadMusicAssets(markLoaded),
+  ]);
   prepareAudio();
   prepareSpeech();
   ready = true;
   window.__MONKEY_TIDE_READY = true;
-  setLoadingProgress(entries.length, entries.length, "ready");
+  setLoadingProgress(totalAssets, totalAssets, "ready");
   ui.startButton.disabled = false;
   ui.quickButton.disabled = false;
   render();
@@ -1171,7 +1252,7 @@ function setMusicSource(slot, key) {
   const audio = slot === "rush" ? rushMusic : music;
   if (!audio || musicTrackKeys[slot] === key) return;
   audio.pause();
-  audio.src = audioSources[key] || audioSources.bgmMain;
+  audio.src = resolvedAudioSource(key);
   audio.load();
   audio.volume = 0;
   musicTrackKeys[slot] = key;
@@ -3536,6 +3617,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
       .filter(([key]) => !key.startsWith("bgm"))
       .every(([, src]) => src.includes("/from-downloads/")),
     sources: { ...audioSources },
+    musicPreload: { ...musicPreloadState },
     music: { ...musicConfig, ...mapMusicProfile(state.map), trackKeys: { ...musicTrackKeys } },
   },
   speech: {
