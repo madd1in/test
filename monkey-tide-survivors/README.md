@@ -8,7 +8,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neues Imagen-HD-Top-down-Strandfeld ohne sichtbare Kachelraster.
 - Repeatable Strand-Map mit periodischen HD-Details fuer endlose Kamera-Bewegung ohne rechteckige Kachelkanten.
 - Background-Kacheln werden mit Rand-Crop und grossem Overlap gezeichnet, damit an Map-Grenzen kein sichtbarer Trennstrich entsteht.
-- Sauber normalisierte einzelne Imagen-HD-WebP-Props fuer Pfuetzen, Hecken, Schatzstellen, Muschelschreine, verlassene Strandhuetten und Bootswracks.
+- Sauber normalisierte einzelne Imagen-HD-WebP-Props fuer Pfuetzen, Hecken, Schatzstellen, Muschelschreine, verlassene Strandhuetten und Bootswracks; Busch- und Palmenhecken-Assets sind neu freigestellt ohne angeschnittene Atlasreste.
 - Pfuetzen und Spieler-/Waffen-Auren wurden mit neuen Imagen-HD-Raster-Assets ersetzt; die sichtbaren Canvas-Kreis-/Beam-Effekte sind raus.
 - Neuer Imagen-HD-Spieler-Skin-Atlas mit Startscreen-Auswahl fuer Kaeptnin, Insel-Pirat, Fluchaffe, Dhampir-Jaeger, Rum-Korsar, Sternenfarmboy und Freelance-Duo.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.

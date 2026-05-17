@@ -157,6 +157,45 @@ async function run() {
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
+  const hedgeAlphaProbe = await page.evaluate(async () => {
+    const results = [];
+    for (const src of [
+      "assets/sprites/beach-props-v2/hedge_cluster.webp?alpha-clean",
+      "assets/sprites/beach-props-v2/palm_hedge.webp?alpha-clean",
+    ]) {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let edgeAlpha = 0;
+      let visible = 0;
+      let minX = canvas.width;
+      let minY = canvas.height;
+      let maxX = -1;
+      let maxY = -1;
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          const alpha = data[(y * canvas.width + x) * 4 + 3];
+          if (alpha > 8) {
+            visible += 1;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+            if (x === 0 || y === 0 || x === canvas.width - 1 || y === canvas.height - 1) edgeAlpha += 1;
+          }
+        }
+      }
+      results.push({ src, size: [canvas.width, canvas.height], edgeAlpha, visible, bbox: [minX, minY, maxX, maxY] });
+    }
+    return results;
+  });
+  assert(hedgeAlphaProbe.every((asset) => asset.edgeAlpha === 0 && asset.visible > 10000 && asset.bbox[0] > 0 && asset.bbox[1] > 0 && asset.bbox[2] < asset.size[0] - 1 && asset.bbox[3] < asset.size[1] - 1), `Hedge assets still look sliced at the alpha edge: ${JSON.stringify(hedgeAlphaProbe)}`);
   const readMenuFit = () => {
     const panel = document.querySelector("#startOverlay .start-panel");
     const start = document.getElementById("startButton");
