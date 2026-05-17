@@ -87,6 +87,8 @@ async function run() {
     "assets/sprites/spectral_captain_hd_sheet.webp",
     "assets/sprites/bosses/three_headed_monkey_imagen_hd.webp",
     "assets/sprites/bosses/blackbeard_imagen_hd.webp",
+    "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
+    "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
     "assets/sprites/beach-props-v2/tide_puddle.webp",
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -312,6 +314,47 @@ async function run() {
   assert(debug.crossoverAssets.spectralCaptain, `Spectral captain sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.threeHeadedMonkey && debug.preloadedAssetKeys.includes("threeHeadedMonkey"), `Three-headed monkey boss asset missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.blackbeard && debug.preloadedAssetKeys.includes("blackbeard"), `Blackbeard boss asset missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.threeHeadedMonkeyAnim && debug.preloadedAssetKeys.includes("threeHeadedMonkeyAnim"), `Three-headed monkey animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.blackbeardAnim && debug.preloadedAssetKeys.includes("blackbeardAnim"), `Blackbeard animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.bossAnimationFrames.threeHeadedMonkey.frames === 8 && debug.crossoverAssets.bossAnimationFrames.blackbeard.frames === 8, `Boss animation framesets should expose 8 frames: ${JSON.stringify(debug.crossoverAssets.bossAnimationFrames)}`);
+  const bossAnimAlphaProbe = await page.evaluate(async () => {
+    const assets = [
+      { src: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp?alpha-clean", w: 706, h: 720, frames: 8 },
+      { src: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp?alpha-clean", w: 758, h: 900, frames: 8 },
+    ];
+    const results = [];
+    for (const asset of assets) {
+      const img = new Image();
+      img.src = asset.src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const frameResults = [];
+      for (let frame = 0; frame < asset.frames; frame += 1) {
+        const x0 = frame % 4 * asset.w;
+        const y0 = Math.floor(frame / 4) * asset.h;
+        const data = ctx.getImageData(x0, y0, asset.w, asset.h).data;
+        let edgeAlpha = 0;
+        let visible = 0;
+        for (let y = 0; y < asset.h; y += 1) {
+          for (let x = 0; x < asset.w; x += 1) {
+            const alpha = data[(y * asset.w + x) * 4 + 3];
+            if (alpha > 8) {
+              visible += 1;
+              if (x === 0 || y === 0 || x === asset.w - 1 || y === asset.h - 1) edgeAlpha += 1;
+            }
+          }
+        }
+        frameResults.push({ frame, edgeAlpha, visible });
+      }
+      results.push({ src: asset.src, size: [canvas.width, canvas.height], frameResults });
+    }
+    return results;
+  });
+  assert(bossAnimAlphaProbe.every((asset) => asset.frameResults.every((frame) => frame.edgeAlpha === 0 && frame.visible > 30000)), `Boss animation sheets still look sliced: ${JSON.stringify(bossAnimAlphaProbe)}`);
   assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey") && debug.crossoverAssets.bossTypes.includes("blackbeard"), `Boss roster missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemies && debug.extraAssets.extraItems, `Extra Imagen sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemyTypes.length >= 8 && debug.extraAssets.extraEnemyTypes.includes("tideWitch") && debug.extraAssets.extraEnemyTypes.includes("stormDuelist"), `Extra enemies missing: ${JSON.stringify(debug)}`);
@@ -364,10 +407,12 @@ async function run() {
 
   const monkeyProbe = await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
   assert(monkeyProbe.assetLoaded && monkeyProbe.boss?.id === "threeHeadedMonkey", `Three-headed monkey boss did not spawn: ${JSON.stringify(monkeyProbe)}`);
+  assert(monkeyProbe.animationLoaded && monkeyProbe.animationFrames.frames === 8, `Three-headed monkey animation probe missing: ${JSON.stringify(monkeyProbe)}`);
   assert(monkeyProbe.profile?.count === 3 && monkeyProbe.monkeyProjectiles >= 3, `Three-headed monkey volley did not fire: ${JSON.stringify(monkeyProbe)}`);
 
   const blackbeardProbe = await page.evaluate(() => window.__MONKEY_TIDE_BLACKBEARD_PROBE());
   assert(blackbeardProbe.assetLoaded && blackbeardProbe.boss?.id === "blackbeard", `Blackbeard boss did not spawn: ${JSON.stringify(blackbeardProbe)}`);
+  assert(blackbeardProbe.animationLoaded && blackbeardProbe.animationFrames.frames === 8, `Blackbeard animation probe missing: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.profile?.count === 3 && blackbeardProbe.cannonballs >= 3, `Blackbeard broadside did not fire: ${JSON.stringify(blackbeardProbe)}`);
 
   const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
