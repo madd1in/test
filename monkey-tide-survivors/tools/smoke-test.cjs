@@ -14,6 +14,7 @@ function mime(file) {
   if (file.endsWith(".css")) return "text/css; charset=utf-8";
   if (file.endsWith(".js")) return "text/javascript; charset=utf-8";
   if (file.endsWith(".png")) return "image/png";
+  if (file.endsWith(".jpg") || file.endsWith(".jpeg")) return "image/jpeg";
   if (file.endsWith(".webp")) return "image/webp";
   if (file.endsWith(".mp3")) return "audio/mpeg";
   if (file.endsWith(".wav")) return "audio/wav";
@@ -67,6 +68,9 @@ async function run() {
     "style.css",
     "game.js",
     "assets/backgrounds/topdown_beach_repeatable_hd.png",
+    "assets/backgrounds/map_moonlit_lagoon_hd.jpg",
+    "assets/backgrounds/map_gothic_cove_hd.jpg",
+    "assets/backgrounds/map_treasure_atoll_hd.jpg",
     "assets/sprites/characters_imagen_hd_sheet.webp",
     "assets/sprites/player_skins_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
@@ -95,6 +99,8 @@ async function run() {
     "assets/ui/parchment_scrap_imagen_hd.webp",
     "assets/audio/bgm/crimson-galleon.mp3",
     "assets/audio/bgm/gargoyle-chapel-run.mp3",
+    "assets/audio/bgm/coconut-caper-loop.mp3",
+    "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -204,14 +210,19 @@ async function run() {
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
   assert(debug.map.selected === "moonlitLagoon" && debug.map.variants.length >= 4, `Selected map did not reach runtime: ${JSON.stringify(debug.map)}`);
+  assert(debug.map.selectedBackground === "mapMoonlitLagoon", `Selected map did not get its unique background: ${JSON.stringify(debug.map)}`);
+  assert(Object.values(debug.map.backgrounds).filter(Boolean).length >= 4 && new Set(Object.values(debug.map.backgrounds)).size >= 4, `Map backgrounds are not varied: ${JSON.stringify(debug.map)}`);
+  assert(Object.values(debug.map.backgrounds).every((key) => debug.preloadedAssetKeys.includes(key)), `Map backgrounds are not preloaded: ${JSON.stringify(debug.map)}`);
+  assert(Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmCaper") && Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmShoreline"), `Map BGM profiles are not varied: ${JSON.stringify(debug.map.musicProfiles)}`);
   assert(debug.audio.music.main >= 0.6, `Main music config should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.activeTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to rush BGM: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
-  assert(debug.audio.sources.bgmMain.includes("crimson-galleon.mp3") && debug.audio.sources.bgmRush.includes("gargoyle-chapel-run.mp3"), `Driving BGM tracks are not selected: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("coconut-caper-loop.mp3"), `Selected map did not switch to its BGM profile: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.sources.bgmMain.includes("crimson-galleon.mp3") && debug.audio.sources.bgmRush.includes("gargoyle-chapel-run.mp3") && debug.audio.sources.bgmShoreline.includes("shoreline-rum-riddle.mp3"), `Driving BGM tracks are not selected: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.downloadBossWarning <= 0.05 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult >= 2.45 && debug.balance.normalSpawnIntensity >= 1.1, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult <= 2.65 && debug.balance.normalSpawnIntensity <= 1.18, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
