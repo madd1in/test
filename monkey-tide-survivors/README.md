@@ -29,8 +29,11 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Treibenderer lokaler BGM-Mix aus `Crimson Galleon` als Main-Track und `Gargoyle Chapel Run` als frueher Rush-Layer; SFX bleiben leise darunter.
 - BGM laeuft jetzt als ein eindeutiger aktiver Track mit Rush-Handoff statt zwei ueberlappender MP3-Spuren.
 - Jede Karte nutzt ein eigenes leichtes HD-Background-Asset und ein eigenes lokales BGM-Profil.
-- Strand-Backgrounds sind jetzt pfuetzenfrei; Wasserstellen kommen nur noch als reduzierte HD-Raster-Decals.
+- Strand-Backgrounds sind pfuetzenfrei; sichtbare Wasserstellen kommen als separate HD-Raster-Decals und Chunk-Props.
 - Sam-und-Max/Freelance-Duo nutzt ein eigenes sauber gecropptes HD-Duo-Sprite statt der zu engen Walkcycle-Zelle.
+- Welt laeuft jetzt als grosse repeatable Chunk-Map ohne spuerbare Strandkante; Props, Wracks, Hecken und Pfuetzen werden um den Spieler nachgeladen.
+- Mobile rendert mit niedrigerem DPR, kleinerem Gegner-Cap und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Querformat/Vollbild.
+- HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.
 - Map-spezifische Busch-/Hecken-Hindernisse nutzen die HD-Prop-Assets und bleiben Teil der Kollisionslogik.
 - Upgrade-Auswahl pausiert den Run nur noch in groesseren Abstaenden; Zwischenlevel geben nicht-blockierende Flow-Boni.
 - Vier Kartenvarianten mit Map-Auswahl, gespeicherten Achievements, freischaltbaren Karten und kleinen Startrelikten.
