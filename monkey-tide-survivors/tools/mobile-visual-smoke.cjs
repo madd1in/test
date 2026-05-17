@@ -59,7 +59,7 @@ async function run() {
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
   await page.evaluate(() => document.getElementById("startButton").click());
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(80);
   await page.evaluate(() => {
     const target = document.elementFromPoint(86, 610) || document.getElementById("gameCanvas");
     target.dispatchEvent(new PointerEvent("pointerdown", {
@@ -78,9 +78,37 @@ async function run() {
       clientX: 86,
       clientY: 690,
     }));
-    window.__MONKEY_TIDE_STEP(1.2);
+    window.__MONKEY_TIDE_STEP(0.05);
+    if (!document.getElementById("upgradeOverlay").hidden) {
+      document.querySelector("#upgradeChoices .upgrade-card")?.click();
+      window.__MONKEY_TIDE_STEP(0.05);
+    }
   });
+  try {
+    await page.waitForSelector("#upgradeOverlay:not([hidden]) .upgrade-card", { timeout: 1200 });
+    await page.evaluate(() => document.querySelector("#upgradeChoices .upgrade-card")?.click());
+  } catch {}
+  await page.waitForTimeout(120);
+  await page.evaluate(() => {
+    const upgradeOverlay = document.getElementById("upgradeOverlay");
+    if (!upgradeOverlay.hidden) {
+      document.querySelector("#upgradeChoices .upgrade-card")?.click();
+    }
+    upgradeOverlay.hidden = true;
+    upgradeOverlay.style.display = "none";
+  });
+  await page.waitForTimeout(50);
   await page.screenshot({ path: path.join(root, "mobile-preview.png"), timeout: 120000 });
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 91,
+      pointerType: "touch",
+      clientX: 86,
+      clientY: 690,
+    }));
+  });
   await browser.close();
   if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
   if (typeof server.closeAllConnections === "function") server.closeAllConnections();

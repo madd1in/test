@@ -63,6 +63,7 @@ async function run() {
   const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
+  await page.click('[data-skin="freelanceDuo"]');
   await page.evaluate(() => window.__MONKEY_TIDE_START());
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__MONKEY_TIDE_STEP(5));

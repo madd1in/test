@@ -38,7 +38,7 @@ const ui = {
 };
 
 const imageSources = {
-  repeatBeach: "assets/backgrounds/topdown_beach_repeatable_hd.png",
+  repeatBeach: "assets/backgrounds/topdown_beach_repeatable_clean_hd.jpg",
   mapMoonlitLagoon: "assets/backgrounds/map_moonlit_lagoon_hd.jpg",
   mapGothicCove: "assets/backgrounds/map_gothic_cove_hd.jpg",
   mapTreasureAtoll: "assets/backgrounds/map_treasure_atoll_hd.jpg",
@@ -46,6 +46,7 @@ const imageSources = {
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp?v=starfarmboy-clean",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
+  samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -159,7 +160,7 @@ const playerSkinMap = {
   dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, animH: 176, animRow: 2, cellX: 2, cellY: 0 },
   rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, animH: 178, animRow: 3, cellX: 0, cellY: 1 },
   starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, animH: 168, animRow: 4, cellX: 1, cellY: 1 },
-  freelanceDuo: { name: "Freelance-Duo", sheet: "playerSkins", x: 1054, y: 512, w: 319, h: 485, drawH: 140, animH: 176, animRow: 5, cellX: 2, cellY: 1 },
+  freelanceDuo: { name: "Freelance-Duo", sheet: "samMaxDuo", drawH: 150, cellX: 2, cellY: 1 },
 };
 const playerSkinIds = Object.keys(playerSkinMap);
 let selectedSkin = (() => {
@@ -947,6 +948,9 @@ async function boot() {
 }
 
 function skinIconStyle(id) {
+  if (id === "freelanceDuo") {
+    return `background-image:url('${imageSources.samMaxDuo}');background-size:contain;background-repeat:no-repeat;background-position:center 58%;`;
+  }
   const index = Math.max(0, playerSkinIds.indexOf(id));
   const x = index / Math.max(1, PLAYER_SKIN_SELECT.cols - 1) * 100;
   return `background-image:url('${imageSources.playerSkinSelect}');background-size:${PLAYER_SKIN_SELECT.cols * 100}% 100%;background-position:${x}% 100%;`;
@@ -2289,7 +2293,7 @@ function drawWorld() {
   const ox = scene.w / 2 - cam.x;
   const oy = scene.h / 2 - cam.y;
   const variant = mapVariant(state.map);
-  drawRepeatingMap(mapBackgroundImage(variant), ox, oy);
+  drawWorldMap(mapBackgroundImage(variant), ox, oy);
   drawMapTint(variant);
   drawNaturalGroundDetails(ox, oy, variant);
 }
@@ -2298,16 +2302,8 @@ function mapBackgroundImage(variant = mapVariant(state.map)) {
   return images[variant.background] || images.repeatBeach;
 }
 
-function drawRepeatingMap(image, ox, oy) {
-  const tileW = image.width;
-  const tileH = image.height;
-  const startX = positiveModulo(ox, tileW) - tileW;
-  const startY = positiveModulo(oy, tileH) - tileH;
-  for (let x = startX; x < scene.w + tileW; x += tileW) {
-    for (let y = startY; y < scene.h + tileH; y += tileH) {
-      ctx.drawImage(image, x, y, tileW, tileH);
-    }
-  }
+function drawWorldMap(image, ox, oy) {
+  ctx.drawImage(image, ox, oy, WORLD.w, WORLD.h);
 }
 
 function drawMapTint(variant) {
@@ -2334,13 +2330,13 @@ function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
       const lagoon = variant.detail === "lagoon";
       const gothic = variant.detail === "gothic";
       const treasure = variant.detail === "treasure";
-      if (h % (lagoon ? 11 : 17) === 0 || h % (treasure ? 23 : 31) === 0) {
-        const icon = gothic && h % 23 === 0 ? "gothicCandelabra" : h % 31 === 0 ? "tidePuddle" : "clearPuddle";
+      if (h % (lagoon ? 19 : 41) === 0 || (treasure && h % 47 === 0)) {
+        const icon = gothic && h % 23 === 0 ? "gothicCandelabra" : lagoon ? "tidePuddle" : "clearPuddle";
         const px = ox + x + 30 + ((h >> 6) % 160);
         const py = oy + y + 30 + ((h >> 13) % 150);
         const w = gothic && icon === "gothicCandelabra" ? 54 : 104 + (h % 42);
         const ph = gothic && icon === "gothicCandelabra" ? 54 : 74 + ((h >> 4) % 28);
-        drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, icon === "tidePuddle" ? 0.34 : 0.3);
+        drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, icon === "tidePuddle" ? 0.4 : 0.34);
       }
     }
   }
@@ -2467,7 +2463,13 @@ function drawPlayer() {
     ctx.shadowColor = "rgba(0,0,0,0.55)";
     ctx.shadowBlur = 14;
   }
-  if (skin.animRow !== undefined && images.playerSkinWalks) {
+  if (skin.sheet === "samMaxDuo" && images.samMaxDuo) {
+    const bob = moving ? Math.sin(state.elapsed * 13) * 3.4 : Math.sin(state.elapsed * 3.2) * 1.2;
+    const stretch = moving ? 1 + Math.sin(state.elapsed * 18) * 0.018 : 1;
+    const h = skin.drawH * stretch;
+    const w = h * (images.samMaxDuo.width / images.samMaxDuo.height);
+    ctx.drawImage(images.samMaxDuo, -w / 2, -h + 30 + bob, w, h);
+  } else if (skin.animRow !== undefined && images.playerSkinWalks) {
     const frame = moving ? Math.floor(state.elapsed * 12) % PLAYER_SKIN_WALK.cols : 0;
     const sx = frame * PLAYER_SKIN_WALK.w;
     const sy = skin.animRow * PLAYER_SKIN_WALK.h;
@@ -3134,8 +3136,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAsset: !!images.playerSkins,
   playerSkinAnimationAsset: !!images.playerSkinWalks,
   playerSkinSelectAsset: !!images.playerSkinSelect,
+  playerSkinFixedDuoAsset: !!images.samMaxDuo,
   playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
   playerSkinAnimated: playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks,
+  playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
   map: {
@@ -3145,6 +3149,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     selectedMusic: mapMusicProfile(state.map),
     variants: mapVariants.map((map) => map.id),
     backgrounds: Object.fromEntries(mapVariants.map((map) => [map.id, map.background])),
+    cleanSandBackground: imageSources.repeatBeach.includes("clean_hd"),
     musicProfiles: Object.fromEntries(mapVariants.map((map) => [map.id, mapMusicProfile(map.id)])),
     unlocked: [...metaProgress.unlockedMaps],
   },

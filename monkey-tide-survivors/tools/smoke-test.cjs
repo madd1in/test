@@ -67,7 +67,7 @@ async function run() {
     "index.html",
     "style.css",
     "game.js",
-    "assets/backgrounds/topdown_beach_repeatable_hd.png",
+    "assets/backgrounds/topdown_beach_repeatable_clean_hd.jpg",
     "assets/backgrounds/map_moonlit_lagoon_hd.jpg",
     "assets/backgrounds/map_gothic_cove_hd.jpg",
     "assets/backgrounds/map_treasure_atoll_hd.jpg",
@@ -75,6 +75,7 @@ async function run() {
     "assets/sprites/player_skins_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
     "assets/sprites/player_skin_select_imagen_hd.webp",
+    "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
@@ -158,6 +159,8 @@ async function run() {
   assert(skinUi.some((skin) => skin.id === "curseMonkey") && skinUi.some((skin) => skin.id === "freelanceDuo"), `Requested alternate skins missing: ${JSON.stringify(skinUi)}`);
   const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd.webp"));
   assert(pickerUsesSelectSheet, "Character picker is not using the normalized first-sheet selection atlas");
+  const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
+  assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
   await page.click('[data-skin="curseMonkey"]');
   const pickedSkin = await page.evaluate(() => document.querySelector('[data-skin="curseMonkey"]')?.getAttribute("aria-checked"));
   assert(pickedSkin === "true", `Skin picker did not select curseMonkey: ${pickedSkin}`);
@@ -181,6 +184,7 @@ async function run() {
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinFixedDuoAsset === true && debug.preloadedAssetKeys.includes("samMaxDuo"), `Fixed Sam and Max duo asset is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
   const starFarmboySlice = await page.evaluate(async () => {
@@ -210,6 +214,7 @@ async function run() {
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
   assert(debug.map.selected === "moonlitLagoon" && debug.map.variants.length >= 4, `Selected map did not reach runtime: ${JSON.stringify(debug.map)}`);
+  assert(debug.map.cleanSandBackground === true, `Default sand background still points at the old puddle texture: ${JSON.stringify(debug.map)}`);
   assert(debug.map.selectedBackground === "mapMoonlitLagoon", `Selected map did not get its unique background: ${JSON.stringify(debug.map)}`);
   assert(Object.values(debug.map.backgrounds).filter(Boolean).length >= 4 && new Set(Object.values(debug.map.backgrounds)).size >= 4, `Map backgrounds are not varied: ${JSON.stringify(debug.map)}`);
   assert(Object.values(debug.map.backgrounds).every((key) => debug.preloadedAssetKeys.includes(key)), `Map backgrounds are not preloaded: ${JSON.stringify(debug.map)}`);
