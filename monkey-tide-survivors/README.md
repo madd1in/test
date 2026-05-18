@@ -22,6 +22,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neues Imagen-HD-WebP-Projektilsheet fuer Saebelbogen, Kokos-Bumerang, Flaschenbombe, Kompassblitz, Taukreis, Blutrosenburst, Geisterkugel und Affenfluch.
 - Extra Imagen-HD-FX-Sheet fuer Tau-Aura, Kompass-Beam, Rum-Schockwelle, Curse-Burst, Cutlass-Afterglow und Schatz-Glints.
 - Neues Imagen-HD-Weapon-Evolution-FX-Sheet mit Doppel-/Drei-/Vier-/Fuenffach-Saebeln, graduellen Aura-Ringen und Saebel-Tornado-Fusion.
+- Neue Item- und Flow-Schicht: Saebelfieber, Tide-Vakuum, Mond-Aegis, Fusionsfunke, Rubin-Ring, Mond-Siegel, Gothic-Axt und Blaues Elixier.
+- Mehr Fusionstypen fuer Achievement-Flow: Saebelsturm, Sternenkokos, Grog-Mahlstrom und Mondnetz schalten Meta-Relikte frei.
 - Zwei neue Imagen-HD-Sheets fuer acht zusaetzliche Gegner und acht neue Relikt-/Item-Icons.
 - Neue Gegner im Spawn-Mix: Reef Raider, Powder Imp, Tide Witch, Saltbone Fencer, Lantern Wraith, Barrel Maw, Storm Duelist und Coral Brute als Bosskandidat.
 - Neue Relikt-Upgrades wie Flutperle, Schwarzpulverbeutel, Affenpfote, Kaeptninsiegel, Flutstiefel, Voodoo-Puppe, Obsidian-Kompass und Grog-Laterne.

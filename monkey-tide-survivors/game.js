@@ -436,6 +436,8 @@ const achievementDefinitions = [
   { id: "wreckDiver", name: "Wracktaucher", desc: "4 Orte erkunden", field: "landmarks", target: 4, unlockMap: "treasureAtoll" },
   { id: "nightRaid", name: "Nachtkaperfahrt", desc: "150 Sekunden ueberleben", field: "bestSurvival", target: 150, unlockMap: "gothicCove" },
   { id: "streakCarver", name: "Streak-Saebel", desc: "12er Streak schaffen", field: "bestStreak", target: 12, unlockRelic: "Saebelkerbe" },
+  { id: "fusionSmith", name: "Fusionsschmied", desc: "2 Waffenfusionen entfachen", field: "fusions", target: 2, unlockRelic: "Fusionskern" },
+  { id: "flowRunner", name: "Flowlaeufer", desc: "10 Flow-Boni sammeln", field: "flowRewards", target: 10, unlockRelic: "Flow-Anker" },
 ];
 
 const powerUpTypes = [
@@ -443,6 +445,10 @@ const powerUpTypes = [
   { id: "blackPowder", name: "Pulverfieber", icon: "powderPouch", duration: 9, damage: 1.2, color: "#ffb14c" },
   { id: "pearlMagnet", name: "Flutmagnet", icon: "cursedPearl", duration: 12, magnet: 130, color: "#53ffe5" },
   { id: "voodooWard", name: "Voodoo-Schutz", icon: "voodooDoll", duration: 8, armor: 2, color: "#d07cff" },
+  { id: "saberFever", name: "Saebelfieber", icon: "moonSlash", duration: 9, damage: 1.32, cooldown: 0.94, color: "#fff2c7" },
+  { id: "tideVacuum", name: "Tide-Vakuum", icon: "tideBoots", duration: 11, speed: 1.12, magnet: 180, color: "#53ffe5" },
+  { id: "moonAegis", name: "Mond-Aegis", icon: "gothicArmor", duration: 8, armor: 4, color: "#9f6cff" },
+  { id: "fusionSpark", name: "Fusionsfunke", icon: "rubyRing", duration: 10, speed: 1.12, damage: 1.18, cooldown: 0.9, color: "#ff8aa3" },
 ];
 const powerupDropTuning = {
   randomDropChance: 0.004,
@@ -770,6 +776,54 @@ const upgrades = [
     },
   },
   {
+    id: "rubyRing",
+    name: "Rubin-Ring",
+    icon: "rubyRing",
+    desc: "Mehr Schaden und leicht schnellere Waffenzyklen.",
+    max: 3,
+    apply: () => {
+      state.stats.damage += 0.055;
+      state.stats.cooldown = Math.max(0.82, state.stats.cooldown - 0.04);
+    },
+  },
+  {
+    id: "moonSigil",
+    name: "Mond-Siegel",
+    icon: "moonSigil",
+    desc: "Staerkt Kompass und bereitet Sternenkokos-Fusionen vor.",
+    max: 3,
+    apply: () => {
+      raiseWeapon("compass");
+      state.stats.magnet += 14;
+      state.stats.damage += 0.025;
+      state.stats.chainDamage = (state.stats.chainDamage || 0) + 0.08;
+    },
+  },
+  {
+    id: "gothicAxe",
+    name: "Gothic-Axt",
+    icon: "gothicAxe",
+    desc: "Staerkt Saebel und Kokos fuer aggressivere Nahkampfrouten.",
+    max: 3,
+    apply: () => {
+      raiseWeapon("cutlass");
+      raiseWeapon("coconut");
+      state.stats.damage += 0.02;
+      state.stats.cooldown = Math.max(0.84, (state.stats.cooldown || 1) - 0.025);
+    },
+  },
+  {
+    id: "blueVial",
+    name: "Blaues Elixier",
+    icon: "blueVial",
+    desc: "Power-ups halten laenger und geben einen kleinen Heilpuffer.",
+    max: 3,
+    apply: () => {
+      state.stats.powerupDuration = (state.stats.powerupDuration || 1) + 0.12;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 24);
+    },
+  },
+  {
     id: "speed",
     name: "Palmwedel-Trick",
     icon: "speedCharm",
@@ -826,6 +880,8 @@ function defaultMetaProgress() {
     coins: 0,
     landmarks: 0,
     powerups: 0,
+    fusions: 0,
+    flowRewards: 0,
     runs: 0,
     wins: 0,
     bestLevel: 1,
@@ -885,6 +941,8 @@ function metaRelicBonuses() {
     speed: relics.has("Grog-Stiefel") ? 12 : 0,
     damage: relics.has("Saebelkerbe") ? 0.04 : 0,
     armor: 0,
+    cooldown: relics.has("Fusionskern") ? 0.96 : 1,
+    powerupDuration: relics.has("Flow-Anker") ? 1.08 : 1,
   };
 }
 
@@ -916,7 +974,7 @@ function applyCharacterTrait(next) {
   next.stats.magnet += trait.magnet || 0;
   next.stats.pickupValue += trait.pickupValue || 0;
   next.stats.dashCooldown = Math.max(0.28, next.stats.dashCooldown + (trait.dashCooldown || 0));
-  next.stats.powerupDuration = trait.powerupDuration || 1;
+  next.stats.powerupDuration = (next.stats.powerupDuration || 1) * (trait.powerupDuration || 1);
   for (const [weapon, level] of Object.entries(trait.weapons || {})) {
     if (!next.weapons[weapon]) continue;
     next.weapons[weapon].level = Math.max(next.weapons[weapon].level, level);
@@ -947,7 +1005,8 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, pressureWaves: 0, elites: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, unlocked: [] },
+    fusionMoments: { seen: new Set(), count: 0 },
     powerupDropCooldown: 0,
     coins: 0,
     level: 1,
@@ -975,6 +1034,9 @@ function makeState() {
       magnet: 280 + relicBonus.magnet,
       pickupValue: 1.12,
       dashCooldown: CONTROL_TUNING.dashCooldown,
+      cooldown: relicBonus.cooldown || 1,
+      powerupDuration: relicBonus.powerupDuration || 1,
+      chainDamage: 0,
     },
     weapons: {
       cutlass: { level: 1, timer: 0 },
@@ -998,6 +1060,10 @@ function makeState() {
       voodooDoll: 0,
       obsidianCompass: 0,
       grogLantern: 0,
+      rubyRing: 0,
+      moonSigil: 0,
+      gothicAxe: 0,
+      blueVial: 0,
       speed: 0,
       magnet: 0,
       heart: 0,
@@ -1127,6 +1193,9 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
     "grogLantern",
     "gothicArmor",
     "moonSigil",
+    "rubyRing",
+    "gothicAxe",
+    "blueVial",
     "palmTree",
     "hedgeCluster",
     "palmHedge",
@@ -1929,10 +1998,11 @@ function tunedStickVector(dx, dy) {
 function updateWeapons(dt) {
   const w = state.weapons;
   const p = state.player;
+  const cooldownMult = activeCooldownMultiplier();
   w.cutlass.timer -= dt;
   if (w.cutlass.timer <= 0) {
     const lvl = w.cutlass.level;
-    const cooldown = Math.max(0.24, 0.6 - lvl * 0.05);
+    const cooldown = Math.max(0.18, (0.6 - lvl * 0.05) * cooldownMult);
     w.cutlass.timer = cooldown;
     const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
     slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10, lvl);
@@ -1941,7 +2011,7 @@ function updateWeapons(dt) {
   if (w.coconut.level > 0) {
     w.coconut.timer -= dt;
     if (w.coconut.timer <= 0) {
-      w.coconut.timer = Math.max(0.22, 0.82 - w.coconut.level * 0.08);
+      w.coconut.timer = Math.max(0.18, (0.82 - w.coconut.level * 0.08) * cooldownMult);
       fireCoconut(w.coconut.level);
     }
   }
@@ -1950,14 +2020,14 @@ function updateWeapons(dt) {
     w.compass.timer -= dt;
     updateCompassDamage(dt);
     if (w.compass.timer <= 0) {
-      w.compass.timer = Math.max(0.36, 1.22 - w.compass.level * 0.12);
+      w.compass.timer = Math.max(0.28, (1.22 - w.compass.level * 0.12) * cooldownMult);
       fireCompassBeam(w.compass.level);
     }
   }
   if (w.bottle.level > 0) {
     w.bottle.timer -= dt;
     if (w.bottle.timer <= 0) {
-      w.bottle.timer = Math.max(0.62, 1.92 - w.bottle.level * 0.18);
+      w.bottle.timer = Math.max(0.46, (1.92 - w.bottle.level * 0.18) * cooldownMult);
       throwBottle(w.bottle.level);
     }
   }
@@ -2019,8 +2089,46 @@ function saberTornadoReady() {
   return (state?.weapons?.cutlass?.level || 0) >= 5 && (state?.weapons?.rope?.level || 0) >= 3;
 }
 
+function coconutCompassReady() {
+  return (state?.weapons?.coconut?.level || 0) >= 4 && (state?.weapons?.compass?.level || 0) >= 3;
+}
+
+function bottleRopeReady() {
+  return (state?.weapons?.bottle?.level || 0) >= 4 && (state?.weapons?.rope?.level || 0) >= 2;
+}
+
+function compassRopeReady() {
+  return (state?.weapons?.compass?.level || 0) >= 4 && (state?.weapons?.rope?.level || 0) >= 3;
+}
+
+function activeCooldownMultiplier() {
+  return (state.stats.cooldown || 1) * activePowerMultiplier("cooldown");
+}
+
+function recordFusionMoment(id, label, color = "#fff2c7") {
+  if (!state?.fusionMoments) state.fusionMoments = { seen: new Set(), count: 0 };
+  if (!(state.fusionMoments.seen instanceof Set)) {
+    state.fusionMoments.seen = new Set(state.fusionMoments.seen || []);
+  }
+  if (state.fusionMoments.seen.has(id)) return false;
+  state.fusionMoments.seen.add(id);
+  state.fusionMoments.count += 1;
+  state.runStats.fusions += 1;
+  metaProgress.fusions += 1;
+  state.xp += 18 + state.level * 2;
+  state.coins += 3;
+  floatingText(label, state.player.x, state.player.y - 126, color, 0.95, 28, { priority: 3 });
+  spawnPowerup(state.player.x + 44, state.player.y - 28, "fusionSpark", { life: 18, cooldown: 8 });
+  unlockAchievements();
+  saveMetaProgress();
+  renderMetaProgress();
+  playSkinSound("powerup", "upgradeMagic", { force: true });
+  return true;
+}
+
 function castSaberTornado(angle, cutlassLevel, auraLevel) {
   const p = state.player;
+  recordFusionMoment("saberTornado", "Fusion: Saebelsturm", "#fff2c7");
   const radius = 116 + cutlassLevel * 8 + auraLevel * 14;
   state.zones.push({
     type: "saberTornado",
@@ -2049,18 +2157,21 @@ function fireCoconut(level) {
   const p = state.player;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
   const speed = 420 + level * 18;
+  const compassFuse = coconutCompassReady();
+  if (compassFuse) recordFusionMoment("starCoconut", "Fusion: Sternenkokos", "#fff2c7");
   state.projectiles.push({
     type: "coconut",
-    icon: "coconutBoomerang",
+    icon: compassFuse ? "compassBolt" : "coconutBoomerang",
     x: p.x + Math.cos(angle) * 32,
     y: p.y + Math.sin(angle) * 32,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    r: 17,
-    damage: 23 + level * 9,
-    life: 3.15,
-    pierce: 3 + Math.floor(level / 2),
+    r: compassFuse ? 19 : 17,
+    damage: 23 + level * 9 + (compassFuse ? 7 + state.weapons.compass.level * 2 : 0),
+    life: compassFuse ? 3.55 : 3.15,
+    pierce: 3 + Math.floor(level / 2) + (compassFuse ? 2 : 0),
     spin: 0,
+    compassFuse,
   });
 }
 
@@ -2079,6 +2190,8 @@ function throwBottle(level) {
   if (!target) return;
   const p = state.player;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
+  const maelstrom = bottleRopeReady();
+  if (maelstrom) recordFusionMoment("grogMaelstrom", "Fusion: Grog-Mahlstrom", "#53ffe5");
   state.projectiles.push({
     type: "bottle",
     icon: "rumBomb",
@@ -2086,12 +2199,13 @@ function throwBottle(level) {
     y: p.y,
     vx: Math.cos(angle) * 280,
     vy: Math.sin(angle) * 280,
-    r: 15,
-    damage: 25 + level * 11,
-    radius: 102 + level * 12,
-    life: 1.15,
+    r: maelstrom ? 18 : 15,
+    damage: 25 + level * 11 + (maelstrom ? 14 + state.weapons.rope.level * 3 : 0),
+    radius: 102 + level * 12 + (maelstrom ? 38 : 0),
+    life: maelstrom ? 1.35 : 1.15,
     target,
     spin: 0,
+    maelstrom,
   });
 }
 
@@ -2119,10 +2233,19 @@ function updateCompassDamage(dt) {
 function ropeDamage(level) {
   const p = state.player;
   const radius = 86 + level * 14;
+  const moonNet = compassRopeReady();
+  let beams = 0;
+  if (moonNet) recordFusionMoment("moonNet", "Fusion: Mondnetz", "#9f6cff");
   for (const enemy of state.enemies) {
     const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
     if (dist > radius - 16 && dist < radius + 28) {
       hurtEnemy(enemy, 12 + level * 6, (enemy.x - p.x) / dist, (enemy.y - p.y) / dist);
+    } else if (moonNet && dist < radius + 42) {
+      hurtEnemy(enemy, 5 + state.weapons.compass.level * 2, (enemy.x - p.x) / Math.max(1, dist), (enemy.y - p.y) / Math.max(1, dist));
+      if (beams < 3) {
+        beams += 1;
+        state.zones.push({ type: "beam", x: p.x, y: p.y, tx: enemy.x, ty: enemy.y, life: 0.12, maxLife: 0.12 });
+      }
     }
   }
 }
@@ -2430,6 +2553,7 @@ function updateProjectiles(dt) {
         const dist = Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y);
         if (dist < enemy.r + projectile.r) {
           hurtEnemy(enemy, projectile.damage * state.stats.damage, projectile.vx, projectile.vy);
+          if (projectile.compassFuse) arcCompassCoconut(projectile, enemy, state.weapons.compass.level);
           enemy._hitBy = projectile;
           projectile.pierce -= 1;
           const target = nearestEnemy(enemy);
@@ -2458,12 +2582,11 @@ function updateProjectiles(dt) {
       }
       for (const enemy of state.enemies) {
         if (Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y) < enemy.r + projectile.r) {
-          explode(projectile.x, projectile.y, projectile.radius, projectile.damage);
-          projectile.life = 0;
+          detonateBottle(projectile);
           break;
         }
       }
-      if (projectile.life <= 0) explode(projectile.x, projectile.y, projectile.radius, projectile.damage);
+      if (projectile.life <= 0) detonateBottle(projectile);
     } else if (projectile.type === "curseOrb") {
       const p = state.player;
       const dist = Math.hypot(p.x - projectile.x, p.y - projectile.y);
@@ -2488,8 +2611,29 @@ function updateProjectiles(dt) {
   state.projectiles = state.projectiles.filter((projectile) => projectile.life > 0);
 }
 
-function explode(x, y, radius, damage) {
+function arcCompassCoconut(projectile, sourceEnemy, compassLevel) {
+  const target = nearestEnemyFrom(sourceEnemy.x, sourceEnemy.y, sourceEnemy);
+  if (!target) return;
+  const dx = target.x - sourceEnemy.x;
+  const dy = target.y - sourceEnemy.y;
+  const dist = Math.hypot(dx, dy);
+  const damage = (16 + compassLevel * 5 + (state.stats.chainDamage || 0) * 20) * state.stats.damage;
+  hurtEnemy(target, damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
+  state.zones.push({ type: "beam", x: projectile.x, y: projectile.y, tx: target.x, ty: target.y, life: 0.18, maxLife: 0.18 });
+}
+
+function detonateBottle(projectile) {
+  if (projectile.exploded) return;
+  projectile.exploded = true;
+  explode(projectile.x, projectile.y, projectile.radius, projectile.damage, { maelstrom: projectile.maelstrom });
+  projectile.life = 0;
+}
+
+function explode(x, y, radius, damage, options = {}) {
   state.zones.push({ type: "explosion", x, y, radius, life: 0.28, maxLife: 0.28 });
+  if (options.maelstrom) {
+    state.zones.push({ type: "saberTornado", x, y, angle: state.elapsed, radius: radius * 0.76, level: 4, auraLevel: 3, life: 0.52, maxLife: 0.52, fused: true });
+  }
   playSkinSound("hit", "chime");
   for (const enemy of state.enemies) {
     const dx = enemy.x - x;
@@ -2497,6 +2641,11 @@ function explode(x, y, radius, damage) {
     const dist = Math.hypot(dx, dy);
     if (dist < radius + enemy.r) {
       hurtEnemy(enemy, damage * (1 - Math.min(0.65, dist / radius * 0.45)), dx / Math.max(1, dist), dy / Math.max(1, dist));
+    } else if (options.maelstrom && dist < radius * 1.28 + enemy.r) {
+      const pull = 18;
+      enemy.x += (x - enemy.x) / Math.max(1, dist) * pull;
+      enemy.y += (y - enemy.y) / Math.max(1, dist) * pull;
+      hurtEnemy(enemy, damage * 0.32, dx / Math.max(1, dist), dy / Math.max(1, dist));
     }
   }
 }
@@ -2890,11 +3039,17 @@ function applyFlowLevelReward() {
     { name: "Flow: Schaden", apply: () => { state.stats.damage += 0.018; }, color: "#ffb14c" },
     { name: "Flow: Magnet", apply: () => { state.stats.magnet += 12; }, color: "#53ffe5" },
     { name: "Flow: Atem", apply: () => { state.player.hp = Math.min(state.player.maxHp, state.player.hp + 20); }, color: "#79e0b7" },
+    { name: "Flow: Funke", apply: () => { spawnPowerup(state.player.x + 60, state.player.y - 20, "fusionSpark", { life: 16, cooldown: 8 }); }, color: "#ff8aa3" },
+    { name: "Flow: Dublonen", apply: () => { state.coins += 6; metaProgress.coins += 6; }, color: "#f0c45d" },
   ];
   const reward = rewards[state.level % rewards.length];
   reward.apply();
   state.runStats.flowRewards += 1;
+  metaProgress.flowRewards += 1;
   floatingText(reward.name, state.player.x, state.player.y - 96, reward.color);
+  unlockAchievements();
+  saveMetaProgress();
+  renderMetaProgress();
   playSkinSound("pickup", "downloadPickup", { cooldown: 1100 });
 }
 
@@ -3428,8 +3583,8 @@ function drawProjectiles() {
       ? "rumBombFx"
       : projectile.type === "curseOrb"
         ? projectile.fx || "monkeyCurseOrb"
-        : "coconutBoomerang";
-    const size = projectile.type === "bottle" ? 58 : projectile.type === "curseOrb" ? 50 : 52;
+        : projectile.icon || "coconutBoomerang";
+    const size = projectile.type === "bottle" ? (projectile.maelstrom ? 68 : 58) : projectile.type === "curseOrb" ? 50 : projectile.compassFuse ? 58 : 52;
     drawProjectileFx(fx, ox + projectile.x, oy + projectile.y, size, size, projectile.spin, 0.98);
   }
   if (state.weapons.compass.level > 0) {
@@ -3764,6 +3919,20 @@ function nearestEnemy(exclude = null) {
   for (const enemy of state.enemies) {
     if (enemy === exclude || enemy.hp <= 0) continue;
     const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
+    if (d < bestDist) {
+      best = enemy;
+      bestDist = d;
+    }
+  }
+  return best;
+}
+
+function nearestEnemyFrom(x, y, exclude = null) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const enemy of state.enemies) {
+    if (enemy === exclude || enemy.hp <= 0) continue;
+    const d = Math.hypot(enemy.x - x, enemy.y - y);
     if (d < bestDist) {
       best = enemy;
       bestDist = d;
@@ -4214,14 +4383,16 @@ window.__MONKEY_TIDE_OBSTACLE_PROBE = () => {
 };
 window.__MONKEY_TIDE_PROGRESS_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
-  spawnPowerup(state.player.x + 36, state.player.y, "rumRush");
-  spawnPowerup(state.player.x + 72, state.player.y, "blackPowder");
-  spawnPowerup(state.player.x + 108, state.player.y, "pearlMagnet");
+  powerUpTypes.forEach((type, index) => {
+    spawnPowerup(state.player.x + 36 + index * 34, state.player.y, type.id);
+  });
   for (const gem of state.gems.filter((gem) => gem.kind === "powerup")) collectGem(gem);
   metaProgress.landmarks = Math.max(metaProgress.landmarks, 4);
   metaProgress.bestSurvival = Math.max(metaProgress.bestSurvival, 160);
   metaProgress.kills = Math.max(metaProgress.kills, 40);
   metaProgress.bestStreak = Math.max(metaProgress.bestStreak, 12);
+  metaProgress.fusions = Math.max(metaProgress.fusions, 2);
+  metaProgress.flowRewards = Math.max(metaProgress.flowRewards, 10);
   unlockAchievements();
   saveMetaProgress();
   renderMapPicker();
@@ -4336,9 +4507,19 @@ window.__MONKEY_TIDE_NEW_ENEMY_PROBE = () => {
 window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
+  state.weapons.coconut.level = Math.max(state.weapons.coconut.level, 4);
+  state.weapons.compass.level = Math.max(state.weapons.compass.level, 4);
+  state.weapons.bottle.level = Math.max(state.weapons.bottle.level, 4);
   state.weapons.rope.level = Math.max(state.weapons.rope.level, 4);
+  const p = state.player;
+  window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 230, p.y, false);
+  window.__MONKEY_TIDE_SPAWN_ENEMY("hand", p.x + 300, p.y + 22, false);
+  window.__MONKEY_TIDE_SPAWN_ENEMY("powderImp", p.x + 360, p.y - 28, false);
   slash(0, 214, 86, 84, state.weapons.cutlass.level);
   castSaberTornado(0, state.weapons.cutlass.level, state.weapons.rope.level);
+  fireCoconut(state.weapons.coconut.level);
+  throwBottle(state.weapons.bottle.level);
+  ropeDamage(state.weapons.rope.level);
   render();
   const slashZone = [...state.zones].reverse().find((zone) => zone.type === "slash");
   const tornadoZone = [...state.zones].reverse().find((zone) => zone.type === "saberTornado");
@@ -4477,11 +4658,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
     combatCooldown: powerupDropTuning.combatCooldown,
     magnetRange: powerupDropTuning.magnetRange,
   },
-  levelFlow: { flowRewards: state.runStats.flowRewards, choiceLevels: [2, 6, 10, 14, 18], reducedInterruptions: true },
+  levelFlow: { flowRewards: state.runStats.flowRewards, totalFlowRewards: metaProgress.flowRewards, rewardTypes: 6, choiceLevels: [2, 6, 10, 14, 18], reducedInterruptions: true },
   progression: {
     kills: metaProgress.kills,
     landmarks: metaProgress.landmarks,
     powerups: metaProgress.powerups,
+    fusions: metaProgress.fusions,
+    flowRewards: metaProgress.flowRewards,
     bestSurvival: metaProgress.bestSurvival,
     achievements: { ...metaProgress.achievements },
     unlockedRelics: [...metaProgress.unlockedRelics],
@@ -4495,6 +4678,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
     cutlassBlades: cutlassBladeCount(state.weapons.cutlass.level),
     auraStage: auraEvolutionStage(state.weapons.rope.level),
     saberTornadoFusionReady: saberTornadoReady(),
+    fusionTypes: {
+      saberTornado: saberTornadoReady(),
+      starCoconut: coconutCompassReady(),
+      grogMaelstrom: bottleRopeReady(),
+      moonNet: compassRopeReady(),
+    },
+    fusionMoments: {
+      count: state.fusionMoments?.count || 0,
+      seen: [...(state.fusionMoments?.seen || [])],
+    },
   },
   uiIconSources: {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
