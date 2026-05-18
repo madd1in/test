@@ -48,6 +48,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Die ersten Gegner laufen jetzt ueber eine Anti-Repeat-Rotation mit Krabben, Fledermaeusen, Pulver-Imps und Riff-Squids, statt immer denselben Auftakt zu zeigen.
 - Spaetere Runs trimmen entfernte Normalgegner und zeichnen nur noch ein priorisiertes Sprite-Budget, damit volle Screens nicht sofort laggy werden.
 - Desktop ist nochmals weiter herausgezoomt; Flutwellen markieren jetzt Elite-Omen-Gegner mit Extra-Beute, damit Wellen ein klares Zwischenziel haben.
+- Dhampir/Alucard nutzt ein nachnormalisiertes Walksheet mit stabiler Frame-Hoehe und entfernten Fuss-/Slice-Artefakten.
 - Jeder Charakter hat nun ein kleines Gameplay-Trait, z.B. Fluchsog, Mondbiss, Rumspurt, Sternenkompass oder Doppelermittlung.
 - Treffer-, Crit-, Streak- und Pickup-Texte werden als lesbare Screen-Schrift skaliert statt in der herausgezoomten Welt winzig zu werden.
 - HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.

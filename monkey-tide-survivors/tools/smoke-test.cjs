@@ -78,6 +78,7 @@ async function run() {
     "assets/sprites/player_skins_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp",
+    "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
@@ -358,6 +359,7 @@ async function run() {
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the normalized Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinFixedDuoAsset === true && debug.preloadedAssetKeys.includes("samMaxDuo"), `Fixed Sam and Max duo asset is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
@@ -388,7 +390,7 @@ async function run() {
   assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   const starFarmboyHeadSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp?skywalker-head-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png?skywalker-head-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -421,6 +423,79 @@ async function run() {
     return boxes;
   });
   assert(starFarmboyHeadSafe.every((box) => box.edgeAlpha === 0 && box.minY >= 36 && box.maxY <= 242), `Skywalker/starFarmboy row still lacks headroom: ${JSON.stringify(starFarmboyHeadSafe)}`);
+  const dhampirFootSafe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png?dhampir-foot-safe";
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const row = 2;
+    const cell = 256;
+    const frames = [];
+    for (let col = 0; col < 8; col += 1) {
+      const data = ctx.getImageData(col * cell, row * cell, cell, cell).data;
+      const seen = new Uint8Array(cell * cell);
+      const components = [];
+      let edgeAlpha = 0;
+      for (let y = 0; y < cell; y += 1) {
+        for (let x = 0; x < cell; x += 1) {
+          const index = y * cell + x;
+          const alpha = data[index * 4 + 3];
+          if (alpha > 8 && (x === 0 || y === 0 || x === cell - 1 || y === cell - 1)) edgeAlpha += 1;
+          if (seen[index] || alpha <= 8) continue;
+          const queue = [index];
+          seen[index] = 1;
+          let qi = 0;
+          let count = 0;
+          let minX = x;
+          let minY = y;
+          let maxX = x;
+          let maxY = y;
+          while (qi < queue.length) {
+            const point = queue[qi++];
+            const px = point % cell;
+            const py = Math.floor(point / cell);
+            count += 1;
+            minX = Math.min(minX, px);
+            minY = Math.min(minY, py);
+            maxX = Math.max(maxX, px);
+            maxY = Math.max(maxY, py);
+            const neighbors = [point - 1, point + 1, point - cell, point + cell];
+            for (const next of neighbors) {
+              if (next < 0 || next >= cell * cell || seen[next]) continue;
+              const nx = next % cell;
+              const ny = Math.floor(next / cell);
+              if (Math.abs(nx - px) + Math.abs(ny - py) !== 1) continue;
+              if (data[next * 4 + 3] > 8) {
+                seen[next] = 1;
+                queue.push(next);
+              }
+            }
+          }
+          components.push({ count, minX, minY, maxX, maxY });
+        }
+      }
+      components.sort((a, b) => b.count - a.count);
+      const main = components[0];
+      frames.push({
+        col,
+        edgeAlpha,
+        mainHeight: main.maxY - main.minY + 1,
+        mainMaxY: main.maxY,
+        secondaryPixels: components.slice(1).reduce((sum, component) => sum + component.count, 0),
+      });
+    }
+    return frames;
+  });
+  const dhampirHeights = dhampirFootSafe.map((frame) => frame.mainHeight);
+  assert(
+    dhampirFootSafe.every((frame) => frame.edgeAlpha === 0 && frame.secondaryPixels <= 8 && frame.mainHeight >= 212 && frame.mainHeight <= 216 && frame.mainMaxY >= 236 && frame.mainMaxY <= 238)
+      && Math.max(...dhampirHeights) - Math.min(...dhampirHeights) <= 2,
+    `Alucard/dhampir walk row still has scale pulse or foot slice artifacts: ${JSON.stringify(dhampirFootSafe)}`,
+  );
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
