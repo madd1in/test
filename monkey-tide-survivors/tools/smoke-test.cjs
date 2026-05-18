@@ -109,6 +109,8 @@ async function run() {
     "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/sprites/player_effects_imagen_hd.webp",
     "assets/sprites/weapon_evolution_fx_imagen_hd.png",
+    "assets/sprites/xp_crystal_anim_imagen_source.png",
+    "assets/sprites/xp_crystal_anim_imagen_hd.png",
     "assets/sprites/extra_enemies_imagen_hd.webp",
     "assets/sprites/extra_items_imagen_hd.webp",
     "assets/ui/parchment_panel_imagen_hd.webp",
@@ -579,6 +581,7 @@ async function run() {
   assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.activeTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to rush BGM: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.startReady.main && debug.audio.startReady.rush, `BGM should be pre-seeked before play to avoid delayed starts: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
   assert(new Set(Object.values(debug.audio.music.characterThemes).map((profile) => `${profile.theme}:${profile.mainKey}:${profile.rushKey}:${profile.mainStartAt}:${profile.rushStartAt}`)).size === debug.playerSkinTypes.length, `Every character should have a distinct BGM identity: ${JSON.stringify(debug.audio.music.characterThemes)}`);
   assert(debug.audio.music.characterThemes.curseMonkey.mainKey === "bgmCurseMonkey" && debug.audio.music.characterThemes.curseMonkey.rushStart <= 45 && debug.audio.music.characterThemes.curseMonkey.mainRate >= 1.08 && debug.audio.music.characterThemes.curseMonkey.rushRate >= 1.08, `Curse monkey BGM should be a faster local frenzy profile: ${JSON.stringify(debug.audio.music.characterThemes.curseMonkey)}`);
@@ -767,12 +770,44 @@ async function run() {
   assert(!debug.preloadedAssetKeys.includes("beachProps"), `Old sliced beach atlas is still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("playerEffects"), `Player raster effect FX not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.preloadedAssetKeys.includes("xpCrystalAnim"), `Imagen XP crystal animation is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
+  const xpCrystalProbe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/xp_crystal_anim_imagen_hd.png?xp-probe";
+    await img.decode();
+    const frame = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = frame;
+    canvas.height = frame;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const frames = [];
+    for (let col = 0; col < 8; col += 1) {
+      ctx.clearRect(0, 0, frame, frame);
+      ctx.drawImage(img, col * frame, 0, frame, frame, 0, 0, frame, frame);
+      const data = ctx.getImageData(0, 0, frame, frame).data;
+      let visible = 0;
+      let edgeAlpha = 0;
+      for (let y = 0; y < frame; y += 1) {
+        for (let x = 0; x < frame; x += 1) {
+          const index = (y * frame + x) * 4;
+          const alpha = data[index + 3];
+          if (alpha <= 8) continue;
+          visible += 1;
+          if (x === 0 || y === 0 || x === frame - 1 || y === frame - 1) edgeAlpha += 1;
+        }
+      }
+      frames.push({ col, visible, edgeAlpha });
+    }
+    return { size: [img.naturalWidth, img.naturalHeight], frames };
+  });
+  assert(xpCrystalProbe.size[0] === 2048 && xpCrystalProbe.size[1] === 256 && xpCrystalProbe.frames.every((frame) => frame.visible > 9000 && frame.edgeAlpha === 0), `XP crystal frames should be clean and non-empty: ${JSON.stringify(xpCrystalProbe)}`);
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
