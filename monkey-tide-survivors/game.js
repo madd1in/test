@@ -236,8 +236,11 @@ const CONTROL_TUNING = {
   stickCurve: 0.34,
 };
 const ENEMY_TUNING = {
-  visualScale: 1.12,
+  visualScale: 1.18,
   hitboxScale: 1.08,
+  animatedVisualBoost: 1.1,
+  minAnimatedVisualHeight: 82,
+  minAnimatedVisualRadiusRatio: 3.3,
   pressureWaveDesktopCap: 12,
   pressureWaveMobileCap: 7,
   secondEliteFromWave: 3,
@@ -3402,6 +3405,19 @@ function bossAnimFrame(enemy, anim, attackFrames) {
   return (Math.floor(state.elapsed * anim.fps) + enemy.frameOffset) % anim.frames;
 }
 
+function enemyBaseDrawScale(enemy) {
+  return enemy.type.scale * ENEMY_TUNING.visualScale * (enemy.elite ? 1.04 : 1);
+}
+
+function animatedEnemyDrawScale(enemy, sourceHeight = ENEMY_ANIM.h) {
+  const baseScale = enemyBaseDrawScale(enemy) * ENEMY_TUNING.animatedVisualBoost * (enemy.boss ? 1.22 : 1);
+  const minHeight = Math.max(
+    ENEMY_TUNING.minAnimatedVisualHeight,
+    enemy.r * ENEMY_TUNING.minAnimatedVisualRadiusRatio,
+  ) * (enemy.boss ? 1.08 : 1);
+  return Math.max(baseScale, minHeight / sourceHeight);
+}
+
 function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
@@ -3411,7 +3427,7 @@ function drawEnemies() {
     const px = ox + enemy.x;
     const py = oy + enemy.y;
     const flip = enemy.x > state.player.x ? -1 : 1;
-    const drawScale = enemy.type.scale * ENEMY_TUNING.visualScale * (enemy.elite ? 1.04 : 1);
+    const drawScale = enemyBaseDrawScale(enemy);
     let w = 0;
     let h = 0;
     ctx.save();
@@ -3485,8 +3501,9 @@ function drawEnemies() {
       const bob = enemy.type.phase || enemy.type.flying
         ? Math.sin(state.elapsed * 7.2 + enemy.frameOffset) * 6
         : Math.sin(state.elapsed * 4.4 + enemy.frameOffset) * 2.5;
-      w = ENEMY_ANIM.w * drawScale * (enemy.boss ? 1.22 : 1);
-      h = ENEMY_ANIM.h * drawScale * (enemy.boss ? 1.22 : 1);
+      const animScale = animatedEnemyDrawScale(enemy, ENEMY_ANIM.h);
+      w = ENEMY_ANIM.w * animScale;
+      h = ENEMY_ANIM.h * animScale;
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.enemyAnimSheet, sx, sy, ENEMY_ANIM.w, ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.extraSprite) {
@@ -4732,6 +4749,21 @@ window.__MONKEY_TIDE_DEBUG = () => {
   },
   balance: { ...BALANCE },
   enemyTuning: { ...ENEMY_TUNING },
+  enemyVisualReadability: {
+    animatedMinimumHeight: ENEMY_TUNING.minAnimatedVisualHeight,
+    animatedBoost: ENEMY_TUNING.animatedVisualBoost,
+    animatedProjectedHeights: Object.fromEntries(enemyTypes
+      .filter((type) => type.enemyAnim && !type.humanNpc)
+      .map((type) => {
+        const mockEnemy = {
+          type,
+          r: type.radius * ENEMY_TUNING.hitboxScale,
+          boss: !!type.bossCandidate || type.id === "idol",
+          elite: false,
+        };
+        return [type.id, Math.round(ENEMY_ANIM.h * animatedEnemyDrawScale(mockEnemy, ENEMY_ANIM.h))];
+      })),
+  },
   enemyRoster: {
     activeBossCycle: [...activeBossCycle],
     activeSpawnTypes: pressureWavePool(),

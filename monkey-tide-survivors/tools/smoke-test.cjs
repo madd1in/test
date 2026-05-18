@@ -616,7 +616,8 @@ async function run() {
   assert(debug.balance.bossHpMult >= 2.85 && debug.balance.normalSpawnIntensity >= 1.34, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult <= 3.0 && debug.balance.normalSpawnIntensity <= 1.42, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
   assert(debug.balance.firstBossAt <= 130 && debug.balance.rangedPressureAt <= 52 && debug.balance.pressureWaveFirstAt <= 22, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
-  assert(debug.enemyTuning.visualScale >= 1.1 && debug.enemyTuning.hitboxScale >= 1.06 && debug.enemyTuning.secondEliteFromWave <= 3, `Enemy readability/pressure tuning missing: ${JSON.stringify(debug.enemyTuning)}`);
+  assert(debug.enemyTuning.visualScale >= 1.16 && debug.enemyTuning.hitboxScale >= 1.06 && debug.enemyTuning.animatedVisualBoost >= 1.1 && debug.enemyTuning.minAnimatedVisualHeight >= 82 && debug.enemyTuning.secondEliteFromWave <= 3, `Enemy readability/pressure tuning missing: ${JSON.stringify(debug.enemyTuning)}`);
+  assert(Object.values(debug.enemyVisualReadability.animatedProjectedHeights).every((height) => height >= 82), `Animated enemy sprites are still too small: ${JSON.stringify(debug.enemyVisualReadability)}`);
   assert(debug.engagement.pressureWaves >= 1 && debug.engagement.pressureWave >= 1, `Pressure waves did not fire: ${JSON.stringify(debug.engagement)}`);
   assert(debug.engagement.eliteEnemies + debug.engagement.elitesDefeated >= 1, `Pressure waves should mark an elite omen target: ${JSON.stringify(debug.engagement)}`);
   assert(debug.enemyRoster.liveRosterIsMonsterOnly === true, `Live enemy roster still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
