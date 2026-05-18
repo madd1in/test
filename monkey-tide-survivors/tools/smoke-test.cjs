@@ -720,6 +720,7 @@ async function run() {
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
+  assert(debug.upgradeIcons.rubyRing === "rubyRing" && debug.upgradeIcons.moonSigil === "moonSigil" && debug.upgradeIcons.blueVial === "blueVial", `New item upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
   assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
@@ -758,15 +759,18 @@ async function run() {
   const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
   assert(weaponEvolutionProbe.assetLoaded && weaponEvolutionProbe.slash?.blades === 5, `Fivefold cutlass animation did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
   assert(weaponEvolutionProbe.tornado?.fused === true && weaponEvolutionProbe.debug.weaponEvolution.saberTornadoFusionReady, `Saber tornado fusion did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
+  assert(weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.starCoconut && weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.grogMaelstrom && weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.moonNet, `New weapon fusions did not become ready: ${JSON.stringify(weaponEvolutionProbe.debug.weaponEvolution)}`);
+  assert(weaponEvolutionProbe.debug.weaponEvolution.fusionMoments.count >= 4, `Fusion achievement moments did not record: ${JSON.stringify(weaponEvolutionProbe.debug.weaponEvolution)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
-  assert(progressProbe.powerups.types.length >= 4 && progressProbe.powerups.active.length >= 3, `Power-up system did not activate: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.length >= 8 && progressProbe.powerups.active.length >= 8, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.randomDropChance <= 0.004 && progressProbe.powerups.streakDropEvery >= 40, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.combatCooldown >= 40 && progressProbe.powerups.magnetRange <= 90, `Power-up pickups are too intrusive: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[2] === 10, `Level-up interruptions were not reduced: ${JSON.stringify(progressProbe.levelFlow)}`);
-  assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
+  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[2] === 10 && progressProbe.levelFlow.rewardTypes >= 6, `Level-up flow rewards are incomplete: ${JSON.stringify(progressProbe.levelFlow)}`);
+  assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid && progressProbe.progression.achievements.fusionSmith && progressProbe.progression.achievements.flowRunner, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
   assert(progressProbe.map.unlocked.includes("gothicCove") && progressProbe.map.unlocked.includes("treasureAtoll"), `Unlockable maps did not unlock: ${JSON.stringify(progressProbe.map)}`);
-  assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);
+  assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass") && progressProbe.progression.unlockedRelics.includes("Fusionskern") && progressProbe.progression.unlockedRelics.includes("Flow-Anker"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);
 
   const upgradeProbe = await page.evaluate(() => {
     if (window.__MONKEY_TIDE_DEBUG().phase !== "levelup") window.__MONKEY_TIDE_FORCE_LEVELUP();
