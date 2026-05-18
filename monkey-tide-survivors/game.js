@@ -14,6 +14,7 @@ const ui = {
   metaProgress: document.getElementById("metaProgress"),
   cornerControls: document.getElementById("cornerControls"),
   touchControls: document.getElementById("touchControls"),
+  playerLabel: document.getElementById("playerLabel"),
   startButton: document.getElementById("startButton"),
   quickButton: document.getElementById("quickButton"),
   restartButton: document.getElementById("restartButton"),
@@ -44,7 +45,7 @@ const imageSources = {
   mapTreasureAtoll: "assets/backgrounds/map_treasure_atoll_hd.jpg",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
-  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd.webp?v=starfarmboy-clean",
+  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp?v=skin-anchor-clean-v2",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
@@ -58,10 +59,12 @@ const imageSources = {
   blackbeard: "assets/sprites/bosses/blackbeard_imagen_hd.webp",
   threeHeadedMonkeyAnim: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
   blackbeardAnim: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
+  newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet.webp?v=tentacle-squid-cactus",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp?v=clean-hedges",
   beachPalmHedge: "assets/sprites/beach-props-v2/palm_hedge.webp?v=clean-hedges",
+  beachPalmTree: "assets/sprites/beach-props-v2/palm_tree_imagen_hd.png?v=single-palm",
   beachTreasure: "assets/sprites/beach-props-v2/buried_treasure.webp",
   beachOpenTreasure: "assets/sprites/beach-props-v2/open_treasure_chest_imagen_hd.webp",
   beachConchShrine: "assets/sprites/beach-props-v2/conch_shrine.webp",
@@ -145,6 +148,16 @@ const mobileDisplayState = {
   fullscreenError: null,
 };
 const loadingState = { loaded: 0, total: 0, last: "" };
+const MOBILE_PERF = {
+  dpr: 1,
+  enemyCap: 125,
+  particleCap: 42,
+  textCap: 18,
+  propChunkRadius: 2,
+  propPruneRadius: 4,
+  textMin: 26,
+};
+let mobileLike = false;
 
 const CHAR = { w: 192, h: 256, cols: 16 };
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
@@ -159,6 +172,7 @@ const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const THREE_HEADED_MONKEY_ANIM = { w: 706, h: 720, cols: 4, rows: 2, frames: 8, fps: 6.8 };
 const BLACKBEARD_ANIM = { w: 758, h: 900, cols: 4, rows: 2, frames: 8, fps: 6.4 };
+const NEW_ENEMY_TRIO = { w: 256, h: 256, cols: 8, rows: 3, frames: 8, fps: 8.2 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
@@ -174,24 +188,26 @@ const PROP_SPAWN_BUFFER = 360;
 const PROP_FADE_SECONDS = 1.25;
 const TARGET_TIME = 330;
 const BALANCE = {
-  normalSpawnIntensity: 1.12,
-  quickSpawnIntensity: 1.36,
-  enemyHpGrowth: 345,
-  enemySpeedGrowth: 960,
-  bossHpMult: 2.5,
-  firstBossAt: 184,
-  bossInterval: 78,
-  rangedPressureAt: 88,
+  normalSpawnIntensity: 1.22,
+  quickSpawnIntensity: 1.48,
+  enemyHpGrowth: 305,
+  enemySpeedGrowth: 820,
+  bossHpMult: 2.62,
+  firstBossAt: 148,
+  bossInterval: 62,
+  rangedPressureAt: 62,
+  pressureWaveFirstAt: 26,
+  pressureWaveInterval: 34,
 };
 
 const playerSkinMap = {
-  default: { name: "Kaeptnin", sheet: "characters", w: 104, h: 138 },
-  islandPirate: { name: "Insel-Pirat", sheet: "playerSkins", x: 109, y: 22, w: 323, h: 478, drawH: 142, animH: 170, animRow: 0, cellX: 0, cellY: 0 },
-  curseMonkey: { name: "Fluchaffe", sheet: "playerSkins", x: 613, y: 112, w: 411, h: 369, drawH: 118, animH: 162, animRow: 1, cellX: 1, cellY: 0 },
-  dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, animH: 176, animRow: 2, cellX: 2, cellY: 0 },
-  rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, animH: 178, animRow: 3, cellX: 0, cellY: 1 },
-  starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, animH: 168, animRow: 4, cellX: 1, cellY: 1 },
-  freelanceDuo: { name: "Freelance-Duo", sheet: "samMaxDuo", animSheet: "samMaxDuoWalk", drawH: 150, animH: 178, cellX: 2, cellY: 1 },
+  default: { name: "Kaeptnin", sheet: "characters", w: 104, h: 138, music: { main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5 } },
+  islandPirate: { name: "Insel-Pirat", sheet: "playerSkins", x: 109, y: 22, w: 323, h: 478, drawH: 142, animH: 170, animRow: 0, cellX: 0, cellY: 0, music: { main: "bgmCaper", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.52 } },
+  curseMonkey: { name: "Fluchaffe", sheet: "playerSkins", x: 613, y: 112, w: 411, h: 369, drawH: 118, animH: 162, animRow: 1, cellX: 1, cellY: 0, music: { main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.61, rushVolume: 0.54, rushStart: 88 } },
+  dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, animH: 176, animRow: 2, cellX: 2, cellY: 0, music: { main: "bgmRush", rush: "bgmMain", mainVolume: 0.56, rushVolume: 0.58, rushStart: 76 } },
+  rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, animH: 178, animRow: 3, cellX: 0, cellY: 1, music: { main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.63, rushVolume: 0.5, rushStart: 98 } },
+  starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, animH: 168, animRow: 4, cellX: 1, cellY: 1, music: { main: "bgmCaper", rush: "bgmRush", mainVolume: 0.58, rushVolume: 0.56, rushStart: 84 } },
+  freelanceDuo: { name: "Freelance-Duo", sheet: "samMaxDuo", animSheet: "samMaxDuoWalk", drawH: 150, animH: 178, cellX: 2, cellY: 1, music: { main: "bgmMain", rush: "bgmCaper", mainVolume: 0.58, rushVolume: 0.52, rushStart: 92 } },
 };
 const playerSkinIds = Object.keys(playerSkinMap);
 let selectedSkin = (() => {
@@ -213,8 +229,8 @@ const mapVariants = [
     background: "repeatBeach",
     music: { main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5, rushStart: 112 },
     unlockedByDefault: true,
-    propBoost: ["boatWreck", "buriedTreasure", "palmHedge"],
-    blockerIcons: ["palmHedge", "hedgeCluster", "boatWreck", "beachHut"],
+    propBoost: ["boatWreck", "buriedTreasure", "palmTree", "palmHedge"],
+    blockerIcons: ["palmTree", "palmHedge", "hedgeCluster", "boatWreck", "beachHut"],
     blockerDensity: 5,
   },
   {
@@ -226,9 +242,10 @@ const mapVariants = [
     background: "mapMoonlitLagoon",
     music: { main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.6, rushVolume: 0.54, rushStart: 96 },
     unlockedByDefault: true,
-    propBoost: ["clearPuddle", "tidePuddle", "conchShrine"],
-    blockerIcons: ["palmHedge", "hedgeCluster", "conchShrine"],
+    propBoost: ["clearPuddle", "tidePuddle", "conchShrine", "palmTree", "beachHut", "boatWreck"],
+    blockerIcons: ["palmTree", "palmHedge", "hedgeCluster", "conchShrine", "beachHut", "boatWreck"],
     blockerDensity: 6,
+    enemyFavor: ["hand", "reefSquid", "tideTentacle"],
   },
   {
     id: "gothicCove",
@@ -239,8 +256,8 @@ const mapVariants = [
     background: "mapGothicCove",
     music: { main: "bgmRush", rush: "bgmMain", mainVolume: 0.56, rushVolume: 0.58, rushStart: 78 },
     achievement: "nightRaid",
-    propBoost: ["gothicCandelabra", "wallCandle", "bloodRose", "hedgeCluster", "palmHedge"],
-    blockerIcons: ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"],
+    propBoost: ["bloodRose", "hedgeCluster", "palmTree", "palmHedge"],
+    blockerIcons: ["hedgeCluster", "palmTree", "palmHedge", "boatWreck", "beachHut"],
     blockerDensity: 7,
     enemyFavor: ["cryptBat", "boneCorsair", "gargoyle", "lanternWraith"],
   },
@@ -253,9 +270,10 @@ const mapVariants = [
     background: "mapTreasureAtoll",
     music: { main: "bgmCaper", rush: "bgmShoreline", mainVolume: 0.62, rushVolume: 0.52, rushStart: 104 },
     achievement: "wreckDiver",
-    propBoost: ["buriedTreasure", "beachHut", "boatWreck", "treasureChest", "palmHedge", "hedgeCluster"],
-    blockerIcons: ["palmHedge", "hedgeCluster", "beachHut", "boatWreck"],
+    propBoost: ["buriedTreasure", "beachHut", "boatWreck", "treasureChest", "palmTree", "palmHedge", "hedgeCluster"],
+    blockerIcons: ["palmTree", "palmHedge", "hedgeCluster", "beachHut", "boatWreck"],
     blockerDensity: 7,
+    enemyFavor: ["powderImp", "cactusStack", "reefSquid"],
   },
 ];
 
@@ -349,9 +367,16 @@ const extraEnemyMap = {
   stormDuelist: { x: 3, y: 1 },
 };
 
+const newEnemyAnimMap = {
+  tideTentacle: { row: 0, attackFrames: [3, 4, 5, 6] },
+  reefSquid: { row: 1, attackFrames: [4, 5, 6, 7] },
+  cactusStack: { row: 2, attackFrames: [2, 4, 5, 6] },
+};
+
 const blockingPropShapes = {
   hedgeCluster: { rx: 145, ry: 62, oy: 8 },
   palmHedge: { rx: 136, ry: 52, oy: 4 },
+  palmTree: { rx: 72, ry: 90, oy: 46 },
   beachHut: { rx: 142, ry: 86, oy: 28 },
   boatWreck: { rx: 154, ry: 70, oy: 22 },
   conchShrine: { rx: 58, ry: 76, oy: 18 },
@@ -362,8 +387,9 @@ const beachPropMap = {
   tidePuddle: { image: "beachTidePuddle", w: 410, h: 318, decal: true },
   hedgeCluster: { image: "beachHedgeCluster", w: 421, h: 299 },
   palmHedge: { image: "beachPalmHedge", w: 385, h: 239 },
+  palmTree: { image: "beachPalmTree", w: 430, h: 430 },
   treasureChest: { image: "beachTreasure", w: 340, h: 280, interactive: true },
-  openTreasureChest: { image: "beachOpenTreasure", w: 360, h: 394, interactive: true },
+  openTreasureChest: { image: "beachOpenTreasure", w: 300, h: 329, interactive: true },
   buriedTreasure: { image: "beachTreasure", w: 340, h: 280, interactive: true },
   conchShrine: { image: "beachConchShrine", w: 300, h: 326, interactive: true },
   beachHut: { image: "beachHut", w: 425, h: 350, interactive: true },
@@ -412,27 +438,31 @@ const weaponEvolutionFxMap = {
 };
 
 const enemyTypes = [
-  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d" },
+  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
   { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
   { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff", flying: true },
   { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 46, speed: 68, radius: 24, damage: 9, scale: 0.48, xp: 12, tint: "#d8e3b0" },
   { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4", flying: true },
-  { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f" },
+  { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f", humanNpc: true },
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
+  { id: "tideTentacle", name: "Zeit-Tentakel", newEnemyAnim: "tideTentacle", hp: 72, speed: 72, radius: 30, damage: 12, scale: 0.58, xp: 17, tint: "#d07cff", phase: true },
+  { id: "reefSquid", name: "Riff-Squid", newEnemyAnim: "reefSquid", hp: 38, speed: 130, radius: 22, damage: 8, scale: 0.42, xp: 10, tint: "#ff8aa3", flying: true },
+  { id: "cactusStack", name: "Kaktus-Stack", newEnemyAnim: "cactusStack", hp: 92, speed: 54, radius: 31, damage: 15, scale: 0.52, xp: 22, tint: "#a9d95a" },
   { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
-  { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7" },
-  { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0" },
+  { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7", humanNpc: true },
+  { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0", humanNpc: true },
   { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5", phase: true },
-  { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7" },
-  { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf" },
+  { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7", humanNpc: true },
+  { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf", humanNpc: true },
   { id: "barrelMaw", name: "Barrel Maw", extraSprite: "barrelMaw", hp: 110, speed: 58, radius: 32, damage: 16, scale: 0.26, xp: 25, tint: "#f0a04d" },
-  { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5" },
+  { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5", humanNpc: true },
   { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
-  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true },
+  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true, humanNpc: true },
   { id: "threeHeadedMonkey", name: "Dreikopf-Affe", threeHeadedMonkey: true, hp: 235, speed: 66, radius: 56, damage: 22, scale: 0.34, xp: 64, tint: "#80ff9e", bossCandidate: true },
-  { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true },
+  { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true, humanNpc: true },
 ];
+const activeBossCycle = ["idol", "coralBrute", "threeHeadedMonkey", "gargoyle", "cactusStack"];
 
 const upgrades = [
   {
@@ -712,11 +742,13 @@ function makeState() {
     spawnTimer: 0,
     bossTimer: 0,
     bossCount: 0,
+    pressureTimer: BALANCE.pressureWaveFirstAt,
+    pressureWave: 0,
     warningTimer: 0,
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, pressureWaves: 0, unlocked: [] },
     powerupDropCooldown: 0,
     coins: 0,
     level: 1,
@@ -780,6 +812,9 @@ function makeState() {
     powerups: [],
     props: [],
     propChunks: new Set(),
+    propsByChunk: new Map(),
+    looseProps: [],
+    domTick: 0,
     tidePuddleCooldown: 0,
     voice: {
       nextLowHpAt: 0,
@@ -797,6 +832,8 @@ function makeProps(mapId = selectedMap) {
     player: { x: WORLD.w / 2, y: WORLD.h / 2 },
     props: [],
     propChunks: new Set(),
+    propsByChunk: new Map(),
+    looseProps: [],
   };
   ensurePropChunks(target, true);
   return target.props;
@@ -806,10 +843,14 @@ function ensurePropChunks(target = state, force = false) {
   if (!target?.player) return;
   if (!target.propChunks) target.propChunks = new Set();
   if (!target.props) target.props = [];
+  if (!target.propsByChunk) target.propsByChunk = new Map();
+  if (!target.looseProps) target.looseProps = [];
   const centerX = Math.floor(target.player.x / PROP_CHUNK);
   const centerY = Math.floor(target.player.y / PROP_CHUNK);
-  for (let cx = centerX - PROP_CHUNK_RADIUS; cx <= centerX + PROP_CHUNK_RADIUS; cx += 1) {
-    for (let cy = centerY - PROP_CHUNK_RADIUS; cy <= centerY + PROP_CHUNK_RADIUS; cy += 1) {
+  const chunkRadius = isMobileLike() ? MOBILE_PERF.propChunkRadius : PROP_CHUNK_RADIUS;
+  const pruneRadius = isMobileLike() ? MOBILE_PERF.propPruneRadius : PROP_CHUNK_PRUNE_RADIUS;
+  for (let cx = centerX - chunkRadius; cx <= centerX + chunkRadius; cx += 1) {
+    for (let cy = centerY - chunkRadius; cy <= centerY + chunkRadius; cy += 1) {
       const key = chunkKey(cx, cy);
       if (!force && target.propChunks.has(key)) continue;
       if (target.propChunks.has(key)) continue;
@@ -819,24 +860,49 @@ function ensurePropChunks(target = state, force = false) {
   }
   target.props = target.props.filter((prop) => {
     if (!prop.chunkKey) return true;
-    return Math.abs(prop.chunkX - centerX) <= PROP_CHUNK_PRUNE_RADIUS
-      && Math.abs(prop.chunkY - centerY) <= PROP_CHUNK_PRUNE_RADIUS;
+    return Math.abs(prop.chunkX - centerX) <= pruneRadius
+      && Math.abs(prop.chunkY - centerY) <= pruneRadius;
   });
   for (const key of [...target.propChunks]) {
     const [cx, cy] = key.split(":").map(Number);
-    if (Math.abs(cx - centerX) > PROP_CHUNK_PRUNE_RADIUS || Math.abs(cy - centerY) > PROP_CHUNK_PRUNE_RADIUS) {
+    if (Math.abs(cx - centerX) > pruneRadius || Math.abs(cy - centerY) > pruneRadius) {
       target.propChunks.delete(key);
     }
   }
+  reindexProps(target);
 }
 
 function chunkKey(cx, cy) {
   return `${cx}:${cy}`;
 }
 
+function addPropToTarget(target, prop) {
+  if (!target.props) target.props = [];
+  target.props.push(prop);
+  indexProp(target, prop);
+}
+
+function indexProp(target, prop) {
+  if (!target.propsByChunk) target.propsByChunk = new Map();
+  if (!target.looseProps) target.looseProps = [];
+  if (!prop.chunkKey) {
+    target.looseProps.push(prop);
+    return;
+  }
+  const list = target.propsByChunk.get(prop.chunkKey) || [];
+  list.push(prop);
+  target.propsByChunk.set(prop.chunkKey, list);
+}
+
+function reindexProps(target = state) {
+  if (!target?.props) return;
+  target.propsByChunk = new Map();
+  target.looseProps = [];
+  for (const prop of target.props) indexProp(target, prop);
+}
+
 function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {}) {
   const variant = mapVariant(target.map);
-  const props = target.props;
   const runtimeSpawn = !chunkOptions.force && target === state && target.phase === "playing" && (target.elapsed || 0) > 0.2;
   const choices = [
     "rope",
@@ -847,8 +913,6 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
     "skullCoin",
     "key",
     "speedCharm",
-    "gothicCandelabra",
-    "wallCandle",
     "cryptBatRelic",
     "bloodRose",
     "cursedPearl",
@@ -861,6 +925,7 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
     "grogLantern",
     "gothicArmor",
     "moonSigil",
+    "palmTree",
     "hedgeCluster",
     "palmHedge",
     "buriedTreasure",
@@ -874,7 +939,7 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
   const addProp = (x, y, icon, h, options = {}) => {
     if (Math.hypot(x - target.player.x, y - target.player.y) < (options.safeRadius || 0)) return;
     if (runtimeSpawn && !options.allowVisibleSpawn && isInSpawnSightline(x, y, target, options.spawnBuffer)) return;
-    props.push({
+    addPropToTarget(target, {
       x,
       y,
       icon,
@@ -927,8 +992,8 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
   }
 
   const blockerIcons = variant.blockerIcons || (variant.detail === "gothic"
-    ? ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"]
-    : ["hedgeCluster", "palmHedge", "boatWreck", "beachHut"]);
+    ? ["hedgeCluster", "palmTree", "palmHedge", "boatWreck", "beachHut"]
+    : ["hedgeCluster", "palmTree", "palmHedge", "boatWreck", "beachHut"]);
   const blockerDensity = variant.blockerDensity ?? 5;
   const blockerHash = hash2(chunkX * 67 + 3, chunkY * 71 - 11);
   if (blockerHash % 11 < blockerDensity) {
@@ -940,12 +1005,13 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
       const icon = blockerIcons[(blockerHash + i * 3) % blockerIcons.length];
       const angle = ((blockerHash >> (i * 3 + 2)) % 628) / 100;
       const isHedge = icon === "hedgeCluster" || icon === "palmHedge";
-      const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : isHedge ? 152 : 118;
+      const isPalmTree = icon === "palmTree";
+      const spread = icon === "beachHut" || icon === "boatWreck" ? 82 : isPalmTree ? 128 : isHedge ? 152 : 118;
       const x = cx + Math.cos(angle) * spread + ((blockerHash >> (i + 6)) % 90) - 45;
       const y = cy + Math.sin(angle) * spread + ((blockerHash >> (i + 11)) % 80) - 40;
       addProp(x, y, icon, h, {
         safeRadius: 720,
-        scale: isHedge ? (variant.detail === "gothic" ? 1.24 : 1.18) : 1,
+        scale: isPalmTree ? 0.92 : isHedge ? (variant.detail === "gothic" ? 1.24 : 1.18) : 1,
         spin: ((blockerHash >> (i + 8)) % 100) / 120,
         interactive: beachPropMap[icon]?.interactive === true,
         blocking: true,
@@ -971,9 +1037,11 @@ function propScaleForIcon(icon, h = 0) {
   if (gothicItemMap[icon]) return 0.12 + (h % 5) * 0.012;
   if (extraItemMap[icon]) return 0.13 + (h % 5) * 0.012;
   if (icon === "beachHut" || icon === "boatWreck") return 0.78 + (h % 4) * 0.035;
+  if (icon === "palmTree") return 0.48 + (h % 4) * 0.022;
   if (icon === "hedgeCluster" || icon === "palmHedge") return 0.58 + (h % 5) * 0.026;
   if (icon === "conchShrine") return 0.62 + (h % 4) * 0.026;
-  if (icon === "treasureChest" || icon === "openTreasureChest" || icon === "buriedTreasure") return 0.62 + (h % 4) * 0.024;
+  if (icon === "openTreasureChest") return 0.46 + (h % 3) * 0.018;
+  if (icon === "treasureChest" || icon === "buriedTreasure") return 0.62 + (h % 4) * 0.024;
   if (beachPropMap[icon]) return 0.58 + (h % 4) * 0.02;
   return 0.18 + (h % 5) * 0.014;
 }
@@ -1116,6 +1184,7 @@ function selectSpeechVoice() {
 }
 
 async function boot() {
+  mobileLike = computeMobileLike(window.innerWidth, window.innerHeight);
   state = makeState();
   resize();
   renderSkinPicker();
@@ -1212,6 +1281,7 @@ function setPlayerSkin(id) {
     window.localStorage?.setItem("monkeyTidePlayerSkin", id);
   } catch {}
   renderSkinPicker();
+  if (state?.phase === "playing") syncMusic();
   if (ready) playSound("confirm");
 }
 
@@ -1269,20 +1339,21 @@ function resetSpeechForRun() {
   cancelSpeech();
 }
 
-function mapMusicProfile(mapId = selectedMap) {
+function mapMusicProfile(mapId = selectedMap, skinId = state?.player?.skin || selectedSkin) {
   const profile = mapVariant(mapId).music || {};
+  const skinProfile = skinId ? playerSkinMap[skinId]?.music || {} : {};
   return {
-    mainKey: profile.main || "bgmMain",
-    rushKey: profile.rush || "bgmRush",
-    mainVolume: profile.mainVolume ?? musicConfig.main,
-    rushVolume: profile.rushVolume ?? musicConfig.rush,
-    rushStart: profile.rushStart ?? musicConfig.rushStart,
-    rushFade: profile.rushFade ?? musicConfig.rushFade,
+    mainKey: skinProfile.main || profile.main || "bgmMain",
+    rushKey: skinProfile.rush || profile.rush || "bgmRush",
+    mainVolume: skinProfile.mainVolume ?? profile.mainVolume ?? musicConfig.main,
+    rushVolume: skinProfile.rushVolume ?? profile.rushVolume ?? musicConfig.rush,
+    rushStart: skinProfile.rushStart ?? profile.rushStart ?? musicConfig.rushStart,
+    rushFade: skinProfile.rushFade ?? profile.rushFade ?? musicConfig.rushFade,
   };
 }
 
-function configureMusicForMap(mapId = selectedMap) {
-  const profile = mapMusicProfile(mapId);
+function configureMusicForMap(mapId = selectedMap, skinId = state?.player?.skin || selectedSkin) {
+  const profile = mapMusicProfile(mapId, skinId);
   setMusicSource("main", profile.mainKey);
   setMusicSource("rush", profile.rushKey);
   return profile;
@@ -1301,7 +1372,7 @@ function setMusicSource(slot, key) {
 
 function syncMusic() {
   if (!music || !rushMusic) return;
-  const profile = configureMusicForMap(state.map);
+  const profile = configureMusicForMap(state.map, state.player.skin);
   music.muted = muted;
   rushMusic.muted = muted;
   if (muted || state.phase !== "playing") {
@@ -1351,10 +1422,11 @@ function startGame(options = {}) {
   state.phase = "playing";
   if (quickMode) {
     state.elapsed = 135;
+    state.pressureTimer = 1.2;
     raiseWeapon("coconut");
     raiseWeapon("compass");
     state.level = 4;
-    state.nextXp = 62;
+    state.nextXp = 220;
   }
   ui.startOverlay.hidden = true;
   ui.endOverlay.hidden = true;
@@ -1418,7 +1490,7 @@ function update(dt) {
   updateGems(dt);
   updateStreak(dt);
   updateParticles(dt);
-  updateDom();
+  updateDomThrottled(dt);
   updateVoiceCues();
   syncMusic();
   if (state.elapsed >= TARGET_TIME && !state.enemies.some((e) => e.boss)) {
@@ -1431,7 +1503,8 @@ function updateVoiceCues() {
   const hpPct = state.player.hp / state.player.maxHp;
   if (hpPct <= 0.32 && state.elapsed >= state.voice.nextLowHpAt) {
     state.voice.nextLowHpAt = state.elapsed + 16;
-    speak("Vorsicht, Kaeptnin. Such Limetten!", { key: "low-hp", interrupt: true, cooldown: 12000, rate: 1.04 });
+    const skinName = playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name;
+    speak(`Vorsicht, ${skinName}. Such Limetten!`, { key: "low-hp", interrupt: true, cooldown: 12000, rate: 1.04 });
   }
 
   const minuteMark = Math.floor(state.elapsed / 60);
@@ -1512,7 +1585,7 @@ function moveActorWithObstacles(actor, vx, vy, dt, radius = actor.r || 20, ignor
 }
 
 function resolveObstacleCollisions(actor, radius = actor.r || 20) {
-  for (const prop of state.props) {
+  for (const prop of propsNearActor(actor, radius + 420)) {
     if (!propBlocksMovement(prop)) continue;
     if (Math.abs(prop.x - actor.x) > radius + 360 || Math.abs(prop.y - actor.y) > radius + 320) continue;
     const shape = propObstacleShape(prop);
@@ -1537,7 +1610,7 @@ function obstacleInfluencingActor(actor, moveX, moveY, radius = actor.r || 20) {
   const lookY = actor.y + moveY * (radius + 92);
   let best = null;
   let bestN = Infinity;
-  for (const prop of state.props) {
+  for (const prop of propsNearActor({ x: lookX, y: lookY }, radius + 460)) {
     if (!propBlocksMovement(prop)) continue;
     if (Math.abs(prop.x - lookX) > radius + 420 || Math.abs(prop.y - lookY) > radius + 380) continue;
     const shape = propObstacleShape(prop);
@@ -1552,6 +1625,21 @@ function obstacleInfluencingActor(actor, moveX, moveY, radius = actor.r || 20) {
     }
   }
   return best;
+}
+
+function propsNearActor(actor, margin = 520) {
+  if (!state?.propsByChunk || state.propsByChunk.size === 0) return state?.props || [];
+  const centerX = Math.floor(actor.x / PROP_CHUNK);
+  const centerY = Math.floor(actor.y / PROP_CHUNK);
+  const span = Math.max(1, Math.ceil(margin / PROP_CHUNK));
+  const nearby = [...(state.looseProps || [])];
+  for (let cx = centerX - span; cx <= centerX + span; cx += 1) {
+    for (let cy = centerY - span; cy <= centerY + span; cy += 1) {
+      const list = state.propsByChunk.get(chunkKey(cx, cy));
+      if (list) nearby.push(...list);
+    }
+  }
+  return nearby;
 }
 
 function steerAroundObstacles(actor, desiredX, desiredY) {
@@ -1647,7 +1735,10 @@ function updateWeapons(dt) {
 function slash(angle, radius, arc, damage, level = 1) {
   const p = state.player;
   const blades = cutlassBladeCount(level);
-  state.zones.push({ type: "slash", x: p.x, y: p.y, angle, radius, arc: arc * Math.PI / 180, level, blades, life: 0.2, maxLife: 0.2 });
+  const forward = radius * 0.42;
+  const x = p.x + Math.cos(angle) * forward;
+  const y = p.y + Math.sin(angle) * forward;
+  state.zones.push({ type: "slash", x, y, angle, radius, arc: arc * Math.PI / 180, level, blades, life: 0.2, maxLife: 0.2 });
   playSound("gate");
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
@@ -1666,6 +1757,14 @@ function slash(angle, radius, arc, damage, level = 1) {
       hurtEnemy(enemy, damage * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
     }
   }
+}
+
+function updateDomThrottled(dt) {
+  if (!state) return;
+  state.domTick = (state.domTick || 0) - dt;
+  if (state.domTick > 0) return;
+  state.domTick = isMobileLike() ? 0.12 : 0.06;
+  updateDom();
 }
 
 function cutlassBladeCount(level = state?.weapons?.cutlass?.level || 1) {
@@ -1792,64 +1891,99 @@ function ropeDamage(level) {
 function updateSpawns(dt) {
   state.spawnTimer -= dt;
   state.bossTimer -= dt;
+  state.pressureTimer -= dt;
   const intensity = quickMode ? BALANCE.quickSpawnIntensity : BALANCE.normalSpawnIntensity;
-  const interval = Math.max(0.18, (0.78 - state.elapsed * 0.00135) / intensity);
+  const interval = Math.max(0.14, (0.72 - state.elapsed * 0.00155) / intensity);
   if (state.spawnTimer <= 0) {
     state.spawnTimer = interval;
-    const count = 1 + Math.floor(state.elapsed / 78) + (Math.random() < 0.24 ? 1 : 0);
+    const count = 1 + Math.floor(state.elapsed / 66) + (Math.random() < 0.34 ? 1 : 0);
     for (let i = 0; i < count; i += 1) spawnEnemy(pickEnemyType());
+  }
+  if (state.elapsed > BALANCE.pressureWaveFirstAt && state.pressureTimer <= 0) {
+    triggerPressureWave();
+    state.pressureTimer = Math.max(18, BALANCE.pressureWaveInterval - state.elapsed * 0.035);
   }
   if (state.elapsed > BALANCE.firstBossAt && state.bossTimer <= 0) {
     state.bossTimer = BALANCE.bossInterval;
-    const bossCycle = ["spectralCaptain", "idol", "coralBrute", "threeHeadedMonkey", "blackbeard"];
-    const bossType = enemyType(bossCycle[state.bossCount % bossCycle.length]);
+    const bossType = enemyType(activeBossCycle[state.bossCount % activeBossCycle.length]);
     state.bossCount += 1;
     spawnEnemy(bossType, true);
     state.warningTimer = 3.2;
-    const warning = bossType.id === "spectralCaptain"
-      ? "Fluchkapitaen voraus. Raus aus der Klinge!"
-      : bossType.id === "coralBrute"
+    const warning = bossType.id === "coralBrute"
         ? "Korallenbrecher voraus. Lass dich nicht festnageln!"
         : bossType.id === "threeHeadedMonkey"
           ? "Dreikoepfiger Affe voraus. Nicht alle Koepfe anstarren!"
-          : bossType.id === "blackbeard"
-            ? "Blackbeard voraus. Deckung vor der Breitseite!"
-            : "Affenidol voraus. Bleib in Bewegung!";
+          : bossType.id === "gargoyle"
+            ? "Mond-Gargoyle voraus. Halt Abstand zu den Fluegeln!"
+            : bossType.id === "cactusStack"
+              ? "Kaktus-Stack voraus. Nicht in die Stachelgasse!"
+              : "Affenidol voraus. Bleib in Bewegung!";
     playSound("downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
 }
 
 function enemyType(id) {
-  return enemyTypes.find((type) => type.id === id) || enemyTypes[0];
+  return enemyTypes.find((type) => type.id === id) || enemyTypes.find((type) => !type.humanNpc) || enemyTypes[0];
 }
 
 function pickEnemyType() {
   const t = state.elapsed;
   const roll = Math.random();
   const variant = mapVariant(state.map);
-  if (variant.enemyFavor && roll < 0.22) return enemyType(variant.enemyFavor[Math.floor(Math.random() * variant.enemyFavor.length)]);
-  if (variant.detail === "lagoon" && t > 42 && roll < 0.32) return enemyType("hand");
-  if (variant.detail === "treasure" && t > 56 && roll < 0.34) return enemyType("powderImp");
-  if (t > 282 && roll < 0.16) return enemyType("stormDuelist");
+  const favored = (variant.enemyFavor || []).filter((id) => !enemyType(id).humanNpc);
+  if (favored.length && roll < 0.24) return enemyType(favored[Math.floor(Math.random() * favored.length)]);
+  if (variant.detail === "lagoon" && t > 52 && roll < 0.43) return enemyType("reefSquid");
+  if (variant.detail === "treasure" && t > 64 && roll < 0.44) return enemyType("cactusStack");
+  if (variant.detail === "lagoon" && t > 38 && roll < 0.34) return enemyType("hand");
+  if (variant.detail === "treasure" && t > 48 && roll < 0.36) return enemyType("powderImp");
+  if (t > 282 && roll < 0.16) return enemyType("gargoyle");
   if (t > 238 && roll < 0.2) return enemyType("coralBrute");
   if (t > 220 && roll < 0.26) return enemyType("barrelMaw");
-  if (t > 192 && roll < 0.31) return enemyType("tideWitch");
+  if (t > 192 && roll < 0.31) return enemyType("cactusStack");
   if (t > 150 && roll < 0.36) return enemyType("lanternWraith");
-  if (t > 126 && roll < 0.42) return enemyType("saltboneFencer");
-  if (t > 88 && roll < 0.48) return enemyType("reefRaider");
+  if (t > 126 && roll < 0.42) return enemyType("boneCorsair");
+  if (t > 104 && roll < 0.45) return enemyType("tideTentacle");
+  if (t > 88 && roll < 0.48) return enemyType("reefSquid");
   if (t > 56 && roll < 0.54) return enemyType("powderImp");
   if (t > 250 && roll < 0.1) return enemyType("gargoyle");
-  if (t > 205 && roll < 0.18) return enemyType("oracle");
+  if (t > 205 && roll < 0.18) return enemyType("barrelMaw");
   if (t > 162 && roll < 0.28) return enemyType("hand");
   if (t > 118 && roll < 0.4) return enemyType("boneCorsair");
-  if (t > 82 && roll < 0.5) return enemyType("cook");
+  if (t > 82 && roll < 0.5) return enemyType("tideTentacle");
   if (t > 42 && roll < 0.62) return enemyType("cryptBat");
   if (t > 24 && roll < 0.72) return enemyType("crab");
-  return enemyType("deckhand");
+  return enemyType("crab");
+}
+
+function pressureWavePool() {
+  const t = state.elapsed;
+  const variant = mapVariant(state.map);
+  const ids = ["crab", "cryptBat"];
+  if (t > 35) ids.push("hand", "powderImp");
+  if (t > 70) ids.push("reefSquid", "tideTentacle");
+  if (t > 120) ids.push("boneCorsair", "lanternWraith");
+  if (t > 175) ids.push("cactusStack", "barrelMaw");
+  if (t > 235) ids.push("gargoyle", "coralBrute");
+  ids.push(...(variant.enemyFavor || []));
+  return [...new Set(ids)].filter((id) => !enemyType(id).humanNpc);
+}
+
+function triggerPressureWave() {
+  state.pressureWave += 1;
+  state.runStats.pressureWaves += 1;
+  const pool = pressureWavePool();
+  const cap = isMobileLike() ? 8 : 14;
+  const count = Math.min(cap, 4 + Math.floor(state.elapsed / 58) + (state.pressureWave % 3));
+  for (let i = 0; i < count; i += 1) spawnEnemy(enemyType(pool[i % pool.length]));
+  state.warningTimer = Math.max(state.warningTimer, 1.6);
+  floatingText(`Flutwelle ${state.pressureWave}`, state.player.x, state.player.y - 120, "#fff2c7", 0.9, 32, { priority: 3 });
+  playSound("downloadBossWarning", { cooldown: 14000 });
+  speak(`Flutwelle ${state.pressureWave}. Keine Ruhe am Strand!`, { key: `pressure-wave-${state.pressureWave}`, cooldown: 6000, rate: 1.08 });
 }
 
 function spawnEnemy(type, boss = false) {
+  if (!boss && type?.humanNpc) type = enemyType("crab");
   if (state.enemies.length > enemyCap() && !boss) return;
   const p = state.player;
   const side = Math.floor(Math.random() * 4);
@@ -1893,7 +2027,7 @@ function spawnEnemy(type, boss = false) {
 }
 
 function enemyCap() {
-  return isMobileLike() ? 170 : 230;
+  return isMobileLike() ? MOBILE_PERF.enemyCap : 230;
 }
 
 function updateEnemies(dt) {
@@ -1971,6 +2105,12 @@ function enemyProjectileProfile(enemy) {
   }
   if (enemy.type.id === "gargoyle") {
     return { fx: "ghostCannonball", range: 690, cooldown: 2.65, speed: 222, radius: 16, damage: 12, life: 4.0 };
+  }
+  if (enemy.type.id === "tideTentacle") {
+    return { fx: "monkeyCurseOrb", range: 620, cooldown: 2.5, speed: 214, radius: 15, damage: 10, life: 3.7 };
+  }
+  if (enemy.type.id === "reefSquid") {
+    return { fx: "compassBolt", range: 560, cooldown: 2.2, speed: 248, radius: 13, damage: 8, life: 3.1 };
   }
   return null;
 }
@@ -2221,14 +2361,15 @@ function updateParticles(dt) {
   }
   for (const text of state.texts) {
     text.life -= dt;
-    text.y -= dt * 42;
+    const rise = text.rise || (isMobileLike() ? 54 : 42);
+    text.y -= dt * rise / Math.max(0.34, scene.zoom || 1);
   }
   state.zones = state.zones.filter((zone) => zone.life > 0);
   state.particles = state.particles.filter((particle) => particle.life > 0);
   state.texts = state.texts.filter((text) => text.life > 0);
   if (isMobileLike()) {
-    if (state.particles.length > 90) state.particles.splice(0, state.particles.length - 90);
-    if (state.texts.length > 28) state.texts.splice(0, state.texts.length - 28);
+    if (state.particles.length > MOBILE_PERF.particleCap) state.particles.splice(0, state.particles.length - MOBILE_PERF.particleCap);
+    if (state.texts.length > MOBILE_PERF.textCap) state.texts.splice(0, state.texts.length - MOBILE_PERF.textCap);
   }
 }
 
@@ -2241,7 +2382,19 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   enemy.y += clamp(ny, -1, 1) * 7;
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   if ((enemy.boss || amount >= 42) && Math.random() < 0.45) playSound("downloadHit");
-  if (Math.random() < 0.12) floatingText(String(Math.round(amount)), enemy.x, enemy.y - enemy.r - 20, enemy.type.tint);
+  const crit = amount >= 48 || enemy.boss;
+  const textChance = isMobileLike() ? (crit ? 0.28 : 0.06) : (crit ? 0.44 : 0.12);
+  if (Math.random() < textChance) {
+    floatingText(
+      `${crit ? "CRIT " : ""}${Math.round(amount)}`,
+      enemy.x,
+      enemy.y - enemy.r - 20,
+      crit ? "#fff2c7" : enemy.type.tint,
+      crit ? 0.78 : 0.62,
+      crit ? 34 : 26,
+      { priority: crit ? 3 : 1 },
+    );
+  }
   const particleCount = isMobileLike() ? 1 : 2;
   for (let i = 0; i < particleCount; i += 1) {
     state.particles.push({
@@ -2338,7 +2491,7 @@ function spawnStreakCache(count) {
     y = clamp(p.y + Math.sin(angle) * distance, 180, WORLD.h - 180);
     if (!isInSpawnSightline(x, y, state, 120)) break;
   }
-  state.props.push({
+  addPropToTarget(state, {
     x,
     y,
     icon: "buriedTreasure",
@@ -2528,6 +2681,7 @@ function raiseWeapon(id) {
 
 function updateDom() {
   const hpPct = clamp(state.player.hp / state.player.maxHp, 0, 1);
+  if (ui.playerLabel) ui.playerLabel.textContent = playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name;
   ui.hpBar.style.transform = `scaleX(${hpPct})`;
   ui.hpText.textContent = `${Math.ceil(Math.max(0, state.player.hp))} / ${state.player.maxHp}`;
   ui.xpBar.style.transform = `scaleX(${clamp(state.xp / state.nextXp, 0, 1)})`;
@@ -2656,7 +2810,7 @@ function drawMapTint(variant) {
 
 function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
   const mobile = isMobileLike();
-  const tile = mobile ? 340 : 260;
+  const tile = mobile ? 520 : 260;
   const cam = state.camera;
   const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
   const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
@@ -2672,11 +2826,11 @@ function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
       const gothic = variant.detail === "gothic";
       const treasure = variant.detail === "treasure";
       if (h % (lagoon ? 5 : treasure ? 7 : 9) === 0) {
-        const icon = gothic && h % 23 === 0 ? "gothicCandelabra" : lagoon ? "tidePuddle" : "clearPuddle";
+        const icon = gothic && h % 23 === 0 ? "bloodRose" : lagoon ? "tidePuddle" : "clearPuddle";
         const px = ox + x + 30 + ((h >> 6) % 160);
         const py = oy + y + 30 + ((h >> 13) % 150);
-        const w = gothic && icon === "gothicCandelabra" ? 54 : 148 + (h % 56);
-        const ph = gothic && icon === "gothicCandelabra" ? 54 : 106 + ((h >> 4) % 36);
+        const w = gothic && icon === "bloodRose" ? 50 : 148 + (h % 56);
+        const ph = gothic && icon === "bloodRose" ? 50 : 106 + ((h >> 4) % 36);
         drawItem(icon, px, py, w, ph, ((h >> 18) % 628) / 100, icon === "tidePuddle" ? 0.68 : 0.58);
       }
     }
@@ -2687,6 +2841,7 @@ function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
 function drawProps() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
+  const mobile = isMobileLike();
   for (const prop of state.props) {
     if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
@@ -2695,7 +2850,7 @@ function drawProps() {
     const alpha = propRenderAlpha(prop) * spawnProgress;
     if (alpha <= 0.02) continue;
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
-    if (prop.interactive && !prop.discovered && spawnProgress > 0.45) {
+    if (!mobile && prop.interactive && !prop.discovered && spawnProgress > 0.45) {
       const glint = Math.min(124, Math.max(76, size.w * 0.32));
       drawPlayerEffect("treasureGlint", ox + prop.x, oy + prop.y - size.h * 0.24, glint, glint, state.elapsed * 0.6 + prop.spin, 0.28 * spawnProgress);
     }
@@ -2744,7 +2899,7 @@ function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
   const mobile = isMobileLike();
-  const enemies = [...state.enemies].sort((a, b) => a.y - b.y);
+  const enemies = state.enemies.sort((a, b) => a.y - b.y);
   for (const enemy of enemies) {
     if (!onScreen(enemy.x, enemy.y, 220)) continue;
     const px = ox + enemy.x;
@@ -2756,7 +2911,7 @@ function drawEnemies() {
     ctx.translate(px, py);
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
-    ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
+    ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 20 : 10;
     if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkeyAnim) {
       const frame = bossAnimFrame(enemy, THREE_HEADED_MONKEY_ANIM, [4, 5, 6, 7]);
       const sx = (frame % THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.w;
@@ -2764,13 +2919,13 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = THREE_HEADED_MONKEY_ANIM.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = THREE_HEADED_MONKEY_ANIM.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = images.threeHeadedMonkey.width * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = images.threeHeadedMonkey.height * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeardAnim) {
       const frame = bossAnimFrame(enemy, BLACKBEARD_ANIM, enemy.actionKind === "ghostCannonball" ? [3, 4, 6, 7] : [5, 6, 7, 0]);
@@ -2779,13 +2934,13 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = BLACKBEARD_ANIM.w * enemy.type.scale * (enemy.boss ? 1.08 : 1);
       h = BLACKBEARD_ANIM.h * enemy.type.scale * (enemy.boss ? 1.08 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 32 : 20;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeard) {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = images.blackbeard.width * enemy.type.scale * (enemy.boss ? 1.08 : 1);
       h = images.blackbeard.height * enemy.type.scale * (enemy.boss ? 1.08 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 32 : 20;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeard, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.captainSheet) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
@@ -2793,7 +2948,7 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
       w = SPECTRAL_CAPTAIN.w * enemy.type.scale * (enemy.boss ? 1.05 : 1);
       h = SPECTRAL_CAPTAIN.h * enemy.type.scale * (enemy.boss ? 1.05 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 28 : 18;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 18;
       ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicRow !== undefined) {
       const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
@@ -2803,6 +2958,18 @@ function drawEnemies() {
       w = GOTHIC_ENEMY.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = GOTHIC_ENEMY.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.newEnemyAnim && images.newEnemyTrio) {
+      const anim = newEnemyAnimMap[enemy.type.newEnemyAnim] || newEnemyAnimMap.tideTentacle;
+      const frame = bossAnimFrame(enemy, NEW_ENEMY_TRIO, anim.attackFrames);
+      const sx = (frame % NEW_ENEMY_TRIO.cols) * NEW_ENEMY_TRIO.w;
+      const sy = anim.row * NEW_ENEMY_TRIO.h;
+      const bob = enemy.type.id === "reefSquid"
+        ? Math.sin(state.elapsed * 8.8 + enemy.frameOffset) * 8
+        : Math.sin(state.elapsed * 5.4 + enemy.frameOffset) * 3.5;
+      w = NEW_ENEMY_TRIO.w * enemy.type.scale * (enemy.boss ? 1.16 : 1);
+      h = NEW_ENEMY_TRIO.h * enemy.type.scale * (enemy.boss ? 1.16 : 1);
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
+      ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.extraSprite) {
       const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
       const bob = Math.sin(state.elapsed * (enemy.type.id === "powderImp" ? 9 : 5.5) + enemy.frameOffset) * (enemy.type.id === "lanternWraith" ? 7 : 3.5);
@@ -2840,16 +3007,17 @@ function drawPlayer() {
   const oy = scene.h / 2 - state.camera.y;
   const moving = Math.hypot(p.moveX, p.moveY) > 0.05;
   const skin = playerSkinMap[p.skin] || playerSkinMap.default;
+  const mobile = isMobileLike();
   ctx.save();
   ctx.translate(ox + p.x, oy + p.y);
   ctx.scale(p.facing, 1);
   if (p.invuln > 0) {
     ctx.globalAlpha = 0.62 + Math.sin(state.elapsed * 46) * 0.24;
     ctx.shadowColor = "#fff2c7";
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = mobile ? 0 : 18;
   } else {
     ctx.shadowColor = "rgba(0,0,0,0.55)";
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = mobile ? 0 : 14;
   }
   if (skin.animSheet === "samMaxDuoWalk" && images.samMaxDuoWalk) {
     const frame = moving ? Math.floor(state.elapsed * 12) % SAM_MAX_DUO_WALK.frames : 0;
@@ -2986,7 +3154,7 @@ function drawRopeWard(x, y, radius, level, angle) {
   } else {
     drawPlayerEffect("tidePulse", x, y, radius * 2.12 * pulse, radius * 2.12 * pulse, 0, 0.2);
   }
-  const count = Math.min(18, 10 + level * 2);
+  const count = isMobileLike() ? Math.min(10, 6 + level) : Math.min(18, 10 + level * 2);
   for (let i = 0; i < count; i += 1) {
     const a = angle * 0.72 + (i / count) * Math.PI * 2;
     const ripple = Math.sin(state.elapsed * 5.4 + i * 0.9) * 3.5;
@@ -3000,9 +3168,10 @@ function drawRopeWard(x, y, radius, level, angle) {
 function drawParticles() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
+  const mobile = isMobileLike();
   for (const particle of state.particles) {
     const alpha = clamp(particle.life / 0.4, 0, 1);
-    if (images.playerEffects) {
+    if (images.playerEffects && !mobile) {
       const size = particle.size * 8.5;
       drawPlayerEffect("treasureGlint", ox + particle.x, oy + particle.y, size, size, particle.vx * 0.015, alpha * 0.34);
     } else {
@@ -3022,11 +3191,13 @@ function drawTexts() {
   ctx.save();
   ctx.textAlign = "center";
   for (const text of state.texts) {
-    ctx.font = `900 ${text.size || 18}px Trebuchet MS, sans-serif`;
+    const screenSize = text.size || (isMobileLike() ? MOBILE_PERF.textMin : 20);
+    const worldSize = screenSize / Math.max(0.34, scene.zoom || 1);
+    ctx.font = `900 ${worldSize}px Trebuchet MS, sans-serif`;
     ctx.globalAlpha = clamp(text.life / (text.maxLife || 0.9), 0, 1);
     ctx.fillStyle = text.color;
     ctx.strokeStyle = "rgba(0,0,0,0.65)";
-    ctx.lineWidth = 4;
+    ctx.lineWidth = Math.max(3, screenSize * 0.16) / Math.max(0.34, scene.zoom || 1);
     ctx.strokeText(text.value, ox + text.x, oy + text.y);
     ctx.fillText(text.value, ox + text.x, oy + text.y);
   }
@@ -3241,8 +3412,26 @@ function nearestEnemy(exclude = null) {
   return best;
 }
 
-function floatingText(value, x, y, color, life = 0.9, size = 18) {
-  state.texts.push({ value, x, y, color, life, maxLife: life, size });
+function floatingText(value, x, y, color, life = 0.9, size = 20, options = {}) {
+  if (!state?.texts) return;
+  const minSize = isMobileLike() ? MOBILE_PERF.textMin : 20;
+  const normalizedSize = Math.max(size || minSize, minSize);
+  state.texts.push({
+    value,
+    x,
+    y,
+    color,
+    life,
+    maxLife: life,
+    size: normalizedSize,
+    rise: options.rise,
+    priority: options.priority || 0,
+  });
+  const cap = isMobileLike() ? MOBILE_PERF.textCap : 34;
+  if (state.texts.length > cap) {
+    state.texts.sort((a, b) => (a.priority || 0) - (b.priority || 0) || a.life - b.life);
+    state.texts.splice(0, state.texts.length - cap);
+  }
 }
 
 function shake(power) {
@@ -3286,13 +3475,17 @@ function getSceneZoom() {
   if (isMobileLike()) {
     return viewW > viewH ? 0.35 : 0.38;
   }
-  if (viewW < 980) return 0.58;
-  return 0.64;
+  if (viewW < 980) return 0.52;
+  return 0.56;
 }
 
 function isMobileLike() {
+  return mobileLike;
+}
+
+function computeMobileLike(width = viewW, height = viewH) {
   const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
-  const mobileSized = Math.min(viewW, viewH) <= 560 || Math.max(viewW, viewH) <= 940;
+  const mobileSized = Math.min(width, height) <= 560 || Math.max(width, height) <= 940;
   return !!coarsePointer || mobileSized;
 }
 
@@ -3301,7 +3494,8 @@ function syncCanvasSize() {
   const nextH = window.innerHeight;
   viewW = nextW;
   viewH = nextH;
-  const nextDpr = Math.min(isMobileLike() ? 1.25 : 1.75, window.devicePixelRatio || 1);
+  mobileLike = computeMobileLike(nextW, nextH);
+  const nextDpr = Math.min(isMobileLike() ? MOBILE_PERF.dpr : 1.75, window.devicePixelRatio || 1);
   if (
     nextDpr === dpr
     && nextW === canvas.clientWidth
@@ -3381,15 +3575,15 @@ window.addEventListener("keyup", (event) => {
 });
 
 ui.startButton.addEventListener("click", () => {
-  requestMobilePortraitFullscreen();
+  requestMobilePreferredFullscreen();
   startGame();
 });
 ui.quickButton.addEventListener("click", () => {
-  requestMobilePortraitFullscreen();
+  requestMobilePreferredFullscreen();
   startGame({ quick: true });
 });
 ui.restartButton.addEventListener("click", () => {
-  requestMobilePortraitFullscreen();
+  requestMobilePreferredFullscreen();
   startGame({ quick: quickMode });
 });
 ui.skinPicker.addEventListener("click", (event) => {
@@ -3442,59 +3636,75 @@ function toggleFullscreen() {
   } else {
     document.documentElement.requestFullscreen({ navigationUI: "hide" })
       .then(() => {
-        if (isMobileLike()) lockMobilePortraitOrientation();
+        if (isMobileLike()) lockMobilePreferredOrientation();
       })
       .catch(() => {
-        if (isMobileLike()) lockMobilePortraitOrientation();
+        if (isMobileLike()) lockMobilePreferredOrientation();
       });
   }
 }
 
-function lockMobilePortraitOrientation() {
+function preferredMobileOrientation() {
+  const type = screen.orientation?.type || "";
+  const landscape = window.innerWidth > window.innerHeight
+    || (window.innerWidth === window.innerHeight && /^landscape/i.test(type));
+  return landscape
+    ? { preference: "landscape-primary", fallback: "landscape" }
+    : { preference: "portrait-primary", fallback: "portrait" };
+}
+
+function setMobileOrientationPreference() {
+  const orientation = preferredMobileOrientation();
+  mobileDisplayState.orientationPreference = orientation.preference;
+  mobileDisplayState.orientationFallback = orientation.fallback;
+  return orientation;
+}
+
+function lockMobilePreferredOrientation() {
+  const orientation = setMobileOrientationPreference();
   mobileDisplayState.orientationRequested = mobileDisplayState.orientationPreference;
   mobileDisplayState.orientationLocked = false;
   mobileDisplayState.orientationError = null;
   if (!screen.orientation?.lock) return;
-  screen.orientation.lock(mobileDisplayState.orientationPreference)
+  screen.orientation.lock(orientation.preference)
     .then(() => {
       mobileDisplayState.orientationLocked = true;
     })
     .catch((error) => {
-      mobileDisplayState.orientationError = error?.name || error?.message || "portrait-primary failed";
-      mobileDisplayState.orientationRequested = mobileDisplayState.orientationFallback;
-      screen.orientation.lock(mobileDisplayState.orientationFallback)
+      mobileDisplayState.orientationError = error?.name || error?.message || `${orientation.preference} failed`;
+      mobileDisplayState.orientationRequested = orientation.fallback;
+      screen.orientation.lock(orientation.fallback)
         .then(() => {
           mobileDisplayState.orientationLocked = true;
           mobileDisplayState.orientationError = null;
         })
         .catch((fallbackError) => {
-          mobileDisplayState.orientationError = fallbackError?.name || fallbackError?.message || "portrait failed";
+          mobileDisplayState.orientationError = fallbackError?.name || fallbackError?.message || `${orientation.fallback} failed`;
         });
     });
 }
 
-function requestMobilePortraitFullscreen() {
+function requestMobilePreferredFullscreen() {
   if (!isMobileLike()) return;
   mobileDisplayState.requested = true;
-  mobileDisplayState.orientationPreference = "portrait-primary";
-  mobileDisplayState.orientationFallback = "portrait";
+  setMobileOrientationPreference();
   mobileDisplayState.fullscreenAvailable = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
   if (!document.fullscreenElement && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
     mobileDisplayState.fullscreenRequested = true;
     mobileDisplayState.fullscreenError = null;
     try {
       document.documentElement.requestFullscreen({ navigationUI: "hide" })
-        .then(() => lockMobilePortraitOrientation())
+        .then(() => lockMobilePreferredOrientation())
         .catch((error) => {
           mobileDisplayState.fullscreenError = error?.name || error?.message || "fullscreen failed";
-          lockMobilePortraitOrientation();
+          lockMobilePreferredOrientation();
         });
     } catch (error) {
       mobileDisplayState.fullscreenError = error?.name || error?.message || "fullscreen threw";
-      lockMobilePortraitOrientation();
+      lockMobilePreferredOrientation();
     }
   } else {
-    lockMobilePortraitOrientation();
+    lockMobilePreferredOrientation();
   }
 }
 
@@ -3615,10 +3825,10 @@ window.__MONKEY_TIDE_OBSTACLE_PROBE = () => {
     blocking: true,
     probe: true,
   };
-  state.props.push(obstacle);
+  addPropToTarget(state, obstacle);
   const before = { x: p.x, y: p.y };
   for (let i = 0; i < 30; i += 1) moveActorWithObstacles(p, 520, 0, 1 / 60, p.r);
-  const ground = { type: enemyType("reefRaider"), x: obstacle.x, y: obstacle.y, r: enemyType("reefRaider").radius };
+  const ground = { type: enemyType("coralBrute"), x: obstacle.x, y: obstacle.y, r: enemyType("coralBrute").radius };
   resolveObstacleCollisions(ground, ground.r);
   const ghost = { type: enemyType("lanternWraith"), x: obstacle.x, y: obstacle.y, r: enemyType("lanternWraith").radius };
   if (!actorIgnoresObstacles(ghost)) resolveObstacleCollisions(ghost, ghost.r);
@@ -3665,9 +3875,10 @@ window.__MONKEY_TIDE_PROP_VISUAL_PROBE = () => {
   const props = [
     { icon: "beachHut", x: p.x - 250, y: p.y + 70, scale: 0.82, spin: 0.06, interactive: true, blocking: true, discovered: true, probe: true },
     { icon: "boatWreck", x: p.x + 270, y: p.y + 70, scale: 0.82, spin: 0.18, interactive: true, blocking: true, discovered: true, probe: true },
-    { icon: "openTreasureChest", x: p.x + 18, y: p.y + 190, scale: 0.78, spin: 0.04, interactive: true, discovered: true, probe: true },
+    { icon: "openTreasureChest", x: p.x + 18, y: p.y + 190, scale: 0.5, spin: 0.04, interactive: true, discovered: true, probe: true },
+    { icon: "palmTree", x: p.x - 30, y: p.y + 320, scale: 0.52, spin: 0.02, interactive: false, blocking: true, probe: true },
   ];
-  state.props.push(...props);
+  props.forEach((prop) => addPropToTarget(state, prop));
   render();
   return {
     props: props.map((prop) => ({
@@ -3746,6 +3957,22 @@ window.__MONKEY_TIDE_BLACKBEARD_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_NEW_ENEMY_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
+  const p = state.player;
+  const ids = ["tideTentacle", "reefSquid", "cactusStack"];
+  ids.forEach((id, index) => {
+    window.__MONKEY_TIDE_SPAWN_ENEMY(id, p.x + 260 + index * 130, p.y - 70 + index * 70, false);
+  });
+  render();
+  return {
+    assetLoaded: !!images.newEnemyTrio,
+    animationFrames: { ...NEW_ENEMY_TRIO },
+    spawned: state.enemies.filter((enemy) => ids.includes(enemy.type.id)).map((enemy) => enemy.type.id),
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
@@ -3791,16 +4018,24 @@ window.__MONKEY_TIDE_DEBUG = () => {
     || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   stats: { ...state.stats, nextXp: state.nextXp },
-  engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
+  engagement: {
+    streak: { ...state.streak },
+    pressureWave: state.pressureWave,
+    pressureTimer: state.pressureTimer,
+    pressureWaves: state.runStats.pressureWaves,
+    activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id),
+    selectedUpgradeIndex,
+  },
   map: {
     selected: state.map,
     selectedName: mapVariant(state.map).name,
     selectedBackground: mapVariant(state.map).background,
-    selectedMusic: mapMusicProfile(state.map),
+    selectedMusic: mapMusicProfile(state.map, state.player.skin),
     variants: mapVariants.map((map) => map.id),
     backgrounds: Object.fromEntries(mapVariants.map((map) => [map.id, map.background])),
     cleanSandBackground: imageSources.repeatBeach.includes("clean_hd"),
-    musicProfiles: Object.fromEntries(mapVariants.map((map) => [map.id, mapMusicProfile(map.id)])),
+    musicProfiles: Object.fromEntries(mapVariants.map((map) => [map.id, mapMusicProfile(map.id, null)])),
+    skinMusicProfiles: Object.fromEntries(playerSkinIds.map((id) => [id, mapMusicProfile(state.map, id)])),
     unlocked: [...metaProgress.unlockedMaps],
   },
   world: {
@@ -3854,9 +4089,26 @@ window.__MONKEY_TIDE_DEBUG = () => {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
   },
   balance: { ...BALANCE },
+  enemyRoster: {
+    activeBossCycle: [...activeBossCycle],
+    activeSpawnTypes: pressureWavePool(),
+    spawnedTypes: [...new Set(state.enemies.map((enemy) => enemy.type.id))],
+    humanNpcTypes: enemyTypes.filter((type) => type.humanNpc).map((type) => type.id),
+    liveRosterIsMonsterOnly: activeBossCycle.every((id) => !enemyType(id).humanNpc)
+      && pressureWavePool().every((id) => !enemyType(id).humanNpc)
+      && state.enemies.filter((enemy) => !enemy.boss).every((enemy) => !enemy.type.humanNpc),
+  },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
-  performance: { mobile: isMobileLike(), dpr, enemyCap: enemyCap(), propCount: state.props.length },
+  performance: {
+    mobile: isMobileLike(),
+    dpr,
+    enemyCap: enemyCap(),
+    propCount: state.props.length,
+    particleCap: isMobileLike() ? MOBILE_PERF.particleCap : 90,
+    textCap: isMobileLike() ? MOBILE_PERF.textCap : 34,
+    lowFx: isMobileLike(),
+  },
   obstacles: {
     blockingProps: state.props.filter(propBlocksMovement).length,
     blockingPropTypes: [...new Set(state.props.filter(propBlocksMovement).map((prop) => prop.icon))],
@@ -3904,10 +4156,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
     blackbeard: !!images.blackbeard,
     threeHeadedMonkeyAnim: !!images.threeHeadedMonkeyAnim,
     blackbeardAnim: !!images.blackbeardAnim,
+    newEnemyTrio: !!images.newEnemyTrio,
     bossAnimationFrames: {
       threeHeadedMonkey: { ...THREE_HEADED_MONKEY_ANIM },
       blackbeard: { ...BLACKBEARD_ANIM },
     },
+    newEnemyAnimationFrames: { ...NEW_ENEMY_TRIO },
+    newEnemyTypes: enemyTypes.filter((type) => type.newEnemyAnim).map((type) => type.id),
     gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),
