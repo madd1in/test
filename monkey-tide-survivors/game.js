@@ -45,7 +45,7 @@ const imageSources = {
   mapTreasureAtoll: "assets/backgrounds/map_treasure_atoll_hd.jpg",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
-  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp?v=skin-anchor-clean-v2",
+  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp?v=skywalker-head-safe-v3",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
@@ -92,6 +92,12 @@ const audioSources = {
   downloadUpgrade: "assets/audio/sfx/from-downloads/upgrade-card.mp3",
   downloadBossWarning: "assets/audio/sfx/from-downloads/boss-warning.mp3",
   downloadBossDown: "assets/audio/sfx/from-downloads/boss-down.mp3",
+  slashSwish: "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
+  monsterPop: "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
+  heavyHit: "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
+  upgradeMagic: "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
+  bossWarningCursed: "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
+  bossDownUndead: "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
 };
 
 const images = {};
@@ -108,6 +114,12 @@ const soundConfig = {
   downloadUpgrade: { volume: 0.032, cooldown: 900 },
   downloadBossWarning: { volume: 0.045, cooldown: 45000 },
   downloadBossDown: { volume: 0.048, cooldown: 2800 },
+  slashSwish: { volume: 0.019, cooldown: 170 },
+  monsterPop: { volume: 0.016, cooldown: 360 },
+  heavyHit: { volume: 0.025, cooldown: 780 },
+  upgradeMagic: { volume: 0.03, cooldown: 860 },
+  bossWarningCursed: { volume: 0.043, cooldown: 14000 },
+  bossDownUndead: { volume: 0.046, cooldown: 2400 },
 };
 const musicConfig = {
   main: 0.62,
@@ -120,6 +132,7 @@ let music = null;
 let rushMusic = null;
 let activeMusicTrack = null;
 let musicTrackKeys = { main: null, rush: null };
+let musicTrackMeta = { main: { startAt: 0, rate: 1 }, rush: { startAt: 0, rate: 1 } };
 const musicBlobUrls = {};
 const musicPreloadState = { ready: false, loaded: 0, total: 0, decoded: 0, failed: [], keys: [] };
 let muted = false;
@@ -201,13 +214,108 @@ const BALANCE = {
 };
 
 const playerSkinMap = {
-  default: { name: "Kaeptnin", sheet: "characters", w: 104, h: 138, music: { main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5 } },
-  islandPirate: { name: "Insel-Pirat", sheet: "playerSkins", x: 109, y: 22, w: 323, h: 478, drawH: 142, animH: 170, animRow: 0, cellX: 0, cellY: 0, music: { main: "bgmCaper", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.52 } },
-  curseMonkey: { name: "Fluchaffe", sheet: "playerSkins", x: 613, y: 112, w: 411, h: 369, drawH: 118, animH: 162, animRow: 1, cellX: 1, cellY: 0, music: { main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.61, rushVolume: 0.54, rushStart: 88 } },
-  dhampirHunter: { name: "Dhampir-Jaeger", sheet: "playerSkins", x: 1024, y: 28, w: 294, h: 484, drawH: 150, animH: 176, animRow: 2, cellX: 2, cellY: 0, music: { main: "bgmRush", rush: "bgmMain", mainVolume: 0.56, rushVolume: 0.58, rushStart: 76 } },
-  rumCorsair: { name: "Rum-Korsar", sheet: "playerSkins", x: 58, y: 513, w: 413, h: 494, drawH: 150, animH: 178, animRow: 3, cellX: 0, cellY: 1, music: { main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.63, rushVolume: 0.5, rushStart: 98 } },
-  starFarmboy: { name: "Sternenfarmboy", sheet: "playerSkins", x: 543, y: 514, w: 375, h: 486, drawH: 142, animH: 168, animRow: 4, cellX: 1, cellY: 1, music: { main: "bgmCaper", rush: "bgmRush", mainVolume: 0.58, rushVolume: 0.56, rushStart: 84 } },
-  freelanceDuo: { name: "Freelance-Duo", sheet: "samMaxDuo", animSheet: "samMaxDuoWalk", drawH: 150, animH: 178, cellX: 2, cellY: 1, music: { main: "bgmMain", rush: "bgmCaper", mainVolume: 0.58, rushVolume: 0.52, rushStart: 92 } },
+  default: {
+    name: "Kaeptnin",
+    sheet: "characters",
+    w: 104,
+    h: 138,
+    music: { theme: "Galleon Command", main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5, mainStartAt: 0, rushStartAt: 8, mainRate: 1, rushRate: 1 },
+    sfx: { confirm: "confirm", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "heavyHit", pickup: "pickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    trait: { id: "captainCommand", name: "Kaeptninskommando", desc: "+1 Ruestung, stabiler Saebel", armor: 1, damage: 0.03 },
+  },
+  islandPirate: {
+    name: "Insel-Pirat",
+    sheet: "playerSkins",
+    x: 109,
+    y: 22,
+    w: 323,
+    h: 478,
+    drawH: 142,
+    animH: 170,
+    animRow: 0,
+    cellX: 0,
+    cellY: 0,
+    music: { theme: "Coconut Caper", main: "bgmCaper", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.52, mainStartAt: 9, rushStartAt: 22, mainRate: 1.015, rushRate: 1.02 },
+    sfx: { confirm: "monsterPop", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "monsterPop", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
+    trait: { id: "islandLoot", name: "Inselbeute", desc: "+12% Beutewert, groesserer Magnet", pickupValue: 0.12, magnet: 24 },
+  },
+  curseMonkey: {
+    name: "Fluchaffe",
+    sheet: "playerSkins",
+    x: 613,
+    y: 112,
+    w: 411,
+    h: 369,
+    drawH: 118,
+    animH: 162,
+    animRow: 1,
+    cellX: 1,
+    cellY: 0,
+    music: { theme: "Shoreline Curse", main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.61, rushVolume: 0.54, rushStart: 88, mainStartAt: 18, rushStartAt: 5, mainRate: 0.985, rushRate: 1.03 },
+    sfx: { confirm: "monsterPop", slash: "monsterPop", dash: "downloadDash", hurt: "heavyHit", hit: "heavyHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    trait: { id: "curseMagnet", name: "Fluchsog", desc: "+36 Magnet, +5% Schaden, aber weniger HP", magnet: 36, damage: 0.05, maxHp: -12 },
+  },
+  dhampirHunter: {
+    name: "Dhampir-Jaeger",
+    sheet: "playerSkins",
+    x: 1024,
+    y: 28,
+    w: 294,
+    h: 484,
+    drawH: 150,
+    animH: 176,
+    animRow: 2,
+    cellX: 2,
+    cellY: 0,
+    music: { theme: "Gargoyle Bloodrun", main: "bgmRush", rush: "bgmShoreline", mainVolume: 0.56, rushVolume: 0.58, rushStart: 76, mainStartAt: 14, rushStartAt: 31, mainRate: 0.98, rushRate: 1 },
+    sfx: { confirm: "upgradeMagic", slash: "slashSwish", dash: "slashSwish", hurt: "heavyHit", hit: "heavyHit", pickup: "chime", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    trait: { id: "moonLeech", name: "Mondbiss", desc: "+8% Schaden, heilt jeden 9. Kill", damage: 0.08, maxHp: -8, killHealEvery: 9, killHeal: 4 },
+  },
+  rumCorsair: {
+    name: "Rum-Korsar",
+    sheet: "playerSkins",
+    x: 58,
+    y: 513,
+    w: 413,
+    h: 494,
+    drawH: 150,
+    animH: 178,
+    animRow: 3,
+    cellX: 0,
+    cellY: 1,
+    music: { theme: "Rum Runner", main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.63, rushVolume: 0.5, rushStart: 98, mainStartAt: 38, rushStartAt: 12, mainRate: 1.02, rushRate: 0.99 },
+    sfx: { confirm: "confirm", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "heavyHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
+    trait: { id: "rumSprint", name: "Rumspurt", desc: "+18 Tempo, schnellerer Dash", speed: 18, dashCooldown: -0.08, armor: -0.3 },
+  },
+  starFarmboy: {
+    name: "Sternenfarmboy",
+    sheet: "playerSkins",
+    x: 543,
+    y: 514,
+    w: 375,
+    h: 486,
+    drawH: 142,
+    animH: 160,
+    animRow: 4,
+    animDrawYOffset: 38,
+    cellX: 1,
+    cellY: 1,
+    music: { theme: "Twin-Sun Caper", main: "bgmCaper", rush: "bgmRush", mainVolume: 0.58, rushVolume: 0.56, rushStart: 84, mainStartAt: 32, rushStartAt: 24, mainRate: 1.04, rushRate: 1.01 },
+    sfx: { confirm: "chime", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "slashSwish", pickup: "pickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    trait: { id: "starCompass", name: "Sternenkompass", desc: "Startet mit Kompass I, weniger HP", maxHp: -10, weapons: { compass: 1 }, magnet: 12 },
+  },
+  freelanceDuo: {
+    name: "Freelance-Duo",
+    sheet: "samMaxDuo",
+    animSheet: "samMaxDuoWalk",
+    drawH: 150,
+    animH: 178,
+    cellX: 2,
+    cellY: 1,
+    music: { theme: "Duo Desk Chase", main: "bgmMain", rush: "bgmCaper", mainVolume: 0.58, rushVolume: 0.52, rushStart: 92, mainStartAt: 44, rushStartAt: 18, mainRate: 1.01, rushRate: 1.035 },
+    sfx: { confirm: "monsterPop", slash: "slashSwish", dash: "monsterPop", hurt: "downloadHit", hit: "monsterPop", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
+    trait: { id: "twoHeads", name: "Doppelermittlung", desc: "Startet mit Tau I, Power-ups halten laenger", speed: -6, pickupValue: 0.06, weapons: { rope: 1 }, powerupDuration: 1.18 },
+  },
 };
 const playerSkinIds = Object.keys(playerSkinMap);
 let selectedSkin = (() => {
@@ -725,6 +833,42 @@ function metaRelicBonuses() {
   };
 }
 
+function characterTrait(skinId = selectedSkin) {
+  return playerSkinMap[skinId]?.trait || playerSkinMap.default.trait;
+}
+
+function characterSfxProfile(skinId = state?.player?.skin || selectedSkin) {
+  return playerSkinMap[skinId]?.sfx || playerSkinMap.default.sfx || {};
+}
+
+function normalizeSoundKey(key, fallback = "pickup") {
+  return audioSources[key] ? key : fallback;
+}
+
+function playSkinSound(event, fallback, options = {}) {
+  const profile = characterSfxProfile();
+  playSound(normalizeSoundKey(profile[event], fallback), options);
+}
+
+function applyCharacterTrait(next) {
+  const trait = characterTrait(next.player.skin);
+  next.characterTrait = { ...trait };
+  next.player.maxHp = Math.max(90, next.player.maxHp + (trait.maxHp || 0));
+  next.player.hp = next.player.maxHp;
+  next.stats.speed += trait.speed || 0;
+  next.stats.damage += trait.damage || 0;
+  next.stats.armor += trait.armor || 0;
+  next.stats.magnet += trait.magnet || 0;
+  next.stats.pickupValue += trait.pickupValue || 0;
+  next.stats.dashCooldown = Math.max(0.48, next.stats.dashCooldown + (trait.dashCooldown || 0));
+  next.stats.powerupDuration = trait.powerupDuration || 1;
+  for (const [weapon, level] of Object.entries(trait.weapons || {})) {
+    if (!next.weapons[weapon]) continue;
+    next.weapons[weapon].level = Math.max(next.weapons[weapon].level, level);
+    next.upgradeCounts[weapon] = Math.max(next.upgradeCounts[weapon] || 0, level);
+  }
+}
+
 let state = null;
 const keys = new Set();
 const pointer = { active: false, id: null, dx: 0, dy: 0, originX: 0, originY: 0, radius: 48 };
@@ -748,7 +892,7 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, pressureWaves: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, pressureWaves: 0, elites: 0, unlocked: [] },
     powerupDropCooldown: 0,
     coins: 0,
     level: 1,
@@ -822,6 +966,7 @@ function makeState() {
       finalWarned: false,
     },
   };
+  applyCharacterTrait(next);
   ensurePropChunks(next, true);
   return next;
 }
@@ -1161,6 +1306,7 @@ function prepareAudio() {
   rushMusic.preload = "auto";
   rushMusic.volume = 0;
   musicTrackKeys = { main: null, rush: null };
+  musicTrackMeta = { main: { startAt: 0, rate: 1 }, rush: { startAt: 0, rate: 1 } };
   configureMusicForMap(selectedMap);
   activeMusicTrack = null;
 }
@@ -1282,7 +1428,7 @@ function setPlayerSkin(id) {
   } catch {}
   renderSkinPicker();
   if (state?.phase === "playing") syncMusic();
-  if (ready) playSound("confirm");
+  if (ready) playSkinSound("confirm", "confirm");
 }
 
 function playSound(key, options = {}) {
@@ -1343,31 +1489,48 @@ function mapMusicProfile(mapId = selectedMap, skinId = state?.player?.skin || se
   const profile = mapVariant(mapId).music || {};
   const skinProfile = skinId ? playerSkinMap[skinId]?.music || {} : {};
   return {
+    theme: skinProfile.theme || profile.theme || mapVariant(mapId).name,
     mainKey: skinProfile.main || profile.main || "bgmMain",
     rushKey: skinProfile.rush || profile.rush || "bgmRush",
     mainVolume: skinProfile.mainVolume ?? profile.mainVolume ?? musicConfig.main,
     rushVolume: skinProfile.rushVolume ?? profile.rushVolume ?? musicConfig.rush,
     rushStart: skinProfile.rushStart ?? profile.rushStart ?? musicConfig.rushStart,
     rushFade: skinProfile.rushFade ?? profile.rushFade ?? musicConfig.rushFade,
+    mainStartAt: skinProfile.mainStartAt ?? profile.mainStartAt ?? 0,
+    rushStartAt: skinProfile.rushStartAt ?? profile.rushStartAt ?? 0,
+    mainRate: skinProfile.mainRate ?? profile.mainRate ?? 1,
+    rushRate: skinProfile.rushRate ?? profile.rushRate ?? 1,
   };
 }
 
 function configureMusicForMap(mapId = selectedMap, skinId = state?.player?.skin || selectedSkin) {
   const profile = mapMusicProfile(mapId, skinId);
-  setMusicSource("main", profile.mainKey);
-  setMusicSource("rush", profile.rushKey);
+  setMusicSource("main", profile.mainKey, { startAt: profile.mainStartAt, rate: profile.mainRate });
+  setMusicSource("rush", profile.rushKey, { startAt: profile.rushStartAt, rate: profile.rushRate });
   return profile;
 }
 
-function setMusicSource(slot, key) {
+function setMusicSource(slot, key, meta = {}) {
   const audio = slot === "rush" ? rushMusic : music;
-  if (!audio || musicTrackKeys[slot] === key) return;
-  audio.pause();
-  audio.src = resolvedAudioSource(key);
-  audio.load();
-  audio.volume = 0;
+  if (!audio) return;
+  const nextMeta = {
+    startAt: Math.max(0, meta.startAt || 0),
+    rate: clamp(meta.rate || 1, 0.85, 1.12),
+  };
+  const currentMeta = musicTrackMeta[slot] || { startAt: 0, rate: 1 };
+  const keyChanged = musicTrackKeys[slot] !== key;
+  const metaChanged = Math.abs(currentMeta.startAt - nextMeta.startAt) > 0.05 || Math.abs(currentMeta.rate - nextMeta.rate) > 0.001;
+  if (!keyChanged && !metaChanged) return;
+  if (keyChanged) {
+    audio.pause();
+    audio.src = resolvedAudioSource(key);
+    audio.load();
+    audio.volume = 0;
+  }
+  audio.playbackRate = nextMeta.rate;
   musicTrackKeys[slot] = key;
-  activeMusicTrack = null;
+  musicTrackMeta[slot] = nextMeta;
+  if (keyChanged || activeMusicTrack === slot) activeMusicTrack = null;
 }
 
 function syncMusic() {
@@ -1388,8 +1551,15 @@ function syncMusic() {
 function switchMusicTrack(track, profile = mapMusicProfile(state.map)) {
   const from = track === "rush" ? music : rushMusic;
   const to = track === "rush" ? rushMusic : music;
+  const meta = musicTrackMeta[track] || { startAt: 0, rate: 1 };
   from.pause();
   from.volume = 0;
+  to.playbackRate = meta.rate;
+  try {
+    if (meta.startAt > 0 && (!Number.isFinite(to.currentTime) || to.currentTime < meta.startAt || to.currentTime > meta.startAt + 8)) {
+      to.currentTime = meta.startAt;
+    }
+  } catch {}
   to.volume = track === "rush" ? profile.rushVolume : profile.mainVolume;
   to.play().catch(() => {});
   activeMusicTrack = track;
@@ -1435,7 +1605,7 @@ function startGame(options = {}) {
   ui.loadout.hidden = false;
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
-  playSound("confirm");
+  playSkinSound("confirm", "confirm");
   const skinName = playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name;
   speak(
     quickMode ? `Schnelle Welle. ${skinName} steht schon am Bug!` : `${skinName} bereit. Halt den Strand!`,
@@ -1454,7 +1624,7 @@ function endGame(victory) {
   ui.endTitle.textContent = victory ? "Strand gehalten" : "Die Geistercrew war schneller";
   ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level}`;
   ui.endOverlay.hidden = false;
-  playSound(victory ? "chime" : "gate");
+  playSkinSound(victory ? "powerup" : "hurt", victory ? "chime" : "gate", { force: true });
   syncMusic();
   speak(
     victory ? "Strand gehalten. Die Affenflut zieht ab!" : "Die Geistercrew war schneller. Nochmal in die Flut!",
@@ -1542,8 +1712,7 @@ function dash() {
   p.dash = 0.2;
   p.dashCooldown = state.stats.dashCooldown;
   p.invuln = Math.max(p.invuln, 0.3);
-  playSound("gate");
-  playSound("downloadDash");
+  playSkinSound("dash", "downloadDash", { force: true });
 }
 
 function actorIgnoresObstacles(actor) {
@@ -1739,7 +1908,7 @@ function slash(angle, radius, arc, damage, level = 1) {
   const x = p.x + Math.cos(angle) * forward;
   const y = p.y + Math.sin(angle) * forward;
   state.zones.push({ type: "slash", x, y, angle, radius, arc: arc * Math.PI / 180, level, blades, life: 0.2, maxLife: 0.2 });
-  playSound("gate");
+  playSkinSound("slash", "slashSwish");
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -1832,7 +2001,7 @@ function fireCompassBeam(level) {
   const damage = 18 + level * 9;
   hurtEnemy(target, damage, Math.sign(target.x - p.x), Math.sign(target.y - p.y));
   state.zones.push({ type: "beam", x: p.x, y: p.y, tx: target.x, ty: target.y, life: 0.16, maxLife: 0.16 });
-  playSound("chime");
+  playSkinSound("hit", "chime", { cooldown: 520 });
 }
 
 function throwBottle(level) {
@@ -1918,7 +2087,7 @@ function updateSpawns(dt) {
             : bossType.id === "cactusStack"
               ? "Kaktus-Stack voraus. Nicht in die Stachelgasse!"
               : "Affenidol voraus. Bleib in Bewegung!";
-    playSound("downloadBossWarning", { force: true });
+    playSkinSound("warning", "downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
 }
@@ -1975,11 +2144,27 @@ function triggerPressureWave() {
   const pool = pressureWavePool();
   const cap = isMobileLike() ? 8 : 14;
   const count = Math.min(cap, 4 + Math.floor(state.elapsed / 58) + (state.pressureWave % 3));
-  for (let i = 0; i < count; i += 1) spawnEnemy(enemyType(pool[i % pool.length]));
+  let elite = null;
+  for (let i = 0; i < count; i += 1) {
+    const spawned = spawnEnemy(enemyType(pool[i % pool.length]));
+    if (!elite && spawned) elite = spawned;
+  }
+  if (elite) markEliteEnemy(elite, state.pressureWave);
   state.warningTimer = Math.max(state.warningTimer, 1.6);
   floatingText(`Flutwelle ${state.pressureWave}`, state.player.x, state.player.y - 120, "#fff2c7", 0.9, 32, { priority: 3 });
-  playSound("downloadBossWarning", { cooldown: 14000 });
+  playSkinSound("warning", "downloadBossWarning", { cooldown: 14000 });
   speak(`Flutwelle ${state.pressureWave}. Keine Ruhe am Strand!`, { key: `pressure-wave-${state.pressureWave}`, cooldown: 6000, rate: 1.08 });
+}
+
+function markEliteEnemy(enemy, wave) {
+  enemy.elite = true;
+  enemy.eliteWave = wave;
+  enemy.hp *= 1.75;
+  enemy.maxHp *= 1.75;
+  enemy.damage = Math.ceil(enemy.damage * 1.2);
+  enemy.speed *= 1.06;
+  enemy.r *= 1.08;
+  floatingText("Omen-Beute", enemy.x, enemy.y - enemy.r - 58, "#ffdf6e", 0.9, 28, { priority: 3 });
 }
 
 function spawnEnemy(type, boss = false) {
@@ -2024,6 +2209,7 @@ function spawnEnemy(type, boss = false) {
   };
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   state.enemies.push(enemy);
+  return enemy;
 }
 
 function enemyCap() {
@@ -2050,7 +2236,7 @@ function updateEnemies(dt) {
       resolveObstacleCollisions(p, p.r);
       shake(0.8);
       floatingText(`-${Math.round(damage)}`, p.x, p.y - 58, "#ff765f");
-      playSound("gate");
+      playSkinSound("hurt", "downloadHit");
       if (p.hp <= 0) endGame(false);
     }
   }
@@ -2176,7 +2362,7 @@ function updateProjectiles(dt) {
           resolveObstacleCollisions(p, p.r);
           shake(0.55);
           floatingText(`-${Math.round(damage)}`, p.x, p.y - 58, "#ff765f");
-          playSound("downloadHit");
+          playSkinSound("hurt", "downloadHit");
           if (p.hp <= 0) endGame(false);
         }
       }
@@ -2187,7 +2373,7 @@ function updateProjectiles(dt) {
 
 function explode(x, y, radius, damage) {
   state.zones.push({ type: "explosion", x, y, radius, life: 0.28, maxLife: 0.28 });
-  playSound("chime");
+  playSkinSound("hit", "chime");
   for (const enemy of state.enemies) {
     const dx = enemy.x - x;
     const dy = enemy.y - y;
@@ -2253,8 +2439,8 @@ function updateExploration() {
     unlockAchievements();
     saveMetaProgress();
     renderMetaProgress();
-    playSound("downloadUpgrade", { force: true });
-    playSound("chime", { force: true });
+    playSkinSound("powerup", "downloadUpgrade", { force: true });
+    playSkinSound("pickup", "chime", { force: true });
   }
 }
 
@@ -2273,7 +2459,7 @@ function updateTidePuddles(dt) {
     state.xp += prop.icon === "tidePuddle" ? 3 : 2;
     floatingText(prop.icon === "tidePuddle" ? "Gezeiten-Slip" : "Spritzspur", p.x, p.y - 78, "#bfffea", 0.55, 14);
     state.zones.push({ type: "tideRipple", x: prop.x, y: prop.y, radius: 72, life: 0.24, maxLife: 0.24 });
-    playSound("downloadPickup", { cooldown: 900 });
+    playSkinSound("pickup", "downloadPickup", { cooldown: 900 });
     break;
   }
 }
@@ -2298,9 +2484,10 @@ function activePowerBonus(stat) {
 
 function activatePowerup(id) {
   const type = powerUpType(id);
+  const duration = type.duration * (state.stats.powerupDuration || 1);
   const existing = state.powerups.find((powerup) => powerup.id === type.id);
-  if (existing) existing.timer = Math.max(existing.timer, type.duration);
-  else state.powerups.push({ id: type.id, timer: type.duration, duration: type.duration });
+  if (existing) existing.timer = Math.max(existing.timer, duration);
+  else state.powerups.push({ id: type.id, timer: duration, duration });
   if (type.armor) state.player.invuln = Math.max(state.player.invuln, 0.95);
   state.runStats.powerups += 1;
   metaProgress.powerups += 1;
@@ -2323,7 +2510,7 @@ function collectGem(gem) {
     floatingText("+HP", state.player.x, state.player.y - 72, "#79e0b7");
   } else if (gem.kind === "powerup") {
     activatePowerup(gem.powerup);
-    playSound("pickup", { cooldown: 800 });
+    playSkinSound("powerup", "pickup", { cooldown: 800 });
     return;
   } else if (gem.kind === "coin") {
     state.coins += gem.value;
@@ -2336,9 +2523,9 @@ function collectGem(gem) {
       state.xp -= state.nextXp;
       levelUp();
     }
-    if (Math.random() < 0.18) playSound("downloadPickup");
+    if (Math.random() < 0.18) playSkinSound("pickup", "downloadPickup");
   }
-  playSound("pickup");
+  playSkinSound("pickup", "pickup");
 }
 
 function updateStreak(dt) {
@@ -2381,8 +2568,8 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   enemy.x += clamp(nx, -1, 1) * 7;
   enemy.y += clamp(ny, -1, 1) * 7;
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
-  if ((enemy.boss || amount >= 42) && Math.random() < 0.45) playSound("downloadHit");
-  const crit = amount >= 48 || enemy.boss;
+  if ((enemy.boss || enemy.elite || amount >= 42) && Math.random() < 0.45) playSkinSound("hit", "downloadHit");
+  const crit = amount >= 48 || enemy.boss || enemy.elite;
   const textChance = isMobileLike() ? (crit ? 0.28 : 0.06) : (crit ? 0.44 : 0.12);
   if (Math.random() < textChance) {
     floatingText(
@@ -2413,6 +2600,12 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
 function killEnemy(enemy) {
   state.killCount += 1;
   metaProgress.kills += 1;
+  const trait = state.characterTrait || characterTrait(state.player.skin);
+  if (trait.killHealEvery && state.killCount % trait.killHealEvery === 0) {
+    const before = state.player.hp;
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + (trait.killHeal || 3));
+    if (state.player.hp > before) floatingText("+Biss", state.player.x, state.player.y - 82, "#d07cff", 0.58, 18, { priority: 2 });
+  }
   recordStreakKill(enemy);
   const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.8 : 1) * (1 + state.elapsed / 760));
   state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
@@ -2421,6 +2614,12 @@ function killEnemy(enemy) {
   const streakPowerDrop = state.streak.count > 0 && state.streak.count % powerupDropTuning.streakDropEvery === 0;
   if (enemy.boss) {
     spawnPowerup(enemy.x - 18, enemy.y + 16, null, { life: 26, cooldown: 18 });
+  } else if (enemy.elite) {
+    state.runStats.elites += 1;
+    state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 18, y: enemy.y + 12, r: 12, value: 14 + state.pressureWave * 2, life: 36 });
+    spawnPowerup(enemy.x - 22, enemy.y + 18, null, { life: 20, cooldown: 16 });
+    floatingText("Omen gebrochen", enemy.x, enemy.y - enemy.r - 58, "#ffdf6e", 0.86, 28, { priority: 3 });
+    playSkinSound("powerup", "upgradeMagic", { force: true });
   } else if (
     state.elapsed > 35
     && state.powerupDropCooldown <= 0
@@ -2451,10 +2650,10 @@ function killEnemy(enemy) {
             : "Idol gebrochen. Sammel die Beute!";
     floatingText(downText, enemy.x, enemy.y - 80, "#fff2c7");
     speak(downVoice, { key: `boss-down-${enemy.type.id}`, interrupt: true, cooldown: 2000 });
-    playSound("chime", { force: true });
-    playSound("downloadBossDown", { force: true });
+    playSkinSound("powerup", "chime", { force: true });
+    playSkinSound("bossDown", "downloadBossDown", { force: true });
   } else if (Math.random() < 0.08) {
-    playSound("pickup", { cooldown: 650 });
+    playSkinSound("pickup", "pickup", { cooldown: 650 });
   }
   unlockAchievements();
   saveMetaProgress();
@@ -2469,7 +2668,7 @@ function recordStreakKill(enemy) {
   metaProgress.bestStreak = Math.max(metaProgress.bestStreak, streak.best);
   if (streak.count === 8 || streak.count % 12 === 0) {
     floatingText(`Streak x${streak.count}`, enemy.x, enemy.y - enemy.r - 48, "#fff2c7");
-    playSound("downloadPickup", { cooldown: 650 });
+    playSkinSound("pickup", "downloadPickup", { cooldown: 650 });
   }
   if (streak.count >= streak.nextCache) {
     spawnStreakCache(streak.count);
@@ -2524,7 +2723,7 @@ function unlockAchievements() {
     }
     if (state?.phase === "playing") {
       floatingText(`Erfolg: ${achievement.name}`, state.player.x, state.player.y - 118, "#fff2c7");
-      playSound("downloadUpgrade", { force: true });
+      playSkinSound("powerup", "downloadUpgrade", { force: true });
     }
   }
   if (changed) {
@@ -2558,8 +2757,8 @@ function levelUp(options = {}) {
     return;
   }
   state.phase = "levelup";
-  playSound("chime", { force: true });
-  playSound("downloadUpgrade", { force: true });
+  playSkinSound("powerup", "chime", { force: true });
+  playSkinSound("powerup", "downloadUpgrade", { force: true });
   speak("Relikt gefunden. Waehle deine Verstaerkung.", { key: "level-up", interrupt: true, cooldown: 1000 });
   showUpgrades();
 }
@@ -2579,7 +2778,7 @@ function applyFlowLevelReward() {
   reward.apply();
   state.runStats.flowRewards += 1;
   floatingText(reward.name, state.player.x, state.player.y - 96, reward.color);
-  playSound("downloadPickup", { cooldown: 1100 });
+  playSkinSound("pickup", "downloadPickup", { cooldown: 1100 });
 }
 
 function showUpgrades() {
@@ -2626,7 +2825,7 @@ function chooseUpgradeAt(index = selectedUpgradeIndex) {
   state.phase = "playing";
   activeUpgradeChoices = [];
   ui.upgradeOverlay.hidden = true;
-  playSound("confirm");
+  playSkinSound("confirm", "confirm");
   speak(`${upgrade.name} bereit.`, { key: `upgrade-${upgrade.id}`, interrupt: true, cooldown: 1200, rate: 1.06 });
   updateDom();
 }
@@ -2991,6 +3190,18 @@ function drawEnemies() {
       ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h);
     }
     ctx.restore();
+    if (enemy.elite) {
+      ctx.save();
+      ctx.globalAlpha = mobile ? 0.34 : 0.5;
+      ctx.strokeStyle = "#ffdf6e";
+      ctx.lineWidth = mobile ? 3 : 4;
+      ctx.shadowColor = "#ffb14c";
+      ctx.shadowBlur = mobile ? 0 : 14;
+      ctx.beginPath();
+      ctx.ellipse(px, py - enemy.r * 0.45, enemy.r * 1.45, enemy.r * 0.72, Math.sin(state.elapsed * 1.7) * 0.08, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     const hpPct = clamp(enemy.hp / enemy.maxHp, 0, 1);
     if ((!mobile && hpPct < 0.98) || enemy.boss || enemy.hit > 0) {
       ctx.fillStyle = "rgba(0,0,0,0.48)";
@@ -3040,7 +3251,7 @@ function drawPlayer() {
     const bob = moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.3;
     const h = skin.animH;
     const w = h;
-    ctx.drawImage(images.playerSkinWalks, sx, sy, PLAYER_SKIN_WALK.w, PLAYER_SKIN_WALK.h, -w / 2, -h + 32 + bob, w, h);
+    ctx.drawImage(images.playerSkinWalks, sx, sy, PLAYER_SKIN_WALK.w, PLAYER_SKIN_WALK.h, -w / 2, -h + (skin.animDrawYOffset ?? 32) + bob, w, h);
   } else if (skin.sheet === "playerSkins" && images.playerSkins) {
     const bob = moving ? Math.sin(state.elapsed * 13) * 4 : Math.sin(state.elapsed * 3.2) * 1.5;
     const stretch = moving ? 1 + Math.sin(state.elapsed * 20) * 0.025 : 1;
@@ -3475,8 +3686,8 @@ function getSceneZoom() {
   if (isMobileLike()) {
     return viewW > viewH ? 0.35 : 0.38;
   }
-  if (viewW < 980) return 0.52;
-  return 0.56;
+  if (viewW < 980) return 0.48;
+  return 0.5;
 }
 
 function isMobileLike() {
@@ -3607,12 +3818,12 @@ ui.dashButton.addEventListener("pointerdown", (event) => {
 function togglePause() {
   if (state.phase === "playing") {
     state.phase = "paused";
-    playSound("confirm");
+    playSkinSound("confirm", "confirm");
     speak("Pause.", { key: "pause", interrupt: true, cooldown: 0 });
   } else if (state.phase === "paused") {
     state.phase = "playing";
     lastTime = performance.now();
-    playSound("confirm");
+    playSkinSound("confirm", "confirm");
     speak("Weiter geht's.", { key: "resume", interrupt: true, cooldown: 0 });
   }
   updateDom();
@@ -4017,12 +4228,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimated: (playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks)
     || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
+  playerSkinTrait: { ...(state.characterTrait || characterTrait(state.player.skin)) },
+  playerSkinTraits: Object.fromEntries(playerSkinIds.map((id) => [id, characterTrait(id)])),
   stats: { ...state.stats, nextXp: state.nextXp },
   engagement: {
     streak: { ...state.streak },
     pressureWave: state.pressureWave,
     pressureTimer: state.pressureTimer,
     pressureWaves: state.runStats.pressureWaves,
+    eliteEnemies: state.enemies.filter((enemy) => enemy.elite).length,
+    elitesDefeated: state.runStats.elites,
     activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id),
     selectedUpgradeIndex,
   },
@@ -4138,10 +4353,17 @@ window.__MONKEY_TIDE_DEBUG = () => {
     sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
     sfxLocalDownloads: Object.entries(audioSources)
       .filter(([key]) => !key.startsWith("bgm"))
-      .every(([, src]) => src.includes("/from-downloads/")),
+      .every(([, src]) => src.startsWith("assets/audio/sfx/") && /\.(mp3|wav)$/i.test(src)),
+    characterSfxProfiles: Object.fromEntries(playerSkinIds.map((id) => [id, { ...playerSkinMap[id].sfx }])),
     sources: { ...audioSources },
     musicPreload: { ...musicPreloadState },
-    music: { ...musicConfig, ...mapMusicProfile(state.map), trackKeys: { ...musicTrackKeys } },
+    music: {
+      ...musicConfig,
+      ...mapMusicProfile(state.map),
+      trackKeys: { ...musicTrackKeys },
+      trackMeta: { main: { ...musicTrackMeta.main }, rush: { ...musicTrackMeta.rush } },
+      characterThemes: Object.fromEntries(playerSkinIds.map((id) => [id, mapMusicProfile(state.map, id)])),
+    },
   },
   speech: {
     supported: speechState.supported,

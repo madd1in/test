@@ -11,8 +11,9 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Sauber normalisierte einzelne Imagen-HD-WebP-Props fuer Pfuetzen, Hecken, Schatzstellen, Muschelschreine, verlassene Strandhuetten und Bootswracks; Busch- und Palmenhecken-Assets sind neu freigestellt ohne angeschnittene Atlasreste.
 - Pfuetzen und Spieler-/Waffen-Auren wurden mit neuen Imagen-HD-Raster-Assets ersetzt; die sichtbaren Canvas-Kreis-/Beam-Effekte sind raus.
 - Neuer Imagen-HD-Spieler-Skin-Atlas mit Startscreen-Auswahl fuer Kaeptnin, Insel-Pirat, Fluchaffe, Dhampir-Jaeger, Rum-Korsar, Sternenfarmboy und Freelance-Duo.
-- Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy.
-- Eigene BGM-Profile pro spielbarem Charakter, kombiniert mit den Map-spezifischen Rush-Tracks.
+- Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy; Sternenfarmboy/Skywalker hat mehr Headroom im Frameset.
+- Eigene BGM-Profile pro spielbarem Charakter mit lokalen MP3s, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
+- Eigene lokale SFX-Profile pro spielbarem Charakter fuer Slash, Dash, Treffer, Power-ups, Warnungen und Boss-Downs.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.
 - Neues Imagen-HD-Walkcycle-Frameset mit 8 Frames fuer jeden alternativen Spieler-Skin.
 - Erkundbare Huetten, Wracks, Schatzstellen und Muschelschreine droppen XP, Muenzen, kurze Rettungsfenster und kleine Notfall-Heilung.
@@ -44,7 +45,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Mobile rendert mit DPR 1, kleinerem Gegner-/FX-Cap, reduzierten Schatten und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Hochkant/Vollbild.
 - Mobile-Start erkennt die aktuelle Handyhaltung: quer gehalten wird Landscape-Fullscreen gelockt, sonst bleibt Portrait-Fullscreen der Default.
 - Das Live-Spawn-Roster nutzt jetzt nur noch Kreaturen, Untote und Monster; menschliche NPC-Gegner sind aus normalen Wellen und Bosszyklen entfernt.
-- Desktop ist weiter herausgezoomt und periodische Flutwellen werfen extra Monstergruppen in den Run, damit die Zwischenminuten mehr Druck und Bedeutung haben.
+- Desktop ist nochmals weiter herausgezoomt; Flutwellen markieren jetzt Elite-Omen-Gegner mit Extra-Beute, damit Wellen ein klares Zwischenziel haben.
+- Jeder Charakter hat nun ein kleines Gameplay-Trait, z.B. Fluchsog, Mondbiss, Rumspurt, Sternenkompass oder Doppelermittlung.
 - Treffer-, Crit-, Streak- und Pickup-Texte werden als lesbare Screen-Schrift skaliert statt in der herausgezoomten Welt winzig zu werden.
 - HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.
 - Erkunderte Buesche, Huetten und Wracks bleiben voll gemalt statt ausgegraut; Schatzfunde wechseln auf ein eigenes offenes Imagen-HD-Truhenasset.
