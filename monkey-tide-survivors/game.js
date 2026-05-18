@@ -74,6 +74,7 @@ const imageSources = {
   projectileFx: "assets/sprites/projectile_fx_imagen_hd.webp",
   playerEffects: "assets/sprites/player_effects_imagen_hd.webp",
   weaponEvolutionFx: "assets/sprites/weapon_evolution_fx_imagen_hd.png",
+  xpCrystalAnim: "assets/sprites/xp_crystal_anim_imagen_hd.png?v=imagen-xp-v1",
   extraEnemies: "assets/sprites/extra_enemies_imagen_hd.webp",
   extraItems: "assets/sprites/extra_items_imagen_hd.webp",
 };
@@ -265,6 +266,7 @@ const NEW_ENEMY_TRIO = { w: 256, h: 256, cols: 8, rows: 3, frames: 8, fps: 8.2 }
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
+const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
 const WORLD = { w: 10000000, h: 10000000, bgTile: 4096 };
@@ -1691,7 +1693,23 @@ function setMusicSource(slot, key, meta = {}) {
   audio.playbackRate = nextMeta.rate;
   musicTrackKeys[slot] = key;
   musicTrackMeta[slot] = nextMeta;
+  seekMusicSlotToStart(slot, true);
   if (keyChanged || activeMusicTrack === slot) activeMusicTrack = null;
+}
+
+function seekMusicSlotToStart(slot, force = false) {
+  const audio = slot === "rush" ? rushMusic : music;
+  const startAt = Math.max(0, musicTrackMeta[slot]?.startAt || 0);
+  if (!audio) return;
+  const seek = () => {
+    try {
+      if (force || Math.abs((audio.currentTime || 0) - startAt) > 0.08) {
+        audio.currentTime = startAt;
+      }
+    } catch {}
+  };
+  if (audio.readyState >= 1) seek();
+  else audio.addEventListener("loadedmetadata", seek, { once: true });
 }
 
 function syncMusic() {
@@ -1737,21 +1755,19 @@ function stopMusicTracks() {
 
 function resetMusicTracks() {
   stopMusicTracks();
-  try {
-    music.currentTime = 0;
-    rushMusic.currentTime = 0;
-  } catch {}
+  seekMusicSlotToStart("main", true);
+  seekMusicSlotToStart("rush", true);
 }
 
 function startGame(options = {}) {
   if (!ready) return;
   quickMode = options.quick === true;
   selectedMap = normalizeSelectedMap(selectedMap);
-  configureMusicForMap(selectedMap);
   resetSpeechForRun();
-  resetMusicTracks();
   state = makeState();
   state.phase = "playing";
+  configureMusicForMap(state.map, state.player.skin);
+  resetMusicTracks();
   if (quickMode) {
     state.elapsed = 135;
     state.pressureTimer = 1.2;
@@ -1767,13 +1783,13 @@ function startGame(options = {}) {
   ui.loadout.hidden = false;
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
+  syncMusic();
   playSkinSound("confirm", "confirm");
   const skinName = playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name;
   speak(
     quickMode ? `Schnelle Welle. ${skinName} steht schon am Bug!` : `${skinName} bereit. Halt den Strand!`,
     { key: "start", interrupt: true, cooldown: 0 },
   );
-  syncMusic();
   lastTime = performance.now();
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(loop);
@@ -3386,16 +3402,38 @@ function drawGems() {
   for (const gem of state.gems) {
     if (!onScreen(gem.x, gem.y, 80)) continue;
     const t = performance.now() / 260;
-    const size = gem.kind === "xp" ? 28 : gem.kind === "powerup" ? 42 : 34;
+    const size = gem.kind === "xp" ? (gem.value >= 40 ? 64 : gem.value >= 18 ? 54 : 44) : gem.kind === "powerup" ? 42 : 34;
     ctx.save();
     ctx.translate(ox + gem.x, oy + gem.y + Math.sin(t + gem.x) * 4);
     ctx.rotate(Math.sin(t) * 0.1);
     if (gem.kind === "xp") {
-      drawPlayerEffectAt("tidePulse", -size * 0.72, -size * 0.72, size * 1.44, size * 1.44);
+      drawXpCrystalAt(gem, size);
+      ctx.restore();
+      continue;
     }
     drawItemAt(gem.icon, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
+}
+
+function drawXpCrystalAt(gem, size) {
+  if (!images.xpCrystalAnim) {
+    drawPlayerEffectAt("tidePulse", -size * 0.72, -size * 0.72, size * 1.44, size * 1.44);
+    drawItemAt(gem.icon, -size / 2, -size / 2, size, size);
+    return;
+  }
+  const offset = Math.abs(Math.floor((gem.x * 0.17 + gem.y * 0.11) % XP_CRYSTAL_ANIM.frames));
+  const frame = (Math.floor(state.elapsed * XP_CRYSTAL_ANIM.fps) + offset) % XP_CRYSTAL_ANIM.frames;
+  const pulse = 1 + Math.sin(state.elapsed * 7.2 + offset) * 0.045;
+  const drawSize = size * 1.22 * pulse;
+  const sx = frame * XP_CRYSTAL_ANIM.w;
+  if (!isMobileLike()) {
+    ctx.save();
+    ctx.globalAlpha = 0.34 + Math.sin(state.elapsed * 5.4 + offset) * 0.08;
+    drawPlayerEffectAt("tidePulse", -drawSize * 0.58, -drawSize * 0.58, drawSize * 1.16, drawSize * 1.16);
+    ctx.restore();
+  }
+  ctx.drawImage(images.xpCrystalAnim, sx, 0, XP_CRYSTAL_ANIM.w, XP_CRYSTAL_ANIM.h, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
 }
 
 function bossAnimFrame(enemy, anim, attackFrames) {
@@ -4823,6 +4861,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
       main: music ? !music.paused : false,
       rush: rushMusic ? !rushMusic.paused : false,
     },
+    trackTimes: {
+      main: Number((music?.currentTime || 0).toFixed(2)),
+      rush: Number((rushMusic?.currentTime || 0).toFixed(2)),
+    },
+    startReady: {
+      main: !music || Math.abs((music.currentTime || 0) - (musicTrackMeta.main?.startAt || 0)) <= 0.35 || activeMusicTrack === "main",
+      rush: !rushMusic || Math.abs((rushMusic.currentTime || 0) - (musicTrackMeta.rush?.startAt || 0)) <= 0.35 || activeMusicTrack === "rush",
+    },
     overlapSafe: !music || !rushMusic || music.paused || rushMusic.paused || music.volume === 0 || rushMusic.volume === 0,
     sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
     sfxLocalDownloads: Object.entries(audioSources)
@@ -4896,6 +4942,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
     projectileFx: !!images.projectileFx,
     playerEffects: !!images.playerEffects,
     weaponEvolutionFx: !!images.weaponEvolutionFx,
+    xpCrystalAnim: !!images.xpCrystalAnim,
+    xpCrystalAnimationFrames: { ...XP_CRYSTAL_ANIM },
     projectileFxTypes: Object.keys(projectileFxMap),
     playerEffectTypes: Object.keys(playerEffectMap),
     weaponEvolutionFxTypes: Object.keys(weaponEvolutionFxMap),
