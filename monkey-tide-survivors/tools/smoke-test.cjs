@@ -79,6 +79,7 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
+    "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
@@ -110,10 +111,12 @@ async function run() {
     "assets/ui/parchment_button_imagen_hd.webp",
     "assets/ui/parchment_card_imagen_hd.webp",
     "assets/ui/parchment_scrap_imagen_hd.webp",
-    "assets/audio/bgm/crimson-galleon.mp3",
-    "assets/audio/bgm/gargoyle-chapel-run.mp3",
-    "assets/audio/bgm/coconut-caper-loop.mp3",
-    "assets/audio/bgm/shoreline-rum-riddle.mp3",
+    "assets/audio/bgm/tidebarrel-dockside-drive.mp3",
+    "assets/audio/bgm/black-chapel-gate-drive.mp3",
+    "assets/audio/bgm/turbo-banana-cup-drive.mp3",
+    "assets/audio/bgm/treasure-tide-route-drive.mp3",
+    "assets/audio/bgm/voodoo-hut-shuffle-drive.mp3",
+    "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -359,7 +362,7 @@ async function run() {
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
-  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the normalized Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
+  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v3.png"), `Runtime should use the normalized monkey-and-Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinFixedDuoAsset === true && debug.preloadedAssetKeys.includes("samMaxDuo"), `Fixed Sam and Max duo asset is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
@@ -390,7 +393,7 @@ async function run() {
   assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   const starFarmboyHeadSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png?skywalker-head-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?skywalker-head-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -425,7 +428,7 @@ async function run() {
   assert(starFarmboyHeadSafe.every((box) => box.edgeAlpha === 0 && box.minY >= 36 && box.maxY <= 242), `Skywalker/starFarmboy row still lacks headroom: ${JSON.stringify(starFarmboyHeadSafe)}`);
   const dhampirFootSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png?dhampir-foot-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?dhampir-foot-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -496,6 +499,44 @@ async function run() {
       && Math.max(...dhampirHeights) - Math.min(...dhampirHeights) <= 2,
     `Alucard/dhampir walk row still has scale pulse or foot slice artifacts: ${JSON.stringify(dhampirFootSafe)}`,
   );
+  const curseMonkeyStable = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?curse-monkey-stable";
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const row = 1;
+    const cell = 256;
+    const frames = [];
+    for (let col = 0; col < 8; col += 1) {
+      const data = ctx.getImageData(col * cell, row * cell, cell, cell).data;
+      let minY = cell;
+      let maxY = -1;
+      let edgeAlpha = 0;
+      let bottomPixels = 0;
+      for (let y = 0; y < cell; y += 1) {
+        for (let x = 0; x < cell; x += 1) {
+          const alpha = data[(y * cell + x) * 4 + 3];
+          if (alpha <= 8) continue;
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+          if (x === 0 || y === 0 || x === cell - 1 || y === cell - 1) edgeAlpha += 1;
+          if (y >= 240) bottomPixels += 1;
+        }
+      }
+      frames.push({ col, height: maxY - minY + 1, minY, maxY, edgeAlpha, bottomPixels });
+    }
+    return frames;
+  });
+  const curseMonkeyHeights = curseMonkeyStable.map((frame) => frame.height);
+  assert(
+    curseMonkeyStable.every((frame) => frame.edgeAlpha === 0 && frame.bottomPixels === 0 && frame.maxY <= 238 && frame.height >= 204 && frame.height <= 207)
+      && Math.max(...curseMonkeyHeights) - Math.min(...curseMonkeyHeights) <= 2,
+    `Fluchaffe/curseMonkey walk row still has pulse or bottom slice artifacts: ${JSON.stringify(curseMonkeyStable)}`,
+  );
   assert(debug.weapons.cutlass >= 1, "Cutlass weapon missing");
   assert(typeof debug.speech.supported === "boolean", `Speech debug missing: ${JSON.stringify(debug)}`);
   assert(debug.speech.muted === false, `Speech should follow audio mute state: ${JSON.stringify(debug)}`);
@@ -509,10 +550,18 @@ async function run() {
   assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.activeTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to rush BGM: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
-  assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("coconut-caper-loop.mp3"), `Selected map did not switch to its BGM profile: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
   assert(new Set(Object.values(debug.audio.music.characterThemes).map((profile) => `${profile.theme}:${profile.mainKey}:${profile.rushKey}:${profile.mainStartAt}:${profile.rushStartAt}`)).size === debug.playerSkinTypes.length, `Every character should have a distinct BGM identity: ${JSON.stringify(debug.audio.music.characterThemes)}`);
-  assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 30 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
-  assert(debug.audio.sources.bgmMain.includes("crimson-galleon.mp3") && debug.audio.sources.bgmRush.includes("gargoyle-chapel-run.mp3") && debug.audio.sources.bgmShoreline.includes("shoreline-rum-riddle.mp3"), `Driving BGM tracks are not selected: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 18 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
+  assert(
+    debug.audio.sources.bgmMain.includes("tidebarrel-dockside-drive.mp3")
+      && debug.audio.sources.bgmRush.includes("black-chapel-gate-drive.mp3")
+      && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3")
+      && debug.audio.sources.bgmShoreline.includes("treasure-tide-route-drive.mp3")
+      && debug.audio.sources.bgmVoodoo.includes("voodoo-hut-shuffle-drive.mp3")
+      && debug.audio.sources.bgmCathedral.includes("cathedral-hunt-overture-drive.mp3"),
+    `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
+  );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
   assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.sfx.slashSwish <= 0.025 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
@@ -530,9 +579,10 @@ async function run() {
       && movementProbe.cameraCatchup >= 10,
     `Movement tuning still feels heavy: ${JSON.stringify(movementProbe)}`,
   );
-  assert(debug.balance.bossHpMult >= 2.6 && debug.balance.normalSpawnIntensity >= 1.2, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
-  assert(debug.balance.bossHpMult <= 2.75 && debug.balance.normalSpawnIntensity <= 1.28, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
-  assert(debug.balance.firstBossAt <= 150 && debug.balance.rangedPressureAt <= 65 && debug.balance.pressureWaveFirstAt <= 30, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult >= 2.85 && debug.balance.normalSpawnIntensity >= 1.34, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult <= 3.0 && debug.balance.normalSpawnIntensity <= 1.42, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
+  assert(debug.balance.firstBossAt <= 130 && debug.balance.rangedPressureAt <= 52 && debug.balance.pressureWaveFirstAt <= 22, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
+  assert(debug.enemyTuning.visualScale >= 1.1 && debug.enemyTuning.hitboxScale >= 1.06 && debug.enemyTuning.secondEliteFromWave <= 3, `Enemy readability/pressure tuning missing: ${JSON.stringify(debug.enemyTuning)}`);
   assert(debug.engagement.pressureWaves >= 1 && debug.engagement.pressureWave >= 1, `Pressure waves did not fire: ${JSON.stringify(debug.engagement)}`);
   assert(debug.engagement.eliteEnemies + debug.engagement.elitesDefeated >= 1, `Pressure waves should mark an elite omen target: ${JSON.stringify(debug.engagement)}`);
   assert(debug.enemyRoster.liveRosterIsMonsterOnly === true, `Live enemy roster still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);

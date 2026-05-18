@@ -45,7 +45,7 @@ const imageSources = {
   mapTreasureAtoll: "assets/backgrounds/map_treasure_atoll_hd.jpg",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
-  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png?v=dhampir-foot-stable-v1",
+  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?v=curse-monkey-stable-v1",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
@@ -78,10 +78,12 @@ const imageSources = {
 };
 
 const audioSources = {
-  bgmMain: "assets/audio/bgm/crimson-galleon.mp3",
-  bgmRush: "assets/audio/bgm/gargoyle-chapel-run.mp3",
-  bgmCaper: "assets/audio/bgm/coconut-caper-loop.mp3",
-  bgmShoreline: "assets/audio/bgm/shoreline-rum-riddle.mp3",
+  bgmMain: "assets/audio/bgm/tidebarrel-dockside-drive.mp3",
+  bgmRush: "assets/audio/bgm/black-chapel-gate-drive.mp3",
+  bgmCaper: "assets/audio/bgm/turbo-banana-cup-drive.mp3",
+  bgmShoreline: "assets/audio/bgm/treasure-tide-route-drive.mp3",
+  bgmVoodoo: "assets/audio/bgm/voodoo-hut-shuffle-drive.mp3",
+  bgmCathedral: "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
   pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
   chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
   gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -186,6 +188,13 @@ const CONTROL_TUNING = {
   stickFullAt: 0.7,
   stickCurve: 0.56,
 };
+const ENEMY_TUNING = {
+  visualScale: 1.12,
+  hitboxScale: 1.08,
+  pressureWaveDesktopCap: 12,
+  pressureWaveMobileCap: 7,
+  secondEliteFromWave: 3,
+};
 let mobileLike = false;
 
 const CHAR = { w: 192, h: 256, cols: 16 };
@@ -217,16 +226,16 @@ const PROP_SPAWN_BUFFER = 360;
 const PROP_FADE_SECONDS = 1.25;
 const TARGET_TIME = 330;
 const BALANCE = {
-  normalSpawnIntensity: 1.22,
-  quickSpawnIntensity: 1.48,
-  enemyHpGrowth: 305,
-  enemySpeedGrowth: 820,
-  bossHpMult: 2.62,
-  firstBossAt: 148,
-  bossInterval: 62,
-  rangedPressureAt: 62,
-  pressureWaveFirstAt: 26,
-  pressureWaveInterval: 34,
+  normalSpawnIntensity: 1.36,
+  quickSpawnIntensity: 1.62,
+  enemyHpGrowth: 270,
+  enemySpeedGrowth: 700,
+  bossHpMult: 2.9,
+  firstBossAt: 126,
+  bossInterval: 54,
+  rangedPressureAt: 50,
+  pressureWaveFirstAt: 20,
+  pressureWaveInterval: 28,
 };
 
 const playerSkinMap = {
@@ -235,7 +244,7 @@ const playerSkinMap = {
     sheet: "characters",
     w: 104,
     h: 138,
-    music: { theme: "Galleon Command", main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5, mainStartAt: 0, rushStartAt: 8, mainRate: 1, rushRate: 1 },
+    music: { theme: "Dockside Drive", main: "bgmMain", rush: "bgmRush", mainVolume: 0.64, rushVolume: 0.56, mainStartAt: 0, rushStartAt: 8, mainRate: 1.03, rushRate: 1.03 },
     sfx: { confirm: "confirm", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "heavyHit", pickup: "pickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
     trait: { id: "captainCommand", name: "Kaeptninskommando", desc: "+1 Ruestung, stabiler Saebel", armor: 1, damage: 0.03 },
   },
@@ -251,7 +260,7 @@ const playerSkinMap = {
     animRow: 0,
     cellX: 0,
     cellY: 0,
-    music: { theme: "Coconut Caper", main: "bgmCaper", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.52, mainStartAt: 9, rushStartAt: 22, mainRate: 1.015, rushRate: 1.02 },
+    music: { theme: "Turbo Caper", main: "bgmCaper", rush: "bgmShoreline", mainVolume: 0.65, rushVolume: 0.55, mainStartAt: 4, rushStartAt: 18, mainRate: 1.045, rushRate: 1.035 },
     sfx: { confirm: "monsterPop", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "monsterPop", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
     trait: { id: "islandLoot", name: "Inselbeute", desc: "+12% Beutewert, groesserer Magnet", pickupValue: 0.12, magnet: 24 },
   },
@@ -265,9 +274,11 @@ const playerSkinMap = {
     drawH: 118,
     animH: 162,
     animRow: 1,
+    animBob: 0,
+    idleBob: 0,
     cellX: 1,
     cellY: 0,
-    music: { theme: "Shoreline Curse", main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.61, rushVolume: 0.54, rushStart: 88, mainStartAt: 18, rushStartAt: 5, mainRate: 0.985, rushRate: 1.03 },
+    music: { theme: "Voodoo Drive", main: "bgmVoodoo", rush: "bgmCaper", mainVolume: 0.64, rushVolume: 0.57, rushStart: 72, mainStartAt: 10, rushStartAt: 5, mainRate: 1.03, rushRate: 1.05 },
     sfx: { confirm: "monsterPop", slash: "monsterPop", dash: "downloadDash", hurt: "heavyHit", hit: "heavyHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
     trait: { id: "curseMagnet", name: "Fluchsog", desc: "+36 Magnet, +5% Schaden, aber weniger HP", magnet: 36, damage: 0.05, maxHp: -12 },
   },
@@ -284,7 +295,7 @@ const playerSkinMap = {
     animDrawYOffset: 34,
     cellX: 2,
     cellY: 0,
-    music: { theme: "Gargoyle Bloodrun", main: "bgmRush", rush: "bgmShoreline", mainVolume: 0.56, rushVolume: 0.58, rushStart: 76, mainStartAt: 14, rushStartAt: 31, mainRate: 0.98, rushRate: 1 },
+    music: { theme: "Gargoyle Bloodrun", main: "bgmRush", rush: "bgmCathedral", mainVolume: 0.6, rushVolume: 0.58, rushStart: 64, mainStartAt: 14, rushStartAt: 22, mainRate: 1.02, rushRate: 1.03 },
     sfx: { confirm: "upgradeMagic", slash: "slashSwish", dash: "slashSwish", hurt: "heavyHit", hit: "heavyHit", pickup: "chime", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
     trait: { id: "moonLeech", name: "Mondbiss", desc: "+8% Schaden, heilt jeden 9. Kill", damage: 0.08, maxHp: -8, killHealEvery: 9, killHeal: 4 },
   },
@@ -300,7 +311,7 @@ const playerSkinMap = {
     animRow: 3,
     cellX: 0,
     cellY: 1,
-    music: { theme: "Rum Runner", main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.63, rushVolume: 0.5, rushStart: 98, mainStartAt: 38, rushStartAt: 12, mainRate: 1.02, rushRate: 0.99 },
+    music: { theme: "Rum Runner", main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.55, rushStart: 78, mainStartAt: 24, rushStartAt: 8, mainRate: 1.03, rushRate: 1.04 },
     sfx: { confirm: "confirm", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "heavyHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
     trait: { id: "rumSprint", name: "Rumspurt", desc: "+18 Tempo, schnellerer Dash", speed: 18, dashCooldown: -0.08, armor: -0.3 },
   },
@@ -317,7 +328,7 @@ const playerSkinMap = {
     animDrawYOffset: 38,
     cellX: 1,
     cellY: 1,
-    music: { theme: "Twin-Sun Caper", main: "bgmCaper", rush: "bgmRush", mainVolume: 0.58, rushVolume: 0.56, rushStart: 84, mainStartAt: 32, rushStartAt: 24, mainRate: 1.04, rushRate: 1.01 },
+    music: { theme: "Twin-Sun Sprint", main: "bgmCaper", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.56, rushStart: 68, mainStartAt: 18, rushStartAt: 12, mainRate: 1.06, rushRate: 1.03 },
     sfx: { confirm: "chime", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "slashSwish", pickup: "pickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
     trait: { id: "starCompass", name: "Sternenkompass", desc: "Startet mit Kompass I, weniger HP", maxHp: -10, weapons: { compass: 1 }, magnet: 12 },
   },
@@ -329,7 +340,7 @@ const playerSkinMap = {
     animH: 178,
     cellX: 2,
     cellY: 1,
-    music: { theme: "Duo Desk Chase", main: "bgmMain", rush: "bgmCaper", mainVolume: 0.58, rushVolume: 0.52, rushStart: 92, mainStartAt: 44, rushStartAt: 18, mainRate: 1.01, rushRate: 1.035 },
+    music: { theme: "Duo Desk Chase", main: "bgmMain", rush: "bgmVoodoo", mainVolume: 0.61, rushVolume: 0.55, rushStart: 76, mainStartAt: 20, rushStartAt: 16, mainRate: 1.04, rushRate: 1.035 },
     sfx: { confirm: "monsterPop", slash: "slashSwish", dash: "monsterPop", hurt: "downloadHit", hit: "monsterPop", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
     trait: { id: "twoHeads", name: "Doppelermittlung", desc: "Startet mit Tau I, Power-ups halten laenger", speed: -6, pickupValue: 0.06, weapons: { rope: 1 }, powerupDuration: 1.18 },
   },
@@ -352,7 +363,7 @@ const mapVariants = [
     tint: "rgba(255, 222, 142, 0.08)",
     detail: "beach",
     background: "repeatBeach",
-    music: { main: "bgmMain", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.5, rushStart: 112 },
+    music: { main: "bgmMain", rush: "bgmRush", mainVolume: 0.64, rushVolume: 0.56, rushStart: 76 },
     unlockedByDefault: true,
     propBoost: ["boatWreck", "buriedTreasure", "palmTree", "palmHedge"],
     blockerIcons: ["palmTree", "palmHedge", "hedgeCluster", "boatWreck", "beachHut"],
@@ -365,7 +376,7 @@ const mapVariants = [
     tint: "rgba(83, 255, 229, 0.12)",
     detail: "lagoon",
     background: "mapMoonlitLagoon",
-    music: { main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.6, rushVolume: 0.54, rushStart: 96 },
+    music: { main: "bgmShoreline", rush: "bgmCaper", mainVolume: 0.64, rushVolume: 0.56, rushStart: 68 },
     unlockedByDefault: true,
     propBoost: ["clearPuddle", "tidePuddle", "conchShrine", "palmTree", "beachHut", "boatWreck"],
     blockerIcons: ["palmTree", "palmHedge", "hedgeCluster", "conchShrine", "beachHut", "boatWreck"],
@@ -379,7 +390,7 @@ const mapVariants = [
     tint: "rgba(116, 70, 180, 0.16)",
     detail: "gothic",
     background: "mapGothicCove",
-    music: { main: "bgmRush", rush: "bgmMain", mainVolume: 0.56, rushVolume: 0.58, rushStart: 78 },
+    music: { main: "bgmRush", rush: "bgmCathedral", mainVolume: 0.6, rushVolume: 0.58, rushStart: 58 },
     achievement: "nightRaid",
     propBoost: ["bloodRose", "hedgeCluster", "palmTree", "palmHedge"],
     blockerIcons: ["hedgeCluster", "palmTree", "palmHedge", "boatWreck", "beachHut"],
@@ -393,7 +404,7 @@ const mapVariants = [
     tint: "rgba(240, 196, 93, 0.13)",
     detail: "treasure",
     background: "mapTreasureAtoll",
-    music: { main: "bgmCaper", rush: "bgmShoreline", mainVolume: 0.62, rushVolume: 0.52, rushStart: 104 },
+    music: { main: "bgmCaper", rush: "bgmVoodoo", mainVolume: 0.65, rushVolume: 0.56, rushStart: 70 },
     achievement: "wreckDiver",
     propBoost: ["buriedTreasure", "beachHut", "boatWreck", "treasureChest", "palmTree", "palmHedge", "hedgeCluster"],
     blockerIcons: ["palmTree", "palmHedge", "hedgeCluster", "beachHut", "boatWreck"],
@@ -2180,14 +2191,17 @@ function triggerPressureWave() {
   state.pressureWave += 1;
   state.runStats.pressureWaves += 1;
   const pool = pressureWavePool();
-  const cap = isMobileLike() ? 6 : 10;
-  const count = Math.min(cap, 4 + Math.floor(state.elapsed / 58) + (state.pressureWave % 3));
-  let elite = null;
+  const cap = isMobileLike() ? ENEMY_TUNING.pressureWaveMobileCap : ENEMY_TUNING.pressureWaveDesktopCap;
+  const count = Math.min(cap, 5 + Math.floor(state.elapsed / 52) + (state.pressureWave % 3));
+  const eliteTargets = [];
   for (let i = 0; i < count; i += 1) {
     const spawned = spawnEnemy(enemyType(pool[i % pool.length]));
-    if (!elite && spawned) elite = spawned;
+    if (spawned) eliteTargets.push(spawned);
   }
-  if (elite) markEliteEnemy(elite, state.pressureWave);
+  const eliteCount = state.pressureWave >= ENEMY_TUNING.secondEliteFromWave ? 2 : 1;
+  for (const elite of eliteTargets.slice(0, eliteCount)) {
+    markEliteEnemy(elite, state.pressureWave);
+  }
   state.warningTimer = Math.max(state.warningTimer, 1.6);
   floatingText(`Flutwelle ${state.pressureWave}`, state.player.x, state.player.y - 120, "#fff2c7", 0.9, 32, { priority: 3 });
   playSkinSound("warning", "downloadBossWarning", { cooldown: 14000 });
@@ -2234,7 +2248,7 @@ function spawnEnemy(type, boss = false) {
     y: clamp(y, 80, WORLD.h - 80),
     hp: scaledHp,
     maxHp: scaledHp,
-    r: type.radius * (boss ? 1.25 : 1),
+    r: type.radius * ENEMY_TUNING.hitboxScale * (boss ? 1.25 : 1),
     speed: type.speed * (1 + state.elapsed / BALANCE.enemySpeedGrowth),
     damage: type.damage,
     row: type.row,
@@ -3178,6 +3192,7 @@ function drawEnemies() {
     const px = ox + enemy.x;
     const py = oy + enemy.y;
     const flip = enemy.x > state.player.x ? -1 : 1;
+    const drawScale = enemy.type.scale * ENEMY_TUNING.visualScale * (enemy.elite ? 1.04 : 1);
     let w = 0;
     let h = 0;
     ctx.save();
@@ -3190,14 +3205,14 @@ function drawEnemies() {
       const sx = (frame % THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.w;
       const sy = Math.floor(frame / THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.h;
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
-      w = THREE_HEADED_MONKEY_ANIM.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      h = THREE_HEADED_MONKEY_ANIM.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      w = THREE_HEADED_MONKEY_ANIM.w * drawScale * (enemy.boss ? 1.18 : 1);
+      h = THREE_HEADED_MONKEY_ANIM.h * drawScale * (enemy.boss ? 1.18 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
-      w = images.threeHeadedMonkey.width * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      h = images.threeHeadedMonkey.height * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      w = images.threeHeadedMonkey.width * drawScale * (enemy.boss ? 1.18 : 1);
+      h = images.threeHeadedMonkey.height * drawScale * (enemy.boss ? 1.18 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeardAnim) {
@@ -3205,22 +3220,22 @@ function drawEnemies() {
       const sx = (frame % BLACKBEARD_ANIM.cols) * BLACKBEARD_ANIM.w;
       const sy = Math.floor(frame / BLACKBEARD_ANIM.cols) * BLACKBEARD_ANIM.h;
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
-      w = BLACKBEARD_ANIM.w * enemy.type.scale * (enemy.boss ? 1.08 : 1);
-      h = BLACKBEARD_ANIM.h * enemy.type.scale * (enemy.boss ? 1.08 : 1);
+      w = BLACKBEARD_ANIM.w * drawScale * (enemy.boss ? 1.08 : 1);
+      h = BLACKBEARD_ANIM.h * drawScale * (enemy.boss ? 1.08 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeard) {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
-      w = images.blackbeard.width * enemy.type.scale * (enemy.boss ? 1.08 : 1);
-      h = images.blackbeard.height * enemy.type.scale * (enemy.boss ? 1.08 : 1);
+      w = images.blackbeard.width * drawScale * (enemy.boss ? 1.08 : 1);
+      h = images.blackbeard.height * drawScale * (enemy.boss ? 1.08 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeard, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.captainSheet) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
       const sx = frame * SPECTRAL_CAPTAIN.w;
       const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
-      w = SPECTRAL_CAPTAIN.w * enemy.type.scale * (enemy.boss ? 1.05 : 1);
-      h = SPECTRAL_CAPTAIN.h * enemy.type.scale * (enemy.boss ? 1.05 : 1);
+      w = SPECTRAL_CAPTAIN.w * drawScale * (enemy.boss ? 1.05 : 1);
+      h = SPECTRAL_CAPTAIN.h * drawScale * (enemy.boss ? 1.05 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 18;
       ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicRow !== undefined) {
@@ -3228,8 +3243,8 @@ function drawEnemies() {
       const sx = frame * GOTHIC_ENEMY.w;
       const sy = enemy.type.gothicRow * GOTHIC_ENEMY.h;
       const bob = enemy.type.id === "cryptBat" ? Math.sin(state.elapsed * 8 + enemy.frameOffset) * 8 : 0;
-      w = GOTHIC_ENEMY.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      h = GOTHIC_ENEMY.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
+      w = GOTHIC_ENEMY.w * drawScale * (enemy.boss ? 1.18 : 1);
+      h = GOTHIC_ENEMY.h * drawScale * (enemy.boss ? 1.18 : 1);
       ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.newEnemyAnim && images.newEnemyTrio) {
       const anim = newEnemyAnimMap[enemy.type.newEnemyAnim] || newEnemyAnimMap.tideTentacle;
@@ -3239,28 +3254,28 @@ function drawEnemies() {
       const bob = enemy.type.id === "reefSquid"
         ? Math.sin(state.elapsed * 8.8 + enemy.frameOffset) * 8
         : Math.sin(state.elapsed * 5.4 + enemy.frameOffset) * 3.5;
-      w = NEW_ENEMY_TRIO.w * enemy.type.scale * (enemy.boss ? 1.16 : 1);
-      h = NEW_ENEMY_TRIO.h * enemy.type.scale * (enemy.boss ? 1.16 : 1);
+      w = NEW_ENEMY_TRIO.w * drawScale * (enemy.boss ? 1.16 : 1);
+      h = NEW_ENEMY_TRIO.h * drawScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.extraSprite) {
       const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
       const bob = Math.sin(state.elapsed * (enemy.type.id === "powderImp" ? 9 : 5.5) + enemy.frameOffset) * (enemy.type.id === "lanternWraith" ? 7 : 3.5);
-      w = EXTRA_ENEMY.w * enemy.type.scale * (enemy.boss ? 1.16 : 1);
-      h = EXTRA_ENEMY.h * enemy.type.scale * (enemy.boss ? 1.16 : 1);
+      w = EXTRA_ENEMY.w * drawScale * (enemy.boss ? 1.16 : 1);
+      h = EXTRA_ENEMY.h * drawScale * (enemy.boss ? 1.16 : 1);
       ctx.drawImage(images.extraEnemies, src.x * EXTRA_ENEMY.w, src.y * EXTRA_ENEMY.h, EXTRA_ENEMY.w, EXTRA_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.sprite) {
       const src = newSpriteMap[enemy.type.sprite];
       const bob = Math.sin(state.elapsed * (enemy.type.id === "crab" ? 10 : 6) + enemy.frameOffset) * (enemy.type.id === "crab" ? 5 : 3);
-      w = NEWSPRITE.w * enemy.type.scale * (enemy.boss ? 1.22 : 1);
-      h = NEWSPRITE.h * enemy.type.scale * (enemy.boss ? 1.22 : 1);
+      w = NEWSPRITE.w * drawScale * (enemy.boss ? 1.22 : 1);
+      h = NEWSPRITE.h * drawScale * (enemy.boss ? 1.22 : 1);
       ctx.drawImage(images.newSprites, src.x * NEWSPRITE.w, src.y * NEWSPRITE.h, NEWSPRITE.w, NEWSPRITE.h, -w / 2, -h + enemy.r + bob, w, h);
     } else {
       const frame = (Math.floor(state.elapsed * 9) + enemy.frameOffset) % 16;
       const sx = frame * CHAR.w;
       const sy = enemy.row * CHAR.h;
-      w = CHAR.w * enemy.type.scale * (enemy.boss ? 1.15 : 1);
-      h = CHAR.h * enemy.type.scale * (enemy.boss ? 1.15 : 1);
+      w = CHAR.w * drawScale * (enemy.boss ? 1.15 : 1);
+      h = CHAR.h * drawScale * (enemy.boss ? 1.15 : 1);
       ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h);
     }
     ctx.restore();
@@ -3344,7 +3359,7 @@ function drawPlayer() {
     const frame = moving ? Math.floor(state.elapsed * 12) % PLAYER_SKIN_WALK.cols : 0;
     const sx = frame * PLAYER_SKIN_WALK.w;
     const sy = skin.animRow * PLAYER_SKIN_WALK.h;
-    const bob = moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.3;
+    const bob = moving ? 0 : Math.sin(state.elapsed * 3.2) * (skin.idleBob ?? 1.3);
     const h = skin.animH;
     const w = h;
     ctx.drawImage(images.playerSkinWalks, sx, sy, PLAYER_SKIN_WALK.w, PLAYER_SKIN_WALK.h, -w / 2, -h + (skin.animDrawYOffset ?? 32) + bob, w, h);
@@ -4102,7 +4117,7 @@ window.__MONKEY_TIDE_SPAWN_ENEMY = (id, x = state.player.x + 260, y = state.play
     y: clamp(y, 80, WORLD.h - 80),
     hp: scaledHp,
     maxHp: scaledHp,
-    r: type.radius * (boss ? 1.25 : 1),
+    r: type.radius * ENEMY_TUNING.hitboxScale * (boss ? 1.25 : 1),
     speed: type.speed * (1 + state.elapsed / BALANCE.enemySpeedGrowth),
     damage: type.damage,
     row: type.row,
@@ -4444,6 +4459,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
   },
   balance: { ...BALANCE },
+  enemyTuning: { ...ENEMY_TUNING },
   enemyRoster: {
     activeBossCycle: [...activeBossCycle],
     activeSpawnTypes: pressureWavePool(),

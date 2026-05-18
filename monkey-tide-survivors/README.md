@@ -47,6 +47,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Das Live-Spawn-Roster nutzt jetzt nur noch Kreaturen, Untote und Monster; menschliche NPC-Gegner sind aus normalen Wellen und Bosszyklen entfernt.
 - Die ersten Gegner laufen jetzt ueber eine Anti-Repeat-Rotation mit Krabben, Fledermaeusen, Pulver-Imps und Riff-Squids, statt immer denselben Auftakt zu zeigen.
 - Spaetere Runs trimmen entfernte Normalgegner und zeichnen nur noch ein priorisiertes Sprite-Budget, damit volle Screens nicht sofort laggy werden.
+- BGM-Rotation nutzt jetzt treibendere lokale Download-Tracks wie Turbo Banana Cup, Tidebarrel Dockside, Treasure Tide Route, Voodoo Hut Shuffle und Black Chapel Gate.
+- Gegner sind groesser lesbar, haben groessere Hitboxen, mehr Spawn-Druck und ab der dritten Flutwelle zwei Elite-Omen-Ziele.
 - Bewegung reagiert direkter mit hoeherem Grundtempo, kuerzerem Dash-Cooldown, laengerem Boost-Fenster, schnellerer Kamera und sensiblerer Mobile-Stick-Kurve.
 - Desktop ist nochmals weiter herausgezoomt; Flutwellen markieren jetzt Elite-Omen-Gegner mit Extra-Beute, damit Wellen ein klares Zwischenziel haben.
 - Dhampir/Alucard nutzt ein nachnormalisiertes Walksheet mit stabiler Frame-Hoehe und entfernten Fuss-/Slice-Artefakten.
@@ -68,6 +70,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Kill-Streaks geben XP-Sog und spawnen Streak-Schaetze, damit aggressive Routen mehr Belohnung und kleine Ziele bekommen.
 - Kamera zoomt auf Desktop und Mobile nochmals weiter raus; Portrait- und Querformat-HUD bleiben minimal.
 - Fluchaffe/Player-Sheets, Strandhuetten und Buesche behalten jetzt eine stabile Groesse; nur Positions-Bob/Animation bleibt erhalten.
+- Fluchaffe nutzt ein nachnormalisiertes Walksheet ohne untere Slice-Artefakte und ohne Idle-Bob, damit er nicht mehr optisch pulsiert.
 - Mobile Preload ist leichter, weil alte ungenutzte HD-Hintergruende nicht mehr vor Spielstart geladen werden.
 - Exakterer Ladebalken, der wirklich abgeschlossene Bild-Assets zaehlt statt parallel geladene Indexwerte zu raten.
 - Strafferer Balance-Pass mit frueheren Bossen, mehr Spawn-Druck, Gegner-Projektilen, Cutlass+Coconut-Start, schnellerem Dash, starker XP-Magnet-/Undertow-Logik, Level-Heilung und besserer Bedrohungskurve.
