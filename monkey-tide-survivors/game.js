@@ -163,12 +163,18 @@ const mobileDisplayState = {
 const loadingState = { loaded: 0, total: 0, last: "" };
 const MOBILE_PERF = {
   dpr: 1,
-  enemyCap: 125,
+  enemyCap: 105,
   particleCap: 42,
   textCap: 18,
   propChunkRadius: 2,
   propPruneRadius: 4,
   textMin: 26,
+};
+const PERF_GUARDS = {
+  desktopEnemyCap: 178,
+  desktopEnemyRenderBudget: 132,
+  mobileEnemyRenderBudget: 76,
+  trimBuffer: 10,
 };
 let mobileLike = false;
 
@@ -958,6 +964,8 @@ function makeState() {
     propChunks: new Set(),
     propsByChunk: new Map(),
     looseProps: [],
+    enemyRotation: { cursor: 0, recent: [] },
+    perf: { trimmedEnemies: 0, visibleEnemies: 0, drawnEnemies: 0, skippedEnemySprites: 0 },
     domTick: 0,
     tidePuddleCooldown: 0,
     voice: {
@@ -2097,32 +2105,38 @@ function enemyType(id) {
 }
 
 function pickEnemyType() {
+  return enemyType(pickEnemyRotationId());
+}
+
+function enemyRotationPool() {
   const t = state.elapsed;
-  const roll = Math.random();
   const variant = mapVariant(state.map);
-  const favored = (variant.enemyFavor || []).filter((id) => !enemyType(id).humanNpc);
-  if (favored.length && roll < 0.24) return enemyType(favored[Math.floor(Math.random() * favored.length)]);
-  if (variant.detail === "lagoon" && t > 52 && roll < 0.43) return enemyType("reefSquid");
-  if (variant.detail === "treasure" && t > 64 && roll < 0.44) return enemyType("cactusStack");
-  if (variant.detail === "lagoon" && t > 38 && roll < 0.34) return enemyType("hand");
-  if (variant.detail === "treasure" && t > 48 && roll < 0.36) return enemyType("powderImp");
-  if (t > 282 && roll < 0.16) return enemyType("gargoyle");
-  if (t > 238 && roll < 0.2) return enemyType("coralBrute");
-  if (t > 220 && roll < 0.26) return enemyType("barrelMaw");
-  if (t > 192 && roll < 0.31) return enemyType("cactusStack");
-  if (t > 150 && roll < 0.36) return enemyType("lanternWraith");
-  if (t > 126 && roll < 0.42) return enemyType("boneCorsair");
-  if (t > 104 && roll < 0.45) return enemyType("tideTentacle");
-  if (t > 88 && roll < 0.48) return enemyType("reefSquid");
-  if (t > 56 && roll < 0.54) return enemyType("powderImp");
-  if (t > 250 && roll < 0.1) return enemyType("gargoyle");
-  if (t > 205 && roll < 0.18) return enemyType("barrelMaw");
-  if (t > 162 && roll < 0.28) return enemyType("hand");
-  if (t > 118 && roll < 0.4) return enemyType("boneCorsair");
-  if (t > 82 && roll < 0.5) return enemyType("tideTentacle");
-  if (t > 42 && roll < 0.62) return enemyType("cryptBat");
-  if (t > 24 && roll < 0.72) return enemyType("crab");
-  return enemyType("crab");
+  const ids = ["crab", "cryptBat", "powderImp", "reefSquid"];
+  if (t > 14) ids.push("hand");
+  if (t > 26) ids.push("tideTentacle");
+  if (t > 44) ids.push("boneCorsair", "lanternWraith");
+  if (t > 72) ids.push("barrelMaw");
+  if (t > 96) ids.push("cactusStack");
+  if (t > 156) ids.push("gargoyle");
+  if (t > 214) ids.push("coralBrute");
+  if (variant.detail === "lagoon") ids.push("hand", "reefSquid", "tideTentacle");
+  if (variant.detail === "treasure") ids.push("powderImp", "cactusStack", "barrelMaw");
+  ids.push(...(variant.enemyFavor || []));
+  return [...new Set(ids)].filter((id) => !enemyType(id).humanNpc);
+}
+
+function pickEnemyRotationId() {
+  const pool = enemyRotationPool();
+  if (!state.enemyRotation) state.enemyRotation = { cursor: 0, recent: [] };
+  const recent = state.enemyRotation.recent || [];
+  const avoidCount = Math.min(3, Math.max(1, Math.floor(pool.length / 2)));
+  let candidates = pool.filter((id) => !recent.slice(-avoidCount).includes(id));
+  if (!candidates.length) candidates = pool;
+  const jitter = Math.floor(Math.random() * Math.min(3, candidates.length));
+  const id = candidates[(state.enemyRotation.cursor + jitter) % candidates.length] || pool[0] || "crab";
+  state.enemyRotation.cursor = (state.enemyRotation.cursor + 1) % Math.max(1, pool.length);
+  state.enemyRotation.recent = [...recent, id].slice(-6);
+  return id;
 }
 
 function pressureWavePool() {
@@ -2142,7 +2156,7 @@ function triggerPressureWave() {
   state.pressureWave += 1;
   state.runStats.pressureWaves += 1;
   const pool = pressureWavePool();
-  const cap = isMobileLike() ? 8 : 14;
+  const cap = isMobileLike() ? 6 : 10;
   const count = Math.min(cap, 4 + Math.floor(state.elapsed / 58) + (state.pressureWave % 3));
   let elite = null;
   for (let i = 0; i < count; i += 1) {
@@ -2213,7 +2227,44 @@ function spawnEnemy(type, boss = false) {
 }
 
 function enemyCap() {
-  return isMobileLike() ? MOBILE_PERF.enemyCap : 230;
+  return isMobileLike() ? MOBILE_PERF.enemyCap : PERF_GUARDS.desktopEnemyCap;
+}
+
+function enemyRenderBudget() {
+  return isMobileLike() ? PERF_GUARDS.mobileEnemyRenderBudget : PERF_GUARDS.desktopEnemyRenderBudget;
+}
+
+function ensurePerfState() {
+  if (!state.perf) {
+    state.perf = {
+      trimmedEnemies: 0,
+      visibleEnemies: 0,
+      drawnEnemies: 0,
+      skippedEnemySprites: 0,
+    };
+  }
+  return state.perf;
+}
+
+function trimEnemyPopulation() {
+  const hardCap = enemyCap() + PERF_GUARDS.trimBuffer;
+  if (!state.enemies || state.enemies.length <= hardCap) return;
+  const p = state.player;
+  const prioritized = state.enemies.map((enemy) => ({
+    enemy,
+    keep: enemy.boss || enemy.elite,
+    dist: Math.hypot(enemy.x - p.x, enemy.y - p.y),
+  }));
+  const protectedEnemies = prioritized.filter((entry) => entry.keep).map((entry) => entry.enemy);
+  const regularBudget = Math.max(24, hardCap - protectedEnemies.length);
+  const regularEnemies = prioritized
+    .filter((entry) => !entry.keep)
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, regularBudget)
+    .map((entry) => entry.enemy);
+  const nextEnemies = [...protectedEnemies, ...regularEnemies];
+  ensurePerfState().trimmedEnemies += Math.max(0, state.enemies.length - nextEnemies.length);
+  state.enemies = nextEnemies;
 }
 
 function updateEnemies(dt) {
@@ -2241,6 +2292,7 @@ function updateEnemies(dt) {
     }
   }
   state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
+  trimEnemyPopulation();
 }
 
 function updateEnemyRangedAttack(enemy, dt, dist, dx, dy) {
@@ -3043,8 +3095,7 @@ function drawProps() {
   const mobile = isMobileLike();
   for (const prop of state.props) {
     if (!onScreen(prop.x, prop.y, 320)) continue;
-    const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
-    const size = getPropDisplaySize(prop.icon, prop.scale * pulse);
+    const size = getPropDisplaySize(prop.icon, prop.scale);
     const spawnProgress = propSpawnProgress(prop);
     const alpha = propRenderAlpha(prop) * spawnProgress;
     if (alpha <= 0.02) continue;
@@ -3098,9 +3149,8 @@ function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
   const mobile = isMobileLike();
-  const enemies = state.enemies.sort((a, b) => a.y - b.y);
+  const enemies = visibleEnemiesForRender();
   for (const enemy of enemies) {
-    if (!onScreen(enemy.x, enemy.y, 220)) continue;
     const px = ox + enemy.x;
     const py = oy + enemy.y;
     const flip = enemy.x > state.player.x ? -1 : 1;
@@ -3212,6 +3262,29 @@ function drawEnemies() {
   }
 }
 
+function visibleEnemiesForRender() {
+  const visible = state.enemies.filter((enemy) => onScreen(enemy.x, enemy.y, 220));
+  const budget = enemyRenderBudget();
+  let selected = visible;
+  if (visible.length > budget) {
+    const p = state.player;
+    selected = visible
+      .map((enemy) => ({
+        enemy,
+        priority: enemy.boss ? 0 : enemy.elite ? 1 : enemy.hit > 0 ? 2 : 3,
+        dist: Math.hypot(enemy.x - p.x, enemy.y - p.y),
+      }))
+      .sort((a, b) => a.priority - b.priority || a.dist - b.dist)
+      .slice(0, budget)
+      .map((entry) => entry.enemy);
+  }
+  const perf = ensurePerfState();
+  perf.visibleEnemies = visible.length;
+  perf.drawnEnemies = selected.length;
+  perf.skippedEnemySprites = Math.max(0, visible.length - selected.length);
+  return selected.sort((a, b) => a.y - b.y);
+}
+
 function drawPlayer() {
   const p = state.player;
   const ox = scene.w / 2 - state.camera.x;
@@ -3240,8 +3313,7 @@ function drawPlayer() {
     ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
   } else if (skin.sheet === "samMaxDuo" && images.samMaxDuo) {
     const bob = moving ? Math.sin(state.elapsed * 13) * 3.4 : Math.sin(state.elapsed * 3.2) * 1.2;
-    const stretch = moving ? 1 + Math.sin(state.elapsed * 18) * 0.018 : 1;
-    const h = skin.drawH * stretch;
+    const h = skin.drawH;
     const w = h * (images.samMaxDuo.width / images.samMaxDuo.height);
     ctx.drawImage(images.samMaxDuo, -w / 2, -h + 30 + bob, w, h);
   } else if (skin.animRow !== undefined && images.playerSkinWalks) {
@@ -3254,8 +3326,7 @@ function drawPlayer() {
     ctx.drawImage(images.playerSkinWalks, sx, sy, PLAYER_SKIN_WALK.w, PLAYER_SKIN_WALK.h, -w / 2, -h + (skin.animDrawYOffset ?? 32) + bob, w, h);
   } else if (skin.sheet === "playerSkins" && images.playerSkins) {
     const bob = moving ? Math.sin(state.elapsed * 13) * 4 : Math.sin(state.elapsed * 3.2) * 1.5;
-    const stretch = moving ? 1 + Math.sin(state.elapsed * 20) * 0.025 : 1;
-    const h = skin.drawH * stretch;
+    const h = skin.drawH;
     const w = h * (skin.w / skin.h);
     ctx.drawImage(images.playerSkins, skin.x, skin.y, skin.w, skin.h, -w / 2, -h + 30 + bob, w, h);
   } else {
@@ -4200,9 +4271,31 @@ window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_ROTATION_PROBE = () => {
+  const savedElapsed = state.elapsed;
+  const savedRotation = state.enemyRotation ? {
+    cursor: state.enemyRotation.cursor,
+    recent: [...(state.enemyRotation.recent || [])],
+  } : null;
+  state.elapsed = 0;
+  state.enemyRotation = { cursor: 0, recent: [] };
+  const openingPool = enemyRotationPool();
+  const openingPicks = Array.from({ length: 8 }, () => pickEnemyRotationId());
+  state.elapsed = 32;
+  const midPool = enemyRotationPool();
+  state.elapsed = savedElapsed;
+  state.enemyRotation = savedRotation || { cursor: 0, recent: [] };
+  return {
+    openingPool,
+    openingPicks,
+    openingUnique: [...new Set(openingPicks)].length,
+    midPool,
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
+  const perf = ensurePerfState();
   return ({
   ready,
   phase: state.phase,
@@ -4307,6 +4400,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
   enemyRoster: {
     activeBossCycle: [...activeBossCycle],
     activeSpawnTypes: pressureWavePool(),
+    activeRotationPool: enemyRotationPool(),
+    recentRotation: [...(state.enemyRotation?.recent || [])],
     spawnedTypes: [...new Set(state.enemies.map((enemy) => enemy.type.id))],
     humanNpcTypes: enemyTypes.filter((type) => type.humanNpc).map((type) => type.id),
     liveRosterIsMonsterOnly: activeBossCycle.every((id) => !enemyType(id).humanNpc)
@@ -4319,6 +4414,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
     mobile: isMobileLike(),
     dpr,
     enemyCap: enemyCap(),
+    enemyRenderBudget: enemyRenderBudget(),
+    visibleEnemies: perf.visibleEnemies,
+    drawnEnemies: perf.drawnEnemies,
+    skippedEnemySprites: perf.skippedEnemySprites,
+    trimmedEnemies: perf.trimmedEnemies,
+    stablePropScale: true,
+    stablePlayerScale: true,
     propCount: state.props.length,
     particleCap: isMobileLike() ? MOBILE_PERF.particleCap : 90,
     textCap: isMobileLike() ? MOBILE_PERF.textCap : 34,

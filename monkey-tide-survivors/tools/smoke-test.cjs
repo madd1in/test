@@ -328,7 +328,7 @@ async function run() {
   assert(mobileStartDisplay.debug.mobileDisplay.requested === true && mobileStartDisplay.debug.mobileDisplay.orientationPreference === "portrait-primary", `Mobile start should prefer portrait fullscreen: ${JSON.stringify(mobileStartDisplay.debug.mobileDisplay)}`);
   assert(mobileStartDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")) && !mobileStartDisplay.orientationLocks.includes("landscape"), `Mobile start requested the wrong orientation: ${JSON.stringify(mobileStartDisplay)}`);
   assert(mobileStartDisplay.debug.performance.mobile === true && mobileStartDisplay.debug.performance.dpr <= 1.01, `Mobile DPR guardrail is too high: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
-  assert(mobileStartDisplay.debug.performance.enemyCap <= 125 && mobileStartDisplay.debug.performance.textCap <= 18 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
+  assert(mobileStartDisplay.debug.performance.enemyCap <= 105 && mobileStartDisplay.debug.performance.enemyRenderBudget <= 76 && mobileStartDisplay.debug.performance.textCap <= 18 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(() => {
     window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS = [];
@@ -353,7 +353,8 @@ async function run() {
   assert(debug.world.repeatable === true && debug.world.width >= 1000000 && debug.world.activePropChunks > 0, `World is still behaving like a bounded arena: ${JSON.stringify(debug.world)}`);
   assert(debug.world.backgroundSeamBleed >= 48 && debug.world.backgroundSourceInset >= 32, `Map background tiles do not hide seams aggressively enough: ${JSON.stringify(debug.world)}`);
   assert(debug.world.immersivePropSpawning === true && debug.world.recentVisiblePropSpawns === 0, `Runtime props can still pop into view: ${JSON.stringify(debug.world)}`);
-  assert(debug.performance.enemyCap <= 230 && debug.performance.dpr <= 1.75, `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`);
+  assert(debug.performance.enemyCap <= 180 && debug.performance.enemyRenderBudget <= 132 && debug.performance.dpr <= 1.75, `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`);
+  assert(debug.performance.stablePropScale && debug.performance.stablePlayerScale, `Sprite scale pulse guards missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
@@ -451,6 +452,9 @@ async function run() {
   assert(debug.engagement.eliteEnemies + debug.engagement.elitesDefeated >= 1, `Pressure waves should mark an elite omen target: ${JSON.stringify(debug.engagement)}`);
   assert(debug.enemyRoster.liveRosterIsMonsterOnly === true, `Live enemy roster still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
+  const rotationProbe = await page.evaluate(() => window.__MONKEY_TIDE_ROTATION_PROBE());
+  assert(rotationProbe.openingPool.includes("powderImp") && rotationProbe.openingPool.includes("reefSquid") && rotationProbe.openingUnique >= 4, `Opening enemy rotation is still too repetitive: ${JSON.stringify(rotationProbe)}`);
+  assert(["hand", "tideTentacle"].every((id) => rotationProbe.midPool.includes(id)), `Mid-run enemy rotation is missing variety: ${JSON.stringify(rotationProbe)}`);
   assert(debug.loading.loaded === debug.loading.total && debug.loading.total === debug.preloadedAssetKeys.length + debug.audio.musicPreload.total, `Loading progress is inaccurate: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);

@@ -45,6 +45,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Mobile rendert mit DPR 1, kleinerem Gegner-/FX-Cap, reduzierten Schatten und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Hochkant/Vollbild.
 - Mobile-Start erkennt die aktuelle Handyhaltung: quer gehalten wird Landscape-Fullscreen gelockt, sonst bleibt Portrait-Fullscreen der Default.
 - Das Live-Spawn-Roster nutzt jetzt nur noch Kreaturen, Untote und Monster; menschliche NPC-Gegner sind aus normalen Wellen und Bosszyklen entfernt.
+- Die ersten Gegner laufen jetzt ueber eine Anti-Repeat-Rotation mit Krabben, Fledermaeusen, Pulver-Imps und Riff-Squids, statt immer denselben Auftakt zu zeigen.
+- Spaetere Runs trimmen entfernte Normalgegner und zeichnen nur noch ein priorisiertes Sprite-Budget, damit volle Screens nicht sofort laggy werden.
 - Desktop ist nochmals weiter herausgezoomt; Flutwellen markieren jetzt Elite-Omen-Gegner mit Extra-Beute, damit Wellen ein klares Zwischenziel haben.
 - Jeder Charakter hat nun ein kleines Gameplay-Trait, z.B. Fluchsog, Mondbiss, Rumspurt, Sternenkompass oder Doppelermittlung.
 - Treffer-, Crit-, Streak- und Pickup-Texte werden als lesbare Screen-Schrift skaliert statt in der herausgezoomten Welt winzig zu werden.
@@ -63,6 +65,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Upgrade-Karten lassen sich auf Desktop per Pfeilen/WASD, 1-3 und Enter/Space waehlen, ohne den Mausgriff im Spielfluss.
 - Kill-Streaks geben XP-Sog und spawnen Streak-Schaetze, damit aggressive Routen mehr Belohnung und kleine Ziele bekommen.
 - Kamera zoomt auf Desktop und Mobile nochmals weiter raus; Portrait- und Querformat-HUD bleiben minimal.
+- Fluchaffe/Player-Sheets, Strandhuetten und Buesche behalten jetzt eine stabile Groesse; nur Positions-Bob/Animation bleibt erhalten.
 - Mobile Preload ist leichter, weil alte ungenutzte HD-Hintergruende nicht mehr vor Spielstart geladen werden.
 - Exakterer Ladebalken, der wirklich abgeschlossene Bild-Assets zaehlt statt parallel geladene Indexwerte zu raten.
 - Strafferer Balance-Pass mit frueheren Bossen, mehr Spawn-Druck, Gegner-Projektilen, Cutlass+Coconut-Start, schnellerem Dash, starker XP-Magnet-/Undertow-Logik, Level-Heilung und besserer Bedrohungskurve.
