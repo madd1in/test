@@ -69,6 +69,7 @@ async function run() {
   await page.evaluate(() => window.__MONKEY_TIDE_STEP(5));
   await page.evaluate(() => window.__MONKEY_TIDE_PROP_VISUAL_PROBE());
   await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
+  await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
   await page.screenshot({ path: path.join(root, "preview.png"), timeout: 120000 });
   await Promise.race([browser.close(), new Promise((resolve) => setTimeout(resolve, 5000))]);
   if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();

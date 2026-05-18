@@ -491,6 +491,10 @@ async function run() {
   assert(blackbeardProbe.animationLoaded && blackbeardProbe.animationFrames.frames === 8, `Blackbeard animation probe missing: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.profile?.count === 3 && blackbeardProbe.cannonballs >= 3, `Blackbeard broadside did not fire: ${JSON.stringify(blackbeardProbe)}`);
 
+  const newEnemyProbe = await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
+  assert(newEnemyProbe.assetLoaded && newEnemyProbe.animationFrames.frames === 8, `New enemy animation sheet missing: ${JSON.stringify(newEnemyProbe)}`);
+  assert(["tideTentacle", "reefSquid", "cactusStack"].every((id) => newEnemyProbe.spawned.includes(id)), `New enemy trio did not spawn: ${JSON.stringify(newEnemyProbe)}`);
+
   const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
   assert(weaponEvolutionProbe.assetLoaded && weaponEvolutionProbe.slash?.blades === 5, `Fivefold cutlass animation did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
   assert(weaponEvolutionProbe.tornado?.fused === true && weaponEvolutionProbe.debug.weaponEvolution.saberTornadoFusionReady, `Saber tornado fusion did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);

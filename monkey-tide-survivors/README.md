@@ -11,6 +11,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Sauber normalisierte einzelne Imagen-HD-WebP-Props fuer Pfuetzen, Hecken, Schatzstellen, Muschelschreine, verlassene Strandhuetten und Bootswracks; Busch- und Palmenhecken-Assets sind neu freigestellt ohne angeschnittene Atlasreste.
 - Pfuetzen und Spieler-/Waffen-Auren wurden mit neuen Imagen-HD-Raster-Assets ersetzt; die sichtbaren Canvas-Kreis-/Beam-Effekte sind raus.
 - Neuer Imagen-HD-Spieler-Skin-Atlas mit Startscreen-Auswahl fuer Kaeptnin, Insel-Pirat, Fluchaffe, Dhampir-Jaeger, Rum-Korsar, Sternenfarmboy und Freelance-Duo.
+- Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy.
+- Eigene BGM-Profile pro spielbarem Charakter, kombiniert mit den Map-spezifischen Rush-Tracks.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.
 - Neues Imagen-HD-Walkcycle-Frameset mit 8 Frames fuer jeden alternativen Spieler-Skin.
 - Erkundbare Huetten, Wracks, Schatzstellen und Muschelschreine droppen XP, Muenzen, kurze Rettungsfenster und kleine Notfall-Heilung.
@@ -24,8 +26,10 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neue Relikt-Upgrades wie Flutperle, Schwarzpulverbeutel, Affenpfote, Kaeptninsiegel, Flutstiefel, Voodoo-Puppe, Obsidian-Kompass und Grog-Laterne.
 - Neuer Imagen-HD-Pergament-UI-Atlas fuer Startmenue, HUD, Skin-Auswahl, Buttons und Upgrade-Karten.
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
-- Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle, Blutrosen-Relikt und Kerzenprops.
+- Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle und Blutrosen-Relikt; die alten Kerzenprops spawnen nicht mehr.
 - Imagen-HD-Frameset fuer einen LeChuck-artigen Fluchkapitaen als neuen Boss.
+- Neues Imagen-HD-Frameset fuer Zeit-Tentakel, Riff-Squid und Kaktus-Stack Gegner.
+- Neue freigestellte Palmenprops und kleinere offene Schatzkisten im Verhaeltnis zum Spieler.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Spielstart wird erst freigegeben, wenn die lokalen BGM-Tracks wirklich vorgeladen und abspielbereit sind.
 - Alle Runtime-SFX stammen aus den lokalen Downloads und sind leise unter die Musik gemischt.
