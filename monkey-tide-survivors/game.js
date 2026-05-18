@@ -148,6 +148,16 @@ const mobileDisplayState = {
   fullscreenError: null,
 };
 const loadingState = { loaded: 0, total: 0, last: "" };
+const MOBILE_PERF = {
+  dpr: 1,
+  enemyCap: 125,
+  particleCap: 42,
+  textCap: 18,
+  propChunkRadius: 2,
+  propPruneRadius: 4,
+  textMin: 26,
+};
+let mobileLike = false;
 
 const CHAR = { w: 192, h: 256, cols: 16 };
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
@@ -797,6 +807,9 @@ function makeState() {
     powerups: [],
     props: [],
     propChunks: new Set(),
+    propsByChunk: new Map(),
+    looseProps: [],
+    domTick: 0,
     tidePuddleCooldown: 0,
     voice: {
       nextLowHpAt: 0,
@@ -814,6 +827,8 @@ function makeProps(mapId = selectedMap) {
     player: { x: WORLD.w / 2, y: WORLD.h / 2 },
     props: [],
     propChunks: new Set(),
+    propsByChunk: new Map(),
+    looseProps: [],
   };
   ensurePropChunks(target, true);
   return target.props;
@@ -823,10 +838,14 @@ function ensurePropChunks(target = state, force = false) {
   if (!target?.player) return;
   if (!target.propChunks) target.propChunks = new Set();
   if (!target.props) target.props = [];
+  if (!target.propsByChunk) target.propsByChunk = new Map();
+  if (!target.looseProps) target.looseProps = [];
   const centerX = Math.floor(target.player.x / PROP_CHUNK);
   const centerY = Math.floor(target.player.y / PROP_CHUNK);
-  for (let cx = centerX - PROP_CHUNK_RADIUS; cx <= centerX + PROP_CHUNK_RADIUS; cx += 1) {
-    for (let cy = centerY - PROP_CHUNK_RADIUS; cy <= centerY + PROP_CHUNK_RADIUS; cy += 1) {
+  const chunkRadius = isMobileLike() ? MOBILE_PERF.propChunkRadius : PROP_CHUNK_RADIUS;
+  const pruneRadius = isMobileLike() ? MOBILE_PERF.propPruneRadius : PROP_CHUNK_PRUNE_RADIUS;
+  for (let cx = centerX - chunkRadius; cx <= centerX + chunkRadius; cx += 1) {
+    for (let cy = centerY - chunkRadius; cy <= centerY + chunkRadius; cy += 1) {
       const key = chunkKey(cx, cy);
       if (!force && target.propChunks.has(key)) continue;
       if (target.propChunks.has(key)) continue;
@@ -836,24 +855,49 @@ function ensurePropChunks(target = state, force = false) {
   }
   target.props = target.props.filter((prop) => {
     if (!prop.chunkKey) return true;
-    return Math.abs(prop.chunkX - centerX) <= PROP_CHUNK_PRUNE_RADIUS
-      && Math.abs(prop.chunkY - centerY) <= PROP_CHUNK_PRUNE_RADIUS;
+    return Math.abs(prop.chunkX - centerX) <= pruneRadius
+      && Math.abs(prop.chunkY - centerY) <= pruneRadius;
   });
   for (const key of [...target.propChunks]) {
     const [cx, cy] = key.split(":").map(Number);
-    if (Math.abs(cx - centerX) > PROP_CHUNK_PRUNE_RADIUS || Math.abs(cy - centerY) > PROP_CHUNK_PRUNE_RADIUS) {
+    if (Math.abs(cx - centerX) > pruneRadius || Math.abs(cy - centerY) > pruneRadius) {
       target.propChunks.delete(key);
     }
   }
+  reindexProps(target);
 }
 
 function chunkKey(cx, cy) {
   return `${cx}:${cy}`;
 }
 
+function addPropToTarget(target, prop) {
+  if (!target.props) target.props = [];
+  target.props.push(prop);
+  indexProp(target, prop);
+}
+
+function indexProp(target, prop) {
+  if (!target.propsByChunk) target.propsByChunk = new Map();
+  if (!target.looseProps) target.looseProps = [];
+  if (!prop.chunkKey) {
+    target.looseProps.push(prop);
+    return;
+  }
+  const list = target.propsByChunk.get(prop.chunkKey) || [];
+  list.push(prop);
+  target.propsByChunk.set(prop.chunkKey, list);
+}
+
+function reindexProps(target = state) {
+  if (!target?.props) return;
+  target.propsByChunk = new Map();
+  target.looseProps = [];
+  for (const prop of target.props) indexProp(target, prop);
+}
+
 function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {}) {
   const variant = mapVariant(target.map);
-  const props = target.props;
   const runtimeSpawn = !chunkOptions.force && target === state && target.phase === "playing" && (target.elapsed || 0) > 0.2;
   const choices = [
     "rope",
@@ -890,7 +934,7 @@ function addChunkProps(target, chunkX, chunkY, chunkKeyValue, chunkOptions = {})
   const addProp = (x, y, icon, h, options = {}) => {
     if (Math.hypot(x - target.player.x, y - target.player.y) < (options.safeRadius || 0)) return;
     if (runtimeSpawn && !options.allowVisibleSpawn && isInSpawnSightline(x, y, target, options.spawnBuffer)) return;
-    props.push({
+    addPropToTarget(target, {
       x,
       y,
       icon,
@@ -1135,6 +1179,7 @@ function selectSpeechVoice() {
 }
 
 async function boot() {
+  mobileLike = computeMobileLike(window.innerWidth, window.innerHeight);
   state = makeState();
   resize();
   renderSkinPicker();
@@ -1439,7 +1484,7 @@ function update(dt) {
   updateGems(dt);
   updateStreak(dt);
   updateParticles(dt);
-  updateDom();
+  updateDomThrottled(dt);
   updateVoiceCues();
   syncMusic();
   if (state.elapsed >= TARGET_TIME && !state.enemies.some((e) => e.boss)) {
@@ -1534,7 +1579,7 @@ function moveActorWithObstacles(actor, vx, vy, dt, radius = actor.r || 20, ignor
 }
 
 function resolveObstacleCollisions(actor, radius = actor.r || 20) {
-  for (const prop of state.props) {
+  for (const prop of propsNearActor(actor, radius + 420)) {
     if (!propBlocksMovement(prop)) continue;
     if (Math.abs(prop.x - actor.x) > radius + 360 || Math.abs(prop.y - actor.y) > radius + 320) continue;
     const shape = propObstacleShape(prop);
@@ -1559,7 +1604,7 @@ function obstacleInfluencingActor(actor, moveX, moveY, radius = actor.r || 20) {
   const lookY = actor.y + moveY * (radius + 92);
   let best = null;
   let bestN = Infinity;
-  for (const prop of state.props) {
+  for (const prop of propsNearActor({ x: lookX, y: lookY }, radius + 460)) {
     if (!propBlocksMovement(prop)) continue;
     if (Math.abs(prop.x - lookX) > radius + 420 || Math.abs(prop.y - lookY) > radius + 380) continue;
     const shape = propObstacleShape(prop);
@@ -1574,6 +1619,21 @@ function obstacleInfluencingActor(actor, moveX, moveY, radius = actor.r || 20) {
     }
   }
   return best;
+}
+
+function propsNearActor(actor, margin = 520) {
+  if (!state?.propsByChunk || state.propsByChunk.size === 0) return state?.props || [];
+  const centerX = Math.floor(actor.x / PROP_CHUNK);
+  const centerY = Math.floor(actor.y / PROP_CHUNK);
+  const span = Math.max(1, Math.ceil(margin / PROP_CHUNK));
+  const nearby = [...(state.looseProps || [])];
+  for (let cx = centerX - span; cx <= centerX + span; cx += 1) {
+    for (let cy = centerY - span; cy <= centerY + span; cy += 1) {
+      const list = state.propsByChunk.get(chunkKey(cx, cy));
+      if (list) nearby.push(...list);
+    }
+  }
+  return nearby;
 }
 
 function steerAroundObstacles(actor, desiredX, desiredY) {
@@ -1691,6 +1751,14 @@ function slash(angle, radius, arc, damage, level = 1) {
       hurtEnemy(enemy, damage * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
     }
   }
+}
+
+function updateDomThrottled(dt) {
+  if (!state) return;
+  state.domTick = (state.domTick || 0) - dt;
+  if (state.domTick > 0) return;
+  state.domTick = isMobileLike() ? 0.12 : 0.06;
+  updateDom();
 }
 
 function cutlassBladeCount(level = state?.weapons?.cutlass?.level || 1) {
@@ -1921,7 +1989,7 @@ function spawnEnemy(type, boss = false) {
 }
 
 function enemyCap() {
-  return isMobileLike() ? 170 : 230;
+  return isMobileLike() ? MOBILE_PERF.enemyCap : 230;
 }
 
 function updateEnemies(dt) {
@@ -2255,14 +2323,15 @@ function updateParticles(dt) {
   }
   for (const text of state.texts) {
     text.life -= dt;
-    text.y -= dt * 42;
+    const rise = text.rise || (isMobileLike() ? 54 : 42);
+    text.y -= dt * rise / Math.max(0.34, scene.zoom || 1);
   }
   state.zones = state.zones.filter((zone) => zone.life > 0);
   state.particles = state.particles.filter((particle) => particle.life > 0);
   state.texts = state.texts.filter((text) => text.life > 0);
   if (isMobileLike()) {
-    if (state.particles.length > 90) state.particles.splice(0, state.particles.length - 90);
-    if (state.texts.length > 28) state.texts.splice(0, state.texts.length - 28);
+    if (state.particles.length > MOBILE_PERF.particleCap) state.particles.splice(0, state.particles.length - MOBILE_PERF.particleCap);
+    if (state.texts.length > MOBILE_PERF.textCap) state.texts.splice(0, state.texts.length - MOBILE_PERF.textCap);
   }
 }
 
@@ -2275,7 +2344,19 @@ function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
   enemy.y += clamp(ny, -1, 1) * 7;
   if (!actorIgnoresObstacles(enemy)) resolveObstacleCollisions(enemy, enemy.r);
   if ((enemy.boss || amount >= 42) && Math.random() < 0.45) playSound("downloadHit");
-  if (Math.random() < 0.12) floatingText(String(Math.round(amount)), enemy.x, enemy.y - enemy.r - 20, enemy.type.tint);
+  const crit = amount >= 48 || enemy.boss;
+  const textChance = isMobileLike() ? (crit ? 0.28 : 0.06) : (crit ? 0.44 : 0.12);
+  if (Math.random() < textChance) {
+    floatingText(
+      `${crit ? "CRIT " : ""}${Math.round(amount)}`,
+      enemy.x,
+      enemy.y - enemy.r - 20,
+      crit ? "#fff2c7" : enemy.type.tint,
+      crit ? 0.78 : 0.62,
+      crit ? 34 : 26,
+      { priority: crit ? 3 : 1 },
+    );
+  }
   const particleCount = isMobileLike() ? 1 : 2;
   for (let i = 0; i < particleCount; i += 1) {
     state.particles.push({
@@ -2372,7 +2453,7 @@ function spawnStreakCache(count) {
     y = clamp(p.y + Math.sin(angle) * distance, 180, WORLD.h - 180);
     if (!isInSpawnSightline(x, y, state, 120)) break;
   }
-  state.props.push({
+  addPropToTarget(state, {
     x,
     y,
     icon: "buriedTreasure",
@@ -2691,7 +2772,7 @@ function drawMapTint(variant) {
 
 function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
   const mobile = isMobileLike();
-  const tile = mobile ? 340 : 260;
+  const tile = mobile ? 520 : 260;
   const cam = state.camera;
   const minX = Math.floor((cam.x - scene.w / 2) / tile) - 1;
   const maxX = Math.ceil((cam.x + scene.w / 2) / tile) + 1;
@@ -2722,6 +2803,7 @@ function drawNaturalGroundDetails(ox, oy, variant = mapVariant(state.map)) {
 function drawProps() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
+  const mobile = isMobileLike();
   for (const prop of state.props) {
     if (!onScreen(prop.x, prop.y, 320)) continue;
     const pulse = 1 + Math.sin(performance.now() / 900 + prop.spin * 6) * 0.035;
@@ -2730,7 +2812,7 @@ function drawProps() {
     const alpha = propRenderAlpha(prop) * spawnProgress;
     if (alpha <= 0.02) continue;
     drawItem(prop.icon, ox + prop.x, oy + prop.y, size.w, size.h, prop.spin * 0.18 - 0.08, alpha);
-    if (prop.interactive && !prop.discovered && spawnProgress > 0.45) {
+    if (!mobile && prop.interactive && !prop.discovered && spawnProgress > 0.45) {
       const glint = Math.min(124, Math.max(76, size.w * 0.32));
       drawPlayerEffect("treasureGlint", ox + prop.x, oy + prop.y - size.h * 0.24, glint, glint, state.elapsed * 0.6 + prop.spin, 0.28 * spawnProgress);
     }
@@ -2779,7 +2861,7 @@ function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
   const mobile = isMobileLike();
-  const enemies = [...state.enemies].sort((a, b) => a.y - b.y);
+  const enemies = state.enemies.sort((a, b) => a.y - b.y);
   for (const enemy of enemies) {
     if (!onScreen(enemy.x, enemy.y, 220)) continue;
     const px = ox + enemy.x;
@@ -2791,7 +2873,7 @@ function drawEnemies() {
     ctx.translate(px, py);
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
-    ctx.shadowBlur = enemy.hit > 0 ? 20 : 10;
+    ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 20 : 10;
     if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkeyAnim) {
       const frame = bossAnimFrame(enemy, THREE_HEADED_MONKEY_ANIM, [4, 5, 6, 7]);
       const sx = (frame % THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.w;
@@ -2799,13 +2881,13 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = THREE_HEADED_MONKEY_ANIM.w * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = THREE_HEADED_MONKEY_ANIM.h * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = images.threeHeadedMonkey.width * enemy.type.scale * (enemy.boss ? 1.18 : 1);
       h = images.threeHeadedMonkey.height * enemy.type.scale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 30 : 18;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeardAnim) {
       const frame = bossAnimFrame(enemy, BLACKBEARD_ANIM, enemy.actionKind === "ghostCannonball" ? [3, 4, 6, 7] : [5, 6, 7, 0]);
@@ -2814,13 +2896,13 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = BLACKBEARD_ANIM.w * enemy.type.scale * (enemy.boss ? 1.08 : 1);
       h = BLACKBEARD_ANIM.h * enemy.type.scale * (enemy.boss ? 1.08 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 32 : 20;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeard) {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = images.blackbeard.width * enemy.type.scale * (enemy.boss ? 1.08 : 1);
       h = images.blackbeard.height * enemy.type.scale * (enemy.boss ? 1.08 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 32 : 20;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeard, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.captainSheet) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
@@ -2828,7 +2910,7 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
       w = SPECTRAL_CAPTAIN.w * enemy.type.scale * (enemy.boss ? 1.05 : 1);
       h = SPECTRAL_CAPTAIN.h * enemy.type.scale * (enemy.boss ? 1.05 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 28 : 18;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 18;
       ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicRow !== undefined) {
       const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
@@ -2848,7 +2930,7 @@ function drawEnemies() {
         : Math.sin(state.elapsed * 5.4 + enemy.frameOffset) * 3.5;
       w = NEW_ENEMY_TRIO.w * enemy.type.scale * (enemy.boss ? 1.16 : 1);
       h = NEW_ENEMY_TRIO.h * enemy.type.scale * (enemy.boss ? 1.16 : 1);
-      ctx.shadowBlur = enemy.hit > 0 ? 26 : 12;
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.extraSprite) {
       const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
@@ -2887,16 +2969,17 @@ function drawPlayer() {
   const oy = scene.h / 2 - state.camera.y;
   const moving = Math.hypot(p.moveX, p.moveY) > 0.05;
   const skin = playerSkinMap[p.skin] || playerSkinMap.default;
+  const mobile = isMobileLike();
   ctx.save();
   ctx.translate(ox + p.x, oy + p.y);
   ctx.scale(p.facing, 1);
   if (p.invuln > 0) {
     ctx.globalAlpha = 0.62 + Math.sin(state.elapsed * 46) * 0.24;
     ctx.shadowColor = "#fff2c7";
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = mobile ? 0 : 18;
   } else {
     ctx.shadowColor = "rgba(0,0,0,0.55)";
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = mobile ? 0 : 14;
   }
   if (skin.animSheet === "samMaxDuoWalk" && images.samMaxDuoWalk) {
     const frame = moving ? Math.floor(state.elapsed * 12) % SAM_MAX_DUO_WALK.frames : 0;
@@ -3033,7 +3116,7 @@ function drawRopeWard(x, y, radius, level, angle) {
   } else {
     drawPlayerEffect("tidePulse", x, y, radius * 2.12 * pulse, radius * 2.12 * pulse, 0, 0.2);
   }
-  const count = Math.min(18, 10 + level * 2);
+  const count = isMobileLike() ? Math.min(10, 6 + level) : Math.min(18, 10 + level * 2);
   for (let i = 0; i < count; i += 1) {
     const a = angle * 0.72 + (i / count) * Math.PI * 2;
     const ripple = Math.sin(state.elapsed * 5.4 + i * 0.9) * 3.5;
@@ -3047,9 +3130,10 @@ function drawRopeWard(x, y, radius, level, angle) {
 function drawParticles() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
+  const mobile = isMobileLike();
   for (const particle of state.particles) {
     const alpha = clamp(particle.life / 0.4, 0, 1);
-    if (images.playerEffects) {
+    if (images.playerEffects && !mobile) {
       const size = particle.size * 8.5;
       drawPlayerEffect("treasureGlint", ox + particle.x, oy + particle.y, size, size, particle.vx * 0.015, alpha * 0.34);
     } else {
@@ -3069,11 +3153,13 @@ function drawTexts() {
   ctx.save();
   ctx.textAlign = "center";
   for (const text of state.texts) {
-    ctx.font = `900 ${text.size || 18}px Trebuchet MS, sans-serif`;
+    const screenSize = text.size || (isMobileLike() ? MOBILE_PERF.textMin : 20);
+    const worldSize = screenSize / Math.max(0.34, scene.zoom || 1);
+    ctx.font = `900 ${worldSize}px Trebuchet MS, sans-serif`;
     ctx.globalAlpha = clamp(text.life / (text.maxLife || 0.9), 0, 1);
     ctx.fillStyle = text.color;
     ctx.strokeStyle = "rgba(0,0,0,0.65)";
-    ctx.lineWidth = 4;
+    ctx.lineWidth = Math.max(3, screenSize * 0.16) / Math.max(0.34, scene.zoom || 1);
     ctx.strokeText(text.value, ox + text.x, oy + text.y);
     ctx.fillText(text.value, ox + text.x, oy + text.y);
   }
@@ -3288,8 +3374,26 @@ function nearestEnemy(exclude = null) {
   return best;
 }
 
-function floatingText(value, x, y, color, life = 0.9, size = 18) {
-  state.texts.push({ value, x, y, color, life, maxLife: life, size });
+function floatingText(value, x, y, color, life = 0.9, size = 20, options = {}) {
+  if (!state?.texts) return;
+  const minSize = isMobileLike() ? MOBILE_PERF.textMin : 20;
+  const normalizedSize = Math.max(size || minSize, minSize);
+  state.texts.push({
+    value,
+    x,
+    y,
+    color,
+    life,
+    maxLife: life,
+    size: normalizedSize,
+    rise: options.rise,
+    priority: options.priority || 0,
+  });
+  const cap = isMobileLike() ? MOBILE_PERF.textCap : 34;
+  if (state.texts.length > cap) {
+    state.texts.sort((a, b) => (a.priority || 0) - (b.priority || 0) || a.life - b.life);
+    state.texts.splice(0, state.texts.length - cap);
+  }
 }
 
 function shake(power) {
@@ -3338,8 +3442,12 @@ function getSceneZoom() {
 }
 
 function isMobileLike() {
+  return mobileLike;
+}
+
+function computeMobileLike(width = viewW, height = viewH) {
   const coarsePointer = window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches;
-  const mobileSized = Math.min(viewW, viewH) <= 560 || Math.max(viewW, viewH) <= 940;
+  const mobileSized = Math.min(width, height) <= 560 || Math.max(width, height) <= 940;
   return !!coarsePointer || mobileSized;
 }
 
@@ -3348,7 +3456,8 @@ function syncCanvasSize() {
   const nextH = window.innerHeight;
   viewW = nextW;
   viewH = nextH;
-  const nextDpr = Math.min(isMobileLike() ? 1.25 : 1.75, window.devicePixelRatio || 1);
+  mobileLike = computeMobileLike(nextW, nextH);
+  const nextDpr = Math.min(isMobileLike() ? MOBILE_PERF.dpr : 1.75, window.devicePixelRatio || 1);
   if (
     nextDpr === dpr
     && nextW === canvas.clientWidth
@@ -3662,7 +3771,7 @@ window.__MONKEY_TIDE_OBSTACLE_PROBE = () => {
     blocking: true,
     probe: true,
   };
-  state.props.push(obstacle);
+  addPropToTarget(state, obstacle);
   const before = { x: p.x, y: p.y };
   for (let i = 0; i < 30; i += 1) moveActorWithObstacles(p, 520, 0, 1 / 60, p.r);
   const ground = { type: enemyType("reefRaider"), x: obstacle.x, y: obstacle.y, r: enemyType("reefRaider").radius };
@@ -3715,7 +3824,7 @@ window.__MONKEY_TIDE_PROP_VISUAL_PROBE = () => {
     { icon: "openTreasureChest", x: p.x + 18, y: p.y + 190, scale: 0.5, spin: 0.04, interactive: true, discovered: true, probe: true },
     { icon: "palmTree", x: p.x - 30, y: p.y + 320, scale: 0.52, spin: 0.02, interactive: false, blocking: true, probe: true },
   ];
-  state.props.push(...props);
+  props.forEach((prop) => addPropToTarget(state, prop));
   render();
   return {
     props: props.map((prop) => ({
@@ -3921,7 +4030,15 @@ window.__MONKEY_TIDE_DEBUG = () => {
   balance: { ...BALANCE },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
-  performance: { mobile: isMobileLike(), dpr, enemyCap: enemyCap(), propCount: state.props.length },
+  performance: {
+    mobile: isMobileLike(),
+    dpr,
+    enemyCap: enemyCap(),
+    propCount: state.props.length,
+    particleCap: isMobileLike() ? MOBILE_PERF.particleCap : 90,
+    textCap: isMobileLike() ? MOBILE_PERF.textCap : 34,
+    lowFx: isMobileLike(),
+  },
   obstacles: {
     blockingProps: state.props.filter(propBlocksMovement).length,
     blockingPropTypes: [...new Set(state.props.filter(propBlocksMovement).map((prop) => prop.icon))],

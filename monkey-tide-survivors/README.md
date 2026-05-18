@@ -41,7 +41,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Sam-und-Max/Freelance-Duo hat wieder ein eigenes sauberes Imagen-HD-8-Frame-Walksheet ohne oben abgeschnittene Huete/Ohren.
 - Welt laeuft jetzt als grosse repeatable Chunk-Map ohne spuerbare Strandkante; Props, Wracks, Hecken und Pfuetzen werden um den Spieler nachgeladen.
 - Neue Welt-Props und Streak-Schaetze materialisieren nur ausserhalb des aktuellen Sichtfelds und blenden am Rand weich ein, damit keine Assets mitten im Bild aufploppen.
-- Mobile rendert mit niedrigerem DPR, kleinerem Gegner-Cap und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Hochkant/Vollbild.
+- Mobile rendert mit DPR 1, kleinerem Gegner-/FX-Cap, reduzierten Schatten und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Hochkant/Vollbild.
+- Treffer-, Crit-, Streak- und Pickup-Texte werden als lesbare Screen-Schrift skaliert statt in der herausgezoomten Welt winzig zu werden.
 - HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.
 - Erkunderte Buesche, Huetten und Wracks bleiben voll gemalt statt ausgegraut; Schatzfunde wechseln auf ein eigenes offenes Imagen-HD-Truhenasset.
 - Dreikoepfiger Affe ist als eigener Imagen-HD-Boss im Boss-Zyklus und feuert eine dreifache Fluchsalve.

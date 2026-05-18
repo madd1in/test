@@ -320,6 +320,8 @@ async function run() {
   assert(mobileStartDisplay.fullscreenRequested === true, `Mobile start did not request fullscreen: ${JSON.stringify(mobileStartDisplay)}`);
   assert(mobileStartDisplay.debug.mobileDisplay.requested === true && mobileStartDisplay.debug.mobileDisplay.orientationPreference === "portrait-primary", `Mobile start should prefer portrait fullscreen: ${JSON.stringify(mobileStartDisplay.debug.mobileDisplay)}`);
   assert(mobileStartDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")) && !mobileStartDisplay.orientationLocks.includes("landscape"), `Mobile start requested the wrong orientation: ${JSON.stringify(mobileStartDisplay)}`);
+  assert(mobileStartDisplay.debug.performance.mobile === true && mobileStartDisplay.debug.performance.dpr <= 1.01, `Mobile DPR guardrail is too high: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
+  assert(mobileStartDisplay.debug.performance.enemyCap <= 125 && mobileStartDisplay.debug.performance.textCap <= 18 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.waitForTimeout(100);
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
