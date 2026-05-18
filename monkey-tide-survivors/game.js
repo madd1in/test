@@ -1665,7 +1665,8 @@ function syncMusic() {
   const profile = configureMusicForMap(state.map, state.player.skin);
   music.muted = muted;
   rushMusic.muted = muted;
-  if (muted || state.phase !== "playing") {
+  const gameplayMusicActive = state.phase === "playing" || state.phase === "levelup";
+  if (muted || !gameplayMusicActive) {
     stopMusicTracks();
     return;
   }
@@ -4309,6 +4310,7 @@ window.__MONKEY_TIDE_STEP = (seconds = 5) => {
 window.__MONKEY_TIDE_FORCE_LEVELUP = () => {
   if (state.phase !== "playing") state.phase = "playing";
   levelUp({ forceChoice: true });
+  syncMusic();
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };

@@ -784,6 +784,7 @@ async function run() {
     return { before, selected, after: window.__MONKEY_TIDE_DEBUG() };
   });
   assert(upgradeProbe.before.phase === "levelup", `Forced level-up did not open upgrades: ${JSON.stringify(upgradeProbe)}`);
+  assert(upgradeProbe.before.audio.activeTrack && Math.max(upgradeProbe.before.audio.mainVolume, upgradeProbe.before.audio.rushVolume) > 0, `BGM should keep playing while choosing an upgrade: ${JSON.stringify(upgradeProbe.before.audio)}`);
   assert(upgradeProbe.selected === "1", `Keyboard did not move upgrade focus: ${JSON.stringify(upgradeProbe)}`);
   assert(upgradeProbe.after.phase === "playing", `Enter did not choose upgrade: ${JSON.stringify(upgradeProbe)}`);
 
