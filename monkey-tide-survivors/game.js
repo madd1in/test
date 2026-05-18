@@ -176,6 +176,16 @@ const PERF_GUARDS = {
   mobileEnemyRenderBudget: 76,
   trimBuffer: 10,
 };
+const CONTROL_TUNING = {
+  baseSpeed: 296,
+  dashCooldown: 0.56,
+  dashDuration: 0.24,
+  dashBoost: 3.18,
+  cameraCatchup: 10.5,
+  stickDeadzone: 0.06,
+  stickFullAt: 0.7,
+  stickCurve: 0.56,
+};
 let mobileLike = false;
 
 const CHAR = { w: 192, h: 256, cols: 16 };
@@ -921,12 +931,12 @@ function makeState() {
       skin: selectedSkin,
     },
     stats: {
-      speed: 258 + relicBonus.speed,
+      speed: CONTROL_TUNING.baseSpeed + relicBonus.speed,
       damage: 1.12 + relicBonus.damage,
       armor: 2 + relicBonus.armor,
       magnet: 280 + relicBonus.magnet,
       pickupValue: 1.12,
-      dashCooldown: 0.68,
+      dashCooldown: CONTROL_TUNING.dashCooldown,
     },
     weapons: {
       cutlass: { level: 1, timer: 0 },
@@ -1707,18 +1717,18 @@ function updatePlayer(dt) {
   p.invuln = Math.max(0, p.invuln - dt);
   p.dashCooldown = Math.max(0, p.dashCooldown - dt);
   p.dash = Math.max(0, p.dash - dt);
-  const dashBoost = p.dash > 0 ? 2.95 : 1;
+  const dashBoost = p.dash > 0 ? CONTROL_TUNING.dashBoost : 1;
   const speedBoost = activePowerMultiplier("speed");
   moveActorWithObstacles(p, input.x * state.stats.speed * speedBoost * dashBoost, input.y * state.stats.speed * speedBoost * dashBoost, dt, p.r);
-  state.camera.x += (p.x - state.camera.x) * Math.min(1, dt * 7.5);
-  state.camera.y += (p.y - state.camera.y) * Math.min(1, dt * 7.5);
+  state.camera.x += (p.x - state.camera.x) * Math.min(1, dt * CONTROL_TUNING.cameraCatchup);
+  state.camera.y += (p.y - state.camera.y) * Math.min(1, dt * CONTROL_TUNING.cameraCatchup);
 }
 
 function dash() {
   if (state.phase !== "playing") return;
   const p = state.player;
   if (p.dashCooldown > 0) return;
-  p.dash = 0.2;
+  p.dash = CONTROL_TUNING.dashDuration;
   p.dashCooldown = state.stats.dashCooldown;
   p.invuln = Math.max(p.invuln, 0.3);
   playSkinSound("dash", "downloadDash", { force: true });
@@ -1855,14 +1865,27 @@ function readInput() {
   if (keys.has("arrowright") || keys.has("d")) x += 1;
   if (keys.has("arrowup") || keys.has("w")) y -= 1;
   if (keys.has("arrowdown") || keys.has("s")) y += 1;
-  x += pointer.dx;
-  y += pointer.dy;
+  const stick = tunedStickVector(pointer.dx, pointer.dy);
+  x += stick.x;
+  y += stick.y;
   const len = Math.hypot(x, y);
   if (len > 1) {
     x /= len;
     y /= len;
   }
   return { x, y };
+}
+
+function tunedStickVector(dx, dy) {
+  const len = Math.hypot(dx, dy);
+  if (len <= CONTROL_TUNING.stickDeadzone) return { x: 0, y: 0, magnitude: 0 };
+  const normalized = clamp((len - CONTROL_TUNING.stickDeadzone) / (CONTROL_TUNING.stickFullAt - CONTROL_TUNING.stickDeadzone), 0, 1);
+  const magnitude = Math.pow(normalized, CONTROL_TUNING.stickCurve);
+  return {
+    x: dx / len * magnitude,
+    y: dy / len * magnitude,
+    magnitude,
+  };
 }
 
 function updateWeapons(dt) {
@@ -4293,6 +4316,22 @@ window.__MONKEY_TIDE_ROTATION_PROBE = () => {
     midPool,
   };
 };
+window.__MONKEY_TIDE_MOVEMENT_PROBE = () => {
+  const halfStick = tunedStickVector(0.42, 0);
+  const nearFullStick = tunedStickVector(CONTROL_TUNING.stickFullAt, 0);
+  const baseSpeed = state.stats.speed;
+  return {
+    baseSpeed,
+    dashCooldown: state.stats.dashCooldown,
+    dashDuration: CONTROL_TUNING.dashDuration,
+    dashBoost: CONTROL_TUNING.dashBoost,
+    dashBurstDistance: Math.round(baseSpeed * CONTROL_TUNING.dashBoost * CONTROL_TUNING.dashDuration),
+    cameraCatchup: CONTROL_TUNING.cameraCatchup,
+    halfStickMagnitude: Number(halfStick.magnitude.toFixed(3)),
+    nearFullStickMagnitude: Number(nearFullStick.magnitude.toFixed(3)),
+    tuning: { ...CONTROL_TUNING },
+  };
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -4326,6 +4365,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinTrait: { ...(state.characterTrait || characterTrait(state.player.skin)) },
   playerSkinTraits: Object.fromEntries(playerSkinIds.map((id) => [id, characterTrait(id)])),
   stats: { ...state.stats, nextXp: state.nextXp },
+  controls: {
+    tuning: { ...CONTROL_TUNING },
+    dashReady: state.player.dashCooldown <= 0,
+    dashActive: state.player.dash > 0,
+    halfStickMagnitude: Number(tunedStickVector(0.42, 0).magnitude.toFixed(3)),
+  },
   engagement: {
     streak: { ...state.streak },
     pressureWave: state.pressureWave,
