@@ -86,7 +86,9 @@ async function run() {
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/enemy_anim_imagen_hd_sheet.webp",
+    "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
+    "assets/sprites/gothic_enemies_hd_sheet_clean.png",
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -94,6 +96,7 @@ async function run() {
     "assets/sprites/bosses/blackbeard_imagen_hd.webp",
     "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
     "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
+    "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
     "assets/sprites/beach-props-v2/tide_puddle.webp",
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -388,6 +391,7 @@ async function run() {
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v3.png"), `Runtime should use the normalized monkey-and-Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
+  assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinFixedDuoAsset === true && debug.preloadedAssetKeys.includes("samMaxDuo"), `Fixed Sam and Max duo asset is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
@@ -624,11 +628,44 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
+  const cleanEnemyMatteProbe = await page.evaluate(async () => {
+    const assets = [
+      "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png?matte-probe",
+      "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?matte-probe",
+      "assets/sprites/gothic_enemies_hd_sheet_clean.png?matte-probe",
+    ];
+    const results = [];
+    for (const src of assets) {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let lowAlphaMatte = 0;
+      let neonGreenMatte = 0;
+      for (let index = 0; index < data.length; index += 4) {
+        const r = data[index];
+        const g = data[index + 1];
+        const b = data[index + 2];
+        const alpha = data[index + 3];
+        if (alpha > 0 && alpha <= 28) lowAlphaMatte += 1;
+        if (alpha > 0 && g > 150 && r < 110 && b < 145 && g - Math.max(r, b) > 45) neonGreenMatte += 1;
+      }
+      results.push({ src, lowAlphaMatte, neonGreenMatte });
+    }
+    return results;
+  });
+  assert(cleanEnemyMatteProbe.every((asset) => asset.lowAlphaMatte === 0 && asset.neonGreenMatte <= 2), `Clean enemy sheets still have matte/slice color leftovers: ${JSON.stringify(cleanEnemyMatteProbe)}`);
   const enemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet.webp?edge-probe";
+    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png?edge-probe";
     await img.decode();
     const frame = 256;
     const rows = 7;
@@ -660,7 +697,7 @@ async function run() {
     }
     return results;
   });
-  assert(enemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 9000)), `Imagen enemy multiframe sheet has sliced or empty frames: ${JSON.stringify(enemyAnimAlphaProbe)}`);
+  assert(enemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 8000)), `Imagen enemy multiframe sheet has sliced or empty frames: ${JSON.stringify(enemyAnimAlphaProbe)}`);
   const rotationProbe = await page.evaluate(() => window.__MONKEY_TIDE_ROTATION_PROBE());
   assert(rotationProbe.openingPool.includes("powderImp") && rotationProbe.openingPool.includes("reefSquid") && rotationProbe.openingUnique >= 4, `Opening enemy rotation is still too repetitive: ${JSON.stringify(rotationProbe)}`);
   assert(["hand", "tideTentacle"].every((id) => rotationProbe.midPool.includes(id)), `Mid-run enemy rotation is missing variety: ${JSON.stringify(rotationProbe)}`);
