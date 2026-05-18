@@ -117,6 +117,7 @@ async function run() {
     "assets/audio/bgm/treasure-tide-route-drive.mp3",
     "assets/audio/bgm/voodoo-hut-shuffle-drive.mp3",
     "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
+    "assets/audio/bgm/curse-monkey-frenzy-drive.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -133,6 +134,13 @@ async function run() {
     "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
     "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
     "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
+    "assets/audio/sfx/curse-monkey/bone-swipe.mp3",
+    "assets/audio/sfx/curse-monkey/fast-dash-whoosh.mp3",
+    "assets/audio/sfx/curse-monkey/purple-curse-hit.mp3",
+    "assets/audio/sfx/curse-monkey/tropical-chatter.mp3",
+    "assets/audio/sfx/curse-monkey/pirate-powerup.mp3",
+    "assets/audio/sfx/curse-monkey/spooky-warning.mp3",
+    "assets/audio/sfx/curse-monkey/boss-drop.mp3",
   ].forEach((rel) => {
     const target = path.join(root, rel);
     assert(fs.existsSync(target), `Missing ${rel}`);
@@ -552,6 +560,7 @@ async function run() {
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
   assert(new Set(Object.values(debug.audio.music.characterThemes).map((profile) => `${profile.theme}:${profile.mainKey}:${profile.rushKey}:${profile.mainStartAt}:${profile.rushStartAt}`)).size === debug.playerSkinTypes.length, `Every character should have a distinct BGM identity: ${JSON.stringify(debug.audio.music.characterThemes)}`);
+  assert(debug.audio.music.characterThemes.curseMonkey.mainKey === "bgmCurseMonkey" && debug.audio.music.characterThemes.curseMonkey.rushStart <= 45 && debug.audio.music.characterThemes.curseMonkey.mainRate >= 1.08 && debug.audio.music.characterThemes.curseMonkey.rushRate >= 1.08, `Curse monkey BGM should be a faster local frenzy profile: ${JSON.stringify(debug.audio.music.characterThemes.curseMonkey)}`);
   assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 18 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
   assert(
     debug.audio.sources.bgmMain.includes("tidebarrel-dockside-drive.mp3")
@@ -559,15 +568,17 @@ async function run() {
       && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3")
       && debug.audio.sources.bgmShoreline.includes("treasure-tide-route-drive.mp3")
       && debug.audio.sources.bgmVoodoo.includes("voodoo-hut-shuffle-drive.mp3")
-      && debug.audio.sources.bgmCathedral.includes("cathedral-hunt-overture-drive.mp3"),
+      && debug.audio.sources.bgmCathedral.includes("cathedral-hunt-overture-drive.mp3")
+      && debug.audio.sources.bgmCurseMonkey.includes("curse-monkey-frenzy-drive.mp3"),
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
   assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.sfx.slashSwish <= 0.025 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.sfx.slashSwish <= 0.025 && debug.audio.sfx.curseMonkeyWarning <= 0.045 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.slashSwish.includes("/downloaded/") && debug.audio.sources.bossDownUndead.includes("/downloaded/"), `Character SFX should use the local downloaded MP3 set: ${JSON.stringify(debug.audio.sources)}`);
   assert(Object.values(debug.audio.characterSfxProfiles).every((profile) => profile.slash && profile.warning), `Every character should have a SFX profile: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
+  assert(debug.audio.characterSfxProfiles.curseMonkey.slash === "curseMonkeySwipe" && debug.audio.characterSfxProfiles.curseMonkey.dash === "curseMonkeyDash" && debug.audio.characterSfxProfiles.curseMonkey.warning === "curseMonkeyWarning", `Curse monkey should use its own local SFX pack: ${JSON.stringify(debug.audio.characterSfxProfiles.curseMonkey)}`);
   assert(debug.stats.speed >= 344 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
   const movementProbe = await page.evaluate(() => window.__MONKEY_TIDE_MOVEMENT_PROBE());
   assert(

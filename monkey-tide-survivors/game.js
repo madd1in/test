@@ -84,6 +84,7 @@ const audioSources = {
   bgmShoreline: "assets/audio/bgm/treasure-tide-route-drive.mp3",
   bgmVoodoo: "assets/audio/bgm/voodoo-hut-shuffle-drive.mp3",
   bgmCathedral: "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
+  bgmCurseMonkey: "assets/audio/bgm/curse-monkey-frenzy-drive.mp3",
   pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
   chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
   gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -100,6 +101,13 @@ const audioSources = {
   upgradeMagic: "assets/audio/sfx/downloaded/magical-upgrade-card.mp3",
   bossWarningCursed: "assets/audio/sfx/downloaded/cursed-boss-warning.mp3",
   bossDownUndead: "assets/audio/sfx/downloaded/undead-pirate-down.mp3",
+  curseMonkeySwipe: "assets/audio/sfx/curse-monkey/bone-swipe.mp3",
+  curseMonkeyDash: "assets/audio/sfx/curse-monkey/fast-dash-whoosh.mp3",
+  curseMonkeyHit: "assets/audio/sfx/curse-monkey/purple-curse-hit.mp3",
+  curseMonkeyChatter: "assets/audio/sfx/curse-monkey/tropical-chatter.mp3",
+  curseMonkeyPower: "assets/audio/sfx/curse-monkey/pirate-powerup.mp3",
+  curseMonkeyWarning: "assets/audio/sfx/curse-monkey/spooky-warning.mp3",
+  curseMonkeyBossDown: "assets/audio/sfx/curse-monkey/boss-drop.mp3",
 };
 
 const images = {};
@@ -122,6 +130,13 @@ const soundConfig = {
   upgradeMagic: { volume: 0.03, cooldown: 860 },
   bossWarningCursed: { volume: 0.043, cooldown: 14000 },
   bossDownUndead: { volume: 0.046, cooldown: 2400 },
+  curseMonkeySwipe: { volume: 0.022, cooldown: 145 },
+  curseMonkeyDash: { volume: 0.026, cooldown: 360 },
+  curseMonkeyHit: { volume: 0.024, cooldown: 520 },
+  curseMonkeyChatter: { volume: 0.019, cooldown: 540 },
+  curseMonkeyPower: { volume: 0.034, cooldown: 760 },
+  curseMonkeyWarning: { volume: 0.041, cooldown: 12000 },
+  curseMonkeyBossDown: { volume: 0.047, cooldown: 2200 },
 };
 const musicConfig = {
   main: 0.62,
@@ -278,8 +293,8 @@ const playerSkinMap = {
     idleBob: 0,
     cellX: 1,
     cellY: 0,
-    music: { theme: "Voodoo Drive", main: "bgmVoodoo", rush: "bgmCaper", mainVolume: 0.64, rushVolume: 0.57, rushStart: 72, mainStartAt: 10, rushStartAt: 5, mainRate: 1.03, rushRate: 1.05 },
-    sfx: { confirm: "monsterPop", slash: "monsterPop", dash: "downloadDash", hurt: "heavyHit", hit: "heavyHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    music: { theme: "Curse Monkey Frenzy", main: "bgmCurseMonkey", rush: "bgmCaper", mainVolume: 0.66, rushVolume: 0.6, rushStart: 42, rushFade: 46, mainStartAt: 20, rushStartAt: 11, mainRate: 1.08, rushRate: 1.09 },
+    sfx: { confirm: "curseMonkeyChatter", slash: "curseMonkeySwipe", dash: "curseMonkeyDash", hurt: "curseMonkeyHit", hit: "curseMonkeyHit", pickup: "curseMonkeyChatter", powerup: "curseMonkeyPower", warning: "curseMonkeyWarning", bossDown: "curseMonkeyBossDown" },
     trait: { id: "curseMagnet", name: "Fluchsog", desc: "+36 Magnet, +5% Schaden, aber weniger HP", magnet: 36, damage: 0.05, maxHp: -12 },
   },
   dhampirHunter: {
