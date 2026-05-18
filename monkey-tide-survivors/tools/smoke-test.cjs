@@ -622,6 +622,7 @@ async function run() {
       clientY: 650,
     }));
     const after = window.__MONKEY_TIDE_DEBUG();
+    if (after.phase === "levelup") document.querySelector(".upgrade-card")?.click();
     const rightTarget = document.elementFromPoint(330, 420) || document.getElementById("gameCanvas");
     rightTarget.dispatchEvent(new PointerEvent("pointerdown", {
       bubbles: true,
