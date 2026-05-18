@@ -51,8 +51,8 @@ const imageSources = {
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
-  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet.webp?v=multi-frame-v1",
-  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
+  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png?v=slice-clean-v1",
+  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean.png?v=slice-clean-v1",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -60,7 +60,7 @@ const imageSources = {
   blackbeard: "assets/sprites/bosses/blackbeard_imagen_hd.webp",
   threeHeadedMonkeyAnim: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
   blackbeardAnim: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
-  newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet.webp?v=tentacle-squid-cactus",
+  newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?v=slice-clean-v1",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp?v=clean-hedges",
@@ -353,13 +353,14 @@ const playerSkinMap = {
   rumCorsair: {
     name: "Rum-Korsar",
     sheet: "playerSkins",
-    x: 58,
-    y: 513,
-    w: 413,
-    h: 494,
-    drawH: 150,
+    x: 34,
+    y: 512,
+    w: 461,
+    h: 512,
+    drawH: 155,
     animH: 178,
     animRow: 3,
+    animDrawYOffset: 33,
     cellX: 0,
     cellY: 1,
     music: { theme: "Rum Runner", main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.55, rushStart: 78, mainStartAt: 24, rushStartAt: 8, mainRate: 1.03, rushRate: 1.04 },
@@ -4656,6 +4657,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   playerSkinTrait: { ...(state.characterTrait || characterTrait(state.player.skin)) },
   playerSkinTraits: Object.fromEntries(playerSkinIds.map((id) => [id, characterTrait(id)])),
+  playerSkinSourceRects: Object.fromEntries(playerSkinIds.map((id) => {
+    const skin = playerSkinMap[id];
+    return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, animDrawYOffset: skin.animDrawYOffset }];
+  })),
   stats: { ...state.stats, nextXp: state.nextXp },
   controls: {
     tuning: { ...CONTROL_TUNING },
@@ -4841,6 +4846,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   },
   crossoverAssets: {
     gothicEnemies: !!images.gothicEnemies,
+    gothicEnemiesSource: imageSources.gothicEnemies,
     gothicItems: !!images.gothicItems,
     gothicProps: !!images.gothicProps,
     threeHeadedMonkey: !!images.threeHeadedMonkey,
@@ -4848,6 +4854,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     threeHeadedMonkeyAnim: !!images.threeHeadedMonkeyAnim,
     blackbeardAnim: !!images.blackbeardAnim,
     newEnemyTrio: !!images.newEnemyTrio,
+    newEnemyTrioSource: imageSources.newEnemyTrio,
     bossAnimationFrames: {
       threeHeadedMonkey: { ...THREE_HEADED_MONKEY_ANIM },
       blackbeard: { ...BLACKBEARD_ANIM },
@@ -4855,6 +4862,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     newEnemyAnimationFrames: { ...NEW_ENEMY_TRIO },
     newEnemyTypes: enemyTypes.filter((type) => type.newEnemyAnim).map((type) => type.id),
     enemyAnimSheet: !!images.enemyAnimSheet,
+    enemyAnimSource: imageSources.enemyAnimSheet,
     enemyAnimationFrames: { ...ENEMY_ANIM },
     enemyAnimTypes: enemyTypes.filter((type) => type.enemyAnim).map((type) => type.id),
     liveSingleFrameFallbackTypes: enemyTypes
