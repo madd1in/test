@@ -81,14 +81,20 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
+    "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
+    "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
+    "assets/sprites/fighters_select_imagen_hd.png",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
     "assets/sprites/enemy_anim_imagen_hd_sheet.webp",
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png",
+    "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
     "assets/sprites/gothic_enemies_hd_sheet_clean.png",
+    "assets/sprites/gothic_enemy_anim_imagen_hd_source.png",
+    "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png",
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -125,6 +131,9 @@ async function run() {
     "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
     "assets/audio/bgm/curse-monkey-frenzy-drive.mp3",
     "assets/audio/bgm/gargoyle-chapel-run.mp3",
+    "assets/audio/bgm/crimson-galleon.mp3",
+    "assets/audio/bgm/coconut-caper-loop.mp3",
+    "assets/audio/bgm/shoreline-rum-riddle.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -269,10 +278,27 @@ async function run() {
   })));
   assert(skinUi.length >= 7, `Player skin picker is missing options: ${JSON.stringify(skinUi)}`);
   assert(skinUi.some((skin) => skin.id === "curseMonkey") && skinUi.some((skin) => skin.id === "freelanceDuo"), `Requested alternate skins missing: ${JSON.stringify(skinUi)}`);
+  assert(JSON.stringify(skinUi.slice(0, 5).map((skin) => skin.id)) === JSON.stringify(["default", "ryu", "ken", "guile", "chunLi"]), `Fighter skins should be immediately visible near the top of the picker: ${JSON.stringify(skinUi)}`);
+  const fighterUi = await page.evaluate(() => ["ryu", "ken", "guile", "chunLi"].map((id) => {
+    const button = document.querySelector(`[data-skin="${id}"]`);
+    const icon = button?.querySelector(".skin-icon");
+    const rect = button?.getBoundingClientRect();
+    return {
+      id,
+      exists: !!button,
+      archetype: button?.dataset.archetype,
+      label: button?.textContent.trim(),
+      selectSheet: icon ? getComputedStyle(icon).backgroundImage.includes("fighters_select_imagen_hd.png") : false,
+      visible: rect ? rect.width > 30 && rect.height > 30 && rect.bottom > 0 && rect.top < innerHeight : false,
+    };
+  }));
+  assert(fighterUi.every((skin) => skin.exists && skin.archetype === "Fighter" && skin.selectSheet && skin.visible), `Fighter picker cards are not visibly wired: ${JSON.stringify(fighterUi)}`);
   const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd.webp"));
   assert(pickerUsesSelectSheet, "Character picker is not using the normalized first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
   assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
+  const signatureProbe = await page.evaluate(() => ["ryu", "ken", "guile", "chunLi"].map((id) => window.__MONKEY_TIDE_SIGNATURE_PROBE(id)));
+  assert(signatureProbe.every((probe) => probe.signature && probe.casts >= 1 && (probe.signatureProjectiles > 0 || probe.zones > 0 || probe.enemiesDamaged > 0)), `Fighter signature moves are not firing: ${JSON.stringify(signatureProbe)}`);
   await page.click('[data-skin="freelanceDuo"]');
   const pickedDuoSkin = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG());
   assert(pickedDuoSkin.playerSkin === "freelanceDuo" && pickedDuoSkin.playerSkinAnimated === true && pickedDuoSkin.playerSkinDuoWalkAsset === true, `Sam and Max/Freelance Duo runtime is not using the walk animation sheet: ${JSON.stringify(pickedDuoSkin)}`);
@@ -395,6 +421,9 @@ async function run() {
   assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v3.png"), `Runtime should use the normalized monkey-and-Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
+  assert(["ryu", "ken", "guile", "chunLi"].every((id) => debug.playerSkinTypes.includes(id)), `Fighter character skins missing: ${JSON.stringify(debug.playerSkinTypes)}`);
+  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
   assert(debug.playerSkinFixedDuoAsset === true && debug.preloadedAssetKeys.includes("samMaxDuo"), `Fixed Sam and Max duo asset is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
@@ -587,6 +616,7 @@ async function run() {
   assert(debug.audio.music.characterThemes.curseMonkey.mainKey === "bgmCurseMonkey" && debug.audio.music.characterThemes.curseMonkey.rushStart <= 45 && debug.audio.music.characterThemes.curseMonkey.mainRate >= 1.08 && debug.audio.music.characterThemes.curseMonkey.rushRate >= 1.08, `Curse monkey BGM should be a faster local frenzy profile: ${JSON.stringify(debug.audio.music.characterThemes.curseMonkey)}`);
   assert(debug.audio.music.characterThemes.dhampirHunter.mainKey === "bgmGargoyle" && debug.audio.music.characterThemes.dhampirHunter.mainStartAt === 0 && debug.audio.music.characterThemes.dhampirHunter.rushStart <= 58, `Alucard/Dhampir BGM should start immediately: ${JSON.stringify(debug.audio.music.characterThemes.dhampirHunter)}`);
   assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 18 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
+  assert(debug.audio.music.characterThemes.ryu.mainKey === "bgmCrimson" && debug.audio.music.characterThemes.ken.mainKey === "bgmCoconut" && debug.audio.music.characterThemes.guile.mainKey === "bgmRumRiddle", `Fighter BGM profiles should use the new local tracks: ${JSON.stringify(debug.audio.music.characterThemes)}`);
   assert(
     debug.audio.sources.bgmMain.includes("tidebarrel-dockside-drive.mp3")
       && debug.audio.sources.bgmRush.includes("black-chapel-gate-drive.mp3")
@@ -631,14 +661,16 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v2.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
+  assert(debug.crossoverAssets.gothicEnemyAnimSheet === true && ["boneCorsair", "gargoyle"].every((id) => debug.crossoverAssets.gothicEnemyAnimTypes.includes(id)), `Skeleton/gargoyle multiframe sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
   const cleanEnemyMatteProbe = await page.evaluate(async () => {
     const assets = [
-      "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png?matte-probe",
+      "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png?matte-probe",
       "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?matte-probe",
       "assets/sprites/gothic_enemies_hd_sheet_clean.png?matte-probe",
+      "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png?matte-probe",
     ];
     const results = [];
     for (const src of assets) {
@@ -668,7 +700,7 @@ async function run() {
   assert(cleanEnemyMatteProbe.every((asset) => asset.lowAlphaMatte === 0 && asset.neonGreenMatte <= 2), `Clean enemy sheets still have matte/slice color leftovers: ${JSON.stringify(cleanEnemyMatteProbe)}`);
   const enemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png?edge-probe";
+    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png?edge-probe";
     await img.decode();
     const frame = 256;
     const rows = 7;
@@ -882,6 +914,7 @@ async function run() {
   await page.waitForTimeout(150);
   const touchProbe = await page.evaluate(() => {
     if (window.__MONKEY_TIDE_DEBUG().phase === "levelup") document.querySelector(".upgrade-card")?.click();
+    window.__MONKEY_TIDE_CLEAR_PLAYTEST_AREA?.();
     const before = window.__MONKEY_TIDE_DEBUG();
     const target = document.elementFromPoint(82, 570) || document.getElementById("gameCanvas");
     target.dispatchEvent(new PointerEvent("pointerdown", {

@@ -11,8 +11,11 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Sauber normalisierte einzelne Imagen-HD-WebP-Props fuer Pfuetzen, Hecken, Schatzstellen, Muschelschreine, verlassene Strandhuetten und Bootswracks; Busch- und Palmenhecken-Assets sind neu freigestellt ohne angeschnittene Atlasreste.
 - Pfuetzen und Spieler-/Waffen-Auren wurden mit neuen Imagen-HD-Raster-Assets ersetzt; die sichtbaren Canvas-Kreis-/Beam-Effekte sind raus.
 - Neuer Imagen-HD-Spieler-Skin-Atlas mit Startscreen-Auswahl fuer Kaeptnin, Insel-Pirat, Fluchaffe, Dhampir-Jaeger, Rum-Korsar, Sternenfarmboy und Freelance-Duo.
+- Ryu, Ken, Guile und Chun Li stehen jetzt direkt oben in der Charakterauswahl und nutzen Imagen-HD-8-Frame-Walkcycles, Auswahlportraits, Traits und eigene BGM-Profile.
+- Fighter haben automatische Signature-Moves mit sichtbarem Loadout-Cooldown: Hadoken, Dragon Kick, Sonic Boom und Lightning Kicks.
 - Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy; Sternenfarmboy/Skywalker hat mehr Headroom im Frameset.
 - Eigene BGM-Profile pro spielbarem Charakter mit lokalen MP3s, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
+- Neue lokale Fighter-Tracks fuer die Charakterrotation: `Crimson Galleon`, `Coconut Caper Loop` und `Shoreline Rum Riddle`.
 - Eigene lokale SFX-Profile pro spielbarem Charakter fuer Slash, Dash, Treffer, Power-ups, Warnungen und Boss-Downs.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.
 - Neues Imagen-HD-Walkcycle-Frameset mit 8 Frames fuer jeden alternativen Spieler-Skin.
@@ -35,6 +38,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neue freigestellte Palmenprops und kleinere offene Schatzkisten im Verhaeltnis zum Spieler.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Spielstart wird erst freigegeben, wenn die lokalen BGM-Tracks wirklich vorgeladen und abspielbereit sind.
+- BGM wird im Menue vorgeprimed und vorpositioniert, damit der Startklick ohne spaete Musik-Luecke loslegt.
 - Alle Runtime-SFX stammen aus den lokalen Downloads und sind leise unter die Musik gemischt.
 - Treibenderer lokaler BGM-Mix aus `Crimson Galleon` als Main-Track und `Gargoyle Chapel Run` als frueher Rush-Layer; SFX bleiben leise darunter.
 - BGM laeuft jetzt als ein eindeutiger aktiver Track mit Rush-Handoff statt zwei ueberlappender MP3-Spuren.
@@ -52,6 +56,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - BGM-Rotation nutzt jetzt treibendere lokale Download-Tracks wie Turbo Banana Cup, Tidebarrel Dockside, Treasure Tide Route, Voodoo Hut Shuffle und Black Chapel Gate.
 - Fluchaffe hat jetzt ein eigenes aggressiveres Frenzy-BGM aus lokalen Downloads, fruehen Rush-Handoff und ein eigenes lokales SFX-Pack fuer Swipe, Dash, Curse-Hit, Pickup, Power-up, Warnung und Boss-Down.
 - Alle live genutzten alten Single-Frame-Gegner (Krabbe, Seehand, Powder Imp, Lantern Wraith, Barrel Maw, Coral Brute, Monkey Idol) nutzen jetzt ein Imagen-HD-Multiframe-Sheet mit acht Frames pro Typ.
+- Krabben- und Seehand-Frames nutzen eine nachgereinigte Alpha-/Green-Matte-Variante gegen gruene Randsaeume.
+- Knochenkorsar und Mond-Gargoyle nutzen ein neues Imagen-HD-Gothic-Animationssheet mit acht Frames statt statischer Einzelbilder.
 - Gegner sind groesser lesbar, haben groessere Hitboxen, mehr Spawn-Druck und ab der dritten Flutwelle zwei Elite-Omen-Ziele.
 - Bewegung reagiert direkter mit hoeherem Grundtempo, kuerzerem Dash-Cooldown, laengerem Boost-Fenster, schnellerer Kamera und sensiblerer Mobile-Stick-Kurve.
 - Arcade-Movement-Pass: deutlich hoeheres Lauftempo, sehr kurzer Dash-Cooldown, schnellerer Dash-Burst, frueher voller Mobile-Stick und korrigierte Dash-Cooldown-Caps bei Traits/Upgrades.
@@ -66,6 +72,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Dreikoepfiger Affe und Blackbeard nutzen eigene neue Imagen-HD-8-Frame-Animationssheets statt statischer Einzelbilder.
 - Map-spezifische Busch-/Hecken-Hindernisse nutzen die HD-Prop-Assets und bleiben Teil der Kollisionslogik.
 - Upgrade-Auswahl pausiert den Run nur noch in groesseren Abstaenden; Zwischenlevel geben nicht-blockierende Flow-Boni.
+- Upgrade-Karten, Loadout-Pips und Tau-Aura bauen sich sichtbarer in Stufen auf, damit Item-Leveln laenger motiviert statt sofort gemaxed auszusehen.
 - Vier Kartenvarianten mit Map-Auswahl, gespeicherten Achievements, freischaltbaren Karten und kleinen Startrelikten.
 - Temporäre Power-up-Drops wie Grog-Tempo, Pulverfieber, Flutmagnet und Voodoo-Schutz sorgen fuer Zwischenziele im Run.
 - Power-up-Pickups haben kleineren Text, weniger Magnet-Sog und deutlich leisere Sounds, damit der Run nicht staendig stolpert.
