@@ -130,6 +130,21 @@ async function run() {
     "assets/audio/sfx/from-downloads/upgrade-card.mp3",
     "assets/audio/sfx/from-downloads/boss-warning.mp3",
     "assets/audio/sfx/from-downloads/boss-down.mp3",
+    "assets/audio/sfx/from-downloads/quick-cutlass.mp3",
+    "assets/audio/sfx/from-downloads/cutlass-hit-goofy.mp3",
+    "assets/audio/sfx/from-downloads/cartoon-cannon-fire.mp3",
+    "assets/audio/sfx/from-downloads/voodoo-magic-pop.mp3",
+    "assets/audio/sfx/from-downloads/bright-gem-pickup.mp3",
+    "assets/audio/sfx/from-downloads/doubloon-ping.mp3",
+    "assets/audio/sfx/from-downloads/healing-sparkle.mp3",
+    "assets/audio/sfx/from-downloads/treasure-clink.mp3",
+    "assets/audio/sfx/from-downloads/parchment-map-unroll.mp3",
+    "assets/audio/sfx/from-downloads/cursed-boss-drop.mp3",
+    "assets/audio/sfx/from-downloads/ghost-anchor-hit.mp3",
+    "assets/audio/sfx/from-downloads/sea-monster-pop.mp3",
+    "assets/audio/sfx/from-downloads/dash-whoosh-fast.mp3",
+    "assets/audio/sfx/from-downloads/pirate-ui-click.mp3",
+    "assets/audio/sfx/from-downloads/treasure-map-magic.mp3",
     "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
     "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
     "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
@@ -578,8 +593,10 @@ async function run() {
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
   assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.sfx.slashSwish <= 0.025 && debug.audio.sfx.curseMonkeyWarning <= 0.045 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.sfx.quickCutlass <= 0.025 && debug.audio.sfx.cannonFire <= 0.035 && debug.audio.sfx.curseMonkeyWarning <= 0.045 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sources.quickCutlass.includes("/from-downloads/quick-cutlass.mp3") && debug.audio.sources.cannonFire.includes("/from-downloads/cartoon-cannon-fire.mp3") && debug.audio.sources.doubloonPing.includes("/from-downloads/doubloon-ping.mp3") && debug.audio.sources.treasureClink.includes("/from-downloads/treasure-clink.mp3"), `Expanded Downloads SFX set missing: ${JSON.stringify(debug.audio.sources)}`);
+  assert(debug.audio.characterSfxProfiles.default.slash === "quickCutlass" && debug.audio.characterSfxProfiles.default.pickup === "brightGem" && debug.audio.characterSfxProfiles.dhampirHunter.hit === "ghostAnchorHit", `Characters are not using the expanded Downloads SFX: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
   assert(debug.audio.sources.slashSwish.includes("/downloaded/") && debug.audio.sources.bossDownUndead.includes("/downloaded/"), `Character SFX should use the local downloaded MP3 set: ${JSON.stringify(debug.audio.sources)}`);
   assert(Object.values(debug.audio.characterSfxProfiles).every((profile) => profile.slash && profile.warning), `Every character should have a SFX profile: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
   assert(debug.audio.characterSfxProfiles.curseMonkey.slash === "curseMonkeySwipe" && debug.audio.characterSfxProfiles.curseMonkey.dash === "curseMonkeyDash" && debug.audio.characterSfxProfiles.curseMonkey.warning === "curseMonkeyWarning", `Curse monkey should use its own local SFX pack: ${JSON.stringify(debug.audio.characterSfxProfiles.curseMonkey)}`);

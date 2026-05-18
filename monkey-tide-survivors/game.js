@@ -97,6 +97,21 @@ const audioSources = {
   downloadUpgrade: "assets/audio/sfx/from-downloads/upgrade-card.mp3",
   downloadBossWarning: "assets/audio/sfx/from-downloads/boss-warning.mp3",
   downloadBossDown: "assets/audio/sfx/from-downloads/boss-down.mp3",
+  quickCutlass: "assets/audio/sfx/from-downloads/quick-cutlass.mp3",
+  cutlassImpact: "assets/audio/sfx/from-downloads/cutlass-hit-goofy.mp3",
+  cannonFire: "assets/audio/sfx/from-downloads/cartoon-cannon-fire.mp3",
+  voodooMagic: "assets/audio/sfx/from-downloads/voodoo-magic-pop.mp3",
+  brightGem: "assets/audio/sfx/from-downloads/bright-gem-pickup.mp3",
+  doubloonPing: "assets/audio/sfx/from-downloads/doubloon-ping.mp3",
+  healSparkle: "assets/audio/sfx/from-downloads/healing-sparkle.mp3",
+  treasureClink: "assets/audio/sfx/from-downloads/treasure-clink.mp3",
+  mapRustle: "assets/audio/sfx/from-downloads/parchment-map-unroll.mp3",
+  cursedBossDrop: "assets/audio/sfx/from-downloads/cursed-boss-drop.mp3",
+  ghostAnchorHit: "assets/audio/sfx/from-downloads/ghost-anchor-hit.mp3",
+  seaMonsterPop: "assets/audio/sfx/from-downloads/sea-monster-pop.mp3",
+  dashWhooshFast: "assets/audio/sfx/from-downloads/dash-whoosh-fast.mp3",
+  pirateUiClick: "assets/audio/sfx/from-downloads/pirate-ui-click.mp3",
+  treasureMapMagic: "assets/audio/sfx/from-downloads/treasure-map-magic.mp3",
   slashSwish: "assets/audio/sfx/downloaded/haunted-pirate-swish.mp3",
   monsterPop: "assets/audio/sfx/downloaded/cartoon-pirate-pop.mp3",
   heavyHit: "assets/audio/sfx/downloaded/heavy-cursed-hit.mp3",
@@ -126,6 +141,21 @@ const soundConfig = {
   downloadUpgrade: { volume: 0.032, cooldown: 900 },
   downloadBossWarning: { volume: 0.045, cooldown: 45000 },
   downloadBossDown: { volume: 0.048, cooldown: 2800 },
+  quickCutlass: { volume: 0.022, cooldown: 145 },
+  cutlassImpact: { volume: 0.024, cooldown: 240 },
+  cannonFire: { volume: 0.034, cooldown: 340 },
+  voodooMagic: { volume: 0.032, cooldown: 720 },
+  brightGem: { volume: 0.018, cooldown: 230 },
+  doubloonPing: { volume: 0.017, cooldown: 220 },
+  healSparkle: { volume: 0.026, cooldown: 520 },
+  treasureClink: { volume: 0.023, cooldown: 520 },
+  mapRustle: { volume: 0.018, cooldown: 700 },
+  cursedBossDrop: { volume: 0.048, cooldown: 2400 },
+  ghostAnchorHit: { volume: 0.025, cooldown: 560 },
+  seaMonsterPop: { volume: 0.026, cooldown: 620 },
+  dashWhooshFast: { volume: 0.024, cooldown: 330 },
+  pirateUiClick: { volume: 0.02, cooldown: 260 },
+  treasureMapMagic: { volume: 0.03, cooldown: 700 },
   slashSwish: { volume: 0.019, cooldown: 170 },
   monsterPop: { volume: 0.016, cooldown: 360 },
   heavyHit: { volume: 0.025, cooldown: 780 },
@@ -263,7 +293,7 @@ const playerSkinMap = {
     w: 104,
     h: 138,
     music: { theme: "Dockside Drive", main: "bgmMain", rush: "bgmRush", mainVolume: 0.64, rushVolume: 0.56, mainStartAt: 0, rushStartAt: 8, mainRate: 1.03, rushRate: 1.03 },
-    sfx: { confirm: "confirm", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "heavyHit", pickup: "pickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "ghostAnchorHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "voodooMagic", warning: "seaMonsterPop", bossDown: "cursedBossDrop" },
     trait: { id: "captainCommand", name: "Kaeptninskommando", desc: "+1 Ruestung, stabiler Saebel", armor: 1, damage: 0.03 },
   },
   islandPirate: {
@@ -279,7 +309,7 @@ const playerSkinMap = {
     cellX: 0,
     cellY: 0,
     music: { theme: "Turbo Caper", main: "bgmCaper", rush: "bgmShoreline", mainVolume: 0.65, rushVolume: 0.55, mainStartAt: 4, rushStartAt: 18, mainRate: 1.045, rushRate: 1.035 },
-    sfx: { confirm: "monsterPop", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "monsterPop", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
+    sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
     trait: { id: "islandLoot", name: "Inselbeute", desc: "+12% Beutewert, groesserer Magnet", pickupValue: 0.12, magnet: 24 },
   },
   curseMonkey: {
@@ -314,7 +344,7 @@ const playerSkinMap = {
     cellX: 2,
     cellY: 0,
     music: { theme: "Gargoyle Bloodrun", main: "bgmGargoyle", rush: "bgmCathedral", mainVolume: 0.62, rushVolume: 0.58, rushStart: 58, mainStartAt: 0, rushStartAt: 8, mainRate: 1.035, rushRate: 1.03 },
-    sfx: { confirm: "upgradeMagic", slash: "slashSwish", dash: "slashSwish", hurt: "heavyHit", hit: "heavyHit", pickup: "chime", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    sfx: { confirm: "treasureMapMagic", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "ghostAnchorHit", hit: "ghostAnchorHit", pickup: "healSparkle", powerup: "voodooMagic", warning: "bossWarningCursed", bossDown: "cursedBossDrop" },
     trait: { id: "moonLeech", name: "Mondbiss", desc: "+8% Schaden, heilt jeden 9. Kill", damage: 0.08, maxHp: -8, killHealEvery: 9, killHeal: 4 },
   },
   rumCorsair: {
@@ -330,7 +360,7 @@ const playerSkinMap = {
     cellX: 0,
     cellY: 1,
     music: { theme: "Rum Runner", main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.55, rushStart: 78, mainStartAt: 24, rushStartAt: 8, mainRate: 1.03, rushRate: 1.04 },
-    sfx: { confirm: "confirm", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "heavyHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
+    sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "cutlassImpact", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
     trait: { id: "rumSprint", name: "Rumspurt", desc: "+18 Tempo, schnellerer Dash", speed: 18, dashCooldown: -0.08, armor: -0.3 },
   },
   starFarmboy: {
@@ -347,7 +377,7 @@ const playerSkinMap = {
     cellX: 1,
     cellY: 1,
     music: { theme: "Twin-Sun Sprint", main: "bgmCaper", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.56, rushStart: 68, mainStartAt: 18, rushStartAt: 12, mainRate: 1.06, rushRate: 1.03 },
-    sfx: { confirm: "chime", slash: "slashSwish", dash: "downloadDash", hurt: "downloadHit", hit: "slashSwish", pickup: "pickup", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    sfx: { confirm: "chime", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "treasureMapMagic", warning: "bossWarningCursed", bossDown: "cursedBossDrop" },
     trait: { id: "starCompass", name: "Sternenkompass", desc: "Startet mit Kompass I, weniger HP", maxHp: -10, weapons: { compass: 1 }, magnet: 12 },
   },
   freelanceDuo: {
@@ -359,7 +389,7 @@ const playerSkinMap = {
     cellX: 2,
     cellY: 1,
     music: { theme: "Duo Desk Chase", main: "bgmMain", rush: "bgmVoodoo", mainVolume: 0.61, rushVolume: 0.55, rushStart: 76, mainStartAt: 20, rushStartAt: 16, mainRate: 1.04, rushRate: 1.035 },
-    sfx: { confirm: "monsterPop", slash: "slashSwish", dash: "monsterPop", hurt: "downloadHit", hit: "monsterPop", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "downloadBossDown" },
+    sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "voodooMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
     trait: { id: "twoHeads", name: "Doppelermittlung", desc: "Startet mit Tau I, Power-ups halten laenger", speed: -6, pickupValue: 0.06, weapons: { rope: 1 }, powerupDuration: 1.18 },
   },
 };
@@ -2636,7 +2666,7 @@ function explode(x, y, radius, damage, options = {}) {
   if (options.maelstrom) {
     state.zones.push({ type: "saberTornado", x, y, angle: state.elapsed, radius: radius * 0.76, level: 4, auraLevel: 3, life: 0.52, maxLife: 0.52, fused: true });
   }
-  playSkinSound("hit", "chime");
+  playSound("cannonFire", { cooldown: 320 });
   for (const enemy of state.enemies) {
     const dx = enemy.x - x;
     const dy = enemy.y - y;
@@ -2708,7 +2738,7 @@ function updateExploration() {
     saveMetaProgress();
     renderMetaProgress();
     playSkinSound("powerup", "downloadUpgrade", { force: true });
-    playSkinSound("pickup", "chime", { force: true });
+    playSound(isChest ? "treasureClink" : isShrine ? "voodooMagic" : "mapRustle", { force: true });
   }
 }
 
@@ -2776,6 +2806,8 @@ function collectGem(gem) {
   if (gem.kind === "heart") {
     state.player.hp = Math.min(state.player.maxHp, state.player.hp + 36);
     floatingText("+HP", state.player.x, state.player.y - 72, "#79e0b7");
+    playSound("healSparkle", { cooldown: 520 });
+    return;
   } else if (gem.kind === "powerup") {
     activatePowerup(gem.powerup);
     playSkinSound("powerup", "pickup", { cooldown: 800 });
@@ -2784,6 +2816,8 @@ function collectGem(gem) {
     state.coins += gem.value;
     metaProgress.coins += gem.value;
     floatingText(`+${gem.value}`, gem.x, gem.y - 18, "#f0c45d");
+    playSound("doubloonPing", { cooldown: 220 });
+    return;
   } else {
     const streakBonus = state.streak?.count >= 10 ? 1.16 : state.streak?.count >= 5 ? 1.08 : 1;
     state.xp += Math.ceil(gem.value * state.stats.pickupValue * streakBonus);
@@ -2971,6 +3005,7 @@ function spawnStreakCache(count) {
   });
   streak.caches += 1;
   floatingText("Streak-Schatz am Horizont", p.x, p.y - 106, "#fff2c7", 0.82, 14);
+  playSound("treasureMapMagic", { cooldown: 900 });
   speak("Streak-Schatz am Horizont gesichtet.", { key: "streak-cache", cooldown: 9000, rate: 1.06 });
 }
 
