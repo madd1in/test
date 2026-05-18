@@ -342,7 +342,7 @@ async function run() {
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
   assert(debug.phase === "playing" || debug.phase === "levelup", `Unexpected phase ${debug.phase}`);
   assert(debug.enemies > 0, `No enemies spawned: ${JSON.stringify(debug)}`);
-  assert(debug.scene.zoom <= 0.66, `Desktop camera is not zoomed out: ${JSON.stringify(debug.scene)}`);
+  assert(debug.scene.zoom <= 0.58, `Desktop camera is not zoomed out enough: ${JSON.stringify(debug.scene)}`);
   assert(debug.world.repeatable === true && debug.world.width >= 1000000 && debug.world.activePropChunks > 0, `World is still behaving like a bounded arena: ${JSON.stringify(debug.world)}`);
   assert(debug.world.backgroundSeamBleed >= 48 && debug.world.backgroundSourceInset >= 32, `Map background tiles do not hide seams aggressively enough: ${JSON.stringify(debug.world)}`);
   assert(debug.world.immersivePropSpawning === true && debug.world.recentVisiblePropSpawns === 0, `Runtime props can still pop into view: ${JSON.stringify(debug.world)}`);
@@ -397,9 +397,12 @@ async function run() {
   assert(debug.audio.sfx.downloadBossWarning <= 0.05 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
-  assert(debug.balance.bossHpMult >= 2.45 && debug.balance.normalSpawnIntensity >= 1.1, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
-  assert(debug.balance.bossHpMult <= 2.65 && debug.balance.normalSpawnIntensity <= 1.18, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
-  assert(debug.balance.firstBossAt <= 190 && debug.balance.rangedPressureAt <= 95, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult >= 2.6 && debug.balance.normalSpawnIntensity >= 1.2, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
+  assert(debug.balance.bossHpMult <= 2.75 && debug.balance.normalSpawnIntensity <= 1.28, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
+  assert(debug.balance.firstBossAt <= 150 && debug.balance.rangedPressureAt <= 65 && debug.balance.pressureWaveFirstAt <= 30, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
+  assert(debug.engagement.pressureWaves >= 1 && debug.engagement.pressureWave >= 1, `Pressure waves did not fire: ${JSON.stringify(debug.engagement)}`);
+  assert(debug.enemyRoster.liveRosterIsMonsterOnly === true, `Live enemy roster still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
+  assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.loading.loaded === debug.loading.total && debug.loading.total === debug.preloadedAssetKeys.length + debug.audio.musicPreload.total, `Loading progress is inaccurate: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemies && debug.crossoverAssets.gothicItems && debug.crossoverAssets.gothicProps, `Gothic crossover sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.gothicEnemyTypes.length >= 3, `Gothic enemy types missing: ${JSON.stringify(debug)}`);
@@ -479,7 +482,7 @@ async function run() {
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
   assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
-  assert(debug.engagement?.streak?.nextCache === 18, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
+  assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
   assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("beachHut") && debug.obstacles.blockingPropTypes.includes("boatWreck"), `Huts and wrecks are not blocking: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("hedgeCluster") || debug.obstacles.blockingPropTypes.includes("palmHedge"), `Hedge blockers are missing: ${JSON.stringify(debug.obstacles)}`);

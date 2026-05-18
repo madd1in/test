@@ -188,14 +188,16 @@ const PROP_SPAWN_BUFFER = 360;
 const PROP_FADE_SECONDS = 1.25;
 const TARGET_TIME = 330;
 const BALANCE = {
-  normalSpawnIntensity: 1.12,
-  quickSpawnIntensity: 1.36,
-  enemyHpGrowth: 345,
-  enemySpeedGrowth: 960,
-  bossHpMult: 2.5,
-  firstBossAt: 184,
-  bossInterval: 78,
-  rangedPressureAt: 88,
+  normalSpawnIntensity: 1.22,
+  quickSpawnIntensity: 1.48,
+  enemyHpGrowth: 305,
+  enemySpeedGrowth: 820,
+  bossHpMult: 2.62,
+  firstBossAt: 148,
+  bossInterval: 62,
+  rangedPressureAt: 62,
+  pressureWaveFirstAt: 26,
+  pressureWaveInterval: 34,
 };
 
 const playerSkinMap = {
@@ -436,30 +438,31 @@ const weaponEvolutionFxMap = {
 };
 
 const enemyTypes = [
-  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d" },
+  { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
   { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
   { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff", flying: true },
   { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 46, speed: 68, radius: 24, damage: 9, scale: 0.48, xp: 12, tint: "#d8e3b0" },
   { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4", flying: true },
-  { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f" },
+  { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f", humanNpc: true },
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
   { id: "tideTentacle", name: "Zeit-Tentakel", newEnemyAnim: "tideTentacle", hp: 72, speed: 72, radius: 30, damage: 12, scale: 0.58, xp: 17, tint: "#d07cff", phase: true },
   { id: "reefSquid", name: "Riff-Squid", newEnemyAnim: "reefSquid", hp: 38, speed: 130, radius: 22, damage: 8, scale: 0.42, xp: 10, tint: "#ff8aa3", flying: true },
   { id: "cactusStack", name: "Kaktus-Stack", newEnemyAnim: "cactusStack", hp: 92, speed: 54, radius: 31, damage: 15, scale: 0.52, xp: 22, tint: "#a9d95a" },
   { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
-  { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7" },
-  { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0" },
+  { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7", humanNpc: true },
+  { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0", humanNpc: true },
   { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5", phase: true },
-  { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7" },
-  { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf" },
+  { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7", humanNpc: true },
+  { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf", humanNpc: true },
   { id: "barrelMaw", name: "Barrel Maw", extraSprite: "barrelMaw", hp: 110, speed: 58, radius: 32, damage: 16, scale: 0.26, xp: 25, tint: "#f0a04d" },
-  { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5" },
+  { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5", humanNpc: true },
   { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
   { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
-  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true },
+  { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true, humanNpc: true },
   { id: "threeHeadedMonkey", name: "Dreikopf-Affe", threeHeadedMonkey: true, hp: 235, speed: 66, radius: 56, damage: 22, scale: 0.34, xp: 64, tint: "#80ff9e", bossCandidate: true },
-  { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true },
+  { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true, humanNpc: true },
 ];
+const activeBossCycle = ["idol", "coralBrute", "threeHeadedMonkey", "gargoyle", "cactusStack"];
 
 const upgrades = [
   {
@@ -739,11 +742,13 @@ function makeState() {
     spawnTimer: 0,
     bossTimer: 0,
     bossCount: 0,
+    pressureTimer: BALANCE.pressureWaveFirstAt,
+    pressureWave: 0,
     warningTimer: 0,
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, flowRewards: 0, pressureWaves: 0, unlocked: [] },
     powerupDropCooldown: 0,
     coins: 0,
     level: 1,
@@ -1417,10 +1422,11 @@ function startGame(options = {}) {
   state.phase = "playing";
   if (quickMode) {
     state.elapsed = 135;
+    state.pressureTimer = 1.2;
     raiseWeapon("coconut");
     raiseWeapon("compass");
     state.level = 4;
-    state.nextXp = 62;
+    state.nextXp = 220;
   }
   ui.startOverlay.hidden = true;
   ui.endOverlay.hidden = true;
@@ -1885,67 +1891,99 @@ function ropeDamage(level) {
 function updateSpawns(dt) {
   state.spawnTimer -= dt;
   state.bossTimer -= dt;
+  state.pressureTimer -= dt;
   const intensity = quickMode ? BALANCE.quickSpawnIntensity : BALANCE.normalSpawnIntensity;
-  const interval = Math.max(0.18, (0.78 - state.elapsed * 0.00135) / intensity);
+  const interval = Math.max(0.14, (0.72 - state.elapsed * 0.00155) / intensity);
   if (state.spawnTimer <= 0) {
     state.spawnTimer = interval;
-    const count = 1 + Math.floor(state.elapsed / 78) + (Math.random() < 0.24 ? 1 : 0);
+    const count = 1 + Math.floor(state.elapsed / 66) + (Math.random() < 0.34 ? 1 : 0);
     for (let i = 0; i < count; i += 1) spawnEnemy(pickEnemyType());
+  }
+  if (state.elapsed > BALANCE.pressureWaveFirstAt && state.pressureTimer <= 0) {
+    triggerPressureWave();
+    state.pressureTimer = Math.max(18, BALANCE.pressureWaveInterval - state.elapsed * 0.035);
   }
   if (state.elapsed > BALANCE.firstBossAt && state.bossTimer <= 0) {
     state.bossTimer = BALANCE.bossInterval;
-    const bossCycle = ["spectralCaptain", "idol", "coralBrute", "threeHeadedMonkey", "blackbeard"];
-    const bossType = enemyType(bossCycle[state.bossCount % bossCycle.length]);
+    const bossType = enemyType(activeBossCycle[state.bossCount % activeBossCycle.length]);
     state.bossCount += 1;
     spawnEnemy(bossType, true);
     state.warningTimer = 3.2;
-    const warning = bossType.id === "spectralCaptain"
-      ? "Fluchkapitaen voraus. Raus aus der Klinge!"
-      : bossType.id === "coralBrute"
+    const warning = bossType.id === "coralBrute"
         ? "Korallenbrecher voraus. Lass dich nicht festnageln!"
         : bossType.id === "threeHeadedMonkey"
           ? "Dreikoepfiger Affe voraus. Nicht alle Koepfe anstarren!"
-          : bossType.id === "blackbeard"
-            ? "Blackbeard voraus. Deckung vor der Breitseite!"
-            : "Affenidol voraus. Bleib in Bewegung!";
+          : bossType.id === "gargoyle"
+            ? "Mond-Gargoyle voraus. Halt Abstand zu den Fluegeln!"
+            : bossType.id === "cactusStack"
+              ? "Kaktus-Stack voraus. Nicht in die Stachelgasse!"
+              : "Affenidol voraus. Bleib in Bewegung!";
     playSound("downloadBossWarning", { force: true });
     speak(warning, { key: `boss-warning-${bossType.id}`, interrupt: true, cooldown: 45000, rate: 1.06 });
   }
 }
 
 function enemyType(id) {
-  return enemyTypes.find((type) => type.id === id) || enemyTypes[0];
+  return enemyTypes.find((type) => type.id === id) || enemyTypes.find((type) => !type.humanNpc) || enemyTypes[0];
 }
 
 function pickEnemyType() {
   const t = state.elapsed;
   const roll = Math.random();
   const variant = mapVariant(state.map);
-  if (variant.enemyFavor && roll < 0.22) return enemyType(variant.enemyFavor[Math.floor(Math.random() * variant.enemyFavor.length)]);
-  if (variant.detail === "lagoon" && t > 58 && roll < 0.4) return enemyType("reefSquid");
-  if (variant.detail === "treasure" && t > 70 && roll < 0.42) return enemyType("cactusStack");
-  if (variant.detail === "lagoon" && t > 42 && roll < 0.32) return enemyType("hand");
-  if (variant.detail === "treasure" && t > 56 && roll < 0.34) return enemyType("powderImp");
-  if (t > 282 && roll < 0.16) return enemyType("stormDuelist");
+  const favored = (variant.enemyFavor || []).filter((id) => !enemyType(id).humanNpc);
+  if (favored.length && roll < 0.24) return enemyType(favored[Math.floor(Math.random() * favored.length)]);
+  if (variant.detail === "lagoon" && t > 52 && roll < 0.43) return enemyType("reefSquid");
+  if (variant.detail === "treasure" && t > 64 && roll < 0.44) return enemyType("cactusStack");
+  if (variant.detail === "lagoon" && t > 38 && roll < 0.34) return enemyType("hand");
+  if (variant.detail === "treasure" && t > 48 && roll < 0.36) return enemyType("powderImp");
+  if (t > 282 && roll < 0.16) return enemyType("gargoyle");
   if (t > 238 && roll < 0.2) return enemyType("coralBrute");
   if (t > 220 && roll < 0.26) return enemyType("barrelMaw");
-  if (t > 192 && roll < 0.31) return enemyType("tideWitch");
+  if (t > 192 && roll < 0.31) return enemyType("cactusStack");
   if (t > 150 && roll < 0.36) return enemyType("lanternWraith");
-  if (t > 126 && roll < 0.42) return enemyType("saltboneFencer");
+  if (t > 126 && roll < 0.42) return enemyType("boneCorsair");
   if (t > 104 && roll < 0.45) return enemyType("tideTentacle");
-  if (t > 88 && roll < 0.48) return enemyType("reefRaider");
+  if (t > 88 && roll < 0.48) return enemyType("reefSquid");
   if (t > 56 && roll < 0.54) return enemyType("powderImp");
   if (t > 250 && roll < 0.1) return enemyType("gargoyle");
-  if (t > 205 && roll < 0.18) return enemyType("oracle");
+  if (t > 205 && roll < 0.18) return enemyType("barrelMaw");
   if (t > 162 && roll < 0.28) return enemyType("hand");
   if (t > 118 && roll < 0.4) return enemyType("boneCorsair");
-  if (t > 82 && roll < 0.5) return enemyType("cook");
+  if (t > 82 && roll < 0.5) return enemyType("tideTentacle");
   if (t > 42 && roll < 0.62) return enemyType("cryptBat");
   if (t > 24 && roll < 0.72) return enemyType("crab");
-  return enemyType("deckhand");
+  return enemyType("crab");
+}
+
+function pressureWavePool() {
+  const t = state.elapsed;
+  const variant = mapVariant(state.map);
+  const ids = ["crab", "cryptBat"];
+  if (t > 35) ids.push("hand", "powderImp");
+  if (t > 70) ids.push("reefSquid", "tideTentacle");
+  if (t > 120) ids.push("boneCorsair", "lanternWraith");
+  if (t > 175) ids.push("cactusStack", "barrelMaw");
+  if (t > 235) ids.push("gargoyle", "coralBrute");
+  ids.push(...(variant.enemyFavor || []));
+  return [...new Set(ids)].filter((id) => !enemyType(id).humanNpc);
+}
+
+function triggerPressureWave() {
+  state.pressureWave += 1;
+  state.runStats.pressureWaves += 1;
+  const pool = pressureWavePool();
+  const cap = isMobileLike() ? 8 : 14;
+  const count = Math.min(cap, 4 + Math.floor(state.elapsed / 58) + (state.pressureWave % 3));
+  for (let i = 0; i < count; i += 1) spawnEnemy(enemyType(pool[i % pool.length]));
+  state.warningTimer = Math.max(state.warningTimer, 1.6);
+  floatingText(`Flutwelle ${state.pressureWave}`, state.player.x, state.player.y - 120, "#fff2c7", 0.9, 32, { priority: 3 });
+  playSound("downloadBossWarning", { cooldown: 14000 });
+  speak(`Flutwelle ${state.pressureWave}. Keine Ruhe am Strand!`, { key: `pressure-wave-${state.pressureWave}`, cooldown: 6000, rate: 1.08 });
 }
 
 function spawnEnemy(type, boss = false) {
+  if (!boss && type?.humanNpc) type = enemyType("crab");
   if (state.enemies.length > enemyCap() && !boss) return;
   const p = state.player;
   const side = Math.floor(Math.random() * 4);
@@ -3437,8 +3475,8 @@ function getSceneZoom() {
   if (isMobileLike()) {
     return viewW > viewH ? 0.35 : 0.38;
   }
-  if (viewW < 980) return 0.58;
-  return 0.64;
+  if (viewW < 980) return 0.52;
+  return 0.56;
 }
 
 function isMobileLike() {
@@ -3790,7 +3828,7 @@ window.__MONKEY_TIDE_OBSTACLE_PROBE = () => {
   addPropToTarget(state, obstacle);
   const before = { x: p.x, y: p.y };
   for (let i = 0; i < 30; i += 1) moveActorWithObstacles(p, 520, 0, 1 / 60, p.r);
-  const ground = { type: enemyType("reefRaider"), x: obstacle.x, y: obstacle.y, r: enemyType("reefRaider").radius };
+  const ground = { type: enemyType("coralBrute"), x: obstacle.x, y: obstacle.y, r: enemyType("coralBrute").radius };
   resolveObstacleCollisions(ground, ground.r);
   const ghost = { type: enemyType("lanternWraith"), x: obstacle.x, y: obstacle.y, r: enemyType("lanternWraith").radius };
   if (!actorIgnoresObstacles(ghost)) resolveObstacleCollisions(ghost, ghost.r);
@@ -3980,7 +4018,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
     || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   stats: { ...state.stats, nextXp: state.nextXp },
-  engagement: { streak: { ...state.streak }, activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id), selectedUpgradeIndex },
+  engagement: {
+    streak: { ...state.streak },
+    pressureWave: state.pressureWave,
+    pressureTimer: state.pressureTimer,
+    pressureWaves: state.runStats.pressureWaves,
+    activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id),
+    selectedUpgradeIndex,
+  },
   map: {
     selected: state.map,
     selectedName: mapVariant(state.map).name,
@@ -4044,6 +4089,15 @@ window.__MONKEY_TIDE_DEBUG = () => {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
   },
   balance: { ...BALANCE },
+  enemyRoster: {
+    activeBossCycle: [...activeBossCycle],
+    activeSpawnTypes: pressureWavePool(),
+    spawnedTypes: [...new Set(state.enemies.map((enemy) => enemy.type.id))],
+    humanNpcTypes: enemyTypes.filter((type) => type.humanNpc).map((type) => type.id),
+    liveRosterIsMonsterOnly: activeBossCycle.every((id) => !enemyType(id).humanNpc)
+      && pressureWavePool().every((id) => !enemyType(id).humanNpc)
+      && state.enemies.filter((enemy) => !enemy.boss).every((enemy) => !enemy.type.humanNpc),
+  },
   pointer: { active: pointer.active, dx: pointer.dx, dy: pointer.dy },
   scene: { zoom: scene.zoom, w: scene.w, h: scene.h },
   performance: {
