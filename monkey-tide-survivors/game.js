@@ -51,6 +51,7 @@ const imageSources = {
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
+  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet.webp?v=multi-frame-v1",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet.webp",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
@@ -219,6 +220,7 @@ const PLAYER_SKIN_SELECT = { w: 256, h: 256, cols: 7 };
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
+const ENEMY_ANIM = { w: 256, h: 256, cols: 8, rows: 7, frames: 8, fps: 8.4 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
 const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
@@ -477,6 +479,16 @@ const newSpriteMap = {
   speedCharm: { x: 3, y: 1 },
 };
 
+const enemyAnimMap = {
+  crab: { row: 0, attackFrames: [2, 3, 4, 5] },
+  seaHand: { row: 1, attackFrames: [2, 3, 4, 5] },
+  powderImp: { row: 2, attackFrames: [3, 4, 5, 6] },
+  lanternWraith: { row: 3, attackFrames: [4, 5, 6, 7] },
+  barrelMaw: { row: 4, attackFrames: [3, 4, 5, 6] },
+  coralBrute: { row: 5, attackFrames: [3, 4, 5, 6] },
+  monkeyIdol: { row: 6, attackFrames: [4, 5, 6, 7] },
+};
+
 const gothicItemMap = {
   gothicBoots: { x: 0, y: 0 },
   moonSlash: { x: 1, y: 0 },
@@ -590,25 +602,25 @@ const weaponEvolutionFxMap = {
 
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
-  { id: "crab", name: "Coconut Crab", sprite: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
+  { id: "crab", name: "Coconut Crab", sprite: "crab", enemyAnim: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
   { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff", flying: true },
   { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 46, speed: 68, radius: 24, damage: 9, scale: 0.48, xp: 12, tint: "#d8e3b0" },
   { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4", flying: true },
   { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f", humanNpc: true },
-  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
+  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", enemyAnim: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
   { id: "tideTentacle", name: "Zeit-Tentakel", newEnemyAnim: "tideTentacle", hp: 72, speed: 72, radius: 30, damage: 12, scale: 0.58, xp: 17, tint: "#d07cff", phase: true },
   { id: "reefSquid", name: "Riff-Squid", newEnemyAnim: "reefSquid", hp: 38, speed: 130, radius: 22, damage: 8, scale: 0.42, xp: 10, tint: "#ff8aa3", flying: true },
   { id: "cactusStack", name: "Kaktus-Stack", newEnemyAnim: "cactusStack", hp: 92, speed: 54, radius: 31, damage: 15, scale: 0.52, xp: 22, tint: "#a9d95a" },
-  { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
+  { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", enemyAnim: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
   { id: "reefRaider", name: "Reef Raider", extraSprite: "reefRaider", hp: 78, speed: 66, radius: 30, damage: 13, scale: 0.27, xp: 17, tint: "#7ce0a7", humanNpc: true },
   { id: "saltboneFencer", name: "Saltbone Fencer", extraSprite: "saltboneFencer", hp: 58, speed: 86, radius: 25, damage: 12, scale: 0.26, xp: 15, tint: "#f2dca0", humanNpc: true },
-  { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5", phase: true },
+  { id: "lanternWraith", name: "Lantern Wraith", extraSprite: "lanternWraith", enemyAnim: "lanternWraith", hp: 44, speed: 96, radius: 25, damage: 11, scale: 0.27, xp: 14, tint: "#53ffe5", phase: true },
   { id: "oracle", name: "Shell Oracle", row: 9, hp: 62, speed: 51, radius: 28, damage: 12, scale: 0.47, xp: 15, tint: "#79e0b7", humanNpc: true },
   { id: "tideWitch", name: "Tide Witch", extraSprite: "tideWitch", hp: 88, speed: 54, radius: 30, damage: 16, scale: 0.29, xp: 23, tint: "#77e6cf", humanNpc: true },
-  { id: "barrelMaw", name: "Barrel Maw", extraSprite: "barrelMaw", hp: 110, speed: 58, radius: 32, damage: 16, scale: 0.26, xp: 25, tint: "#f0a04d" },
+  { id: "barrelMaw", name: "Barrel Maw", extraSprite: "barrelMaw", enemyAnim: "barrelMaw", hp: 110, speed: 58, radius: 32, damage: 16, scale: 0.26, xp: 25, tint: "#f0a04d" },
   { id: "stormDuelist", name: "Storm Duelist", extraSprite: "stormDuelist", hp: 118, speed: 74, radius: 31, damage: 18, scale: 0.29, xp: 31, tint: "#5ccdf5", humanNpc: true },
-  { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
-  { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
+  { id: "coralBrute", name: "Coral Brute", extraSprite: "coralBrute", enemyAnim: "coralBrute", hp: 176, speed: 45, radius: 43, damage: 20, scale: 0.33, xp: 40, tint: "#8bd78f", bossCandidate: true },
+  { id: "idol", name: "Monkey Idol", sprite: "monkeyIdol", enemyAnim: "monkeyIdol", hp: 230, speed: 40, radius: 46, damage: 18, scale: 0.24, xp: 46, tint: "#d07cff" },
   { id: "spectralCaptain", name: "Fluchkapitaen", captainSheet: true, hp: 292, speed: 52, radius: 50, damage: 20, scale: 0.52, xp: 56, tint: "#53ffe5", phase: true, humanNpc: true },
   { id: "threeHeadedMonkey", name: "Dreikopf-Affe", threeHeadedMonkey: true, hp: 235, speed: 66, radius: 56, damage: 22, scale: 0.34, xp: 64, tint: "#80ff9e", bossCandidate: true },
   { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true, humanNpc: true },
@@ -3273,6 +3285,18 @@ function drawEnemies() {
       h = NEW_ENEMY_TRIO.h * drawScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.enemyAnim && images.enemyAnimSheet) {
+      const anim = enemyAnimMap[enemy.type.enemyAnim] || enemyAnimMap.crab;
+      const frame = bossAnimFrame(enemy, ENEMY_ANIM, anim.attackFrames);
+      const sx = (frame % ENEMY_ANIM.cols) * ENEMY_ANIM.w;
+      const sy = anim.row * ENEMY_ANIM.h;
+      const bob = enemy.type.phase || enemy.type.flying
+        ? Math.sin(state.elapsed * 7.2 + enemy.frameOffset) * 6
+        : Math.sin(state.elapsed * 4.4 + enemy.frameOffset) * 2.5;
+      w = ENEMY_ANIM.w * drawScale * (enemy.boss ? 1.22 : 1);
+      h = ENEMY_ANIM.h * drawScale * (enemy.boss ? 1.22 : 1);
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
+      ctx.drawImage(images.enemyAnimSheet, sx, sy, ENEMY_ANIM.w, ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.extraSprite) {
       const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
       const bob = Math.sin(state.elapsed * (enemy.type.id === "powderImp" ? 9 : 5.5) + enemy.frameOffset) * (enemy.type.id === "lanternWraith" ? 7 : 3.5);
@@ -4567,6 +4591,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
     },
     newEnemyAnimationFrames: { ...NEW_ENEMY_TRIO },
     newEnemyTypes: enemyTypes.filter((type) => type.newEnemyAnim).map((type) => type.id),
+    enemyAnimSheet: !!images.enemyAnimSheet,
+    enemyAnimationFrames: { ...ENEMY_ANIM },
+    enemyAnimTypes: enemyTypes.filter((type) => type.enemyAnim).map((type) => type.id),
+    liveSingleFrameFallbackTypes: enemyTypes
+      .filter((type) => !type.humanNpc && (type.sprite || type.extraSprite) && !type.enemyAnim)
+      .map((type) => type.id),
     gothicEnemyTypes: enemyTypes.filter((type) => type.gothicRow !== undefined).map((type) => type.id),
     gothicPropTypes: Object.keys(gothicPropMap),
     gothicItemTypes: Object.keys(gothicItemMap),

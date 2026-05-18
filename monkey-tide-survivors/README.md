@@ -49,6 +49,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Spaetere Runs trimmen entfernte Normalgegner und zeichnen nur noch ein priorisiertes Sprite-Budget, damit volle Screens nicht sofort laggy werden.
 - BGM-Rotation nutzt jetzt treibendere lokale Download-Tracks wie Turbo Banana Cup, Tidebarrel Dockside, Treasure Tide Route, Voodoo Hut Shuffle und Black Chapel Gate.
 - Fluchaffe hat jetzt ein eigenes aggressiveres Frenzy-BGM aus lokalen Downloads, fruehen Rush-Handoff und ein eigenes lokales SFX-Pack fuer Swipe, Dash, Curse-Hit, Pickup, Power-up, Warnung und Boss-Down.
+- Alle live genutzten alten Single-Frame-Gegner (Krabbe, Seehand, Powder Imp, Lantern Wraith, Barrel Maw, Coral Brute, Monkey Idol) nutzen jetzt ein Imagen-HD-Multiframe-Sheet mit acht Frames pro Typ.
 - Gegner sind groesser lesbar, haben groessere Hitboxen, mehr Spawn-Druck und ab der dritten Flutwelle zwei Elite-Omen-Ziele.
 - Bewegung reagiert direkter mit hoeherem Grundtempo, kuerzerem Dash-Cooldown, laengerem Boost-Fenster, schnellerer Kamera und sensiblerer Mobile-Stick-Kurve.
 - Arcade-Movement-Pass: deutlich hoeheres Lauftempo, sehr kurzer Dash-Cooldown, schnellerer Dash-Burst, frueher voller Mobile-Stick und korrigierte Dash-Cooldown-Caps bei Traits/Upgrades.
