@@ -568,15 +568,17 @@ async function run() {
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.slashSwish.includes("/downloaded/") && debug.audio.sources.bossDownUndead.includes("/downloaded/"), `Character SFX should use the local downloaded MP3 set: ${JSON.stringify(debug.audio.sources)}`);
   assert(Object.values(debug.audio.characterSfxProfiles).every((profile) => profile.slash && profile.warning), `Every character should have a SFX profile: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
-  assert(debug.stats.speed >= 292 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
+  assert(debug.stats.speed >= 344 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
   const movementProbe = await page.evaluate(() => window.__MONKEY_TIDE_MOVEMENT_PROBE());
   assert(
-    movementProbe.baseSpeed >= 292
-      && movementProbe.dashCooldown <= 0.58
-      && movementProbe.dashDuration >= 0.23
-      && movementProbe.dashBoost >= 3.1
-      && movementProbe.halfStickMagnitude >= 0.7
-      && movementProbe.cameraCatchup >= 10,
+    movementProbe.baseSpeed >= 344
+      && movementProbe.dashCooldown <= 0.4
+      && movementProbe.dashDuration >= 0.29
+      && movementProbe.dashBoost >= 3.7
+      && movementProbe.dashBurstDistance >= 380
+      && movementProbe.halfStickMagnitude >= 0.96
+      && movementProbe.halfStickSpeed >= 330
+      && movementProbe.cameraCatchup >= 16,
     `Movement tuning still feels heavy: ${JSON.stringify(movementProbe)}`,
   );
   assert(debug.balance.bossHpMult >= 2.85 && debug.balance.normalSpawnIntensity >= 1.34, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
@@ -792,7 +794,7 @@ async function run() {
   });
   assert(touchProbe.active.pointer.active === true, `Mobile thumbstick did not activate: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.active.pointer.dy > 0.6, `Mobile thumbstick did not point down: ${JSON.stringify(touchProbe)}`);
-  assert(touchProbe.moved.player.y > touchProbe.before.player.y + 10, `Mobile thumbstick did not move player: ${JSON.stringify(touchProbe)}`);
+  assert(touchProbe.moved.player.y > touchProbe.before.player.y + 24, `Mobile thumbstick did not move player quickly enough: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.moved.scene.zoom <= 0.39, `Mobile camera is not zoomed out: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.after.pointer.active === false, `Mobile thumbstick did not reset: ${JSON.stringify(touchProbe)}`);
   assert(touchProbe.rightActive.pointer.active === true, `Right-side thumbstick did not activate: ${JSON.stringify(touchProbe)}`);

@@ -179,14 +179,14 @@ const PERF_GUARDS = {
   trimBuffer: 10,
 };
 const CONTROL_TUNING = {
-  baseSpeed: 296,
-  dashCooldown: 0.56,
-  dashDuration: 0.24,
-  dashBoost: 3.18,
-  cameraCatchup: 10.5,
-  stickDeadzone: 0.06,
-  stickFullAt: 0.7,
-  stickCurve: 0.56,
+  baseSpeed: 348,
+  dashCooldown: 0.38,
+  dashDuration: 0.3,
+  dashBoost: 3.75,
+  cameraCatchup: 18,
+  stickDeadzone: 0.025,
+  stickFullAt: 0.46,
+  stickCurve: 0.34,
 };
 const ENEMY_TUNING = {
   visualScale: 1.12,
@@ -422,7 +422,7 @@ const achievementDefinitions = [
 ];
 
 const powerUpTypes = [
-  { id: "rumRush", name: "Grog-Tempo", icon: "grogLantern", duration: 10, speed: 1.22, color: "#f0c45d" },
+  { id: "rumRush", name: "Grog-Tempo", icon: "grogLantern", duration: 10, speed: 1.3, color: "#f0c45d" },
   { id: "blackPowder", name: "Pulverfieber", icon: "powderPouch", duration: 9, damage: 1.2, color: "#ffb14c" },
   { id: "pearlMagnet", name: "Flutmagnet", icon: "cursedPearl", duration: 12, magnet: 130, color: "#53ffe5" },
   { id: "voodooWard", name: "Voodoo-Schutz", icon: "voodooDoll", duration: 8, armor: 2, color: "#d07cff" },
@@ -705,7 +705,7 @@ const upgrades = [
     max: 4,
     apply: () => {
       state.stats.speed += 16;
-      state.stats.dashCooldown = Math.max(0.5, state.stats.dashCooldown - 0.06);
+      state.stats.dashCooldown = Math.max(0.3, state.stats.dashCooldown - 0.06);
     },
   },
   {
@@ -750,7 +750,7 @@ const upgrades = [
     max: 5,
     apply: () => {
       state.stats.speed += 24;
-      state.stats.dashCooldown = Math.max(0.58, state.stats.dashCooldown - 0.1);
+      state.stats.dashCooldown = Math.max(0.28, state.stats.dashCooldown - 0.1);
     },
   },
   {
@@ -888,7 +888,7 @@ function applyCharacterTrait(next) {
   next.stats.armor += trait.armor || 0;
   next.stats.magnet += trait.magnet || 0;
   next.stats.pickupValue += trait.pickupValue || 0;
-  next.stats.dashCooldown = Math.max(0.48, next.stats.dashCooldown + (trait.dashCooldown || 0));
+  next.stats.dashCooldown = Math.max(0.28, next.stats.dashCooldown + (trait.dashCooldown || 0));
   next.stats.powerupDuration = trait.powerupDuration || 1;
   for (const [weapon, level] of Object.entries(trait.weapons || {})) {
     if (!next.weapons[weapon]) continue;
@@ -899,7 +899,7 @@ function applyCharacterTrait(next) {
 
 let state = null;
 const keys = new Set();
-const pointer = { active: false, id: null, dx: 0, dy: 0, originX: 0, originY: 0, radius: 48 };
+const pointer = { active: false, id: null, dx: 0, dy: 0, originX: 0, originY: 0, radius: 40 };
 let activeUpgradeChoices = [];
 let selectedUpgradeIndex = 0;
 
@@ -4341,6 +4341,8 @@ window.__MONKEY_TIDE_MOVEMENT_PROBE = () => {
     dashDuration: CONTROL_TUNING.dashDuration,
     dashBoost: CONTROL_TUNING.dashBoost,
     dashBurstDistance: Math.round(baseSpeed * CONTROL_TUNING.dashBoost * CONTROL_TUNING.dashDuration),
+    halfStickSpeed: Math.round(baseSpeed * halfStick.magnitude),
+    oneSecondKeyboardDistance: Math.round(baseSpeed),
     cameraCatchup: CONTROL_TUNING.cameraCatchup,
     halfStickMagnitude: Number(halfStick.magnitude.toFixed(3)),
     nearFullStickMagnitude: Number(nearFullStick.magnitude.toFixed(3)),
