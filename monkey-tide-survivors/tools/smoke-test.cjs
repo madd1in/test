@@ -85,6 +85,7 @@ async function run() {
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
     "assets/sprites/new_sprites_imagen_hd.webp",
+    "assets/sprites/enemy_anim_imagen_hd_sheet.webp",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
@@ -600,6 +601,45 @@ async function run() {
   assert(debug.engagement.eliteEnemies + debug.engagement.elitesDefeated >= 1, `Pressure waves should mark an elite omen target: ${JSON.stringify(debug.engagement)}`);
   assert(debug.enemyRoster.liveRosterIsMonsterOnly === true, `Live enemy roster still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
+  assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
+  assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
+  assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
+  const enemyAnimAlphaProbe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet.webp?edge-probe";
+    await img.decode();
+    const frame = 256;
+    const rows = 7;
+    const cols = 8;
+    const canvas = document.createElement("canvas");
+    canvas.width = frame;
+    canvas.height = frame;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const results = [];
+    for (let row = 0; row < rows; row += 1) {
+      const rowResult = [];
+      for (let col = 0; col < cols; col += 1) {
+        ctx.clearRect(0, 0, frame, frame);
+        ctx.drawImage(img, col * frame, row * frame, frame, frame, 0, 0, frame, frame);
+        const data = ctx.getImageData(0, 0, frame, frame).data;
+        let edgeAlpha = 0;
+        let visible = 0;
+        for (let y = 0; y < frame; y += 1) {
+          for (let x = 0; x < frame; x += 1) {
+            const alpha = data[(y * frame + x) * 4 + 3];
+            if (alpha <= 8) continue;
+            visible += 1;
+            if (x === 0 || y === 0 || x === frame - 1 || y === frame - 1) edgeAlpha += 1;
+          }
+        }
+        rowResult.push({ edgeAlpha, visible });
+      }
+      results.push(rowResult);
+    }
+    return results;
+  });
+  assert(enemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 9000)), `Imagen enemy multiframe sheet has sliced or empty frames: ${JSON.stringify(enemyAnimAlphaProbe)}`);
   const rotationProbe = await page.evaluate(() => window.__MONKEY_TIDE_ROTATION_PROBE());
   assert(rotationProbe.openingPool.includes("powderImp") && rotationProbe.openingPool.includes("reefSquid") && rotationProbe.openingUnique >= 4, `Opening enemy rotation is still too repetitive: ${JSON.stringify(rotationProbe)}`);
   assert(["hand", "tideTentacle"].every((id) => rotationProbe.midPool.includes(id)), `Mid-run enemy rotation is missing variety: ${JSON.stringify(rotationProbe)}`);
