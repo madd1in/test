@@ -1,4 +1,4 @@
-name: Deploy Glimmerwald Quest
+name: Deploy Monkey Tide Survivors
 
 on:
   push:
@@ -6,6 +6,10 @@ on:
       - master
       - main
       - turbo-rally
+      - codex/moto-ridge-rush
+    paths:
+      - monkey-tide-survivors/**
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
@@ -33,7 +37,7 @@ jobs:
       - name: Upload static game
         uses: actions/upload-pages-artifact@v3
         with:
-          path: glimmerwald-quest
+          path: monkey-tide-survivors
 
       - name: Deploy
         id: deployment
