@@ -3537,15 +3537,15 @@ window.addEventListener("keyup", (event) => {
 });
 
 ui.startButton.addEventListener("click", () => {
-  requestMobilePortraitFullscreen();
+  requestMobilePreferredFullscreen();
   startGame();
 });
 ui.quickButton.addEventListener("click", () => {
-  requestMobilePortraitFullscreen();
+  requestMobilePreferredFullscreen();
   startGame({ quick: true });
 });
 ui.restartButton.addEventListener("click", () => {
-  requestMobilePortraitFullscreen();
+  requestMobilePreferredFullscreen();
   startGame({ quick: quickMode });
 });
 ui.skinPicker.addEventListener("click", (event) => {
@@ -3598,59 +3598,75 @@ function toggleFullscreen() {
   } else {
     document.documentElement.requestFullscreen({ navigationUI: "hide" })
       .then(() => {
-        if (isMobileLike()) lockMobilePortraitOrientation();
+        if (isMobileLike()) lockMobilePreferredOrientation();
       })
       .catch(() => {
-        if (isMobileLike()) lockMobilePortraitOrientation();
+        if (isMobileLike()) lockMobilePreferredOrientation();
       });
   }
 }
 
-function lockMobilePortraitOrientation() {
+function preferredMobileOrientation() {
+  const type = screen.orientation?.type || "";
+  const landscape = window.innerWidth > window.innerHeight
+    || (window.innerWidth === window.innerHeight && /^landscape/i.test(type));
+  return landscape
+    ? { preference: "landscape-primary", fallback: "landscape" }
+    : { preference: "portrait-primary", fallback: "portrait" };
+}
+
+function setMobileOrientationPreference() {
+  const orientation = preferredMobileOrientation();
+  mobileDisplayState.orientationPreference = orientation.preference;
+  mobileDisplayState.orientationFallback = orientation.fallback;
+  return orientation;
+}
+
+function lockMobilePreferredOrientation() {
+  const orientation = setMobileOrientationPreference();
   mobileDisplayState.orientationRequested = mobileDisplayState.orientationPreference;
   mobileDisplayState.orientationLocked = false;
   mobileDisplayState.orientationError = null;
   if (!screen.orientation?.lock) return;
-  screen.orientation.lock(mobileDisplayState.orientationPreference)
+  screen.orientation.lock(orientation.preference)
     .then(() => {
       mobileDisplayState.orientationLocked = true;
     })
     .catch((error) => {
-      mobileDisplayState.orientationError = error?.name || error?.message || "portrait-primary failed";
-      mobileDisplayState.orientationRequested = mobileDisplayState.orientationFallback;
-      screen.orientation.lock(mobileDisplayState.orientationFallback)
+      mobileDisplayState.orientationError = error?.name || error?.message || `${orientation.preference} failed`;
+      mobileDisplayState.orientationRequested = orientation.fallback;
+      screen.orientation.lock(orientation.fallback)
         .then(() => {
           mobileDisplayState.orientationLocked = true;
           mobileDisplayState.orientationError = null;
         })
         .catch((fallbackError) => {
-          mobileDisplayState.orientationError = fallbackError?.name || fallbackError?.message || "portrait failed";
+          mobileDisplayState.orientationError = fallbackError?.name || fallbackError?.message || `${orientation.fallback} failed`;
         });
     });
 }
 
-function requestMobilePortraitFullscreen() {
+function requestMobilePreferredFullscreen() {
   if (!isMobileLike()) return;
   mobileDisplayState.requested = true;
-  mobileDisplayState.orientationPreference = "portrait-primary";
-  mobileDisplayState.orientationFallback = "portrait";
+  setMobileOrientationPreference();
   mobileDisplayState.fullscreenAvailable = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
   if (!document.fullscreenElement && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
     mobileDisplayState.fullscreenRequested = true;
     mobileDisplayState.fullscreenError = null;
     try {
       document.documentElement.requestFullscreen({ navigationUI: "hide" })
-        .then(() => lockMobilePortraitOrientation())
+        .then(() => lockMobilePreferredOrientation())
         .catch((error) => {
           mobileDisplayState.fullscreenError = error?.name || error?.message || "fullscreen failed";
-          lockMobilePortraitOrientation();
+          lockMobilePreferredOrientation();
         });
     } catch (error) {
       mobileDisplayState.fullscreenError = error?.name || error?.message || "fullscreen threw";
-      lockMobilePortraitOrientation();
+      lockMobilePreferredOrientation();
     }
   } else {
-    lockMobilePortraitOrientation();
+    lockMobilePreferredOrientation();
   }
 }
 

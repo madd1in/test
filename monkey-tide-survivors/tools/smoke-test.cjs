@@ -322,6 +322,21 @@ async function run() {
   assert(mobileStartDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")) && !mobileStartDisplay.orientationLocks.includes("landscape"), `Mobile start requested the wrong orientation: ${JSON.stringify(mobileStartDisplay)}`);
   assert(mobileStartDisplay.debug.performance.mobile === true && mobileStartDisplay.debug.performance.dpr <= 1.01, `Mobile DPR guardrail is too high: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
   assert(mobileStartDisplay.debug.performance.enemyCap <= 125 && mobileStartDisplay.debug.performance.textCap <= 18 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.evaluate(() => {
+    window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS = [];
+    try {
+      Object.defineProperty(screen.orientation, "type", { configurable: true, get: () => "landscape-primary" });
+    } catch {}
+  });
+  await page.click("#fullscreenButton");
+  await page.waitForTimeout(100);
+  const mobileLandscapeDisplay = await page.evaluate(() => ({
+    debug: window.__MONKEY_TIDE_DEBUG(),
+    orientationLocks: window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS,
+  }));
+  assert(mobileLandscapeDisplay.debug.mobileDisplay.orientationPreference === "landscape-primary", `Landscape mobile should prefer landscape fullscreen: ${JSON.stringify(mobileLandscapeDisplay.debug.mobileDisplay)}`);
+  assert(mobileLandscapeDisplay.orientationLocks.some((mode) => String(mode).startsWith("landscape")) && !mobileLandscapeDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")), `Landscape mobile requested the wrong orientation: ${JSON.stringify(mobileLandscapeDisplay)}`);
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.waitForTimeout(100);
   const debug = await page.evaluate(() => window.__MONKEY_TIDE_STEP(8));
