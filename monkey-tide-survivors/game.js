@@ -47,12 +47,15 @@ const imageSources = {
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?v=curse-monkey-stable-v1",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
+  fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean.png?v=fighters-imagen-v1",
+  fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
-  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png?v=slice-clean-v1",
+  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png?v=green-edge-clean-v2",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean.png?v=slice-clean-v1",
+  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png?v=gothic-multiframe-v1",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -88,6 +91,9 @@ const audioSources = {
   bgmCathedral: "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
   bgmCurseMonkey: "assets/audio/bgm/curse-monkey-frenzy-drive.mp3",
   bgmGargoyle: "assets/audio/bgm/gargoyle-chapel-run.mp3",
+  bgmCrimson: "assets/audio/bgm/crimson-galleon.mp3",
+  bgmCoconut: "assets/audio/bgm/coconut-caper-loop.mp3",
+  bgmRumRiddle: "assets/audio/bgm/shoreline-rum-riddle.mp3",
   pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
   chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
   gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -185,6 +191,7 @@ let musicTrackKeys = { main: null, rush: null };
 let musicTrackMeta = { main: { startAt: 0, rate: 1 }, rush: { startAt: 0, rate: 1 } };
 const musicBlobUrls = {};
 const musicPreloadState = { ready: false, loaded: 0, total: 0, decoded: 0, failed: [], keys: [] };
+let menuMusicPrimePromise = Promise.resolve();
 let muted = false;
 const speechState = {
   supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
@@ -237,11 +244,11 @@ const CONTROL_TUNING = {
   stickCurve: 0.34,
 };
 const ENEMY_TUNING = {
-  visualScale: 1.18,
-  hitboxScale: 1.08,
-  animatedVisualBoost: 1.1,
-  minAnimatedVisualHeight: 82,
-  minAnimatedVisualRadiusRatio: 3.3,
+  visualScale: 1.32,
+  hitboxScale: 1.14,
+  animatedVisualBoost: 1.16,
+  minAnimatedVisualHeight: 96,
+  minAnimatedVisualRadiusRatio: 3.65,
   pressureWaveDesktopCap: 12,
   pressureWaveMobileCap: 7,
   secondEliteFromWave: 3,
@@ -252,11 +259,14 @@ const CHAR = { w: 192, h: 256, cols: 16 };
 const PLAYER_SKIN = { w: 512, h: 512, cols: 3, rows: 2 };
 const PLAYER_SKIN_WALK = { w: 256, h: 256, cols: 8, rows: 6 };
 const PLAYER_SKIN_SELECT = { w: 256, h: 256, cols: 7 };
+const FIGHTER_WALK = { w: 256, h: 256, cols: 8, rows: 4, frames: 8 };
+const FIGHTER_SELECT = { w: 256, h: 256, cols: 4 };
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
 const ENEMY_ANIM = { w: 256, h: 256, cols: 8, rows: 7, frames: 8, fps: 8.4 };
 const GOTHIC_ENEMY = { w: 128, h: 176, cols: 4 };
+const GOTHIC_ENEMY_ANIM = { w: 256, h: 256, cols: 8, rows: 2, frames: 8, fps: 8 };
 const GOTHIC_ITEM = { w: 128, h: 128, cols: 4, rows: 3 };
 const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
@@ -398,8 +408,112 @@ const playerSkinMap = {
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "voodooMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
     trait: { id: "twoHeads", name: "Doppelermittlung", desc: "Startet mit Tau I, Power-ups halten laenger", speed: -6, pickupValue: 0.06, weapons: { rope: 1 }, powerupDuration: 1.18 },
   },
+  ryu: {
+    name: "Ryu",
+    sheet: "fighterWalks",
+    animSheet: "fighterWalks",
+    fighterRow: 0,
+    selectIndex: 0,
+    animH: 168,
+    animDrawYOffset: 31,
+    music: { theme: "Crimson Galleon Focus", main: "bgmCrimson", rush: "bgmCathedral", mainVolume: 0.62, rushVolume: 0.57, rushStart: 64, mainStartAt: 0, rushStartAt: 8, mainRate: 1.02, rushRate: 1.035 },
+    sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "heavyHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
+    trait: {
+      id: "hadokenFocus",
+      name: "Hadoken-Fokus",
+      desc: "+9% Schaden, Kompass startet frueher",
+      damage: 0.09,
+      weapons: { compass: 1 },
+      maxHp: -6,
+      signature: { id: "hadoken", label: "Hadoken", icon: "compassBolt", pattern: "shot", cooldown: 3.8, speed: 660, damage: 38, radius: 19, pierce: 2, color: "#6ee7ff" },
+    },
+  },
+  ken: {
+    name: "Ken",
+    sheet: "fighterWalks",
+    animSheet: "fighterWalks",
+    fighterRow: 1,
+    selectIndex: 1,
+    animH: 168,
+    animDrawYOffset: 31,
+    music: { theme: "Coconut Caper Rush", main: "bgmCoconut", rush: "bgmCurseMonkey", mainVolume: 0.63, rushVolume: 0.58, rushStart: 54, mainStartAt: 0, rushStartAt: 8, mainRate: 1.045, rushRate: 1.075 },
+    sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "curseMonkeyWarning", bossDown: "curseMonkeyBossDown" },
+    trait: {
+      id: "dragonRush",
+      name: "Dragon Rush",
+      desc: "Schneller Dash, etwas mehr Tempo",
+      speed: 14,
+      dashCooldown: -0.07,
+      damage: 0.035,
+      signature: { id: "dragonKick", label: "Dragon Kick", icon: "rumBombFx", pattern: "burst", cooldown: 4.3, damage: 34, radius: 132, color: "#ff9d42" },
+    },
+  },
+  guile: {
+    name: "Guile",
+    sheet: "fighterWalks",
+    animSheet: "fighterWalks",
+    fighterRow: 2,
+    selectIndex: 2,
+    animH: 176,
+    animDrawYOffset: 31,
+    music: { theme: "Rum Riddle Barrage", main: "bgmRumRiddle", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.57, rushStart: 70, mainStartAt: 0, rushStartAt: 8, mainRate: 1.025, rushRate: 1.04 },
+    sfx: { confirm: "pirateUiClick", slash: "slashSwish", dash: "dashWhooshFast", hurt: "heavyHit", hit: "ghostAnchorHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "bossDownUndead" },
+    trait: {
+      id: "sonicGuard",
+      name: "Sonic Guard",
+      desc: "+1 Ruestung, schnellere Waffenzyklen",
+      armor: 1,
+      cooldown: -0.04,
+      speed: -4,
+      signature: { id: "sonicBoom", label: "Sonic Boom", icon: "ropeRing", pattern: "shot", cooldown: 3.35, speed: 610, damage: 30, radius: 22, pierce: 4, color: "#b7fff0" },
+    },
+  },
+  chunLi: {
+    name: "Chun Li",
+    sheet: "fighterWalks",
+    animSheet: "fighterWalks",
+    fighterRow: 3,
+    selectIndex: 3,
+    animH: 164,
+    animDrawYOffset: 32,
+    music: { theme: "Voodoo Lightning Step", main: "bgmVoodoo", rush: "bgmCaper", mainVolume: 0.62, rushVolume: 0.57, rushStart: 58, mainStartAt: 0, rushStartAt: 10, mainRate: 1.04, rushRate: 1.06 },
+    sfx: { confirm: "chime", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "voodooMagic", warning: "bossWarningCursed", bossDown: "cursedBossDrop" },
+    trait: {
+      id: "lightningKicks",
+      name: "Lightning Kicks",
+      desc: "Mehr Tempo, kurzer Cooldown, weniger HP",
+      speed: 22,
+      cooldown: -0.035,
+      maxHp: -10,
+      signature: { id: "lightningFan", label: "Lightning Kicks", icon: "cutlassSlash", pattern: "fan", cooldown: 3.15, speed: 570, damage: 24, radius: 16, pierce: 1, count: 3, spread: 0.34, color: "#ffe07a" },
+    },
+  },
 };
-const playerSkinIds = Object.keys(playerSkinMap);
+const playerSkinMenuOrder = [
+  "default",
+  "ryu",
+  "ken",
+  "guile",
+  "chunLi",
+  "islandPirate",
+  "curseMonkey",
+  "rumCorsair",
+  "dhampirHunter",
+  "starFarmboy",
+  "freelanceDuo",
+];
+const playerSkinSelectAtlasIndex = {
+  default: 0,
+  islandPirate: 1,
+  curseMonkey: 2,
+  dhampirHunter: 3,
+  rumCorsair: 4,
+  starFarmboy: 5,
+};
+const playerSkinIds = [
+  ...playerSkinMenuOrder,
+  ...Object.keys(playerSkinMap).filter((id) => !playerSkinMenuOrder.includes(id)),
+].filter((id, index, list) => playerSkinMap[id] && list.indexOf(id) === index);
 let selectedSkin = (() => {
   try {
     const stored = window.localStorage?.getItem("monkeyTidePlayerSkin");
@@ -579,6 +693,11 @@ const newEnemyAnimMap = {
   cactusStack: { row: 2, attackFrames: [2, 4, 5, 6] },
 };
 
+const gothicEnemyAnimMap = {
+  boneCorsair: { row: 0, attackFrames: [4, 5, 6, 7] },
+  gargoyle: { row: 1, attackFrames: [3, 4, 5, 6] },
+};
+
 const blockingPropShapes = {
   hedgeCluster: { rx: 145, ry: 62, oy: 8 },
   palmHedge: { rx: 136, ry: 52, oy: 4 },
@@ -645,12 +764,12 @@ const weaponEvolutionFxMap = {
 
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
-  { id: "crab", name: "Coconut Crab", sprite: "crab", enemyAnim: "crab", hp: 25, speed: 112, radius: 20, damage: 5, scale: 0.18, xp: 6, tint: "#ff8b46" },
+  { id: "crab", name: "Coconut Crab", sprite: "crab", enemyAnim: "crab", hp: 25, speed: 112, radius: 22, damage: 5, scale: 0.22, xp: 6, tint: "#ff8b46" },
   { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff", flying: true },
-  { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, hp: 46, speed: 68, radius: 24, damage: 9, scale: 0.48, xp: 12, tint: "#d8e3b0" },
-  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, hp: 96, speed: 64, radius: 34, damage: 15, scale: 0.56, xp: 21, tint: "#8bd7b4", flying: true },
+  { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, gothicAnim: "boneCorsair", hp: 46, speed: 68, radius: 28, damage: 9, scale: 0.5, xp: 12, tint: "#d8e3b0" },
+  { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, gothicAnim: "gargoyle", hp: 96, speed: 64, radius: 39, damage: 15, scale: 0.58, xp: 21, tint: "#8bd7b4", flying: true },
   { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f", humanNpc: true },
-  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", enemyAnim: "seaHand", hp: 50, speed: 82, radius: 25, damage: 10, scale: 0.18, xp: 11, tint: "#79e0d8" },
+  { id: "hand", name: "Seafoam Hand", sprite: "seaHand", enemyAnim: "seaHand", hp: 50, speed: 82, radius: 28, damage: 10, scale: 0.22, xp: 11, tint: "#79e0d8" },
   { id: "tideTentacle", name: "Zeit-Tentakel", newEnemyAnim: "tideTentacle", hp: 72, speed: 72, radius: 30, damage: 12, scale: 0.58, xp: 17, tint: "#d07cff", phase: true },
   { id: "reefSquid", name: "Riff-Squid", newEnemyAnim: "reefSquid", hp: 38, speed: 130, radius: 22, damage: 8, scale: 0.42, xp: 10, tint: "#ff8aa3", flying: true },
   { id: "cactusStack", name: "Kaktus-Stack", newEnemyAnim: "cactusStack", hp: 92, speed: 54, radius: 31, damage: 15, scale: 0.52, xp: 22, tint: "#a9d95a" },
@@ -1010,6 +1129,7 @@ function applyCharacterTrait(next) {
   next.stats.armor += trait.armor || 0;
   next.stats.magnet += trait.magnet || 0;
   next.stats.pickupValue += trait.pickupValue || 0;
+  next.stats.cooldown = Math.max(0.84, (next.stats.cooldown || 1) + (trait.cooldown || 0));
   next.stats.dashCooldown = Math.max(0.28, next.stats.dashCooldown + (trait.dashCooldown || 0));
   next.stats.powerupDuration = (next.stats.powerupDuration || 1) * (trait.powerupDuration || 1);
   for (const [weapon, level] of Object.entries(trait.weapons || {})) {
@@ -1045,6 +1165,7 @@ function makeState() {
     runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, unlocked: [] },
     fusionMoments: { seen: new Set(), count: 0 },
     powerupDropCooldown: 0,
+    signatureMove: { timer: 1.2, casts: 0, last: null },
     coins: 0,
     level: 1,
     xp: 0,
@@ -1513,6 +1634,7 @@ async function boot() {
   ]);
   prepareAudio();
   prepareSpeech();
+  await primeMenuMusic({ wait: true });
   ready = true;
   window.__MONKEY_TIDE_READY = true;
   setLoadingProgress(totalAssets, totalAssets, "ready");
@@ -1525,7 +1647,13 @@ function skinIconStyle(id) {
   if (id === "freelanceDuo") {
     return `background-image:url('${imageSources.samMaxDuo}');background-size:contain;background-repeat:no-repeat;background-position:center 58%;`;
   }
-  const index = Math.max(0, playerSkinIds.indexOf(id));
+  const skin = playerSkinMap[id];
+  if (skin?.animSheet === "fighterWalks") {
+    const index = clamp(skin.selectIndex ?? skin.fighterRow ?? 0, 0, FIGHTER_SELECT.cols - 1);
+    const x = index / Math.max(1, FIGHTER_SELECT.cols - 1) * 100;
+    return `background-image:url('${imageSources.fighterSelect}');background-size:${FIGHTER_SELECT.cols * 100}% 100%;background-position:${x}% 100%;`;
+  }
+  const index = playerSkinSelectAtlasIndex[id] ?? Math.max(0, playerSkinMenuOrder.indexOf(id));
   const x = index / Math.max(1, PLAYER_SKIN_SELECT.cols - 1) * 100;
   return `background-image:url('${imageSources.playerSkinSelect}');background-size:${PLAYER_SKIN_SELECT.cols * 100}% 100%;background-position:${x}% 100%;`;
 }
@@ -1535,10 +1663,15 @@ function renderSkinPicker() {
   ui.skinPicker.innerHTML = playerSkinIds.map((id) => {
     const skin = playerSkinMap[id];
     const active = id === selectedSkin;
+    const isFighter = skin?.animSheet === "fighterWalks";
+    const tag = isFighter ? "Fighter" : id === "freelanceDuo" ? "Duo" : "Crew";
+    const traitLabel = skin.trait?.signature?.label || skin.trait?.name || "";
     return `
-      <button class="skin-option${active ? " active" : ""}" type="button" data-skin="${id}" role="radio" aria-checked="${active}" title="${skin.name}">
+      <button class="skin-option${active ? " active" : ""}${isFighter ? " fighter-skin" : ""}" type="button" data-skin="${id}" data-archetype="${tag}" role="radio" aria-checked="${active}" title="${skin.name}: ${skin.trait?.desc || ""}">
+        <span class="skin-kicker">${tag}</span>
         <span class="skin-icon" style="${skinIconStyle(id)}"></span>
         <span class="skin-name">${skin.name}</span>
+        <span class="skin-trait">${traitLabel}</span>
       </button>
     `;
   }).join("");
@@ -1580,6 +1713,7 @@ function setSelectedMap(id) {
     window.localStorage?.setItem("monkeyTideMap", id);
   } catch {}
   renderMapPicker();
+  primeMenuMusic();
 }
 
 function setPlayerSkin(id) {
@@ -1591,7 +1725,86 @@ function setPlayerSkin(id) {
   } catch {}
   renderSkinPicker();
   if (state?.phase === "playing") syncMusic();
+  else primeMenuMusic();
   if (ready) playSkinSound("confirm", "confirm");
+}
+
+function primeMenuMusic(options = {}) {
+  if (!music || !rushMusic) return Promise.resolve();
+  if (state?.phase === "playing" || state?.phase === "levelup") return Promise.resolve();
+  configureMusicForMap(selectedMap, selectedSkin);
+  music.muted = muted;
+  rushMusic.muted = muted;
+  music.volume = 0;
+  rushMusic.volume = 0;
+  seekMusicSlotToStart("main", true);
+  seekMusicSlotToStart("rush", true);
+  menuMusicPrimePromise = Promise.all([
+    waitForMusicSlotReady("main"),
+    waitForMusicSlotReady("rush"),
+  ]).catch(() => {});
+  return options.wait ? menuMusicPrimePromise : menuMusicPrimePromise;
+}
+
+function waitForMusicSlotReady(slot, timeoutMs = 3500) {
+  const audio = slot === "rush" ? rushMusic : music;
+  if (!audio?.src) return Promise.resolve();
+  const targetTime = Math.max(0, musicTrackMeta[slot]?.startAt || 0);
+  const readyAtStart = () => audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && Math.abs((audio.currentTime || 0) - targetTime) <= 0.4;
+  if (readyAtStart()) return Promise.resolve();
+  return new Promise((resolve) => {
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timeout);
+      audio.removeEventListener("loadedmetadata", handleMetadata);
+      audio.removeEventListener("loadeddata", finishIfReady);
+      audio.removeEventListener("canplay", finishIfReady);
+      audio.removeEventListener("canplaythrough", finishIfReady);
+      audio.removeEventListener("seeked", finishIfReady);
+      audio.removeEventListener("error", finish);
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      seekMusicSlotToStart(slot, true);
+      resolve();
+    };
+    const finishIfReady = () => {
+      if (readyAtStart()) finish();
+    };
+    const handleMetadata = () => {
+      seekMusicSlotToStart(slot, true);
+      finishIfReady();
+    };
+    const timeout = setTimeout(finish, timeoutMs);
+    audio.addEventListener("loadedmetadata", handleMetadata);
+    audio.addEventListener("loadeddata", finishIfReady);
+    audio.addEventListener("canplay", finishIfReady);
+    audio.addEventListener("canplaythrough", finishIfReady);
+    audio.addEventListener("seeked", finishIfReady);
+    audio.addEventListener("error", finish, { once: true });
+    seekMusicSlotToStart(slot, true);
+    finishIfReady();
+    if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      try { audio.load(); } catch {}
+    }
+  });
+}
+
+function armMusicForStart(track = "main") {
+  if (!music || !rushMusic || muted) return;
+  configureMusicForMap(selectedMap, selectedSkin);
+  const audio = track === "rush" ? rushMusic : music;
+  const other = track === "rush" ? music : rushMusic;
+  seekMusicSlotToStart(track, true);
+  audio.volume = 0;
+  audio.muted = true;
+  other.volume = 0;
+  other.pause();
+  audio.play().then(() => {
+    if (state?.phase === "menu") seekMusicSlotToStart(track, true);
+  }).catch(() => {});
 }
 
 function playSound(key, options = {}) {
@@ -1831,6 +2044,7 @@ function update(dt) {
   updateTidePuddles(dt);
   updatePowerups(dt);
   updateWeapons(dt);
+  updateSignatureMove(dt);
   updateSpawns(dt);
   updateEnemies(dt);
   updateExploration();
@@ -2093,6 +2307,68 @@ function updateWeapons(dt) {
   }
 }
 
+function updateSignatureMove(dt) {
+  const signature = state.characterTrait?.signature;
+  if (!signature) return;
+  if (!state.signatureMove) state.signatureMove = { timer: 1.2, casts: 0, last: null };
+  state.signatureMove.timer -= dt;
+  if (state.signatureMove.timer > 0) return;
+  const cast = castSignatureMove(signature);
+  const cooldown = Math.max(1.6, (signature.cooldown || 4) * Math.max(0.7, activeCooldownMultiplier()));
+  state.signatureMove.timer = cast ? cooldown : 0.35;
+}
+
+function castSignatureMove(signature) {
+  const target = nearestEnemy();
+  if (!target) return false;
+  const p = state.player;
+  const angle = Math.atan2(target.y - p.y, target.x - p.x);
+  if (signature.pattern === "burst") {
+    const radius = signature.radius || 126;
+    state.zones.push({ type: "curseBurst", x: p.x, y: p.y, radius, life: 0.28, maxLife: 0.28, fx: "ghostCannonball", signature: signature.id });
+    for (const enemy of state.enemies) {
+      const dx = enemy.x - p.x;
+      const dy = enemy.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= radius + enemy.r) {
+        hurtEnemy(enemy, (signature.damage || 28) * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
+      }
+    }
+  } else {
+    const count = signature.pattern === "fan" ? Math.max(1, signature.count || 3) : 1;
+    const spread = signature.spread || 0;
+    for (let i = 0; i < count; i += 1) {
+      const shotAngle = angle + (i - (count - 1) / 2) * spread;
+      fireSignatureProjectile(signature, shotAngle);
+    }
+  }
+  state.signatureMove.casts += 1;
+  state.signatureMove.last = signature.id;
+  floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
+  playSkinSound("powerup", "upgradeMagic", { cooldown: 1200 });
+  return true;
+}
+
+function fireSignatureProjectile(signature, angle) {
+  const p = state.player;
+  const speed = signature.speed || 560;
+  state.projectiles.push({
+    type: "signature",
+    icon: signature.icon || "compassBolt",
+    signatureId: signature.id,
+    x: p.x + Math.cos(angle) * 36,
+    y: p.y + Math.sin(angle) * 36,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    r: signature.radius || 18,
+    damage: signature.damage || 26,
+    life: 2.1,
+    pierce: signature.pierce ?? 1,
+    spin: 0,
+    retarget: signature.pattern !== "fan",
+  });
+}
+
 function slash(angle, radius, arc, damage, level = 1) {
   const p = state.player;
   const blades = cutlassBladeCount(level);
@@ -2133,8 +2409,8 @@ function cutlassBladeCount(level = state?.weapons?.cutlass?.level || 1) {
 }
 
 function auraEvolutionStage(level = state?.weapons?.rope?.level || 0) {
-  if (level <= 0) return 0;
-  return Math.min(4, Math.max(1, Math.ceil(level)));
+  if (level <= 1) return 0;
+  return Math.min(4, Math.max(1, Math.floor(level - 1)));
 }
 
 function saberTornadoReady() {
@@ -2599,7 +2875,7 @@ function updateProjectiles(dt) {
     projectile.spin += dt * 8;
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
-    if (projectile.type === "coconut") {
+    if (projectile.type === "coconut" || projectile.type === "signature") {
       for (const enemy of state.enemies) {
         if (enemy.hp <= 0 || enemy._hitBy === projectile) continue;
         const dist = Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y);
@@ -2608,7 +2884,7 @@ function updateProjectiles(dt) {
           if (projectile.compassFuse) arcCompassCoconut(projectile, enemy, state.weapons.compass.level);
           enemy._hitBy = projectile;
           projectile.pierce -= 1;
-          const target = nearestEnemy(enemy);
+          const target = projectile.retarget === false ? null : nearestEnemy(enemy);
           if (target) {
             const angle = Math.atan2(target.y - projectile.y, target.x - projectile.x);
             const speed = Math.hypot(projectile.vx, projectile.vy);
@@ -3110,11 +3386,70 @@ function applyFlowLevelReward() {
   playSkinSound("pickup", "downloadPickup", { cooldown: 1100 });
 }
 
+const upgradeMilestones = {
+  cutlass: [
+    "Saebel I: sauberer Grundhieb.",
+    "Doppelschnitt: zwei Klingen zeichnen sichtbar breiter.",
+    "Dreifachbogen: mehr Flanke, mehr Trefferfenster.",
+    "Vierfachdruck: dichter Nahkampf-Kegel.",
+    "Fuenffachsaebel: Tornado-Fusion wird greifbar.",
+    "Schaerfere Wirbel, kuerzerer Takt.",
+    "Maximaler Saebelsturm.",
+  ],
+  coconut: [
+    "Ein schneller Rueckprall-Bumerang.",
+    "Mehr Schaden und stabilere Flugbahn.",
+    "Zusaetzlicher Pierce fuer enge Wellen.",
+    "Bereit fuer Sternenkokos mit Kompass.",
+    "Laengerer Flug, haertere Treffer.",
+    "Fast dauernder Kokosdruck.",
+    "Maximaler Strand-Ricochet.",
+  ],
+  compass: [
+    "Ein Sternpunkt kreist knapp um dich.",
+    "Groesserer Orbit, erster Beam-Druck.",
+    "Mehr Punkte, bessere Abdeckung.",
+    "Mondnetz-Fusion mit Tau wird moeglich.",
+    "Schnellere Beams auf entfernte Ziele.",
+    "Maximaler Sternenring.",
+  ],
+  bottle: [
+    "Kleine Grog-Bombe auf den naechsten Mob.",
+    "Groessere Explosion, mehr Kontrolle.",
+    "Schnellerer Wurfzyklus.",
+    "Grog-Mahlstrom mit Tau wird moeglich.",
+    "Breiter Splash fuer Elitewellen.",
+    "Maximaler Flaschensturm.",
+  ],
+  rope: [
+    "Tau I: kleiner Randkreis, noch bewusst ruhig.",
+    "Tau II: erste echte Aura-Schicht.",
+    "Tau III: Fusionen und dichterer Ring.",
+    "Tau IV: zweite Aura-Lage, mehr Sog.",
+    "Tau V: voller Tide-Ward mit Max-Glanz.",
+  ],
+};
+
+function upgradeDescription(upgrade) {
+  const current = state.upgradeCounts[upgrade.id] || 0;
+  return upgradeMilestones[upgrade.id]?.[current] || upgrade.desc;
+}
+
+function upgradeProgressPips(current, max, className = "progress-pip") {
+  return Array.from({ length: max }, (_, index) => `<span class="${className}${index < current ? " filled" : ""}"></span>`).join("");
+}
+
+function upgradeMax(id) {
+  return upgrades.find((upgrade) => upgrade.id === id)?.max || 1;
+}
+
 function showUpgrades() {
   ui.upgradeChoices.innerHTML = "";
   activeUpgradeChoices = chooseUpgrades();
   selectedUpgradeIndex = 0;
   activeUpgradeChoices.forEach((upgrade, index) => {
+    const current = state.upgradeCounts[upgrade.id] || 0;
+    const next = Math.min(upgrade.max, current + 1);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "upgrade-card";
@@ -3122,7 +3457,9 @@ function showUpgrades() {
     button.innerHTML = `
       <span class="upgrade-icon" style="${iconStyle(upgrade.icon)}"></span>
       <span class="upgrade-name">${upgrade.name}</span>
-      <span class="upgrade-desc">${upgrade.desc}</span>
+      <span class="upgrade-tier">Stufe ${next}/${upgrade.max}</span>
+      <span class="upgrade-progress">${upgradeProgressPips(next, upgrade.max)}</span>
+      <span class="upgrade-desc">${upgradeDescription(upgrade)}</span>
     `;
     button.addEventListener("mouseenter", () => setUpgradeSelection(index));
     button.addEventListener("focus", () => setUpgradeSelection(index));
@@ -3224,6 +3561,16 @@ function updateDom() {
 }
 
 function updateLoadout() {
+  const signature = state.characterTrait?.signature;
+  const signatureHtml = signature ? `
+    <div class="loadout-item signature">
+      <span class="loadout-icon" style="${iconStyle(signature.icon || "compassBolt")}"></span>
+      <span>
+        <span class="loadout-name">${signature.label || "Signature"}</span>
+        <span class="loadout-level">${state.signatureMove?.timer <= 0 ? "bereit" : `${Math.ceil(state.signatureMove?.timer || 0)}s`}</span>
+      </span>
+    </div>
+  ` : "";
   const weaponEntries = weaponLoadoutItems.filter(([id]) => state.weapons[id].level > 0);
   const weaponHtml = weaponEntries.map(([id, name, icon]) => `
     <div class="loadout-item">
@@ -3231,6 +3578,7 @@ function updateLoadout() {
       <span>
         <span class="loadout-name">${name}</span>
         <span class="loadout-level">Lv ${state.weapons[id].level}</span>
+        <span class="loadout-pips">${upgradeProgressPips(state.weapons[id].level, upgradeMax(id), "loadout-pip")}</span>
       </span>
     </div>
   `).join("");
@@ -3246,7 +3594,7 @@ function updateLoadout() {
       </div>
     `;
   }).join("");
-  ui.loadout.innerHTML = weaponHtml + powerHtml;
+  ui.loadout.innerHTML = signatureHtml + weaponHtml + powerHtml;
 }
 
 function render() {
@@ -3512,6 +3860,17 @@ function drawEnemies() {
       h = SPECTRAL_CAPTAIN.h * drawScale * (enemy.boss ? 1.05 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 18;
       ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.gothicAnim && images.gothicEnemyAnimSheet) {
+      const anim = gothicEnemyAnimMap[enemy.type.gothicAnim] || gothicEnemyAnimMap.boneCorsair;
+      const frame = bossAnimFrame(enemy, GOTHIC_ENEMY_ANIM, anim.attackFrames);
+      const sx = (frame % GOTHIC_ENEMY_ANIM.cols) * GOTHIC_ENEMY_ANIM.w;
+      const sy = anim.row * GOTHIC_ENEMY_ANIM.h;
+      const bob = enemy.type.id === "gargoyle" ? Math.sin(state.elapsed * 7.4 + enemy.frameOffset) * 7 : Math.sin(state.elapsed * 4.6 + enemy.frameOffset) * 2.5;
+      const animScale = animatedEnemyDrawScale(enemy, GOTHIC_ENEMY_ANIM.h) * (enemy.type.id === "gargoyle" ? 1.08 : 1);
+      w = GOTHIC_ENEMY_ANIM.w * animScale * (enemy.boss ? 1.18 : 1);
+      h = GOTHIC_ENEMY_ANIM.h * animScale * (enemy.boss ? 1.18 : 1);
+      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 14;
+      ctx.drawImage(images.gothicEnemyAnimSheet, sx, sy, GOTHIC_ENEMY_ANIM.w, GOTHIC_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicRow !== undefined) {
       const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
       const sx = frame * GOTHIC_ENEMY.w;
@@ -3637,6 +3996,14 @@ function drawPlayer() {
     const h = skin.animH;
     const w = h * (SAM_MAX_DUO_WALK.w / SAM_MAX_DUO_WALK.h);
     ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
+  } else if (skin.animSheet === "fighterWalks" && images.fighterWalks) {
+    const frame = moving ? Math.floor(state.elapsed * 12) % FIGHTER_WALK.frames : 0;
+    const sx = frame * FIGHTER_WALK.w;
+    const sy = (skin.fighterRow || 0) * FIGHTER_WALK.h;
+    const bob = moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.1;
+    const h = skin.animH;
+    const w = h;
+    ctx.drawImage(images.fighterWalks, sx, sy, FIGHTER_WALK.w, FIGHTER_WALK.h, -w / 2, -h + (skin.animDrawYOffset ?? 32) + bob, w, h);
   } else if (skin.sheet === "samMaxDuo" && images.samMaxDuo) {
     const bob = moving ? Math.sin(state.elapsed * 13) * 3.4 : Math.sin(state.elapsed * 3.2) * 1.2;
     const h = skin.drawH;
@@ -3677,7 +4044,7 @@ function drawProjectiles() {
       : projectile.type === "curseOrb"
         ? projectile.fx || "monkeyCurseOrb"
         : projectile.icon || "coconutBoomerang";
-    const size = projectile.type === "bottle" ? (projectile.maelstrom ? 68 : 58) : projectile.type === "curseOrb" ? 50 : projectile.compassFuse ? 58 : 52;
+    const size = projectile.type === "bottle" ? (projectile.maelstrom ? 68 : 58) : projectile.type === "curseOrb" ? 50 : projectile.type === "signature" ? 58 : projectile.compassFuse ? 58 : 52;
     drawProjectileFx(fx, ox + projectile.x, oy + projectile.y, size, size, projectile.spin, 0.98);
   }
   if (state.weapons.compass.level > 0) {
@@ -3753,23 +4120,27 @@ function drawRopeWard(x, y, radius, level, angle) {
   const pulse = 1 + Math.sin(state.elapsed * 4.2) * 0.035;
   const auraStage = auraEvolutionStage(level);
   if (images.weaponEvolutionFx && auraStage > 0) {
-    const auraSize = radius * (2.24 + auraStage * 0.12) * pulse;
-    drawWeaponEvolutionFx(`aura${auraStage}`, x, y, auraSize, auraSize, angle * 0.12, 0.34 + auraStage * 0.05);
+    const progress = clamp(level / 5, 0, 1);
+    const auraSize = radius * (1.58 + auraStage * 0.16 + progress * 0.28) * pulse;
+    drawWeaponEvolutionFx(`aura${auraStage}`, x, y, auraSize, auraSize, angle * 0.12, 0.16 + level * 0.038);
+    if (level >= 4) {
+      drawWeaponEvolutionFx(`aura${Math.max(1, auraStage - 1)}`, x, y, auraSize * 0.82, auraSize * 0.82, -angle * 0.1, 0.08 + level * 0.012);
+    }
     if (saberTornadoReady()) {
       const frame = Math.floor(state.elapsed * 8) % 4;
-      drawWeaponEvolutionFx(`fusion${frame}`, x, y, auraSize * 1.12, auraSize * 1.12, -angle * 0.18, 0.18);
+      drawWeaponEvolutionFx(`fusion${frame}`, x, y, auraSize * 1.06, auraSize * 1.06, -angle * 0.18, 0.16);
     }
   } else {
-    drawPlayerEffect("tidePulse", x, y, radius * 2.12 * pulse, radius * 2.12 * pulse, 0, 0.2);
+    drawPlayerEffect("tidePulse", x, y, radius * (1.36 + level * 0.08) * pulse, radius * (1.36 + level * 0.08) * pulse, 0, 0.11 + level * 0.035);
   }
-  const count = isMobileLike() ? Math.min(10, 6 + level) : Math.min(18, 10 + level * 2);
+  const count = isMobileLike() ? Math.min(10, 4 + level * 2) : Math.min(18, 6 + level * 3);
   for (let i = 0; i < count; i += 1) {
     const a = angle * 0.72 + (i / count) * Math.PI * 2;
     const ripple = Math.sin(state.elapsed * 5.4 + i * 0.9) * 3.5;
     const px = x + Math.cos(a) * (radius + ripple);
     const py = y + Math.sin(a) * (radius + ripple * 0.7);
-    const size = 34 + level * 2 + Math.sin(state.elapsed * 4.8 + i) * 2;
-    drawProjectileFx("ropeRing", px, py, size, size, a + Math.PI / 2, 0.68);
+    const size = 22 + level * 4 + Math.sin(state.elapsed * 4.8 + i) * 2;
+    drawProjectileFx("ropeRing", px, py, size, size, a + Math.PI / 2, 0.42 + level * 0.055);
   }
 }
 
@@ -4197,17 +4568,23 @@ window.addEventListener("keyup", (event) => {
 });
 
 ui.startButton.addEventListener("click", () => {
-  requestMobilePreferredFullscreen();
+  armMusicForStart("main");
   startGame();
+  requestMobilePreferredFullscreen();
 });
 ui.quickButton.addEventListener("click", () => {
-  requestMobilePreferredFullscreen();
+  armMusicForStart("rush");
   startGame({ quick: true });
+  requestMobilePreferredFullscreen();
 });
 ui.restartButton.addEventListener("click", () => {
-  requestMobilePreferredFullscreen();
+  armMusicForStart(quickMode ? "rush" : "main");
   startGame({ quick: quickMode });
+  requestMobilePreferredFullscreen();
 });
+ui.startButton.addEventListener("pointerdown", () => armMusicForStart("main"));
+ui.quickButton.addEventListener("pointerdown", () => armMusicForStart("rush"));
+ui.restartButton.addEventListener("pointerdown", () => armMusicForStart(quickMode ? "rush" : "main"));
 ui.skinPicker.addEventListener("click", (event) => {
   const button = event.target.closest("[data-skin]");
   if (!button) return;
@@ -4408,6 +4785,19 @@ window.__MONKEY_TIDE_FORCE_LEVELUP = () => {
 window.__MONKEY_TIDE_SET_MAP = (id) => {
   if (mapUnlocked(id)) setSelectedMap(id);
   return window.__MONKEY_TIDE_DEBUG();
+};
+window.__MONKEY_TIDE_CLEAR_PLAYTEST_AREA = (radius = 680) => {
+  const p = state.player;
+  const shouldRemove = (prop) => propBlocksMovement(prop) && Math.hypot(prop.x - p.x, prop.y - p.y) < radius;
+  const removed = new Set(state.props.filter(shouldRemove));
+  if (removed.size > 0) {
+    state.props = state.props.filter((prop) => !removed.has(prop));
+    state.looseProps = (state.looseProps || []).filter((prop) => !removed.has(prop));
+    for (const [key, list] of state.propsByChunk.entries()) {
+      state.propsByChunk.set(key, list.filter((prop) => !removed.has(prop)));
+    }
+  }
+  return { removed: removed.size, debug: window.__MONKEY_TIDE_DEBUG() };
 };
 window.__MONKEY_TIDE_SPAWN_ENEMY = (id, x = state.player.x + 260, y = state.player.y, boss = false) => {
   const type = enemyType(id);
@@ -4663,6 +5053,34 @@ window.__MONKEY_TIDE_MOVEMENT_PROBE = () => {
     tuning: { ...CONTROL_TUNING },
   };
 };
+window.__MONKEY_TIDE_SIGNATURE_PROBE = (skinId = "ryu") => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  selectedSkin = playerSkinMap[skinId] ? skinId : "ryu";
+  state = makeState();
+  state.phase = "playing";
+  state.signatureMove.timer = 0;
+  const p = state.player;
+  for (let i = 0; i < 5; i += 1) {
+    window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 210 + i * 58, p.y + (i - 2) * 32, false);
+  }
+  updateSignatureMove(1 / 60);
+  updateProjectiles(0.12);
+  const result = {
+    skin: state.player.skin,
+    signature: state.characterTrait?.signature || null,
+    casts: state.signatureMove.casts,
+    last: state.signatureMove.last,
+    signatureProjectiles: state.projectiles.filter((projectile) => projectile.type === "signature").length,
+    zones: state.zones.filter((zone) => zone.signature).length,
+    enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
+  };
+  state = savedState;
+  selectedSkin = savedSkin;
+  renderSkinPicker();
+  render();
+  return result;
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -4686,18 +5104,29 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimationAsset: !!images.playerSkinWalks,
   playerSkinAnimationSource: imageSources.playerSkinWalks,
   playerSkinSelectAsset: !!images.playerSkinSelect,
+  fighterSkinAsset: !!images.fighterWalks,
+  fighterSkinSelectAsset: !!images.fighterSelect,
+  fighterSkinAnimationSource: imageSources.fighterWalks,
   playerSkinFixedDuoAsset: !!images.samMaxDuo,
   playerSkinDuoWalkAsset: !!images.samMaxDuoWalk,
   playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
+  fighterSkinAnimationFrames: { ...FIGHTER_WALK },
   playerSkinDuoWalkFrames: { ...SAM_MAX_DUO_WALK },
   playerSkinAnimated: (playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks)
-    || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk),
+    || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk)
+    || (playerSkinMap[state.player.skin]?.animSheet === "fighterWalks" && !!images.fighterWalks),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   playerSkinTrait: { ...(state.characterTrait || characterTrait(state.player.skin)) },
   playerSkinTraits: Object.fromEntries(playerSkinIds.map((id) => [id, characterTrait(id)])),
+  signatureMove: state.signatureMove ? {
+    ...state.signatureMove,
+    ready: state.signatureMove.timer <= 0,
+    trait: state.characterTrait?.signature?.id || null,
+    label: state.characterTrait?.signature?.label || null,
+  } : null,
   playerSkinSourceRects: Object.fromEntries(playerSkinIds.map((id) => {
     const skin = playerSkinMap[id];
-    return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, animDrawYOffset: skin.animDrawYOffset }];
+    return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, fighterRow: skin.fighterRow, selectIndex: skin.selectIndex, animDrawYOffset: skin.animDrawYOffset }];
   })),
   stats: { ...state.stats, nextXp: state.nextXp },
   controls: {
@@ -4796,7 +5225,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     animatedMinimumHeight: ENEMY_TUNING.minAnimatedVisualHeight,
     animatedBoost: ENEMY_TUNING.animatedVisualBoost,
     animatedProjectedHeights: Object.fromEntries(enemyTypes
-      .filter((type) => type.enemyAnim && !type.humanNpc)
+      .filter((type) => (type.enemyAnim || type.gothicAnim) && !type.humanNpc)
       .map((type) => {
         const mockEnemy = {
           type,
@@ -4804,7 +5233,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
           boss: !!type.bossCandidate || type.id === "idol",
           elite: false,
         };
-        return [type.id, Math.round(ENEMY_ANIM.h * animatedEnemyDrawScale(mockEnemy, ENEMY_ANIM.h))];
+        const sourceHeight = type.gothicAnim ? GOTHIC_ENEMY_ANIM.h : ENEMY_ANIM.h;
+        return [type.id, Math.round(sourceHeight * animatedEnemyDrawScale(mockEnemy, sourceHeight))];
       })),
   },
   enemyRoster: {
@@ -4911,6 +5341,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
     enemyAnimSource: imageSources.enemyAnimSheet,
     enemyAnimationFrames: { ...ENEMY_ANIM },
     enemyAnimTypes: enemyTypes.filter((type) => type.enemyAnim).map((type) => type.id),
+    gothicEnemyAnimSheet: !!images.gothicEnemyAnimSheet,
+    gothicEnemyAnimSource: imageSources.gothicEnemyAnimSheet,
+    gothicEnemyAnimationFrames: { ...GOTHIC_ENEMY_ANIM },
+    gothicEnemyAnimTypes: enemyTypes.filter((type) => type.gothicAnim).map((type) => type.id),
     liveSingleFrameFallbackTypes: enemyTypes
       .filter((type) => !type.humanNpc && (type.sprite || type.extraSprite) && !type.enemyAnim)
       .map((type) => type.id),

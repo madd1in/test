@@ -184,7 +184,7 @@ button:disabled {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
-  width: 128px;
+  width: 136px;
   min-height: 44px;
   gap: 7px;
   padding: 5px 7px;
@@ -199,6 +199,14 @@ button:disabled {
 
 .loadout-item.powerup {
   opacity: 0.72;
+}
+
+.loadout-item.signature {
+  border-color: rgba(255, 198, 83, 0.66);
+  background-image:
+    linear-gradient(180deg, rgba(255, 238, 158, 0.36), rgba(68, 151, 145, 0.16)),
+    var(--ui-scrap);
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.18), 0 0 12px rgba(54, 190, 162, 0.18);
 }
 
 .loadout-item.powerup .loadout-icon {
@@ -228,6 +236,32 @@ button:disabled {
   color: rgba(58, 32, 12, 0.7);
   font-size: 0.72rem;
   font-weight: 800;
+}
+
+.loadout-pips,
+.upgrade-progress {
+  display: flex;
+  gap: 3px;
+}
+
+.loadout-pips {
+  margin-top: 3px;
+}
+
+.loadout-pip,
+.progress-pip {
+  display: block;
+  width: 7px;
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(58, 32, 12, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(58, 32, 12, 0.12);
+}
+
+.loadout-pip.filled,
+.progress-pip.filled {
+  background: linear-gradient(180deg, #ffe08d, #d58a26);
+  box-shadow: 0 0 5px rgba(240, 196, 93, 0.28);
 }
 
 .corner-controls {
@@ -324,21 +358,21 @@ button:disabled {
 
 .skin-picker {
   display: grid;
-  grid-template-columns: repeat(7, minmax(76px, 1fr));
-  width: min(690px, 100%);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  width: min(760px, 100%);
+  gap: 7px;
   margin: -6px auto 18px;
 }
 
 .skin-option {
   display: grid;
   min-width: 0;
-  min-height: 106px;
-  grid-template-rows: 76px auto;
-  gap: 4px;
+  min-height: 126px;
+  grid-template-rows: 14px 72px auto 14px;
+  gap: 3px;
   align-items: center;
   justify-items: center;
-  padding: 8px 5px 7px;
+  padding: 6px 5px 7px;
   border: 2px solid rgba(72, 38, 12, 0.36);
   border-radius: 8px;
   background-image:
@@ -348,6 +382,14 @@ button:disabled {
   background-size: 100% 100%, 100% 100%;
   box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.16), 0 4px 0 rgba(83, 41, 12, 0.18);
   color: #ffe6a6;
+}
+
+.skin-option.fighter-skin {
+  border-color: rgba(54, 190, 162, 0.5);
+  background-image:
+    radial-gradient(circle at 50% 14%, rgba(94, 230, 255, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(255, 230, 151, 0.14), rgba(48, 116, 111, 0.18)),
+    var(--ui-button);
 }
 
 .skin-option.active {
@@ -370,6 +412,28 @@ button:disabled {
   background-position: center;
   background-repeat: no-repeat;
   filter: drop-shadow(0 5px 3px rgba(36, 15, 3, 0.34));
+}
+
+.skin-kicker,
+.skin-trait {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: rgba(255, 237, 178, 0.78);
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 #321304;
+}
+
+.skin-trait {
+  color: rgba(191, 255, 234, 0.86);
+  font-size: 0.48rem;
+  text-transform: none;
 }
 
 .skin-name {
@@ -531,7 +595,7 @@ button:disabled {
 .upgrade-card {
   display: grid;
   min-height: 230px;
-  grid-template-rows: 82px auto 1fr;
+  grid-template-rows: 82px auto auto auto 1fr;
   gap: 9px;
   padding: 14px;
   border: 2px solid rgba(72, 38, 12, 0.5);
@@ -574,6 +638,14 @@ button:disabled {
   font-size: 1.12rem;
   font-weight: 900;
   line-height: 1.1;
+}
+
+.upgrade-tier {
+  color: rgba(58, 32, 12, 0.66);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .upgrade-desc {
@@ -729,7 +801,8 @@ button:disabled {
   }
 
   .loadout-name,
-  .loadout-level {
+  .loadout-level,
+  .loadout-pips {
     display: none;
   }
 
@@ -764,11 +837,11 @@ button:disabled {
   .upgrade-card {
     min-height: 126px;
     grid-template-columns: 72px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
   }
 
   .upgrade-icon {
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 4;
     width: 72px;
     height: 72px;
   }
@@ -778,7 +851,7 @@ button:disabled {
   }
 
   .skin-picker {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: 6px;
     margin-bottom: 14px;
   }
@@ -793,6 +866,11 @@ button:disabled {
     min-height: 88px;
     grid-template-rows: 60px auto;
     padding: 5px 4px;
+  }
+
+  .skin-kicker,
+  .skin-trait {
+    display: none;
   }
 
   .skin-icon {
@@ -911,7 +989,8 @@ button:disabled {
   }
 
   .loadout-name,
-  .loadout-level {
+  .loadout-level,
+  .loadout-pips {
     display: none;
   }
 
@@ -926,7 +1005,7 @@ button:disabled {
   }
 
   .skin-picker {
-    grid-template-columns: repeat(7, minmax(58px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
     gap: 5px;
     margin: -10px auto 12px;
   }
@@ -946,6 +1025,11 @@ button:disabled {
     min-height: 58px;
     grid-template-rows: 36px auto;
     padding: 4px 3px;
+  }
+
+  .skin-kicker,
+  .skin-trait {
+    display: none;
   }
 
   .skin-icon {
