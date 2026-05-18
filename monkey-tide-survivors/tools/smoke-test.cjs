@@ -119,6 +119,7 @@ async function run() {
     "assets/audio/bgm/voodoo-hut-shuffle-drive.mp3",
     "assets/audio/bgm/cathedral-hunt-overture-drive.mp3",
     "assets/audio/bgm/curse-monkey-frenzy-drive.mp3",
+    "assets/audio/bgm/gargoyle-chapel-run.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -562,6 +563,7 @@ async function run() {
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
   assert(new Set(Object.values(debug.audio.music.characterThemes).map((profile) => `${profile.theme}:${profile.mainKey}:${profile.rushKey}:${profile.mainStartAt}:${profile.rushStartAt}`)).size === debug.playerSkinTypes.length, `Every character should have a distinct BGM identity: ${JSON.stringify(debug.audio.music.characterThemes)}`);
   assert(debug.audio.music.characterThemes.curseMonkey.mainKey === "bgmCurseMonkey" && debug.audio.music.characterThemes.curseMonkey.rushStart <= 45 && debug.audio.music.characterThemes.curseMonkey.mainRate >= 1.08 && debug.audio.music.characterThemes.curseMonkey.rushRate >= 1.08, `Curse monkey BGM should be a faster local frenzy profile: ${JSON.stringify(debug.audio.music.characterThemes.curseMonkey)}`);
+  assert(debug.audio.music.characterThemes.dhampirHunter.mainKey === "bgmGargoyle" && debug.audio.music.characterThemes.dhampirHunter.mainStartAt === 0 && debug.audio.music.characterThemes.dhampirHunter.rushStart <= 58, `Alucard/Dhampir BGM should start immediately: ${JSON.stringify(debug.audio.music.characterThemes.dhampirHunter)}`);
   assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 18 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
   assert(
     debug.audio.sources.bgmMain.includes("tidebarrel-dockside-drive.mp3")
@@ -570,7 +572,8 @@ async function run() {
       && debug.audio.sources.bgmShoreline.includes("treasure-tide-route-drive.mp3")
       && debug.audio.sources.bgmVoodoo.includes("voodoo-hut-shuffle-drive.mp3")
       && debug.audio.sources.bgmCathedral.includes("cathedral-hunt-overture-drive.mp3")
-      && debug.audio.sources.bgmCurseMonkey.includes("curse-monkey-frenzy-drive.mp3"),
+      && debug.audio.sources.bgmCurseMonkey.includes("curse-monkey-frenzy-drive.mp3")
+      && debug.audio.sources.bgmGargoyle.includes("gargoyle-chapel-run.mp3"),
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
