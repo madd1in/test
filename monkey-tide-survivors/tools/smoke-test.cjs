@@ -519,7 +519,17 @@ async function run() {
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.slashSwish.includes("/downloaded/") && debug.audio.sources.bossDownUndead.includes("/downloaded/"), `Character SFX should use the local downloaded MP3 set: ${JSON.stringify(debug.audio.sources)}`);
   assert(Object.values(debug.audio.characterSfxProfiles).every((profile) => profile.slash && profile.warning), `Every character should have a SFX profile: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
-  assert(debug.stats.speed >= 250 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
+  assert(debug.stats.speed >= 292 && debug.stats.magnet >= 260, `Flow balance is too sluggish: ${JSON.stringify(debug)}`);
+  const movementProbe = await page.evaluate(() => window.__MONKEY_TIDE_MOVEMENT_PROBE());
+  assert(
+    movementProbe.baseSpeed >= 292
+      && movementProbe.dashCooldown <= 0.58
+      && movementProbe.dashDuration >= 0.23
+      && movementProbe.dashBoost >= 3.1
+      && movementProbe.halfStickMagnitude >= 0.7
+      && movementProbe.cameraCatchup >= 10,
+    `Movement tuning still feels heavy: ${JSON.stringify(movementProbe)}`,
+  );
   assert(debug.balance.bossHpMult >= 2.6 && debug.balance.normalSpawnIntensity >= 1.2, `Difficulty did not get sharper: ${JSON.stringify(debug)}`);
   assert(debug.balance.bossHpMult <= 2.75 && debug.balance.normalSpawnIntensity <= 1.28, `Difficulty balance is too punishing: ${JSON.stringify(debug)}`);
   assert(debug.balance.firstBossAt <= 150 && debug.balance.rangedPressureAt <= 65 && debug.balance.pressureWaveFirstAt <= 30, `Pressure events arrive too late: ${JSON.stringify(debug)}`);
