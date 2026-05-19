@@ -45,6 +45,20 @@ function staticServer() {
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server)));
 }
 
+async function capturePng(page, outputPath) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    const result = await session.send("Page.captureScreenshot", {
+      format: "png",
+      captureBeyondViewport: false,
+      fromSurface: true,
+    });
+    fs.writeFileSync(outputPath, Buffer.from(result.data, "base64"));
+  } finally {
+    await session.detach().catch(() => {});
+  }
+}
+
 async function run() {
   const { chromium } = resolvePlaywright();
   const server = await staticServer();
@@ -113,7 +127,7 @@ async function run() {
     upgradeOverlay.style.display = "none";
   });
   await page.waitForTimeout(50);
-  await page.screenshot({ path: path.join(root, "mobile-preview.png"), timeout: 120000 });
+  await capturePng(page, path.join(root, "mobile-preview.png"));
   await page.evaluate(() => {
     window.dispatchEvent(new PointerEvent("pointerup", {
       bubbles: true,

@@ -45,6 +45,20 @@ function staticServer() {
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server)));
 }
 
+async function capturePng(page, outputPath) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    const result = await session.send("Page.captureScreenshot", {
+      format: "png",
+      captureBeyondViewport: false,
+      fromSurface: true,
+    });
+    fs.writeFileSync(outputPath, Buffer.from(result.data, "base64"));
+  } finally {
+    await session.detach().catch(() => {});
+  }
+}
+
 async function run() {
   const { chromium } = resolvePlaywright();
   const server = await staticServer();
@@ -70,7 +84,7 @@ async function run() {
   await page.evaluate(() => window.__MONKEY_TIDE_PROP_VISUAL_PROBE());
   await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
   await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
-  await page.screenshot({ path: path.join(root, "preview.png"), timeout: 120000 });
+  await capturePng(page, path.join(root, "preview.png"));
   await Promise.race([browser.close(), new Promise((resolve) => setTimeout(resolve, 5000))]);
   if (typeof server.closeIdleConnections === "function") server.closeIdleConnections();
   if (typeof server.closeAllConnections === "function") server.closeAllConnections();
