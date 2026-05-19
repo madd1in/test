@@ -213,6 +213,93 @@ def component_group_image(source, group):
     return Image.frombytes("RGBA", (width, height), bytes(out))
 
 
+def component_group_box(group):
+    return (
+        min(item["bbox"][0] for item in group),
+        min(item["bbox"][1] for item in group),
+        max(item["bbox"][2] for item in group),
+        max(item["bbox"][3] for item in group),
+    )
+
+
+def shift_image(image, dx=0, dy=0):
+    out = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    source_box = (
+        max(0, -dx),
+        max(0, -dy),
+        min(image.width, image.width - dx),
+        min(image.height, image.height - dy),
+    )
+    if source_box[0] >= source_box[2] or source_box[1] >= source_box[3]:
+        return out
+    out.alpha_composite(image.crop(source_box), (max(0, dx), max(0, dy)))
+    return out
+
+
+def compact_vertical_split_cell(cell, split_y=145, target_gap=10, max_lift=42, bottom_anchor=240):
+    cell = finalize_alpha(cell)
+    items = [item for item in components(cell, threshold=ALPHA_THRESHOLD) if item["area"] >= 120]
+    if len(items) < 2:
+        return cell
+
+    upper = [item for item in items if item["center"][1] < split_y]
+    lower = [item for item in items if item["center"][1] >= split_y]
+    if not upper or not lower:
+        return cell
+
+    upper_bottom = max(item["bbox"][3] for item in upper)
+    lower_top = min(item["bbox"][1] for item in lower)
+    gap = lower_top - upper_bottom
+    if gap <= target_gap + 3:
+        return cell
+
+    lift = min(max_lift, max(0, gap - target_gap))
+    out = Image.new("RGBA", cell.size, (0, 0, 0, 0))
+    for group, dy in ((upper, 0), (lower, -lift)):
+        box = component_group_box(group)
+        piece = component_group_image(cell, group)
+        out.alpha_composite(piece, (box[0], box[1] + dy))
+
+    bbox = alpha_bbox(out)
+    if bbox and bbox[3] < bottom_anchor:
+        out = shift_image(out, dy=min(bottom_anchor - bbox[3], SLOT - bbox[3] - 1))
+    return finalize_alpha(out)
+
+
+def compact_split_rows(source_name, target_name, cols, rows, row_settings):
+    source = finalize_alpha(Image.open(SPRITES / source_name))
+    out = source.copy()
+    stats = []
+    for row, settings in row_settings.items():
+        for col in range(cols):
+            cell = source.crop((col * SLOT, row * SLOT, (col + 1) * SLOT, (row + 1) * SLOT))
+            fixed = compact_vertical_split_cell(cell, **settings)
+            out.paste((0, 0, 0, 0), (col * SLOT, row * SLOT, (col + 1) * SLOT, (row + 1) * SLOT))
+            out.alpha_composite(fixed, (col * SLOT, row * SLOT))
+            bbox = alpha_bbox(fixed)
+            stats.append((row, col, visible_pixels(fixed), bbox))
+    out = finalize_alpha(out)
+    out.save(SPRITES / target_name)
+    weak = [item for item in stats if item[2] < 8000]
+    print(f"wrote {target_name} compacted={len(stats)} weak={weak[:8]}")
+    return out
+
+
+def replace_sheet_frames(source_name, target_name, replacements, cols, rows):
+    source = finalize_alpha(Image.open(SPRITES / source_name))
+    out = source.copy()
+    for (row, col), (source_row, source_col) in replacements.items():
+        if row >= rows or col >= cols or source_row >= rows or source_col >= cols:
+            continue
+        cell = source.crop((source_col * SLOT, source_row * SLOT, (source_col + 1) * SLOT, (source_row + 1) * SLOT))
+        out.paste((0, 0, 0, 0), (col * SLOT, row * SLOT, (col + 1) * SLOT, (row + 1) * SLOT))
+        out.alpha_composite(cell, (col * SLOT, row * SLOT))
+    out = finalize_alpha(out)
+    out.save(SPRITES / target_name)
+    print(f"wrote {target_name} replacements={len(replacements)}")
+    return out
+
+
 def prune_cell_components(cell):
     items = components(cell, threshold=ALPHA_THRESHOLD)
     if len(items) <= 1:
@@ -352,12 +439,33 @@ def main():
         rows=7,
         pad=9,
     )
+    compact_split_rows(
+        "enemy_anim_imagen_hd_sheet_clean_v3.png",
+        "enemy_anim_imagen_hd_sheet_clean_v4.png",
+        cols=8,
+        rows=7,
+        row_settings={
+            4: { "split_y": 145, "target_gap": 9, "max_lift": 38, "bottom_anchor": 240 },
+            5: { "split_y": 145, "target_gap": 8, "max_lift": 56, "bottom_anchor": 242 },
+        },
+    )
     tighten_existing_sheet(
         "gothic_enemy_anim_imagen_hd_clean.png",
         "gothic_enemy_anim_imagen_hd_clean_v2.png",
         cols=8,
         rows=2,
         pad=10,
+    )
+    replace_sheet_frames(
+        "gothic_enemy_anim_imagen_hd_clean_v2.png",
+        "gothic_enemy_anim_imagen_hd_clean_v3.png",
+        replacements={
+            (0, 6): (0, 7),
+            (1, 5): (1, 4),
+            (1, 6): (1, 7),
+        },
+        cols=8,
+        rows=2,
     )
 
 
