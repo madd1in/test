@@ -12,6 +12,8 @@ const ui = {
   skinPicker: document.getElementById("skinPicker"),
   mapPicker: document.getElementById("mapPicker"),
   metaProgress: document.getElementById("metaProgress"),
+  metaSkills: document.getElementById("metaSkills"),
+  endMetaSkills: document.getElementById("endMetaSkills"),
   cornerControls: document.getElementById("cornerControls"),
   touchControls: document.getElementById("touchControls"),
   playerLabel: document.getElementById("playerLabel"),
@@ -47,15 +49,16 @@ const imageSources = {
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?v=curse-monkey-stable-v1",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
-  fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean.png?v=fighters-imagen-v1",
+  fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?v=fighters-slice-repair-v2",
   fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
+  guileActions: "assets/sprites/guile_action_sheet_imagen_hd.png?v=guile-action-v1",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?v=slice-repair-v4",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean.png?v=slice-clean-v1",
-  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png?v=gothic-slice-repair-v3",
+  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v4.png?v=gothic-gargoyle-repair-v4",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -78,6 +81,7 @@ const imageSources = {
   playerEffects: "assets/sprites/player_effects_imagen_hd.webp",
   weaponEvolutionFx: "assets/sprites/weapon_evolution_fx_imagen_hd.png",
   fusionRelics: "assets/sprites/fusion_relics_imagen_hd_clean.png?v=fusion-relics-v1",
+  signatureWeapons: "assets/sprites/signature_weapons_imagen_hd.png?v=signature-weapons-v1",
   xpCrystalAnim: "assets/sprites/xp_crystal_anim_imagen_hd.png?v=imagen-xp-v1",
   xpCrystalGreenAnim: "assets/sprites/xp_crystal_green_anim_imagen_hd.png?v=xp-color-v1",
   xpCrystalRedAnim: "assets/sprites/xp_crystal_red_anim_imagen_hd.png?v=xp-color-v1",
@@ -146,60 +150,69 @@ const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
 const soundConfig = {
-  pickup: { volume: 0.068, cooldown: 230 },
-  chime: { volume: 0.085, cooldown: 520 },
-  gate: { volume: 0.072, cooldown: 640 },
-  confirm: { volume: 0.078, cooldown: 240 },
-  downloadPickup: { volume: 0.074, cooldown: 250 },
-  downloadDash: { volume: 0.092, cooldown: 380 },
-  downloadHit: { volume: 0.105, cooldown: 440 },
-  downloadUpgrade: { volume: 0.108, cooldown: 650 },
-  downloadBossWarning: { volume: 0.12, cooldown: 16000 },
-  downloadBossDown: { volume: 0.13, cooldown: 2200 },
-  quickCutlass: { volume: 0.105, cooldown: 112 },
-  cutlassImpact: { volume: 0.098, cooldown: 170 },
-  cannonFire: { volume: 0.122, cooldown: 260 },
-  voodooMagic: { volume: 0.106, cooldown: 520 },
-  brightGem: { volume: 0.072, cooldown: 150 },
-  doubloonPing: { volume: 0.074, cooldown: 150 },
-  healSparkle: { volume: 0.092, cooldown: 360 },
-  treasureClink: { volume: 0.096, cooldown: 360 },
-  mapRustle: { volume: 0.078, cooldown: 480 },
-  cursedBossDrop: { volume: 0.13, cooldown: 2100 },
-  ghostAnchorHit: { volume: 0.105, cooldown: 360 },
-  seaMonsterPop: { volume: 0.102, cooldown: 390 },
-  dashWhooshFast: { volume: 0.105, cooldown: 230 },
-  pirateUiClick: { volume: 0.074, cooldown: 180 },
-  treasureMapMagic: { volume: 0.106, cooldown: 500 },
-  slashSwish: { volume: 0.096, cooldown: 124 },
-  monsterPop: { volume: 0.09, cooldown: 260 },
-  heavyHit: { volume: 0.116, cooldown: 480 },
-  upgradeMagic: { volume: 0.108, cooldown: 620 },
-  bossWarningCursed: { volume: 0.12, cooldown: 9000 },
-  bossDownUndead: { volume: 0.13, cooldown: 2100 },
-  curseMonkeySwipe: { volume: 0.108, cooldown: 112 },
-  curseMonkeyDash: { volume: 0.108, cooldown: 260 },
-  curseMonkeyHit: { volume: 0.106, cooldown: 330 },
-  curseMonkeyChatter: { volume: 0.078, cooldown: 340 },
-  curseMonkeyPower: { volume: 0.112, cooldown: 540 },
-  curseMonkeyWarning: { volume: 0.118, cooldown: 8000 },
-  curseMonkeyBossDown: { volume: 0.13, cooldown: 2000 },
+  pickup: { volume: 0.2, cooldown: 190 },
+  chime: { volume: 0.22, cooldown: 440 },
+  gate: { volume: 0.22, cooldown: 520 },
+  confirm: { volume: 0.2, cooldown: 160 },
+  downloadPickup: { volume: 0.22, cooldown: 190 },
+  downloadDash: { volume: 0.26, cooldown: 300 },
+  downloadHit: { volume: 0.28, cooldown: 300 },
+  downloadUpgrade: { volume: 0.3, cooldown: 520 },
+  downloadBossWarning: { volume: 0.34, cooldown: 12000 },
+  downloadBossDown: { volume: 0.36, cooldown: 1800 },
+  quickCutlass: { volume: 0.3, cooldown: 92 },
+  cutlassImpact: { volume: 0.28, cooldown: 130 },
+  cannonFire: { volume: 0.34, cooldown: 220 },
+  voodooMagic: { volume: 0.3, cooldown: 420 },
+  brightGem: { volume: 0.22, cooldown: 115 },
+  doubloonPing: { volume: 0.22, cooldown: 115 },
+  healSparkle: { volume: 0.25, cooldown: 300 },
+  treasureClink: { volume: 0.28, cooldown: 300 },
+  mapRustle: { volume: 0.22, cooldown: 360 },
+  cursedBossDrop: { volume: 0.36, cooldown: 1700 },
+  ghostAnchorHit: { volume: 0.3, cooldown: 280 },
+  seaMonsterPop: { volume: 0.28, cooldown: 300 },
+  dashWhooshFast: { volume: 0.3, cooldown: 170 },
+  pirateUiClick: { volume: 0.2, cooldown: 120 },
+  treasureMapMagic: { volume: 0.32, cooldown: 400 },
+  slashSwish: { volume: 0.28, cooldown: 92 },
+  monsterPop: { volume: 0.25, cooldown: 220 },
+  heavyHit: { volume: 0.34, cooldown: 360 },
+  upgradeMagic: { volume: 0.32, cooldown: 480 },
+  bossWarningCursed: { volume: 0.34, cooldown: 7000 },
+  bossDownUndead: { volume: 0.36, cooldown: 1700 },
+  curseMonkeySwipe: { volume: 0.3, cooldown: 92 },
+  curseMonkeyDash: { volume: 0.3, cooldown: 220 },
+  curseMonkeyHit: { volume: 0.3, cooldown: 250 },
+  curseMonkeyChatter: { volume: 0.24, cooldown: 260 },
+  curseMonkeyPower: { volume: 0.32, cooldown: 420 },
+  curseMonkeyWarning: { volume: 0.34, cooldown: 6500 },
+  curseMonkeyBossDown: { volume: 0.36, cooldown: 1600 },
 };
 const musicConfig = {
-  main: 0.62,
-  mainRushDuck: 0.1,
-  rush: 0.5,
+  main: 0.44,
+  maxMain: 0.46,
+  mainRushDuck: 0.06,
+  rush: 0.4,
+  maxRush: 0.42,
   rushStart: 112,
   rushFade: 74,
 };
+const LOW_LATENCY_MUSIC_START = true;
 let music = null;
 let rushMusic = null;
 let activeMusicTrack = null;
 let armedMusicTrack = null;
 let musicTrackKeys = { main: null, rush: null };
 let musicTrackMeta = { main: { startAt: 0, rate: 1 }, rush: { startAt: 0, rate: 1 } };
-const musicBlobUrls = {};
+const warmedMusicKeys = new Set();
 const musicPreloadState = { ready: false, loaded: 0, total: 0, decoded: 0, failed: [], keys: [] };
+let sfxAudioContext = null;
+const sfxBuffers = new Map();
+const sfxBufferPromises = new Map();
+const musicBuffers = new Map();
+const musicBufferPromises = new Map();
+const musicWebTracks = { main: null, rush: null };
 const loadedImageKeys = new Set();
 const imageLoadPromises = new Map();
 const deferredAssetState = {
@@ -218,7 +231,11 @@ let audioGestureUnlocked = false;
 let soundPoolsPrimed = false;
 let lastMusicStartLatencyMs = 0;
 let lastRenderTime = 0;
+let lastUpdateTime = 0;
 let skippedRenderFrames = 0;
+let skippedUpdateFrames = 0;
+const sfxDebug = { attempts: 0, started: 0, blocked: 0, lastKey: null, lastVolume: 0 };
+const sfxUnlockState = { attempts: 0, started: 0, blocked: 0 };
 const speechState = {
   supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
   voice: null,
@@ -246,18 +263,25 @@ const mobileDisplayState = {
 const loadingState = { loaded: 0, total: 0, last: "" };
 const MOBILE_PERF = {
   dpr: 1,
-  enemyCap: 86,
-  particleCap: 28,
-  textCap: 12,
+  enemyCap: 62,
+  particleCap: 16,
+  textCap: 8,
+  projectileCap: 72,
   propChunkRadius: 2,
   propPruneRadius: 4,
   textMin: 24,
-  renderFrameMs: 1000 / 45,
+  renderFrameMs: 1000 / 36,
+  updateFrameMs: 1000 / 40,
 };
 const PERF_GUARDS = {
-  desktopEnemyCap: 178,
-  desktopEnemyRenderBudget: 132,
-  mobileEnemyRenderBudget: 50,
+  desktopEnemyCap: 126,
+  desktopEnemyRenderBudget: 76,
+  desktopProjectileCap: 130,
+  desktopParticleCap: 48,
+  desktopTextCap: 24,
+  desktopRenderFrameMs: 1000 / 50,
+  desktopUpdateFrameMs: 1000 / 50,
+  mobileEnemyRenderBudget: 34,
   trimBuffer: 10,
 };
 const CONTROL_TUNING = {
@@ -276,8 +300,8 @@ const ENEMY_TUNING = {
   animatedVisualBoost: 1.16,
   minAnimatedVisualHeight: 96,
   minAnimatedVisualRadiusRatio: 3.65,
-  pressureWaveDesktopCap: 12,
-  pressureWaveMobileCap: 7,
+  pressureWaveDesktopCap: 8,
+  pressureWaveMobileCap: 5,
   secondEliteFromWave: 3,
 };
 let mobileLike = false;
@@ -288,6 +312,15 @@ const PLAYER_SKIN_WALK = { w: 256, h: 256, cols: 8, rows: 6 };
 const PLAYER_SKIN_SELECT = { w: 256, h: 256, cols: 7 };
 const FIGHTER_WALK = { w: 256, h: 256, cols: 8, rows: 4, frames: 8 };
 const FIGHTER_SELECT = { w: 256, h: 256, cols: 4 };
+const GUILE_ACTION = {
+  w: 256,
+  h: 256,
+  cols: 8,
+  rows: 5,
+  frames: 8,
+  fps: 13,
+  rowsByAction: { walk: 0, sonicBoom: 1, kneeBazooka: 2, reversePunch: 3, flashKick: 4 },
+};
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
@@ -304,6 +337,7 @@ const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
 const FUSION_RELIC = { w: 256, h: 256, cols: 4, rows: 4, frames: 4, fps: 5.5 };
+const SIGNATURE_WEAPON_FX = { w: 256, h: 256, cols: 4, rows: 11, frames: 4, fps: 8.5 };
 const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -345,7 +379,7 @@ const playerSkinMap = {
     h: 138,
     music: { theme: "Dockside Drive", main: "bgmMain", rush: "bgmRush", mainVolume: 0.64, rushVolume: 0.56, mainStartAt: 0, rushStartAt: 8, mainRate: 1.03, rushRate: 1.03 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "ghostAnchorHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "voodooMagic", warning: "seaMonsterPop", bossDown: "cursedBossDrop" },
-    trait: { id: "captainCommand", name: "Kaeptninskommando", desc: "+1 Ruestung, stabiler Saebel", armor: 1, damage: 0.03 },
+    trait: { id: "captainCommand", name: "Kaeptninskommando", desc: "+1 Ruestung, stabiler Saebel", armor: 1, damage: 0.03, signature: { id: "captainCutlass", label: "Kommando-Saebel", icon: "captainCutlass", pattern: "fan", cooldown: 3.7, speed: 560, damage: 28, radius: 20, pierce: 2, count: 2, spread: 0.22, color: "#7affc8" } },
   },
   islandPirate: {
     name: "Insel-Pirat",
@@ -361,7 +395,7 @@ const playerSkinMap = {
     cellY: 0,
     music: { theme: "Turbo Caper", main: "bgmCaper", rush: "bgmShoreline", mainVolume: 0.65, rushVolume: 0.55, mainStartAt: 4, rushStartAt: 18, mainRate: 1.045, rushRate: 1.035 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
-    trait: { id: "islandLoot", name: "Inselbeute", desc: "+12% Beutewert, groesserer Magnet", pickupValue: 0.12, magnet: 24 },
+    trait: { id: "islandLoot", name: "Inselbeute", desc: "+12% Beutewert, groesserer Magnet", pickupValue: 0.12, magnet: 24, signature: { id: "doubloonBoomerang", label: "Dublonen-Bumerang", icon: "doubloonBoomerang", pattern: "shot", cooldown: 3.45, speed: 620, damage: 30, radius: 18, pierce: 4, color: "#ffd45c" } },
   },
   curseMonkey: {
     name: "Fluchaffe",
@@ -379,7 +413,7 @@ const playerSkinMap = {
     cellY: 0,
     music: { theme: "Curse Monkey Frenzy", main: "bgmCurseMonkey", rush: "bgmCaper", mainVolume: 0.66, rushVolume: 0.6, rushStart: 42, rushFade: 46, mainStartAt: 20, rushStartAt: 11, mainRate: 1.08, rushRate: 1.09 },
     sfx: { confirm: "curseMonkeyChatter", slash: "curseMonkeySwipe", dash: "curseMonkeyDash", hurt: "curseMonkeyHit", hit: "curseMonkeyHit", pickup: "curseMonkeyChatter", powerup: "curseMonkeyPower", warning: "curseMonkeyWarning", bossDown: "curseMonkeyBossDown" },
-    trait: { id: "curseMagnet", name: "Fluchsog", desc: "+36 Magnet, +5% Schaden, aber weniger HP", magnet: 36, damage: 0.05, maxHp: -12 },
+    trait: { id: "curseMagnet", name: "Fluchsog", desc: "+36 Magnet, +5% Schaden, aber weniger HP", magnet: 36, damage: 0.05, maxHp: -12, signature: { id: "boneHexClaw", label: "Knochenfluch", icon: "boneHexClaw", pattern: "fan", cooldown: 3.25, speed: 540, damage: 24, radius: 17, pierce: 2, count: 3, spread: 0.38, color: "#d178ff" } },
   },
   dhampirHunter: {
     name: "Dhampir-Jaeger",
@@ -396,7 +430,7 @@ const playerSkinMap = {
     cellY: 0,
     music: { theme: "Gargoyle Bloodrun", main: "bgmGargoyle", rush: "bgmCathedral", mainVolume: 0.62, rushVolume: 0.58, rushStart: 58, mainStartAt: 0, rushStartAt: 8, mainRate: 1.035, rushRate: 1.03 },
     sfx: { confirm: "treasureMapMagic", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "ghostAnchorHit", hit: "ghostAnchorHit", pickup: "healSparkle", powerup: "voodooMagic", warning: "bossWarningCursed", bossDown: "cursedBossDrop" },
-    trait: { id: "moonLeech", name: "Mondbiss", desc: "+8% Schaden, heilt jeden 9. Kill", damage: 0.08, maxHp: -8, killHealEvery: 9, killHeal: 4 },
+    trait: { id: "moonLeech", name: "Mondbiss", desc: "+8% Schaden, heilt jeden 9. Kill", damage: 0.08, maxHp: -8, killHealEvery: 9, killHeal: 4, signature: { id: "bloodRoseVolley", label: "Blutrosen-Salve", icon: "bloodRoseVolley", pattern: "fan", cooldown: 3.65, speed: 590, damage: 22, radius: 15, pierce: 3, count: 5, spread: 0.24, color: "#ff6fa8" } },
   },
   rumCorsair: {
     name: "Rum-Korsar",
@@ -413,7 +447,7 @@ const playerSkinMap = {
     cellY: 1,
     music: { theme: "Rum Runner", main: "bgmShoreline", rush: "bgmMain", mainVolume: 0.64, rushVolume: 0.55, rushStart: 78, mainStartAt: 24, rushStartAt: 8, mainRate: 1.03, rushRate: 1.04 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "cutlassImpact", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
-    trait: { id: "rumSprint", name: "Rumspurt", desc: "+18 Tempo, schnellerer Dash", speed: 18, dashCooldown: -0.08, armor: -0.3 },
+    trait: { id: "rumSprint", name: "Rumspurt", desc: "+18 Tempo, schnellerer Dash", speed: 18, dashCooldown: -0.08, armor: -0.3, signature: { id: "rumBarrelBlast", label: "Rumfass-Brecher", icon: "rumBarrelBlast", pattern: "burst", cooldown: 4.1, damage: 36, radius: 136, color: "#ffad42" } },
   },
   starFarmboy: {
     name: "Sternenfarmboy",
@@ -430,7 +464,7 @@ const playerSkinMap = {
     cellY: 1,
     music: { theme: "Twin-Sun Sprint", main: "bgmCaper", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.56, rushStart: 68, mainStartAt: 18, rushStartAt: 12, mainRate: 1.06, rushRate: 1.03 },
     sfx: { confirm: "chime", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "treasureMapMagic", warning: "bossWarningCursed", bossDown: "cursedBossDrop" },
-    trait: { id: "starCompass", name: "Sternenkompass", desc: "Startet mit Kompass I, weniger HP", maxHp: -10, weapons: { compass: 1 }, magnet: 12 },
+    trait: { id: "starCompass", name: "Sternenkompass", desc: "Startet mit Kompass I, weniger HP", maxHp: -10, weapons: { compass: 1 }, magnet: 12, signature: { id: "starSaberArc", label: "Sternenklinge", icon: "starSaberArc", pattern: "fan", cooldown: 3.55, speed: 610, damage: 27, radius: 16, pierce: 2, count: 2, spread: 0.2, color: "#84e9ff" } },
   },
   freelanceDuo: {
     name: "Freelance-Duo",
@@ -442,7 +476,7 @@ const playerSkinMap = {
     cellY: 1,
     music: { theme: "Duo Desk Chase", main: "bgmMain", rush: "bgmVoodoo", mainVolume: 0.61, rushVolume: 0.55, rushStart: 76, mainStartAt: 20, rushStartAt: 16, mainRate: 1.04, rushRate: 1.035 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "voodooMagic", warning: "downloadBossWarning", bossDown: "cursedBossDrop" },
-    trait: { id: "twoHeads", name: "Doppelermittlung", desc: "Startet mit Tau I, Power-ups halten laenger", speed: -6, pickupValue: 0.06, weapons: { rope: 1 }, powerupDuration: 1.18 },
+    trait: { id: "twoHeads", name: "Doppelermittlung", desc: "Startet mit Tau I, Power-ups halten laenger", speed: -6, pickupValue: 0.06, weapons: { rope: 1 }, powerupDuration: 1.18, signature: { id: "freelanceNet", label: "Freelance-Netz", icon: "freelanceNet", pattern: "trap", cooldown: 4.2, damage: 32, radius: 148, color: "#e27cff" } },
   },
   ryu: {
     name: "Ryu",
@@ -461,7 +495,7 @@ const playerSkinMap = {
       damage: 0.09,
       weapons: { compass: 1 },
       maxHp: -6,
-      signature: { id: "hadoken", label: "Hadoken", icon: "compassBolt", pattern: "shot", cooldown: 3.8, speed: 660, damage: 38, radius: 19, pierce: 2, color: "#6ee7ff" },
+      signature: { id: "hadoken", label: "Hadoken", icon: "hadoken", pattern: "shot", cooldown: 3.8, speed: 660, damage: 38, radius: 19, pierce: 2, color: "#6ee7ff" },
     },
   },
   ken: {
@@ -481,27 +515,27 @@ const playerSkinMap = {
       speed: 14,
       dashCooldown: -0.07,
       damage: 0.035,
-      signature: { id: "dragonKick", label: "Dragon Kick", icon: "rumBombFx", pattern: "burst", cooldown: 4.3, damage: 34, radius: 132, color: "#ff9d42" },
+      signature: { id: "dragonKick", label: "Dragon Kick", icon: "dragonKick", pattern: "burst", cooldown: 4.3, damage: 34, radius: 132, color: "#ff9d42" },
     },
   },
   guile: {
     name: "Guile",
     sheet: "fighterWalks",
-    animSheet: "fighterWalks",
+    animSheet: "guileActions",
     fighterRow: 2,
     selectIndex: 2,
-    animH: 176,
-    animDrawYOffset: 31,
+    animH: 188,
+    animDrawYOffset: 22,
     music: { theme: "Jet Fuel Glory", main: "bgmGuileSignature", rush: "bgmStreetRush", mainVolume: 0.63, rushVolume: 0.58, rushStart: 68, mainStartAt: 0, rushStartAt: 0, mainRate: 1, rushRate: 1.02 },
     sfx: { confirm: "pirateUiClick", slash: "slashSwish", dash: "dashWhooshFast", hurt: "heavyHit", hit: "ghostAnchorHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "bossDownUndead" },
     trait: {
       id: "sonicGuard",
       name: "Sonic Guard",
-      desc: "+1 Ruestung, schnellere Waffenzyklen",
+      desc: "Startet mit Sonic Boom statt Saebel, spaeter Knee Bazooka, Reverse Punch und Flash Kick.",
       armor: 1,
       cooldown: -0.04,
       speed: -4,
-      signature: { id: "sonicBoom", label: "Sonic Boom", icon: "ropeRing", pattern: "shot", cooldown: 3.35, speed: 610, damage: 30, radius: 22, pierce: 4, color: "#b7fff0" },
+      signature: { id: "sonicBoom", label: "Sonic Boom", icon: "sonicBoom", pattern: "shot", cooldown: 3.35, speed: 610, damage: 30, radius: 22, pierce: 4, color: "#b7fff0" },
     },
   },
   chunLi: {
@@ -521,7 +555,7 @@ const playerSkinMap = {
       speed: 22,
       cooldown: -0.035,
       maxHp: -10,
-      signature: { id: "lightningFan", label: "Lightning Kicks", icon: "cutlassSlash", pattern: "fan", cooldown: 3.15, speed: 570, damage: 24, radius: 16, pierce: 1, count: 3, spread: 0.34, color: "#ffe07a" },
+      signature: { id: "lightningFan", label: "Lightning Kicks", icon: "lightningFan", pattern: "fan", cooldown: 3.15, speed: 570, damage: 24, radius: 16, pierce: 1, count: 3, spread: 0.34, color: "#ffe07a" },
     },
   },
 };
@@ -647,6 +681,15 @@ const powerupDropTuning = {
   magnetRange: 84,
   life: 18,
 };
+
+const metaSkillDefinitions = [
+  { id: "tideHeart", name: "Flutherz", icon: "lime", max: 5, baseCost: 16, costStep: 18, desc: "+12 Start-HP pro Rang." },
+  { id: "goldMagnet", name: "Dublonenmagnet", icon: "skullCoin", max: 5, baseCost: 18, costStep: 20, desc: "+18 Magnet pro Rang." },
+  { id: "bladeSchool", name: "Saebelschule", icon: "captainCutlass", max: 5, baseCost: 22, costStep: 24, desc: "+2.5% Schaden pro Rang." },
+  { id: "shoreSprint", name: "Strandspurt", icon: "tideBoots", max: 5, baseCost: 20, costStep: 22, desc: "+8 Tempo pro Rang." },
+  { id: "flowMemory", name: "Flow-Gedaechtnis", icon: "rubyRing", max: 5, baseCost: 24, costStep: 26, desc: "Mehr XP-Wert und laengere Power-ups." },
+  { id: "signatureMastery", name: "Signature-Meisterung", icon: "hadoken", max: 5, baseCost: 28, costStep: 30, desc: "Signature Weapons starten schneller und treffen haerter." },
+];
 
 let metaProgress = loadMetaProgress();
 let selectedMap = normalizeSelectedMap(readStoredValue("monkeyTideMap", "shipwreckBeach"));
@@ -811,6 +854,20 @@ const fusionMomentRelicIcon = {
   starCoconut: "stormConch",
   grogMaelstrom: "rumCometLantern",
   moonNet: "krakenCompass",
+};
+
+const signatureWeaponMap = {
+  captainCutlass: { row: 0, draw: "arc" },
+  doubloonBoomerang: { row: 1, draw: "projectile" },
+  boneHexClaw: { row: 2, draw: "arc" },
+  bloodRoseVolley: { row: 3, draw: "projectile" },
+  rumBarrelBlast: { row: 4, draw: "burst" },
+  starSaberArc: { row: 5, draw: "arc" },
+  freelanceNet: { row: 6, draw: "trap" },
+  hadoken: { row: 7, draw: "projectile" },
+  dragonKick: { row: 8, draw: "burst" },
+  sonicBoom: { row: 9, draw: "projectile" },
+  lightningFan: { row: 10, draw: "arc" },
 };
 
 const enemyTypes = [
@@ -1129,6 +1186,7 @@ function defaultMetaProgress() {
     achievements: {},
     unlockedMaps: mapVariants.filter((map) => map.unlockedByDefault).map((map) => map.id),
     unlockedRelics: [],
+    skills: Object.fromEntries(metaSkillDefinitions.map((skill) => [skill.id, 0])),
   };
 }
 
@@ -1148,6 +1206,10 @@ function normalizeMetaProgress(progress) {
   const base = defaultMetaProgress();
   const normalized = { ...base, ...progress };
   normalized.achievements = { ...(progress.achievements || {}) };
+  normalized.skills = Object.fromEntries(metaSkillDefinitions.map((skill) => [
+    skill.id,
+    clamp(Number(progress.skills?.[skill.id] || 0), 0, skill.max),
+  ]));
   normalized.unlockedRelics = [...new Set([...(progress.unlockedRelics || [])])];
   normalized.unlockedMaps = [...new Set([...base.unlockedMaps, ...(progress.unlockedMaps || [])])]
     .filter((id) => mapVariants.some((map) => map.id === id));
@@ -1185,6 +1247,48 @@ function metaRelicBonuses() {
   };
 }
 
+function metaSkillLevel(id) {
+  return clamp(Number(metaProgress.skills?.[id] || 0), 0, metaSkillDefinitions.find((skill) => skill.id === id)?.max || 0);
+}
+
+function metaSkillCost(skill) {
+  const level = metaSkillLevel(skill.id);
+  if (level >= skill.max) return Infinity;
+  return skill.baseCost + level * skill.costStep + Math.max(0, level - 1) * 6;
+}
+
+function metaSkillBonuses() {
+  const flow = metaSkillLevel("flowMemory");
+  const signature = metaSkillLevel("signatureMastery");
+  return {
+    maxHp: metaSkillLevel("tideHeart") * 12,
+    magnet: metaSkillLevel("goldMagnet") * 18,
+    damage: metaSkillLevel("bladeSchool") * 0.025,
+    speed: metaSkillLevel("shoreSprint") * 8,
+    pickupValue: flow * 0.045,
+    powerupDuration: 1 + flow * 0.045,
+    signatureDamage: 1 + signature * 0.075,
+    signatureCooldown: Math.max(0.76, 1 - signature * 0.045),
+    signatureStart: signature * 0.16,
+    starterCoins: flow * 2,
+  };
+}
+
+function buyMetaSkill(id) {
+  const skill = metaSkillDefinitions.find((entry) => entry.id === id);
+  if (!skill) return false;
+  const level = metaSkillLevel(id);
+  const cost = metaSkillCost(skill);
+  if (level >= skill.max || metaProgress.coins < cost) return false;
+  metaProgress.coins -= cost;
+  metaProgress.skills[id] = level + 1;
+  saveMetaProgress();
+  renderMetaProgress();
+  renderMetaSkills();
+  playSkinSound("powerup", "downloadUpgrade", { force: true });
+  return true;
+}
+
 function characterTrait(skinId = selectedSkin) {
   return playerSkinMap[skinId]?.trait || playerSkinMap.default.trait;
 }
@@ -1201,6 +1305,89 @@ function soundVolume(key, gain = 1) {
   return clamp((soundConfig[key]?.volume ?? 0.16) * gain, 0, 1);
 }
 
+function ensureSfxAudioContext() {
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) return null;
+  if (!sfxAudioContext) sfxAudioContext = new AudioContextCtor();
+  return sfxAudioContext;
+}
+
+function decodeAudioBuffer(ctx, arrayBuffer) {
+  return new Promise((resolve, reject) => {
+    const source = arrayBuffer.slice(0);
+    const maybePromise = ctx.decodeAudioData(source, resolve, reject);
+    if (maybePromise?.then) maybePromise.then(resolve).catch(reject);
+  });
+}
+
+function preloadMusicBuffer(key) {
+  if (!audioSources[key] || !key.startsWith("bgm")) return Promise.resolve(null);
+  if (musicBuffers.has(key)) return Promise.resolve(musicBuffers.get(key));
+  if (musicBufferPromises.has(key)) return musicBufferPromises.get(key);
+  const ctx = ensureSfxAudioContext();
+  if (!ctx) return Promise.reject(new Error("WebAudio unavailable"));
+  const promise = fetch(resolvedAudioSource(key), { cache: "force-cache" })
+    .then((response) => {
+      if (!response.ok) throw new Error(`BGM ${key} HTTP ${response.status}`);
+      return response.arrayBuffer();
+    })
+    .then((arrayBuffer) => decodeAudioBuffer(ctx, arrayBuffer))
+    .then((buffer) => {
+      musicBuffers.set(key, buffer);
+      return buffer;
+    })
+    .catch((error) => {
+      musicBufferPromises.delete(key);
+      throw error;
+    });
+  musicBufferPromises.set(key, promise);
+  return promise;
+}
+
+function preloadSfxBuffer(key) {
+  if (!audioSources[key] || key.startsWith("bgm")) return Promise.resolve(null);
+  if (sfxBuffers.has(key)) return Promise.resolve(sfxBuffers.get(key));
+  if (sfxBufferPromises.has(key)) return sfxBufferPromises.get(key);
+  const ctx = ensureSfxAudioContext();
+  if (!ctx) return Promise.resolve(null);
+  const promise = fetch(audioSources[key], { cache: "force-cache" })
+    .then((response) => {
+      if (!response.ok) throw new Error(`SFX ${key} HTTP ${response.status}`);
+      return response.arrayBuffer();
+    })
+    .then((data) => ctx.decodeAudioData(data.slice(0)))
+    .then((buffer) => {
+      sfxBuffers.set(key, buffer);
+      sfxBufferPromises.delete(key);
+      return buffer;
+    })
+    .catch(() => {
+      sfxBufferPromises.delete(key);
+      return null;
+    });
+  sfxBufferPromises.set(key, promise);
+  return promise;
+}
+
+function playBufferedSound(key, volume) {
+  const ctx = ensureSfxAudioContext();
+  const buffer = sfxBuffers.get(key);
+  if (!ctx || !buffer || ctx.state !== "running") return false;
+  try {
+    const source = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    gain.gain.value = volume;
+    source.buffer = buffer;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(0);
+    sfxDebug.started += 1;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function gestureSoundKeys(track = "main", skinId = selectedSkin) {
   const profile = playerSkinMap[skinId]?.sfx || playerSkinMap.default.sfx || {};
   const profileKeys = Object.values(profile).filter(Boolean);
@@ -1212,42 +1399,26 @@ function gestureSoundKeys(track = "main", skinId = selectedSkin) {
     .slice(0, 14);
 }
 
-function primeSoundPoolsForGesture(track = "main") {
+function primeSoundPoolsForGesture(track = "main", options = {}) {
   const keysToPrime = gestureSoundKeys(track);
+  const ctx = options.unlock ? ensureSfxAudioContext() : null;
+  if (ctx && ctx.state !== "running") {
+    ctx.resume()
+      .then(() => { sfxUnlockState.started += 1; })
+      .catch(() => { sfxUnlockState.blocked += 1; });
+  }
   for (const key of keysToPrime) {
+    if (options.unlock) {
+      sfxUnlockState.attempts += 1;
+      preloadSfxBuffer(key);
+    }
     const pool = soundPools[key];
     if (!pool?.length) continue;
     for (const clip of pool) {
       clip.preload = "auto";
-      clip.volume = soundVolume(key);
-      try { clip.load(); } catch {}
-    }
-    const clip = pool[0];
-    try {
-      clip.muted = true;
-      clip.volume = 0;
-      const playPromise = clip.play();
-      if (playPromise?.then) {
-        playPromise
-          .then(() => {
-            clip.pause();
-            clip.currentTime = 0;
-            clip.muted = false;
-            clip.volume = soundVolume(key);
-          })
-          .catch(() => {
-            clip.muted = false;
-            clip.volume = soundVolume(key);
-          });
-      } else {
-        clip.pause();
-        clip.currentTime = 0;
-        clip.muted = false;
-        clip.volume = soundVolume(key);
-      }
-    } catch {
       clip.muted = false;
       clip.volume = soundVolume(key);
+      try { clip.load(); } catch {}
     }
   }
   soundPoolsPrimed = true;
@@ -1256,6 +1427,54 @@ function primeSoundPoolsForGesture(track = "main") {
 function playSkinSound(event, fallback, options = {}) {
   const profile = characterSfxProfile();
   playSound(normalizeSoundKey(profile[event], fallback), options);
+}
+
+function isGuileSkin(skinId = state?.player?.skin || selectedSkin) {
+  return skinId === "guile";
+}
+
+function triggerPlayerAction(type, duration = 0.48) {
+  if (!state?.player || state.player.skin !== "guile") return;
+  state.playerAction = { type, timer: duration, maxTimer: duration };
+}
+
+function updatePlayerAction(dt) {
+  if (!state?.playerAction) return;
+  state.playerAction.timer -= dt;
+  if (state.playerAction.timer <= 0) state.playerAction = null;
+}
+
+function guileActionFrame(action) {
+  if (!action) return 0;
+  const progress = clamp(1 - action.timer / Math.max(0.001, action.maxTimer || 0.48), 0, 0.999);
+  return Math.min(GUILE_ACTION.frames - 1, Math.floor(progress * GUILE_ACTION.frames));
+}
+
+function guileActionRow(type = "walk") {
+  return GUILE_ACTION.rowsByAction[type] ?? GUILE_ACTION.rowsByAction.walk;
+}
+
+function weaponPresentation(id, skinId = state?.player?.skin || selectedSkin) {
+  if (id === "cutlass" && isGuileSkin(skinId)) {
+    return {
+      id,
+      name: "Sonic Boom",
+      icon: "sonicBoom",
+      desc: "Guile feuert schnelle Energieboegen; spaeter kommen Knee Bazooka, Reverse Punch und Flash Kick dazu.",
+    };
+  }
+  const base = weaponLoadoutItems.find(([weaponId]) => weaponId === id);
+  return base ? { id, name: base[1], icon: base[2] } : { id, name: id, icon: "coin" };
+}
+
+function upgradePresentation(upgrade) {
+  if (upgrade.id !== "cutlass" || !isGuileSkin()) return upgrade;
+  return {
+    ...upgrade,
+    name: "Sonic Boom Drill",
+    icon: "sonicBoom",
+    desc: "Levelt Guiles Sonic Boom; schaltet Knee Bazooka, Reverse Punch und Flash Kick als Combo-Procs frei.",
+  };
 }
 
 function applyCharacterTrait(next) {
@@ -1286,6 +1505,7 @@ let selectedUpgradeIndex = 0;
 
 function makeState() {
   const relicBonus = metaRelicBonuses();
+  const skillBonus = metaSkillBonuses();
   const startX = WORLD.w / 2;
   const startY = WORLD.h / 2;
   const next = {
@@ -1304,8 +1524,10 @@ function makeState() {
     runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, unlocked: [] },
     fusionMoments: { seen: new Set(), count: 0 },
     powerupDropCooldown: 0,
-    signatureMove: { timer: 1.2, casts: 0, last: null },
-    coins: 0,
+    signatureMove: { timer: Math.max(0.38, 1.2 - skillBonus.signatureStart), casts: 0, last: null },
+    playerAction: null,
+    guileArsenal: { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 },
+    coins: skillBonus.starterCoins,
     level: 1,
     xp: 0,
     nextXp: XP_TUNING.initialNextXp,
@@ -1314,8 +1536,8 @@ function makeState() {
       x: startX,
       y: startY,
       r: 24,
-      hp: 150,
-      maxHp: 150,
+      hp: 150 + skillBonus.maxHp,
+      maxHp: 150 + skillBonus.maxHp,
       invuln: 0,
       dash: 0,
       dashCooldown: 0,
@@ -1325,14 +1547,16 @@ function makeState() {
       skin: selectedSkin,
     },
     stats: {
-      speed: CONTROL_TUNING.baseSpeed + relicBonus.speed,
-      damage: 1.12 + relicBonus.damage,
+      speed: CONTROL_TUNING.baseSpeed + relicBonus.speed + skillBonus.speed,
+      damage: 1.12 + relicBonus.damage + skillBonus.damage,
       armor: 2 + relicBonus.armor,
-      magnet: 280 + relicBonus.magnet,
-      pickupValue: 1.12,
+      magnet: 280 + relicBonus.magnet + skillBonus.magnet,
+      pickupValue: 1.12 + skillBonus.pickupValue,
       dashCooldown: CONTROL_TUNING.dashCooldown,
       cooldown: relicBonus.cooldown || 1,
-      powerupDuration: relicBonus.powerupDuration || 1,
+      powerupDuration: (relicBonus.powerupDuration || 1) * skillBonus.powerupDuration,
+      signatureDamage: skillBonus.signatureDamage,
+      signatureCooldown: skillBonus.signatureCooldown,
       chainDamage: 0,
     },
     weapons: {
@@ -1649,6 +1873,7 @@ const MOBILE_BOOT_IMAGE_KEYS = [
   "beachBoatWreck",
   "projectileFx",
   "playerEffects",
+  "signatureWeapons",
   "xpCrystalAnim",
   "xpCrystalGreenAnim",
   "xpCrystalRedAnim",
@@ -1692,7 +1917,6 @@ function bootImageKeys() {
 }
 
 function bootMusicKeys() {
-  if (!isMobileLike()) return musicSourceEntries().map(([key]) => key);
   return musicKeysForProfile(selectedMap, selectedSkin);
 }
 
@@ -1736,7 +1960,7 @@ function musicSourceEntries(keys = null) {
 }
 
 function resolvedAudioSource(key) {
-  return musicBlobUrls[key] || audioSources[key] || audioSources.bgmMain;
+  return audioSources[key] || audioSources.bgmMain;
 }
 
 async function preloadMusicAssets(onLoaded, keys = null, options = {}) {
@@ -1751,7 +1975,7 @@ async function preloadMusicAssets(onLoaded, keys = null, options = {}) {
     musicPreloadState.failed = [];
   }
   await Promise.all(entries.map(async ([key, src]) => {
-    if (musicBlobUrls[key]) {
+    if (warmedMusicKeys.has(key)) {
       if (countProgress) {
         musicPreloadState.loaded += 1;
         musicPreloadState.decoded += 1;
@@ -1760,12 +1984,12 @@ async function preloadMusicAssets(onLoaded, keys = null, options = {}) {
       return;
     }
     try {
-      const response = await fetch(src, { cache: "force-cache" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      musicBlobUrls[key] = objectUrl;
-      await warmAudioForPlayback(objectUrl);
+      try {
+        await preloadMusicBuffer(key);
+      } catch {
+        await warmAudioForPlayback(src);
+      }
+      warmedMusicKeys.add(key);
       if (countProgress) {
         musicPreloadState.loaded += 1;
         musicPreloadState.decoded += 1;
@@ -1782,7 +2006,7 @@ async function preloadMusicAssets(onLoaded, keys = null, options = {}) {
 }
 
 function preloadMusicKeys(keys) {
-  const pending = uniqueAssetKeys(keys, audioSources).filter((key) => key.startsWith("bgm") && !musicBlobUrls[key]);
+  const pending = uniqueAssetKeys(keys, audioSources).filter((key) => key.startsWith("bgm") && !warmedMusicKeys.has(key));
   if (!pending.length) return Promise.resolve();
   return preloadMusicAssets(() => {}, pending, { reset: false, countProgress: false })
     .then(() => {
@@ -1817,7 +2041,7 @@ function queueDeferredAssetLoading(bootKeys = []) {
   setTimeout(loadDeferred, isMobileLike() ? 1800 : 120);
 }
 
-function warmAudioForPlayback(src) {
+function warmAudioForPlayback(src, timeoutMs = 1400) {
   return new Promise((resolve, reject) => {
     const audio = new Audio();
     let settled = false;
@@ -1842,9 +2066,8 @@ function warmAudioForPlayback(src) {
       reject(new Error("audio decode failed"));
     };
     const timeout = setTimeout(() => {
-      if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) finish();
-      else fail();
-    }, 12000);
+      finish();
+    }, timeoutMs);
     audio.preload = "auto";
     audio.muted = true;
     audio.addEventListener("canplaythrough", finish);
@@ -1906,6 +2129,7 @@ async function boot() {
   renderSkinPicker();
   renderMapPicker();
   renderMetaProgress();
+  renderMetaSkills();
   const bootImageKeyList = bootImageKeys();
   const bootMusicKeyList = bootMusicKeys();
   const imageEntries = imageEntriesForKeys(bootImageKeyList);
@@ -1939,7 +2163,7 @@ function skinIconStyle(id) {
     return `background-image:url('${imageSources.samMaxDuo}');background-size:contain;background-repeat:no-repeat;background-position:center 58%;`;
   }
   const skin = playerSkinMap[id];
-  if (skin?.animSheet === "fighterWalks") {
+  if (skin?.animSheet === "fighterWalks" || skin?.selectIndex !== undefined) {
     const index = clamp(skin.selectIndex ?? skin.fighterRow ?? 0, 0, FIGHTER_SELECT.cols - 1);
     const x = index / Math.max(1, FIGHTER_SELECT.cols - 1) * 100;
     return `background-image:url('${imageSources.fighterSelect}');background-size:${FIGHTER_SELECT.cols * 100}% 100%;background-position:${x}% 100%;`;
@@ -1954,7 +2178,7 @@ function renderSkinPicker() {
   ui.skinPicker.innerHTML = playerSkinIds.map((id) => {
     const skin = playerSkinMap[id];
     const active = id === selectedSkin;
-    const isFighter = skin?.animSheet === "fighterWalks";
+    const isFighter = skin?.animSheet === "fighterWalks" || skin?.animSheet === "guileActions";
     const tag = isFighter ? "Fighter" : id === "freelanceDuo" ? "Duo" : "Crew";
     const traitLabel = skin.trait?.signature?.label || skin.trait?.name || "";
     return `
@@ -1989,12 +2213,40 @@ function renderMetaProgress() {
   if (!ui.metaProgress) return;
   const done = achievementDefinitions.filter((achievement) => metaProgress.achievements[achievement.id]).length;
   const relicText = metaProgress.unlockedRelics.length ? metaProgress.unlockedRelics.join(", ") : "keine";
+  const skillLevels = metaSkillDefinitions.reduce((sum, skill) => sum + metaSkillLevel(skill.id), 0);
   ui.metaProgress.innerHTML = `
     <span class="progress-chip"><strong>${done}/${achievementDefinitions.length}</strong> Achievements</span>
+    <span class="progress-chip"><strong>${metaProgress.coins}</strong> Dublonen</span>
+    <span class="progress-chip"><strong>${skillLevels}/${metaSkillDefinitions.reduce((sum, skill) => sum + skill.max, 0)}</strong> Skills</span>
     <span class="progress-chip"><strong>${metaProgress.unlockedMaps.length}/${mapVariants.length}</strong> Karten</span>
     <span class="progress-chip"><strong>${metaProgress.bestStreak}</strong> Best-Streak</span>
     <span class="progress-chip"><strong>${relicText}</strong> Startrelikte</span>
   `;
+}
+
+function renderMetaSkills() {
+  const containers = [ui.metaSkills, ui.endMetaSkills].filter(Boolean);
+  if (!containers.length) return;
+  const html = metaSkillDefinitions.map((skill) => {
+    const level = metaSkillLevel(skill.id);
+    const maxed = level >= skill.max;
+    const cost = metaSkillCost(skill);
+    const canBuy = !maxed && metaProgress.coins >= cost;
+    const costLabel = maxed ? "MAX" : `${cost} D`;
+    return `
+      <button class="meta-skill${canBuy ? " buyable" : ""}${maxed ? " maxed" : ""}" type="button" data-meta-skill="${skill.id}" ${canBuy ? "" : "disabled"}>
+        <span class="meta-skill-icon" style="${iconStyle(skill.icon)}"></span>
+        <span class="meta-skill-copy">
+          <span class="meta-skill-name">${skill.name}</span>
+          <span class="meta-skill-level">Rang ${level}/${skill.max} - ${costLabel}</span>
+          <span class="meta-skill-progress">${upgradeProgressPips(level, skill.max, "meta-skill-pip")}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+  containers.forEach((container) => {
+    container.innerHTML = html;
+  });
 }
 
 function setSelectedMap(id) {
@@ -2041,7 +2293,7 @@ function primeMenuMusic(options = {}) {
   return options.wait ? menuMusicPrimePromise : menuMusicPrimePromise;
 }
 
-function waitForMusicSlotReady(slot, timeoutMs = 3500) {
+function waitForMusicSlotReady(slot, timeoutMs = 900) {
   const audio = slot === "rush" ? rushMusic : music;
   if (!audio?.src) return Promise.resolve();
   const targetTime = Math.max(0, musicTrackMeta[slot]?.startAt || 0);
@@ -2092,35 +2344,154 @@ function musicSlotAudio(track) {
 }
 
 function profileVolumeForSlot(slot, profile) {
-  return slot === "rush" ? profile.rushVolume : profile.mainVolume;
+  return slot === "rush"
+    ? Math.min(profile.rushVolume, musicConfig.maxRush ?? profile.rushVolume)
+    : Math.min(profile.mainVolume, musicConfig.maxMain ?? profile.mainVolume);
 }
 
 function markMusicPlayLatency(startedAt) {
   lastMusicStartLatencyMs = Math.max(0, Math.round(performance.now() - startedAt));
 }
 
+function stopWebMusicTrack(slot) {
+  const track = musicWebTracks[slot];
+  if (!track) return;
+  track.stopped = true;
+  try {
+    track.source.stop(0);
+  } catch {}
+  try {
+    track.source.disconnect();
+    track.gain.disconnect();
+  } catch {}
+  musicWebTracks[slot] = null;
+}
+
+function setWebMusicVolume(slot, volume) {
+  const track = musicWebTracks[slot];
+  if (!track) return;
+  track.volume = volume;
+  try {
+    track.gain.gain.setTargetAtTime(volume, sfxAudioContext?.currentTime || 0, 0.018);
+  } catch {
+    track.gain.gain.value = volume;
+  }
+}
+
+function playWebMusicTrack(slot, volume) {
+  const key = musicTrackKeys[slot];
+  const buffer = key ? musicBuffers.get(key) : null;
+  const ctx = ensureSfxAudioContext();
+  if (!ctx || !buffer || muted) return false;
+  if (ctx.state === "closed") return false;
+  if (ctx.state !== "running") {
+    ctx.resume().catch(() => {});
+  }
+  const meta = musicTrackMeta[slot] || { startAt: 0, rate: 1 };
+  const active = musicWebTracks[slot];
+  if (active && !active.stopped && active.key === key && Math.abs(active.rate - meta.rate) < 0.001) {
+    setWebMusicVolume(slot, volume);
+    return true;
+  }
+  stopWebMusicTrack(slot);
+  const startedAt = performance.now();
+  try {
+    const source = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    const offset = buffer.duration > 0 ? (meta.startAt || 0) % buffer.duration : 0;
+    source.buffer = buffer;
+    source.loop = true;
+    source.playbackRate.value = meta.rate;
+    gain.gain.value = volume;
+    source.connect(gain).connect(ctx.destination);
+    source.start(0, offset);
+    musicWebTracks[slot] = {
+      source,
+      gain,
+      key,
+      rate: meta.rate,
+      offset,
+      startedAt: ctx.currentTime,
+      volume,
+      stopped: false,
+    };
+    source.onended = () => {
+      if (musicWebTracks[slot]?.source === source && !musicWebTracks[slot].stopped) {
+        musicWebTracks[slot] = null;
+      }
+    };
+    markMusicPlayLatency(startedAt);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function webMusicTrackTime(slot) {
+  const track = musicWebTracks[slot];
+  if (!track || !sfxAudioContext || track.stopped) return null;
+  const buffer = musicBuffers.get(track.key);
+  const duration = buffer?.duration || 0;
+  const elapsed = Math.max(0, sfxAudioContext.currentTime - track.startedAt) * track.rate;
+  const time = track.offset + elapsed;
+  return duration > 0 ? time % duration : time;
+}
+
+function isMusicTrackPlaying(slot) {
+  const audio = musicSlotAudio(slot);
+  return !!(musicWebTracks[slot] && !musicWebTracks[slot].stopped) || !!(audio && !audio.paused);
+}
+
+function startMusicSlot(slot, profile = mapMusicProfile(state?.map || selectedMap), options = {}) {
+  const audio = musicSlotAudio(slot);
+  const otherSlot = slot === "rush" ? "main" : "rush";
+  const other = musicSlotAudio(otherSlot);
+  const volume = muted ? 0 : profileVolumeForSlot(slot, profile);
+  stopWebMusicTrack(otherSlot);
+  if (other) {
+    other.pause();
+    other.volume = 0;
+  }
+  if (!audio) return false;
+  audio.volume = volume;
+  audio.muted = muted;
+  if (!muted && playWebMusicTrack(slot, volume)) {
+    audio.pause();
+    if (options.markActive !== false) activeMusicTrack = slot;
+    return true;
+  }
+  if (!muted) {
+    const startedAt = performance.now();
+    audio.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
+  }
+  if (options.markActive !== false) activeMusicTrack = slot;
+  return false;
+}
+
 function armMusicForStart(track = "main") {
   if (!music || !rushMusic || muted) return;
-  configureMusicForMap(selectedMap, selectedSkin);
+  const profile = configureMusicForMap(selectedMap, selectedSkin);
   const slot = track === "rush" ? "rush" : "main";
   const audio = musicSlotAudio(slot);
   const other = slot === "rush" ? music : rushMusic;
   const alreadyArmed = armedMusicTrack === slot && audio && !audio.paused;
   if (!alreadyArmed) seekMusicSlotToStart(slot, true);
   audioGestureUnlocked = true;
-  primeSoundPoolsForGesture(slot);
-  audio.volume = muted ? 0 : 0.018;
+  primeSoundPoolsForGesture(slot, { unlock: true });
+  audio.volume = muted ? 0 : profileVolumeForSlot(slot, profile);
   audio.muted = muted;
   other.volume = 0;
   other.pause();
   armedMusicTrack = slot;
-  const startedAt = performance.now();
-  audio.play().then(() => {
-    markMusicPlayLatency(startedAt);
-    if (armedMusicTrack === slot && state?.phase === "menu" && audio.currentTime > 1.25) seekMusicSlotToStart(slot, true);
-  }).catch(() => {
-    if (armedMusicTrack === slot) armedMusicTrack = null;
-  });
+  const usedWebAudio = startMusicSlot(slot, profile, { markActive: false });
+  if (!usedWebAudio) {
+    const fallbackTrack = audio;
+    fallbackTrack.addEventListener("playing", () => {
+      if (armedMusicTrack === slot && state?.phase === "menu" && fallbackTrack.currentTime > 1.25) {
+        seekMusicSlotToStart(slot, true);
+      }
+    }, { once: true });
+  }
 }
 
 function playSound(key, options = {}) {
@@ -2129,15 +2500,30 @@ function playSound(key, options = {}) {
   const cooldown = options.cooldown ?? soundConfig[key]?.cooldown ?? 0;
   if (!options.force && now - (soundLastPlayed.get(key) || -Infinity) < cooldown) return;
   soundLastPlayed.set(key, now);
+  const volume = soundVolume(key, options.gain ?? 1);
+  sfxDebug.attempts += 1;
+  sfxDebug.lastKey = key;
+  sfxDebug.lastVolume = volume;
+  if (audioGestureUnlocked) preloadSfxBuffer(key);
+  if (playBufferedSound(key, volume)) return;
   const pool = soundPools[key];
   const clip = pool.find((a) => a.paused || a.ended) || pool[0];
   try {
     clip.muted = false;
     clip.preload = "auto";
-    clip.volume = soundVolume(key, options.gain ?? 1);
+    clip.volume = volume;
     if (clip.readyState === 0) clip.load();
     clip.currentTime = 0;
-    clip.play().catch(() => {});
+    const playResult = clip.play();
+    if (playResult?.then) {
+      playResult.then(() => {
+        sfxDebug.started += 1;
+      }).catch(() => {
+        sfxDebug.blocked += 1;
+      });
+    } else {
+      sfxDebug.started += 1;
+    }
   } catch {}
 }
 
@@ -2201,8 +2587,8 @@ function mapMusicProfile(mapId = selectedMap, skinId = state?.player?.skin || se
 
 function configureMusicForMap(mapId = selectedMap, skinId = state?.player?.skin || selectedSkin) {
   const profile = mapMusicProfile(mapId, skinId);
-  setMusicSource("main", profile.mainKey, { startAt: profile.mainStartAt, rate: profile.mainRate });
-  setMusicSource("rush", profile.rushKey, { startAt: profile.rushStartAt, rate: profile.rushRate });
+  setMusicSource("main", profile.mainKey, { startAt: LOW_LATENCY_MUSIC_START ? 0 : profile.mainStartAt, rate: profile.mainRate });
+  setMusicSource("rush", profile.rushKey, { startAt: LOW_LATENCY_MUSIC_START ? 0 : profile.rushStartAt, rate: profile.rushRate });
   return profile;
 }
 
@@ -2219,10 +2605,13 @@ function setMusicSource(slot, key, meta = {}) {
   if (!keyChanged && !metaChanged) return;
   if (keyChanged) {
     if (armedMusicTrack === slot) armedMusicTrack = null;
+    stopWebMusicTrack(slot);
     audio.pause();
     audio.src = resolvedAudioSource(key);
     audio.load();
     audio.volume = 0;
+  } else if (metaChanged) {
+    stopWebMusicTrack(slot);
   }
   audio.playbackRate = nextMeta.rate;
   musicTrackKeys[slot] = key;
@@ -2258,12 +2647,12 @@ function syncMusic() {
   }
   const nextTrack = state.elapsed >= profile.rushStart ? "rush" : "main";
   if (activeMusicTrack !== nextTrack) switchMusicTrack(nextTrack, profile);
-  music.volume = nextTrack === "main" ? profile.mainVolume : 0;
-  rushMusic.volume = nextTrack === "rush" ? profile.rushVolume : 0;
-  const current = musicSlotAudio(nextTrack);
-  if (current?.paused) {
-    const startedAt = performance.now();
-    current.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
+  music.volume = nextTrack === "main" ? profileVolumeForSlot("main", profile) : 0;
+  rushMusic.volume = nextTrack === "rush" ? profileVolumeForSlot("rush", profile) : 0;
+  setWebMusicVolume("main", music.volume);
+  setWebMusicVolume("rush", rushMusic.volume);
+  if (!isMusicTrackPlaying(nextTrack)) {
+    startMusicSlot(nextTrack, profile);
   }
 }
 
@@ -2273,22 +2662,23 @@ function switchMusicTrack(track, profile = mapMusicProfile(state.map)) {
   const meta = musicTrackMeta[track] || { startAt: 0, rate: 1 };
   from.pause();
   from.volume = 0;
+  stopWebMusicTrack(track === "rush" ? "main" : "rush");
   to.playbackRate = meta.rate;
   try {
     if (meta.startAt > 0 && (!Number.isFinite(to.currentTime) || to.currentTime < meta.startAt || to.currentTime > meta.startAt + 8)) {
       to.currentTime = meta.startAt;
     }
   } catch {}
-  to.volume = track === "rush" ? profile.rushVolume : profile.mainVolume;
+  to.volume = profileVolumeForSlot(track, profile);
   to.muted = muted;
-  const startedAt = performance.now();
-  to.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
-  activeMusicTrack = track;
+  startMusicSlot(track, profile);
 }
 
 function stopMusicTracks() {
   music.pause();
   rushMusic.pause();
+  stopWebMusicTrack("main");
+  stopWebMusicTrack("rush");
   music.volume = 0;
   rushMusic.volume = 0;
   activeMusicTrack = null;
@@ -2311,9 +2701,7 @@ function prepareMusicForRun(expectedTrack = "main") {
       seekMusicSlotToStart(slot, true);
       audio.muted = false;
       audio.volume = profileVolumeForSlot(slot, profile);
-      const startedAt = performance.now();
-      audio.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
-      activeMusicTrack = slot;
+      startMusicSlot(slot, profile);
     }
     return;
   }
@@ -2327,9 +2715,8 @@ function prepareMusicForRun(expectedTrack = "main") {
   other.volume = 0;
   audio.volume = profileVolumeForSlot(slot, profile);
   audio.muted = muted;
-  if (audio.paused) {
-    const startedAt = performance.now();
-    audio.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
+  if (!isMusicTrackPlaying(slot)) {
+    startMusicSlot(slot, profile);
   }
   activeMusicTrack = slot;
 }
@@ -2369,7 +2756,9 @@ function startGame(options = {}) {
   );
   lastTime = performance.now();
   lastRenderTime = 0;
+  lastUpdateTime = lastTime;
   skippedRenderFrames = 0;
+  skippedUpdateFrames = 0;
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(loop);
 }
@@ -2390,10 +2779,20 @@ function endGame(victory) {
 }
 
 function loop(now) {
-  const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
-  lastTime = now;
-  if (state.phase === "playing") update(dt);
-  const minRenderMs = isMobileLike() && state.phase === "playing" ? MOBILE_PERF.renderFrameMs : 0;
+  const playing = state.phase === "playing";
+  const minUpdateMs = playing ? updateFrameMsCap() : 0;
+  if (playing && (minUpdateMs <= 0 || now - lastUpdateTime >= minUpdateMs)) {
+    const dt = Math.min(0.05, (now - (lastUpdateTime || lastTime)) / 1000 || 0);
+    lastUpdateTime = now;
+    lastTime = now;
+    update(dt);
+  } else if (playing) {
+    skippedUpdateFrames += 1;
+  } else {
+    lastTime = now;
+    lastUpdateTime = now;
+  }
+  const minRenderMs = playing ? renderFrameMsCap() : 0;
   if (minRenderMs <= 0 || now - lastRenderTime >= minRenderMs) {
     render();
     lastRenderTime = now;
@@ -2411,6 +2810,7 @@ function update(dt) {
     unlockAchievements();
   }
   state.warningTimer = Math.max(0, state.warningTimer - dt);
+  updatePlayerAction(dt);
   updatePlayer(dt);
   ensurePropChunks();
   updateTidePuddles(dt);
@@ -2640,11 +3040,15 @@ function updateWeapons(dt) {
   w.cutlass.timer -= dt;
   if (w.cutlass.timer <= 0) {
     const lvl = w.cutlass.level;
-    const cooldown = Math.max(0.18, (0.6 - lvl * 0.05) * cooldownMult);
+    const cooldown = Math.max(0.18, ((isGuileSkin() ? 0.72 : 0.6) - lvl * 0.05) * cooldownMult);
     w.cutlass.timer = cooldown;
     const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
-    slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10, lvl);
-    if (saberTornadoReady()) castSaberTornado(direction, lvl, w.rope.level);
+    if (isGuileSkin()) {
+      fireGuileSonicBoom(lvl, direction);
+    } else {
+      slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10, lvl);
+      if (saberTornadoReady()) castSaberTornado(direction, lvl, w.rope.level);
+    }
   }
   if (w.coconut.level > 0) {
     w.coconut.timer -= dt;
@@ -2686,7 +3090,7 @@ function updateSignatureMove(dt) {
   state.signatureMove.timer -= dt;
   if (state.signatureMove.timer > 0) return;
   const cast = castSignatureMove(signature);
-  const cooldown = Math.max(1.6, (signature.cooldown || 4) * Math.max(0.7, activeCooldownMultiplier()));
+  const cooldown = Math.max(1.35, (signature.cooldown || 4) * Math.max(0.7, activeCooldownMultiplier()) * (state.stats.signatureCooldown || 1));
   state.signatureMove.timer = cast ? cooldown : 0.35;
 }
 
@@ -2695,15 +3099,33 @@ function castSignatureMove(signature) {
   if (!target) return false;
   const p = state.player;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
+  const damage = (signature.damage || 28) * state.stats.damage * (state.stats.signatureDamage || 1);
+  if (signature.id === "sonicBoom") {
+    triggerPlayerAction("sonicBoom", 0.5);
+    if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
+    state.guileArsenal.sonicBooms += 1;
+  }
   if (signature.pattern === "burst") {
     const radius = signature.radius || 126;
-    state.zones.push({ type: "curseBurst", x: p.x, y: p.y, radius, life: 0.28, maxLife: 0.28, fx: "ghostCannonball", signature: signature.id });
+    state.zones.push({ type: "signatureBurst", x: p.x, y: p.y, radius, life: 0.36, maxLife: 0.36, signature: signature.id, angle });
     for (const enemy of state.enemies) {
       const dx = enemy.x - p.x;
       const dy = enemy.y - p.y;
       const dist = Math.hypot(dx, dy);
       if (dist <= radius + enemy.r) {
-        hurtEnemy(enemy, (signature.damage || 28) * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
+        hurtEnemy(enemy, damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
+      }
+    }
+  } else if (signature.pattern === "trap") {
+    const radius = signature.radius || 136;
+    state.zones.push({ type: "signatureTrap", x: target.x, y: target.y, radius, life: 0.82, maxLife: 0.82, signature: signature.id, angle });
+    for (const enemy of state.enemies) {
+      const dx = enemy.x - target.x;
+      const dy = enemy.y - target.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= radius + enemy.r) {
+        enemy.speed *= 0.985;
+        hurtEnemy(enemy, damage * 0.86, dx / Math.max(1, dist), dy / Math.max(1, dist));
       }
     }
   } else {
@@ -2734,6 +3156,7 @@ function fireSignatureProjectile(signature, angle) {
     vy: Math.sin(angle) * speed,
     r: signature.radius || 18,
     damage: signature.damage || 26,
+    signatureDamage: state.stats.signatureDamage || 1,
     life: 2.1,
     pierce: signature.pierce ?? 1,
     spin: 0,
@@ -2766,6 +3189,98 @@ function slash(angle, radius, arc, damage, level = 1) {
       hurtEnemy(enemy, damage * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
     }
   }
+}
+
+function fireGuileSonicBoom(level, fallbackAngle = 0) {
+  const p = state.player;
+  if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
+  const target = nearestEnemy();
+  const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
+  const speed = 620 + level * 26;
+  const count = level >= 7 ? 2 : 1;
+  const spread = count > 1 ? 0.18 : 0;
+  state.guileArsenal.sonicBooms += count;
+  state.guileArsenal.casts += 1;
+  triggerPlayerAction("sonicBoom", 0.5);
+  for (let i = 0; i < count; i += 1) {
+    const shotAngle = angle + (i - (count - 1) / 2) * spread;
+    state.projectiles.push({
+      type: "signature",
+      signatureId: "sonicBoom",
+      x: p.x + Math.cos(shotAngle) * 38,
+      y: p.y + Math.sin(shotAngle) * 28 - 4,
+      vx: Math.cos(shotAngle) * speed,
+      vy: Math.sin(shotAngle) * speed,
+      r: 20 + Math.min(6, level),
+      damage: 24 + level * 8,
+      life: 1.35 + level * 0.1,
+      pierce: 2 + Math.floor(level / 2),
+      spin: 0,
+      size: 76 + level * 2,
+      signatureDamage: state.stats.signatureDamage || 1,
+      retarget: false,
+    });
+  }
+  playSkinSound("hit", "slashSwish", { cooldown: 260 });
+  if (level >= 2 && state.guileArsenal.casts % 3 === 0) castGuileKneeBazooka(level, angle);
+  if (level >= 4 && state.guileArsenal.casts % 5 === 0) castGuileReversePunch(level, angle);
+  if (level >= 6 && state.guileArsenal.casts % 7 === 0) castGuileFlashKick(level);
+}
+
+function castGuileKneeBazooka(level, angle) {
+  const p = state.player;
+  triggerPlayerAction("kneeBazooka", 0.46);
+  state.guileArsenal.kneeBazookas += 1;
+  const reach = 106 + level * 7;
+  const cx = p.x + Math.cos(angle) * reach * 0.58;
+  const cy = p.y + Math.sin(angle) * reach * 0.58;
+  state.zones.push({ type: "guileStrike", move: "kneeBazooka", x: cx, y: cy, angle, radius: 74 + level * 5, life: 0.24, maxLife: 0.24 });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - p.x;
+    const dy = enemy.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    const delta = Math.abs(shortAngle(Math.atan2(dy, dx) - angle));
+    if (dist <= reach + enemy.r && delta < 0.74) {
+      hurtEnemy(enemy, (22 + level * 7) * state.stats.damage, Math.cos(angle), Math.sin(angle));
+    }
+  }
+}
+
+function castGuileReversePunch(level, angle) {
+  const p = state.player;
+  triggerPlayerAction("reversePunch", 0.42);
+  state.guileArsenal.reversePunches += 1;
+  const radius = 88 + level * 9;
+  const cx = p.x + Math.cos(angle) * radius * 0.36;
+  const cy = p.y + Math.sin(angle) * radius * 0.36;
+  state.zones.push({ type: "guileStrike", move: "reversePunch", x: cx, y: cy, angle, radius, life: 0.22, maxLife: 0.22 });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - p.x;
+    const dy = enemy.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    const delta = Math.abs(shortAngle(Math.atan2(dy, dx) - angle));
+    if (dist <= radius + enemy.r && delta < 0.9) {
+      hurtEnemy(enemy, (28 + level * 8) * state.stats.damage, Math.cos(angle), Math.sin(angle));
+    }
+  }
+}
+
+function castGuileFlashKick(level) {
+  const p = state.player;
+  triggerPlayerAction("flashKick", 0.62);
+  state.guileArsenal.flashKicks += 1;
+  p.invuln = Math.max(p.invuln, 0.36);
+  const radius = 118 + level * 10;
+  state.zones.push({ type: "guileFlashKick", move: "flashKick", x: p.x, y: p.y - 12, angle: -Math.PI / 2, radius, life: 0.38, maxLife: 0.38 });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - p.x;
+    const dy = enemy.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= radius + enemy.r) {
+      hurtEnemy(enemy, (34 + level * 9) * state.stats.damage, dx / Math.max(1, dist), -1.1);
+    }
+  }
+  playSkinSound("dash", "dashWhooshFast", { cooldown: 420 });
 }
 
 function updateDomThrottled(dt) {
@@ -2876,6 +3391,7 @@ function recordFusionMoment(id, label, color = "#fff2c7") {
   unlockAchievements();
   saveMetaProgress();
   renderMetaProgress();
+  renderMetaSkills();
   playSkinSound("powerup", "upgradeMagic", { force: true });
   return true;
 }
@@ -3184,6 +3700,30 @@ function enemyRenderBudget() {
   return isMobileLike() ? PERF_GUARDS.mobileEnemyRenderBudget : PERF_GUARDS.desktopEnemyRenderBudget;
 }
 
+function projectileCap() {
+  return isMobileLike() ? MOBILE_PERF.projectileCap : PERF_GUARDS.desktopProjectileCap;
+}
+
+function particleCap() {
+  return isMobileLike() ? MOBILE_PERF.particleCap : PERF_GUARDS.desktopParticleCap;
+}
+
+function textCap() {
+  return isMobileLike() ? MOBILE_PERF.textCap : PERF_GUARDS.desktopTextCap;
+}
+
+function renderFrameMsCap() {
+  return isMobileLike() ? MOBILE_PERF.renderFrameMs : PERF_GUARDS.desktopRenderFrameMs;
+}
+
+function updateFrameMsCap() {
+  return isMobileLike() ? MOBILE_PERF.updateFrameMs : PERF_GUARDS.desktopUpdateFrameMs;
+}
+
+function lowFxMode() {
+  return isMobileLike() || enemyRenderBudget() <= 80;
+}
+
 function ensurePerfState() {
   if (!state.perf) {
     state.perf = {
@@ -3314,7 +3854,7 @@ function updateProjectiles(dt) {
         if (enemy.hp <= 0 || enemy._hitBy === projectile) continue;
         const dist = Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y);
         if (dist < enemy.r + projectile.r) {
-          hurtEnemy(enemy, projectile.damage * state.stats.damage, projectile.vx, projectile.vy);
+          hurtEnemy(enemy, projectile.damage * state.stats.damage * (projectile.signatureDamage || 1), projectile.vx, projectile.vy);
           if (projectile.compassFuse) arcCompassCoconut(projectile, enemy, state.weapons.compass.level);
           enemy._hitBy = projectile;
           projectile.pierce -= 1;
@@ -3371,6 +3911,10 @@ function updateProjectiles(dt) {
     }
   }
   state.projectiles = state.projectiles.filter((projectile) => projectile.life > 0);
+  const maxProjectiles = projectileCap();
+  if (state.projectiles.length > maxProjectiles) {
+    state.projectiles.splice(0, state.projectiles.length - maxProjectiles);
+  }
 }
 
 function arcCompassCoconut(projectile, sourceEnemy, compassLevel) {
@@ -3479,6 +4023,7 @@ function updateExploration() {
     unlockAchievements();
     saveMetaProgress();
     renderMetaProgress();
+    renderMetaSkills();
     playSkinSound("powerup", "downloadUpgrade", { force: true });
     playSound(isChest ? "treasureClink" : isShrine ? "voodooMagic" : "mapRustle", { force: true });
   }
@@ -3557,6 +4102,8 @@ function collectGem(gem) {
   } else if (gem.kind === "coin") {
     state.coins += gem.value;
     metaProgress.coins += gem.value;
+    renderMetaProgress();
+    renderMetaSkills();
     floatingText(`+${gem.value}`, gem.x, gem.y - 18, "#f0c45d");
     playSound("doubloonPing", { cooldown: 220 });
     return;
@@ -3598,10 +4145,10 @@ function updateParticles(dt) {
   state.zones = state.zones.filter((zone) => zone.life > 0);
   state.particles = state.particles.filter((particle) => particle.life > 0);
   state.texts = state.texts.filter((text) => text.life > 0);
-  if (isMobileLike()) {
-    if (state.particles.length > MOBILE_PERF.particleCap) state.particles.splice(0, state.particles.length - MOBILE_PERF.particleCap);
-    if (state.texts.length > MOBILE_PERF.textCap) state.texts.splice(0, state.texts.length - MOBILE_PERF.textCap);
-  }
+  const maxParticles = particleCap();
+  const maxTexts = textCap();
+  if (state.particles.length > maxParticles) state.particles.splice(0, state.particles.length - maxParticles);
+  if (state.texts.length > maxTexts) state.texts.splice(0, state.texts.length - maxTexts);
 }
 
 function hurtEnemy(enemy, amount, nx = 0, ny = 0) {
@@ -3785,6 +4332,7 @@ function unlockAchievements() {
     saveMetaProgress();
     renderMapPicker();
     renderMetaProgress();
+    renderMetaSkills();
   }
   return changed;
 }
@@ -3799,6 +4347,7 @@ function recordRunProgress(victory) {
   saveMetaProgress();
   renderMapPicker();
   renderMetaProgress();
+  renderMetaSkills();
 }
 
 function levelUp(options = {}) {
@@ -3919,6 +4468,17 @@ const upgradeMilestones = {
 
 function upgradeDescription(upgrade) {
   const current = state.upgradeCounts[upgrade.id] || 0;
+  if (upgrade.id === "cutlass" && isGuileSkin()) {
+    return [
+      "Sonic Boom I: schneller Grundschuss statt Saebelhieb.",
+      "Sonic Boom II: mehr Pierce, Knee Bazooka wird als Combo frei.",
+      "Sonic Boom III: dichtere Druckwellen und schnellerer Cycle.",
+      "Sonic Boom IV: Reverse Punch kommt als Nahkampf-Konter dazu.",
+      "Sonic Boom V: mehr Schaden, groesserer Projektilbogen.",
+      "Sonic Boom VI: Flash Kick startet als AOE-Reset.",
+      "Sonic Boom VII: Doppel-Boom fuer die Lane.",
+    ][current] || upgrade.desc;
+  }
   return upgradeMilestones[upgrade.id]?.[current] || upgrade.desc;
 }
 
@@ -3935,6 +4495,7 @@ function showUpgrades() {
   activeUpgradeChoices = chooseUpgrades();
   selectedUpgradeIndex = 0;
   activeUpgradeChoices.forEach((upgrade, index) => {
+    const view = upgradePresentation(upgrade);
     const current = state.upgradeCounts[upgrade.id] || 0;
     const next = Math.min(upgrade.max, current + 1);
     const button = document.createElement("button");
@@ -3942,11 +4503,11 @@ function showUpgrades() {
     button.className = "upgrade-card";
     button.dataset.upgradeIndex = String(index);
     button.innerHTML = `
-      <span class="upgrade-icon" style="${iconStyle(upgrade.icon)}"></span>
-      <span class="upgrade-name">${upgrade.name}</span>
+      <span class="upgrade-icon" style="${iconStyle(view.icon)}"></span>
+      <span class="upgrade-name">${view.name}</span>
       <span class="upgrade-tier">Stufe ${next}/${upgrade.max}</span>
       <span class="upgrade-progress">${upgradeProgressPips(next, upgrade.max)}</span>
-      <span class="upgrade-desc">${upgradeDescription(upgrade)}</span>
+      <span class="upgrade-desc">${upgradeDescription(view)}</span>
     `;
     button.addEventListener("mouseenter", () => setUpgradeSelection(index));
     button.addEventListener("focus", () => setUpgradeSelection(index));
@@ -3979,7 +4540,7 @@ function chooseUpgradeAt(index = selectedUpgradeIndex) {
   activeUpgradeChoices = [];
   ui.upgradeOverlay.hidden = true;
   playSkinSound("confirm", "confirm");
-  speak(`${upgrade.name} bereit.`, { key: `upgrade-${upgrade.id}`, interrupt: true, cooldown: 1200, rate: 1.06 });
+  speak(`${upgradePresentation(upgrade).name} bereit.`, { key: `upgrade-${upgrade.id}`, interrupt: true, cooldown: 1200, rate: 1.06 });
   updateDom();
 }
 
@@ -4075,16 +4636,19 @@ function updateLoadout() {
       `;
     }).join("");
   const weaponEntries = weaponLoadoutItems.filter(([id]) => state.weapons[id].level > 0);
-  const weaponHtml = weaponEntries.map(([id, name, icon]) => `
+  const weaponHtml = weaponEntries.map(([id, name, icon]) => {
+    const view = weaponPresentation(id);
+    return `
     <div class="loadout-item">
-      <span class="loadout-icon" style="${iconStyle(icon)}"></span>
+      <span class="loadout-icon" style="${iconStyle(view.icon || icon)}"></span>
       <span>
-        <span class="loadout-name">${name}</span>
+        <span class="loadout-name">${view.name || name}</span>
         <span class="loadout-level">Lv ${state.weapons[id].level}</span>
         <span class="loadout-pips">${upgradeProgressPips(state.weapons[id].level, upgradeMax(id), "loadout-pip")}</span>
       </span>
     </div>
-  `).join("");
+  `;
+  }).join("");
   const powerHtml = state.powerups.map((powerup) => {
     const type = powerUpType(powerup.id);
     return `
@@ -4111,7 +4675,6 @@ function render() {
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = true;
-  const mobile = isMobileLike();
   ctx.save();
   ctx.translate(viewW / 2, viewH / 2);
   ctx.scale(scene.zoom, scene.zoom);
@@ -4126,7 +4689,7 @@ function render() {
     drawWeaponEffects();
     drawParticles();
     drawTexts();
-    if (!mobile) drawVignette();
+    if (!lowFxMode()) drawVignette();
     if (state.warningTimer > 0) drawWarning();
   }
   ctx.restore();
@@ -4339,6 +4902,7 @@ function drawEnemies() {
   const oy = scene.h / 2 - state.camera.y;
   const mobile = isMobileLike();
   const enemies = visibleEnemiesForRender();
+  const lowFx = lowFxMode() || enemies.length > 44;
   for (const enemy of enemies) {
     const px = ox + enemy.x;
     const py = oy + enemy.y;
@@ -4350,7 +4914,7 @@ function drawEnemies() {
     ctx.translate(px, py);
     ctx.scale(flip, 1);
     ctx.shadowColor = enemy.hit > 0 ? enemy.type.tint : "rgba(0,0,0,0.55)";
-    ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 20 : 10;
+    ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 20 : 10;
     if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkeyAnim) {
       const frame = bossAnimFrame(enemy, THREE_HEADED_MONKEY_ANIM, [4, 5, 6, 7]);
       const sx = (frame % THREE_HEADED_MONKEY_ANIM.cols) * THREE_HEADED_MONKEY_ANIM.w;
@@ -4358,13 +4922,13 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = THREE_HEADED_MONKEY_ANIM.w * drawScale * (enemy.boss ? 1.18 : 1);
       h = THREE_HEADED_MONKEY_ANIM.h * drawScale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = images.threeHeadedMonkey.width * drawScale * (enemy.boss ? 1.18 : 1);
       h = images.threeHeadedMonkey.height * drawScale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 30 : 18;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 30 : 18;
       ctx.drawImage(images.threeHeadedMonkey, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeardAnim) {
       const frame = bossAnimFrame(enemy, BLACKBEARD_ANIM, enemy.actionKind === "ghostCannonball" ? [3, 4, 6, 7] : [5, 6, 7, 0]);
@@ -4373,13 +4937,13 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = BLACKBEARD_ANIM.w * drawScale * (enemy.boss ? 1.08 : 1);
       h = BLACKBEARD_ANIM.h * drawScale * (enemy.boss ? 1.08 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.blackbeard && images.blackbeard) {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = images.blackbeard.width * drawScale * (enemy.boss ? 1.08 : 1);
       h = images.blackbeard.height * drawScale * (enemy.boss ? 1.08 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeard, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.captainSheet && images.spectralCaptain) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
@@ -4387,7 +4951,7 @@ function drawEnemies() {
       const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
       w = SPECTRAL_CAPTAIN.w * drawScale * (enemy.boss ? 1.05 : 1);
       h = SPECTRAL_CAPTAIN.h * drawScale * (enemy.boss ? 1.05 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 18;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 28 : 18;
       ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicAnim && images.gothicEnemyAnimSheet) {
       const anim = gothicEnemyAnimMap[enemy.type.gothicAnim] || gothicEnemyAnimMap.boneCorsair;
@@ -4398,7 +4962,7 @@ function drawEnemies() {
       const animScale = animatedEnemyDrawScale(enemy, GOTHIC_ENEMY_ANIM.h) * (enemy.type.id === "gargoyle" ? 1.08 : 1);
       w = GOTHIC_ENEMY_ANIM.w * animScale * (enemy.boss ? 1.18 : 1);
       h = GOTHIC_ENEMY_ANIM.h * animScale * (enemy.boss ? 1.18 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 28 : 14;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 28 : 14;
       ctx.drawImage(images.gothicEnemyAnimSheet, sx, sy, GOTHIC_ENEMY_ANIM.w, GOTHIC_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicRow !== undefined) {
       const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
@@ -4418,7 +4982,7 @@ function drawEnemies() {
         : Math.sin(state.elapsed * 5.4 + enemy.frameOffset) * 3.5;
       w = NEW_ENEMY_TRIO.w * drawScale * (enemy.boss ? 1.16 : 1);
       h = NEW_ENEMY_TRIO.h * drawScale * (enemy.boss ? 1.16 : 1);
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.enemyAnim && images.enemyAnimSheet) {
       const anim = enemyAnimMap[enemy.type.enemyAnim] || enemyAnimMap.crab;
@@ -4431,7 +4995,7 @@ function drawEnemies() {
       const animScale = animatedEnemyDrawScale(enemy, ENEMY_ANIM.h);
       w = ENEMY_ANIM.w * animScale;
       h = ENEMY_ANIM.h * animScale;
-      ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 26 : 12;
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.enemyAnimSheet, sx, sy, ENEMY_ANIM.w, ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.extraSprite) {
       const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
@@ -4460,7 +5024,7 @@ function drawEnemies() {
       ctx.strokeStyle = "#ffdf6e";
       ctx.lineWidth = mobile ? 3 : 4;
       ctx.shadowColor = "#ffb14c";
-      ctx.shadowBlur = mobile ? 0 : 14;
+      ctx.shadowBlur = lowFx ? 0 : 14;
       ctx.beginPath();
       ctx.ellipse(px, py - enemy.r * 0.45, enemy.r * 1.45, enemy.r * 0.72, Math.sin(state.elapsed * 1.7) * 0.08, 0, Math.PI * 2);
       ctx.stroke();
@@ -4525,6 +5089,17 @@ function drawPlayer() {
     const h = skin.animH;
     const w = h * (SAM_MAX_DUO_WALK.w / SAM_MAX_DUO_WALK.h);
     ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
+  } else if (skin.animSheet === "guileActions" && images.guileActions) {
+    const action = state.playerAction;
+    const frame = action ? guileActionFrame(action) : moving ? Math.floor(state.elapsed * 12) % GUILE_ACTION.frames : 0;
+    const row = guileActionRow(action?.type || "walk");
+    const sx = frame * GUILE_ACTION.w;
+    const sy = row * GUILE_ACTION.h;
+    const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.0;
+    const actionScale = action?.type === "flashKick" ? 1.24 : action ? 1.1 : 1;
+    const h = skin.animH * actionScale;
+    const w = h;
+    ctx.drawImage(images.guileActions, sx, sy, GUILE_ACTION.w, GUILE_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 24) + bob, w, h);
   } else if (skin.animSheet === "fighterWalks" && images.fighterWalks) {
     const frame = moving ? Math.floor(state.elapsed * 12) % FIGHTER_WALK.frames : 0;
     const sx = frame * FIGHTER_WALK.w;
@@ -4568,6 +5143,11 @@ function drawProjectiles() {
   const oy = scene.h / 2 - state.camera.y;
   for (const projectile of state.projectiles) {
     if (!onScreen(projectile.x, projectile.y, 100)) continue;
+    if (projectile.type === "signature" && images.signatureWeapons) {
+      const size = projectile.size || 74;
+      drawSignatureWeaponFx(projectile.signatureId, ox + projectile.x, oy + projectile.y, size, size, projectile.spin, 0.98);
+      continue;
+    }
     const fx = projectile.type === "bottle"
       ? "rumBombFx"
       : projectile.type === "curseOrb"
@@ -4620,6 +5200,19 @@ function drawWeaponEffects() {
       const burstSize = zone.radius * 2.2;
       drawPlayerEffectAt("curseBurst", -burstSize * 0.56, -burstSize * 0.56, burstSize * 1.12, burstSize * 1.12);
       drawProjectileFxAt(zone.fx === "ghostCannonball" ? "ghostCannonball" : "monkeyCurseOrb", -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+    } else if (zone.type === "signatureBurst" || zone.type === "signatureTrap") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate((zone.angle || 0) + state.elapsed * (zone.type === "signatureTrap" ? 0.35 : 0.7));
+      const burstSize = zone.radius * (zone.type === "signatureTrap" ? 2.25 : 2.45);
+      drawPlayerEffectAt(zone.type === "signatureTrap" ? "tidePulse" : "curseBurst", -burstSize * 0.54, -burstSize * 0.54, burstSize * 1.08, burstSize * 1.08);
+      drawSignatureWeaponFxAt(zone.signature, Math.floor((1 - a) * SIGNATURE_WEAPON_FX.frames + state.elapsed * 8), -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+    } else if (zone.type === "guileStrike" || zone.type === "guileFlashKick") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(zone.type === "guileFlashKick" ? 0 : zone.angle || 0);
+      const size = zone.radius * (zone.type === "guileFlashKick" ? 2.2 : 1.85);
+      drawPlayerEffectAt(zone.type === "guileFlashKick" ? "tidePulse" : "compassBeam", -size / 2, -size / 2, size, size);
+      ctx.globalAlpha = a * 0.42;
+      drawGuileActionFrameAt(zone.move, Math.floor((1 - a) * GUILE_ACTION.frames), -size / 2, -size * 0.58, size, size);
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -4682,10 +5275,10 @@ function drawRopeWard(x, y, radius, level, angle) {
 function drawParticles() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
-  const mobile = isMobileLike();
+  const richFx = images.playerEffects && !lowFxMode() && state.particles.length <= 18;
   for (const particle of state.particles) {
     const alpha = clamp(particle.life / 0.4, 0, 1);
-    if (images.playerEffects && !mobile) {
+    if (richFx) {
       const size = particle.size * 8.5;
       drawPlayerEffect("treasureGlint", ox + particle.x, oy + particle.y, size, size, particle.vx * 0.015, alpha * 0.34);
     } else {
@@ -4798,6 +5391,32 @@ function drawWeaponEvolutionFxAt(icon, x, y, w, h) {
   );
 }
 
+function drawGuileActionFrameAt(move, frame, x, y, w, h) {
+  if (!images.guileActions) return;
+  const row = guileActionRow(move);
+  const sx = positiveModulo(frame || 0, GUILE_ACTION.frames) * GUILE_ACTION.w;
+  const sy = row * GUILE_ACTION.h;
+  ctx.drawImage(images.guileActions, sx, sy, GUILE_ACTION.w, GUILE_ACTION.h, x, y, w, h);
+}
+
+function drawSignatureWeaponFx(signatureId, x, y, w, h, rotation = 0, alpha = 1) {
+  if (!images.signatureWeapons) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  drawSignatureWeaponFxAt(signatureId, Math.floor(state.elapsed * SIGNATURE_WEAPON_FX.fps), -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+function drawSignatureWeaponFxAt(signatureId, frame, x, y, w, h) {
+  if (!images.signatureWeapons) return;
+  const src = signatureWeaponMap[signatureId] || signatureWeaponMap.captainCutlass;
+  const sx = positiveModulo(frame || 0, SIGNATURE_WEAPON_FX.frames) * SIGNATURE_WEAPON_FX.w;
+  const sy = src.row * SIGNATURE_WEAPON_FX.h;
+  ctx.drawImage(images.signatureWeapons, sx, sy, SIGNATURE_WEAPON_FX.w, SIGNATURE_WEAPON_FX.h, x, y, w, h);
+}
+
 function drawFusionRelicAt(icon, frame, x, y, w, h) {
   if (!images.fusionRelics) return;
   const src = fusionRelicMap[icon] || fusionRelicMap.stormConch;
@@ -4866,6 +5485,11 @@ function drawBeachPropAt(icon, x, y, w, h) {
 }
 
 function iconStyle(icon) {
+  if (signatureWeaponMap[icon]) {
+    const src = signatureWeaponMap[icon];
+    const by = src.row / Math.max(1, SIGNATURE_WEAPON_FX.rows - 1) * 100;
+    return `background-image:url('${imageSources.signatureWeapons}');background-size:400% ${SIGNATURE_WEAPON_FX.rows * 100}%;background-position:0% ${by}%;`;
+  }
   if (fusionRelicMap[icon]) {
     const src = fusionRelicMap[icon];
     const by = src.row / Math.max(1, FUSION_RELIC.rows - 1) * 100;
@@ -4968,7 +5592,7 @@ function floatingText(value, x, y, color, life = 0.9, size = 20, options = {}) {
     rise: options.rise,
     priority: options.priority || 0,
   });
-  const cap = isMobileLike() ? MOBILE_PERF.textCap : 34;
+  const cap = textCap();
   if (state.texts.length > cap) {
     state.texts.sort((a, b) => (a.priority || 0) - (b.priority || 0) || a.life - b.life);
     state.texts.splice(0, state.texts.length - cap);
@@ -5143,6 +5767,13 @@ ui.mapPicker.addEventListener("click", (event) => {
   if (!button) return;
   setSelectedMap(button.dataset.map);
 });
+function handleMetaSkillClick(event) {
+  const button = event.target.closest("[data-meta-skill]");
+  if (!button) return;
+  buyMetaSkill(button.dataset.metaSkill);
+}
+ui.metaSkills?.addEventListener("click", handleMetaSkillClick);
+ui.endMetaSkills?.addEventListener("click", handleMetaSkillClick);
 ui.pauseButton.addEventListener("click", togglePause);
 ui.audioButton.addEventListener("click", toggleMute);
 ui.fullscreenButton.addEventListener("click", toggleFullscreen);
@@ -5432,6 +6063,36 @@ window.__MONKEY_TIDE_PROGRESS_PROBE = () => {
   render();
   return window.__MONKEY_TIDE_DEBUG();
 };
+window.__MONKEY_TIDE_META_SKILL_PROBE = () => {
+  const beforeCoins = metaProgress.coins;
+  metaProgress.coins = Math.max(metaProgress.coins, 240);
+  const boughtSignature = buyMetaSkill("signatureMastery");
+  const boughtFlow = buyMetaSkill("flowMemory");
+  const boughtHeart = buyMetaSkill("tideHeart");
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  selectedSkin = "ryu";
+  state = makeState();
+  const result = {
+    boughtSignature,
+    boughtFlow,
+    boughtHeart,
+    beforeCoins,
+    afterCoins: metaProgress.coins,
+    skills: Object.fromEntries(metaSkillDefinitions.map((skill) => [skill.id, metaSkillLevel(skill.id)])),
+    bonuses: metaSkillBonuses(),
+    stateStats: { ...state.stats },
+    signatureTimer: state.signatureMove.timer,
+    playerMaxHp: state.player.maxHp,
+    cardCount: document.querySelectorAll("[data-meta-skill]").length,
+  };
+  state = savedState;
+  selectedSkin = savedSkin;
+  saveMetaProgress();
+  renderMetaProgress();
+  renderMetaSkills();
+  return result;
+};
 window.__MONKEY_TIDE_PROP_VISUAL_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   const p = state.player;
@@ -5638,10 +6299,12 @@ window.__MONKEY_TIDE_MOVEMENT_PROBE = () => {
 window.__MONKEY_TIDE_SIGNATURE_PROBE = (skinId = "ryu") => {
   const savedState = state;
   const savedSkin = selectedSkin;
+  const savedMuted = muted;
   selectedSkin = playerSkinMap[skinId] ? skinId : "ryu";
   state = makeState();
   state.phase = "playing";
   state.signatureMove.timer = 0;
+  muted = true;
   const p = state.player;
   for (let i = 0; i < 5; i += 1) {
     window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 210 + i * 58, p.y + (i - 2) * 32, false);
@@ -5651,6 +6314,9 @@ window.__MONKEY_TIDE_SIGNATURE_PROBE = (skinId = "ryu") => {
   const result = {
     skin: state.player.skin,
     signature: state.characterTrait?.signature || null,
+    visualRow: signatureWeaponMap[state.characterTrait?.signature?.id]?.row,
+    assetLoaded: !!images.signatureWeapons,
+    frames: { ...SIGNATURE_WEAPON_FX },
     casts: state.signatureMove.casts,
     last: state.signatureMove.last,
     signatureProjectiles: state.projectiles.filter((projectile) => projectile.type === "signature").length,
@@ -5659,6 +6325,44 @@ window.__MONKEY_TIDE_SIGNATURE_PROBE = (skinId = "ryu") => {
   };
   state = savedState;
   selectedSkin = savedSkin;
+  muted = savedMuted;
+  renderSkinPicker();
+  render();
+  return result;
+};
+window.__MONKEY_TIDE_GUILE_ACTION_PROBE = () => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  const savedMuted = muted;
+  selectedSkin = "guile";
+  state = makeState();
+  state.phase = "playing";
+  muted = true;
+  const p = state.player;
+  for (let i = 0; i < 10; i += 1) {
+    window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 220 + i * 34, p.y + (i % 3 - 1) * 42, false);
+  }
+  state.weapons.cutlass.level = 7;
+  for (let i = 0; i < 7; i += 1) fireGuileSonicBoom(7, 0);
+  updateProjectiles(0.12);
+  const cutlassUpgrade = upgrades.find((upgrade) => upgrade.id === "cutlass");
+  const result = {
+    skin: state.player.skin,
+    assetLoaded: !!images.guileActions,
+    source: imageSources.guileActions,
+    frames: { ...GUILE_ACTION },
+    rows: Object.fromEntries(Object.keys(GUILE_ACTION.rowsByAction).map((action) => [action, guileActionRow(action)])),
+    weaponDisplay: weaponPresentation("cutlass", "guile"),
+    upgradeDisplay: cutlassUpgrade ? upgradePresentation(cutlassUpgrade) : null,
+    arsenal: { ...state.guileArsenal },
+    signatureProjectiles: state.projectiles.filter((projectile) => projectile.signatureId === "sonicBoom").length,
+    slashZones: state.zones.filter((zone) => zone.type === "slash").length,
+    guileZones: state.zones.filter((zone) => zone.type === "guileStrike" || zone.type === "guileFlashKick").length,
+    currentAction: state.playerAction ? { ...state.playerAction, row: guileActionRow(state.playerAction.type), frame: guileActionFrame(state.playerAction) } : null,
+  };
+  state = savedState;
+  selectedSkin = savedSkin;
+  muted = savedMuted;
   renderSkinPicker();
   render();
   return result;
@@ -5689,6 +6393,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
   fighterSkinAsset: !!images.fighterWalks,
   fighterSkinSelectAsset: !!images.fighterSelect,
   fighterSkinAnimationSource: imageSources.fighterWalks,
+  guileActionAsset: !!images.guileActions,
+  guileActionSource: imageSources.guileActions,
+  guileActionFrames: { ...GUILE_ACTION },
   playerSkinFixedDuoAsset: !!images.samMaxDuo,
   playerSkinDuoWalkAsset: !!images.samMaxDuoWalk,
   playerSkinAnimationFrames: { cols: PLAYER_SKIN_WALK.cols, rows: PLAYER_SKIN_WALK.rows },
@@ -5696,7 +6403,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinDuoWalkFrames: { ...SAM_MAX_DUO_WALK },
   playerSkinAnimated: (playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks)
     || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk)
-    || (playerSkinMap[state.player.skin]?.animSheet === "fighterWalks" && !!images.fighterWalks),
+    || (playerSkinMap[state.player.skin]?.animSheet === "fighterWalks" && !!images.fighterWalks)
+    || (playerSkinMap[state.player.skin]?.animSheet === "guileActions" && !!images.guileActions),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   playerSkinTrait: { ...(state.characterTrait || characterTrait(state.player.skin)) },
   playerSkinTraits: Object.fromEntries(playerSkinIds.map((id) => [id, characterTrait(id)])),
@@ -5705,11 +6413,15 @@ window.__MONKEY_TIDE_DEBUG = () => {
     ready: state.signatureMove.timer <= 0,
     trait: state.characterTrait?.signature?.id || null,
     label: state.characterTrait?.signature?.label || null,
+    asset: !!images.signatureWeapons,
+    frames: { ...SIGNATURE_WEAPON_FX },
   } : null,
   playerSkinSourceRects: Object.fromEntries(playerSkinIds.map((id) => {
     const skin = playerSkinMap[id];
-    return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, fighterRow: skin.fighterRow, selectIndex: skin.selectIndex, animDrawYOffset: skin.animDrawYOffset }];
+    return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, animSheet: skin.animSheet, fighterRow: skin.fighterRow, selectIndex: skin.selectIndex, animDrawYOffset: skin.animDrawYOffset }];
   })),
+  playerAction: state.playerAction ? { ...state.playerAction } : null,
+  guileArsenal: state.guileArsenal ? { ...state.guileArsenal } : null,
   stats: { ...state.stats, nextXp: state.nextXp },
   controls: {
     tuning: { ...CONTROL_TUNING },
@@ -5786,6 +6498,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
     bestSurvival: metaProgress.bestSurvival,
     achievements: { ...metaProgress.achievements },
     unlockedRelics: [...metaProgress.unlockedRelics],
+    coins: metaProgress.coins,
+    skills: Object.fromEntries(metaSkillDefinitions.map((skill) => [skill.id, metaSkillLevel(skill.id)])),
+    skillBonuses: metaSkillBonuses(),
   },
   upgradeIcons: Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, upgrade.icon])),
   weaponLoadoutIcons: Object.fromEntries(weaponLoadoutItems.map(([id, , icon]) => [id, icon])),
@@ -5858,15 +6573,19 @@ window.__MONKEY_TIDE_DEBUG = () => {
     drawnEnemies: perf.drawnEnemies,
     skippedEnemySprites: perf.skippedEnemySprites,
     trimmedEnemies: perf.trimmedEnemies,
-    renderFrameMs: isMobileLike() ? MOBILE_PERF.renderFrameMs : 0,
-    renderFpsCap: isMobileLike() ? Math.round(1000 / MOBILE_PERF.renderFrameMs) : 0,
+    renderFrameMs: renderFrameMsCap(),
+    renderFpsCap: Math.round(1000 / renderFrameMsCap()),
+    updateFrameMs: updateFrameMsCap(),
+    updateFpsCap: Math.round(1000 / updateFrameMsCap()),
     skippedRenderFrames,
+    skippedUpdateFrames,
     stablePropScale: true,
     stablePlayerScale: true,
     propCount: state.props.length,
-    particleCap: isMobileLike() ? MOBILE_PERF.particleCap : 90,
-    textCap: isMobileLike() ? MOBILE_PERF.textCap : 34,
-    lowFx: isMobileLike(),
+    projectileCap: projectileCap(),
+    particleCap: particleCap(),
+    textCap: textCap(),
+    lowFx: lowFxMode(),
   },
   obstacles: {
     blockingProps: state.props.filter(propBlocksMovement).length,
@@ -5900,21 +6619,38 @@ window.__MONKEY_TIDE_DEBUG = () => {
     gestureUnlocked: audioGestureUnlocked,
     soundPoolsPrimed,
     instantStartMode: true,
+    lowLatencyNoSeek: LOW_LATENCY_MUSIC_START,
+    warmedKeys: [...warmedMusicKeys],
     lastStartLatencyMs: lastMusicStartLatencyMs,
     tracksPlaying: {
-      main: music ? !music.paused : false,
-      rush: rushMusic ? !rushMusic.paused : false,
+      main: isMusicTrackPlaying("main"),
+      rush: isMusicTrackPlaying("rush"),
     },
     trackTimes: {
-      main: Number((music?.currentTime || 0).toFixed(2)),
-      rush: Number((rushMusic?.currentTime || 0).toFixed(2)),
+      main: Number(((webMusicTrackTime("main") ?? music?.currentTime ?? 0)).toFixed(2)),
+      rush: Number(((webMusicTrackTime("rush") ?? rushMusic?.currentTime ?? 0)).toFixed(2)),
     },
     startReady: {
-      main: !music || Math.abs((music.currentTime || 0) - (musicTrackMeta.main?.startAt || 0)) <= 0.35 || activeMusicTrack === "main",
-      rush: !rushMusic || Math.abs((rushMusic.currentTime || 0) - (musicTrackMeta.rush?.startAt || 0)) <= 0.35 || activeMusicTrack === "rush",
+      main: musicBuffers.has(musicTrackKeys.main) || !music || Math.abs((music.currentTime || 0) - (musicTrackMeta.main?.startAt || 0)) <= 0.35 || activeMusicTrack === "main",
+      rush: musicBuffers.has(musicTrackKeys.rush) || !rushMusic || Math.abs((rushMusic.currentTime || 0) - (musicTrackMeta.rush?.startAt || 0)) <= 0.35 || activeMusicTrack === "rush",
     },
-    overlapSafe: !music || !rushMusic || music.paused || rushMusic.paused || music.volume === 0 || rushMusic.volume === 0,
+    overlapSafe: !isMusicTrackPlaying("main") || !isMusicTrackPlaying("rush") || (music?.volume || 0) === 0 || (rushMusic?.volume || 0) === 0,
     sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
+    sfxDebug: { ...sfxDebug },
+    sfxUnlock: { ...sfxUnlockState },
+    sfxEngine: {
+      webAudio: !!sfxAudioContext,
+      state: sfxAudioContext?.state || null,
+      decoded: sfxBuffers.size,
+      pending: sfxBufferPromises.size,
+    },
+    musicEngine: {
+      webAudio: !!sfxAudioContext,
+      decoded: musicBuffers.size,
+      pending: musicBufferPromises.size,
+      active: Object.fromEntries(Object.entries(musicWebTracks).map(([slot, track]) => [slot, !!track && !track.stopped])),
+    },
+    sfxToMusicRatio: Number((Math.max(...Object.values(soundConfig).map((config) => config.volume)) / Math.max(0.01, music?.volume ?? 0, rushMusic?.volume ?? 0)).toFixed(2)),
     sfxLocalDownloads: Object.entries(audioSources)
       .filter(([key]) => !key.startsWith("bgm"))
       .every(([, src]) => src.startsWith("assets/audio/sfx/") && /\.(mp3|wav)$/i.test(src)),
@@ -5993,6 +6729,11 @@ window.__MONKEY_TIDE_DEBUG = () => {
     playerEffects: !!images.playerEffects,
     weaponEvolutionFx: !!images.weaponEvolutionFx,
     fusionRelics: !!images.fusionRelics,
+    signatureWeapons: !!images.signatureWeapons,
+    guileActions: !!images.guileActions,
+    guileActionFrames: { ...GUILE_ACTION },
+    signatureWeaponFrames: { ...SIGNATURE_WEAPON_FX },
+    signatureWeaponTypes: Object.keys(signatureWeaponMap),
     xpCrystalAnim: !!images.xpCrystalAnim,
     xpCrystalVariants: {
       green: !!images.xpCrystalGreenAnim,

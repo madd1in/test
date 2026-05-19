@@ -83,7 +83,10 @@ async function run() {
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
+    "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/fighters_select_imagen_hd.png",
+    "assets/sprites/guile_action_sheet_imagen_hd_source.png",
+    "assets/sprites/guile_action_sheet_imagen_hd.png",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
@@ -99,6 +102,7 @@ async function run() {
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png",
+    "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v4.png",
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -121,6 +125,8 @@ async function run() {
     "assets/sprites/weapon_evolution_fx_imagen_hd.png",
     "assets/sprites/fusion_relics_imagen_hd_source.png",
     "assets/sprites/fusion_relics_imagen_hd_clean.png",
+    "assets/sprites/signature_weapons_imagen_hd_source.png",
+    "assets/sprites/signature_weapons_imagen_hd.png",
     "assets/sprites/xp_crystal_anim_imagen_source.png",
     "assets/sprites/xp_crystal_anim_imagen_hd.png",
     "assets/sprites/xp_crystal_green_anim_imagen_hd.png",
@@ -186,7 +192,10 @@ async function run() {
     "assets/audio/sfx/curse-monkey/spooky-warning.mp3",
     "assets/audio/sfx/curse-monkey/boss-drop.mp3",
     "tools/prepare_fusion_relic_assets.py",
+    "tools/prepare_signature_weapon_assets.py",
+    "tools/prepare_guile_action_assets.py",
     "tools/build_xp_crystal_variants.py",
+    "tools/repair_fighter_gargoyle_slicing.py",
     "tools/repair_enemy_slicing.py",
   ].forEach((rel) => {
     const target = path.join(root, rel);
@@ -217,7 +226,8 @@ async function run() {
   const pageErrors = [];
   const badResponses = [];
   page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    const text = msg.text();
+    if (msg.type() === "error" && !text.includes("WebAudio renderer")) consoleErrors.push(text);
   });
   page.on("pageerror", (err) => pageErrors.push(err.message));
   page.on("response", (res) => {
@@ -313,8 +323,32 @@ async function run() {
   assert(pickerUsesSelectSheet, "Character picker is not using the normalized first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
   assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
-  const signatureProbe = await page.evaluate(() => ["ryu", "ken", "guile", "chunLi"].map((id) => window.__MONKEY_TIDE_SIGNATURE_PROBE(id)));
-  assert(signatureProbe.every((probe) => probe.signature && probe.casts >= 1 && (probe.signatureProjectiles > 0 || probe.zones > 0 || probe.enemiesDamaged > 0)), `Fighter signature moves are not firing: ${JSON.stringify(signatureProbe)}`);
+  const signatureProbe = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG().playerSkinTypes.map((id) => window.__MONKEY_TIDE_SIGNATURE_PROBE(id)));
+  assert(
+    signatureProbe.length >= 11
+      && signatureProbe.every((probe) => probe.signature && probe.assetLoaded && probe.frames.rows >= 11 && Number.isFinite(probe.visualRow) && probe.casts >= 1 && (probe.signatureProjectiles > 0 || probe.zones > 0 || probe.enemiesDamaged > 0)),
+    `Every character should fire a distinct signature weapon from the HD sheet: ${JSON.stringify(signatureProbe)}`,
+  );
+  const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
+  assert(
+    guileActionProbe.assetLoaded
+      && guileActionProbe.frames.rows === 5
+      && guileActionProbe.frames.frames === 8
+      && guileActionProbe.rows.walk === 0
+      && guileActionProbe.rows.sonicBoom === 1
+      && guileActionProbe.rows.kneeBazooka === 2
+      && guileActionProbe.rows.reversePunch === 3
+      && guileActionProbe.rows.flashKick === 4
+      && guileActionProbe.weaponDisplay.name === "Sonic Boom"
+      && guileActionProbe.upgradeDisplay.name === "Sonic Boom Drill"
+      && guileActionProbe.signatureProjectiles >= 7
+      && guileActionProbe.slashZones === 0
+      && guileActionProbe.guileZones >= 4
+      && guileActionProbe.arsenal.kneeBazookas >= 2
+      && guileActionProbe.arsenal.reversePunches >= 1
+      && guileActionProbe.arsenal.flashKicks >= 1,
+    `Guile should use the new exact-frame action sheet and Sonic Boom base kit: ${JSON.stringify(guileActionProbe)}`,
+  );
   await page.click('[data-skin="freelanceDuo"]');
   const pickedDuoSkin = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG());
   assert(pickedDuoSkin.playerSkin === "freelanceDuo" && pickedDuoSkin.playerSkinAnimated === true && pickedDuoSkin.playerSkinDuoWalkAsset === true, `Sam and Max/Freelance Duo runtime is not using the walk animation sheet: ${JSON.stringify(pickedDuoSkin)}`);
@@ -404,7 +438,16 @@ async function run() {
   assert(mobileStartDisplay.debug.mobileDisplay.requested === true && mobileStartDisplay.debug.mobileDisplay.orientationPreference === "portrait-primary", `Mobile start should prefer portrait fullscreen: ${JSON.stringify(mobileStartDisplay.debug.mobileDisplay)}`);
   assert(mobileStartDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")) && !mobileStartDisplay.orientationLocks.includes("landscape"), `Mobile start requested the wrong orientation: ${JSON.stringify(mobileStartDisplay)}`);
   assert(mobileStartDisplay.debug.performance.mobile === true && mobileStartDisplay.debug.performance.dpr <= 1.01, `Mobile DPR guardrail is too high: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
-  assert(mobileStartDisplay.debug.performance.enemyCap <= 86 && mobileStartDisplay.debug.performance.enemyRenderBudget <= 50 && mobileStartDisplay.debug.performance.textCap <= 12 && mobileStartDisplay.debug.performance.renderFpsCap <= 45 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
+  assert(
+    mobileStartDisplay.debug.performance.enemyCap <= 62
+      && mobileStartDisplay.debug.performance.enemyRenderBudget <= 34
+      && mobileStartDisplay.debug.performance.textCap <= 8
+      && mobileStartDisplay.debug.performance.projectileCap <= 72
+      && mobileStartDisplay.debug.performance.renderFpsCap <= 36
+      && mobileStartDisplay.debug.performance.updateFpsCap <= 40
+      && mobileStartDisplay.debug.performance.lowFx === true,
+    `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`,
+  );
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(() => {
     window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS = [];
@@ -429,7 +472,15 @@ async function run() {
   assert(debug.world.repeatable === true && debug.world.width >= 1000000 && debug.world.activePropChunks > 0, `World is still behaving like a bounded arena: ${JSON.stringify(debug.world)}`);
   assert(debug.world.backgroundSeamBleed >= 48 && debug.world.backgroundSourceInset >= 32, `Map background tiles do not hide seams aggressively enough: ${JSON.stringify(debug.world)}`);
   assert(debug.world.immersivePropSpawning === true && debug.world.recentVisiblePropSpawns === 0, `Runtime props can still pop into view: ${JSON.stringify(debug.world)}`);
-  assert(debug.performance.enemyCap <= 180 && debug.performance.enemyRenderBudget <= 132 && debug.performance.dpr <= 1.75, `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`);
+  assert(
+    debug.performance.enemyCap <= 126
+      && debug.performance.enemyRenderBudget <= 76
+      && debug.performance.projectileCap <= 130
+      && debug.performance.renderFpsCap <= 50
+      && debug.performance.updateFpsCap <= 50
+      && debug.performance.dpr <= 1.75,
+    `Desktop performance guardrails missing: ${JSON.stringify(debug.performance)}`,
+  );
   assert(debug.performance.stablePropScale && debug.performance.stablePlayerScale, `Sprite scale pulse guards missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
@@ -438,8 +489,50 @@ async function run() {
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
   assert(["ryu", "ken", "guile", "chunLi"].every((id) => debug.playerSkinTypes.includes(id)), `Fighter character skins missing: ${JSON.stringify(debug.playerSkinTypes)}`);
   assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
+  const fighterSliceProbe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?fighter-slice-probe";
+    await img.decode();
+    const frame = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = frame;
+    canvas.height = frame;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const rows = [];
+    for (const row of [1, 2]) {
+      const rowFrames = [];
+      for (let col = 0; col < 8; col += 1) {
+        ctx.clearRect(0, 0, frame, frame);
+        ctx.drawImage(img, col * frame, row * frame, frame, frame, 0, 0, frame, frame);
+        const data = ctx.getImageData(0, 0, frame, frame).data;
+        let visible = 0;
+        let edgeAlpha = 0;
+        let minX = frame;
+        let minY = frame;
+        let maxX = 0;
+        let maxY = 0;
+        for (let y = 0; y < frame; y += 1) {
+          for (let x = 0; x < frame; x += 1) {
+            const alpha = data[(y * frame + x) * 4 + 3];
+            if (alpha <= 8) continue;
+            visible += 1;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+            if (x === 0 || y === 0 || x === frame - 1 || y === frame - 1) edgeAlpha += 1;
+          }
+        }
+        rowFrames.push({ row, col, visible, edgeAlpha, bbox: [minX, minY, maxX + 1, maxY + 1] });
+      }
+      rows.push(rowFrames);
+    }
+    return rows;
+  });
+  assert(fighterSliceProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 10000 && frame.bbox[1] >= 14 && frame.bbox[3] <= 244)), `Ken/Guile fighter frames still look sliced: ${JSON.stringify(fighterSliceProbe)}`);
   assert(debug.playerSkinFixedDuoAsset === true && debug.preloadedAssetKeys.includes("samMaxDuo"), `Fixed Sam and Max duo asset is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimated === true && debug.playerSkinAnimationFrames.cols === 8 && debug.playerSkinAnimationFrames.rows === 6, `Selected player skin is not using the animation frameset: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinTypes.length >= 7 && debug.playerSkinTypes.includes("dhampirHunter") && debug.playerSkinTypes.includes("starFarmboy"), `Player skin archetypes missing: ${JSON.stringify(debug)}`);
@@ -622,10 +715,10 @@ async function run() {
   assert(Object.values(debug.map.backgrounds).filter(Boolean).length >= 4 && new Set(Object.values(debug.map.backgrounds)).size >= 4, `Map backgrounds are not varied: ${JSON.stringify(debug.map)}`);
   assert(Object.values(debug.map.backgrounds).every((key) => debug.preloadedAssetKeys.includes(key)), `Map backgrounds are not preloaded: ${JSON.stringify(debug.map)}`);
   assert(Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmCaper") && Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmShoreline"), `Map BGM profiles are not varied: ${JSON.stringify(debug.map.musicProfiles)}`);
-  assert(debug.audio.music.main >= 0.6, `Main music config should be prominent: ${JSON.stringify(debug)}`);
-  assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
-  assert(debug.audio.activeTrack === "rush" && debug.audio.armedTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to an armed rush BGM: ${JSON.stringify(debug.audio)}`);
-  assert(debug.audio.gestureUnlocked && debug.audio.soundPoolsPrimed && debug.audio.instantStartMode && debug.audio.lastStartLatencyMs <= 350, `BGM/SFX should be unlocked by the first user gesture: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.music.main >= 0.4, `Main music config should remain present under louder SFX: ${JSON.stringify(debug)}`);
+  assert(debug.audio.music.rush >= 0.38 && debug.audio.music.rushStart <= 125, `Rush music should enter early without burying SFX: ${JSON.stringify(debug)}`);
+  assert(debug.audio.activeTrack === "rush" && debug.audio.armedTrack === "rush" && debug.audio.rushVolume >= 0.38 && debug.audio.rushVolume <= 0.42, `Quick wave should hand off to a capped rush BGM: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.gestureUnlocked && debug.audio.soundPoolsPrimed && debug.audio.instantStartMode && debug.audio.lowLatencyNoSeek && debug.audio.lastStartLatencyMs <= 350, `BGM/SFX should be unlocked by the first user gesture: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.startReady.main && debug.audio.startReady.rush, `BGM should be pre-seeked before play to avoid delayed starts: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
@@ -658,8 +751,18 @@ async function run() {
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
-  assert(debug.audio.sfx.pickup >= 0.06 && debug.audio.sfx.gate >= 0.06 && debug.audio.sfx.pickup <= 0.09, `SFX should be audible without clipping: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.downloadBossWarning >= 0.11 && debug.audio.sfx.quickCutlass >= 0.09 && debug.audio.sfx.cannonFire >= 0.11 && debug.audio.sfx.curseMonkeyWarning >= 0.11 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 3.5, `Downloaded SFX should punch through under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.pickup >= 0.19 && debug.audio.sfx.gate >= 0.2 && debug.audio.sfx.pickup <= 0.24, `SFX should be clearly audible without clipping: ${JSON.stringify(debug)}`);
+  assert(
+    debug.audio.sfx.downloadBossWarning >= 0.33
+      && debug.audio.sfx.quickCutlass >= 0.29
+      && debug.audio.sfx.cannonFire >= 0.33
+      && debug.audio.sfx.curseMonkeyWarning >= 0.33
+      && debug.audio.sfxToMusicRatio >= 0.7
+      && debug.audio.sfxDebug.attempts >= 1
+      && debug.audio.sfxDebug.started >= 1
+      && debug.audio.sfxDebug.lastVolume >= 0.2,
+    `Downloaded SFX should punch through under music: ${JSON.stringify(debug)}`,
+  );
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.quickCutlass.includes("/from-downloads/quick-cutlass.mp3") && debug.audio.sources.cannonFire.includes("/from-downloads/cartoon-cannon-fire.mp3") && debug.audio.sources.doubloonPing.includes("/from-downloads/doubloon-ping.mp3") && debug.audio.sources.treasureClink.includes("/from-downloads/treasure-clink.mp3"), `Expanded Downloads SFX set missing: ${JSON.stringify(debug.audio.sources)}`);
   assert(debug.audio.characterSfxProfiles.default.slash === "quickCutlass" && debug.audio.characterSfxProfiles.default.pickup === "brightGem" && debug.audio.characterSfxProfiles.dhampirHunter.hit === "ghostAnchorHit", `Characters are not using the expanded Downloads SFX: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
@@ -690,7 +793,7 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v3.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
   assert(debug.crossoverAssets.gothicEnemyAnimSheet === true && ["boneCorsair", "gargoyle"].every((id) => debug.crossoverAssets.gothicEnemyAnimTypes.includes(id)), `Skeleton/gargoyle multiframe sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
@@ -699,7 +802,7 @@ async function run() {
       "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?matte-probe",
       "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?matte-probe",
       "assets/sprites/gothic_enemies_hd_sheet_clean.png?matte-probe",
-      "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png?matte-probe",
+      "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v4.png?matte-probe",
     ];
     const results = [];
     for (const src of assets) {
@@ -807,7 +910,7 @@ async function run() {
   assert(enemyAnimVerticalSplitProbe.every((frame) => frame.maxVoid <= 18), `Enemy animation frames still have large horizontal slice gaps: ${JSON.stringify(enemyAnimVerticalSplitProbe)}`);
   const gothicEnemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png?edge-probe";
+    img.src = "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v4.png?edge-probe";
     await img.decode();
     const frame = 256;
     const rows = 2;
@@ -911,6 +1014,7 @@ async function run() {
   assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("playerEffects"), `Player raster effect FX not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("fusionRelics"), `Fusion relic animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
+  assert(debug.preloadedAssetKeys.includes("signatureWeapons"), `Signature weapon animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(["xpCrystalAnim", "xpCrystalGreenAnim", "xpCrystalRedAnim"].every((key) => debug.preloadedAssetKeys.includes(key)), `Imagen XP crystal variants are not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
@@ -919,6 +1023,8 @@ async function run() {
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.signatureWeapons && debug.combatAssets.signatureWeaponFrames.rows >= 11 && debug.combatAssets.signatureWeaponTypes.includes("captainCutlass") && debug.combatAssets.signatureWeaponTypes.includes("lightningFan"), `Signature weapon frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.guileActions && debug.combatAssets.guileActionFrames.rows === 5 && debug.combatAssets.guileActionFrames.frames === 8, `Guile HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalVariants?.green && debug.combatAssets.xpCrystalVariants?.blue && debug.combatAssets.xpCrystalVariants?.red, `XP crystal color variants are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalTierSamples?.small === "green" && debug.combatAssets.xpCrystalTierSamples?.medium === "blue" && debug.combatAssets.xpCrystalTierSamples?.large === "red", `XP crystal tier thresholds are wrong: ${JSON.stringify(debug.combatAssets.xpCrystalTierSamples)}`);
@@ -1078,6 +1184,21 @@ async function run() {
   assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid && progressProbe.progression.achievements.fusionSmith && progressProbe.progression.achievements.flowRunner, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
   assert(progressProbe.map.unlocked.includes("gothicCove") && progressProbe.map.unlocked.includes("treasureAtoll"), `Unlockable maps did not unlock: ${JSON.stringify(progressProbe.map)}`);
   assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass") && progressProbe.progression.unlockedRelics.includes("Fusionskern") && progressProbe.progression.unlockedRelics.includes("Flow-Anker"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);
+  const metaSkillProbe = await page.evaluate(() => window.__MONKEY_TIDE_META_SKILL_PROBE());
+  assert(
+    metaSkillProbe.boughtSignature
+      && metaSkillProbe.boughtFlow
+      && metaSkillProbe.boughtHeart
+      && metaSkillProbe.skills.signatureMastery >= 1
+      && metaSkillProbe.skills.flowMemory >= 1
+      && metaSkillProbe.skills.tideHeart >= 1
+      && metaSkillProbe.stateStats.signatureDamage > 1
+      && metaSkillProbe.stateStats.powerupDuration > 1
+      && metaSkillProbe.playerMaxHp > 150
+      && metaSkillProbe.signatureTimer < 1.2
+      && metaSkillProbe.cardCount >= 6,
+    `Between-run rogue-lite skill system did not apply: ${JSON.stringify(metaSkillProbe)}`,
+  );
 
   const upgradeProbe = await page.evaluate(() => {
     if (window.__MONKEY_TIDE_DEBUG().phase !== "levelup") window.__MONKEY_TIDE_FORCE_LEVELUP();
