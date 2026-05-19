@@ -92,11 +92,13 @@ async function run() {
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png",
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png",
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png",
+    "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
     "assets/sprites/gothic_enemies_hd_sheet_clean.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_source.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png",
+    "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png",
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -684,16 +686,16 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v3.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v2.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v3.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
   assert(debug.crossoverAssets.gothicEnemyAnimSheet === true && ["boneCorsair", "gargoyle"].every((id) => debug.crossoverAssets.gothicEnemyAnimTypes.includes(id)), `Skeleton/gargoyle multiframe sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
   const cleanEnemyMatteProbe = await page.evaluate(async () => {
     const assets = [
-      "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png?matte-probe",
+      "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?matte-probe",
       "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?matte-probe",
       "assets/sprites/gothic_enemies_hd_sheet_clean.png?matte-probe",
-      "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png?matte-probe",
+      "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png?matte-probe",
     ];
     const results = [];
     for (const src of assets) {
@@ -723,7 +725,7 @@ async function run() {
   assert(cleanEnemyMatteProbe.every((asset) => asset.lowAlphaMatte === 0 && asset.neonGreenMatte <= 2), `Clean enemy sheets still have matte/slice color leftovers: ${JSON.stringify(cleanEnemyMatteProbe)}`);
   const enemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png?edge-probe";
+    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?edge-probe";
     await img.decode();
     const frame = 256;
     const rows = 7;
@@ -756,9 +758,52 @@ async function run() {
     return results;
   });
   assert(enemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 8000)), `Imagen enemy multiframe sheet has sliced or empty frames: ${JSON.stringify(enemyAnimAlphaProbe)}`);
+  const enemyAnimVerticalSplitProbe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?split-probe";
+    await img.decode();
+    const frame = 256;
+    const rows = [4, 5];
+    const cols = 8;
+    const canvas = document.createElement("canvas");
+    canvas.width = frame;
+    canvas.height = frame;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const results = [];
+    for (const row of rows) {
+      for (let col = 0; col < cols; col += 1) {
+        ctx.clearRect(0, 0, frame, frame);
+        ctx.drawImage(img, col * frame, row * frame, frame, frame, 0, 0, frame, frame);
+        const data = ctx.getImageData(0, 0, frame, frame).data;
+        const occupancy = [];
+        for (let y = 0; y < frame; y += 1) {
+          let visible = 0;
+          for (let x = 0; x < frame; x += 1) {
+            if (data[(y * frame + x) * 4 + 3] > 24) visible += 1;
+          }
+          occupancy.push(visible);
+        }
+        const first = occupancy.findIndex((count) => count > 10);
+        const last = occupancy.length - 1 - [...occupancy].reverse().findIndex((count) => count > 10);
+        let maxVoid = 0;
+        let currentVoid = 0;
+        for (let y = first; y <= last; y += 1) {
+          if (occupancy[y] <= 2) currentVoid += 1;
+          else {
+            maxVoid = Math.max(maxVoid, currentVoid);
+            currentVoid = 0;
+          }
+        }
+        maxVoid = Math.max(maxVoid, currentVoid);
+        results.push({ row, col, first, last, maxVoid });
+      }
+    }
+    return results;
+  });
+  assert(enemyAnimVerticalSplitProbe.every((frame) => frame.maxVoid <= 18), `Enemy animation frames still have large horizontal slice gaps: ${JSON.stringify(enemyAnimVerticalSplitProbe)}`);
   const gothicEnemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png?edge-probe";
+    img.src = "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png?edge-probe";
     await img.decode();
     const frame = 256;
     const rows = 2;
@@ -791,6 +836,7 @@ async function run() {
     return results;
   });
   assert(gothicEnemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 8000)), `Gothic enemy multiframe sheet still has sliced or empty frames: ${JSON.stringify(gothicEnemyAnimAlphaProbe)}`);
+  assert(!debug.crossoverAssets.gothicEnemyAnimFrameUse.boneCorsair.loopFrames.includes(6) && !debug.crossoverAssets.gothicEnemyAnimFrameUse.gargoyle.loopFrames.some((frame) => frame === 5 || frame === 6), `Gothic enemy loops should avoid sliced frames: ${JSON.stringify(debug.crossoverAssets.gothicEnemyAnimFrameUse)}`);
   const rotationProbe = await page.evaluate(() => window.__MONKEY_TIDE_ROTATION_PROBE());
   assert(rotationProbe.openingPool.includes("powderImp") && rotationProbe.openingPool.includes("reefSquid") && rotationProbe.openingUnique >= 4, `Opening enemy rotation is still too repetitive: ${JSON.stringify(rotationProbe)}`);
   assert(["hand", "tideTentacle"].every((id) => rotationProbe.midPool.includes(id)), `Mid-run enemy rotation is missing variety: ${JSON.stringify(rotationProbe)}`);
@@ -958,7 +1004,8 @@ async function run() {
   assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.randomDropChance <= 0.004 && progressProbe.powerups.streakDropEvery >= 40, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.combatCooldown >= 40 && progressProbe.powerups.magnetRange <= 90, `Power-up pickups are too intrusive: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[2] === 10 && progressProbe.levelFlow.rewardTypes >= 6, `Level-up flow rewards are incomplete: ${JSON.stringify(progressProbe.levelFlow)}`);
+  assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[0] === 3 && progressProbe.levelFlow.choiceLevels[1] === 7 && progressProbe.levelFlow.choiceLevels[2] === 11 && progressProbe.levelFlow.rewardTypes >= 6, `Level-up flow rewards are incomplete: ${JSON.stringify(progressProbe.levelFlow)}`);
+  assert(progressProbe.levelFlow.xpTuning.initialNextXp >= 44 && progressProbe.levelFlow.xpTuning.firstChoiceLevel >= 3 && progressProbe.levelFlow.xpTuning.choiceInterval >= 4 && progressProbe.levelFlow.firstChoiceNextXp >= 75, `Early upgrades still arrive too quickly: ${JSON.stringify(progressProbe.levelFlow)}`);
   assert(progressProbe.progression.achievements.powerCollector && progressProbe.progression.achievements.wreckDiver && progressProbe.progression.achievements.nightRaid && progressProbe.progression.achievements.fusionSmith && progressProbe.progression.achievements.flowRunner, `Progress achievements did not unlock: ${JSON.stringify(progressProbe.progression)}`);
   assert(progressProbe.map.unlocked.includes("gothicCove") && progressProbe.map.unlocked.includes("treasureAtoll"), `Unlockable maps did not unlock: ${JSON.stringify(progressProbe.map)}`);
   assert(progressProbe.progression.unlockedRelics.includes("Grog-Stiefel") && progressProbe.progression.unlockedRelics.includes("Flutkompass") && progressProbe.progression.unlockedRelics.includes("Fusionskern") && progressProbe.progression.unlockedRelics.includes("Flow-Anker"), `Unlockable relics missing: ${JSON.stringify(progressProbe.progression)}`);

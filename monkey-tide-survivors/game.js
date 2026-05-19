@@ -53,9 +53,9 @@ const imageSources = {
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
-  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png?v=slice-repair-v3",
+  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?v=slice-repair-v4",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean.png?v=slice-clean-v1",
-  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png?v=gothic-slice-repair-v2",
+  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v3.png?v=gothic-slice-repair-v3",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -319,6 +319,14 @@ const BALANCE = {
   rangedPressureAt: 50,
   pressureWaveFirstAt: 20,
   pressureWaveInterval: 28,
+};
+const XP_TUNING = {
+  initialNextXp: 46,
+  base: 34,
+  linear: 18,
+  quadratic: 1.75,
+  firstChoiceLevel: 3,
+  choiceInterval: 4,
 };
 
 const playerSkinMap = {
@@ -657,13 +665,13 @@ const newSpriteMap = {
 };
 
 const enemyAnimMap = {
-  crab: { row: 0, attackFrames: [2, 3, 4, 5] },
-  seaHand: { row: 1, attackFrames: [2, 3, 4, 5] },
-  powderImp: { row: 2, attackFrames: [3, 4, 5, 6] },
-  lanternWraith: { row: 3, attackFrames: [4, 5, 6, 7] },
-  barrelMaw: { row: 4, attackFrames: [3, 4, 5, 6] },
-  coralBrute: { row: 5, attackFrames: [3, 4, 5, 6] },
-  monkeyIdol: { row: 6, attackFrames: [4, 5, 6, 7] },
+  crab: { row: 0, loopFrames: [0, 1, 2, 3, 4, 5, 6, 7], attackFrames: [2, 3, 4, 5] },
+  seaHand: { row: 1, loopFrames: [0, 1, 2, 3, 4, 5], attackFrames: [2, 3, 4, 5] },
+  powderImp: { row: 2, loopFrames: [0, 1, 2, 3, 4, 5, 6, 7], attackFrames: [3, 4, 5, 6] },
+  lanternWraith: { row: 3, loopFrames: [0, 1, 2, 3, 4, 5, 6, 7], attackFrames: [4, 5, 6, 7] },
+  barrelMaw: { row: 4, loopFrames: [0, 1, 2, 3, 4, 5, 6, 7], attackFrames: [2, 3, 4, 5] },
+  coralBrute: { row: 5, loopFrames: [0, 1, 2, 3, 4, 5, 6, 7], attackFrames: [2, 3, 4, 5] },
+  monkeyIdol: { row: 6, loopFrames: [0, 1, 2, 3, 4, 5, 6, 7], attackFrames: [4, 5, 6, 7] },
 };
 
 const gothicItemMap = {
@@ -714,8 +722,8 @@ const newEnemyAnimMap = {
 };
 
 const gothicEnemyAnimMap = {
-  boneCorsair: { row: 0, attackFrames: [4, 5, 6, 7] },
-  gargoyle: { row: 1, attackFrames: [3, 4, 5, 6] },
+  boneCorsair: { row: 0, loopFrames: [0, 1, 2, 3, 4, 5, 7], attackFrames: [2, 3, 4, 5] },
+  gargoyle: { row: 1, loopFrames: [0, 1, 2, 3, 4, 7], attackFrames: [2, 3, 4, 7] },
 };
 
 const blockingPropShapes = {
@@ -1235,7 +1243,7 @@ function makeState() {
     coins: 0,
     level: 1,
     xp: 0,
-    nextXp: 22,
+    nextXp: XP_TUNING.initialNextXp,
     camera: { x: startX, y: startY },
     player: {
       x: startX,
@@ -2239,7 +2247,7 @@ function startGame(options = {}) {
     raiseWeapon("coconut");
     raiseWeapon("compass");
     state.level = 4;
-    state.nextXp = 220;
+    state.nextXp = nextLevelXp(state.level);
   }
   prepareMusicForRun(quickMode ? "rush" : "main");
   ui.startOverlay.hidden = true;
@@ -3667,7 +3675,7 @@ function recordRunProgress(victory) {
 function levelUp(options = {}) {
   state.level += 1;
   metaProgress.bestLevel = Math.max(metaProgress.bestLevel, state.level);
-  state.nextXp = Math.round(22 + state.level * 14 + state.level * state.level * 1.35);
+  state.nextXp = nextLevelXp(state.level);
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + 16);
   if (!options.forceChoice && !shouldShowUpgradeChoice(state.level)) {
     applyFlowLevelReward();
@@ -3680,8 +3688,16 @@ function levelUp(options = {}) {
   showUpgrades();
 }
 
+function nextLevelXp(level) {
+  return Math.round(XP_TUNING.base + level * XP_TUNING.linear + level * level * XP_TUNING.quadratic);
+}
+
 function shouldShowUpgradeChoice(level) {
-  return level === 2 || (level >= 6 && (level - 2) % 4 === 0);
+  return level >= XP_TUNING.firstChoiceLevel && (level - XP_TUNING.firstChoiceLevel) % XP_TUNING.choiceInterval === 0;
+}
+
+function upgradeChoiceLevels(count = 5) {
+  return Array.from({ length: count }, (_, index) => XP_TUNING.firstChoiceLevel + index * XP_TUNING.choiceInterval);
 }
 
 function applyFlowLevelReward() {
@@ -4142,10 +4158,13 @@ function drawXpCrystalAt(gem, size) {
   ctx.drawImage(images.xpCrystalAnim, sx, 0, XP_CRYSTAL_ANIM.w, XP_CRYSTAL_ANIM.h, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
 }
 
-function bossAnimFrame(enemy, anim, attackFrames) {
+function bossAnimFrame(enemy, anim, attackFrames, loopFrames = null) {
   if (enemy.actionPulse > 0) {
     const progress = clamp(1 - enemy.actionPulse / 0.55, 0, 0.999);
     return attackFrames[Math.floor(progress * attackFrames.length)] ?? attackFrames[0];
+  }
+  if (Array.isArray(loopFrames) && loopFrames.length > 0) {
+    return loopFrames[(Math.floor(state.elapsed * anim.fps) + enemy.frameOffset) % loopFrames.length] ?? loopFrames[0];
   }
   return (Math.floor(state.elapsed * anim.fps) + enemy.frameOffset) % anim.frames;
 }
@@ -4220,7 +4239,7 @@ function drawEnemies() {
       ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.gothicAnim && images.gothicEnemyAnimSheet) {
       const anim = gothicEnemyAnimMap[enemy.type.gothicAnim] || gothicEnemyAnimMap.boneCorsair;
-      const frame = bossAnimFrame(enemy, GOTHIC_ENEMY_ANIM, anim.attackFrames);
+      const frame = bossAnimFrame(enemy, GOTHIC_ENEMY_ANIM, anim.attackFrames, anim.loopFrames);
       const sx = (frame % GOTHIC_ENEMY_ANIM.cols) * GOTHIC_ENEMY_ANIM.w;
       const sy = anim.row * GOTHIC_ENEMY_ANIM.h;
       const bob = enemy.type.id === "gargoyle" ? Math.sin(state.elapsed * 7.4 + enemy.frameOffset) * 7 : Math.sin(state.elapsed * 4.6 + enemy.frameOffset) * 2.5;
@@ -4239,7 +4258,7 @@ function drawEnemies() {
       ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.newEnemyAnim && images.newEnemyTrio) {
       const anim = newEnemyAnimMap[enemy.type.newEnemyAnim] || newEnemyAnimMap.tideTentacle;
-      const frame = bossAnimFrame(enemy, NEW_ENEMY_TRIO, anim.attackFrames);
+      const frame = bossAnimFrame(enemy, NEW_ENEMY_TRIO, anim.attackFrames, anim.loopFrames);
       const sx = (frame % NEW_ENEMY_TRIO.cols) * NEW_ENEMY_TRIO.w;
       const sy = anim.row * NEW_ENEMY_TRIO.h;
       const bob = enemy.type.id === "reefSquid"
@@ -4251,7 +4270,7 @@ function drawEnemies() {
       ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.enemyAnim && images.enemyAnimSheet) {
       const anim = enemyAnimMap[enemy.type.enemyAnim] || enemyAnimMap.crab;
-      const frame = bossAnimFrame(enemy, ENEMY_ANIM, anim.attackFrames);
+      const frame = bossAnimFrame(enemy, ENEMY_ANIM, anim.attackFrames, anim.loopFrames);
       const sx = (frame % ENEMY_ANIM.cols) * ENEMY_ANIM.w;
       const sy = anim.row * ENEMY_ANIM.h;
       const bob = enemy.type.phase || enemy.type.flying
@@ -5596,7 +5615,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
     combatCooldown: powerupDropTuning.combatCooldown,
     magnetRange: powerupDropTuning.magnetRange,
   },
-  levelFlow: { flowRewards: state.runStats.flowRewards, totalFlowRewards: metaProgress.flowRewards, rewardTypes: 6, choiceLevels: [2, 6, 10, 14, 18], reducedInterruptions: true },
+  levelFlow: {
+    flowRewards: state.runStats.flowRewards,
+    totalFlowRewards: metaProgress.flowRewards,
+    rewardTypes: 6,
+    choiceLevels: upgradeChoiceLevels(5),
+    reducedInterruptions: true,
+    xpTuning: { ...XP_TUNING },
+    currentNextXp: state.nextXp,
+    firstChoiceNextXp: nextLevelXp(XP_TUNING.firstChoiceLevel - 1),
+  },
   progression: {
     kills: metaProgress.kills,
     landmarks: metaProgress.landmarks,
@@ -5767,10 +5795,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
     enemyAnimSheet: !!images.enemyAnimSheet,
     enemyAnimSource: imageSources.enemyAnimSheet,
     enemyAnimationFrames: { ...ENEMY_ANIM },
+    enemyAnimFrameUse: Object.fromEntries(Object.entries(enemyAnimMap).map(([id, anim]) => [id, { row: anim.row, loopFrames: [...anim.loopFrames], attackFrames: [...anim.attackFrames] }])),
     enemyAnimTypes: enemyTypes.filter((type) => type.enemyAnim).map((type) => type.id),
     gothicEnemyAnimSheet: !!images.gothicEnemyAnimSheet,
     gothicEnemyAnimSource: imageSources.gothicEnemyAnimSheet,
     gothicEnemyAnimationFrames: { ...GOTHIC_ENEMY_ANIM },
+    gothicEnemyAnimFrameUse: Object.fromEntries(Object.entries(gothicEnemyAnimMap).map(([id, anim]) => [id, { row: anim.row, loopFrames: [...anim.loopFrames], attackFrames: [...anim.attackFrames] }])),
     gothicEnemyAnimTypes: enemyTypes.filter((type) => type.gothicAnim).map((type) => type.id),
     liveSingleFrameFallbackTypes: enemyTypes
       .filter((type) => !type.humanNpc && (type.sprite || type.extraSprite) && !type.enemyAnim)
