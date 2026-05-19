@@ -51,6 +51,7 @@ const imageSources = {
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?v=fighters-slice-repair-v2",
   fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
+  ryuActions: "assets/sprites/ryu_action_sheet_imagen_hd.png?v=ryu-action-v1",
   guileActions: "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?v=guile-action-clean-v2",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
@@ -313,6 +314,15 @@ const PLAYER_SKIN_WALK = { w: 256, h: 256, cols: 8, rows: 6 };
 const PLAYER_SKIN_SELECT = { w: 256, h: 256, cols: 7 };
 const FIGHTER_WALK = { w: 256, h: 256, cols: 8, rows: 4, frames: 8 };
 const FIGHTER_SELECT = { w: 256, h: 256, cols: 4 };
+const RYU_ACTION = {
+  w: 256,
+  h: 256,
+  cols: 8,
+  rows: 4,
+  frames: 8,
+  fps: 14,
+  rowsByAction: { walk: 0, hadoken: 1, shoryuken: 2, whirlwindKick: 3 },
+};
 const GUILE_ACTION = {
   w: 256,
   h: 256,
@@ -483,11 +493,11 @@ const playerSkinMap = {
   ryu: {
     name: "Ryu",
     sheet: "fighterWalks",
-    animSheet: "fighterWalks",
+    animSheet: "ryuActions",
     fighterRow: 0,
     selectIndex: 0,
-    animH: 168,
-    animDrawYOffset: 31,
+    animH: 178,
+    animDrawYOffset: 25,
     music: { theme: "Dojo Crash Duel", main: "bgmRyuSignature", rush: "bgmStreetRush", mainVolume: 0.63, rushVolume: 0.59, rushStart: 62, mainStartAt: 0, rushStartAt: 0, mainRate: 1, rushRate: 1.025 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "heavyHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
     trait: {
@@ -1440,8 +1450,19 @@ function isGuileSkin(skinId = state?.player?.skin || selectedSkin) {
   return skinId === "guile";
 }
 
+function isRyuSkin(skinId = state?.player?.skin || selectedSkin) {
+  return skinId === "ryu";
+}
+
+function actionConfigForSkin(skinId = state?.player?.skin || selectedSkin) {
+  if (isGuileSkin(skinId)) return GUILE_ACTION;
+  if (isRyuSkin(skinId)) return RYU_ACTION;
+  return null;
+}
+
 function triggerPlayerAction(type, duration = 0.48) {
-  if (!state?.player || state.player.skin !== "guile") return;
+  const config = actionConfigForSkin();
+  if (!state?.player || !config || config.rowsByAction[type] === undefined) return;
   state.playerAction = { type, timer: duration, maxTimer: duration };
 }
 
@@ -1452,13 +1473,25 @@ function updatePlayerAction(dt) {
 }
 
 function guileActionFrame(action) {
+  return actionFrame(action, GUILE_ACTION);
+}
+
+function ryuActionFrame(action) {
+  return actionFrame(action, RYU_ACTION);
+}
+
+function actionFrame(action, config) {
   if (!action) return 0;
   const progress = clamp(1 - action.timer / Math.max(0.001, action.maxTimer || 0.48), 0, 0.999);
-  return Math.min(GUILE_ACTION.frames - 1, Math.floor(progress * GUILE_ACTION.frames));
+  return Math.min(config.frames - 1, Math.floor(progress * config.frames));
 }
 
 function guileActionRow(type = "walk") {
   return GUILE_ACTION.rowsByAction[type] ?? GUILE_ACTION.rowsByAction.walk;
+}
+
+function ryuActionRow(type = "walk") {
+  return RYU_ACTION.rowsByAction[type] ?? RYU_ACTION.rowsByAction.walk;
 }
 
 function weaponPresentation(id, skinId = state?.player?.skin || selectedSkin) {
@@ -1534,6 +1567,7 @@ function makeState() {
     powerupDropCooldown: 0,
     signatureMove: { timer: Math.max(0.38, 1.2 - skillBonus.signatureStart), casts: 0, last: null },
     playerAction: null,
+    ryuArsenal: { casts: 0, hadokens: 0, shoryukens: 0, whirlwindKicks: 0 },
     guileArsenal: { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 },
     coins: skillBonus.starterCoins,
     level: 1,
@@ -2188,7 +2222,7 @@ function renderSkinPicker() {
   ui.skinPicker.innerHTML = playerSkinIds.map((id) => {
     const skin = playerSkinMap[id];
     const active = id === selectedSkin;
-    const isFighter = skin?.animSheet === "fighterWalks" || skin?.animSheet === "guileActions";
+    const isFighter = skin?.animSheet === "fighterWalks" || skin?.animSheet === "ryuActions" || skin?.animSheet === "guileActions";
     const tag = isFighter ? "Fighter" : id === "freelanceDuo" ? "Duo" : "Crew";
     const traitLabel = skin.trait?.signature?.label || skin.trait?.name || "";
     return `
@@ -3130,6 +3164,11 @@ function updateSignatureMove(dt) {
   state.signatureMove.timer = cast ? cooldown : 0.35;
 }
 
+function ensureRyuArsenal() {
+  if (!state.ryuArsenal) state.ryuArsenal = { casts: 0, hadokens: 0, shoryukens: 0, whirlwindKicks: 0 };
+  return state.ryuArsenal;
+}
+
 function castSignatureMove(signature) {
   const target = nearestEnemy();
   if (!target) return false;
@@ -3140,6 +3179,11 @@ function castSignatureMove(signature) {
     triggerPlayerAction("sonicBoom", 0.5);
     if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
     state.guileArsenal.sonicBooms += 1;
+  } else if (signature.id === "hadoken" && isRyuSkin()) {
+    const arsenal = ensureRyuArsenal();
+    triggerPlayerAction("hadoken", 0.54);
+    arsenal.casts += 1;
+    arsenal.hadokens += 1;
   }
   if (signature.pattern === "burst") {
     const radius = signature.radius || 126;
@@ -3174,6 +3218,11 @@ function castSignatureMove(signature) {
   }
   state.signatureMove.casts += 1;
   state.signatureMove.last = signature.id;
+  if (signature.id === "hadoken" && isRyuSkin()) {
+    const arsenal = ensureRyuArsenal();
+    if (arsenal.casts % 3 === 0) castRyuShoryuken(signature, angle);
+    if (arsenal.casts % 5 === 0) castRyuWhirlwindKick(signature, angle);
+  }
   floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
   playSkinSound("powerup", "upgradeMagic", { cooldown: 1200 });
   return true;
@@ -3207,6 +3256,28 @@ function fireSignatureProjectile(signature, angle) {
     });
     return;
   }
+  if (signature.id === "hadoken" && isRyuSkin()) {
+    const focus = Math.max(1, Math.min(7, state.level + Math.floor((state.signatureMove?.casts || 0) / 2)));
+    const speed = Math.max(signature.speed || 560, 720 + focus * 14);
+    state.projectiles.push({
+      type: "signature",
+      icon: "hadoken",
+      signatureId: "hadoken",
+      x: p.x + Math.cos(angle) * 54,
+      y: p.y + Math.sin(angle) * 34 - 8,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: (signature.radius || 19) + 4 + Math.min(4, focus),
+      damage: (signature.damage || 26) + focus * 4,
+      signatureDamage: state.stats.signatureDamage || 1,
+      life: 1.62 + focus * 0.06,
+      pierce: Math.max(signature.pierce ?? 1, 2 + Math.floor(focus / 3)),
+      spin: angle,
+      size: 94 + focus * 3,
+      retarget: false,
+    });
+    return;
+  }
   const speed = signature.speed || 560;
   state.projectiles.push({
     type: "signature",
@@ -3224,6 +3295,51 @@ function fireSignatureProjectile(signature, angle) {
     spin: 0,
     retarget: signature.pattern !== "fan",
   });
+}
+
+function castRyuShoryuken(signature, angle) {
+  const p = state.player;
+  const arsenal = ensureRyuArsenal();
+  arsenal.shoryukens += 1;
+  triggerPlayerAction("shoryuken", 0.58);
+  const radius = 82 + Math.min(28, state.level * 3);
+  const cx = p.x + Math.cos(angle) * 48;
+  const cy = p.y + Math.sin(angle) * 34 - 38;
+  state.zones.push({ type: "ryuStrike", move: "shoryuken", x: cx, y: cy, angle, radius, life: 0.34, maxLife: 0.34, signature: signature.id });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - cx;
+    const dy = enemy.y - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= radius + enemy.r) {
+      hurtEnemy(enemy, (signature.damage || 32) * 0.82 * state.stats.damage * (state.stats.signatureDamage || 1), dx / Math.max(1, dist), -1.15);
+      enemy.y -= 20;
+    }
+  }
+  shake(0.38);
+  playSkinSound("hit", "cutlassImpact", { cooldown: 360 });
+}
+
+function castRyuWhirlwindKick(signature, angle) {
+  const p = state.player;
+  const arsenal = ensureRyuArsenal();
+  arsenal.whirlwindKicks += 1;
+  triggerPlayerAction("whirlwindKick", 0.64);
+  const radius = 118 + Math.min(36, state.level * 4);
+  state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - p.x;
+    const dy = enemy.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= radius + enemy.r) {
+      const tangentX = -dy / Math.max(1, dist);
+      const tangentY = dx / Math.max(1, dist);
+      hurtEnemy(enemy, (signature.damage || 32) * 0.62 * state.stats.damage * (state.stats.signatureDamage || 1), tangentX * 0.75, tangentY * 0.75);
+      enemy.x += tangentX * 18;
+      enemy.y += tangentY * 18;
+    }
+  }
+  shake(0.24);
+  playSkinSound("dash", "dashWhooshFast", { cooldown: 360 });
 }
 
 function slash(angle, radius, arc, damage, level = 1) {
@@ -5220,6 +5336,17 @@ function drawPlayer() {
     const h = skin.animH;
     const w = h * (SAM_MAX_DUO_WALK.w / SAM_MAX_DUO_WALK.h);
     ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
+  } else if (skin.animSheet === "ryuActions" && images.ryuActions) {
+    const action = state.playerAction;
+    const frame = action ? ryuActionFrame(action) : moving ? Math.floor(state.elapsed * RYU_ACTION.fps) % RYU_ACTION.frames : 0;
+    const row = ryuActionRow(action?.type || "walk");
+    const sx = frame * RYU_ACTION.w;
+    const sy = row * RYU_ACTION.h;
+    const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 0.9;
+    const actionScale = action?.type === "shoryuken" ? 1.16 : action?.type === "whirlwindKick" ? 1.12 : action ? 1.06 : 1;
+    const h = skin.animH * actionScale;
+    const w = h;
+    ctx.drawImage(images.ryuActions, sx, sy, RYU_ACTION.w, RYU_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 25) + bob, w, h);
   } else if (skin.animSheet === "guileActions" && images.guileActions) {
     const action = state.playerAction;
     const frame = action ? guileActionFrame(action) : moving ? Math.floor(state.elapsed * 12) % GUILE_ACTION.frames : 0;
@@ -5358,6 +5485,13 @@ function drawWeaponEffects() {
       drawPlayerEffectAt(zone.type === "guileFlashKick" ? "tidePulse" : "compassBeam", -size / 2, -size / 2, size, size);
       ctx.globalAlpha = a * 0.42;
       drawGuileActionFrameAt(zone.move, Math.floor((1 - a) * GUILE_ACTION.frames), -size / 2, -size * 0.58, size, size);
+    } else if (zone.type === "ryuStrike" || zone.type === "ryuWhirlwind") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(zone.type === "ryuWhirlwind" ? (zone.angle || 0) + state.elapsed * 3.4 : zone.angle || 0);
+      const size = zone.radius * (zone.type === "ryuWhirlwind" ? 2.05 : 1.9);
+      drawPlayerEffectAt(zone.type === "ryuWhirlwind" ? "tidePulse" : "compassBeam", -size / 2, -size / 2, size, size);
+      ctx.globalAlpha = a * (zone.type === "ryuWhirlwind" ? 0.52 : 0.46);
+      drawRyuActionFrameAt(zone.move, Math.floor((1 - a) * RYU_ACTION.frames), -size / 2, -size * 0.58, size, size);
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -5548,6 +5682,14 @@ function drawGuileActionFrameAt(move, frame, x, y, w, h) {
   const sx = positiveModulo(frame || 0, GUILE_ACTION.frames) * GUILE_ACTION.w;
   const sy = row * GUILE_ACTION.h;
   ctx.drawImage(images.guileActions, sx, sy, GUILE_ACTION.w, GUILE_ACTION.h, x, y, w, h);
+}
+
+function drawRyuActionFrameAt(move, frame, x, y, w, h) {
+  if (!images.ryuActions) return;
+  const row = ryuActionRow(move);
+  const sx = positiveModulo(frame || 0, RYU_ACTION.frames) * RYU_ACTION.w;
+  const sy = row * RYU_ACTION.h;
+  ctx.drawImage(images.ryuActions, sx, sy, RYU_ACTION.w, RYU_ACTION.h, x, y, w, h);
 }
 
 function drawSonicBoomFx(projectile, x, y, w, h, alpha = 1) {
@@ -6530,6 +6672,45 @@ window.__MONKEY_TIDE_SIGNATURE_PROBE = (skinId = "ryu") => {
   render();
   return result;
 };
+window.__MONKEY_TIDE_RYU_ACTION_PROBE = () => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  const savedMuted = muted;
+  selectedSkin = "ryu";
+  state = makeState();
+  state.phase = "playing";
+  muted = true;
+  const p = state.player;
+  for (let i = 0; i < 12; i += 1) {
+    window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 210 + i * 36, p.y + (i % 4 - 1.5) * 36, false);
+  }
+  state.signatureMove.timer = 0;
+  for (let i = 0; i < 5; i += 1) castSignatureMove(state.characterTrait.signature);
+  updateProjectiles(0.14);
+  const result = {
+    skin: state.player.skin,
+    assetLoaded: !!images.ryuActions,
+    source: imageSources.ryuActions,
+    frames: { ...RYU_ACTION },
+    rows: Object.fromEntries(Object.keys(RYU_ACTION.rowsByAction).map((action) => [action, ryuActionRow(action)])),
+    arsenal: { ...ensureRyuArsenal() },
+    hadokenProjectiles: state.projectiles.filter((projectile) => projectile.signatureId === "hadoken").map((projectile) => ({
+      size: projectile.size,
+      radius: projectile.r,
+      pierce: projectile.pierce,
+      speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+    })),
+    ryuZones: state.zones.filter((zone) => zone.type === "ryuStrike" || zone.type === "ryuWhirlwind").map((zone) => ({ type: zone.type, move: zone.move, radius: zone.radius })),
+    currentAction: state.playerAction ? { ...state.playerAction, row: ryuActionRow(state.playerAction.type), frame: ryuActionFrame(state.playerAction) } : null,
+    enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
+  };
+  state = savedState;
+  selectedSkin = savedSkin;
+  muted = savedMuted;
+  renderSkinPicker();
+  render();
+  return result;
+};
 window.__MONKEY_TIDE_GUILE_ACTION_PROBE = () => {
   const savedState = state;
   const savedSkin = selectedSkin;
@@ -6605,6 +6786,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
   fighterSkinAsset: !!images.fighterWalks,
   fighterSkinSelectAsset: !!images.fighterSelect,
   fighterSkinAnimationSource: imageSources.fighterWalks,
+  ryuActionAsset: !!images.ryuActions,
+  ryuActionSource: imageSources.ryuActions,
+  ryuActionFrames: { ...RYU_ACTION },
   guileActionAsset: !!images.guileActions,
   guileActionSource: imageSources.guileActions,
   guileActionFrames: { ...GUILE_ACTION },
@@ -6616,6 +6800,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   playerSkinAnimated: (playerSkinMap[state.player.skin]?.animRow !== undefined && !!images.playerSkinWalks)
     || (playerSkinMap[state.player.skin]?.animSheet === "samMaxDuoWalk" && !!images.samMaxDuoWalk)
     || (playerSkinMap[state.player.skin]?.animSheet === "fighterWalks" && !!images.fighterWalks)
+    || (playerSkinMap[state.player.skin]?.animSheet === "ryuActions" && !!images.ryuActions)
     || (playerSkinMap[state.player.skin]?.animSheet === "guileActions" && !!images.guileActions),
   playerSkinRenderSheet: playerSkinMap[state.player.skin]?.sheet || "characters",
   playerSkinTrait: { ...(state.characterTrait || characterTrait(state.player.skin)) },
@@ -6633,6 +6818,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, animSheet: skin.animSheet, fighterRow: skin.fighterRow, selectIndex: skin.selectIndex, animDrawYOffset: skin.animDrawYOffset }];
   })),
   playerAction: state.playerAction ? { ...state.playerAction } : null,
+  ryuArsenal: state.ryuArsenal ? { ...state.ryuArsenal } : null,
   guileArsenal: state.guileArsenal ? { ...state.guileArsenal } : null,
   stats: { ...state.stats, nextXp: state.nextXp },
   controls: {
@@ -6946,7 +7132,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
     fusionRelics: !!images.fusionRelics,
     signatureWeapons: !!images.signatureWeapons,
     sonicBoomFx: !!images.sonicBoomFx,
+    ryuActions: !!images.ryuActions,
     guileActions: !!images.guileActions,
+    ryuActionFrames: { ...RYU_ACTION },
     guileActionFrames: { ...GUILE_ACTION },
     sonicBoomFrames: { ...SONIC_BOOM_FX },
     signatureWeaponFrames: { ...SIGNATURE_WEAPON_FX },

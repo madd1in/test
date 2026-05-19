@@ -85,6 +85,7 @@ async function run() {
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/fighters_select_imagen_hd.png",
+    "assets/sprites/ryu_action_sheet_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_source.png",
     "assets/sprites/guile_action_sheet_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png",
@@ -199,6 +200,7 @@ async function run() {
     "tools/prepare_fusion_relic_assets.py",
     "tools/prepare_signature_weapon_assets.py",
     "tools/prepare_guile_action_assets.py",
+    "tools/prepare_ryu_action_assets.py",
     "tools/prepare_sonic_boom_assets.py",
     "tools/build_xp_crystal_variants.py",
     "tools/repair_fighter_gargoyle_slicing.py",
@@ -336,6 +338,25 @@ async function run() {
       && signatureProbe.every((probe) => probe.signature && probe.assetLoaded && probe.frames.rows >= 11 && Number.isFinite(probe.visualRow) && probe.casts >= 1 && (probe.signatureProjectiles > 0 || probe.zones > 0 || probe.enemiesDamaged > 0)),
     `Every character should fire a distinct signature weapon from the HD sheet: ${JSON.stringify(signatureProbe)}`,
   );
+  const ryuActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_RYU_ACTION_PROBE());
+  assert(
+    ryuActionProbe.assetLoaded
+      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd.png")
+      && ryuActionProbe.frames.rows === 4
+      && ryuActionProbe.frames.frames === 8
+      && ryuActionProbe.rows.walk === 0
+      && ryuActionProbe.rows.hadoken === 1
+      && ryuActionProbe.rows.shoryuken === 2
+      && ryuActionProbe.rows.whirlwindKick === 3
+      && ryuActionProbe.arsenal.hadokens >= 5
+      && ryuActionProbe.arsenal.shoryukens >= 1
+      && ryuActionProbe.arsenal.whirlwindKicks >= 1
+      && ryuActionProbe.hadokenProjectiles.length >= 1
+      && ryuActionProbe.hadokenProjectiles.every((projectile) => projectile.size >= 94 && projectile.radius >= 23 && projectile.speed >= 720)
+      && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuStrike" && zone.move === "shoryuken")
+      && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick"),
+    `Ryu should use the new action sheet for Hadoken, Shoryuken, and whirlwind kick: ${JSON.stringify(ryuActionProbe)}`,
+  );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
     guileActionProbe.assetLoaded
@@ -398,10 +419,17 @@ async function run() {
       return { size: [img.naturalWidth, img.naturalHeight], frames };
     }
     return {
+      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd.png?ryu-action-probe", 256, 256, 8, 4),
       guile: await scanSheet("assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?guile-clean-v2-probe", 256, 256, 8, 5),
       sonic: await scanSheet("assets/sprites/sonic_boom_fx_imagen_hd.png?sonic-boom-probe", 256, 256, 8, 4),
     };
   });
+  assert(
+    guileSonicAssetProbe.ryu.size[0] === 2048
+      && guileSonicAssetProbe.ryu.size[1] === 1024
+      && guileSonicAssetProbe.ryu.frames.every((frame) => frame.visible > 15000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Ryu action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.ryu)}`,
+  );
   assert(
     guileSonicAssetProbe.guile.size[0] === 2048
       && guileSonicAssetProbe.guile.size[1] === 1280
@@ -558,7 +586,7 @@ async function run() {
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
   assert(["ryu", "ken", "guile", "chunLi"].every((id) => debug.playerSkinTypes.includes(id)), `Fighter character skins missing: ${JSON.stringify(debug.playerSkinTypes)}`);
-  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
+  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.ryu.animSheet === "ryuActions" && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
   const fighterSliceProbe = await page.evaluate(async () => {
     const img = new Image();
     img.src = "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?fighter-slice-probe";
@@ -1131,6 +1159,7 @@ async function run() {
   assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.signatureWeapons && debug.combatAssets.signatureWeaponFrames.rows >= 11 && debug.combatAssets.signatureWeaponTypes.includes("captainCutlass") && debug.combatAssets.signatureWeaponTypes.includes("lightningFan"), `Signature weapon frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuActionFrames.rows === 4 && debug.combatAssets.ryuActionFrames.frames === 8, `Ryu HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.guileActions && debug.combatAssets.guileActionFrames.rows === 5 && debug.combatAssets.guileActionFrames.frames === 8, `Guile HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.sonicBoomFx && debug.combatAssets.sonicBoomFrames.rows === 4 && debug.combatAssets.sonicBoomFrames.frames === 8, `Sonic Boom upgrade frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
