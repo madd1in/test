@@ -79,6 +79,8 @@ const imageSources = {
   weaponEvolutionFx: "assets/sprites/weapon_evolution_fx_imagen_hd.png",
   fusionRelics: "assets/sprites/fusion_relics_imagen_hd_clean.png?v=fusion-relics-v1",
   xpCrystalAnim: "assets/sprites/xp_crystal_anim_imagen_hd.png?v=imagen-xp-v1",
+  xpCrystalGreenAnim: "assets/sprites/xp_crystal_green_anim_imagen_hd.png?v=xp-color-v1",
+  xpCrystalRedAnim: "assets/sprites/xp_crystal_red_anim_imagen_hd.png?v=xp-color-v1",
   extraEnemies: "assets/sprites/extra_enemies_imagen_hd.webp",
   extraItems: "assets/sprites/extra_items_imagen_hd.webp",
 };
@@ -144,44 +146,44 @@ const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
 const soundConfig = {
-  pickup: { volume: 0.018, cooldown: 300 },
-  chime: { volume: 0.026, cooldown: 620 },
-  gate: { volume: 0.018, cooldown: 760 },
-  confirm: { volume: 0.024, cooldown: 380 },
-  downloadPickup: { volume: 0.012, cooldown: 420 },
-  downloadDash: { volume: 0.018, cooldown: 560 },
-  downloadHit: { volume: 0.022, cooldown: 980 },
-  downloadUpgrade: { volume: 0.032, cooldown: 900 },
-  downloadBossWarning: { volume: 0.045, cooldown: 45000 },
-  downloadBossDown: { volume: 0.048, cooldown: 2800 },
-  quickCutlass: { volume: 0.022, cooldown: 145 },
-  cutlassImpact: { volume: 0.024, cooldown: 240 },
-  cannonFire: { volume: 0.034, cooldown: 340 },
-  voodooMagic: { volume: 0.032, cooldown: 720 },
-  brightGem: { volume: 0.018, cooldown: 230 },
-  doubloonPing: { volume: 0.017, cooldown: 220 },
-  healSparkle: { volume: 0.026, cooldown: 520 },
-  treasureClink: { volume: 0.023, cooldown: 520 },
-  mapRustle: { volume: 0.018, cooldown: 700 },
-  cursedBossDrop: { volume: 0.048, cooldown: 2400 },
-  ghostAnchorHit: { volume: 0.025, cooldown: 560 },
-  seaMonsterPop: { volume: 0.026, cooldown: 620 },
-  dashWhooshFast: { volume: 0.024, cooldown: 330 },
-  pirateUiClick: { volume: 0.02, cooldown: 260 },
-  treasureMapMagic: { volume: 0.03, cooldown: 700 },
-  slashSwish: { volume: 0.019, cooldown: 170 },
-  monsterPop: { volume: 0.016, cooldown: 360 },
-  heavyHit: { volume: 0.025, cooldown: 780 },
-  upgradeMagic: { volume: 0.03, cooldown: 860 },
-  bossWarningCursed: { volume: 0.043, cooldown: 14000 },
-  bossDownUndead: { volume: 0.046, cooldown: 2400 },
-  curseMonkeySwipe: { volume: 0.022, cooldown: 145 },
-  curseMonkeyDash: { volume: 0.026, cooldown: 360 },
-  curseMonkeyHit: { volume: 0.024, cooldown: 520 },
-  curseMonkeyChatter: { volume: 0.019, cooldown: 540 },
-  curseMonkeyPower: { volume: 0.034, cooldown: 760 },
-  curseMonkeyWarning: { volume: 0.041, cooldown: 12000 },
-  curseMonkeyBossDown: { volume: 0.047, cooldown: 2200 },
+  pickup: { volume: 0.068, cooldown: 230 },
+  chime: { volume: 0.085, cooldown: 520 },
+  gate: { volume: 0.072, cooldown: 640 },
+  confirm: { volume: 0.078, cooldown: 240 },
+  downloadPickup: { volume: 0.074, cooldown: 250 },
+  downloadDash: { volume: 0.092, cooldown: 380 },
+  downloadHit: { volume: 0.105, cooldown: 440 },
+  downloadUpgrade: { volume: 0.108, cooldown: 650 },
+  downloadBossWarning: { volume: 0.12, cooldown: 16000 },
+  downloadBossDown: { volume: 0.13, cooldown: 2200 },
+  quickCutlass: { volume: 0.105, cooldown: 112 },
+  cutlassImpact: { volume: 0.098, cooldown: 170 },
+  cannonFire: { volume: 0.122, cooldown: 260 },
+  voodooMagic: { volume: 0.106, cooldown: 520 },
+  brightGem: { volume: 0.072, cooldown: 150 },
+  doubloonPing: { volume: 0.074, cooldown: 150 },
+  healSparkle: { volume: 0.092, cooldown: 360 },
+  treasureClink: { volume: 0.096, cooldown: 360 },
+  mapRustle: { volume: 0.078, cooldown: 480 },
+  cursedBossDrop: { volume: 0.13, cooldown: 2100 },
+  ghostAnchorHit: { volume: 0.105, cooldown: 360 },
+  seaMonsterPop: { volume: 0.102, cooldown: 390 },
+  dashWhooshFast: { volume: 0.105, cooldown: 230 },
+  pirateUiClick: { volume: 0.074, cooldown: 180 },
+  treasureMapMagic: { volume: 0.106, cooldown: 500 },
+  slashSwish: { volume: 0.096, cooldown: 124 },
+  monsterPop: { volume: 0.09, cooldown: 260 },
+  heavyHit: { volume: 0.116, cooldown: 480 },
+  upgradeMagic: { volume: 0.108, cooldown: 620 },
+  bossWarningCursed: { volume: 0.12, cooldown: 9000 },
+  bossDownUndead: { volume: 0.13, cooldown: 2100 },
+  curseMonkeySwipe: { volume: 0.108, cooldown: 112 },
+  curseMonkeyDash: { volume: 0.108, cooldown: 260 },
+  curseMonkeyHit: { volume: 0.106, cooldown: 330 },
+  curseMonkeyChatter: { volume: 0.078, cooldown: 340 },
+  curseMonkeyPower: { volume: 0.112, cooldown: 540 },
+  curseMonkeyWarning: { volume: 0.118, cooldown: 8000 },
+  curseMonkeyBossDown: { volume: 0.13, cooldown: 2000 },
 };
 const musicConfig = {
   main: 0.62,
@@ -212,6 +214,11 @@ const deferredAssetState = {
 };
 let menuMusicPrimePromise = Promise.resolve();
 let muted = false;
+let audioGestureUnlocked = false;
+let soundPoolsPrimed = false;
+let lastMusicStartLatencyMs = 0;
+let lastRenderTime = 0;
+let skippedRenderFrames = 0;
 const speechState = {
   supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
   voice: null,
@@ -239,17 +246,18 @@ const mobileDisplayState = {
 const loadingState = { loaded: 0, total: 0, last: "" };
 const MOBILE_PERF = {
   dpr: 1,
-  enemyCap: 105,
-  particleCap: 42,
-  textCap: 18,
+  enemyCap: 86,
+  particleCap: 28,
+  textCap: 12,
   propChunkRadius: 2,
   propPruneRadius: 4,
-  textMin: 26,
+  textMin: 24,
+  renderFrameMs: 1000 / 45,
 };
 const PERF_GUARDS = {
   desktopEnemyCap: 178,
   desktopEnemyRenderBudget: 132,
-  mobileEnemyRenderBudget: 76,
+  mobileEnemyRenderBudget: 50,
   trimBuffer: 10,
 };
 const CONTROL_TUNING = {
@@ -628,6 +636,7 @@ const powerUpTypes = [
   { id: "tideVacuum", name: "Tide-Vakuum", icon: "tideBoots", duration: 11, speed: 1.12, magnet: 180, color: "#53ffe5" },
   { id: "moonAegis", name: "Mond-Aegis", icon: "gothicArmor", duration: 8, armor: 4, color: "#9f6cff" },
   { id: "fusionSpark", name: "Fusionsfunke", icon: "rubyRing", duration: 10, speed: 1.12, damage: 1.18, cooldown: 0.9, color: "#ff8aa3" },
+  { id: "stormRhythm", name: "Sturmtakt", icon: "captainSeal", duration: 8, speed: 1.16, damage: 1.1, cooldown: 0.88, magnet: 70, color: "#bfffea" },
 ];
 const powerupDropTuning = {
   randomDropChance: 0.004,
@@ -1188,6 +1197,62 @@ function normalizeSoundKey(key, fallback = "pickup") {
   return audioSources[key] ? key : fallback;
 }
 
+function soundVolume(key, gain = 1) {
+  return clamp((soundConfig[key]?.volume ?? 0.16) * gain, 0, 1);
+}
+
+function gestureSoundKeys(track = "main", skinId = selectedSkin) {
+  const profile = playerSkinMap[skinId]?.sfx || playerSkinMap.default.sfx || {};
+  const profileKeys = Object.values(profile).filter(Boolean);
+  const quickKeys = track === "rush"
+    ? ["quickCutlass", "dashWhooshFast", "cutlassImpact", "brightGem", "downloadUpgrade", "cannonFire"]
+    : ["pirateUiClick", "quickCutlass", "cutlassImpact", "brightGem", "doubloonPing", "downloadUpgrade"];
+  return uniqueAssetKeys([...profileKeys, ...quickKeys], audioSources)
+    .filter((key) => !key.startsWith("bgm"))
+    .slice(0, 14);
+}
+
+function primeSoundPoolsForGesture(track = "main") {
+  const keysToPrime = gestureSoundKeys(track);
+  for (const key of keysToPrime) {
+    const pool = soundPools[key];
+    if (!pool?.length) continue;
+    for (const clip of pool) {
+      clip.preload = "auto";
+      clip.volume = soundVolume(key);
+      try { clip.load(); } catch {}
+    }
+    const clip = pool[0];
+    try {
+      clip.muted = true;
+      clip.volume = 0;
+      const playPromise = clip.play();
+      if (playPromise?.then) {
+        playPromise
+          .then(() => {
+            clip.pause();
+            clip.currentTime = 0;
+            clip.muted = false;
+            clip.volume = soundVolume(key);
+          })
+          .catch(() => {
+            clip.muted = false;
+            clip.volume = soundVolume(key);
+          });
+      } else {
+        clip.pause();
+        clip.currentTime = 0;
+        clip.muted = false;
+        clip.volume = soundVolume(key);
+      }
+    } catch {
+      clip.muted = false;
+      clip.volume = soundVolume(key);
+    }
+  }
+  soundPoolsPrimed = true;
+}
+
 function playSkinSound(event, fallback, options = {}) {
   const profile = characterSfxProfile();
   playSound(normalizeSoundKey(profile[event], fallback), options);
@@ -1585,6 +1650,8 @@ const MOBILE_BOOT_IMAGE_KEYS = [
   "projectileFx",
   "playerEffects",
   "xpCrystalAnim",
+  "xpCrystalGreenAnim",
+  "xpCrystalRedAnim",
   "extraEnemies",
   "extraItems",
   "gothicItems",
@@ -1794,8 +1861,8 @@ function prepareAudio() {
     if (key.startsWith("bgm")) continue;
     soundPools[key] = Array.from({ length: 5 }, () => {
       const audio = new Audio(src);
-      audio.preload = isMobileLike() ? "none" : "auto";
-      audio.volume = soundConfig[key]?.volume ?? 0.16;
+      audio.preload = isMobileLike() ? "metadata" : "auto";
+      audio.volume = soundVolume(key);
       return audio;
     });
   }
@@ -2024,6 +2091,14 @@ function musicSlotAudio(track) {
   return track === "rush" ? rushMusic : music;
 }
 
+function profileVolumeForSlot(slot, profile) {
+  return slot === "rush" ? profile.rushVolume : profile.mainVolume;
+}
+
+function markMusicPlayLatency(startedAt) {
+  lastMusicStartLatencyMs = Math.max(0, Math.round(performance.now() - startedAt));
+}
+
 function armMusicForStart(track = "main") {
   if (!music || !rushMusic || muted) return;
   configureMusicForMap(selectedMap, selectedSkin);
@@ -2032,12 +2107,16 @@ function armMusicForStart(track = "main") {
   const other = slot === "rush" ? music : rushMusic;
   const alreadyArmed = armedMusicTrack === slot && audio && !audio.paused;
   if (!alreadyArmed) seekMusicSlotToStart(slot, true);
-  audio.volume = 0;
-  audio.muted = true;
+  audioGestureUnlocked = true;
+  primeSoundPoolsForGesture(slot);
+  audio.volume = muted ? 0 : 0.018;
+  audio.muted = muted;
   other.volume = 0;
   other.pause();
   armedMusicTrack = slot;
+  const startedAt = performance.now();
   audio.play().then(() => {
+    markMusicPlayLatency(startedAt);
     if (armedMusicTrack === slot && state?.phase === "menu" && audio.currentTime > 1.25) seekMusicSlotToStart(slot, true);
   }).catch(() => {
     if (armedMusicTrack === slot) armedMusicTrack = null;
@@ -2053,6 +2132,10 @@ function playSound(key, options = {}) {
   const pool = soundPools[key];
   const clip = pool.find((a) => a.paused || a.ended) || pool[0];
   try {
+    clip.muted = false;
+    clip.preload = "auto";
+    clip.volume = soundVolume(key, options.gain ?? 1);
+    if (clip.readyState === 0) clip.load();
     clip.currentTime = 0;
     clip.play().catch(() => {});
   } catch {}
@@ -2177,6 +2260,11 @@ function syncMusic() {
   if (activeMusicTrack !== nextTrack) switchMusicTrack(nextTrack, profile);
   music.volume = nextTrack === "main" ? profile.mainVolume : 0;
   rushMusic.volume = nextTrack === "rush" ? profile.rushVolume : 0;
+  const current = musicSlotAudio(nextTrack);
+  if (current?.paused) {
+    const startedAt = performance.now();
+    current.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
+  }
 }
 
 function switchMusicTrack(track, profile = mapMusicProfile(state.map)) {
@@ -2192,7 +2280,9 @@ function switchMusicTrack(track, profile = mapMusicProfile(state.map)) {
     }
   } catch {}
   to.volume = track === "rush" ? profile.rushVolume : profile.mainVolume;
-  to.play().catch(() => {});
+  to.muted = muted;
+  const startedAt = performance.now();
+  to.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
   activeMusicTrack = track;
 }
 
@@ -2213,8 +2303,18 @@ function resetMusicTracks() {
 
 function prepareMusicForRun(expectedTrack = "main") {
   const slot = expectedTrack === "rush" ? "rush" : "main";
+  const profile = configureMusicForMap(state.map, state.player.skin);
   if (armedMusicTrack !== slot || muted) {
     resetMusicTracks();
+    if (!muted) {
+      const audio = musicSlotAudio(slot);
+      seekMusicSlotToStart(slot, true);
+      audio.muted = false;
+      audio.volume = profileVolumeForSlot(slot, profile);
+      const startedAt = performance.now();
+      audio.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
+      activeMusicTrack = slot;
+    }
     return;
   }
   const audio = musicSlotAudio(slot);
@@ -2225,10 +2325,13 @@ function prepareMusicForRun(expectedTrack = "main") {
   }
   other.pause();
   other.volume = 0;
-  audio.volume = 0;
+  audio.volume = profileVolumeForSlot(slot, profile);
   audio.muted = muted;
-  if (audio.paused) audio.play().catch(() => {});
-  activeMusicTrack = null;
+  if (audio.paused) {
+    const startedAt = performance.now();
+    audio.play().then(() => markMusicPlayLatency(startedAt)).catch(() => {});
+  }
+  activeMusicTrack = slot;
 }
 
 function startGame(options = {}) {
@@ -2265,6 +2368,8 @@ function startGame(options = {}) {
     { key: "start", interrupt: true, cooldown: 0 },
   );
   lastTime = performance.now();
+  lastRenderTime = 0;
+  skippedRenderFrames = 0;
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(loop);
 }
@@ -2288,7 +2393,13 @@ function loop(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
   lastTime = now;
   if (state.phase === "playing") update(dt);
-  render();
+  const minRenderMs = isMobileLike() && state.phase === "playing" ? MOBILE_PERF.renderFrameMs : 0;
+  if (minRenderMs <= 0 || now - lastRenderTime >= minRenderMs) {
+    render();
+    lastRenderTime = now;
+  } else {
+    skippedRenderFrames += 1;
+  }
   raf = requestAnimationFrame(loop);
 }
 
@@ -3345,7 +3456,16 @@ function updateExploration() {
     const coinValue = isShrine ? 8 : isChest ? 18 : 18;
     state.runStats.landmarks += 1;
     metaProgress.landmarks += 1;
-    state.gems.push({ kind: "xp", icon: "skullCoin", x: prop.x, y: prop.y - 18, r: 12, value: xpValue, life: 34 });
+    state.gems.push({
+      kind: "xp",
+      icon: "skullCoin",
+      xpTier: xpValue >= 46 ? "red" : "blue",
+      x: prop.x,
+      y: prop.y - 18,
+      r: 12,
+      value: xpValue,
+      life: 34,
+    });
     state.gems.push({ kind: "coin", icon: "coin", x: prop.x + 24, y: prop.y + 8, r: 12, value: coinValue, life: 34 });
     if (!isChest) state.gems.push({ kind: "heart", icon: "lime", x: prop.x - 24, y: prop.y + 8, r: 13, value: 1, life: 28 });
     const routePowerup = isShrine
@@ -3532,7 +3652,16 @@ function killEnemy(enemy) {
   }
   recordStreakKill(enemy);
   const xp = Math.ceil(enemy.type.xp * (enemy.boss ? 3.8 : 1) * (1 + state.elapsed / 760));
-  state.gems.push({ kind: "xp", icon: "skullCoin", x: enemy.x, y: enemy.y, r: 12, value: xp, life: 34 });
+  state.gems.push({
+    kind: "xp",
+    icon: "skullCoin",
+    xpTier: enemy.boss || enemy.elite || xp >= 36 ? "red" : xp <= 12 ? "green" : "blue",
+    x: enemy.x,
+    y: enemy.y,
+    r: 12,
+    value: xp,
+    life: 34,
+  });
   if (Math.random() < 0.1 || enemy.boss) state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 12, y: enemy.y + 8, r: 12, value: enemy.boss ? 25 : 3, life: 36 });
   if (Math.random() < 0.06) state.gems.push({ kind: "heart", icon: "lime", x: enemy.x - 10, y: enemy.y, r: 13, value: 1, life: 28 });
   const streakPowerDrop = state.streak.count > 0 && state.streak.count % powerupDropTuning.streakDropEvery === 0;
@@ -3982,6 +4111,7 @@ function render() {
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = true;
+  const mobile = isMobileLike();
   ctx.save();
   ctx.translate(viewW / 2, viewH / 2);
   ctx.scale(scene.zoom, scene.zoom);
@@ -3996,7 +4126,7 @@ function render() {
     drawWeaponEffects();
     drawParticles();
     drawTexts();
-    drawVignette();
+    if (!mobile) drawVignette();
     if (state.warningTimer > 0) drawWarning();
   }
   ctx.restore();
@@ -4124,7 +4254,8 @@ function drawGems() {
   for (const gem of state.gems) {
     if (!onScreen(gem.x, gem.y, 80)) continue;
     const t = performance.now() / 260;
-    const size = gem.kind === "xp" ? (gem.value >= 40 ? 64 : gem.value >= 18 ? 54 : 44) : gem.kind === "powerup" ? 42 : 34;
+    const tier = gem.kind === "xp" ? xpCrystalTier(gem) : null;
+    const size = gem.kind === "xp" ? xpCrystalSize(gem, tier) : gem.kind === "powerup" ? 42 : 34;
     ctx.save();
     ctx.translate(ox + gem.x, oy + gem.y + Math.sin(t + gem.x) * 4);
     ctx.rotate(Math.sin(t) * 0.1);
@@ -4138,8 +4269,29 @@ function drawGems() {
   }
 }
 
+function xpCrystalTier(gem) {
+  if (gem.xpTier === "green" || gem.xpTier === "red" || gem.xpTier === "blue") return gem.xpTier;
+  if (gem.value >= 36) return "red";
+  if (gem.value <= 12) return "green";
+  return "blue";
+}
+
+function xpCrystalSize(gem, tier = xpCrystalTier(gem)) {
+  if (tier === "red") return gem.value >= 60 ? 70 : 64;
+  if (tier === "green") return 42;
+  return gem.value >= 18 ? 54 : 48;
+}
+
+function xpCrystalImage(tier) {
+  if (tier === "green") return images.xpCrystalGreenAnim || images.xpCrystalAnim;
+  if (tier === "red") return images.xpCrystalRedAnim || images.xpCrystalAnim;
+  return images.xpCrystalAnim;
+}
+
 function drawXpCrystalAt(gem, size) {
-  if (!images.xpCrystalAnim) {
+  const tier = xpCrystalTier(gem);
+  const crystal = xpCrystalImage(tier);
+  if (!crystal) {
     drawPlayerEffectAt("tidePulse", -size * 0.72, -size * 0.72, size * 1.44, size * 1.44);
     drawItemAt(gem.icon, -size / 2, -size / 2, size, size);
     return;
@@ -4155,7 +4307,7 @@ function drawXpCrystalAt(gem, size) {
     drawPlayerEffectAt("tidePulse", -drawSize * 0.58, -drawSize * 0.58, drawSize * 1.16, drawSize * 1.16);
     ctx.restore();
   }
-  ctx.drawImage(images.xpCrystalAnim, sx, 0, XP_CRYSTAL_ANIM.w, XP_CRYSTAL_ANIM.h, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+  ctx.drawImage(crystal, sx, 0, XP_CRYSTAL_ANIM.w, XP_CRYSTAL_ANIM.h, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
 }
 
 function bossAnimFrame(enemy, anim, attackFrames, loopFrames = null) {
@@ -5706,6 +5858,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
     drawnEnemies: perf.drawnEnemies,
     skippedEnemySprites: perf.skippedEnemySprites,
     trimmedEnemies: perf.trimmedEnemies,
+    renderFrameMs: isMobileLike() ? MOBILE_PERF.renderFrameMs : 0,
+    renderFpsCap: isMobileLike() ? Math.round(1000 / MOBILE_PERF.renderFrameMs) : 0,
+    skippedRenderFrames,
     stablePropScale: true,
     stablePlayerScale: true,
     propCount: state.props.length,
@@ -5742,6 +5897,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
     rushVolume: rushMusic?.volume ?? 0,
     activeTrack: activeMusicTrack,
     armedTrack: armedMusicTrack,
+    gestureUnlocked: audioGestureUnlocked,
+    soundPoolsPrimed,
+    instantStartMode: true,
+    lastStartLatencyMs: lastMusicStartLatencyMs,
     tracksPlaying: {
       main: music ? !music.paused : false,
       rush: rushMusic ? !rushMusic.paused : false,
@@ -5835,6 +5994,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
     weaponEvolutionFx: !!images.weaponEvolutionFx,
     fusionRelics: !!images.fusionRelics,
     xpCrystalAnim: !!images.xpCrystalAnim,
+    xpCrystalVariants: {
+      green: !!images.xpCrystalGreenAnim,
+      blue: !!images.xpCrystalAnim,
+      red: !!images.xpCrystalRedAnim,
+    },
+    xpCrystalTierSamples: {
+      small: xpCrystalTier({ value: 6 }),
+      medium: xpCrystalTier({ value: 18 }),
+      large: xpCrystalTier({ value: 46 }),
+    },
     xpCrystalAnimationFrames: { ...XP_CRYSTAL_ANIM },
     projectileFxTypes: Object.keys(projectileFxMap),
     playerEffectTypes: Object.keys(playerEffectMap),

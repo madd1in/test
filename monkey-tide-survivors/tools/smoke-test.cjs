@@ -123,6 +123,8 @@ async function run() {
     "assets/sprites/fusion_relics_imagen_hd_clean.png",
     "assets/sprites/xp_crystal_anim_imagen_source.png",
     "assets/sprites/xp_crystal_anim_imagen_hd.png",
+    "assets/sprites/xp_crystal_green_anim_imagen_hd.png",
+    "assets/sprites/xp_crystal_red_anim_imagen_hd.png",
     "assets/sprites/extra_enemies_imagen_hd.webp",
     "assets/sprites/extra_items_imagen_hd.webp",
     "assets/ui/parchment_panel_imagen_hd.webp",
@@ -184,6 +186,7 @@ async function run() {
     "assets/audio/sfx/curse-monkey/spooky-warning.mp3",
     "assets/audio/sfx/curse-monkey/boss-drop.mp3",
     "tools/prepare_fusion_relic_assets.py",
+    "tools/build_xp_crystal_variants.py",
     "tools/repair_enemy_slicing.py",
   ].forEach((rel) => {
     const target = path.join(root, rel);
@@ -401,7 +404,7 @@ async function run() {
   assert(mobileStartDisplay.debug.mobileDisplay.requested === true && mobileStartDisplay.debug.mobileDisplay.orientationPreference === "portrait-primary", `Mobile start should prefer portrait fullscreen: ${JSON.stringify(mobileStartDisplay.debug.mobileDisplay)}`);
   assert(mobileStartDisplay.orientationLocks.some((mode) => String(mode).startsWith("portrait")) && !mobileStartDisplay.orientationLocks.includes("landscape"), `Mobile start requested the wrong orientation: ${JSON.stringify(mobileStartDisplay)}`);
   assert(mobileStartDisplay.debug.performance.mobile === true && mobileStartDisplay.debug.performance.dpr <= 1.01, `Mobile DPR guardrail is too high: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
-  assert(mobileStartDisplay.debug.performance.enemyCap <= 105 && mobileStartDisplay.debug.performance.enemyRenderBudget <= 76 && mobileStartDisplay.debug.performance.textCap <= 18 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
+  assert(mobileStartDisplay.debug.performance.enemyCap <= 86 && mobileStartDisplay.debug.performance.enemyRenderBudget <= 50 && mobileStartDisplay.debug.performance.textCap <= 12 && mobileStartDisplay.debug.performance.renderFpsCap <= 45 && mobileStartDisplay.debug.performance.lowFx === true, `Mobile performance caps missing: ${JSON.stringify(mobileStartDisplay.debug.performance)}`);
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(() => {
     window.__MONKEY_TIDE_TEST_ORIENTATION_LOCKS = [];
@@ -622,6 +625,7 @@ async function run() {
   assert(debug.audio.music.main >= 0.6, `Main music config should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
   assert(debug.audio.activeTrack === "rush" && debug.audio.armedTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to an armed rush BGM: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.gestureUnlocked && debug.audio.soundPoolsPrimed && debug.audio.instantStartMode && debug.audio.lastStartLatencyMs <= 350, `BGM/SFX should be unlocked by the first user gesture: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.startReady.main && debug.audio.startReady.rush, `BGM should be pre-seeked before play to avoid delayed starts: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
@@ -654,8 +658,8 @@ async function run() {
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
-  assert(debug.audio.sfx.pickup <= 0.025 && debug.audio.sfx.gate <= 0.025, `SFX should sit under music: ${JSON.stringify(debug)}`);
-  assert(debug.audio.sfx.downloadBossWarning <= 0.05 && debug.audio.sfx.quickCutlass <= 0.025 && debug.audio.sfx.cannonFire <= 0.035 && debug.audio.sfx.curseMonkeyWarning <= 0.045 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 10, `Downloaded SFX should remain under music: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.pickup >= 0.06 && debug.audio.sfx.gate >= 0.06 && debug.audio.sfx.pickup <= 0.09, `SFX should be audible without clipping: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfx.downloadBossWarning >= 0.11 && debug.audio.sfx.quickCutlass >= 0.09 && debug.audio.sfx.cannonFire >= 0.11 && debug.audio.sfx.curseMonkeyWarning >= 0.11 && Math.max(debug.audio.mainVolume, debug.audio.rushVolume) > debug.audio.sfx.downloadBossWarning * 3.5, `Downloaded SFX should punch through under music: ${JSON.stringify(debug)}`);
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.quickCutlass.includes("/from-downloads/quick-cutlass.mp3") && debug.audio.sources.cannonFire.includes("/from-downloads/cartoon-cannon-fire.mp3") && debug.audio.sources.doubloonPing.includes("/from-downloads/doubloon-ping.mp3") && debug.audio.sources.treasureClink.includes("/from-downloads/treasure-clink.mp3"), `Expanded Downloads SFX set missing: ${JSON.stringify(debug.audio.sources)}`);
   assert(debug.audio.characterSfxProfiles.default.slash === "quickCutlass" && debug.audio.characterSfxProfiles.default.pickup === "brightGem" && debug.audio.characterSfxProfiles.dhampirHunter.hit === "ghostAnchorHit", `Characters are not using the expanded Downloads SFX: ${JSON.stringify(debug.audio.characterSfxProfiles)}`);
@@ -907,7 +911,7 @@ async function run() {
   assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("playerEffects"), `Player raster effect FX not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("fusionRelics"), `Fusion relic animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
-  assert(debug.preloadedAssetKeys.includes("xpCrystalAnim"), `Imagen XP crystal animation is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
+  assert(["xpCrystalAnim", "xpCrystalGreenAnim", "xpCrystalRedAnim"].every((key) => debug.preloadedAssetKeys.includes(key)), `Imagen XP crystal variants are not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFxTypes.includes("coconutBoomerang") && debug.combatAssets.projectileFxTypes.includes("monkeyCurseOrb"), `Projectile FX types missing: ${JSON.stringify(debug)}`);
@@ -916,6 +920,8 @@ async function run() {
   assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.xpCrystalVariants?.green && debug.combatAssets.xpCrystalVariants?.blue && debug.combatAssets.xpCrystalVariants?.red, `XP crystal color variants are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.xpCrystalTierSamples?.small === "green" && debug.combatAssets.xpCrystalTierSamples?.medium === "blue" && debug.combatAssets.xpCrystalTierSamples?.large === "red", `XP crystal tier thresholds are wrong: ${JSON.stringify(debug.combatAssets.xpCrystalTierSamples)}`);
   const xpCrystalProbe = await page.evaluate(async () => {
     const img = new Image();
     img.src = "assets/sprites/xp_crystal_anim_imagen_hd.png?xp-probe";
@@ -946,6 +952,69 @@ async function run() {
     return { size: [img.naturalWidth, img.naturalHeight], frames };
   });
   assert(xpCrystalProbe.size[0] === 2048 && xpCrystalProbe.size[1] === 256 && xpCrystalProbe.frames.every((frame) => frame.visible > 9000 && frame.edgeAlpha === 0), `XP crystal frames should be clean and non-empty: ${JSON.stringify(xpCrystalProbe)}`);
+  const xpCrystalColorProbe = await page.evaluate(async () => {
+    const assets = [
+      { tier: "green", src: "assets/sprites/xp_crystal_green_anim_imagen_hd.png?xp-color-probe" },
+      { tier: "red", src: "assets/sprites/xp_crystal_red_anim_imagen_hd.png?xp-color-probe" },
+    ];
+    const results = [];
+    for (const asset of assets) {
+      const img = new Image();
+      img.src = asset.src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let count = 0;
+      let edgeAlpha = 0;
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          const index = (y * canvas.width + x) * 4;
+          const alpha = data[index + 3];
+          if (alpha <= 24) continue;
+          r += data[index];
+          g += data[index + 1];
+          b += data[index + 2];
+          count += 1;
+          if (x === 0 || y === 0 || x === canvas.width - 1 || y === canvas.height - 1) edgeAlpha += 1;
+        }
+      }
+      results.push({
+        tier: asset.tier,
+        size: [img.naturalWidth, img.naturalHeight],
+        avg: count > 0 ? { r: r / count, g: g / count, b: b / count } : { r: 0, g: 0, b: 0 },
+        count,
+        edgeAlpha,
+      });
+    }
+    return results;
+  });
+  const greenCrystalProbe = xpCrystalColorProbe.find((probe) => probe.tier === "green");
+  const redCrystalProbe = xpCrystalColorProbe.find((probe) => probe.tier === "red");
+  assert(
+    greenCrystalProbe?.size[0] === 2048 &&
+      greenCrystalProbe?.size[1] === 256 &&
+      greenCrystalProbe.count > 50000 &&
+      greenCrystalProbe.edgeAlpha === 0 &&
+      greenCrystalProbe.avg.g > greenCrystalProbe.avg.r * 2 &&
+      greenCrystalProbe.avg.g > greenCrystalProbe.avg.b * 1.3,
+    `Green XP crystal sheet is not cleanly green: ${JSON.stringify(xpCrystalColorProbe)}`,
+  );
+  assert(
+    redCrystalProbe?.size[0] === 2048 &&
+      redCrystalProbe?.size[1] === 256 &&
+      redCrystalProbe.count > 50000 &&
+      redCrystalProbe.edgeAlpha === 0 &&
+      redCrystalProbe.avg.r > redCrystalProbe.avg.g * 2 &&
+      redCrystalProbe.avg.r > redCrystalProbe.avg.b * 1.3,
+    `Red XP crystal sheet is not cleanly red: ${JSON.stringify(xpCrystalColorProbe)}`,
+  );
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.weaponEvolution?.fusionRelics?.asset && debug.weaponEvolution.fusionRelics.frames.frames === 4 && debug.weaponEvolution.fusionRelics.types.length === 4, `Fusion relic animation metadata missing: ${JSON.stringify(debug.weaponEvolution?.fusionRelics)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
@@ -1000,8 +1069,8 @@ async function run() {
   assert(fusionRelicProbe.relicZones.length >= 4 && fusionRelicProbe.boostedCoconuts >= 1 && fusionRelicProbe.boostedBottles >= 1, `Fusion relic boosts did not show in combat: ${JSON.stringify(fusionRelicProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
-  assert(progressProbe.powerups.types.length >= 8 && progressProbe.powerups.active.length >= 8, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.length >= 9 && progressProbe.powerups.active.length >= 9, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever") && progressProbe.powerups.types.includes("stormRhythm"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.randomDropChance <= 0.004 && progressProbe.powerups.streakDropEvery >= 40, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.combatCooldown >= 40 && progressProbe.powerups.magnetRange <= 90, `Power-up pickups are too intrusive: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[0] === 3 && progressProbe.levelFlow.choiceLevels[1] === 7 && progressProbe.levelFlow.choiceLevels[2] === 11 && progressProbe.levelFlow.rewardTypes >= 6, `Level-up flow rewards are incomplete: ${JSON.stringify(progressProbe.levelFlow)}`);
