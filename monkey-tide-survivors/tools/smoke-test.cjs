@@ -86,9 +86,13 @@ async function run() {
     "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/fighters_select_imagen_hd.png",
     "assets/sprites/ryu_action_sheet_imagen_hd.png",
+    "assets/sprites/ryu_action_sheet_imagen_hd_v2.png",
+    "assets/sprites/ryu_hadoken_fx_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_source.png",
     "assets/sprites/guile_action_sheet_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png",
+    "assets/sprites/chun_li_action_sheet_imagen_hd.png",
+    "assets/sprites/chun_li_projectile_fx_imagen_hd.png",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
@@ -202,6 +206,7 @@ async function run() {
     "tools/prepare_guile_action_assets.py",
     "tools/prepare_ryu_action_assets.py",
     "tools/prepare_sonic_boom_assets.py",
+    "tools/prepare_chun_li_action_assets.py",
     "tools/build_xp_crystal_variants.py",
     "tools/repair_fighter_gargoyle_slicing.py",
     "tools/repair_enemy_slicing.py",
@@ -341,21 +346,32 @@ async function run() {
   const ryuActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_RYU_ACTION_PROBE());
   assert(
     ryuActionProbe.assetLoaded
-      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd.png")
-      && ryuActionProbe.frames.rows === 4
+      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd_v2.png")
+      && ryuActionProbe.frames.rows === 5
       && ryuActionProbe.frames.frames === 8
+      && ryuActionProbe.hadokenFxLoaded
+      && ryuActionProbe.hadokenFxSource.includes("ryu_hadoken_fx_imagen_hd.png")
+      && ryuActionProbe.hadokenFxFrames.rows === 4
+      && ryuActionProbe.hadokenFxFrames.frames === 8
       && ryuActionProbe.rows.walk === 0
       && ryuActionProbe.rows.hadoken === 1
       && ryuActionProbe.rows.shoryuken === 2
       && ryuActionProbe.rows.whirlwindKick === 3
-      && ryuActionProbe.arsenal.hadokens >= 5
+      && ryuActionProbe.rows.focusStance === 4
+      && ryuActionProbe.weaponDisplay.name === "Hadoken"
+      && ryuActionProbe.upgradeDisplay.name === "Hadoken Loop"
+      && ryuActionProbe.arsenal.weaponHadokens >= 8
+      && ryuActionProbe.arsenal.hadokens >= 13
       && ryuActionProbe.arsenal.shoryukens >= 1
       && ryuActionProbe.arsenal.whirlwindKicks >= 1
       && ryuActionProbe.hadokenProjectiles.length >= 1
-      && ryuActionProbe.hadokenProjectiles.every((projectile) => projectile.size >= 94 && projectile.radius >= 23 && projectile.speed >= 720)
+      && ryuActionProbe.hadokenProjectiles.some((projectile) => projectile.stage === 3 && projectile.size >= 130 && projectile.radius >= 35 && projectile.speed >= 1050)
+      && ryuActionProbe.hadokenBursts >= 1
+      && ryuActionProbe.slashZones === 0
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuStrike" && zone.move === "shoryuken")
-      && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick"),
-    `Ryu should use the new action sheet for Hadoken, Shoryuken, and whirlwind kick: ${JSON.stringify(ryuActionProbe)}`,
+      && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick")
+      && ryuActionProbe.iconStyleUsesHadokenSheet,
+    `Ryu should use the new v2 action sheet and frequent Hadoken weapon loop: ${JSON.stringify(ryuActionProbe)}`,
   );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
@@ -383,6 +399,39 @@ async function run() {
       && guileActionProbe.arsenal.reversePunches >= 1
       && guileActionProbe.arsenal.flashKicks >= 1,
     `Guile should use the new exact-frame action sheet and Sonic Boom base kit: ${JSON.stringify(guileActionProbe)}`,
+  );
+  const chunLiActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_CHUN_LI_ACTION_PROBE());
+  assert(
+    chunLiActionProbe.assetLoaded
+      && chunLiActionProbe.source.includes("chun_li_action_sheet_imagen_hd.png")
+      && chunLiActionProbe.frames.rows === 5
+      && chunLiActionProbe.frames.frames === 8
+      && chunLiActionProbe.projectileAssetLoaded
+      && chunLiActionProbe.projectileSource.includes("chun_li_projectile_fx_imagen_hd.png")
+      && chunLiActionProbe.projectileFrames.rows === 3
+      && chunLiActionProbe.projectileFrames.frames === 8
+      && chunLiActionProbe.rows.walk === 0
+      && chunLiActionProbe.rows.thousandKick === 1
+      && chunLiActionProbe.rows.kiKouKen === 2
+      && chunLiActionProbe.rows.whirlwindKick === 3
+      && chunLiActionProbe.rows.lightningKick === 4
+      && chunLiActionProbe.projectileRows.kiKouKen === 0
+      && chunLiActionProbe.projectileRows.thousandKickArc === 1
+      && chunLiActionProbe.projectileRows.whirlwindKickArc === 2
+      && chunLiActionProbe.weaponDisplay.name === "Thousand Kick"
+      && chunLiActionProbe.upgradeDisplay.name === "Thousand Kick Loop"
+      && chunLiActionProbe.arsenal.thousandKicks >= 4
+      && chunLiActionProbe.arsenal.kiKouKens >= 5
+      && chunLiActionProbe.arsenal.whirlwindKicks >= 1
+      && chunLiActionProbe.arsenal.lightningKicks >= 1
+      && chunLiActionProbe.kiKouKenProjectiles.length >= 1
+      && chunLiActionProbe.kiKouKenProjectiles.every((projectile) => projectile.size >= 108 && projectile.radius >= 24 && projectile.speed >= 760)
+      && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiKick" && zone.move === "thousandKick")
+      && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiWhirlwind" && zone.move === "whirlwindKick")
+      && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiProjectileBurst" && zone.fx === "kiKouKen")
+      && chunLiActionProbe.slashZones === 0
+      && chunLiActionProbe.iconStyleUsesProjectileSheet,
+    `Chun Li should use Ki Kou Ken, Thousand Kick, Whirlwind Kick, and dedicated projectile frames: ${JSON.stringify(chunLiActionProbe)}`,
   );
   const guileSonicAssetProbe = await page.evaluate(async () => {
     async function scanSheet(src, frameW, frameH, cols, rows) {
@@ -419,16 +468,25 @@ async function run() {
       return { size: [img.naturalWidth, img.naturalHeight], frames };
     }
     return {
-      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd.png?ryu-action-probe", 256, 256, 8, 4),
+      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd_v2.png?ryu-action-v2-probe", 256, 256, 8, 5),
+      ryuHadoken: await scanSheet("assets/sprites/ryu_hadoken_fx_imagen_hd.png?ryu-hadoken-probe", 256, 256, 8, 4),
       guile: await scanSheet("assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?guile-clean-v2-probe", 256, 256, 8, 5),
       sonic: await scanSheet("assets/sprites/sonic_boom_fx_imagen_hd.png?sonic-boom-probe", 256, 256, 8, 4),
+      chunLi: await scanSheet("assets/sprites/chun_li_action_sheet_imagen_hd.png?chun-li-action-probe", 256, 256, 8, 5),
+      chunLiProjectiles: await scanSheet("assets/sprites/chun_li_projectile_fx_imagen_hd.png?chun-li-projectile-probe", 256, 256, 8, 3),
     };
   });
   assert(
     guileSonicAssetProbe.ryu.size[0] === 2048
-      && guileSonicAssetProbe.ryu.size[1] === 1024
+      && guileSonicAssetProbe.ryu.size[1] === 1280
       && guileSonicAssetProbe.ryu.frames.every((frame) => frame.visible > 15000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
     `Ryu action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.ryu)}`,
+  );
+  assert(
+    guileSonicAssetProbe.ryuHadoken.size[0] === 2048
+      && guileSonicAssetProbe.ryuHadoken.size[1] === 1024
+      && guileSonicAssetProbe.ryuHadoken.frames.every((frame) => frame.visible > 16000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Ryu Hadoken frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.ryuHadoken)}`,
   );
   assert(
     guileSonicAssetProbe.guile.size[0] === 2048
@@ -443,6 +501,18 @@ async function run() {
       && guileSonicAssetProbe.sonic.frames.every((frame) => frame.visible > 12000 && frame.edgeAlpha === 0)
       && Math.min(...sonicRows[3].map((frame) => frame.visible)) > Math.max(...sonicRows[0].map((frame) => frame.visible)),
     `Sonic Boom upgrade frames are not clean or staged: ${JSON.stringify(guileSonicAssetProbe.sonic)}`,
+  );
+  assert(
+    guileSonicAssetProbe.chunLi.size[0] === 2048
+      && guileSonicAssetProbe.chunLi.size[1] === 1280
+      && guileSonicAssetProbe.chunLi.frames.every((frame) => frame.visible > 15000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Chun Li action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.chunLi)}`,
+  );
+  assert(
+    guileSonicAssetProbe.chunLiProjectiles.size[0] === 2048
+      && guileSonicAssetProbe.chunLiProjectiles.size[1] === 768
+      && guileSonicAssetProbe.chunLiProjectiles.frames.every((frame) => frame.visible > 19000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Chun Li projectile frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.chunLiProjectiles)}`,
   );
   await page.click('[data-skin="freelanceDuo"]');
   const pickedDuoSkin = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG());
@@ -586,7 +656,7 @@ async function run() {
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
   assert(["ryu", "ken", "guile", "chunLi"].every((id) => debug.playerSkinTypes.includes(id)), `Fighter character skins missing: ${JSON.stringify(debug.playerSkinTypes)}`);
-  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.ryu.animSheet === "ryuActions" && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
+  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.ryu.animSheet === "ryuActions" && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.playerSkinSourceRects.chunLi.animSheet === "chunLiActions" && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
   const fighterSliceProbe = await page.evaluate(async () => {
     const img = new Image();
     img.src = "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?fighter-slice-probe";
@@ -1159,7 +1229,7 @@ async function run() {
   assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.signatureWeapons && debug.combatAssets.signatureWeaponFrames.rows >= 11 && debug.combatAssets.signatureWeaponTypes.includes("captainCutlass") && debug.combatAssets.signatureWeaponTypes.includes("lightningFan"), `Signature weapon frameset missing: ${JSON.stringify(debug.combatAssets)}`);
-  assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuActionFrames.rows === 4 && debug.combatAssets.ryuActionFrames.frames === 8, `Ryu HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 8, `Ryu HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.guileActions && debug.combatAssets.guileActionFrames.rows === 5 && debug.combatAssets.guileActionFrames.frames === 8, `Guile HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.sonicBoomFx && debug.combatAssets.sonicBoomFrames.rows === 4 && debug.combatAssets.sonicBoomFrames.frames === 8, `Sonic Boom upgrade frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
@@ -1260,13 +1330,15 @@ async function run() {
   );
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.weaponEvolution?.fusionRelics?.asset && debug.weaponEvolution.fusionRelics.frames.frames === 4 && debug.weaponEvolution.fusionRelics.types.length === 4, `Fusion relic animation metadata missing: ${JSON.stringify(debug.weaponEvolution?.fusionRelics)}`);
+  assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuHadokenFxFrames.rows === 4, `Ryu v2 action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiProjectileFrames.rows === 3, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rubyRing === "rubyRing" && debug.upgradeIcons.moonSigil === "moonSigil" && debug.upgradeIcons.blueVial === "blueVial", `New item upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
   assert(debug.upgradeIcons.stormConch === "stormConch" && debug.upgradeIcons.bloodMoonAnchor === "bloodMoonAnchor" && debug.upgradeIcons.krakenCompass === "krakenCompass" && debug.upgradeIcons.rumCometLantern === "rumCometLantern", `Fusion relic upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
-  assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
+  assert(debug.uiIconSources.projectileFxIcons === true && debug.uiIconSources.ryuHadokenIcons === true && debug.uiIconSources.chunLiProjectileIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
   assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
