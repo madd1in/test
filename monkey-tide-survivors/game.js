@@ -51,13 +51,13 @@ const imageSources = {
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?v=fighters-slice-repair-v2",
   fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
-  guileActions: "assets/sprites/guile_action_sheet_imagen_hd.png?v=guile-action-v1",
+  guileActions: "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?v=guile-action-clean-v2",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
   enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?v=slice-repair-v4",
-  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean.png?v=slice-clean-v1",
+  gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean_v2.png?v=slice-clean-v2",
   gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v4.png?v=gothic-gargoyle-repair-v4",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
@@ -66,7 +66,7 @@ const imageSources = {
   blackbeard: "assets/sprites/bosses/blackbeard_imagen_hd.webp",
   threeHeadedMonkeyAnim: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
   blackbeardAnim: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
-  newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?v=slice-clean-v1",
+  newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png?v=slice-clean-v2",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp?v=clean-hedges",
@@ -82,10 +82,11 @@ const imageSources = {
   weaponEvolutionFx: "assets/sprites/weapon_evolution_fx_imagen_hd.png",
   fusionRelics: "assets/sprites/fusion_relics_imagen_hd_clean.png?v=fusion-relics-v1",
   signatureWeapons: "assets/sprites/signature_weapons_imagen_hd.png?v=signature-weapons-v1",
+  sonicBoomFx: "assets/sprites/sonic_boom_fx_imagen_hd.png?v=sonic-boom-v1",
   xpCrystalAnim: "assets/sprites/xp_crystal_anim_imagen_hd.png?v=imagen-xp-v1",
   xpCrystalGreenAnim: "assets/sprites/xp_crystal_green_anim_imagen_hd.png?v=xp-color-v1",
   xpCrystalRedAnim: "assets/sprites/xp_crystal_red_anim_imagen_hd.png?v=xp-color-v1",
-  extraEnemies: "assets/sprites/extra_enemies_imagen_hd.webp",
+  extraEnemies: "assets/sprites/extra_enemies_imagen_hd_clean.png?v=slice-clean-v1",
   extraItems: "assets/sprites/extra_items_imagen_hd.webp",
 };
 
@@ -338,6 +339,7 @@ const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
 const FUSION_RELIC = { w: 256, h: 256, cols: 4, rows: 4, frames: 4, fps: 5.5 };
 const SIGNATURE_WEAPON_FX = { w: 256, h: 256, cols: 4, rows: 11, frames: 4, fps: 8.5 };
+const SONIC_BOOM_FX = { w: 256, h: 256, cols: 8, rows: 4, frames: 8, fps: 17 };
 const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -671,6 +673,7 @@ const powerUpTypes = [
   { id: "moonAegis", name: "Mond-Aegis", icon: "gothicArmor", duration: 8, armor: 4, color: "#9f6cff" },
   { id: "fusionSpark", name: "Fusionsfunke", icon: "rubyRing", duration: 10, speed: 1.12, damage: 1.18, cooldown: 0.9, color: "#ff8aa3" },
   { id: "stormRhythm", name: "Sturmtakt", icon: "captainSeal", duration: 8, speed: 1.16, damage: 1.1, cooldown: 0.88, magnet: 70, color: "#bfffea" },
+  { id: "omenBounty", name: "Omen-Beute", icon: "bloodRose", duration: 10, speed: 1.1, damage: 1.16, cooldown: 0.91, magnet: 60, color: "#ffdf6e" },
 ];
 const powerupDropTuning = {
   randomDropChance: 0.004,
@@ -870,10 +873,14 @@ const signatureWeaponMap = {
   lightningFan: { row: 10, draw: "arc" },
 };
 
+function sonicBoomStage(level = 1) {
+  return clamp(Math.floor((Math.max(1, level) - 1) / 2), 0, SONIC_BOOM_FX.rows - 1);
+}
+
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
   { id: "crab", name: "Coconut Crab", sprite: "crab", enemyAnim: "crab", hp: 25, speed: 112, radius: 22, damage: 5, scale: 0.22, xp: 6, tint: "#ff8b46" },
-  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.44, xp: 7, tint: "#9f6cff", flying: true },
+  { id: "cryptBat", name: "Crypt Bat", gothicRow: 2, hp: 23, speed: 136, radius: 20, damage: 6, scale: 0.62, xp: 7, tint: "#9f6cff", flying: true },
   { id: "boneCorsair", name: "Bone Corsair", gothicRow: 1, gothicAnim: "boneCorsair", hp: 46, speed: 68, radius: 28, damage: 9, scale: 0.5, xp: 12, tint: "#d8e3b0" },
   { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, gothicAnim: "gargoyle", hp: 96, speed: 64, radius: 39, damage: 15, scale: 0.58, xp: 21, tint: "#8bd7b4", flying: true },
   { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f", humanNpc: true },
@@ -1521,8 +1528,9 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, unlocked: [] },
     fusionMoments: { seen: new Set(), count: 0 },
+    omenShards: { count: 0, nextReward: 3, boons: 0 },
     powerupDropCooldown: 0,
     signatureMove: { timer: Math.max(0.38, 1.2 - skillBonus.signatureStart), casts: 0, last: null },
     playerAction: null,
@@ -1889,12 +1897,14 @@ function uniqueAssetKeys(keys, sourceMap) {
 
 function skinImageKeys(skinId = selectedSkin) {
   const skin = playerSkinMap[skinId] || playerSkinMap.default;
+  const trait = characterTrait(skinId);
   return uniqueAssetKeys([
     skin.sheet,
     skin.animSheet,
     skin.sheet === "playerSkins" ? "playerSkinWalks" : null,
     skin.animSheet === "fighterWalks" ? "fighterWalks" : null,
     skin.animSheet === "samMaxDuoWalk" ? "samMaxDuoWalk" : null,
+    trait?.signature?.id === "sonicBoom" ? "sonicBoomFx" : null,
   ].filter(Boolean), imageSources);
 }
 
@@ -2378,9 +2388,23 @@ function setWebMusicVolume(slot, volume) {
   }
 }
 
+function fallbackMusicBufferKey(slot) {
+  const preferred = slot === "rush" ? "bgmRush" : "bgmMain";
+  if (musicBuffers.has(preferred)) return preferred;
+  return [...musicBuffers.keys()].find((key) => key.startsWith("bgm")) || null;
+}
+
 function playWebMusicTrack(slot, volume) {
-  const key = musicTrackKeys[slot];
-  const buffer = key ? musicBuffers.get(key) : null;
+  const requestedKey = musicTrackKeys[slot];
+  let key = requestedKey;
+  let buffer = key ? musicBuffers.get(key) : null;
+  if (!buffer) {
+    const fallbackKey = fallbackMusicBufferKey(slot);
+    if (fallbackKey) {
+      key = fallbackKey;
+      buffer = musicBuffers.get(fallbackKey);
+    }
+  }
   const ctx = ensureSfxAudioContext();
   if (!ctx || !buffer || muted) return false;
   if (ctx.state === "closed") return false;
@@ -2389,7 +2413,7 @@ function playWebMusicTrack(slot, volume) {
   }
   const meta = musicTrackMeta[slot] || { startAt: 0, rate: 1 };
   const active = musicWebTracks[slot];
-  if (active && !active.stopped && active.key === key && Math.abs(active.rate - meta.rate) < 0.001) {
+  if (active && !active.stopped && active.key === key && active.requestedKey === requestedKey && Math.abs(active.rate - meta.rate) < 0.001) {
     setWebMusicVolume(slot, volume);
     return true;
   }
@@ -2409,12 +2433,24 @@ function playWebMusicTrack(slot, volume) {
       source,
       gain,
       key,
+      requestedKey,
+      fallback: key !== requestedKey,
       rate: meta.rate,
       offset,
       startedAt: ctx.currentTime,
       volume,
       stopped: false,
     };
+    if (requestedKey && key !== requestedKey) {
+      preloadMusicBuffer(requestedKey)
+        .then(() => {
+          const current = musicWebTracks[slot];
+          if (current && !current.stopped && current.fallback && current.requestedKey === requestedKey && activeMusicTrack === slot) {
+            startMusicSlot(slot, mapMusicProfile(state?.map || selectedMap, state?.player?.skin || selectedSkin));
+          }
+        })
+        .catch(() => {});
+    }
     source.onended = () => {
       if (musicWebTracks[slot]?.source === source && !musicWebTracks[slot].stopped) {
         musicWebTracks[slot] = null;
@@ -3145,6 +3181,32 @@ function castSignatureMove(signature) {
 
 function fireSignatureProjectile(signature, angle) {
   const p = state.player;
+  if (signature.id === "sonicBoom") {
+    const level = Math.max(1, state.weapons.cutlass.level || 1);
+    const stage = sonicBoomStage(level);
+    const speed = Math.max(signature.speed || 560, 690 + level * 18 + stage * 34);
+    state.projectiles.push({
+      type: "signature",
+      icon: "sonicBoom",
+      signatureId: "sonicBoom",
+      sonicLevel: level,
+      sonicStage: stage,
+      animSeed: Math.floor(Math.random() * SONIC_BOOM_FX.frames),
+      x: p.x + Math.cos(angle) * 58,
+      y: p.y + Math.sin(angle) * 38 - 8,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 24 + stage * 3 + Math.min(4, level),
+      damage: (signature.damage || 26) + level * 5,
+      signatureDamage: state.stats.signatureDamage || 1,
+      life: 1.55 + stage * 0.18 + level * 0.04,
+      pierce: Math.max(signature.pierce ?? 1, 2 + stage + Math.floor(level / 3)),
+      spin: angle,
+      size: 112 + stage * 20 + level * 2,
+      retarget: false,
+    });
+    return;
+  }
   const speed = signature.speed || 560;
   state.projectiles.push({
     type: "signature",
@@ -3196,7 +3258,8 @@ function fireGuileSonicBoom(level, fallbackAngle = 0) {
   if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
   const target = nearestEnemy();
   const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
-  const speed = 620 + level * 26;
+  const stage = sonicBoomStage(level);
+  const speed = 690 + level * 30 + stage * 36;
   const count = level >= 7 ? 2 : 1;
   const spread = count > 1 ? 0.18 : 0;
   state.guileArsenal.sonicBooms += count;
@@ -3206,17 +3269,21 @@ function fireGuileSonicBoom(level, fallbackAngle = 0) {
     const shotAngle = angle + (i - (count - 1) / 2) * spread;
     state.projectiles.push({
       type: "signature",
+      icon: "sonicBoom",
       signatureId: "sonicBoom",
-      x: p.x + Math.cos(shotAngle) * 38,
-      y: p.y + Math.sin(shotAngle) * 28 - 4,
+      sonicLevel: level,
+      sonicStage: stage,
+      animSeed: Math.floor(Math.random() * SONIC_BOOM_FX.frames),
+      x: p.x + Math.cos(shotAngle) * 60,
+      y: p.y + Math.sin(shotAngle) * 40 - 10,
       vx: Math.cos(shotAngle) * speed,
       vy: Math.sin(shotAngle) * speed,
-      r: 20 + Math.min(6, level),
-      damage: 24 + level * 8,
-      life: 1.35 + level * 0.1,
-      pierce: 2 + Math.floor(level / 2),
-      spin: 0,
-      size: 76 + level * 2,
+      r: 24 + stage * 3 + Math.min(5, level),
+      damage: 28 + level * 9 + stage * 4,
+      life: 1.45 + level * 0.11 + stage * 0.08,
+      pierce: 2 + stage + Math.floor(level / 2),
+      spin: shotAngle,
+      size: 116 + stage * 20 + level * 3,
       signatureDamage: state.stats.signatureDamage || 1,
       retarget: false,
     });
@@ -3843,6 +3910,21 @@ function enemyProjectileProfile(enemy) {
   return null;
 }
 
+function spawnSonicBoomBurst(projectile) {
+  const stage = clamp(projectile.sonicStage || 0, 0, SONIC_BOOM_FX.rows - 1);
+  state.zones.push({
+    type: "sonicBoomBurst",
+    x: projectile.x,
+    y: projectile.y,
+    angle: Math.atan2(projectile.vy || 0, projectile.vx || 1),
+    radius: (projectile.r || 24) * (1.8 + stage * 0.18),
+    life: 0.2,
+    maxLife: 0.2,
+    stage,
+    frameSeed: projectile.animSeed || 0,
+  });
+}
+
 function updateProjectiles(dt) {
   for (const projectile of state.projectiles) {
     projectile.life -= dt;
@@ -3855,6 +3937,7 @@ function updateProjectiles(dt) {
         const dist = Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y);
         if (dist < enemy.r + projectile.r) {
           hurtEnemy(enemy, projectile.damage * state.stats.damage * (projectile.signatureDamage || 1), projectile.vx, projectile.vy);
+          if (projectile.signatureId === "sonicBoom") spawnSonicBoomBurst(projectile);
           if (projectile.compassFuse) arcCompassCoconut(projectile, enemy, state.weapons.compass.level);
           enemy._hitBy = projectile;
           projectile.pierce -= 1;
@@ -4217,6 +4300,7 @@ function killEnemy(enemy) {
   } else if (enemy.elite) {
     state.runStats.elites += 1;
     state.gems.push({ kind: "coin", icon: "coin", x: enemy.x + 18, y: enemy.y + 12, r: 12, value: 14 + state.pressureWave * 2, life: 36 });
+    grantOmenShard(enemy);
     spawnPowerup(enemy.x - 22, enemy.y + 18, null, { life: 20, cooldown: 16 });
     floatingText("Omen gebrochen", enemy.x, enemy.y - enemy.r - 58, "#ffdf6e", 0.86, 28, { priority: 3 });
     playSkinSound("powerup", "upgradeMagic", { force: true });
@@ -4257,6 +4341,52 @@ function killEnemy(enemy) {
   }
   unlockAchievements();
   saveMetaProgress();
+}
+
+function ensureOmenShards() {
+  if (!state.omenShards) state.omenShards = { count: 0, nextReward: 3, boons: 0 };
+  state.omenShards.count = Math.max(0, state.omenShards.count || 0);
+  state.omenShards.nextReward = Math.max(3, state.omenShards.nextReward || 3);
+  state.omenShards.boons = Math.max(0, state.omenShards.boons || 0);
+  return state.omenShards;
+}
+
+function grantOmenShard(enemy) {
+  const omen = ensureOmenShards();
+  omen.count += 1;
+  const shardValue = 10 + Math.min(24, state.pressureWave * 3);
+  state.gems.push({
+    kind: "xp",
+    icon: "skullCoin",
+    xpTier: omen.count >= omen.nextReward ? "red" : "green",
+    x: enemy.x - 18,
+    y: enemy.y - 18,
+    r: 12,
+    value: shardValue,
+    life: 36,
+  });
+  if (omen.count < omen.nextReward) {
+    floatingText(`Omen ${omen.count}/${omen.nextReward}`, enemy.x, enemy.y - enemy.r - 88, "#ffdf6e", 0.68, 20, { priority: 2 });
+    return false;
+  }
+
+  omen.boons += 1;
+  omen.nextReward += 3;
+  state.runStats.omenBoons = (state.runStats.omenBoons || 0) + 1;
+  state.runStats.flowRewards += 1;
+  metaProgress.flowRewards += 1;
+  const rewards = [
+    { name: "Jagdtempo", color: "#53ffe5", apply: () => { state.stats.speed += 9; } },
+    { name: "Omen-Schaden", color: "#ffb14c", apply: () => { state.stats.damage += 0.045; } },
+    { name: "Beute-Sog", color: "#bfffea", apply: () => { state.stats.magnet += 32; } },
+    { name: "Taktwechsel", color: "#fff2c7", apply: () => { state.stats.cooldown = Math.max(0.78, (state.stats.cooldown || 1) - 0.025); } },
+  ];
+  const reward = rewards[(omen.boons - 1) % rewards.length];
+  reward.apply();
+  spawnPowerup(enemy.x - 34, enemy.y + 22, "omenBounty", { life: 24, cooldown: 12 });
+  state.zones.push({ type: "omenBoon", icon: "bloodRose", x: enemy.x, y: enemy.y - 34, life: 0.82, maxLife: 0.82, level: omen.boons });
+  floatingText(`Omen-Boon: ${reward.name}`, enemy.x, enemy.y - enemy.r - 96, reward.color, 0.86, 24, { priority: 3 });
+  return true;
 }
 
 function recordStreakKill(enemy) {
@@ -4980,8 +5110,9 @@ function drawEnemies() {
       const bob = enemy.type.id === "reefSquid"
         ? Math.sin(state.elapsed * 8.8 + enemy.frameOffset) * 8
         : Math.sin(state.elapsed * 5.4 + enemy.frameOffset) * 3.5;
-      w = NEW_ENEMY_TRIO.w * drawScale * (enemy.boss ? 1.16 : 1);
-      h = NEW_ENEMY_TRIO.h * drawScale * (enemy.boss ? 1.16 : 1);
+      const animScale = animatedEnemyDrawScale(enemy, NEW_ENEMY_TRIO.h) * (enemy.type.id === "reefSquid" ? 1.05 : 1);
+      w = NEW_ENEMY_TRIO.w * animScale * (enemy.boss ? 1.16 : 1);
+      h = NEW_ENEMY_TRIO.h * animScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 26 : 12;
       ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.enemyAnim && images.enemyAnimSheet) {
@@ -5143,6 +5274,11 @@ function drawProjectiles() {
   const oy = scene.h / 2 - state.camera.y;
   for (const projectile of state.projectiles) {
     if (!onScreen(projectile.x, projectile.y, 100)) continue;
+    if (projectile.signatureId === "sonicBoom" && images.sonicBoomFx) {
+      const size = projectile.size || 118;
+      drawSonicBoomFx(projectile, ox + projectile.x, oy + projectile.y, size, size, 0.98);
+      continue;
+    }
     if (projectile.type === "signature" && images.signatureWeapons) {
       const size = projectile.size || 74;
       drawSignatureWeaponFx(projectile.signatureId, ox + projectile.x, oy + projectile.y, size, size, projectile.spin, 0.98);
@@ -5200,6 +5336,15 @@ function drawWeaponEffects() {
       const burstSize = zone.radius * 2.2;
       drawPlayerEffectAt("curseBurst", -burstSize * 0.56, -burstSize * 0.56, burstSize * 1.12, burstSize * 1.12);
       drawProjectileFxAt(zone.fx === "ghostCannonball" ? "ghostCannonball" : "monkeyCurseOrb", -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+    } else if (zone.type === "sonicBoomBurst") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(zone.angle || 0);
+      const burstSize = zone.radius * 2.25;
+      if (images.sonicBoomFx) {
+        drawSonicBoomFxAt(zone.stage || 0, Math.floor((1 - a) * SONIC_BOOM_FX.frames + (zone.frameSeed || 0)), -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+      }
+      ctx.globalAlpha = a * 0.35;
+      drawPlayerEffectAt("compassBeam", -burstSize * 0.62, -burstSize * 0.5, burstSize * 1.24, burstSize);
     } else if (zone.type === "signatureBurst" || zone.type === "signatureTrap") {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate((zone.angle || 0) + state.elapsed * (zone.type === "signatureTrap" ? 0.35 : 0.7));
@@ -5217,6 +5362,12 @@ function drawWeaponEffects() {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
       drawPlayerEffectAt("tidePulse", -rippleSize / 2, -rippleSize / 2, rippleSize, rippleSize);
+    } else if (zone.type === "omenBoon") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(state.elapsed * 0.7);
+      const size = 82 + Math.min(44, (zone.level || 1) * 10);
+      drawPlayerEffectAt("treasureGlint", -size * 0.88, -size * 0.88, size * 1.76, size * 1.76);
+      drawItemAt(zone.icon || "bloodRose", -size / 2, -size / 2, size, size);
     } else if (zone.type === "saberTornado") {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate(zone.angle + state.elapsed * 1.1);
@@ -5397,6 +5548,31 @@ function drawGuileActionFrameAt(move, frame, x, y, w, h) {
   const sx = positiveModulo(frame || 0, GUILE_ACTION.frames) * GUILE_ACTION.w;
   const sy = row * GUILE_ACTION.h;
   ctx.drawImage(images.guileActions, sx, sy, GUILE_ACTION.w, GUILE_ACTION.h, x, y, w, h);
+}
+
+function drawSonicBoomFx(projectile, x, y, w, h, alpha = 1) {
+  if (!images.sonicBoomFx) {
+    drawSignatureWeaponFx("sonicBoom", x, y, w, h, projectile.spin || 0, alpha);
+    return;
+  }
+  const angle = Math.atan2(projectile.vy || 0, projectile.vx || 1);
+  const level = projectile.sonicLevel || Math.max(1, state.weapons.cutlass.level || 1);
+  const stage = projectile.sonicStage ?? sonicBoomStage(level);
+  const frame = Math.floor(state.elapsed * SONIC_BOOM_FX.fps + (projectile.animSeed || 0));
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  drawSonicBoomFxAt(stage, frame, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+function drawSonicBoomFxAt(stage, frame, x, y, w, h) {
+  if (!images.sonicBoomFx) return;
+  const safeStage = clamp(stage || 0, 0, SONIC_BOOM_FX.rows - 1);
+  const sx = positiveModulo(frame || 0, SONIC_BOOM_FX.frames) * SONIC_BOOM_FX.w;
+  const sy = safeStage * SONIC_BOOM_FX.h;
+  ctx.drawImage(images.sonicBoomFx, sx, sy, SONIC_BOOM_FX.w, SONIC_BOOM_FX.h, x, y, w, h);
 }
 
 function drawSignatureWeaponFx(signatureId, x, y, w, h, rotation = 0, alpha = 1) {
@@ -6197,6 +6373,30 @@ window.__MONKEY_TIDE_NEW_ENEMY_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_OMEN_SHARD_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.omenShards = { count: 0, nextReward: 3, boons: 0 };
+  const beforeFlow = metaProgress.flowRewards;
+  const beforePowerups = state.gems.filter((gem) => gem.kind === "powerup").length;
+  const p = state.player;
+  ["crab", "reefSquid", "gargoyle"].forEach((id, index) => {
+    window.__MONKEY_TIDE_SPAWN_ENEMY(id, p.x + 240 + index * 86, p.y - 70 + index * 44, false);
+    const enemy = state.enemies[state.enemies.length - 1];
+    markEliteEnemy(enemy, index + 1);
+    enemy.hp = 0;
+    killEnemy(enemy);
+  });
+  state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
+  render();
+  return {
+    omen: { ...ensureOmenShards() },
+    omenBoons: state.runStats.omenBoons || 0,
+    flowRewardsGained: metaProgress.flowRewards - beforeFlow,
+    powerupDrops: state.gems.filter((gem) => gem.kind === "powerup").length - beforePowerups,
+    omenZones: state.zones.filter((zone) => zone.type === "omenBoon").length,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
@@ -6351,11 +6551,23 @@ window.__MONKEY_TIDE_GUILE_ACTION_PROBE = () => {
     assetLoaded: !!images.guileActions,
     source: imageSources.guileActions,
     frames: { ...GUILE_ACTION },
+    sonicBoomFxLoaded: !!images.sonicBoomFx,
+    sonicBoomFxSource: imageSources.sonicBoomFx,
+    sonicBoomFrames: { ...SONIC_BOOM_FX },
     rows: Object.fromEntries(Object.keys(GUILE_ACTION.rowsByAction).map((action) => [action, guileActionRow(action)])),
     weaponDisplay: weaponPresentation("cutlass", "guile"),
     upgradeDisplay: cutlassUpgrade ? upgradePresentation(cutlassUpgrade) : null,
     arsenal: { ...state.guileArsenal },
     signatureProjectiles: state.projectiles.filter((projectile) => projectile.signatureId === "sonicBoom").length,
+    sonicProjectiles: state.projectiles.filter((projectile) => projectile.signatureId === "sonicBoom").map((projectile) => ({
+      stage: projectile.sonicStage,
+      level: projectile.sonicLevel,
+      size: projectile.size,
+      radius: projectile.r,
+      pierce: projectile.pierce,
+      speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+    })),
+    sonicBursts: state.zones.filter((zone) => zone.type === "sonicBoomBurst").length,
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
     guileZones: state.zones.filter((zone) => zone.type === "guileStrike" || zone.type === "guileFlashKick").length,
     currentAction: state.playerAction ? { ...state.playerAction, row: guileActionRow(state.playerAction.type), frame: guileActionFrame(state.playerAction) } : null,
@@ -6436,6 +6648,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
     pressureWaves: state.runStats.pressureWaves,
     eliteEnemies: state.enemies.filter((enemy) => enemy.elite).length,
     elitesDefeated: state.runStats.elites,
+    omenShards: { ...ensureOmenShards() },
+    omenBoons: state.runStats.omenBoons || 0,
     activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id),
     selectedUpgradeIndex,
   },
@@ -6539,7 +6753,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     animatedMinimumHeight: ENEMY_TUNING.minAnimatedVisualHeight,
     animatedBoost: ENEMY_TUNING.animatedVisualBoost,
     animatedProjectedHeights: Object.fromEntries(enemyTypes
-      .filter((type) => (type.enemyAnim || type.gothicAnim) && !type.humanNpc)
+      .filter((type) => (type.enemyAnim || type.gothicAnim || type.newEnemyAnim) && !type.humanNpc)
       .map((type) => {
         const mockEnemy = {
           type,
@@ -6547,7 +6761,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
           boss: !!type.bossCandidate || type.id === "idol",
           elite: false,
         };
-        const sourceHeight = type.gothicAnim ? GOTHIC_ENEMY_ANIM.h : ENEMY_ANIM.h;
+        const sourceHeight = type.gothicAnim ? GOTHIC_ENEMY_ANIM.h : type.newEnemyAnim ? NEW_ENEMY_TRIO.h : ENEMY_ANIM.h;
         return [type.id, Math.round(sourceHeight * animatedEnemyDrawScale(mockEnemy, sourceHeight))];
       })),
   },
@@ -6708,6 +6922,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   },
   extraAssets: {
     extraEnemies: !!images.extraEnemies,
+    extraEnemiesSource: imageSources.extraEnemies,
     extraItems: !!images.extraItems,
     extraEnemyTypes: enemyTypes.filter((type) => type.extraSprite).map((type) => type.id),
     extraItemTypes: Object.keys(extraItemMap),
@@ -6730,8 +6945,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
     weaponEvolutionFx: !!images.weaponEvolutionFx,
     fusionRelics: !!images.fusionRelics,
     signatureWeapons: !!images.signatureWeapons,
+    sonicBoomFx: !!images.sonicBoomFx,
     guileActions: !!images.guileActions,
     guileActionFrames: { ...GUILE_ACTION },
+    sonicBoomFrames: { ...SONIC_BOOM_FX },
     signatureWeaponFrames: { ...SIGNATURE_WEAPON_FX },
     signatureWeaponTypes: Object.keys(signatureWeaponMap),
     xpCrystalAnim: !!images.xpCrystalAnim,
