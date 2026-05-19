@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="ruhiges Kachelmuster">
-  <rect width="160" height="160" fill="#edf6fb"/>
-  <path d="M0 40H160M0 80H160M0 120H160M40 0V160M80 0V160M120 0V160" stroke="#c8dce8" stroke-width="2" opacity="0.55"/>
-  <circle cx="40" cy="40" r="7" fill="#0f5e9c" opacity="0.12"/>
-  <circle cx="120" cy="120" r="7" fill="#067a46" opacity="0.12"/>
-  <path d="M18 142L142 18" stroke="#f2b84b" stroke-width="4" opacity="0.12"/>
-</svg>

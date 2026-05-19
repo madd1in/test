@@ -53,9 +53,9 @@ const imageSources = {
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
   newSprites: "assets/sprites/new_sprites_imagen_hd.webp",
-  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png?v=green-edge-clean-v2",
+  enemyAnimSheet: "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png?v=slice-repair-v3",
   gothicEnemies: "assets/sprites/gothic_enemies_hd_sheet_clean.png?v=slice-clean-v1",
-  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png?v=gothic-multiframe-v1",
+  gothicEnemyAnimSheet: "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png?v=gothic-slice-repair-v2",
   gothicItems: "assets/sprites/gothic_items_hd_sheet.webp",
   gothicProps: "assets/sprites/gothic_props_hd_sheet.webp",
   spectralCaptain: "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -77,6 +77,7 @@ const imageSources = {
   projectileFx: "assets/sprites/projectile_fx_imagen_hd.webp",
   playerEffects: "assets/sprites/player_effects_imagen_hd.webp",
   weaponEvolutionFx: "assets/sprites/weapon_evolution_fx_imagen_hd.png",
+  fusionRelics: "assets/sprites/fusion_relics_imagen_hd_clean.png?v=fusion-relics-v1",
   xpCrystalAnim: "assets/sprites/xp_crystal_anim_imagen_hd.png?v=imagen-xp-v1",
   extraEnemies: "assets/sprites/extra_enemies_imagen_hd.webp",
   extraItems: "assets/sprites/extra_items_imagen_hd.webp",
@@ -94,6 +95,11 @@ const audioSources = {
   bgmCrimson: "assets/audio/bgm/crimson-galleon.mp3",
   bgmCoconut: "assets/audio/bgm/coconut-caper-loop.mp3",
   bgmRumRiddle: "assets/audio/bgm/shoreline-rum-riddle.mp3",
+  bgmRyuSignature: "assets/audio/bgm/sf-ryu-dojo-crash-duel.mp3",
+  bgmKenSignature: "assets/audio/bgm/sf-ken-steel-punch-parade.mp3",
+  bgmGuileSignature: "assets/audio/bgm/sf-guile-jet-fuel-glory.mp3",
+  bgmChunLiSignature: "assets/audio/bgm/sf-chun-li-bamboo-arcade.mp3",
+  bgmStreetRush: "assets/audio/bgm/sf-rush-gasket-thunder.mp3",
   pickup: "assets/audio/sfx/from-downloads/pickup-gem.mp3",
   chime: "assets/audio/sfx/from-downloads/soft-chime.mp3",
   gate: "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -187,10 +193,23 @@ const musicConfig = {
 let music = null;
 let rushMusic = null;
 let activeMusicTrack = null;
+let armedMusicTrack = null;
 let musicTrackKeys = { main: null, rush: null };
 let musicTrackMeta = { main: { startAt: 0, rate: 1 }, rush: { startAt: 0, rate: 1 } };
 const musicBlobUrls = {};
 const musicPreloadState = { ready: false, loaded: 0, total: 0, decoded: 0, failed: [], keys: [] };
+const loadedImageKeys = new Set();
+const imageLoadPromises = new Map();
+const deferredAssetState = {
+  mobileFastPath: false,
+  imageTotal: 0,
+  imageLoaded: 0,
+  musicTotal: 0,
+  musicLoaded: 0,
+  queuedImages: [],
+  bootImages: [],
+  bootMusic: [],
+};
 let menuMusicPrimePromise = Promise.resolve();
 let muted = false;
 const speechState = {
@@ -276,6 +295,7 @@ const NEW_ENEMY_TRIO = { w: 256, h: 256, cols: 8, rows: 3, frames: 8, fps: 8.2 }
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
+const FUSION_RELIC = { w: 256, h: 256, cols: 4, rows: 4, frames: 4, fps: 5.5 };
 const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -416,7 +436,7 @@ const playerSkinMap = {
     selectIndex: 0,
     animH: 168,
     animDrawYOffset: 31,
-    music: { theme: "Crimson Galleon Focus", main: "bgmCrimson", rush: "bgmCathedral", mainVolume: 0.62, rushVolume: 0.57, rushStart: 64, mainStartAt: 0, rushStartAt: 8, mainRate: 1.02, rushRate: 1.035 },
+    music: { theme: "Dojo Crash Duel", main: "bgmRyuSignature", rush: "bgmStreetRush", mainVolume: 0.63, rushVolume: 0.59, rushStart: 62, mainStartAt: 0, rushStartAt: 0, mainRate: 1, rushRate: 1.025 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "heavyHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "upgradeMagic", warning: "bossWarningCursed", bossDown: "bossDownUndead" },
     trait: {
       id: "hadokenFocus",
@@ -436,7 +456,7 @@ const playerSkinMap = {
     selectIndex: 1,
     animH: 168,
     animDrawYOffset: 31,
-    music: { theme: "Coconut Caper Rush", main: "bgmCoconut", rush: "bgmCurseMonkey", mainVolume: 0.63, rushVolume: 0.58, rushStart: 54, mainStartAt: 0, rushStartAt: 8, mainRate: 1.045, rushRate: 1.075 },
+    music: { theme: "Steel Punch Parade", main: "bgmKenSignature", rush: "bgmStreetRush", mainVolume: 0.64, rushVolume: 0.6, rushStart: 52, mainStartAt: 0, rushStartAt: 0, mainRate: 1.015, rushRate: 1.04 },
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "curseMonkeyWarning", bossDown: "curseMonkeyBossDown" },
     trait: {
       id: "dragonRush",
@@ -456,7 +476,7 @@ const playerSkinMap = {
     selectIndex: 2,
     animH: 176,
     animDrawYOffset: 31,
-    music: { theme: "Rum Riddle Barrage", main: "bgmRumRiddle", rush: "bgmRush", mainVolume: 0.62, rushVolume: 0.57, rushStart: 70, mainStartAt: 0, rushStartAt: 8, mainRate: 1.025, rushRate: 1.04 },
+    music: { theme: "Jet Fuel Glory", main: "bgmGuileSignature", rush: "bgmStreetRush", mainVolume: 0.63, rushVolume: 0.58, rushStart: 68, mainStartAt: 0, rushStartAt: 0, mainRate: 1, rushRate: 1.02 },
     sfx: { confirm: "pirateUiClick", slash: "slashSwish", dash: "dashWhooshFast", hurt: "heavyHit", hit: "ghostAnchorHit", pickup: "downloadPickup", powerup: "upgradeMagic", warning: "downloadBossWarning", bossDown: "bossDownUndead" },
     trait: {
       id: "sonicGuard",
@@ -476,7 +496,7 @@ const playerSkinMap = {
     selectIndex: 3,
     animH: 164,
     animDrawYOffset: 32,
-    music: { theme: "Voodoo Lightning Step", main: "bgmVoodoo", rush: "bgmCaper", mainVolume: 0.62, rushVolume: 0.57, rushStart: 58, mainStartAt: 0, rushStartAt: 10, mainRate: 1.04, rushRate: 1.06 },
+    music: { theme: "Bamboo Arcade", main: "bgmChunLiSignature", rush: "bgmStreetRush", mainVolume: 0.63, rushVolume: 0.59, rushStart: 56, mainStartAt: 0, rushStartAt: 0, mainRate: 1.02, rushRate: 1.035 },
     sfx: { confirm: "chime", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "cutlassImpact", pickup: "brightGem", powerup: "voodooMagic", warning: "bossWarningCursed", bossDown: "cursedBossDrop" },
     trait: {
       id: "lightningKicks",
@@ -762,6 +782,20 @@ const weaponEvolutionFxMap = {
   fusion3: { x: 3, y: 3 },
 };
 
+const fusionRelicMap = {
+  stormConch: { row: 0, name: "Sturm-Muschel", fusion: "starCoconut" },
+  bloodMoonAnchor: { row: 1, name: "Blutmond-Anker", fusion: "saberTornado" },
+  krakenCompass: { row: 2, name: "Kraken-Kompass", fusion: "moonNet" },
+  rumCometLantern: { row: 3, name: "Rumkometen-Laterne", fusion: "grogMaelstrom" },
+};
+const fusionRelicIds = Object.keys(fusionRelicMap);
+const fusionMomentRelicIcon = {
+  saberTornado: "bloodMoonAnchor",
+  starCoconut: "stormConch",
+  grogMaelstrom: "rumCometLantern",
+  moonNet: "krakenCompass",
+};
+
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
   { id: "crab", name: "Coconut Crab", sprite: "crab", enemyAnim: "crab", hp: 25, speed: 112, radius: 22, damage: 5, scale: 0.22, xp: 6, tint: "#ff8b46" },
@@ -829,6 +863,38 @@ const upgrades = [
     desc: "Wachsende Aura. Fusioniert spaet mit Saebeln zum Tornado.",
     max: 5,
     apply: () => raiseWeapon("rope"),
+  },
+  {
+    id: "stormConch",
+    name: "Sturm-Muschel",
+    icon: "stormConch",
+    desc: "Fusion-Relikt: macht Sternenkokos schneller, lauter und kettenfreudiger.",
+    max: 4,
+    apply: () => applyFusionRelic("stormConch"),
+  },
+  {
+    id: "bloodMoonAnchor",
+    name: "Blutmond-Anker",
+    icon: "bloodMoonAnchor",
+    desc: "Fusion-Relikt: verankert Saebelsturm als groesseren, sichereren Blutwirbel.",
+    max: 4,
+    apply: () => applyFusionRelic("bloodMoonAnchor"),
+  },
+  {
+    id: "krakenCompass",
+    name: "Kraken-Kompass",
+    icon: "krakenCompass",
+    desc: "Fusion-Relikt: erweitert Mondnetz mit Krakenstrahlen und staerkerem Sog.",
+    max: 4,
+    apply: () => applyFusionRelic("krakenCompass"),
+  },
+  {
+    id: "rumCometLantern",
+    name: "Rumkometen-Laterne",
+    icon: "rumCometLantern",
+    desc: "Fusion-Relikt: laesst Grog-Mahlstrom groesser und feuriger einschlagen.",
+    max: 4,
+    apply: () => applyFusionRelic("rumCometLantern"),
   },
   {
     id: "bloodRose",
@@ -1209,6 +1275,10 @@ function makeState() {
       compass: 0,
       bottle: 0,
       rope: 0,
+      stormConch: 0,
+      bloodMoonAnchor: 0,
+      krakenCompass: 0,
+      rumCometLantern: 0,
       bloodRose: 0,
       cursedPearl: 0,
       powderPouch: 0,
@@ -1484,36 +1554,136 @@ function setLoadingProgress(loaded, total, label = "") {
   ui.loadingText.textContent = loaded >= total ? "Bereit fuer die Flut" : `Lade ${loaded}/${total}`;
 }
 
+const MOBILE_BOOT_IMAGE_KEYS = [
+  "repeatBeach",
+  "characters",
+  "playerSkinSelect",
+  "fighterSelect",
+  "items",
+  "newSprites",
+  "enemyAnimSheet",
+  "gothicEnemies",
+  "newEnemyTrio",
+  "beachClearPuddle",
+  "beachTidePuddle",
+  "beachHedgeCluster",
+  "beachPalmHedge",
+  "beachPalmTree",
+  "beachTreasure",
+  "beachOpenTreasure",
+  "beachConchShrine",
+  "beachHut",
+  "beachBoatWreck",
+  "projectileFx",
+  "playerEffects",
+  "xpCrystalAnim",
+  "extraEnemies",
+  "extraItems",
+  "gothicItems",
+  "gothicProps",
+];
+
+function uniqueAssetKeys(keys, sourceMap) {
+  return [...new Set(keys)].filter((key) => sourceMap[key]);
+}
+
+function skinImageKeys(skinId = selectedSkin) {
+  const skin = playerSkinMap[skinId] || playerSkinMap.default;
+  return uniqueAssetKeys([
+    skin.sheet,
+    skin.animSheet,
+    skin.sheet === "playerSkins" ? "playerSkinWalks" : null,
+    skin.animSheet === "fighterWalks" ? "fighterWalks" : null,
+    skin.animSheet === "samMaxDuoWalk" ? "samMaxDuoWalk" : null,
+  ].filter(Boolean), imageSources);
+}
+
+function mapImageKeys(mapId = selectedMap) {
+  return uniqueAssetKeys([mapVariant(mapId).background], imageSources);
+}
+
+function musicKeysForProfile(mapId = selectedMap, skinId = selectedSkin) {
+  const profile = mapMusicProfile(mapId, skinId);
+  return uniqueAssetKeys([profile.mainKey, profile.rushKey], audioSources);
+}
+
+function bootImageKeys() {
+  if (!isMobileLike()) return Object.keys(imageSources);
+  return uniqueAssetKeys([
+    ...MOBILE_BOOT_IMAGE_KEYS,
+    ...mapImageKeys(selectedMap),
+    ...skinImageKeys(selectedSkin),
+  ], imageSources);
+}
+
+function bootMusicKeys() {
+  if (!isMobileLike()) return musicSourceEntries().map(([key]) => key);
+  return musicKeysForProfile(selectedMap, selectedSkin);
+}
+
+function imageEntriesForKeys(keys) {
+  return uniqueAssetKeys(keys, imageSources).map((key) => [key, imageSources[key]]);
+}
+
 function loadImage(key, src, onLoaded) {
-  return new Promise((resolve, reject) => {
+  if (images[key]) return Promise.resolve(images[key]);
+  if (imageLoadPromises.has(key)) return imageLoadPromises.get(key);
+  const promise = new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       images[key] = img;
-      onLoaded(key);
+      loadedImageKeys.add(key);
+      onLoaded?.(key);
+      imageLoadPromises.delete(key);
       resolve();
     };
-    img.onerror = () => reject(new Error(`Could not load ${src}`));
+    img.onerror = () => {
+      imageLoadPromises.delete(key);
+      reject(new Error(`Could not load ${src}`));
+    };
     img.src = src;
-  });
+  }).then((result) => result);
+  imageLoadPromises.set(key, promise);
+  return promise;
 }
 
-function musicSourceEntries() {
-  return Object.entries(audioSources).filter(([key]) => key.startsWith("bgm"));
+function loadImageKey(key, onLoaded) {
+  return loadImage(key, imageSources[key], onLoaded);
+}
+
+function loadImageKeys(keys, onLoaded) {
+  return Promise.all(imageEntriesForKeys(keys).map(([key]) => loadImageKey(key, onLoaded)));
+}
+
+function musicSourceEntries(keys = null) {
+  const wanted = keys ? new Set(keys) : null;
+  return Object.entries(audioSources).filter(([key]) => key.startsWith("bgm") && (!wanted || wanted.has(key)));
 }
 
 function resolvedAudioSource(key) {
   return musicBlobUrls[key] || audioSources[key] || audioSources.bgmMain;
 }
 
-async function preloadMusicAssets(onLoaded) {
-  const entries = musicSourceEntries();
-  musicPreloadState.ready = false;
-  musicPreloadState.loaded = 0;
-  musicPreloadState.decoded = 0;
-  musicPreloadState.total = entries.length;
-  musicPreloadState.keys = entries.map(([key]) => key);
-  musicPreloadState.failed = [];
+async function preloadMusicAssets(onLoaded, keys = null, options = {}) {
+  const entries = musicSourceEntries(keys);
+  const countProgress = options.countProgress !== false;
+  if (options.reset !== false) {
+    musicPreloadState.ready = false;
+    musicPreloadState.loaded = 0;
+    musicPreloadState.decoded = 0;
+    musicPreloadState.total = entries.length;
+    musicPreloadState.keys = entries.map(([key]) => key);
+    musicPreloadState.failed = [];
+  }
   await Promise.all(entries.map(async ([key, src]) => {
+    if (musicBlobUrls[key]) {
+      if (countProgress) {
+        musicPreloadState.loaded += 1;
+        musicPreloadState.decoded += 1;
+        onLoaded?.(key);
+      }
+      return;
+    }
     try {
       const response = await fetch(src, { cache: "force-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1521,15 +1691,55 @@ async function preloadMusicAssets(onLoaded) {
       const objectUrl = URL.createObjectURL(blob);
       musicBlobUrls[key] = objectUrl;
       await warmAudioForPlayback(objectUrl);
-      musicPreloadState.loaded += 1;
-      musicPreloadState.decoded += 1;
-      onLoaded(key);
+      if (countProgress) {
+        musicPreloadState.loaded += 1;
+        musicPreloadState.decoded += 1;
+        onLoaded?.(key);
+      }
     } catch (error) {
-      musicPreloadState.failed.push(key);
+      if (countProgress) musicPreloadState.failed.push(key);
       throw new Error(`Could not preload ${src}: ${error.message}`);
     }
   }));
-  musicPreloadState.ready = musicPreloadState.loaded === musicPreloadState.total && musicPreloadState.failed.length === 0;
+  if (countProgress) {
+    musicPreloadState.ready = musicPreloadState.loaded === musicPreloadState.total && musicPreloadState.failed.length === 0;
+  }
+}
+
+function preloadMusicKeys(keys) {
+  const pending = uniqueAssetKeys(keys, audioSources).filter((key) => key.startsWith("bgm") && !musicBlobUrls[key]);
+  if (!pending.length) return Promise.resolve();
+  return preloadMusicAssets(() => {}, pending, { reset: false, countProgress: false })
+    .then(() => {
+      deferredAssetState.musicLoaded += pending.length;
+    })
+    .catch(() => {});
+}
+
+function preloadMusicForSelection(mapId = selectedMap, skinId = selectedSkin) {
+  return preloadMusicKeys(musicKeysForProfile(mapId, skinId));
+}
+
+function queueDeferredAssetLoading(bootKeys = []) {
+  const bootSet = new Set(bootKeys);
+  const queuedImages = Object.keys(imageSources).filter((key) => !bootSet.has(key) && !images[key]);
+  deferredAssetState.mobileFastPath = isMobileLike();
+  deferredAssetState.imageTotal = queuedImages.length;
+  deferredAssetState.imageLoaded = 0;
+  deferredAssetState.musicTotal = 0;
+  deferredAssetState.musicLoaded = 0;
+  deferredAssetState.queuedImages = queuedImages;
+  if (!queuedImages.length) return;
+  const loadDeferred = async () => {
+    for (const key of queuedImages) {
+      try {
+        await loadImageKey(key, () => {
+          deferredAssetState.imageLoaded += 1;
+        });
+      } catch {}
+    }
+  };
+  setTimeout(loadDeferred, isMobileLike() ? 1800 : 120);
 }
 
 function warmAudioForPlayback(src) {
@@ -1576,7 +1786,7 @@ function prepareAudio() {
     if (key.startsWith("bgm")) continue;
     soundPools[key] = Array.from({ length: 5 }, () => {
       const audio = new Audio(src);
-      audio.preload = "auto";
+      audio.preload = isMobileLike() ? "none" : "auto";
       audio.volume = soundConfig[key]?.volume ?? 0.16;
       return audio;
     });
@@ -1593,6 +1803,7 @@ function prepareAudio() {
   musicTrackMeta = { main: { startAt: 0, rate: 1 }, rush: { startAt: 0, rate: 1 } };
   configureMusicForMap(selectedMap);
   activeMusicTrack = null;
+  armedMusicTrack = null;
 }
 
 function prepareSpeech() {
@@ -1620,8 +1831,12 @@ async function boot() {
   renderSkinPicker();
   renderMapPicker();
   renderMetaProgress();
-  const imageEntries = Object.entries(imageSources);
-  const totalAssets = imageEntries.length + musicSourceEntries().length;
+  const bootImageKeyList = bootImageKeys();
+  const bootMusicKeyList = bootMusicKeys();
+  const imageEntries = imageEntriesForKeys(bootImageKeyList);
+  deferredAssetState.bootImages = bootImageKeyList;
+  deferredAssetState.bootMusic = bootMusicKeyList;
+  const totalAssets = imageEntries.length + bootMusicKeyList.length;
   let loadedAssets = 0;
   const markLoaded = (loadedKey) => {
     loadedAssets += 1;
@@ -1630,7 +1845,7 @@ async function boot() {
   setLoadingProgress(0, totalAssets);
   await Promise.all([
     ...imageEntries.map(([key, src]) => loadImage(key, src, markLoaded)),
-    preloadMusicAssets(markLoaded),
+    preloadMusicAssets(markLoaded, bootMusicKeyList),
   ]);
   prepareAudio();
   prepareSpeech();
@@ -1640,6 +1855,7 @@ async function boot() {
   setLoadingProgress(totalAssets, totalAssets, "ready");
   ui.startButton.disabled = false;
   ui.quickButton.disabled = false;
+  queueDeferredAssetLoading(bootImageKeyList);
   render();
 }
 
@@ -1712,6 +1928,8 @@ function setSelectedMap(id) {
   try {
     window.localStorage?.setItem("monkeyTideMap", id);
   } catch {}
+  loadImageKeys(mapImageKeys(id), () => {}).catch(() => {});
+  preloadMusicForSelection(id, selectedSkin);
   renderMapPicker();
   primeMenuMusic();
 }
@@ -1723,6 +1941,8 @@ function setPlayerSkin(id) {
   try {
     window.localStorage?.setItem("monkeyTidePlayerSkin", id);
   } catch {}
+  loadImageKeys(skinImageKeys(id), () => {}).catch(() => {});
+  preloadMusicForSelection(selectedMap, id);
   renderSkinPicker();
   if (state?.phase === "playing") syncMusic();
   else primeMenuMusic();
@@ -1792,19 +2012,28 @@ function waitForMusicSlotReady(slot, timeoutMs = 3500) {
   });
 }
 
+function musicSlotAudio(track) {
+  return track === "rush" ? rushMusic : music;
+}
+
 function armMusicForStart(track = "main") {
   if (!music || !rushMusic || muted) return;
   configureMusicForMap(selectedMap, selectedSkin);
-  const audio = track === "rush" ? rushMusic : music;
-  const other = track === "rush" ? music : rushMusic;
-  seekMusicSlotToStart(track, true);
+  const slot = track === "rush" ? "rush" : "main";
+  const audio = musicSlotAudio(slot);
+  const other = slot === "rush" ? music : rushMusic;
+  const alreadyArmed = armedMusicTrack === slot && audio && !audio.paused;
+  if (!alreadyArmed) seekMusicSlotToStart(slot, true);
   audio.volume = 0;
   audio.muted = true;
   other.volume = 0;
   other.pause();
+  armedMusicTrack = slot;
   audio.play().then(() => {
-    if (state?.phase === "menu") seekMusicSlotToStart(track, true);
-  }).catch(() => {});
+    if (armedMusicTrack === slot && state?.phase === "menu" && audio.currentTime > 1.25) seekMusicSlotToStart(slot, true);
+  }).catch(() => {
+    if (armedMusicTrack === slot) armedMusicTrack = null;
+  });
 }
 
 function playSound(key, options = {}) {
@@ -1898,6 +2127,7 @@ function setMusicSource(slot, key, meta = {}) {
   const metaChanged = Math.abs(currentMeta.startAt - nextMeta.startAt) > 0.05 || Math.abs(currentMeta.rate - nextMeta.rate) > 0.001;
   if (!keyChanged && !metaChanged) return;
   if (keyChanged) {
+    if (armedMusicTrack === slot) armedMusicTrack = null;
     audio.pause();
     audio.src = resolvedAudioSource(key);
     audio.load();
@@ -1964,6 +2194,7 @@ function stopMusicTracks() {
   music.volume = 0;
   rushMusic.volume = 0;
   activeMusicTrack = null;
+  armedMusicTrack = null;
 }
 
 function resetMusicTracks() {
@@ -1972,15 +2203,36 @@ function resetMusicTracks() {
   seekMusicSlotToStart("rush", true);
 }
 
+function prepareMusicForRun(expectedTrack = "main") {
+  const slot = expectedTrack === "rush" ? "rush" : "main";
+  if (armedMusicTrack !== slot || muted) {
+    resetMusicTracks();
+    return;
+  }
+  const audio = musicSlotAudio(slot);
+  const other = slot === "rush" ? music : rushMusic;
+  if (!audio || !other) {
+    resetMusicTracks();
+    return;
+  }
+  other.pause();
+  other.volume = 0;
+  audio.volume = 0;
+  audio.muted = muted;
+  if (audio.paused) audio.play().catch(() => {});
+  activeMusicTrack = null;
+}
+
 function startGame(options = {}) {
   if (!ready) return;
   quickMode = options.quick === true;
   selectedMap = normalizeSelectedMap(selectedMap);
+  loadImageKeys([...mapImageKeys(selectedMap), ...skinImageKeys(selectedSkin)], () => {}).catch(() => {});
+  preloadMusicForSelection(selectedMap, selectedSkin);
   resetSpeechForRun();
   state = makeState();
   state.phase = "playing";
   configureMusicForMap(state.map, state.player.skin);
-  resetMusicTracks();
   if (quickMode) {
     state.elapsed = 135;
     state.pressureTimer = 1.2;
@@ -1989,6 +2241,7 @@ function startGame(options = {}) {
     state.level = 4;
     state.nextXp = 220;
   }
+  prepareMusicForRun(quickMode ? "rush" : "main");
   ui.startOverlay.hidden = true;
   ui.endOverlay.hidden = true;
   ui.upgradeOverlay.hidden = true;
@@ -2429,6 +2682,52 @@ function compassRopeReady() {
   return (state?.weapons?.compass?.level || 0) >= 4 && (state?.weapons?.rope?.level || 0) >= 3;
 }
 
+function fusionRelicLevel(id) {
+  return state?.upgradeCounts?.[id] || 0;
+}
+
+function fusionRelicTotalLevel() {
+  return fusionRelicIds.reduce((sum, id) => sum + fusionRelicLevel(id), 0);
+}
+
+function fusionAmplifierFor(fusionId) {
+  return fusionRelicLevel(fusionMomentRelicIcon[fusionId]);
+}
+
+function applyFusionRelic(id) {
+  const current = fusionRelicLevel(id);
+  const next = current + 1;
+  if (id === "stormConch") {
+    raiseWeapon("coconut");
+    if (next >= 2) raiseWeapon("compass");
+    state.stats.cooldown = Math.max(0.8, state.stats.cooldown - 0.018);
+    state.stats.chainDamage = (state.stats.chainDamage || 0) + 0.08;
+    state.stats.speed += 4;
+  } else if (id === "bloodMoonAnchor") {
+    raiseWeapon("rope");
+    state.stats.armor += 1;
+    state.stats.damage += 0.028;
+    state.player.maxHp += 8;
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + 16);
+  } else if (id === "krakenCompass") {
+    raiseWeapon("compass");
+    state.stats.magnet += 24;
+    state.stats.chainDamage = (state.stats.chainDamage || 0) + 0.12;
+    if (next >= 3) raiseWeapon("rope");
+  } else if (id === "rumCometLantern") {
+    raiseWeapon("bottle");
+    state.stats.damage += 0.035;
+    state.stats.powerupDuration = (state.stats.powerupDuration || 1) + 0.08;
+    state.stats.cooldown = Math.max(0.8, state.stats.cooldown - 0.014);
+  }
+  const relic = fusionRelicMap[id];
+  state.zones.push({ type: "fusionRelic", icon: id, x: state.player.x, y: state.player.y - 22, life: 0.8, maxLife: 0.8, level: next });
+  if (next === 2 || next === 4) {
+    spawnPowerup(state.player.x + 54, state.player.y - 30, "fusionSpark", { life: 18, cooldown: 7 });
+  }
+  floatingText(`${relic?.name || "Fusion"} ${next}`, state.player.x, state.player.y - 116, "#fff2c7", 0.75, 22, { priority: 2 });
+}
+
 function activeCooldownMultiplier() {
   return (state.stats.cooldown || 1) * activePowerMultiplier("cooldown");
 }
@@ -2439,13 +2738,21 @@ function recordFusionMoment(id, label, color = "#fff2c7") {
     state.fusionMoments.seen = new Set(state.fusionMoments.seen || []);
   }
   if (state.fusionMoments.seen.has(id)) return false;
+  const relicIcon = fusionMomentRelicIcon[id];
+  const relicLevel = fusionAmplifierFor(id);
   state.fusionMoments.seen.add(id);
   state.fusionMoments.count += 1;
   state.runStats.fusions += 1;
   metaProgress.fusions += 1;
-  state.xp += 18 + state.level * 2;
-  state.coins += 3;
+  state.xp += 18 + state.level * 2 + relicLevel * 4;
+  state.coins += 3 + relicLevel;
   floatingText(label, state.player.x, state.player.y - 126, color, 0.95, 28, { priority: 3 });
+  if (relicIcon) {
+    state.zones.push({ type: "fusionRelic", icon: relicIcon, x: state.player.x, y: state.player.y - 28, life: 0.86, maxLife: 0.86, level: Math.max(1, relicLevel) });
+  }
+  if (relicLevel > 0) {
+    floatingText(`Relikt +${relicLevel}`, state.player.x, state.player.y - 162, "#bfffea", 0.72, 20, { priority: 3 });
+  }
   spawnPowerup(state.player.x + 44, state.player.y - 28, "fusionSpark", { life: 18, cooldown: 8 });
   unlockAchievements();
   saveMetaProgress();
@@ -2456,8 +2763,9 @@ function recordFusionMoment(id, label, color = "#fff2c7") {
 
 function castSaberTornado(angle, cutlassLevel, auraLevel) {
   const p = state.player;
+  const anchorLevel = fusionAmplifierFor("saberTornado");
   recordFusionMoment("saberTornado", "Fusion: Saebelsturm", "#fff2c7");
-  const radius = 116 + cutlassLevel * 8 + auraLevel * 14;
+  const radius = 116 + cutlassLevel * 8 + auraLevel * 14 + anchorLevel * 22;
   state.zones.push({
     type: "saberTornado",
     x: p.x,
@@ -2466,16 +2774,18 @@ function castSaberTornado(angle, cutlassLevel, auraLevel) {
     radius,
     level: cutlassLevel,
     auraLevel,
-    life: 0.58,
-    maxLife: 0.58,
+    life: 0.58 + anchorLevel * 0.07,
+    maxLife: 0.58 + anchorLevel * 0.07,
     fused: true,
+    relicLevel: anchorLevel,
   });
+  if (anchorLevel > 0) p.invuln = Math.max(p.invuln, 0.25 + anchorLevel * 0.08);
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
     const dist = Math.hypot(dx, dy);
     if (dist > radius + enemy.r) continue;
-    hurtEnemy(enemy, (12 + cutlassLevel * 3 + auraLevel * 5) * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
+    hurtEnemy(enemy, (12 + cutlassLevel * 3 + auraLevel * 5 + anchorLevel * 8) * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
   }
 }
 
@@ -2484,8 +2794,9 @@ function fireCoconut(level) {
   if (!target) return;
   const p = state.player;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
-  const speed = 420 + level * 18;
   const compassFuse = coconutCompassReady();
+  const stormLevel = compassFuse ? fusionAmplifierFor("starCoconut") : 0;
+  const speed = 420 + level * 18 + stormLevel * 28;
   if (compassFuse) recordFusionMoment("starCoconut", "Fusion: Sternenkokos", "#fff2c7");
   state.projectiles.push({
     type: "coconut",
@@ -2495,11 +2806,12 @@ function fireCoconut(level) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     r: compassFuse ? 19 : 17,
-    damage: 23 + level * 9 + (compassFuse ? 7 + state.weapons.compass.level * 2 : 0),
+    damage: 23 + level * 9 + (compassFuse ? 7 + state.weapons.compass.level * 2 + stormLevel * 6 : 0),
     life: compassFuse ? 3.55 : 3.15,
-    pierce: 3 + Math.floor(level / 2) + (compassFuse ? 2 : 0),
+    pierce: 3 + Math.floor(level / 2) + (compassFuse ? 2 + stormLevel : 0),
     spin: 0,
     compassFuse,
+    stormConch: stormLevel,
   });
 }
 
@@ -2519,6 +2831,7 @@ function throwBottle(level) {
   const p = state.player;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
   const maelstrom = bottleRopeReady();
+  const cometLevel = maelstrom ? fusionAmplifierFor("grogMaelstrom") : 0;
   if (maelstrom) recordFusionMoment("grogMaelstrom", "Fusion: Grog-Mahlstrom", "#53ffe5");
   state.projectiles.push({
     type: "bottle",
@@ -2528,12 +2841,13 @@ function throwBottle(level) {
     vx: Math.cos(angle) * 280,
     vy: Math.sin(angle) * 280,
     r: maelstrom ? 18 : 15,
-    damage: 25 + level * 11 + (maelstrom ? 14 + state.weapons.rope.level * 3 : 0),
-    radius: 102 + level * 12 + (maelstrom ? 38 : 0),
-    life: maelstrom ? 1.35 : 1.15,
+    damage: 25 + level * 11 + (maelstrom ? 14 + state.weapons.rope.level * 3 + cometLevel * 8 : 0),
+    radius: 102 + level * 12 + (maelstrom ? 38 + cometLevel * 24 : 0),
+    life: maelstrom ? 1.35 + cometLevel * 0.08 : 1.15,
     target,
     spin: 0,
     maelstrom,
+    cometLevel,
   });
 }
 
@@ -2560,17 +2874,18 @@ function updateCompassDamage(dt) {
 
 function ropeDamage(level) {
   const p = state.player;
-  const radius = 86 + level * 14;
   const moonNet = compassRopeReady();
+  const krakenLevel = moonNet ? fusionAmplifierFor("moonNet") : 0;
+  const radius = 86 + level * 14 + krakenLevel * 14;
   let beams = 0;
   if (moonNet) recordFusionMoment("moonNet", "Fusion: Mondnetz", "#9f6cff");
   for (const enemy of state.enemies) {
     const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
     if (dist > radius - 16 && dist < radius + 28) {
-      hurtEnemy(enemy, 12 + level * 6, (enemy.x - p.x) / dist, (enemy.y - p.y) / dist);
+      hurtEnemy(enemy, 12 + level * 6 + krakenLevel * 3, (enemy.x - p.x) / dist, (enemy.y - p.y) / dist);
     } else if (moonNet && dist < radius + 42) {
-      hurtEnemy(enemy, 5 + state.weapons.compass.level * 2, (enemy.x - p.x) / Math.max(1, dist), (enemy.y - p.y) / Math.max(1, dist));
-      if (beams < 3) {
+      hurtEnemy(enemy, 5 + state.weapons.compass.level * 2 + krakenLevel * 2, (enemy.x - p.x) / Math.max(1, dist), (enemy.y - p.y) / Math.max(1, dist));
+      if (beams < 3 + krakenLevel) {
         beams += 1;
         state.zones.push({ type: "beam", x: p.x, y: p.y, tx: enemy.x, ty: enemy.y, life: 0.12, maxLife: 0.12 });
       }
@@ -2953,14 +3268,17 @@ function arcCompassCoconut(projectile, sourceEnemy, compassLevel) {
 function detonateBottle(projectile) {
   if (projectile.exploded) return;
   projectile.exploded = true;
-  explode(projectile.x, projectile.y, projectile.radius, projectile.damage, { maelstrom: projectile.maelstrom });
+  explode(projectile.x, projectile.y, projectile.radius, projectile.damage, { maelstrom: projectile.maelstrom, cometLevel: projectile.cometLevel || 0 });
   projectile.life = 0;
 }
 
 function explode(x, y, radius, damage, options = {}) {
   state.zones.push({ type: "explosion", x, y, radius, life: 0.28, maxLife: 0.28 });
   if (options.maelstrom) {
-    state.zones.push({ type: "saberTornado", x, y, angle: state.elapsed, radius: radius * 0.76, level: 4, auraLevel: 3, life: 0.52, maxLife: 0.52, fused: true });
+    state.zones.push({ type: "saberTornado", x, y, angle: state.elapsed, radius: radius * (0.76 + options.cometLevel * 0.04), level: 4, auraLevel: 3, life: 0.52 + options.cometLevel * 0.08, maxLife: 0.52 + options.cometLevel * 0.08, fused: true });
+    if (options.cometLevel > 0) {
+      state.zones.push({ type: "fusionRelic", icon: "rumCometLantern", x, y: y - 20, life: 0.58, maxLife: 0.58, level: options.cometLevel });
+    }
   }
   playSound("cannonFire", { cooldown: 320 });
   for (const enemy of state.enemies) {
@@ -3428,6 +3746,30 @@ const upgradeMilestones = {
     "Tau IV: zweite Aura-Lage, mehr Sog.",
     "Tau V: voller Tide-Ward mit Max-Glanz.",
   ],
+  stormConch: [
+    "Muschel I: Kokos route bekommt Rueckenwind.",
+    "Muschel II: Kompass koppelt frueher an Sternenkokos.",
+    "Muschel III: mehr Pierce und Blitzketten.",
+    "Muschel IV: maximaler Squall-Ricochet.",
+  ],
+  bloodMoonAnchor: [
+    "Anker I: Tau wird schwerer und sicherer.",
+    "Anker II: Saebelsturm gewinnt Radius.",
+    "Anker III: Blutwirbel gibt Schutzfenster.",
+    "Anker IV: maximal verankerter Tornado.",
+  ],
+  krakenCompass: [
+    "Kraken I: Kompass zieht weiter und haerter.",
+    "Kraken II: Mondnetz bekommt Zusatzstrahlen.",
+    "Kraken III: Tau koppelt in den Tentakel-Sog.",
+    "Kraken IV: maximales Kraken-Mondnetz.",
+  ],
+  rumCometLantern: [
+    "Laterne I: Bombenroute bekommt Kometenfeuer.",
+    "Laterne II: Grog-Mahlstrom wird breiter.",
+    "Laterne III: Power-ups halten laenger.",
+    "Laterne IV: maximaler Rumkometen-Einschlag.",
+  ],
 };
 
 function upgradeDescription(upgrade) {
@@ -3571,6 +3913,22 @@ function updateLoadout() {
       </span>
     </div>
   ` : "";
+  const relicHtml = fusionRelicIds
+    .filter((id) => fusionRelicLevel(id) > 0)
+    .map((id) => {
+      const relic = fusionRelicMap[id];
+      const level = fusionRelicLevel(id);
+      return `
+        <div class="loadout-item fusion">
+          <span class="loadout-icon" style="${iconStyle(id)}"></span>
+          <span>
+            <span class="loadout-name">${relic.name}</span>
+            <span class="loadout-level">Relikt ${level}</span>
+            <span class="loadout-pips">${upgradeProgressPips(level, upgradeMax(id), "loadout-pip")}</span>
+          </span>
+        </div>
+      `;
+    }).join("");
   const weaponEntries = weaponLoadoutItems.filter(([id]) => state.weapons[id].level > 0);
   const weaponHtml = weaponEntries.map(([id, name, icon]) => `
     <div class="loadout-item">
@@ -3594,7 +3952,7 @@ function updateLoadout() {
       </div>
     `;
   }).join("");
-  ui.loadout.innerHTML = signatureHtml + weaponHtml + powerHtml;
+  ui.loadout.innerHTML = signatureHtml + relicHtml + weaponHtml + powerHtml;
 }
 
 function render() {
@@ -3852,7 +4210,7 @@ function drawEnemies() {
       h = images.blackbeard.height * drawScale * (enemy.boss ? 1.08 : 1);
       ctx.shadowBlur = mobile ? 0 : enemy.hit > 0 ? 32 : 20;
       ctx.drawImage(images.blackbeard, -w / 2, -h + enemy.r + bob, w, h);
-    } else if (enemy.type.captainSheet) {
+    } else if (enemy.type.captainSheet && images.spectralCaptain) {
       const frame = (Math.floor(state.elapsed * 6) + enemy.frameOffset) % SPECTRAL_CAPTAIN.cols;
       const sx = frame * SPECTRAL_CAPTAIN.w;
       const bob = Math.sin(state.elapsed * 4.5 + enemy.frameOffset) * 5;
@@ -3919,7 +4277,7 @@ function drawEnemies() {
     } else {
       const frame = (Math.floor(state.elapsed * 9) + enemy.frameOffset) % 16;
       const sx = frame * CHAR.w;
-      const sy = enemy.row * CHAR.h;
+      const sy = (enemy.row || 0) * CHAR.h;
       w = CHAR.w * drawScale * (enemy.boss ? 1.15 : 1);
       h = CHAR.h * drawScale * (enemy.boss ? 1.15 : 1);
       ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h);
@@ -4106,6 +4464,12 @@ function drawWeaponEffects() {
       } else {
         drawPlayerEffectAt("tidePulse", -size / 2, -size / 2, size, size);
       }
+    } else if (zone.type === "fusionRelic") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      const frame = Math.floor(state.elapsed * FUSION_RELIC.fps + (zone.level || 1)) % FUSION_RELIC.frames;
+      const size = 96 + (zone.level || 1) * 14;
+      drawPlayerEffectAt("treasureGlint", -size * 0.8, -size * 0.8, size * 1.6, size * 1.6);
+      drawFusionRelicAt(zone.icon, frame, -size / 2, -size / 2, size, size);
     }
     ctx.restore();
   }
@@ -4263,6 +4627,14 @@ function drawWeaponEvolutionFxAt(icon, x, y, w, h) {
   );
 }
 
+function drawFusionRelicAt(icon, frame, x, y, w, h) {
+  if (!images.fusionRelics) return;
+  const src = fusionRelicMap[icon] || fusionRelicMap.stormConch;
+  const sx = clamp(frame || 0, 0, FUSION_RELIC.frames - 1) * FUSION_RELIC.w;
+  const sy = src.row * FUSION_RELIC.h;
+  ctx.drawImage(images.fusionRelics, sx, sy, FUSION_RELIC.w, FUSION_RELIC.h, x, y, w, h);
+}
+
 function drawProjectileFxAt(icon, x, y, w, h) {
   const src = projectileFxMap[icon] || projectileFxMap.coconutBoomerang;
   ctx.drawImage(images.projectileFx, src.x * PROJECTILE_FX.w, src.y * PROJECTILE_FX.h, PROJECTILE_FX.w, PROJECTILE_FX.h, x, y, w, h);
@@ -4323,6 +4695,11 @@ function drawBeachPropAt(icon, x, y, w, h) {
 }
 
 function iconStyle(icon) {
+  if (fusionRelicMap[icon]) {
+    const src = fusionRelicMap[icon];
+    const by = src.row / Math.max(1, FUSION_RELIC.rows - 1) * 100;
+    return `background-image:url('${imageSources.fusionRelics}');background-size:400% 400%;background-position:0% ${by}%;`;
+  }
   if (projectileFxMap[icon]) {
     const src = projectileFxMap[icon];
     const bx = src.x / (PROJECTILE_FX.cols - 1) * 100;
@@ -5014,6 +5391,40 @@ window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_FUSION_RELIC_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.fusionMoments = { seen: new Set(), count: 0 };
+  fusionRelicIds.forEach((id) => {
+    state.upgradeCounts[id] = Math.max(state.upgradeCounts[id] || 0, 2);
+  });
+  state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
+  state.weapons.coconut.level = Math.max(state.weapons.coconut.level, 4);
+  state.weapons.compass.level = Math.max(state.weapons.compass.level, 4);
+  state.weapons.bottle.level = Math.max(state.weapons.bottle.level, 4);
+  state.weapons.rope.level = Math.max(state.weapons.rope.level, 4);
+  const p = state.player;
+  for (let i = 0; i < 8; i += 1) {
+    window.__MONKEY_TIDE_SPAWN_ENEMY(i % 2 ? "hand" : "crab", p.x + 210 + i * 42, p.y - 90 + i * 26, false);
+  }
+  castSaberTornado(0, state.weapons.cutlass.level, state.weapons.rope.level);
+  fireCoconut(state.weapons.coconut.level);
+  throwBottle(state.weapons.bottle.level);
+  ropeDamage(state.weapons.rope.level);
+  updateProjectiles(0.12);
+  render();
+  return {
+    assetLoaded: !!images.fusionRelics,
+    frames: { ...FUSION_RELIC },
+    relicTypes: fusionRelicIds,
+    levels: Object.fromEntries(fusionRelicIds.map((id) => [id, fusionRelicLevel(id)])),
+    amplifiers: Object.fromEntries(Object.keys(fusionMomentRelicIcon).map((id) => [id, fusionAmplifierFor(id)])),
+    relicZones: state.zones.filter((zone) => zone.type === "fusionRelic").map((zone) => zone.icon),
+    boostedCoconuts: state.projectiles.filter((projectile) => projectile.stormConch > 0).length,
+    boostedBottles: state.projectiles.filter((projectile) => projectile.cometLevel > 0).length,
+    fusionMoments: { count: state.fusionMoments.count, seen: [...state.fusionMoments.seen] },
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_ROTATION_PROBE = () => {
   const savedElapsed = state.elapsed;
   const savedRotation = state.enemyRotation ? {
@@ -5215,6 +5626,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
       count: state.fusionMoments?.count || 0,
       seen: [...(state.fusionMoments?.seen || [])],
     },
+    fusionRelics: {
+      asset: !!images.fusionRelics,
+      frames: { ...FUSION_RELIC },
+      types: fusionRelicIds,
+      levels: Object.fromEntries(fusionRelicIds.map((id) => [id, fusionRelicLevel(id)])),
+      totalLevel: fusionRelicTotalLevel(),
+      amplifiers: Object.fromEntries(Object.keys(fusionMomentRelicIcon).map((id) => [id, fusionAmplifierFor(id)])),
+    },
   },
   uiIconSources: {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
@@ -5282,11 +5701,19 @@ window.__MONKEY_TIDE_DEBUG = () => {
     screenOrientation: screen.orientation?.type || null,
   },
   preloadedAssetKeys: Object.keys(imageSources),
+  loadedImageKeys: [...loadedImageKeys],
+  deferredAssets: {
+    ...deferredAssetState,
+    queuedImages: [...deferredAssetState.queuedImages],
+    bootImages: [...deferredAssetState.bootImages],
+    bootMusic: [...deferredAssetState.bootMusic],
+  },
   loading: { ...loadingState },
   audio: {
     mainVolume: music?.volume ?? 0,
     rushVolume: rushMusic?.volume ?? 0,
     activeTrack: activeMusicTrack,
+    armedTrack: armedMusicTrack,
     tracksPlaying: {
       main: music ? !music.paused : false,
       rush: rushMusic ? !rushMusic.paused : false,
@@ -5376,11 +5803,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
     projectileFx: !!images.projectileFx,
     playerEffects: !!images.playerEffects,
     weaponEvolutionFx: !!images.weaponEvolutionFx,
+    fusionRelics: !!images.fusionRelics,
     xpCrystalAnim: !!images.xpCrystalAnim,
     xpCrystalAnimationFrames: { ...XP_CRYSTAL_ANIM },
     projectileFxTypes: Object.keys(projectileFxMap),
     playerEffectTypes: Object.keys(playerEffectMap),
     weaponEvolutionFxTypes: Object.keys(weaponEvolutionFxMap),
+    fusionRelicTypes: fusionRelicIds,
     enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
     threeHeadedMonkeyVolley: enemyProjectileProfile({ type: enemyType("threeHeadedMonkey"), boss: true })?.count === 3,
     blackbeardBroadside: enemyProjectileProfile({ type: enemyType("blackbeard"), boss: true })?.fx === "ghostCannonball"

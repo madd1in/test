@@ -15,7 +15,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Fighter haben automatische Signature-Moves mit sichtbarem Loadout-Cooldown: Hadoken, Dragon Kick, Sonic Boom und Lightning Kicks.
 - Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy; Sternenfarmboy/Skywalker hat mehr Headroom im Frameset.
 - Eigene BGM-Profile pro spielbarem Charakter mit lokalen MP3s, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
-- Neue lokale Fighter-Tracks fuer die Charakterrotation: `Crimson Galleon`, `Coconut Caper Loop` und `Shoreline Rum Riddle`.
+- Ryu, Ken, Guile und Chun Li nutzen jetzt ihre neuen Downloads-Signature-Tracks: `Dojo Crash Duel`, `Steel Punch Parade`, `Jet Fuel Glory` und `Bamboo Arcade`, plus `Gasket Thunder` als Street-Fighter-Rush-Layer.
 - Eigene lokale SFX-Profile pro spielbarem Charakter fuer Slash, Dash, Treffer, Power-ups, Warnungen und Boss-Downs.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.
 - Neues Imagen-HD-Walkcycle-Frameset mit 8 Frames fuer jeden alternativen Spieler-Skin.
@@ -25,7 +25,9 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neues Imagen-HD-WebP-Projektilsheet fuer Saebelbogen, Kokos-Bumerang, Flaschenbombe, Kompassblitz, Taukreis, Blutrosenburst, Geisterkugel und Affenfluch.
 - Extra Imagen-HD-FX-Sheet fuer Tau-Aura, Kompass-Beam, Rum-Schockwelle, Curse-Burst, Cutlass-Afterglow und Schatz-Glints.
 - Neues Imagen-HD-Weapon-Evolution-FX-Sheet mit Doppel-/Drei-/Vier-/Fuenffach-Saebeln, graduellen Aura-Ringen und Saebel-Tornado-Fusion.
+- Neues Imagen-HD-Fusion-Relikt-Sheet mit je vier Animationsframes fuer Sturm-Muschel, Blutmond-Anker, Kraken-Kompass und Rumkometen-Laterne.
 - Neue Item- und Flow-Schicht: Saebelfieber, Tide-Vakuum, Mond-Aegis, Fusionsfunke, Rubin-Ring, Mond-Siegel, Gothic-Axt und Blaues Elixier.
+- Neue Fusion-Relikt-Upgrades verstaerken konkrete Build-Pfade: Sternenkokos, Saebelsturm, Mondnetz und Grog-Mahlstrom bekommen sichtbare Relikt-Boni.
 - Mehr Fusionstypen fuer Achievement-Flow: Saebelsturm, Sternenkokos, Grog-Mahlstrom und Mondnetz schalten Meta-Relikte frei.
 - Zwei neue Imagen-HD-Sheets fuer acht zusaetzliche Gegner und acht neue Relikt-/Item-Icons.
 - Neue Gegner im Spawn-Mix: Reef Raider, Powder Imp, Tide Witch, Saltbone Fencer, Lantern Wraith, Barrel Maw, Storm Duelist und Coral Brute als Bosskandidat.
@@ -38,7 +40,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Neue freigestellte Palmenprops und kleinere offene Schatzkisten im Verhaeltnis zum Spieler.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Spielstart wird erst freigegeben, wenn die lokalen BGM-Tracks wirklich vorgeladen und abspielbereit sind.
-- BGM wird im Menue vorgeprimed und vorpositioniert, damit der Startklick ohne spaete Musik-Luecke loslegt.
+- BGM wird im Menue vorgeprimed und der Startklick haelt den stumm vorgearmten Track am Leben, damit der Run ohne spaete Musik-Luecke loslegt.
 - Alle Runtime-SFX stammen aus den lokalen Downloads und sind leise unter die Musik gemischt.
 - Treibenderer lokaler BGM-Mix aus `Crimson Galleon` als Main-Track und `Gargoyle Chapel Run` als frueher Rush-Layer; SFX bleiben leise darunter.
 - BGM laeuft jetzt als ein eindeutiger aktiver Track mit Rush-Handoff statt zwei ueberlappender MP3-Spuren.
@@ -49,6 +51,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Welt laeuft jetzt als grosse repeatable Chunk-Map ohne spuerbare Strandkante; Props, Wracks, Hecken und Pfuetzen werden um den Spieler nachgeladen.
 - Neue Welt-Props und Streak-Schaetze materialisieren nur ausserhalb des aktuellen Sichtfelds und blenden am Rand weich ein, damit keine Assets mitten im Bild aufploppen.
 - Mobile rendert mit DPR 1, kleinerem Gegner-/FX-Cap, reduzierten Schatten und weiter herausgezogener Kamera; Start versucht auf Mobile direkt Hochkant/Vollbild.
+- Mobile nutzt einen Fast-Boot: vor `Ready` laden nur Kernbilder, gewaehlte Figur/Karte und genau das aktuelle BGM-Paar; Boss-, Crossover-, Extra-Skin- und seltene FX-Assets kommen danach lazy.
 - Mobile-Start erkennt die aktuelle Handyhaltung: quer gehalten wird Landscape-Fullscreen gelockt, sonst bleibt Portrait-Fullscreen der Default.
 - Das Live-Spawn-Roster nutzt jetzt nur noch Kreaturen, Untote und Monster; menschliche NPC-Gegner sind aus normalen Wellen und Bosszyklen entfernt.
 - Die ersten Gegner laufen jetzt ueber eine Anti-Repeat-Rotation mit Krabben, Fledermaeusen, Pulver-Imps und Riff-Squids, statt immer denselben Auftakt zu zeigen.
@@ -57,6 +60,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Fluchaffe hat jetzt ein eigenes aggressiveres Frenzy-BGM aus lokalen Downloads, fruehen Rush-Handoff und ein eigenes lokales SFX-Pack fuer Swipe, Dash, Curse-Hit, Pickup, Power-up, Warnung und Boss-Down.
 - Alle live genutzten alten Single-Frame-Gegner (Krabbe, Seehand, Powder Imp, Lantern Wraith, Barrel Maw, Coral Brute, Monkey Idol) nutzen jetzt ein Imagen-HD-Multiframe-Sheet mit acht Frames pro Typ.
 - Krabben- und Seehand-Frames nutzen eine nachgereinigte Alpha-/Green-Matte-Variante gegen gruene Randsaeume.
+- Die Enemy- und Gothic-Animationssheets laufen durch einen Slice-Repair-Export mit Zell-Padding und Komponenten-Pruning, damit Frames nicht mehr mit Rand- oder Nachbarartefakten gecroppt werden.
 - Knochenkorsar und Mond-Gargoyle nutzen ein neues Imagen-HD-Gothic-Animationssheet mit acht Frames statt statischer Einzelbilder.
 - Gegner sind groesser lesbar, haben groessere Hitboxen, mehr Spawn-Druck und ab der dritten Flutwelle zwei Elite-Omen-Ziele.
 - Bewegung reagiert direkter mit hoeherem Grundtempo, kuerzerem Dash-Cooldown, laengerem Boost-Fenster, schnellerer Kamera und sensiblerer Mobile-Stick-Kurve.

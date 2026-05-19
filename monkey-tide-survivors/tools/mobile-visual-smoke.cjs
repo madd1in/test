@@ -58,6 +58,21 @@ async function run() {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForFunction(() => window.__MONKEY_TIDE_READY === true, null, { timeout: 90000 });
+  const bootDebug = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG());
+  if (!bootDebug.deferredAssets.mobileFastPath) {
+    throw new Error(`Mobile boot did not use the fast asset path: ${JSON.stringify(bootDebug.deferredAssets)}`);
+  }
+  if (bootDebug.loading.total >= bootDebug.preloadedAssetKeys.length + bootDebug.audio.musicPreload.total) {
+    throw new Error(`Mobile boot is still waiting for the full asset set: ${JSON.stringify({
+      loading: bootDebug.loading,
+      preloaded: bootDebug.preloadedAssetKeys.length,
+      music: bootDebug.audio.musicPreload,
+      deferred: bootDebug.deferredAssets,
+    })}`);
+  }
+  if (bootDebug.deferredAssets.bootMusic.length > 2) {
+    throw new Error(`Mobile boot should only decode the selected BGM pair: ${JSON.stringify(bootDebug.deferredAssets.bootMusic)}`);
+  }
   await page.evaluate(() => document.getElementById("startButton").click());
   await page.waitForTimeout(80);
   await page.evaluate(() => {

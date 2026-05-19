@@ -209,6 +209,13 @@ button:disabled {
   box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.18), 0 0 12px rgba(54, 190, 162, 0.18);
 }
 
+.loadout-item.fusion {
+  border-color: rgba(183, 255, 240, 0.56);
+  background-image:
+    linear-gradient(180deg, rgba(83, 255, 229, 0.2), rgba(128, 52, 126, 0.22)),
+    var(--ui-scrap);
+}
+
 .loadout-item.powerup .loadout-icon {
   opacity: 0.82;
 }
