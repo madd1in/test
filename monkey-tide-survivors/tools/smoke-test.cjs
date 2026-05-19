@@ -91,10 +91,12 @@ async function run() {
     "assets/sprites/enemy_anim_imagen_hd_sheet.webp",
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean.png",
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png",
+    "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
     "assets/sprites/gothic_enemies_hd_sheet_clean.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_source.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png",
+    "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png",
     "assets/sprites/gothic_items_hd_sheet.webp",
     "assets/sprites/gothic_props_hd_sheet.webp",
     "assets/sprites/spectral_captain_hd_sheet.webp",
@@ -115,6 +117,8 @@ async function run() {
     "assets/sprites/projectile_fx_imagen_hd.webp",
     "assets/sprites/player_effects_imagen_hd.webp",
     "assets/sprites/weapon_evolution_fx_imagen_hd.png",
+    "assets/sprites/fusion_relics_imagen_hd_source.png",
+    "assets/sprites/fusion_relics_imagen_hd_clean.png",
     "assets/sprites/xp_crystal_anim_imagen_source.png",
     "assets/sprites/xp_crystal_anim_imagen_hd.png",
     "assets/sprites/extra_enemies_imagen_hd.webp",
@@ -134,6 +138,11 @@ async function run() {
     "assets/audio/bgm/crimson-galleon.mp3",
     "assets/audio/bgm/coconut-caper-loop.mp3",
     "assets/audio/bgm/shoreline-rum-riddle.mp3",
+    "assets/audio/bgm/sf-ryu-dojo-crash-duel.mp3",
+    "assets/audio/bgm/sf-ken-steel-punch-parade.mp3",
+    "assets/audio/bgm/sf-guile-jet-fuel-glory.mp3",
+    "assets/audio/bgm/sf-chun-li-bamboo-arcade.mp3",
+    "assets/audio/bgm/sf-rush-gasket-thunder.mp3",
     "assets/audio/sfx/from-downloads/pickup-gem.mp3",
     "assets/audio/sfx/from-downloads/soft-chime.mp3",
     "assets/audio/sfx/from-downloads/curse-gate.mp3",
@@ -172,6 +181,8 @@ async function run() {
     "assets/audio/sfx/curse-monkey/pirate-powerup.mp3",
     "assets/audio/sfx/curse-monkey/spooky-warning.mp3",
     "assets/audio/sfx/curse-monkey/boss-drop.mp3",
+    "tools/prepare_fusion_relic_assets.py",
+    "tools/repair_enemy_slicing.py",
   ].forEach((rel) => {
     const target = path.join(root, rel);
     assert(fs.existsSync(target), `Missing ${rel}`);
@@ -608,7 +619,7 @@ async function run() {
   assert(Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmCaper") && Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmShoreline"), `Map BGM profiles are not varied: ${JSON.stringify(debug.map.musicProfiles)}`);
   assert(debug.audio.music.main >= 0.6, `Main music config should be prominent: ${JSON.stringify(debug)}`);
   assert(debug.audio.music.rush >= 0.48 && debug.audio.music.rushStart <= 125, `Rush music should enter earlier and louder: ${JSON.stringify(debug)}`);
-  assert(debug.audio.activeTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to rush BGM: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.activeTrack === "rush" && debug.audio.armedTrack === "rush" && debug.audio.rushVolume >= 0.48, `Quick wave should hand off to an armed rush BGM: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.startReady.main && debug.audio.startReady.rush, `BGM should be pre-seeked before play to avoid delayed starts: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
@@ -616,7 +627,14 @@ async function run() {
   assert(debug.audio.music.characterThemes.curseMonkey.mainKey === "bgmCurseMonkey" && debug.audio.music.characterThemes.curseMonkey.rushStart <= 45 && debug.audio.music.characterThemes.curseMonkey.mainRate >= 1.08 && debug.audio.music.characterThemes.curseMonkey.rushRate >= 1.08, `Curse monkey BGM should be a faster local frenzy profile: ${JSON.stringify(debug.audio.music.characterThemes.curseMonkey)}`);
   assert(debug.audio.music.characterThemes.dhampirHunter.mainKey === "bgmGargoyle" && debug.audio.music.characterThemes.dhampirHunter.mainStartAt === 0 && debug.audio.music.characterThemes.dhampirHunter.rushStart <= 58, `Alucard/Dhampir BGM should start immediately: ${JSON.stringify(debug.audio.music.characterThemes.dhampirHunter)}`);
   assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 18 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
-  assert(debug.audio.music.characterThemes.ryu.mainKey === "bgmCrimson" && debug.audio.music.characterThemes.ken.mainKey === "bgmCoconut" && debug.audio.music.characterThemes.guile.mainKey === "bgmRumRiddle", `Fighter BGM profiles should use the new local tracks: ${JSON.stringify(debug.audio.music.characterThemes)}`);
+  assert(
+    debug.audio.music.characterThemes.ryu.mainKey === "bgmRyuSignature"
+      && debug.audio.music.characterThemes.ken.mainKey === "bgmKenSignature"
+      && debug.audio.music.characterThemes.guile.mainKey === "bgmGuileSignature"
+      && debug.audio.music.characterThemes.chunLi.mainKey === "bgmChunLiSignature"
+      && ["ryu", "ken", "guile", "chunLi"].every((id) => debug.audio.music.characterThemes[id].rushKey === "bgmStreetRush" && debug.audio.music.characterThemes[id].mainStartAt === 0 && debug.audio.music.characterThemes[id].rushStartAt === 0),
+    `Fighter BGM profiles should use the signature Downloads tracks without delayed start offsets: ${JSON.stringify(debug.audio.music.characterThemes)}`,
+  );
   assert(
     debug.audio.sources.bgmMain.includes("tidebarrel-dockside-drive.mp3")
       && debug.audio.sources.bgmRush.includes("black-chapel-gate-drive.mp3")
@@ -625,7 +643,12 @@ async function run() {
       && debug.audio.sources.bgmVoodoo.includes("voodoo-hut-shuffle-drive.mp3")
       && debug.audio.sources.bgmCathedral.includes("cathedral-hunt-overture-drive.mp3")
       && debug.audio.sources.bgmCurseMonkey.includes("curse-monkey-frenzy-drive.mp3")
-      && debug.audio.sources.bgmGargoyle.includes("gargoyle-chapel-run.mp3"),
+      && debug.audio.sources.bgmGargoyle.includes("gargoyle-chapel-run.mp3")
+      && debug.audio.sources.bgmRyuSignature.includes("sf-ryu-dojo-crash-duel.mp3")
+      && debug.audio.sources.bgmKenSignature.includes("sf-ken-steel-punch-parade.mp3")
+      && debug.audio.sources.bgmGuileSignature.includes("sf-guile-jet-fuel-glory.mp3")
+      && debug.audio.sources.bgmChunLiSignature.includes("sf-chun-li-bamboo-arcade.mp3")
+      && debug.audio.sources.bgmStreetRush.includes("sf-rush-gasket-thunder.mp3"),
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
@@ -661,16 +684,16 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v2.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v3.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v2.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
   assert(debug.crossoverAssets.gothicEnemyAnimSheet === true && ["boneCorsair", "gargoyle"].every((id) => debug.crossoverAssets.gothicEnemyAnimTypes.includes(id)), `Skeleton/gargoyle multiframe sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
   const cleanEnemyMatteProbe = await page.evaluate(async () => {
     const assets = [
-      "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png?matte-probe",
+      "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png?matte-probe",
       "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?matte-probe",
       "assets/sprites/gothic_enemies_hd_sheet_clean.png?matte-probe",
-      "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png?matte-probe",
+      "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png?matte-probe",
     ];
     const results = [];
     for (const src of assets) {
@@ -700,7 +723,7 @@ async function run() {
   assert(cleanEnemyMatteProbe.every((asset) => asset.lowAlphaMatte === 0 && asset.neonGreenMatte <= 2), `Clean enemy sheets still have matte/slice color leftovers: ${JSON.stringify(cleanEnemyMatteProbe)}`);
   const enemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v2.png?edge-probe";
+    img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v3.png?edge-probe";
     await img.decode();
     const frame = 256;
     const rows = 7;
@@ -733,6 +756,41 @@ async function run() {
     return results;
   });
   assert(enemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 8000)), `Imagen enemy multiframe sheet has sliced or empty frames: ${JSON.stringify(enemyAnimAlphaProbe)}`);
+  const gothicEnemyAnimAlphaProbe = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png?edge-probe";
+    await img.decode();
+    const frame = 256;
+    const rows = 2;
+    const cols = 8;
+    const canvas = document.createElement("canvas");
+    canvas.width = frame;
+    canvas.height = frame;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const results = [];
+    for (let row = 0; row < rows; row += 1) {
+      const rowResult = [];
+      for (let col = 0; col < cols; col += 1) {
+        ctx.clearRect(0, 0, frame, frame);
+        ctx.drawImage(img, col * frame, row * frame, frame, frame, 0, 0, frame, frame);
+        const data = ctx.getImageData(0, 0, frame, frame).data;
+        let edgeAlpha = 0;
+        let visible = 0;
+        for (let y = 0; y < frame; y += 1) {
+          for (let x = 0; x < frame; x += 1) {
+            const alpha = data[(y * frame + x) * 4 + 3];
+            if (alpha <= 8) continue;
+            visible += 1;
+            if (x === 0 || y === 0 || x === frame - 1 || y === frame - 1) edgeAlpha += 1;
+          }
+        }
+        rowResult.push({ edgeAlpha, visible });
+      }
+      results.push(rowResult);
+    }
+    return results;
+  });
+  assert(gothicEnemyAnimAlphaProbe.every((row) => row.every((frame) => frame.edgeAlpha === 0 && frame.visible > 8000)), `Gothic enemy multiframe sheet still has sliced or empty frames: ${JSON.stringify(gothicEnemyAnimAlphaProbe)}`);
   const rotationProbe = await page.evaluate(() => window.__MONKEY_TIDE_ROTATION_PROBE());
   assert(rotationProbe.openingPool.includes("powderImp") && rotationProbe.openingPool.includes("reefSquid") && rotationProbe.openingUnique >= 4, `Opening enemy rotation is still too repetitive: ${JSON.stringify(rotationProbe)}`);
   assert(["hand", "tideTentacle"].every((id) => rotationProbe.midPool.includes(id)), `Mid-run enemy rotation is missing variety: ${JSON.stringify(rotationProbe)}`);
@@ -802,6 +860,7 @@ async function run() {
   assert(!debug.preloadedAssetKeys.includes("beachProps"), `Old sliced beach atlas is still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("projectileFx"), `Projectile FX not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.preloadedAssetKeys.includes("playerEffects"), `Player raster effect FX not preloaded: ${JSON.stringify(debug)}`);
+  assert(debug.preloadedAssetKeys.includes("fusionRelics"), `Fusion relic animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.preloadedAssetKeys.includes("xpCrystalAnim"), `Imagen XP crystal animation is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(!debug.preloadedAssetKeys.includes("beach") && !debug.preloadedAssetKeys.includes("jungle") && !debug.preloadedAssetKeys.includes("topdownBeach"), `Unused heavy backgrounds are still preloaded: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.projectileFx, `Projectile FX sheet missing: ${JSON.stringify(debug)}`);
@@ -809,6 +868,7 @@ async function run() {
   assert(debug.combatAssets.playerEffects, `Player raster effect sheet missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.playerEffectTypes.includes("ropeAura") && debug.combatAssets.playerEffectTypes.includes("compassBeam"), `Raster player effect types missing: ${JSON.stringify(debug)}`);
   assert(debug.combatAssets.weaponEvolutionFx && debug.combatAssets.weaponEvolutionFxTypes.includes("fusion3"), `Weapon evolution FX frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
   const xpCrystalProbe = await page.evaluate(async () => {
     const img = new Image();
@@ -841,11 +901,13 @@ async function run() {
   });
   assert(xpCrystalProbe.size[0] === 2048 && xpCrystalProbe.size[1] === 256 && xpCrystalProbe.frames.every((frame) => frame.visible > 9000 && frame.edgeAlpha === 0), `XP crystal frames should be clean and non-empty: ${JSON.stringify(xpCrystalProbe)}`);
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
+  assert(debug.weaponEvolution?.fusionRelics?.asset && debug.weaponEvolution.fusionRelics.frames.frames === 4 && debug.weaponEvolution.fusionRelics.types.length === 4, `Fusion relic animation metadata missing: ${JSON.stringify(debug.weaponEvolution?.fusionRelics)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rubyRing === "rubyRing" && debug.upgradeIcons.moonSigil === "moonSigil" && debug.upgradeIcons.blueVial === "blueVial", `New item upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
+  assert(debug.upgradeIcons.stormConch === "stormConch" && debug.upgradeIcons.bloodMoonAnchor === "bloodMoonAnchor" && debug.upgradeIcons.krakenCompass === "krakenCompass" && debug.upgradeIcons.rumCometLantern === "rumCometLantern", `Fusion relic upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
   assert(debug.uiIconSources.projectileFxIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
@@ -886,6 +948,10 @@ async function run() {
   assert(weaponEvolutionProbe.tornado?.fused === true && weaponEvolutionProbe.debug.weaponEvolution.saberTornadoFusionReady, `Saber tornado fusion did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
   assert(weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.starCoconut && weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.grogMaelstrom && weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.moonNet, `New weapon fusions did not become ready: ${JSON.stringify(weaponEvolutionProbe.debug.weaponEvolution)}`);
   assert(weaponEvolutionProbe.debug.weaponEvolution.fusionMoments.count >= 4, `Fusion achievement moments did not record: ${JSON.stringify(weaponEvolutionProbe.debug.weaponEvolution)}`);
+  const fusionRelicProbe = await page.evaluate(() => window.__MONKEY_TIDE_FUSION_RELIC_PROBE());
+  assert(fusionRelicProbe.assetLoaded && fusionRelicProbe.frames.frames === 4 && fusionRelicProbe.relicTypes.length === 4, `Fusion relic sheet probe failed: ${JSON.stringify(fusionRelicProbe)}`);
+  assert(Object.values(fusionRelicProbe.amplifiers).every((value) => value >= 2), `Fusion relic amplifiers did not apply: ${JSON.stringify(fusionRelicProbe)}`);
+  assert(fusionRelicProbe.relicZones.length >= 4 && fusionRelicProbe.boostedCoconuts >= 1 && fusionRelicProbe.boostedBottles >= 1, `Fusion relic boosts did not show in combat: ${JSON.stringify(fusionRelicProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 8 && progressProbe.powerups.active.length >= 8, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
