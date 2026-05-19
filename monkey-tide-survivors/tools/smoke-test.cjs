@@ -87,6 +87,7 @@ async function run() {
     "assets/sprites/fighters_select_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_source.png",
     "assets/sprites/guile_action_sheet_imagen_hd.png",
+    "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
@@ -98,6 +99,7 @@ async function run() {
     "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png",
     "assets/sprites/gothic_enemies_hd_sheet.webp",
     "assets/sprites/gothic_enemies_hd_sheet_clean.png",
+    "assets/sprites/gothic_enemies_hd_sheet_clean_v2.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_source.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean.png",
     "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v2.png",
@@ -111,6 +113,7 @@ async function run() {
     "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
     "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png",
+    "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
     "assets/sprites/beach-props-v2/tide_puddle.webp",
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -127,11 +130,13 @@ async function run() {
     "assets/sprites/fusion_relics_imagen_hd_clean.png",
     "assets/sprites/signature_weapons_imagen_hd_source.png",
     "assets/sprites/signature_weapons_imagen_hd.png",
+    "assets/sprites/sonic_boom_fx_imagen_hd.png",
     "assets/sprites/xp_crystal_anim_imagen_source.png",
     "assets/sprites/xp_crystal_anim_imagen_hd.png",
     "assets/sprites/xp_crystal_green_anim_imagen_hd.png",
     "assets/sprites/xp_crystal_red_anim_imagen_hd.png",
     "assets/sprites/extra_enemies_imagen_hd.webp",
+    "assets/sprites/extra_enemies_imagen_hd_clean.png",
     "assets/sprites/extra_items_imagen_hd.webp",
     "assets/ui/parchment_panel_imagen_hd.webp",
     "assets/ui/parchment_button_imagen_hd.webp",
@@ -194,9 +199,11 @@ async function run() {
     "tools/prepare_fusion_relic_assets.py",
     "tools/prepare_signature_weapon_assets.py",
     "tools/prepare_guile_action_assets.py",
+    "tools/prepare_sonic_boom_assets.py",
     "tools/build_xp_crystal_variants.py",
     "tools/repair_fighter_gargoyle_slicing.py",
     "tools/repair_enemy_slicing.py",
+    "tools/repair_remaining_enemy_slicing.py",
   ].forEach((rel) => {
     const target = path.join(root, rel);
     assert(fs.existsSync(target), `Missing ${rel}`);
@@ -332,8 +339,13 @@ async function run() {
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
     guileActionProbe.assetLoaded
+      && guileActionProbe.source.includes("guile_action_sheet_imagen_hd_clean_v2.png")
       && guileActionProbe.frames.rows === 5
       && guileActionProbe.frames.frames === 8
+      && guileActionProbe.sonicBoomFxLoaded
+      && guileActionProbe.sonicBoomFxSource.includes("sonic_boom_fx_imagen_hd.png")
+      && guileActionProbe.sonicBoomFrames.rows === 4
+      && guileActionProbe.sonicBoomFrames.frames === 8
       && guileActionProbe.rows.walk === 0
       && guileActionProbe.rows.sonicBoom === 1
       && guileActionProbe.rows.kneeBazooka === 2
@@ -342,12 +354,67 @@ async function run() {
       && guileActionProbe.weaponDisplay.name === "Sonic Boom"
       && guileActionProbe.upgradeDisplay.name === "Sonic Boom Drill"
       && guileActionProbe.signatureProjectiles >= 7
+      && guileActionProbe.sonicProjectiles.every((projectile) => projectile.stage === 3 && projectile.size >= 150 && projectile.radius >= 32 && projectile.speed >= 980)
+      && guileActionProbe.sonicBursts >= 1
       && guileActionProbe.slashZones === 0
       && guileActionProbe.guileZones >= 4
       && guileActionProbe.arsenal.kneeBazookas >= 2
       && guileActionProbe.arsenal.reversePunches >= 1
       && guileActionProbe.arsenal.flashKicks >= 1,
     `Guile should use the new exact-frame action sheet and Sonic Boom base kit: ${JSON.stringify(guileActionProbe)}`,
+  );
+  const guileSonicAssetProbe = await page.evaluate(async () => {
+    async function scanSheet(src, frameW, frameH, cols, rows) {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = frameW;
+      canvas.height = frameH;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const frames = [];
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          ctx.clearRect(0, 0, frameW, frameH);
+          ctx.drawImage(img, col * frameW, row * frameH, frameW, frameH, 0, 0, frameW, frameH);
+          const data = ctx.getImageData(0, 0, frameW, frameH).data;
+          let visible = 0;
+          let edgeAlpha = 0;
+          let lowAlpha = 0;
+          for (let y = 0; y < frameH; y += 1) {
+            for (let x = 0; x < frameW; x += 1) {
+              const index = (y * frameW + x) * 4;
+              const alpha = data[index + 3];
+              if (alpha > 8) {
+                visible += 1;
+                if (x === 0 || y === 0 || x === frameW - 1 || y === frameH - 1) edgeAlpha += 1;
+              }
+              if (alpha > 0 && alpha <= 28) lowAlpha += 1;
+            }
+          }
+          frames.push({ row, col, visible, edgeAlpha, lowAlpha });
+        }
+      }
+      return { size: [img.naturalWidth, img.naturalHeight], frames };
+    }
+    return {
+      guile: await scanSheet("assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?guile-clean-v2-probe", 256, 256, 8, 5),
+      sonic: await scanSheet("assets/sprites/sonic_boom_fx_imagen_hd.png?sonic-boom-probe", 256, 256, 8, 4),
+    };
+  });
+  assert(
+    guileSonicAssetProbe.guile.size[0] === 2048
+      && guileSonicAssetProbe.guile.size[1] === 1280
+      && guileSonicAssetProbe.guile.frames.every((frame) => frame.visible > 9000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Clean Guile action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.guile)}`,
+  );
+  const sonicRows = [0, 1, 2, 3].map((row) => guileSonicAssetProbe.sonic.frames.filter((frame) => frame.row === row));
+  assert(
+    guileSonicAssetProbe.sonic.size[0] === 2048
+      && guileSonicAssetProbe.sonic.size[1] === 1024
+      && guileSonicAssetProbe.sonic.frames.every((frame) => frame.visible > 12000 && frame.edgeAlpha === 0)
+      && Math.min(...sonicRows[3].map((frame) => frame.visible)) > Math.max(...sonicRows[0].map((frame) => frame.visible)),
+    `Sonic Boom upgrade frames are not clean or staged: ${JSON.stringify(guileSonicAssetProbe.sonic)}`,
   );
   await page.click('[data-skin="freelanceDuo"]');
   const pickedDuoSkin = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG());
@@ -793,16 +860,17 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean_v2.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean_v2.png") && debug.extraAssets.extraEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify({ crossover: debug.crossoverAssets, extra: debug.extraAssets })}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
   assert(debug.crossoverAssets.gothicEnemyAnimSheet === true && ["boneCorsair", "gargoyle"].every((id) => debug.crossoverAssets.gothicEnemyAnimTypes.includes(id)), `Skeleton/gargoyle multiframe sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
   const cleanEnemyMatteProbe = await page.evaluate(async () => {
     const assets = [
       "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?matte-probe",
-      "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png?matte-probe",
-      "assets/sprites/gothic_enemies_hd_sheet_clean.png?matte-probe",
+      "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png?matte-probe",
+      "assets/sprites/gothic_enemies_hd_sheet_clean_v2.png?matte-probe",
       "assets/sprites/gothic_enemy_anim_imagen_hd_clean_v4.png?matte-probe",
+      "assets/sprites/extra_enemies_imagen_hd_clean.png?matte-probe",
     ];
     const results = [];
     for (const src of assets) {
@@ -830,6 +898,45 @@ async function run() {
     return results;
   });
   assert(cleanEnemyMatteProbe.every((asset) => asset.lowAlphaMatte === 0 && asset.neonGreenMatte <= 2), `Clean enemy sheets still have matte/slice color leftovers: ${JSON.stringify(cleanEnemyMatteProbe)}`);
+  const repairedEnemySliceProbe = await page.evaluate(async () => {
+    const assets = [
+      { src: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png?slice-probe", frameW: 256, frameH: 256, cols: 8, rows: 3, minVisible: 12000 },
+      { src: "assets/sprites/gothic_enemies_hd_sheet_clean_v2.png?slice-probe", frameW: 128, frameH: 176, cols: 4, rows: 8, minVisible: 2600 },
+      { src: "assets/sprites/extra_enemies_imagen_hd_clean.png?slice-probe", frameW: 512, frameH: 512, cols: 4, rows: 2, minVisible: 60000 },
+    ];
+    const results = [];
+    for (const asset of assets) {
+      const img = new Image();
+      img.src = asset.src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = asset.frameW;
+      canvas.height = asset.frameH;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const frames = [];
+      for (let row = 0; row < asset.rows; row += 1) {
+        for (let col = 0; col < asset.cols; col += 1) {
+          ctx.clearRect(0, 0, asset.frameW, asset.frameH);
+          ctx.drawImage(img, col * asset.frameW, row * asset.frameH, asset.frameW, asset.frameH, 0, 0, asset.frameW, asset.frameH);
+          const data = ctx.getImageData(0, 0, asset.frameW, asset.frameH).data;
+          let edgeAlpha = 0;
+          let visible = 0;
+          for (let y = 0; y < asset.frameH; y += 1) {
+            for (let x = 0; x < asset.frameW; x += 1) {
+              const alpha = data[(y * asset.frameW + x) * 4 + 3];
+              if (alpha <= 8) continue;
+              visible += 1;
+              if (x <= 1 || y <= 1 || x >= asset.frameW - 2 || y >= asset.frameH - 2) edgeAlpha += 1;
+            }
+          }
+          frames.push({ row, col, edgeAlpha, visible });
+        }
+      }
+      results.push({ ...asset, frames });
+    }
+    return results;
+  });
+  assert(repairedEnemySliceProbe.every((asset) => asset.frames.every((frame) => frame.edgeAlpha === 0 && frame.visible >= asset.minVisible)), `Repaired enemy sheets still have sliced/empty cells: ${JSON.stringify(repairedEnemySliceProbe)}`);
   const enemyAnimAlphaProbe = await page.evaluate(async () => {
     const img = new Image();
     img.src = "assets/sprites/enemy_anim_imagen_hd_sheet_clean_v4.png?edge-probe";
@@ -1025,6 +1132,7 @@ async function run() {
   assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.signatureWeapons && debug.combatAssets.signatureWeaponFrames.rows >= 11 && debug.combatAssets.signatureWeaponTypes.includes("captainCutlass") && debug.combatAssets.signatureWeaponTypes.includes("lightningFan"), `Signature weapon frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.guileActions && debug.combatAssets.guileActionFrames.rows === 5 && debug.combatAssets.guileActionFrames.frames === 8, `Guile HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.sonicBoomFx && debug.combatAssets.sonicBoomFrames.rows === 4 && debug.combatAssets.sonicBoomFrames.frames === 8, `Sonic Boom upgrade frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalVariants?.green && debug.combatAssets.xpCrystalVariants?.blue && debug.combatAssets.xpCrystalVariants?.red, `XP crystal color variants are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalTierSamples?.small === "green" && debug.combatAssets.xpCrystalTierSamples?.medium === "blue" && debug.combatAssets.xpCrystalTierSamples?.large === "red", `XP crystal tier thresholds are wrong: ${JSON.stringify(debug.combatAssets.xpCrystalTierSamples)}`);
@@ -1163,6 +1271,8 @@ async function run() {
   const newEnemyProbe = await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
   assert(newEnemyProbe.assetLoaded && newEnemyProbe.animationFrames.frames === 8, `New enemy animation sheet missing: ${JSON.stringify(newEnemyProbe)}`);
   assert(["tideTentacle", "reefSquid", "cactusStack"].every((id) => newEnemyProbe.spawned.includes(id)), `New enemy trio did not spawn: ${JSON.stringify(newEnemyProbe)}`);
+  const omenProbe = await page.evaluate(() => window.__MONKEY_TIDE_OMEN_SHARD_PROBE());
+  assert(omenProbe.omen.count === 3 && omenProbe.omen.boons >= 1 && omenProbe.omen.nextReward === 6 && omenProbe.powerupDrops >= 1 && omenProbe.omenZones >= 1, `Omen shard elite reward loop did not trigger: ${JSON.stringify(omenProbe)}`);
 
   const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
   assert(weaponEvolutionProbe.assetLoaded && weaponEvolutionProbe.slash?.blades === 5, `Fivefold cutlass animation did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
@@ -1175,8 +1285,8 @@ async function run() {
   assert(fusionRelicProbe.relicZones.length >= 4 && fusionRelicProbe.boostedCoconuts >= 1 && fusionRelicProbe.boostedBottles >= 1, `Fusion relic boosts did not show in combat: ${JSON.stringify(fusionRelicProbe)}`);
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
-  assert(progressProbe.powerups.types.length >= 9 && progressProbe.powerups.active.length >= 9, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever") && progressProbe.powerups.types.includes("stormRhythm"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.length >= 10 && progressProbe.powerups.active.length >= 10, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever") && progressProbe.powerups.types.includes("stormRhythm") && progressProbe.powerups.types.includes("omenBounty"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.randomDropChance <= 0.004 && progressProbe.powerups.streakDropEvery >= 40, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.combatCooldown >= 40 && progressProbe.powerups.magnetRange <= 90, `Power-up pickups are too intrusive: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[0] === 3 && progressProbe.levelFlow.choiceLevels[1] === 7 && progressProbe.levelFlow.choiceLevels[2] === 11 && progressProbe.levelFlow.rewardTypes >= 6, `Level-up flow rewards are incomplete: ${JSON.stringify(progressProbe.levelFlow)}`);

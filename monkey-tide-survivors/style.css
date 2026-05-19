@@ -86,7 +86,6 @@ button:disabled {
 }
 
 .hud-card,
-.loadout,
 .panel,
 .icon-button,
 .dash-button,
@@ -163,86 +162,150 @@ button:disabled {
 
 .loadout {
   position: fixed;
-  left: max(14px, env(safe-area-inset-left));
-  bottom: max(14px, env(safe-area-inset-bottom));
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 5;
   display: flex;
-  max-width: min(680px, calc(100vw - 28px));
-  gap: 8px;
-  padding: 8px;
+  align-items: stretch;
+  max-width: min(760px, calc(100vw - 32px));
+  min-height: 62px;
+  gap: 7px;
+  padding: 7px;
+  overflow-x: auto;
+  overflow-y: visible;
   border-radius: 8px;
-  background-image:
-    linear-gradient(180deg, rgba(255, 224, 142, 0.4), rgba(107, 53, 17, 0.18)),
-    var(--ui-scrap);
-  background-position: center;
-  background-size: 100% 100%, 100% 100%;
-  background-blend-mode: multiply, normal;
+  background:
+    linear-gradient(180deg, rgba(255, 232, 165, 0.18), rgba(36, 20, 7, 0.44)),
+    linear-gradient(90deg, rgba(12, 27, 23, 0.32), rgba(92, 48, 17, 0.22), rgba(12, 27, 23, 0.3));
+  box-shadow:
+    0 12px 30px rgba(22, 12, 4, 0.28),
+    inset 0 1px 0 rgba(255, 243, 191, 0.28),
+    inset 0 -1px 0 rgba(45, 22, 4, 0.42);
+  backdrop-filter: blur(6px) saturate(1.05);
+  scrollbar-width: none;
   pointer-events: none;
+  isolation: isolate;
+}
+
+.loadout::-webkit-scrollbar {
+  display: none;
+}
+
+.loadout::before {
+  position: absolute;
+  inset: 6px;
+  z-index: -1;
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 204, 0.12), transparent 48%),
+    rgba(20, 24, 18, 0.18);
+  border-top: 1px solid rgba(255, 241, 188, 0.18);
+  content: "";
 }
 
 .loadout-item {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  flex: 0 0 116px;
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
-  width: 136px;
-  min-height: 44px;
+  min-height: 48px;
   gap: 7px;
-  padding: 5px 7px;
-  border: 1px solid rgba(72, 38, 12, 0.36);
-  border-radius: 8px;
-  background-image:
-    linear-gradient(180deg, rgba(255, 225, 137, 0.26), rgba(82, 41, 13, 0.12)),
-    var(--ui-scrap);
-  background-position: center;
-  background-size: 100% 100%, 100% 100%;
+  padding: 5px 7px 8px;
+  border: 1px solid rgba(255, 223, 145, 0.2);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(255, 224, 139, 0.22), rgba(74, 38, 13, 0.18)),
+    rgba(35, 24, 13, 0.38);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 244, 198, 0.08),
+    0 5px 12px rgba(22, 12, 4, 0.16);
+}
+
+.loadout-item::after {
+  position: absolute;
+  right: 8px;
+  bottom: 5px;
+  left: 52px;
+  z-index: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 224, 139, 0.22);
+  content: "";
 }
 
 .loadout-item.powerup {
-  opacity: 0.72;
+  border-color: rgba(54, 190, 162, 0.26);
+  background:
+    linear-gradient(180deg, rgba(54, 190, 162, 0.16), rgba(32, 26, 16, 0.32)),
+    rgba(16, 34, 30, 0.32);
+  opacity: 0.9;
 }
 
 .loadout-item.signature {
   border-color: rgba(255, 198, 83, 0.66);
-  background-image:
-    linear-gradient(180deg, rgba(255, 238, 158, 0.36), rgba(68, 151, 145, 0.16)),
-    var(--ui-scrap);
-  box-shadow: inset 0 0 0 1px rgba(255, 249, 213, 0.18), 0 0 12px rgba(54, 190, 162, 0.18);
+  background:
+    radial-gradient(circle at 26% 28%, rgba(255, 238, 158, 0.34), transparent 56%),
+    linear-gradient(180deg, rgba(68, 151, 145, 0.22), rgba(74, 38, 13, 0.2)),
+    rgba(35, 24, 13, 0.44);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 249, 213, 0.18),
+    0 0 16px rgba(54, 190, 162, 0.22);
 }
 
 .loadout-item.fusion {
   border-color: rgba(183, 255, 240, 0.56);
-  background-image:
-    linear-gradient(180deg, rgba(83, 255, 229, 0.2), rgba(128, 52, 126, 0.22)),
-    var(--ui-scrap);
+  background:
+    radial-gradient(circle at 28% 30%, rgba(183, 255, 240, 0.2), transparent 58%),
+    linear-gradient(180deg, rgba(83, 255, 229, 0.16), rgba(128, 52, 126, 0.22)),
+    rgba(28, 22, 24, 0.4);
 }
 
 .loadout-item.powerup .loadout-icon {
-  opacity: 0.82;
+  opacity: 0.92;
+}
+
+.loadout-item > span:last-child {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
 }
 
 .loadout-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 7px;
+  position: relative;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 239, 183, 0.22);
+  border-radius: 6px;
   background-position: center;
   background-size: cover;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 248, 207, 0.13),
+    0 3px 9px rgba(18, 10, 4, 0.22);
 }
 
 .loadout-name {
   display: block;
   overflow: hidden;
-  color: #3a200c;
-  font-size: 0.72rem;
+  color: #fff0bd;
+  font-size: 0.68rem;
   font-weight: 900;
+  line-height: 1.06;
+  text-shadow: 0 1px 0 rgba(32, 15, 4, 0.64);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .loadout-level {
-  display: block;
-  color: rgba(58, 32, 12, 0.7);
-  font-size: 0.72rem;
+  display: inline-block;
+  margin-top: 2px;
+  color: rgba(255, 232, 165, 0.76);
+  font-size: 0.62rem;
   font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(32, 15, 4, 0.58);
 }
 
 .loadout-pips,
@@ -252,7 +315,12 @@ button:disabled {
 }
 
 .loadout-pips {
-  margin-top: 3px;
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  left: 52px;
+  z-index: 1;
+  margin-top: 0;
 }
 
 .loadout-pip,
@@ -890,16 +958,25 @@ button:disabled {
   .loadout {
     bottom: 116px;
     max-width: calc(100vw - 28px);
-    overflow: hidden;
+    min-height: 46px;
     padding: 5px;
     gap: 5px;
   }
 
+  .loadout::before {
+    inset: 5px;
+  }
+
   .loadout-item {
-    width: 52px;
-    min-height: 38px;
+    flex: 0 0 46px;
+    width: 46px;
+    min-height: 40px;
     grid-template-columns: 1fr;
-    padding: 3px;
+    padding: 4px;
+  }
+
+  .loadout-item::after {
+    display: none;
   }
 
   .loadout-name,
@@ -1103,13 +1180,19 @@ button:disabled {
   .loadout {
     left: max(8px, env(safe-area-inset-left));
     bottom: max(8px, env(safe-area-inset-bottom));
-    max-width: min(320px, 42vw);
-    padding: 3px;
+    max-width: min(340px, 42vw);
+    min-height: 38px;
+    padding: 4px;
     gap: 4px;
   }
 
+  .loadout::before {
+    inset: 4px;
+  }
+
   .loadout-item {
-    width: 38px;
+    flex: 0 0 36px;
+    width: 36px;
     min-height: 30px;
     grid-template-columns: 1fr;
     padding: 2px;
@@ -1217,10 +1300,13 @@ button:disabled {
     bottom: max(12px, env(safe-area-inset-bottom));
     width: auto;
     max-width: calc(100vw - 112px);
+    min-height: 50px;
   }
 
   .loadout-item {
+    flex-basis: 48px;
     width: 48px;
+    min-height: 42px;
   }
 
   .dash-button {
