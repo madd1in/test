@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Nano Banana Adventure - HTML5 Mario Game</title>
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheets link -->
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="page-container">
+        
+        <!-- Header Banner -->
+        <header class="game-header">
+            <h1 class="logo-text">SUPER <span>NANO BANANA</span> ADVENTURE</h1>
+            <p class="subtitle">Das ultimative Bananen-Plattformer-Erlebnis</p>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard">
+            
+            <!-- Game Canvas & Interactive Overlays Wrapper -->
+            <section class="game-screen-wrapper">
+                <div class="canvas-container">
+                    
+                    <!-- HTML5 Game Canvas -->
+                    <canvas id="game-canvas"></canvas>
+
+                    <!-- Realtime HUD Display inside Canvas boundaries -->
+                    <div class="canvas-hud">
+                        <div class="hud-item">
+                            <span class="hud-label">SCORE</span>
+                            <span id="hud-score" class="hud-value font-game">000000</span>
+                        </div>
+                        <div class="hud-item">
+                            <span class="hud-label">BANANAS</span>
+                            <span class="hud-value font-game">🍌<span id="hud-bananas">000</span></span>
+                        </div>
+                        <div class="hud-item">
+                            <span class="hud-label">LIVES</span>
+                            <span class="hud-value font-game">❤️<span id="hud-lives">3</span></span>
+                        </div>
+                        <div class="hud-item">
+                            <span class="hud-label">LEVEL</span>
+                            <span class="hud-value font-game">⭐<span id="hud-level">1</span></span>
+                        </div>
+                    </div>
+
+                    <!-- OVERLAY: Start Menu -->
+                    <div id="start-overlay" class="game-overlay show-overlay">
+                        <div class="overlay-glass">
+                            <h2 class="neon-title animate-bounce">NANO BANANA</h2>
+                            <p class="overlay-desc">Hilf Mario, im Bananen-Anzug das heilige goldene Bananen-Heiligtum zu erobern! Weiche giftigen Riesen-Trauben aus und sammle Nano-Bananen.</p>
+                            <button class="btn btn-primary font-game" onclick="window.gameEngine.startGame()">SPIEL STARTEN</button>
+                            <div class="control-hints">
+                                <span>⌨️ Tastatur: Pfeiltasten / WASD + Leertaste</span>
+                                <span>📱 Mobil: On-Screen Touch-Knöpfe</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OVERLAY: Pause Screen -->
+                    <div id="pause-overlay" class="game-overlay">
+                        <div class="overlay-glass">
+                            <h2 class="neon-title-blue">PAUSE</h2>
+                            <p class="overlay-desc">Das Spiel ist angehalten. Mache dich bereit zum Weitermachen!</p>
+                            <button class="btn btn-blue font-game" onclick="window.gameEngine.togglePause()">WEITER GEHEN</button>
+                        </div>
+                    </div>
+
+                    <!-- OVERLAY: Game Over -->
+                    <div id="game-over-overlay" class="game-overlay">
+                        <div class="overlay-glass">
+                            <h2 class="neon-title-red animate-pulse">GAME OVER</h2>
+                            <p class="overlay-desc">Keine Leben mehr übrig! Aber ein echter Bananen-Held gibt niemals auf.</p>
+                            <button class="btn btn-red font-game" onclick="window.gameEngine.startGame()">NOCHMAL SPIELEN</button>
+                        </div>
+                    </div>
+
+                    <!-- OVERLAY: Victory Screen -->
+                    <div id="victory-overlay" class="game-overlay">
+                        <div class="overlay-glass animate-glow">
+                            <h2 class="neon-title-green animate-bounce">SIEG! 🏆</h2>
+                            <p class="overlay-desc">Unglaublich! Du hast alle Levels gemeistert und das goldene Bananen-Geheimnis gelüftet!</p>
+                            <button class="btn btn-primary font-game" onclick="window.gameEngine.startGame()">ERNEUT STARTEN</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- On-Screen Tactile Touch Controls Overlay (visible on mobile / touch active) -->
+                <div class="mobile-touch-panel" id="mobile-touch-panel">
+                    <div class="d-pad-left">
+                        <button class="touch-btn" id="touch-left">⬅️</button>
+                        <button class="touch-btn" id="touch-right">➡️</button>
+                    </div>
+                    <div class="d-pad-right">
+                        <button class="touch-btn jump-btn" id="touch-jump">A / SPRINGEN ⬆️</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sidebar Glass Dashboard Panel -->
+            <aside class="sidebar-panel">
+                
+                <!-- Section 1: Interactive Audio Controls -->
+                <div class="sidebar-block glass-block">
+                    <h3 class="block-title">📻 Audio & Musik</h3>
+                    <div class="audio-settings">
+                        
+                        <!-- Track Selection -->
+                        <div class="control-row">
+                            <label for="track-select">Musiktrack:</label>
+                            <select id="track-select" class="form-select" onchange="window.gameEngine.state === 'PLAYING' && window.audioEngine.playBGM(this.value)">
+                                <option value="bgm_banana">Turbo Banana Cup 🍌</option>
+                                <option value="bgm_mario">Marios Pilzpfad 🍄</option>
+                            </select>
+                        </div>
+
+                        <!-- Volume Slider -->
+                        <div class="control-row">
+                            <label for="volume-slider">Lautstärke:</label>
+                            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" class="range-slider" oninput="window.audioEngine.setVolume(parseFloat(this.value))">
+                        </div>
+
+                        <!-- Mute / Unmute Button -->
+                        <div class="control-row">
+                            <button class="btn-audio-action" id="mute-btn" onclick="const muted = window.audioEngine.toggleMute(); this.innerText = muted ? '🔊 Sound Einschalten' : '🔇 Mute'; this.classList.toggle('muted-active', muted)">🔇 Mute</button>
+                        </div>
+
+                        <!-- Retro Synthesizer Fallback Switch -->
+                        <div class="control-row toggle-row">
+                            <span class="toggle-label">8-Bit Synthesizer Modus:</span>
+                            <label class="switch-container">
+                                <input type="checkbox" id="synth-toggle" onchange="window.audioEngine.toggleSynthMode(this.checked)">
+                                <span class="slider-toggle"></span>
+                            </label>
+                        </div>
+                        <p class="audio-note">Der 8-Bit Synthesizer generiert procedurale chiptunes direkt in Ihrem Browser. Perfekt für Offline-Spielen!</p>
+                    </div>
+                </div>
+
+                <!-- Section 2: Leaderboard stats -->
+                <div class="sidebar-block glass-block">
+                    <h3 class="block-title">🏆 Highscore Leaderboard</h3>
+                    <div class="leaderboard-content">
+                        <div class="leaderboard-row highlight">
+                            <span class="rank">#1</span>
+                            <span class="player">BananaMario (Du)</span>
+                            <span id="highscore-val" class="score font-game">000000</span>
+                        </div>
+                        <div class="leaderboard-row">
+                            <span class="rank">#2</span>
+                            <span class="player">NanoMonkey</span>
+                            <span class="score font-game">025800</span>
+                        </div>
+                        <div class="leaderboard-row">
+                            <span class="rank">#3</span>
+                            <span class="player">DK_Bananarama</span>
+                            <span class="score font-game">012400</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Show/Hide Touch Buttons & Visual Style Info -->
+                <div class="sidebar-block glass-block">
+                    <h3 class="block-title">⚙️ Spiel-Optionen</h3>
+                    <div class="options-content">
+                        
+                        <!-- Toggle Touch Layout -->
+                        <div class="control-row toggle-row">
+                            <span class="toggle-label">Touch-Tasten anzeigen:</span>
+                            <label class="switch-container">
+                                <input type="checkbox" checked id="touch-layout-toggle" onchange="document.getElementById('mobile-touch-panel').style.display = this.checked ? 'flex' : 'none'">
+                                <span class="slider-toggle"></span>
+                            </label>
+                        </div>
+
+                        <div class="game-info-badge">
+                            <span>🎮 Grafik: HD Vector Render Engine (Active)</span>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="game-footer">
+            <p>Erstellt mit ❤️ & AI für absolute Performance • Antigravity Game Suite 2026</p>
+        </footer>
+    </div>
+
+    <!-- Include Game Audio Script and Logic Scripts -->
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
