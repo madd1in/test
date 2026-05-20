@@ -38,7 +38,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle und Blutrosen-Relikt; die alten Kerzenprops spawnen nicht mehr.
 - Imagen-HD-Frameset fuer einen LeChuck-artigen Fluchkapitaen als neuen Boss.
-- Neues 12-Frame-Imagen-HD-Frameset fuer einen point-and-click-artigen Zeit-Tentakel; Riff-Squid und Kaktus-Stack bleiben im zusaetzlichen Gegner-Sheet.
+- Neues 12-Frame-Imagen-HD-Frameset fuer einen point-and-click-artigen Zeit-Tentakel; Riff-Squid und Kaktus-Stack haben jetzt ein eigenes 11-Frame-HD-Sheet mit sauberem Squid-/Kaktus-Wobble.
+- Saebel-Slash startet weiter vor der Spielfigur und trifft nur noch klar im Vorwaertskegel statt hinter/um den Player herum.
 - Neue freigestellte Palmenprops und kleinere offene Schatzkisten im Verhaeltnis zum Spieler.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Spielstart wird erst freigegeben, wenn die lokalen BGM-Tracks wirklich vorgeladen und abspielbereit sind.

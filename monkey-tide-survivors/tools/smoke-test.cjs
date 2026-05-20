@@ -146,6 +146,7 @@ async function run() {
     "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png",
+    "assets/sprites/platformer_enemy_anim_imagen_hd.png",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
     "assets/sprites/beach-props-v2/tide_puddle.webp",
     "assets/sprites/beach-props-v2/hedge_cluster.webp",
@@ -1268,7 +1269,7 @@ async function run() {
   assert(debug.enemyRoster.activeBossCycle.every((id) => !debug.enemyRoster.humanNpcTypes.includes(id)), `Live boss cycle still includes human NPCs: ${JSON.stringify(debug.enemyRoster)}`);
   assert(debug.preloadedAssetKeys.includes("enemyAnimSheet"), `Enemy animation sheet is not preloaded: ${JSON.stringify(debug.preloadedAssetKeys)}`);
   assert(debug.crossoverAssets.enemyAnimSheet && debug.crossoverAssets.enemyAnimationFrames.frames === 8 && debug.crossoverAssets.enemyAnimationFrames.rows === 7, `Imagen enemy animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean_v2.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean_v2.png") && debug.extraAssets.extraEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify({ crossover: debug.crossoverAssets, extra: debug.extraAssets })}`);
+  assert(debug.crossoverAssets.enemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.gothicEnemyAnimSource.includes("_clean_v4.png") && debug.crossoverAssets.newEnemyTrioSource.includes("_clean_v2.png") && debug.crossoverAssets.platformerEnemySource.includes("platformer_enemy_anim_imagen_hd.png") && debug.crossoverAssets.gothicEnemiesSource.includes("_clean_v2.png") && debug.extraAssets.extraEnemiesSource.includes("_clean.png"), `Runtime should use clean sliced enemy sheets: ${JSON.stringify({ crossover: debug.crossoverAssets, extra: debug.extraAssets })}`);
   assert(["crab", "hand", "powderImp", "lanternWraith", "barrelMaw", "coralBrute", "idol"].every((id) => debug.crossoverAssets.enemyAnimTypes.includes(id)), `Single-frame live enemies were not migrated to the multiframe sheet: ${JSON.stringify(debug.crossoverAssets.enemyAnimTypes)}`);
   assert(debug.crossoverAssets.gothicEnemyAnimSheet === true && ["boneCorsair", "gargoyle"].every((id) => debug.crossoverAssets.gothicEnemyAnimTypes.includes(id)), `Skeleton/gargoyle multiframe sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.liveSingleFrameFallbackTypes.length === 0, `Live enemies still fall back to single-frame art: ${JSON.stringify(debug.crossoverAssets.liveSingleFrameFallbackTypes)}`);
@@ -1309,6 +1310,7 @@ async function run() {
   const repairedEnemySliceProbe = await page.evaluate(async () => {
     const assets = [
       { src: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png?slice-probe", frameW: 256, frameH: 256, cols: 8, rows: 3, minVisible: 12000 },
+      { src: "assets/sprites/platformer_enemy_anim_imagen_hd.png?slice-probe", frameW: 256, frameH: 256, cols: 11, rows: 2, minVisible: 11000 },
       { src: "assets/sprites/gothic_enemies_hd_sheet_clean_v2.png?slice-probe", frameW: 128, frameH: 176, cols: 4, rows: 8, minVisible: 2600 },
       { src: "assets/sprites/extra_enemies_imagen_hd_clean.png?slice-probe", frameW: 512, frameH: 512, cols: 4, rows: 2, minVisible: 60000 },
     ];
@@ -1689,6 +1691,7 @@ async function run() {
 
   const newEnemyProbe = await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
   assert(newEnemyProbe.assetLoaded && newEnemyProbe.animationFrames.frames === 8, `New enemy animation sheet missing: ${JSON.stringify(newEnemyProbe)}`);
+  assert(newEnemyProbe.platformerAnimationFrames.frames === 11 && ["reefSquid", "cactusStack"].every((id) => newEnemyProbe.platformerTypes.includes(id)), `Platformer squid/cactus HD animation sheet missing: ${JSON.stringify(newEnemyProbe)}`);
   assert(["tideTentacle", "reefSquid", "cactusStack"].every((id) => newEnemyProbe.spawned.includes(id)), `New enemy trio did not spawn: ${JSON.stringify(newEnemyProbe)}`);
   const omenProbe = await page.evaluate(() => window.__MONKEY_TIDE_OMEN_SHARD_PROBE());
   assert(omenProbe.omen.count === 3 && omenProbe.omen.boons >= 1 && omenProbe.omen.nextReward === 6 && omenProbe.powerupDrops >= 1 && omenProbe.omenZones >= 1, `Omen shard elite reward loop did not trigger: ${JSON.stringify(omenProbe)}`);
@@ -1698,6 +1701,8 @@ async function run() {
   assert(weaponEvolutionProbe.tornado?.fused === true && weaponEvolutionProbe.debug.weaponEvolution.saberTornadoFusionReady, `Saber tornado fusion did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
   assert(weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.starCoconut && weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.grogMaelstrom && weaponEvolutionProbe.debug.weaponEvolution.fusionTypes.moonNet, `New weapon fusions did not become ready: ${JSON.stringify(weaponEvolutionProbe.debug.weaponEvolution)}`);
   assert(weaponEvolutionProbe.debug.weaponEvolution.fusionMoments.count >= 4, `Fusion achievement moments did not record: ${JSON.stringify(weaponEvolutionProbe.debug.weaponEvolution)}`);
+  const slashDirectionProbe = await page.evaluate(() => window.__MONKEY_TIDE_SLASH_DIRECTION_PROBE());
+  assert(slashDirectionProbe.frontHit && !slashDirectionProbe.backHit && slashDirectionProbe.zone?.forward >= 110 && slashDirectionProbe.zone?.visualStartForward >= 45, `Cutlass slash should project forward from the player: ${JSON.stringify(slashDirectionProbe)}`);
   const fusionRelicProbe = await page.evaluate(() => window.__MONKEY_TIDE_FUSION_RELIC_PROBE());
   assert(fusionRelicProbe.assetLoaded && fusionRelicProbe.frames.frames === 4 && fusionRelicProbe.relicTypes.length === 4, `Fusion relic sheet probe failed: ${JSON.stringify(fusionRelicProbe)}`);
   assert(Object.values(fusionRelicProbe.amplifiers).every((value) => value >= 2), `Fusion relic amplifiers did not apply: ${JSON.stringify(fusionRelicProbe)}`);

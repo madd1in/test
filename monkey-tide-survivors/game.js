@@ -72,6 +72,7 @@ const imageSources = {
   blackbeardAnim: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
   timeTentacleAnim: "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp?v=time-tentacle-v1",
   newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png?v=slice-clean-v2",
+  platformerEnemies: "assets/sprites/platformer_enemy_anim_imagen_hd.png?v=imagen-platformer-v1",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
   beachHedgeCluster: "assets/sprites/beach-props-v2/hedge_cluster.webp?v=clean-hedges",
@@ -358,6 +359,7 @@ const THREE_HEADED_MONKEY_ANIM = { w: 706, h: 720, cols: 4, rows: 2, frames: 8, 
 const BLACKBEARD_ANIM = { w: 758, h: 900, cols: 4, rows: 2, frames: 8, fps: 6.4 };
 const TIME_TENTACLE_ANIM = { w: 256, h: 512, cols: 6, rows: 2, frames: 12, fps: 10.5 };
 const NEW_ENEMY_TRIO = { w: 256, h: 256, cols: 8, rows: 3, frames: 8, fps: 8.2 };
+const PLATFORMER_ENEMY_ANIM = { w: 256, h: 256, cols: 11, rows: 2, frames: 11, fps: 10.8 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
 const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
@@ -800,6 +802,11 @@ const newEnemyAnimMap = {
   tideTentacle: { row: 0, attackFrames: [3, 4, 5, 6] },
   reefSquid: { row: 1, attackFrames: [4, 5, 6, 7] },
   cactusStack: { row: 2, attackFrames: [2, 4, 5, 6] },
+};
+
+const platformerEnemyAnimMap = {
+  reefSquid: { row: 0, loopFrames: [0, 1, 2, 3, 4, 5, 6, 9, 10], attackFrames: [7, 8, 9, 10] },
+  cactusStack: { row: 1, loopFrames: [0, 1, 2, 3, 4, 5, 6, 9, 10], attackFrames: [2, 3, 4, 5, 6] },
 };
 
 const gothicEnemyAnimMap = {
@@ -3583,29 +3590,55 @@ function castChunLiLightningKick(signature, angle) {
   playSkinSound("hit", "cutlassImpact", { cooldown: 340 });
 }
 
+const CUTLASS_FORWARD_RATIO = 0.72;
+const CUTLASS_MIN_FORWARD = 72;
+const CUTLASS_FX_BACK_RATIO = 0.18;
+
 function slash(angle, radius, arc, damage, level = 1) {
   const p = state.player;
   const blades = cutlassBladeCount(level);
-  const forward = radius * 0.42;
+  const forward = Math.max(CUTLASS_MIN_FORWARD, radius * CUTLASS_FORWARD_RATIO);
   const x = p.x + Math.cos(angle) * forward;
   const y = p.y + Math.sin(angle) * forward;
-  state.zones.push({ type: "slash", x, y, angle, radius, arc: arc * Math.PI / 180, level, blades, life: 0.2, maxLife: 0.2 });
+  state.zones.push({
+    type: "slash",
+    x,
+    y,
+    originX: p.x,
+    originY: p.y,
+    forward,
+    fxBackRatio: CUTLASS_FX_BACK_RATIO,
+    angle,
+    radius,
+    arc: arc * Math.PI / 180,
+    level,
+    blades,
+    life: 0.2,
+    maxLife: 0.2,
+  });
   playSkinSound("slash", "slashSwish");
+  const dirX = Math.cos(angle);
+  const dirY = Math.sin(angle);
   for (const enemy of state.enemies) {
-    const dx = enemy.x - p.x;
-    const dy = enemy.y - p.y;
+    const playerDx = enemy.x - p.x;
+    const playerDy = enemy.y - p.y;
+    const forwardDist = playerDx * dirX + playerDy * dirY;
+    if (forwardDist < Math.max(10, enemy.r * 0.18)) continue;
+    const dx = enemy.x - x;
+    const dy = enemy.y - y;
     const dist = Math.hypot(dx, dy);
     if (dist > radius + enemy.r) continue;
-    const targetAngle = Math.atan2(dy, dx);
+    const targetAngle = Math.atan2(playerDy, playerDx);
     const bladeSpread = blades > 1 ? Math.min(0.58, 0.12 * (blades - 1)) : 0;
-    let caught = dist < 46;
+    let caught = forwardDist < 64 && Math.abs(-dirY * playerDx + dirX * playerDy) < 54;
     for (let i = 0; i < blades && !caught; i += 1) {
       const bladeAngle = angle + (i - (blades - 1) / 2) * bladeSpread;
       const delta = Math.abs(shortAngle(targetAngle - bladeAngle));
       caught = delta < arc * Math.PI / 180 * (blades > 1 ? 0.64 : 1);
     }
     if (caught) {
-      hurtEnemy(enemy, damage * state.stats.damage, dx / Math.max(1, dist), dy / Math.max(1, dist));
+      const playerDist = Math.max(1, Math.hypot(playerDx, playerDy));
+      hurtEnemy(enemy, damage * state.stats.damage, playerDx / playerDist, playerDy / playerDist);
     }
   }
 }
@@ -5513,6 +5546,19 @@ function drawEnemies() {
       h = TIME_TENTACLE_ANIM.h * animScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 30 : enemy.boss ? 18 : 12;
       ctx.drawImage(images.timeTentacleAnim, sx, sy, TIME_TENTACLE_ANIM.w, TIME_TENTACLE_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.newEnemyAnim && platformerEnemyAnimMap[enemy.type.newEnemyAnim] && images.platformerEnemies) {
+      const anim = platformerEnemyAnimMap[enemy.type.newEnemyAnim];
+      const frame = bossAnimFrame(enemy, PLATFORMER_ENEMY_ANIM, anim.attackFrames, anim.loopFrames);
+      const sx = (frame % PLATFORMER_ENEMY_ANIM.cols) * PLATFORMER_ENEMY_ANIM.w;
+      const sy = anim.row * PLATFORMER_ENEMY_ANIM.h;
+      const bob = enemy.type.id === "reefSquid"
+        ? Math.sin(state.elapsed * 9.2 + enemy.frameOffset) * 8
+        : Math.sin(state.elapsed * 5.8 + enemy.frameOffset) * 3.8;
+      const animScale = animatedEnemyDrawScale(enemy, PLATFORMER_ENEMY_ANIM.h) * (enemy.type.id === "reefSquid" ? 1.08 : 1.03);
+      w = PLATFORMER_ENEMY_ANIM.w * animScale * (enemy.boss ? 1.16 : 1);
+      h = PLATFORMER_ENEMY_ANIM.h * animScale * (enemy.boss ? 1.16 : 1);
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 28 : 13;
+      ctx.drawImage(images.platformerEnemies, sx, sy, PLATFORMER_ENEMY_ANIM.w, PLATFORMER_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.newEnemyAnim && images.newEnemyTrio) {
       const anim = newEnemyAnimMap[enemy.type.newEnemyAnim] || newEnemyAnimMap.tideTentacle;
       const frame = bossAnimFrame(enemy, NEW_ENEMY_TRIO, anim.attackFrames, anim.loopFrames);
@@ -5753,13 +5799,14 @@ function drawWeaponEffects() {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate(zone.angle);
       const slashSize = zone.radius * 1.85;
-      drawPlayerEffectAt("cutlassAfterglow", -slashSize * 0.58, -slashSize * 0.64, slashSize * 1.28, slashSize * 1.28);
+      const backRatio = zone.fxBackRatio ?? CUTLASS_FX_BACK_RATIO;
+      drawPlayerEffectAt("cutlassAfterglow", -slashSize * backRatio, -slashSize * 0.64, slashSize * 1.14, slashSize * 1.28);
       const blades = zone.blades || cutlassBladeCount(zone.level);
       if (images.weaponEvolutionFx && blades >= 2) {
         const frame = `cutlass${Math.min(5, blades)}`;
-        drawWeaponEvolutionFxAt(frame, -slashSize * 0.58, -slashSize * 0.66, slashSize * 1.22, slashSize * 1.22);
+        drawWeaponEvolutionFxAt(frame, -slashSize * Math.max(0.12, backRatio * 0.86), -slashSize * 0.66, slashSize * 1.1, slashSize * 1.22);
       } else {
-        drawProjectileFxAt("cutlassSlash", -slashSize * 0.42, -slashSize * 0.58, slashSize, slashSize);
+        drawProjectileFxAt("cutlassSlash", -slashSize * Math.max(0.08, backRatio * 0.55), -slashSize * 0.58, slashSize, slashSize);
       }
     } else if (zone.type === "beam") {
       const bx = ox + (zone.x + zone.tx) / 2;
@@ -6937,8 +6984,10 @@ window.__MONKEY_TIDE_NEW_ENEMY_PROBE = () => {
   });
   render();
   return {
-    assetLoaded: !!images.newEnemyTrio,
+    assetLoaded: !!images.newEnemyTrio && !!images.platformerEnemies,
     animationFrames: { ...NEW_ENEMY_TRIO },
+    platformerAnimationFrames: { ...PLATFORMER_ENEMY_ANIM },
+    platformerTypes: Object.keys(platformerEnemyAnimMap),
     spawned: state.enemies.filter((enemy) => ids.includes(enemy.type.id)).map((enemy) => enemy.type.id),
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
@@ -6993,6 +7042,54 @@ window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_SLASH_DIRECTION_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  const p = state.player;
+  const type = enemyType("crab");
+  const makeProbeEnemy = (x, y) => ({
+    id: cryptoId(),
+    type,
+    x,
+    y,
+    hp: 220,
+    maxHp: 220,
+    r: type.radius * ENEMY_TUNING.hitboxScale,
+    speed: 0,
+    damage: type.damage,
+    row: type.row,
+    frameOffset: 0,
+    hit: 0,
+    boss: false,
+    shootTimer: 99,
+    actionPulse: 0,
+    actionKind: null,
+    slashDirectionProbe: true,
+  });
+  state.enemies = state.enemies.filter((enemy) => !enemy.slashDirectionProbe);
+  const front = makeProbeEnemy(p.x + 166, p.y);
+  const back = makeProbeEnemy(p.x - 56, p.y);
+  state.enemies.push(front, back);
+  slash(0, 160, 66, 80, 3);
+  render();
+  const zone = [...state.zones].reverse().find((entry) => entry.type === "slash");
+  const slashSize = zone ? zone.radius * 1.85 : 0;
+  return {
+    zone: zone ? {
+      x: zone.x,
+      y: zone.y,
+      originX: zone.originX,
+      originY: zone.originY,
+      forward: zone.forward,
+      radius: zone.radius,
+      fxBackRatio: zone.fxBackRatio,
+      visualStartForward: zone.forward - slashSize * (zone.fxBackRatio ?? CUTLASS_FX_BACK_RATIO),
+    } : null,
+    frontDamage: front.maxHp - front.hp,
+    backDamage: back.maxHp - back.hp,
+    frontHit: front.hp < front.maxHp,
+    backHit: back.hp < back.maxHp,
+  };
+};
 window.__MONKEY_TIDE_FUSION_RELIC_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.fusionMoments = { seen: new Set(), count: 0 };
@@ -7014,6 +7111,8 @@ window.__MONKEY_TIDE_FUSION_RELIC_PROBE = () => {
   ropeDamage(state.weapons.rope.level);
   updateProjectiles(0.12);
   render();
+  const boostedBottleProjectiles = state.projectiles.filter((projectile) => projectile.cometLevel > 0).length;
+  const boostedBottleRelicBursts = state.zones.filter((zone) => zone.type === "fusionRelic" && zone.icon === "rumCometLantern").length;
   return {
     assetLoaded: !!images.fusionRelics,
     frames: { ...FUSION_RELIC },
@@ -7022,7 +7121,7 @@ window.__MONKEY_TIDE_FUSION_RELIC_PROBE = () => {
     amplifiers: Object.fromEntries(Object.keys(fusionMomentRelicIcon).map((id) => [id, fusionAmplifierFor(id)])),
     relicZones: state.zones.filter((zone) => zone.type === "fusionRelic").map((zone) => zone.icon),
     boostedCoconuts: state.projectiles.filter((projectile) => projectile.stormConch > 0).length,
-    boostedBottles: state.projectiles.filter((projectile) => projectile.cometLevel > 0).length,
+    boostedBottles: boostedBottleProjectiles + boostedBottleRelicBursts,
     fusionMoments: { count: state.fusionMoments.count, seen: [...state.fusionMoments.seen] },
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
@@ -7588,12 +7687,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
     timeTentacleAnimSource: imageSources.timeTentacleAnim,
     newEnemyTrio: !!images.newEnemyTrio,
     newEnemyTrioSource: imageSources.newEnemyTrio,
+    platformerEnemies: !!images.platformerEnemies,
+    platformerEnemySource: imageSources.platformerEnemies,
     bossAnimationFrames: {
       threeHeadedMonkey: { ...THREE_HEADED_MONKEY_ANIM },
       blackbeard: { ...BLACKBEARD_ANIM },
       timeTentacle: { ...TIME_TENTACLE_ANIM },
     },
     newEnemyAnimationFrames: { ...NEW_ENEMY_TRIO },
+    platformerEnemyAnimationFrames: { ...PLATFORMER_ENEMY_ANIM },
+    platformerEnemyTypes: Object.keys(platformerEnemyAnimMap),
     newEnemyTypes: enemyTypes.filter((type) => type.newEnemyAnim).map((type) => type.id),
     enemyAnimSheet: !!images.enemyAnimSheet,
     enemyAnimSource: imageSources.enemyAnimSheet,
