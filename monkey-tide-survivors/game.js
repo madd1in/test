@@ -47,7 +47,7 @@ const imageSources = {
   mapTreasureAtoll: "assets/backgrounds/map_treasure_atoll_hd.jpg",
   characters: "assets/sprites/characters_imagen_hd_sheet.webp",
   playerSkins: "assets/sprites/player_skins_imagen_hd.webp",
-  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?v=curse-monkey-stable-v1",
+  playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?v=rum-corsair-slice-v1",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?v=fighters-slice-repair-v2",
   fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
@@ -2254,6 +2254,7 @@ function selectSpeechVoice() {
 async function boot() {
   mobileLike = computeMobileLike(window.innerWidth, window.innerHeight);
   state = makeState();
+  updatePlayerLabel();
   resize();
   renderSkinPicker();
   renderMapPicker();
@@ -2390,10 +2391,20 @@ function setSelectedMap(id) {
   primeMenuMusic();
 }
 
+function activePlayerSkinName() {
+  const skinId = state?.player?.skin || selectedSkin || "default";
+  return playerSkinMap[skinId]?.name || playerSkinMap.default.name;
+}
+
+function updatePlayerLabel() {
+  if (ui.playerLabel) ui.playerLabel.textContent = activePlayerSkinName();
+}
+
 function setPlayerSkin(id) {
   if (!playerSkinMap[id]) return;
   selectedSkin = id;
   if (state?.player) state.player.skin = id;
+  updatePlayerLabel();
   try {
     window.localStorage?.setItem("monkeyTidePlayerSkin", id);
   } catch {}
@@ -2886,6 +2897,7 @@ function startGame(options = {}) {
   state = makeState();
   state.phase = "playing";
   configureMusicForMap(state.map, state.player.skin);
+  updatePlayerLabel();
   if (quickMode) {
     state.elapsed = 135;
     state.pressureTimer = 1.2;
@@ -5112,7 +5124,7 @@ function raiseWeapon(id) {
 
 function updateDom() {
   const hpPct = clamp(state.player.hp / state.player.maxHp, 0, 1);
-  if (ui.playerLabel) ui.playerLabel.textContent = playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name;
+  updatePlayerLabel();
   ui.hpBar.style.transform = `scaleX(${hpPct})`;
   ui.hpText.textContent = `${Math.ceil(Math.max(0, state.player.hp))} / ${state.player.maxHp}`;
   ui.xpBar.style.transform = `scaleX(${clamp(state.xp / state.nextXp, 0, 1)})`;
@@ -7257,6 +7269,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   player: { x: state.player.x, y: state.player.y, skin: state.player.skin },
   playerSkin: state.player.skin,
   playerSkinName: playerSkinMap[state.player.skin]?.name || playerSkinMap.default.name,
+  hudPlayerLabel: ui.playerLabel?.textContent || "",
   playerSkinTypes: playerSkinIds,
   playerSkinAsset: !!images.playerSkins,
   playerSkinAnimationAsset: !!images.playerSkinWalks,

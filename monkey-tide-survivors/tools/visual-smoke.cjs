@@ -18,15 +18,28 @@ function mime(file) {
 }
 
 function resolvePlaywright() {
-  try {
-    return require("playwright");
-  } catch {
+  const candidates = [
+    () => require("playwright"),
+    () => require(path.join(bundledNodeModules, "playwright")),
+    ...(
+      fs.existsSync(path.join(bundledNodeModules, ".pnpm"))
+        ? fs.readdirSync(path.join(bundledNodeModules, ".pnpm"))
+          .filter((entry) => /^playwright@\d/.test(entry))
+          .sort()
+          .reverse()
+          .map((entry) => () => require(path.join(bundledNodeModules, ".pnpm", entry, "node_modules", "playwright")))
+        : []
+    ),
+  ];
+  let lastError = null;
+  for (const load of candidates) {
     try {
-      return require(path.join(bundledNodeModules, "playwright"));
-    } catch {
-      return require(path.join(bundledNodeModules, ".pnpm", "playwright@1.59.1", "node_modules", "playwright"));
+      return load();
+    } catch (error) {
+      lastError = error;
     }
   }
+  throw lastError;
 }
 
 function staticServer() {

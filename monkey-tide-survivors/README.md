@@ -67,6 +67,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Arcade-Movement-Pass: deutlich hoeheres Lauftempo, sehr kurzer Dash-Cooldown, schnellerer Dash-Burst, frueher voller Mobile-Stick und korrigierte Dash-Cooldown-Caps bei Traits/Upgrades.
 - Desktop ist nochmals weiter herausgezoomt; Flutwellen markieren jetzt Elite-Omen-Gegner mit Extra-Beute, damit Wellen ein klares Zwischenziel haben.
 - Dhampir/Alucard nutzt ein nachnormalisiertes Walksheet mit stabiler Frame-Hoehe und entfernten Fuss-/Slice-Artefakten.
+- Rum-Korsar nutzt ein nachgereinigtes Walksheet ohne fremde abgeschnittene Zellreste unter den Lauf-Frames; das HUD benennt immer den wirklich gewaehlten Charakter.
 - Jeder Charakter hat nun ein kleines Gameplay-Trait, z.B. Fluchsog, Mondbiss, Rumspurt, Sternenkompass oder Doppelermittlung.
 - Treffer-, Crit-, Streak- und Pickup-Texte werden als lesbare Screen-Schrift skaliert statt in der herausgezoomten Welt winzig zu werden.
 - HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.

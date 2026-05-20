@@ -45,15 +45,28 @@ function staticServer() {
 }
 
 function resolvePlaywright() {
-  try {
-    return require("playwright");
-  } catch {
+  const candidates = [
+    () => require("playwright"),
+    () => require(path.join(bundledNodeModules, "playwright")),
+    ...(
+      fs.existsSync(path.join(bundledNodeModules, ".pnpm"))
+        ? fs.readdirSync(path.join(bundledNodeModules, ".pnpm"))
+          .filter((entry) => /^playwright@\d/.test(entry))
+          .sort()
+          .reverse()
+          .map((entry) => () => require(path.join(bundledNodeModules, ".pnpm", entry, "node_modules", "playwright")))
+        : []
+    ),
+  ];
+  let lastError = null;
+  for (const load of candidates) {
     try {
-      return require(path.join(bundledNodeModules, "playwright"));
-    } catch {
-      return require(path.join(bundledNodeModules, ".pnpm", "playwright@1.59.1", "node_modules", "playwright"));
+      return load();
+    } catch (error) {
+      lastError = error;
     }
   }
+  throw lastError;
 }
 
 async function closeServer(server) {
@@ -80,6 +93,7 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
+    "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
@@ -655,10 +669,49 @@ async function run() {
   );
   assert(debug.performance.stablePropScale && debug.performance.stablePlayerScale, `Sprite scale pulse guards missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
+  assert(debug.hudPlayerLabel === "Fluchaffe", `HUD player label did not follow selected skin: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
-  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v3.png"), `Runtime should use the normalized monkey-and-Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
+  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v4.png"), `Runtime should use the normalized Rum-Korsar-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
+  const rumCorsairSlice = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?rum-corsair-safe";
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const row = 3;
+    const cell = 256;
+    const frames = [];
+    for (let col = 0; col < 8; col += 1) {
+      const data = ctx.getImageData(col * cell, row * cell, cell, cell).data;
+      let visible = 0;
+      let edgeAlpha = 0;
+      let bottomPixels = 0;
+      let minY = cell;
+      let maxY = -1;
+      for (let y = 0; y < cell; y += 1) {
+        for (let x = 0; x < cell; x += 1) {
+          const alpha = data[(y * cell + x) * 4 + 3];
+          if (alpha <= 8) continue;
+          visible += 1;
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+          if (x === 0 || y === 0 || x === cell - 1 || y === cell - 1) edgeAlpha += 1;
+          if (y >= 220) bottomPixels += 1;
+        }
+      }
+      frames.push({ col, visible, edgeAlpha, bottomPixels, minY, maxY });
+    }
+    return frames;
+  });
+  assert(
+    rumCorsairSlice.every((frame) => frame.edgeAlpha === 0 && frame.bottomPixels === 0 && frame.visible >= 16000 && frame.minY >= 18 && frame.maxY <= 212),
+    `Rum-Korsar walk row still contains sliced lower artifacts: ${JSON.stringify(rumCorsairSlice)}`,
+  );
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
@@ -734,7 +787,7 @@ async function run() {
   assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   const starFarmboyHeadSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?skywalker-head-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?skywalker-head-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -769,7 +822,7 @@ async function run() {
   assert(starFarmboyHeadSafe.every((box) => box.edgeAlpha === 0 && box.minY >= 36 && box.maxY <= 242), `Skywalker/starFarmboy row still lacks headroom: ${JSON.stringify(starFarmboyHeadSafe)}`);
   const dhampirFootSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?dhampir-foot-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?dhampir-foot-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -842,7 +895,7 @@ async function run() {
   );
   const curseMonkeyStable = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?curse-monkey-stable";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?curse-monkey-stable";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
