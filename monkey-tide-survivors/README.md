@@ -15,7 +15,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Fighter haben automatische Signature-Moves mit sichtbarem Loadout-Cooldown: Hadoken, Dragon Kick, Sonic Boom und Lightning Kicks.
 - Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy; Sternenfarmboy/Skywalker hat mehr Headroom im Frameset.
 - Sternenfarmboy/Skywalker nutzt ein neues Walksheet mit stabilerem Kopf-Headroom, bereinigter Auswahlzelle und gepolstertem statischen Fallback-Crop.
-- Eigene BGM-Profile pro spielbarem Charakter mit lokalen MP3s, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
+- Dhampir/Alucard nutzt ein nochmals bereinigtes Foot-Padding-Walksheet, einen gepolsterten statischen Crop und eine Auswahlzelle ohne unteren Splitter.
+- Eigene BGM-Profile pro spielbarem Charakter mit jeweils eigenem lokalen Main-Track, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
 - Ryu, Ken, Guile und Chun Li nutzen jetzt ihre neuen Downloads-Signature-Tracks: `Dojo Crash Duel`, `Steel Punch Parade`, `Jet Fuel Glory` und `Bamboo Arcade`, plus `Gasket Thunder` als Street-Fighter-Rush-Layer.
 - Eigene lokale SFX-Profile pro spielbarem Charakter fuer Slash, Dash, Treffer, Power-ups, Warnungen und Boss-Downs.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.

@@ -96,9 +96,11 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png",
+    "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/player_skin_select_imagen_hd_clean_v2.webp",
     "assets/sprites/player_skin_select_imagen_hd_clean_v3.webp",
+    "assets/sprites/player_skin_select_imagen_hd_clean_v4.webp",
     "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
@@ -358,7 +360,7 @@ async function run() {
     };
   }));
   assert(fighterUi.every((skin) => skin.exists && skin.archetype === "Fighter" && skin.selectSheet && skin.visible), `Fighter picker cards are not visibly wired: ${JSON.stringify(fighterUi)}`);
-  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd_clean_v3.webp"));
+  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd_clean_v4.webp"));
   assert(pickerUsesSelectSheet, "Character picker is not using the cleaned first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
   assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
@@ -676,13 +678,14 @@ async function run() {
   assert(debug.hudPlayerLabel === "Fluchaffe", `HUD player label did not follow selected skin: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
-  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v5.png"), `Runtime should use the normalized Skywalker-headroom-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
+  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v6.png"), `Runtime should use the normalized Alucard-foot-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
   assert(debug.playerSkinSourceRects.curseMonkey.x === 589 && debug.playerSkinSourceRects.curseMonkey.y === 88 && debug.playerSkinSourceRects.curseMonkey.w === 315 && debug.playerSkinSourceRects.curseMonkey.h === 411, `Fluchaffe static crop should use the padded clean rect: ${JSON.stringify(debug.playerSkinSourceRects.curseMonkey)}`);
+  assert(debug.playerSkinSourceRects.dhampirHunter.x === 960 && debug.playerSkinSourceRects.dhampirHunter.y === 0 && debug.playerSkinSourceRects.dhampirHunter.w === 380 && debug.playerSkinSourceRects.dhampirHunter.h === 500, `Alucard/dhampir static crop should use the padded clean rect: ${JSON.stringify(debug.playerSkinSourceRects.dhampirHunter)}`);
   assert(debug.playerSkinSourceRects.starFarmboy.x === 500 && debug.playerSkinSourceRects.starFarmboy.y === 492 && debug.playerSkinSourceRects.starFarmboy.w === 460 && debug.playerSkinSourceRects.starFarmboy.h === 532, `Skywalker/starFarmboy static crop should use the padded clean rect: ${JSON.stringify(debug.playerSkinSourceRects.starFarmboy)}`);
   const rumCorsairSlice = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?rum-corsair-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png?rum-corsair-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -776,7 +779,7 @@ async function run() {
     };
     return {
       staticCrop: await measure("assets/sprites/player_skins_imagen_hd_clean_v2.webp?curse-static-clean", 589, 88, 315, 411),
-      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v3.webp?curse-select-clean", 512, 0, 256, 256),
+      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v4.webp?curse-select-clean", 512, 0, 256, 256),
     };
   });
   assert(
@@ -840,7 +843,7 @@ async function run() {
   assert(debug.playerSkinTrait?.id && Object.keys(debug.playerSkinTraits).length === debug.playerSkinTypes.length, `Character traits are not wired per skin: ${JSON.stringify(debug.playerSkinTraits)}`);
   const starFarmboySlice = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?skywalker-bottom-guard";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png?skywalker-bottom-guard";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -863,7 +866,7 @@ async function run() {
   assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   const starFarmboyHeadSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?skywalker-head-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png?skywalker-head-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -980,7 +983,7 @@ async function run() {
     };
     return {
       staticCrop: await measure("assets/sprites/player_skins_imagen_hd_clean_v2.webp?skywalker-static-headroom", 500, 492, 460, 532),
-      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v3.webp?skywalker-select-clean", 1280, 0, 256, 256),
+      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v4.webp?skywalker-select-clean", 1280, 0, 256, 256),
     };
   });
   assert(
@@ -993,7 +996,7 @@ async function run() {
   );
   const dhampirFootSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?dhampir-foot-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png?dhampir-foot-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -1060,13 +1063,83 @@ async function run() {
   });
   const dhampirHeights = dhampirFootSafe.map((frame) => frame.mainHeight);
   assert(
-    dhampirFootSafe.every((frame) => frame.edgeAlpha === 0 && frame.secondaryPixels <= 8 && frame.mainHeight >= 212 && frame.mainHeight <= 216 && frame.mainMaxY >= 236 && frame.mainMaxY <= 238)
+    dhampirFootSafe.every((frame) => frame.edgeAlpha === 0 && frame.secondaryPixels === 0 && frame.mainHeight >= 202 && frame.mainHeight <= 205 && frame.mainMaxY === 232)
       && Math.max(...dhampirHeights) - Math.min(...dhampirHeights) <= 2,
     `Alucard/dhampir walk row still has scale pulse or foot slice artifacts: ${JSON.stringify(dhampirFootSafe)}`,
   );
+  const dhampirStaticAndSelect = await page.evaluate(async () => {
+    const measure = async (src, sx, sy, sw, sh) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      const data = ctx.getImageData(0, 0, sw, sh).data;
+      const seen = new Uint8Array(sw * sh);
+      const components = [];
+      let edgeAlpha = 0;
+      let minX = sw;
+      let minY = sh;
+      let maxX = -1;
+      let maxY = -1;
+      for (let y = 0; y < sh; y += 1) {
+        for (let x = 0; x < sw; x += 1) {
+          const index = y * sw + x;
+          const alpha = data[index * 4 + 3];
+          if (alpha > 8) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+            if (x === 0 || y === 0 || x === sw - 1 || y === sh - 1) edgeAlpha += 1;
+          }
+          if (seen[index] || alpha <= 8) continue;
+          const queue = [index];
+          seen[index] = 1;
+          let qi = 0;
+          let count = 0;
+          while (qi < queue.length) {
+            const point = queue[qi++];
+            const px = point % sw;
+            const py = Math.floor(point / sw);
+            count += 1;
+            const neighbors = [point - 1, point + 1, point - sw, point + sw];
+            for (const next of neighbors) {
+              if (next < 0 || next >= sw * sh || seen[next]) continue;
+              const nx = next % sw;
+              const ny = Math.floor(next / sw);
+              if (Math.abs(nx - px) + Math.abs(ny - py) !== 1) continue;
+              if (data[next * 4 + 3] > 8) {
+                seen[next] = 1;
+                queue.push(next);
+              }
+            }
+          }
+          components.push(count);
+        }
+      }
+      return { minX, minY, maxX, maxY, edgeAlpha, components: components.sort((a, b) => b - a) };
+    };
+    return {
+      staticCrop: await measure("assets/sprites/player_skins_imagen_hd_clean_v2.webp?dhampir-static-foot-safe", 960, 0, 380, 500),
+      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v4.webp?dhampir-select-foot-safe", 768, 0, 256, 256),
+    };
+  });
+  assert(
+    dhampirStaticAndSelect.staticCrop.edgeAlpha === 0
+      && dhampirStaticAndSelect.staticCrop.components.length === 1
+      && dhampirStaticAndSelect.staticCrop.maxY <= 490
+      && dhampirStaticAndSelect.selectCell.edgeAlpha === 0
+      && dhampirStaticAndSelect.selectCell.components.length === 1
+      && dhampirStaticAndSelect.selectCell.maxY <= 233,
+    `Alucard/dhampir static or picker crop still has foot/split artifacts: ${JSON.stringify(dhampirStaticAndSelect)}`,
+  );
   const curseMonkeyStable = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?curse-monkey-stable";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png?curse-monkey-stable";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -1119,9 +1192,12 @@ async function run() {
   assert(debug.audio.startReady.main && debug.audio.startReady.rush, `BGM should be pre-seeked before play to avoid delayed starts: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.music.trackKeys.rush === "bgmCaper" && debug.audio.sources.bgmCaper.includes("turbo-banana-cup-drive.mp3"), `Selected map did not switch to its driving BGM profile: ${JSON.stringify(debug.audio)}`);
   assert(new Set(Object.values(debug.audio.music.characterThemes).map((profile) => `${profile.theme}:${profile.mainKey}:${profile.rushKey}:${profile.mainStartAt}:${profile.rushStartAt}`)).size === debug.playerSkinTypes.length, `Every character should have a distinct BGM identity: ${JSON.stringify(debug.audio.music.characterThemes)}`);
+  assert(new Set(Object.values(debug.audio.music.characterThemes).map((profile) => profile.mainKey)).size === debug.playerSkinTypes.length, `Every character should have its own main BGM track: ${JSON.stringify(debug.audio.music.characterThemes)}`);
   assert(debug.audio.music.characterThemes.curseMonkey.mainKey === "bgmCurseMonkey" && debug.audio.music.characterThemes.curseMonkey.rushStart <= 45 && debug.audio.music.characterThemes.curseMonkey.mainRate >= 1.08 && debug.audio.music.characterThemes.curseMonkey.rushRate >= 1.08, `Curse monkey BGM should be a faster local frenzy profile: ${JSON.stringify(debug.audio.music.characterThemes.curseMonkey)}`);
   assert(debug.audio.music.characterThemes.dhampirHunter.mainKey === "bgmGargoyle" && debug.audio.music.characterThemes.dhampirHunter.mainStartAt === 0 && debug.audio.music.characterThemes.dhampirHunter.rushStart <= 58, `Alucard/Dhampir BGM should start immediately: ${JSON.stringify(debug.audio.music.characterThemes.dhampirHunter)}`);
-  assert(debug.audio.music.characterThemes.starFarmboy.mainStartAt >= 18 && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy theme profile missing: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
+  assert(debug.audio.music.characterThemes.rumCorsair.mainKey === "bgmRumRiddle" && debug.audio.music.characterThemes.rumCorsair.rushKey === "bgmShoreline", `Rum-Korsar should have a unique rum-riddle BGM: ${JSON.stringify(debug.audio.music.characterThemes.rumCorsair)}`);
+  assert(debug.audio.music.characterThemes.starFarmboy.mainKey === "bgmCrimson" && debug.audio.music.characterThemes.starFarmboy.rushKey === "bgmRush", `Skywalker/starFarmboy should have a unique crimson BGM: ${JSON.stringify(debug.audio.music.characterThemes.starFarmboy)}`);
+  assert(debug.audio.music.characterThemes.freelanceDuo.mainKey === "bgmCoconut" && debug.audio.music.characterThemes.freelanceDuo.rushKey === "bgmVoodoo", `Freelance Duo should have a unique coconut casefile BGM: ${JSON.stringify(debug.audio.music.characterThemes.freelanceDuo)}`);
   assert(
     debug.audio.music.characterThemes.ryu.mainKey === "bgmRyuSignature"
       && debug.audio.music.characterThemes.ken.mainKey === "bgmKenSignature"
@@ -1139,6 +1215,9 @@ async function run() {
       && debug.audio.sources.bgmCathedral.includes("cathedral-hunt-overture-drive.mp3")
       && debug.audio.sources.bgmCurseMonkey.includes("curse-monkey-frenzy-drive.mp3")
       && debug.audio.sources.bgmGargoyle.includes("gargoyle-chapel-run.mp3")
+      && debug.audio.sources.bgmCrimson.includes("crimson-galleon.mp3")
+      && debug.audio.sources.bgmCoconut.includes("coconut-caper-loop.mp3")
+      && debug.audio.sources.bgmRumRiddle.includes("shoreline-rum-riddle.mp3")
       && debug.audio.sources.bgmRyuSignature.includes("sf-ryu-dojo-crash-duel.mp3")
       && debug.audio.sources.bgmKenSignature.includes("sf-ken-steel-punch-parade.mp3")
       && debug.audio.sources.bgmGuileSignature.includes("sf-guile-jet-fuel-glory.mp3")
