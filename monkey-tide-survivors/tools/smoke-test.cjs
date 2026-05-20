@@ -89,12 +89,14 @@ async function run() {
     "assets/backgrounds/map_treasure_atoll_hd.jpg",
     "assets/sprites/characters_imagen_hd_sheet.webp",
     "assets/sprites/player_skins_imagen_hd.webp",
+    "assets/sprites/player_skins_imagen_hd_clean_v2.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
+    "assets/sprites/player_skin_select_imagen_hd_clean_v2.webp",
     "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
@@ -354,8 +356,8 @@ async function run() {
     };
   }));
   assert(fighterUi.every((skin) => skin.exists && skin.archetype === "Fighter" && skin.selectSheet && skin.visible), `Fighter picker cards are not visibly wired: ${JSON.stringify(fighterUi)}`);
-  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd.webp"));
-  assert(pickerUsesSelectSheet, "Character picker is not using the normalized first-sheet selection atlas");
+  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd_clean_v2.webp"));
+  assert(pickerUsesSelectSheet, "Character picker is not using the cleaned first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
   assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
   const signatureProbe = await page.evaluate(() => window.__MONKEY_TIDE_DEBUG().playerSkinTypes.map((id) => window.__MONKEY_TIDE_SIGNATURE_PROBE(id)));
@@ -674,6 +676,7 @@ async function run() {
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v4.png"), `Runtime should use the normalized Rum-Korsar-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
+  assert(debug.playerSkinSourceRects.curseMonkey.x === 589 && debug.playerSkinSourceRects.curseMonkey.y === 88 && debug.playerSkinSourceRects.curseMonkey.w === 315 && debug.playerSkinSourceRects.curseMonkey.h === 411, `Fluchaffe static crop should use the padded clean rect: ${JSON.stringify(debug.playerSkinSourceRects.curseMonkey)}`);
   const rumCorsairSlice = await page.evaluate(async () => {
     const img = new Image();
     img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?rum-corsair-safe";
@@ -713,6 +716,76 @@ async function run() {
     `Rum-Korsar walk row still contains sliced lower artifacts: ${JSON.stringify(rumCorsairSlice)}`,
   );
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
+  const curseMonkeyStaticAndSelect = await page.evaluate(async () => {
+    const measure = async (src, sx, sy, sw, sh) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      const data = ctx.getImageData(0, 0, sw, sh).data;
+      const seen = new Uint8Array(sw * sh);
+      const components = [];
+      let edgeAlpha = 0;
+      for (let y = 0; y < sh; y += 1) {
+        for (let x = 0; x < sw; x += 1) {
+          const index = y * sw + x;
+          const alpha = data[index * 4 + 3];
+          if (alpha > 8 && (x === 0 || y === 0 || x === sw - 1 || y === sh - 1)) edgeAlpha += 1;
+          if (seen[index] || alpha <= 8) continue;
+          const queue = [index];
+          seen[index] = 1;
+          let qi = 0;
+          let count = 0;
+          let minX = x;
+          let minY = y;
+          let maxX = x;
+          let maxY = y;
+          while (qi < queue.length) {
+            const point = queue[qi++];
+            const px = point % sw;
+            const py = Math.floor(point / sw);
+            count += 1;
+            minX = Math.min(minX, px);
+            minY = Math.min(minY, py);
+            maxX = Math.max(maxX, px);
+            maxY = Math.max(maxY, py);
+            const neighbors = [point - 1, point + 1, point - sw, point + sw];
+            for (const next of neighbors) {
+              if (next < 0 || next >= sw * sh || seen[next]) continue;
+              const nx = next % sw;
+              const ny = Math.floor(next / sw);
+              if (Math.abs(nx - px) + Math.abs(ny - py) !== 1) continue;
+              if (data[next * 4 + 3] > 8) {
+                seen[next] = 1;
+                queue.push(next);
+              }
+            }
+          }
+          components.push({ count, minX, minY, maxX, maxY });
+        }
+      }
+      components.sort((a, b) => b.count - a.count);
+      return { edgeAlpha, components };
+    };
+    return {
+      staticCrop: await measure("assets/sprites/player_skins_imagen_hd_clean_v2.webp?curse-static-clean", 589, 88, 315, 411),
+      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v2.webp?curse-select-clean", 512, 0, 256, 256),
+    };
+  });
+  assert(
+    curseMonkeyStaticAndSelect.staticCrop.edgeAlpha === 0
+      && curseMonkeyStaticAndSelect.staticCrop.components.length === 1
+      && curseMonkeyStaticAndSelect.staticCrop.components[0].minX >= 20
+      && curseMonkeyStaticAndSelect.staticCrop.components[0].maxX <= 292
+      && curseMonkeyStaticAndSelect.selectCell.edgeAlpha === 0
+      && curseMonkeyStaticAndSelect.selectCell.components.length === 1
+      && curseMonkeyStaticAndSelect.selectCell.components[0].maxX <= 170,
+    `Fluchaffe static/select atlases still contain sliced neighbor artifacts: ${JSON.stringify(curseMonkeyStaticAndSelect)}`,
+  );
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
   assert(["ryu", "ken", "guile", "chunLi"].every((id) => debug.playerSkinTypes.includes(id)), `Fighter character skins missing: ${JSON.stringify(debug.playerSkinTypes)}`);
