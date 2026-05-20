@@ -51,11 +51,11 @@ const imageSources = {
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd.webp",
   fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?v=fighters-slice-repair-v2",
   fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
-  ryuActions: "assets/sprites/ryu_action_sheet_imagen_hd_v2.png?v=ryu-action-v2",
-  ryuHadokenFx: "assets/sprites/ryu_hadoken_fx_imagen_hd.png?v=ryu-hadoken-v1",
+  ryuActions: "assets/sprites/ryu_action_sheet_imagen_hd_v3.png?v=ryu-action-v3",
+  ryuHadokenFx: "assets/sprites/ryu_hadoken_fx_imagen_hd_v2.png?v=ryu-hadoken-v2",
   guileActions: "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?v=guile-action-clean-v2",
-  chunLiActions: "assets/sprites/chun_li_action_sheet_imagen_hd.png?v=chun-li-action-v1",
-  chunLiProjectiles: "assets/sprites/chun_li_projectile_fx_imagen_hd.png?v=chun-li-projectiles-v1",
+  chunLiActions: "assets/sprites/chun_li_action_sheet_imagen_hd_v2.png?v=chun-li-action-v2",
+  chunLiProjectiles: "assets/sprites/chun_li_projectile_fx_imagen_hd_v2.png?v=chun-li-projectiles-v2",
   samMaxDuo: "assets/sprites/sam_max_duo_fixed_hd.png",
   samMaxDuoWalk: "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
   items: "assets/sprites/scene_items_imagen_hd_sheet.webp",
@@ -320,10 +320,10 @@ const FIGHTER_SELECT = { w: 256, h: 256, cols: 4 };
 const RYU_ACTION = {
   w: 256,
   h: 256,
-  cols: 8,
+  cols: 12,
   rows: 5,
-  frames: 8,
-  fps: 15,
+  frames: 12,
+  fps: 18,
   rowsByAction: { walk: 0, hadoken: 1, shoryuken: 2, whirlwindKick: 3, focusStance: 4 },
 };
 const GUILE_ACTION = {
@@ -338,10 +338,10 @@ const GUILE_ACTION = {
 const CHUN_LI_ACTION = {
   w: 256,
   h: 256,
-  cols: 8,
+  cols: 12,
   rows: 5,
-  frames: 8,
-  fps: 15,
+  frames: 12,
+  fps: 18,
   rowsByAction: { walk: 0, thousandKick: 1, kiKouKen: 2, whirlwindKick: 3, lightningKick: 4 },
 };
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
@@ -362,8 +362,8 @@ const WEAPON_EVOLUTION_FX = { w: 512, h: 512, cols: 4, rows: 4 };
 const FUSION_RELIC = { w: 256, h: 256, cols: 4, rows: 4, frames: 4, fps: 5.5 };
 const SIGNATURE_WEAPON_FX = { w: 256, h: 256, cols: 4, rows: 11, frames: 4, fps: 8.5 };
 const SONIC_BOOM_FX = { w: 256, h: 256, cols: 8, rows: 4, frames: 8, fps: 17 };
-const RYU_HADOKEN_FX = { w: 256, h: 256, cols: 8, rows: 4, frames: 8, fps: 16 };
-const CHUN_LI_PROJECTILE_FX = { w: 256, h: 256, cols: 8, rows: 3, frames: 8, fps: 16, rowsByFx: { kiKouKen: 0, thousandKickArc: 1, whirlwindKickArc: 2 } };
+const RYU_HADOKEN_FX = { w: 256, h: 256, cols: 12, rows: 4, frames: 12, fps: 18 };
+const CHUN_LI_PROJECTILE_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { kiKouKen: 0, thousandKickArc: 1, whirlwindKickArc: 2 } };
 const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
 const EXTRA_ITEM = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -3274,12 +3274,12 @@ function castSignatureMove(signature) {
     state.guileArsenal.sonicBooms += 1;
   } else if (signature.id === "hadoken" && isRyuSkin()) {
     const arsenal = ensureRyuArsenal();
-    triggerPlayerAction("hadoken", 0.54);
+    triggerPlayerAction("hadoken", 0.68);
     arsenal.casts += 1;
     arsenal.hadokens += 1;
   } else if (signature.id === "kiKouKen" && isChunLiSkin()) {
     const arsenal = ensureChunLiArsenal();
-    triggerPlayerAction("kiKouKen", 0.54);
+    triggerPlayerAction("kiKouKen", 0.68);
     arsenal.casts += 1;
     arsenal.kiKouKens += 1;
   }
@@ -3423,7 +3423,7 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
     arsenal.hadokens += count;
     arsenal.weaponHadokens += count;
   }
-  if (options.action !== false) triggerPlayerAction("hadoken", options.signatureCast ? 0.54 : 0.42);
+  if (options.action !== false) triggerPlayerAction("hadoken", options.signatureCast ? 0.68 : 0.56);
   for (let i = 0; i < count; i += 1) {
     const shotAngle = angle + (i - (count - 1) / 2) * spread;
     state.projectiles.push({
@@ -3456,7 +3456,7 @@ function castRyuShoryuken(signature, angle) {
   const p = state.player;
   const arsenal = ensureRyuArsenal();
   arsenal.shoryukens += 1;
-  triggerPlayerAction("shoryuken", 0.58);
+  triggerPlayerAction("shoryuken", 0.72);
   const radius = 82 + Math.min(28, state.level * 3);
   const cx = p.x + Math.cos(angle) * 48;
   const cy = p.y + Math.sin(angle) * 34 - 38;
@@ -3478,7 +3478,7 @@ function castRyuWhirlwindKick(signature, angle) {
   const p = state.player;
   const arsenal = ensureRyuArsenal();
   arsenal.whirlwindKicks += 1;
-  triggerPlayerAction("whirlwindKick", 0.64);
+  triggerPlayerAction("whirlwindKick", 0.78);
   const radius = 118 + Math.min(36, state.level * 4);
   state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
   for (const enemy of state.enemies) {
@@ -3503,7 +3503,7 @@ function castChunLiThousandKick(level, fallbackAngle = 0) {
   const target = nearestEnemy();
   const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   arsenal.thousandKicks += 1;
-  triggerPlayerAction("thousandKick", 0.34);
+  triggerPlayerAction("thousandKick", 0.52);
   const reach = 106 + level * 9;
   const radius = 66 + level * 6;
   const cx = p.x + Math.cos(angle) * reach * 0.54;
@@ -3526,7 +3526,7 @@ function castChunLiWhirlwindKick(signature, angle) {
   const p = state.player;
   const arsenal = ensureChunLiArsenal();
   arsenal.whirlwindKicks += 1;
-  triggerPlayerAction("whirlwindKick", 0.62);
+  triggerPlayerAction("whirlwindKick", 0.78);
   const radius = 116 + Math.min(38, state.level * 4);
   state.zones.push({ type: "chunLiWhirlwind", move: "whirlwindKick", fx: "whirlwindKickArc", x: p.x, y: p.y - 12, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
   for (const enemy of state.enemies) {
@@ -3549,7 +3549,7 @@ function castChunLiLightningKick(signature, angle) {
   const p = state.player;
   const arsenal = ensureChunLiArsenal();
   arsenal.lightningKicks += 1;
-  triggerPlayerAction("lightningKick", 0.54);
+  triggerPlayerAction("lightningKick", 0.66);
   const radius = 92 + Math.min(32, state.level * 4);
   const cx = p.x + Math.cos(angle) * 54;
   const cy = p.y + Math.sin(angle) * 34 - 34;
