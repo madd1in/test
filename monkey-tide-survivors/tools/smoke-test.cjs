@@ -95,8 +95,10 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png",
+    "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/player_skin_select_imagen_hd_clean_v2.webp",
+    "assets/sprites/player_skin_select_imagen_hd_clean_v3.webp",
     "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
@@ -356,7 +358,7 @@ async function run() {
     };
   }));
   assert(fighterUi.every((skin) => skin.exists && skin.archetype === "Fighter" && skin.selectSheet && skin.visible), `Fighter picker cards are not visibly wired: ${JSON.stringify(fighterUi)}`);
-  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd_clean_v2.webp"));
+  const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd_clean_v3.webp"));
   assert(pickerUsesSelectSheet, "Character picker is not using the cleaned first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
   assert(freelanceDuoUsesFixedCrop, "Sam and Max/Freelance Duo picker is still using the bad sliced atlas cell");
@@ -674,12 +676,13 @@ async function run() {
   assert(debug.hudPlayerLabel === "Fluchaffe", `HUD player label did not follow selected skin: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
-  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v4.png"), `Runtime should use the normalized Rum-Korsar-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
+  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v5.png"), `Runtime should use the normalized Skywalker-headroom-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
   assert(debug.playerSkinSourceRects.curseMonkey.x === 589 && debug.playerSkinSourceRects.curseMonkey.y === 88 && debug.playerSkinSourceRects.curseMonkey.w === 315 && debug.playerSkinSourceRects.curseMonkey.h === 411, `Fluchaffe static crop should use the padded clean rect: ${JSON.stringify(debug.playerSkinSourceRects.curseMonkey)}`);
+  assert(debug.playerSkinSourceRects.starFarmboy.x === 500 && debug.playerSkinSourceRects.starFarmboy.y === 492 && debug.playerSkinSourceRects.starFarmboy.w === 460 && debug.playerSkinSourceRects.starFarmboy.h === 532, `Skywalker/starFarmboy static crop should use the padded clean rect: ${JSON.stringify(debug.playerSkinSourceRects.starFarmboy)}`);
   const rumCorsairSlice = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?rum-corsair-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?rum-corsair-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -773,7 +776,7 @@ async function run() {
     };
     return {
       staticCrop: await measure("assets/sprites/player_skins_imagen_hd_clean_v2.webp?curse-static-clean", 589, 88, 315, 411),
-      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v2.webp?curse-select-clean", 512, 0, 256, 256),
+      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v3.webp?curse-select-clean", 512, 0, 256, 256),
     };
   });
   assert(
@@ -837,7 +840,7 @@ async function run() {
   assert(debug.playerSkinTrait?.id && Object.keys(debug.playerSkinTraits).length === debug.playerSkinTypes.length, `Character traits are not wired per skin: ${JSON.stringify(debug.playerSkinTraits)}`);
   const starFarmboySlice = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd.webp?slice-guard";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?skywalker-bottom-guard";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -848,7 +851,7 @@ async function run() {
     const cell = 256;
     const counts = [];
     for (let col = 0; col < 8; col += 1) {
-      const data = ctx.getImageData(col * cell, row * cell + 200, cell, 56).data;
+      const data = ctx.getImageData(col * cell, row * cell + 246, cell, 10).data;
       let pixels = 0;
       for (let i = 3; i < data.length; i += 4) {
         if (data[i] > 48) pixels += 1;
@@ -860,7 +863,7 @@ async function run() {
   assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   const starFarmboyHeadSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?skywalker-head-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?skywalker-head-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -877,9 +880,36 @@ async function run() {
       let maxX = -1;
       let maxY = -1;
       let edgeAlpha = 0;
+      const seen = new Uint8Array(cell * cell);
+      const components = [];
       for (let y = 0; y < cell; y += 1) {
         for (let x = 0; x < cell; x += 1) {
+          const index = y * cell + x;
           const alpha = data[(y * cell + x) * 4 + 3];
+          if (!seen[index] && alpha > 8) {
+            const queue = [index];
+            seen[index] = 1;
+            let qi = 0;
+            let count = 0;
+            while (qi < queue.length) {
+              const point = queue[qi++];
+              const px = point % cell;
+              const py = Math.floor(point / cell);
+              count += 1;
+              const neighbors = [point - 1, point + 1, point - cell, point + cell];
+              for (const next of neighbors) {
+                if (next < 0 || next >= cell * cell || seen[next]) continue;
+                const nx = next % cell;
+                const ny = Math.floor(next / cell);
+                if (Math.abs(nx - px) + Math.abs(ny - py) !== 1) continue;
+                if (data[next * 4 + 3] > 8) {
+                  seen[next] = 1;
+                  queue.push(next);
+                }
+              }
+            }
+            components.push(count);
+          }
           if (alpha <= 8) continue;
           minX = Math.min(minX, x);
           minY = Math.min(minY, y);
@@ -888,14 +918,82 @@ async function run() {
           if (x === 0 || y === 0 || x === cell - 1 || y === cell - 1) edgeAlpha += 1;
         }
       }
-      boxes.push({ col, minX, minY, maxX, maxY, edgeAlpha });
+      boxes.push({ col, minX, minY, maxX, maxY, edgeAlpha, components: components.sort((a, b) => b - a) });
     }
     return boxes;
   });
-  assert(starFarmboyHeadSafe.every((box) => box.edgeAlpha === 0 && box.minY >= 36 && box.maxY <= 242), `Skywalker/starFarmboy row still lacks headroom: ${JSON.stringify(starFarmboyHeadSafe)}`);
+  assert(
+    starFarmboyHeadSafe.every((box) => box.edgeAlpha === 0 && box.minY >= 50 && box.maxY <= 244 && box.components.length === 1),
+    `Skywalker/starFarmboy row still lacks clean top headroom: ${JSON.stringify(starFarmboyHeadSafe)}`,
+  );
+  const starFarmboyStaticAndSelect = await page.evaluate(async () => {
+    const measure = async (src, sx, sy, sw, sh) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      const data = ctx.getImageData(0, 0, sw, sh).data;
+      const seen = new Uint8Array(sw * sh);
+      const components = [];
+      let minY = sh;
+      let maxY = -1;
+      let edgeAlpha = 0;
+      for (let y = 0; y < sh; y += 1) {
+        for (let x = 0; x < sw; x += 1) {
+          const index = y * sw + x;
+          const alpha = data[index * 4 + 3];
+          if (alpha > 8) {
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+            if (x === 0 || y === 0 || x === sw - 1 || y === sh - 1) edgeAlpha += 1;
+          }
+          if (seen[index] || alpha <= 8) continue;
+          const queue = [index];
+          seen[index] = 1;
+          let qi = 0;
+          let count = 0;
+          while (qi < queue.length) {
+            const point = queue[qi++];
+            const px = point % sw;
+            const py = Math.floor(point / sw);
+            count += 1;
+            const neighbors = [point - 1, point + 1, point - sw, point + sw];
+            for (const next of neighbors) {
+              if (next < 0 || next >= sw * sh || seen[next]) continue;
+              const nx = next % sw;
+              const ny = Math.floor(next / sw);
+              if (Math.abs(nx - px) + Math.abs(ny - py) !== 1) continue;
+              if (data[next * 4 + 3] > 8) {
+                seen[next] = 1;
+                queue.push(next);
+              }
+            }
+          }
+          components.push(count);
+        }
+      }
+      return { minY, maxY, edgeAlpha, components: components.sort((a, b) => b - a) };
+    };
+    return {
+      staticCrop: await measure("assets/sprites/player_skins_imagen_hd_clean_v2.webp?skywalker-static-headroom", 500, 492, 460, 532),
+      selectCell: await measure("assets/sprites/player_skin_select_imagen_hd_clean_v3.webp?skywalker-select-clean", 1280, 0, 256, 256),
+    };
+  });
+  assert(
+    starFarmboyStaticAndSelect.staticCrop.edgeAlpha === 0
+      && starFarmboyStaticAndSelect.staticCrop.minY >= 20
+      && starFarmboyStaticAndSelect.staticCrop.components.length === 1
+      && starFarmboyStaticAndSelect.selectCell.edgeAlpha === 0
+      && starFarmboyStaticAndSelect.selectCell.components.length === 1,
+    `Skywalker/starFarmboy static or picker crop still touches the head edge: ${JSON.stringify(starFarmboyStaticAndSelect)}`,
+  );
   const dhampirFootSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?dhampir-foot-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?dhampir-foot-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -968,7 +1066,7 @@ async function run() {
   );
   const curseMonkeyStable = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?curse-monkey-stable";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v5.png?curse-monkey-stable";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
