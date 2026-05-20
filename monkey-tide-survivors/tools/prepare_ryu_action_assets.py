@@ -7,11 +7,11 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1]
 SPRITES = ROOT / "assets" / "sprites"
 SOURCE = SPRITES / "fighters_walkcycles_imagen_hd_clean_v2.png"
-OUT_ACTION = SPRITES / "ryu_action_sheet_imagen_hd_v2.png"
-OUT_HADOKEN = SPRITES / "ryu_hadoken_fx_imagen_hd.png"
+OUT_ACTION = SPRITES / "ryu_action_sheet_imagen_hd_v3.png"
+OUT_HADOKEN = SPRITES / "ryu_hadoken_fx_imagen_hd_v2.png"
 
 FRAME = 256
-COLS = 8
+COLS = 12
 ACTION_ROWS = 5
 HADOKEN_ROWS = 4
 SCALE = 2
@@ -66,7 +66,8 @@ def normalize_source_frames(frames):
 def extract_ryu_frames():
     source = Image.open(SOURCE).convert("RGBA")
     frames = []
-    for col in range(COLS):
+    source_cols = 8
+    for col in range(source_cols):
         box = (col * FRAME, RYU_ROW * FRAME, (col + 1) * FRAME, (RYU_ROW + 1) * FRAME)
         frames.append(crop_visible(source.crop(box)))
     return normalize_source_frames(frames)
@@ -132,9 +133,9 @@ def finalize(cell):
 
 def draw_walk_cell(sprite, frame):
     cell = make_cell()
-    bob = [0, -3, -5, -2, 0, -3, -5, -2][frame]
-    drift = [-4, -2, 0, 2, 4, 2, 0, -2][frame]
-    lean = [-3, -2, 1, 3, 2, -1, -3, -2][frame]
+    bob = [0, -2, -4, -5, -3, -1, 0, -2, -4, -5, -3, -1][frame]
+    drift = [-4, -3, -1, 1, 3, 4, 4, 3, 1, -1, -3, -4][frame]
+    lean = [-3, -3, -1, 1, 3, 2, -1, -3, -2, 1, 3, 1][frame]
     draw_shadow(cell, 128, 236, 52 + abs(drift) * 2, 8, 40)
     if frame in (1, 2, 5, 6):
         draw = ImageDraw.Draw(cell, "RGBA")
@@ -145,16 +146,17 @@ def draw_walk_cell(sprite, frame):
 
 def draw_hadoken_cell(sprite, frame):
     cell = make_cell()
-    prep = min(frame, 5) / 5
-    recoil = [-8, -6, -3, 0, 3, 5, 3, 0][frame]
+    prep = min(frame, 8) / 8
+    recoil = [-9, -8, -7, -5, -2, 0, 3, 6, 7, 5, 2, 0][frame]
     draw_shadow(cell, 124, 236, 55, 8, 42)
     if frame > 0:
-        place_sprite(cell, sprite, x=119 + recoil - 6, bottom=235, scale=1.06, rotate=-5, alpha=52)
-    place_sprite(cell, sprite, x=124 + recoil, bottom=236, scale=1.08, rotate=[0, -3, -5, -3, 2, 4, 2, 0][frame])
+        ghost_alpha = 38 + min(frame, 6) * 5
+        place_sprite(cell, sprite, x=118 + recoil - 7, bottom=235, scale=1.06, rotate=-5, alpha=min(76, ghost_alpha))
+    place_sprite(cell, sprite, x=124 + recoil, bottom=236, scale=1.08, rotate=[0, -2, -4, -5, -4, -2, 1, 4, 5, 3, 1, 0][frame])
     draw = ImageDraw.Draw(cell, "RGBA")
-    ball_x = 150 + prep * 44 + max(0, frame - 5) * 10
-    ball_y = 124 + sin(frame / 7 * pi) * 3
-    radius = 12 + prep * 18 + (3 if frame >= 5 else 0)
+    ball_x = 146 + prep * 48 + max(0, frame - 8) * 8
+    ball_y = 124 + sin(frame / (COLS - 1) * pi) * 3
+    radius = 10 + prep * 22 + (3 if frame >= 8 else 0)
     draw_glow_circle(cell, ball_x, ball_y, radius * 2.35, (73, 221, 255, 98 + frame * 3), 10)
     draw_glow_circle(cell, ball_x, ball_y, radius * 1.32, (226, 255, 255, 134), 5)
     draw.ellipse((sx(ball_x - radius), sx(ball_y - radius), sx(ball_x + radius), sx(ball_y + radius)), fill=(228, 255, 255, 228))
@@ -170,15 +172,15 @@ def draw_hadoken_cell(sprite, frame):
 
 def draw_shoryuken_cell(sprite, frame):
     cell = make_cell()
-    jump = [0, -12, -30, -48, -60, -48, -24, -4][frame]
-    angle = [0, -7, -13, -9, 5, 12, 6, 0][frame]
-    x = 126 + [0, 2, 5, 9, 10, 7, 3, 0][frame]
+    jump = [0, -7, -17, -31, -46, -60, -67, -58, -42, -24, -10, -2][frame]
+    angle = [0, -4, -8, -13, -12, -6, 5, 13, 12, 6, 2, 0][frame]
+    x = 126 + [0, 1, 3, 6, 9, 11, 12, 10, 7, 4, 1, 0][frame]
     draw_shadow(cell, 126, 236, 52, 8, max(18, 42 + jump))
-    if frame in (2, 3, 4, 5):
+    if frame in (2, 3, 4, 5, 6, 7, 8):
         place_sprite(cell, sprite, x=x - 10, bottom=236 + jump + 10, scale=1.03, rotate=angle - 15, alpha=54)
     place_sprite(cell, sprite, x=x, bottom=236 + jump, scale=1.08, rotate=angle)
     draw = ImageDraw.Draw(cell, "RGBA")
-    glow_alpha = 96 + frame * 9 if frame < 5 else 140 - frame * 9
+    glow_alpha = 92 + frame * 8 if frame < 7 else 168 - frame * 8
     draw_glow_circle(cell, x + 27, 156 + jump * 0.32, 42, (255, 138, 58, max(50, glow_alpha)), 9)
     flame = [
         (x + 12, 205 + jump * 0.36),
@@ -190,7 +192,7 @@ def draw_shoryuken_cell(sprite, frame):
     ]
     draw_scaled_line(draw, flame, (255, 224, 108, 186), 8)
     draw_scaled_line(draw, [(px - 8, py + 9) for px, py in flame[:-1]], (255, 84, 45, 126), 5)
-    if frame in (3, 4, 5):
+    if frame in (4, 5, 6, 7, 8):
         draw_scaled_arc(draw, (58, 53, 210, 184), 226, 74, (255, 247, 188, 162), 5)
     return finalize(cell)
 
@@ -207,10 +209,10 @@ def draw_whirlwind_cell(sprite, frame):
             x=128 + cos(t) * (9 + ghost * 3),
             bottom=226 + sin(t) * 6,
             scale=1.05 - ghost * 0.04,
-            rotate=[-13, 13, -9, 15, -15, 9, -12, 12][frame] + ghost * 18,
+            rotate=[-13, -2, 13, 5, -9, 15, 2, -15, -4, 9, -12, 12][frame] + ghost * 18,
             alpha=88 - ghost * 22,
         )
-    place_sprite(cell, sprite, x=128 + cos(phase) * 5, bottom=226 + sin(phase) * 3, scale=1.09, rotate=[-10, 12, -8, 16, -16, 8, -11, 12][frame])
+    place_sprite(cell, sprite, x=128 + cos(phase) * 5, bottom=226 + sin(phase) * 3, scale=1.09, rotate=[-10, 2, 12, 5, -8, 16, 3, -16, -4, 8, -11, 12][frame])
     draw = ImageDraw.Draw(cell, "RGBA")
     spin = frame * 45
     for band in range(4):
@@ -247,11 +249,11 @@ def build_action_sheet(source_frames):
         draw_focus_cell,
     ]
     source_by_action = [
-        list(range(COLS)),
-        [0, 1, 1, 2, 2, 3, 4, 0],
-        [0, 1, 2, 3, 4, 5, 6, 0],
-        [2, 3, 4, 5, 6, 7, 2, 3],
-        [0, 0, 1, 1, 2, 2, 1, 0],
+        [0, 1, 1, 2, 3, 4, 4, 5, 6, 7, 7, 0],
+        [0, 0, 1, 1, 2, 2, 3, 4, 4, 5, 2, 0],
+        [0, 0, 1, 2, 3, 4, 5, 6, 6, 5, 2, 0],
+        [2, 3, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2],
+        [0, 0, 0, 1, 1, 2, 2, 1, 1, 0, 0, 0],
     ]
     for row, builder in enumerate(builders):
         for col in range(COLS):

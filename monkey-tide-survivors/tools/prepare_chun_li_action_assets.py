@@ -7,11 +7,11 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 SPRITES = ROOT / "assets" / "sprites"
 SOURCE = SPRITES / "fighters_walkcycles_imagen_hd_clean_v2.png"
-OUT_ACTION = SPRITES / "chun_li_action_sheet_imagen_hd.png"
-OUT_PROJECTILES = SPRITES / "chun_li_projectile_fx_imagen_hd.png"
+OUT_ACTION = SPRITES / "chun_li_action_sheet_imagen_hd_v2.png"
+OUT_PROJECTILES = SPRITES / "chun_li_projectile_fx_imagen_hd_v2.png"
 
 FRAME = 256
-COLS = 8
+COLS = 12
 ACTION_ROWS = 5
 PROJECTILE_ROWS = 3
 SCALE = 2
@@ -68,7 +68,8 @@ def normalize_source_frames(frames):
 def extract_chun_li_frames():
     source = Image.open(SOURCE).convert("RGBA")
     frames = []
-    for col in range(COLS):
+    source_cols = 8
+    for col in range(source_cols):
         box = (col * FRAME, CHUN_LI_ROW * FRAME, (col + 1) * FRAME, (CHUN_LI_ROW + 1) * FRAME)
         frames.append(crop_visible(source.crop(box)))
     return normalize_source_frames(frames)
@@ -140,10 +141,10 @@ def finalize(cell):
 
 def draw_walk_cell(sprite, frame):
     cell = make_cell()
-    bob = [0, -2, -4, -2, 0, -2, -4, -2][frame]
-    drift = [-3, -2, 0, 2, 3, 2, 0, -2][frame]
+    bob = [0, -1, -3, -4, -3, -1, 0, -1, -3, -4, -3, -1][frame]
+    drift = [-4, -3, -2, 0, 2, 3, 4, 3, 1, -1, -3, -4][frame]
     draw_shadow(cell, 128, 235, 49 + abs(drift) * 2, 8, 38)
-    if frame in (1, 2, 5, 6):
+    if frame in (1, 2, 3, 7, 8, 9):
         draw = ImageDraw.Draw(cell, "RGBA")
         draw_scaled_arc(draw, (88, 166, 176, 224), 202, 338, (255, 230, 95, 88), 4)
         draw_scaled_arc(draw, (94, 171, 170, 226), 196, 330, (102, 238, 255, 70), 3)
@@ -160,10 +161,10 @@ def draw_thousand_kick_cell(sprite, frame):
         ghost_x = 123 - (ghost + 1) * 8 + cos(ghost_phase) * 4
         ghost_alpha = 74 - ghost * 24
         place_sprite(cell, sprite, x=ghost_x, bottom=230 + sin(ghost_phase) * 4, scale=1.01 - ghost * 0.03, rotate=-7 + ghost * 10, alpha=ghost_alpha)
-    kick_lift = [0, -6, -12, -7, 0, -5, -11, -5][frame]
-    place_sprite(cell, sprite, x=128 + cos(phase) * 4, bottom=232 + kick_lift, scale=1.04, rotate=[-3, 6, 10, 2, -6, 8, 12, 3][frame])
+    kick_lift = [0, -4, -9, -13, -10, -5, 0, -4, -9, -13, -8, -3][frame]
+    place_sprite(cell, sprite, x=128 + cos(phase) * 4, bottom=232 + kick_lift, scale=1.04, rotate=[-4, 2, 8, 13, 9, 2, -6, 1, 8, 14, 7, 0][frame])
     draw = ImageDraw.Draw(cell, "RGBA")
-    base_angle = frame * 45
+    base_angle = frame * 30
     for blade in range(5):
         inset = blade * 7
         alpha = 176 - blade * 26
@@ -179,14 +180,15 @@ def draw_thousand_kick_cell(sprite, frame):
 
 def draw_ki_kou_ken_cell(sprite, frame):
     cell = make_cell()
-    prep = min(frame, 5) / 5
-    recoil = [-6, -4, -2, 0, 3, 5, 4, 2][frame]
+    prep = min(frame, 8) / 8
+    release = max(0, frame - 6) / 5
+    recoil = [-7, -6, -5, -3, -1, 1, 4, 6, 5, 3, 0, -2][frame]
     draw_shadow(cell, 125, 235, 54, 8, 38)
-    place_sprite(cell, sprite, x=123 + recoil, bottom=235, scale=1.03, rotate=[0, -2, -4, -2, 2, 4, 2, 0][frame])
+    place_sprite(cell, sprite, x=123 + recoil, bottom=235, scale=1.03, rotate=[0, -1, -3, -5, -3, -1, 2, 4, 3, 1, -1, 0][frame])
     draw = ImageDraw.Draw(cell, "RGBA")
-    ball_x = 151 + prep * 35 + max(0, frame - 4) * 9
-    ball_y = 128 + sin(frame / 7 * pi) * 2
-    radius = 11 + prep * 17 + (4 if frame >= 5 else 0)
+    ball_x = 148 + prep * 32 + release * 36
+    ball_y = 128 + sin(frame / (COLS - 1) * pi) * 2
+    radius = 10 + prep * 18 + (5 if frame >= 7 else 0)
     draw_glow_circle(cell, ball_x, ball_y, radius * 2.25, (84, 231, 255, 86 + frame * 5), 10)
     draw_glow_circle(cell, ball_x, ball_y, radius * 1.3, (222, 255, 255, 132), 5)
     draw.ellipse((sx(ball_x - radius), sx(ball_y - radius), sx(ball_x + radius), sx(ball_y + radius)), fill=(223, 255, 255, 224))
@@ -212,12 +214,12 @@ def draw_whirlwind_kick_cell(sprite, frame):
             x=128 + cos(t) * (9 + ghost * 3),
             bottom=226 + sin(t) * 6,
             scale=1.0 - ghost * 0.035,
-            rotate=[-13, 14, -10, 16, -15, 10, -12, 13][frame] + ghost * 18,
+            rotate=[-14, 2, 15, -8, 18, -12, 9, -16, 14, -9, 11, -13][frame] + ghost * 18,
             alpha=96 - ghost * 24,
         )
-    place_sprite(cell, sprite, x=128 + cos(phase) * 5, bottom=226 + sin(phase) * 3, scale=1.05, rotate=[-10, 12, -8, 16, -16, 8, -11, 12][frame])
+    place_sprite(cell, sprite, x=128 + cos(phase) * 5, bottom=226 + sin(phase) * 3, scale=1.05, rotate=[-12, 0, 13, -9, 17, -15, 11, -16, 13, -8, 10, -12][frame])
     draw = ImageDraw.Draw(cell, "RGBA")
-    spin = frame * 45
+    spin = frame * 30
     for band in range(4):
         inset = band * 13
         alpha = 164 - band * 28
@@ -228,9 +230,9 @@ def draw_whirlwind_kick_cell(sprite, frame):
 
 def draw_lightning_kick_cell(sprite, frame):
     cell = make_cell()
-    lift = [0, -14, -32, -45, -52, -38, -18, -4][frame]
+    lift = [0, -8, -20, -34, -48, -56, -50, -38, -24, -12, -4, 0][frame]
     draw_shadow(cell, 128, 236, 54, 8, 32)
-    place_sprite(cell, sprite, x=127 + [0, 1, 3, 5, 4, 2, 1, 0][frame], bottom=234 + lift, scale=1.05, rotate=[0, -8, -13, -7, 6, 12, 5, 0][frame])
+    place_sprite(cell, sprite, x=127 + [0, 1, 2, 4, 5, 4, 3, 2, 1, 0, -1, 0][frame], bottom=234 + lift, scale=1.05, rotate=[0, -5, -10, -14, -9, -2, 7, 13, 10, 5, 1, 0][frame])
     draw = ImageDraw.Draw(cell, "RGBA")
     strike_x = 151 + cos(frame * 0.6) * 14
     draw_glow_circle(cell, strike_x, 135 + lift * 0.25, 34, (255, 238, 83, 112), 8)
@@ -244,7 +246,7 @@ def draw_lightning_kick_cell(sprite, frame):
     ]
     draw_scaled_line(draw, bolt, (255, 244, 138, 184), 7)
     draw_scaled_line(draw, [(x - 7, y + 8) for x, y in bolt], (100, 235, 255, 116), 4)
-    if frame in (2, 3, 4, 5):
+    if frame in (3, 4, 5, 6, 7):
         draw_scaled_arc(draw, (62, 58, 206, 180), 226, 80, (255, 255, 220, 140), 5)
     return finalize(cell)
 
@@ -259,11 +261,11 @@ def build_action_sheet(source_frames):
         draw_lightning_kick_cell,
     ]
     source_by_action = [
-        list(range(COLS)),
-        [1, 2, 3, 4, 5, 6, 7, 2],
-        [0, 1, 1, 2, 2, 3, 4, 0],
-        [2, 3, 4, 5, 6, 7, 2, 3],
-        [0, 2, 3, 4, 5, 6, 7, 0],
+        [0, 1, 1, 2, 3, 4, 4, 5, 6, 7, 7, 0],
+        [1, 2, 2, 3, 4, 5, 5, 6, 7, 6, 3, 2],
+        [0, 0, 1, 1, 2, 2, 3, 4, 4, 3, 2, 0],
+        [2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 3],
+        [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 2, 0],
     ]
     for row, builder in enumerate(builders):
         for col in range(COLS):
@@ -300,7 +302,7 @@ def projectile_ki_kou_ken(frame):
 def projectile_thousand_kick(frame):
     cell = make_cell()
     draw = ImageDraw.Draw(cell, "RGBA")
-    phase = frame * 45
+    phase = frame * 30
     draw_glow_circle(cell, 134, 154, 63, (255, 228, 70, 82), 10)
     for blade in range(6):
         inset = blade * 9
@@ -318,7 +320,7 @@ def projectile_thousand_kick(frame):
 def projectile_whirlwind(frame):
     cell = make_cell()
     draw = ImageDraw.Draw(cell, "RGBA")
-    spin = frame * 45
+    spin = frame * 30
     draw_glow_circle(cell, 128, 142, 72, (92, 230, 255, 74), 11)
     for band in range(5):
         inset = band * 11
