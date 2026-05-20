@@ -184,10 +184,12 @@ class Game {
             }
         }
 
+        const spawnPoint = this.findSpawnPoint(32, 48);
+
         // Player starting position & properties
         this.player = {
-            x: 100,
-            y: 300,
+            x: spawnPoint.x,
+            y: spawnPoint.y,
             width: 32,
             height: 48,
             vx: 0,
@@ -228,6 +230,27 @@ class Game {
         // Camera init
         this.camera.x = 0;
         this.camera.y = 0;
+    }
+
+    findSpawnPoint(playerWidth, playerHeight) {
+        const safeFloor = this.blocks
+            .filter(block => block.solid && block.type !== 'hit')
+            .filter(block => !this.blocks.some(other => (
+                other.type === 'spikes'
+                && other.y === block.y
+                && Math.abs(other.x - block.x) <= this.tileSize
+            )))
+            .sort((a, b) => (a.x - b.x) || (a.y - b.y));
+
+        const floor = safeFloor[0];
+        if (!floor) {
+            return { x: 100, y: 300 };
+        }
+
+        return {
+            x: floor.x + (this.tileSize - playerWidth) / 2,
+            y: floor.y - playerHeight
+        };
     }
 
     initControls() {
