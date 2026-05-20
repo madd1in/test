@@ -109,16 +109,28 @@ async function run() {
     "assets/sprites/ryu_action_sheet_imagen_hd_v2.png",
     "assets/sprites/ryu_action_sheet_imagen_hd_v3.png",
     "assets/sprites/ryu_action_sheet_imagen_hd_v4.png",
+    "assets/sprites/ryu_action_sheet_imagen_hd_5row_source_v1.png",
+    "assets/sprites/ryu_action_sheet_imagen_hd_v8.png",
+    "assets/sprites/ryu_hadoken_cast_strip_imagen_hd_source_v1.png",
     "assets/sprites/ryu_hadoken_fx_imagen_hd.png",
     "assets/sprites/ryu_hadoken_fx_imagen_hd_v2.png",
     "assets/sprites/ryu_hadoken_fx_imagen_hd_v3.png",
+    "assets/sprites/ryu_hadoken_fx_imagen_hd_v7.png",
+    "assets/sprites/ken_action_sheet_imagen_hd_5row_source_v1.png",
+    "assets/sprites/ken_action_sheet_imagen_hd_v4.png",
+    "assets/sprites/ken_dragon_rush_cast_strip_imagen_hd_source_v1.png",
+    "assets/sprites/ken_dragon_fx_imagen_hd_v4.png",
     "assets/sprites/guile_action_sheet_imagen_hd_source.png",
     "assets/sprites/guile_action_sheet_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png",
     "assets/sprites/chun_li_action_sheet_imagen_hd.png",
     "assets/sprites/chun_li_action_sheet_imagen_hd_v2.png",
+    "assets/sprites/chun_li_action_sheet_imagen_hd_5row_source_v1.png",
+    "assets/sprites/chun_li_action_sheet_imagen_hd_v6.png",
+    "assets/sprites/chun_li_kikouken_cast_strip_imagen_hd_source_v1.png",
     "assets/sprites/chun_li_projectile_fx_imagen_hd.png",
     "assets/sprites/chun_li_projectile_fx_imagen_hd_v2.png",
+    "assets/sprites/chun_li_projectile_fx_imagen_hd_v6.png",
     "assets/sprites/sam_max_duo_fixed_hd.png",
     "assets/sprites/sam_max_duo_walk_imagen_hd.webp",
     "assets/sprites/scene_items_imagen_hd_sheet.webp",
@@ -233,6 +245,7 @@ async function run() {
     "tools/prepare_signature_weapon_assets.py",
     "tools/prepare_guile_action_assets.py",
     "tools/prepare_ryu_action_assets.py",
+    "tools/prepare_complex_fighter_action_assets.py",
     "tools/prepare_sonic_boom_assets.py",
     "tools/prepare_chun_li_action_assets.py",
     "tools/build_xp_crystal_variants.py",
@@ -374,11 +387,11 @@ async function run() {
   const ryuActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_RYU_ACTION_PROBE());
   assert(
     ryuActionProbe.assetLoaded
-      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd_v4.png")
+      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd_v8.png")
       && ryuActionProbe.frames.rows === 5
       && ryuActionProbe.frames.frames === 12
       && ryuActionProbe.hadokenFxLoaded
-      && ryuActionProbe.hadokenFxSource.includes("ryu_hadoken_fx_imagen_hd_v3.png")
+      && ryuActionProbe.hadokenFxSource.includes("ryu_hadoken_fx_imagen_hd_v7.png")
       && ryuActionProbe.hadokenFxFrames.rows === 4
       && ryuActionProbe.hadokenFxFrames.frames === 12
       && ryuActionProbe.rows.walk === 0
@@ -399,7 +412,39 @@ async function run() {
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuStrike" && zone.move === "shoryuken")
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick")
       && ryuActionProbe.iconStyleUsesHadokenSheet,
-    `Ryu should use the new v4 raster-painted 12-frame action sheet and frequent Hadoken weapon loop: ${JSON.stringify(ryuActionProbe)}`,
+    `Ryu should use the new complex 5-row Imagen action sheet and frequent Hadoken weapon loop: ${JSON.stringify(ryuActionProbe)}`,
+  );
+  const kenActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_KEN_ACTION_PROBE());
+  assert(
+    kenActionProbe.assetLoaded
+      && kenActionProbe.source.includes("ken_action_sheet_imagen_hd_v4.png")
+      && kenActionProbe.frames.rows === 5
+      && kenActionProbe.frames.frames === 12
+      && kenActionProbe.dragonFxLoaded
+      && kenActionProbe.dragonFxSource.includes("ken_dragon_fx_imagen_hd_v4.png")
+      && kenActionProbe.dragonFxFrames.rows === 3
+      && kenActionProbe.dragonFxFrames.frames === 12
+      && kenActionProbe.rows.walk === 0
+      && kenActionProbe.rows.stepKick === 1
+      && kenActionProbe.rows.dragonPunch === 2
+      && kenActionProbe.rows.tatsuKick === 3
+      && kenActionProbe.rows.dragonKick === 4
+      && kenActionProbe.fxRows.stepKick === 0
+      && kenActionProbe.fxRows.dragonPunch === 1
+      && kenActionProbe.fxRows.dragonKick === 2
+      && kenActionProbe.weaponDisplay.name === "Dragon Rush"
+      && kenActionProbe.upgradeDisplay.name === "Dragon Rush Loop"
+      && kenActionProbe.arsenal.stepKicks >= 8
+      && kenActionProbe.arsenal.dragonPunches >= 1
+      && kenActionProbe.arsenal.tatsuKicks >= 1
+      && kenActionProbe.arsenal.dragonKicks >= 5
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "stepKick")
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonPunch")
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "tatsuKick")
+      && kenActionProbe.kenZones.some((zone) => zone.signature === "dragonKick")
+      && kenActionProbe.slashZones === 0
+      && kenActionProbe.iconStyleUsesDragonSheet,
+    `Ken should use dedicated Dragon Rush action and FX sheets: ${JSON.stringify(kenActionProbe)}`,
   );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
@@ -431,11 +476,11 @@ async function run() {
   const chunLiActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_CHUN_LI_ACTION_PROBE());
   assert(
     chunLiActionProbe.assetLoaded
-      && chunLiActionProbe.source.includes("chun_li_action_sheet_imagen_hd_v2.png")
+      && chunLiActionProbe.source.includes("chun_li_action_sheet_imagen_hd_v6.png")
       && chunLiActionProbe.frames.rows === 5
       && chunLiActionProbe.frames.frames === 12
       && chunLiActionProbe.projectileAssetLoaded
-      && chunLiActionProbe.projectileSource.includes("chun_li_projectile_fx_imagen_hd_v2.png")
+      && chunLiActionProbe.projectileSource.includes("chun_li_projectile_fx_imagen_hd_v6.png")
       && chunLiActionProbe.projectileFrames.rows === 3
       && chunLiActionProbe.projectileFrames.frames === 12
       && chunLiActionProbe.rows.walk === 0
@@ -496,25 +541,39 @@ async function run() {
       return { size: [img.naturalWidth, img.naturalHeight], frames };
     }
     return {
-      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd_v4.png?ryu-action-v4-probe", 256, 256, 12, 5),
-      ryuHadoken: await scanSheet("assets/sprites/ryu_hadoken_fx_imagen_hd_v3.png?ryu-hadoken-v3-probe", 256, 256, 12, 4),
+      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd_v8.png?ryu-action-v8-probe", 256, 256, 12, 5),
+      ryuHadoken: await scanSheet("assets/sprites/ryu_hadoken_fx_imagen_hd_v7.png?ryu-hadoken-v7-probe", 256, 256, 12, 4),
+      ken: await scanSheet("assets/sprites/ken_action_sheet_imagen_hd_v4.png?ken-action-v4-probe", 256, 256, 12, 5),
+      kenDragon: await scanSheet("assets/sprites/ken_dragon_fx_imagen_hd_v4.png?ken-dragon-v4-probe", 256, 256, 12, 3),
       guile: await scanSheet("assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png?guile-clean-v2-probe", 256, 256, 8, 5),
       sonic: await scanSheet("assets/sprites/sonic_boom_fx_imagen_hd.png?sonic-boom-probe", 256, 256, 8, 4),
-      chunLi: await scanSheet("assets/sprites/chun_li_action_sheet_imagen_hd_v2.png?chun-li-action-v2-probe", 256, 256, 12, 5),
-      chunLiProjectiles: await scanSheet("assets/sprites/chun_li_projectile_fx_imagen_hd_v2.png?chun-li-projectile-v2-probe", 256, 256, 12, 3),
+      chunLi: await scanSheet("assets/sprites/chun_li_action_sheet_imagen_hd_v6.png?chun-li-action-v6-probe", 256, 256, 12, 5),
+      chunLiProjectiles: await scanSheet("assets/sprites/chun_li_projectile_fx_imagen_hd_v6.png?chun-li-projectile-v6-probe", 256, 256, 12, 3),
     };
   });
   assert(
     guileSonicAssetProbe.ryu.size[0] === 3072
       && guileSonicAssetProbe.ryu.size[1] === 1280
-      && guileSonicAssetProbe.ryu.frames.every((frame) => frame.visible > 15000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+      && guileSonicAssetProbe.ryu.frames.every((frame) => frame.visible > 7500 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
     `Ryu action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.ryu)}`,
   );
   assert(
     guileSonicAssetProbe.ryuHadoken.size[0] === 3072
       && guileSonicAssetProbe.ryuHadoken.size[1] === 1024
-      && guileSonicAssetProbe.ryuHadoken.frames.every((frame) => frame.visible > 16000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+      && guileSonicAssetProbe.ryuHadoken.frames.every((frame) => frame.visible > 900 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
     `Ryu Hadoken frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.ryuHadoken)}`,
+  );
+  assert(
+    guileSonicAssetProbe.ken.size[0] === 3072
+      && guileSonicAssetProbe.ken.size[1] === 1280
+      && guileSonicAssetProbe.ken.frames.every((frame) => frame.visible > 7500 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Ken action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.ken)}`,
+  );
+  assert(
+    guileSonicAssetProbe.kenDragon.size[0] === 3072
+      && guileSonicAssetProbe.kenDragon.size[1] === 768
+      && guileSonicAssetProbe.kenDragon.frames.every((frame) => frame.visible > 2500 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+    `Ken Dragon FX frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.kenDragon)}`,
   );
   assert(
     guileSonicAssetProbe.guile.size[0] === 2048
@@ -533,13 +592,13 @@ async function run() {
   assert(
     guileSonicAssetProbe.chunLi.size[0] === 3072
       && guileSonicAssetProbe.chunLi.size[1] === 1280
-      && guileSonicAssetProbe.chunLi.frames.every((frame) => frame.visible > 15000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+      && guileSonicAssetProbe.chunLi.frames.every((frame) => frame.visible > 9000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
     `Chun Li action frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.chunLi)}`,
   );
   assert(
     guileSonicAssetProbe.chunLiProjectiles.size[0] === 3072
       && guileSonicAssetProbe.chunLiProjectiles.size[1] === 768
-      && guileSonicAssetProbe.chunLiProjectiles.frames.every((frame) => frame.visible > 19000 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
+      && guileSonicAssetProbe.chunLiProjectiles.frames.every((frame) => frame.visible > 1200 && frame.edgeAlpha === 0 && frame.lowAlpha === 0),
     `Chun Li projectile frames still have slicing artifacts: ${JSON.stringify(guileSonicAssetProbe.chunLiProjectiles)}`,
   );
   await page.click('[data-skin="freelanceDuo"]');
@@ -796,7 +855,7 @@ async function run() {
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
   assert(["ryu", "ken", "guile", "chunLi"].every((id) => debug.playerSkinTypes.includes(id)), `Fighter character skins missing: ${JSON.stringify(debug.playerSkinTypes)}`);
-  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.ryu.animSheet === "ryuActions" && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.playerSkinSourceRects.chunLi.animSheet === "chunLiActions" && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
+  assert(debug.playerSkinSourceRects.ryu.fighterRow === 0 && debug.playerSkinSourceRects.ryu.animSheet === "ryuActions" && debug.playerSkinSourceRects.ken.fighterRow === 1 && debug.playerSkinSourceRects.ken.animSheet === "kenActions" && debug.playerSkinSourceRects.chunLi.fighterRow === 3 && debug.playerSkinSourceRects.chunLi.animSheet === "chunLiActions" && debug.fighterSkinAnimationFrames.frames === 8, `Fighter walk frames are misconfigured: ${JSON.stringify(debug.playerSkinSourceRects)}`);
   const fighterSliceProbe = await page.evaluate(async () => {
     const img = new Image();
     img.src = "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?fighter-slice-probe";
@@ -1544,6 +1603,7 @@ async function run() {
   assert(debug.combatAssets.fusionRelics && debug.combatAssets.fusionRelicTypes.includes("stormConch") && debug.combatAssets.fusionRelicTypes.includes("rumCometLantern"), `Fusion relic frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.signatureWeapons && debug.combatAssets.signatureWeaponFrames.rows >= 11 && debug.combatAssets.signatureWeaponTypes.includes("captainCutlass") && debug.combatAssets.signatureWeaponTypes.includes("lightningFan"), `Signature weapon frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12, `Ryu HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12, `Ken HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.guileActions && debug.combatAssets.guileActionFrames.rows === 5 && debug.combatAssets.guileActionFrames.frames === 8, `Guile HD action frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.sonicBoomFx && debug.combatAssets.sonicBoomFrames.rows === 4 && debug.combatAssets.sonicBoomFrames.frames === 8, `Sonic Boom upgrade frameset missing: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.xpCrystalAnim && debug.combatAssets.xpCrystalAnimationFrames.frames === 8, `Imagen XP crystals should use an 8-frame HD animation sheet: ${JSON.stringify(debug.combatAssets)}`);
@@ -1644,7 +1704,8 @@ async function run() {
   );
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.weaponEvolution?.fusionRelics?.asset && debug.weaponEvolution.fusionRelics.frames.frames === 4 && debug.weaponEvolution.fusionRelics.types.length === 4, `Fusion relic animation metadata missing: ${JSON.stringify(debug.weaponEvolution?.fusionRelics)}`);
-  assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu v4 action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu complex action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.timeTentacleVolley === true, `Time tentacle boss should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
