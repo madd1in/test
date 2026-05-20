@@ -1,14 +1,15 @@
 from math import cos, pi, sin
 from pathlib import Path
+from random import Random
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SPRITES = ROOT / "assets" / "sprites"
 SOURCE = SPRITES / "fighters_walkcycles_imagen_hd_clean_v2.png"
-OUT_ACTION = SPRITES / "ryu_action_sheet_imagen_hd_v3.png"
-OUT_HADOKEN = SPRITES / "ryu_hadoken_fx_imagen_hd_v2.png"
+OUT_ACTION = SPRITES / "ryu_action_sheet_imagen_hd_v4.png"
+OUT_HADOKEN = SPRITES / "ryu_hadoken_fx_imagen_hd_v3.png"
 
 FRAME = 256
 COLS = 12
@@ -100,6 +101,148 @@ def draw_scaled_line(draw, points, fill, width):
     draw.line([(sx(x), sx(y)) for x, y in points], fill=fill, width=max(1, sx(width)))
 
 
+def blur_layer(cell, blur, draw_fn):
+    layer = Image.new("RGBA", cell.size, (0, 0, 0, 0))
+    draw_fn(ImageDraw.Draw(layer, "RGBA"))
+    if blur:
+        layer = layer.filter(ImageFilter.GaussianBlur(sx(blur)))
+    cell.alpha_composite(layer)
+
+
+def paint_energy_blob(cell, cx, cy, radius, frame, stage=0, seed=0, tint=(78, 221, 255)):
+    rng = Random(seed + frame * 811 + stage * 1543)
+    r, g, b = tint
+
+    def outer(draw):
+        for i in range(22 + stage * 5):
+            angle = i * 2 * pi / (22 + stage * 5) + rng.uniform(-0.18, 0.18)
+            dist = rng.uniform(radius * 0.08, radius * (0.74 + stage * 0.03))
+            rx = radius * rng.uniform(0.42, 0.9)
+            ry = radius * rng.uniform(0.28, 0.74)
+            px = cx + cos(angle) * dist
+            py = cy + sin(angle) * dist
+            alpha = rng.randint(38, 86) + stage * 12
+            draw.ellipse((sx(px - rx), sx(py - ry), sx(px + rx), sx(py + ry)), fill=(r, g, b, alpha))
+
+    blur_layer(cell, 6 + stage, outer)
+
+    def body(draw):
+        for i in range(16 + stage * 4):
+            angle = i * 2 * pi / (16 + stage * 4) + frame * 0.19
+            dist = rng.uniform(0, radius * 0.52)
+            rx = radius * rng.uniform(0.2, 0.58)
+            ry = radius * rng.uniform(0.18, 0.46)
+            px = cx + cos(angle) * dist + rng.uniform(-2.5, 2.5)
+            py = cy + sin(angle * 1.13) * dist + rng.uniform(-2.5, 2.5)
+            draw.ellipse((sx(px - rx), sx(py - ry), sx(px + rx), sx(py + ry)), fill=(r + 16, min(255, g + 18), 255, rng.randint(105, 176)))
+        for i in range(8 + stage * 2):
+            angle = frame * 0.42 + i * 0.82 + rng.uniform(-0.16, 0.16)
+            x1 = cx + cos(angle) * radius * rng.uniform(0.18, 0.42)
+            y1 = cy + sin(angle) * radius * rng.uniform(0.18, 0.42)
+            x2 = cx + cos(angle + 0.74) * radius * rng.uniform(0.62, 1.08)
+            y2 = cy + sin(angle + 0.74) * radius * rng.uniform(0.62, 0.94)
+            draw_scaled_line(draw, [(x1, y1), ((x1 + x2) / 2, (y1 + y2) / 2 + rng.uniform(-8, 8)), (x2, y2)], (235, 255, 255, rng.randint(128, 190)), rng.uniform(1.8, 3.8))
+
+    blur_layer(cell, 1.1, body)
+
+    def core(draw):
+        core_r = radius * rng.uniform(0.22, 0.34)
+        draw.ellipse((sx(cx - core_r), sx(cy - core_r), sx(cx + core_r), sx(cy + core_r)), fill=(234, 255, 255, 196))
+        hot_r = core_r * 0.46
+        draw.ellipse((sx(cx - hot_r), sx(cy - hot_r), sx(cx + hot_r), sx(cy + hot_r)), fill=(255, 255, 246, 224))
+
+    blur_layer(cell, 0.25, core)
+
+
+def paint_energy_trail(cell, cx, cy, radius, frame, stage=0, seed=0, tint=(82, 222, 255)):
+    rng = Random(seed + frame * 733 + stage * 1399)
+    r, g, b = tint
+
+    def trail(draw):
+        for i in range(9 + stage * 2):
+            y = cy + rng.uniform(-radius * 0.58, radius * 0.58) + sin(frame * 0.7 + i) * 4
+            x0 = cx - radius * rng.uniform(1.05, 1.7) - i * rng.uniform(4.0, 7.2)
+            x1 = cx - radius * rng.uniform(0.25, 0.5)
+            wobble = rng.uniform(-8, 8)
+            draw_scaled_line(draw, [(x0, y + wobble), ((x0 + x1) / 2, y - wobble * 0.4), (x1, y + rng.uniform(-3, 3))], (r, g, b, max(36, 160 - i * 10)), rng.uniform(2.8, 6.4))
+        for dust in range(18 + stage * 5):
+            px = cx - radius * rng.uniform(0.8, 2.2)
+            py = cy + rng.uniform(-radius * 0.9, radius * 0.9)
+            rr = rng.uniform(1.1, 3.3 + stage * 0.4)
+            draw.ellipse((sx(px - rr), sx(py - rr), sx(px + rr), sx(py + rr)), fill=(190, 250, 255, rng.randint(60, 132)))
+
+    blur_layer(cell, 1.8, trail)
+
+
+def paint_flame_plume(cell, cx, cy, frame, lift, seed=0):
+    rng = Random(seed + frame * 971)
+
+    def smoke(draw):
+        for i in range(17):
+            t = i / 16
+            px = cx + rng.uniform(-16, 24) + sin(frame * 0.45 + i) * 6
+            py = cy - t * 104 + lift * 0.08 + rng.uniform(-7, 7)
+            rx = rng.uniform(8, 24) * (1.05 - t * 0.3)
+            ry = rng.uniform(12, 34) * (1.05 - t * 0.22)
+            color = (255, rng.randint(92, 172), rng.randint(34, 80), rng.randint(30, 78))
+            draw.ellipse((sx(px - rx), sx(py - ry), sx(px + rx), sx(py + ry)), fill=color)
+
+    blur_layer(cell, 4.4, smoke)
+
+    def flame(draw):
+        for i in range(11):
+            t = i / 10
+            px = cx + sin(frame * 0.62 + i * 0.72) * (11 + t * 11)
+            py = cy - t * 94 + lift * 0.12
+            draw_scaled_line(
+                draw,
+                [(px - 10, py + 25), (px + rng.uniform(-8, 8), py - 2), (px + rng.uniform(7, 23), py - 36)],
+                (255, 220 - int(t * 60), 76, 142 - int(t * 48)),
+                5.4 - t * 2.2,
+            )
+            draw_scaled_line(
+                draw,
+                [(px - 18, py + 31), (px + rng.uniform(-10, 10), py + 4), (px + rng.uniform(4, 18), py - 22)],
+                (255, 82, 49, 98 - int(t * 28)),
+                4.2 - t * 1.6,
+            )
+
+    blur_layer(cell, 1.4, flame)
+
+
+def paint_motion_brush(cell, frame, seed=0, tint=(90, 230, 255)):
+    rng = Random(seed + frame * 557)
+    r, g, b = tint
+
+    def strokes(draw):
+        for i in range(18):
+            angle = frame * 0.31 + i * 0.42 + rng.uniform(-0.35, 0.35)
+            rx = rng.uniform(42, 82)
+            ry = rng.uniform(22, 48)
+            cx = 128 + cos(angle) * rng.uniform(2, 9)
+            cy = 175 + sin(angle * 1.08) * rng.uniform(2, 13)
+            x1 = cx + cos(angle) * rx
+            y1 = cy + sin(angle) * ry
+            x2 = cx + cos(angle + 0.94) * rx
+            y2 = cy + sin(angle + 0.94) * ry
+            mid = (cx + cos(angle + 0.48) * rx * 0.92, cy + sin(angle + 0.48) * ry * 0.92)
+            alpha = rng.randint(42, 106)
+            draw_scaled_line(draw, [(x1, y1), mid, (x2, y2)], (r, g, b, alpha), rng.uniform(2.2, 5.4))
+        for i in range(12):
+            angle = frame * 0.27 + i * 0.58
+            draw_scaled_line(
+                draw,
+                [
+                    (128 + cos(angle) * 48, 182 + sin(angle) * 28),
+                    (128 + cos(angle + 0.58) * 72, 182 + sin(angle + 0.58) * 41),
+                ],
+                (255, 236, 118, rng.randint(32, 86)),
+                rng.uniform(1.2, 3.0),
+            )
+
+    blur_layer(cell, 1.2, strokes)
+
+
 def draw_shadow(cell, cx=128, y=235, width=54, height=9, alpha=42):
     draw = ImageDraw.Draw(cell, "RGBA")
     draw.ellipse((sx(cx - width), sx(y - height / 2), sx(cx + width), sx(y + height / 2)), fill=(26, 15, 9, alpha))
@@ -153,20 +296,11 @@ def draw_hadoken_cell(sprite, frame):
         ghost_alpha = 38 + min(frame, 6) * 5
         place_sprite(cell, sprite, x=118 + recoil - 7, bottom=235, scale=1.06, rotate=-5, alpha=min(76, ghost_alpha))
     place_sprite(cell, sprite, x=124 + recoil, bottom=236, scale=1.08, rotate=[0, -2, -4, -5, -4, -2, 1, 4, 5, 3, 1, 0][frame])
-    draw = ImageDraw.Draw(cell, "RGBA")
-    ball_x = 146 + prep * 48 + max(0, frame - 8) * 8
+    ball_x = 146 + prep * 38 + max(0, frame - 7) * 5
     ball_y = 124 + sin(frame / (COLS - 1) * pi) * 3
-    radius = 10 + prep * 22 + (3 if frame >= 8 else 0)
-    draw_glow_circle(cell, ball_x, ball_y, radius * 2.35, (73, 221, 255, 98 + frame * 3), 10)
-    draw_glow_circle(cell, ball_x, ball_y, radius * 1.32, (226, 255, 255, 134), 5)
-    draw.ellipse((sx(ball_x - radius), sx(ball_y - radius), sx(ball_x + radius), sx(ball_y + radius)), fill=(228, 255, 255, 228))
-    draw.ellipse((sx(ball_x - radius * 0.48), sx(ball_y - radius * 0.48), sx(ball_x + radius * 0.48), sx(ball_y + radius * 0.48)), fill=(99, 231, 255, 236))
-    for ring in range(4):
-        offset = ring * 7 + frame % 4
-        draw_scaled_arc(draw, (ball_x - radius - offset, ball_y - radius - offset, ball_x + radius + offset, ball_y + radius + offset), 202 + ring * 12, 160 + ring * 10, (96, 229, 255, 134 - ring * 24), 3)
-    for trail in range(5):
-        y = ball_y + sin(frame + trail) * 6
-        draw_scaled_line(draw, [(ball_x - 43 - trail * 8, y), (ball_x - 8, y + 2)], (100, 225, 255, 104 - trail * 13), 3)
+    radius = 7 + prep * 17 + (2 if frame >= 8 else 0)
+    paint_energy_trail(cell, ball_x, ball_y, radius, frame, 1, 3100)
+    paint_energy_blob(cell, ball_x, ball_y, radius, frame, 1, 3300)
     return finalize(cell)
 
 
@@ -179,21 +313,9 @@ def draw_shoryuken_cell(sprite, frame):
     if frame in (2, 3, 4, 5, 6, 7, 8):
         place_sprite(cell, sprite, x=x - 10, bottom=236 + jump + 10, scale=1.03, rotate=angle - 15, alpha=54)
     place_sprite(cell, sprite, x=x, bottom=236 + jump, scale=1.08, rotate=angle)
-    draw = ImageDraw.Draw(cell, "RGBA")
-    glow_alpha = 92 + frame * 8 if frame < 7 else 168 - frame * 8
-    draw_glow_circle(cell, x + 27, 156 + jump * 0.32, 42, (255, 138, 58, max(50, glow_alpha)), 9)
-    flame = [
-        (x + 12, 205 + jump * 0.36),
-        (x + 38, 174 + jump * 0.22),
-        (x + 25, 136 + jump * 0.15),
-        (x + 52, 92 + jump * 0.1),
-        (x + 24, 121 + jump * 0.16),
-        (x + 5, 168 + jump * 0.27),
-    ]
-    draw_scaled_line(draw, flame, (255, 224, 108, 186), 8)
-    draw_scaled_line(draw, [(px - 8, py + 9) for px, py in flame[:-1]], (255, 84, 45, 126), 5)
+    paint_flame_plume(cell, x + 24, 206 + jump * 0.34, frame, jump, 4100)
     if frame in (4, 5, 6, 7, 8):
-        draw_scaled_arc(draw, (58, 53, 210, 184), 226, 74, (255, 247, 188, 162), 5)
+        paint_motion_brush(cell, frame, 4200, (255, 211, 96))
     return finalize(cell)
 
 
@@ -213,13 +335,7 @@ def draw_whirlwind_cell(sprite, frame):
             alpha=88 - ghost * 22,
         )
     place_sprite(cell, sprite, x=128 + cos(phase) * 5, bottom=226 + sin(phase) * 3, scale=1.09, rotate=[-10, 2, 12, 5, -8, 16, 3, -16, -4, 8, -11, 12][frame])
-    draw = ImageDraw.Draw(cell, "RGBA")
-    spin = frame * 45
-    for band in range(4):
-        inset = band * 13
-        alpha = 164 - band * 28
-        draw_scaled_arc(draw, (34 + inset, 78 + band * 7, 226 - inset, 203 - band * 3), spin + 15, spin + 310, (96, 232, 255, alpha), max(2, 6 - band))
-        draw_scaled_arc(draw, (44 + inset, 110 + band * 3, 218 - inset, 226 - band * 4), spin + 188, spin + 482, (255, 231, 92, max(48, alpha - 40)), max(2, 4 - band))
+    paint_motion_brush(cell, frame, 5100)
     return finalize(cell)
 
 
@@ -230,12 +346,8 @@ def draw_focus_cell(sprite, frame):
     if frame in (2, 3, 4, 5):
         place_sprite(cell, sprite, x=126, bottom=236, scale=1.07, rotate=-3, alpha=54)
     place_sprite(cell, sprite, x=128 + pulse * 2, bottom=236 - abs(pulse) * 2, scale=1.08, rotate=pulse * 3)
-    draw = ImageDraw.Draw(cell, "RGBA")
-    for ring in range(3):
-        inset = ring * 16 + frame % 3
-        alpha = 132 - ring * 30
-        draw_scaled_arc(draw, (56 + inset, 78 + ring * 12, 210 - inset, 218 - ring * 8), frame * 26 + ring * 30, frame * 26 + 286 + ring * 25, (110, 231, 255, alpha), 4)
-    draw_glow_circle(cell, 147, 126, 18 + abs(pulse) * 6, (92, 229, 255, 86), 7)
+    paint_energy_trail(cell, 145 + pulse * 4, 132, 17 + abs(pulse) * 5, frame, 0, 6100)
+    paint_energy_blob(cell, 145 + pulse * 4, 132, 14 + abs(pulse) * 5, frame, 0, 6200)
     return finalize(cell)
 
 
@@ -264,32 +376,12 @@ def build_action_sheet(source_frames):
 
 def projectile_hadoken(stage, frame):
     cell = make_cell()
-    draw = ImageDraw.Draw(cell, "RGBA")
     phase = frame / COLS * 2 * pi
-    cx = 125 + cos(phase) * (4 + stage)
+    cx = 138 + cos(phase) * (4 + stage)
     cy = 128 + sin(phase * 1.1) * (4 + stage * 0.5)
-    radius = 22 + stage * 6 + sin(phase) * 2
-    glow = (60, 216, 255, 94 + stage * 18)
-    core = (227, 255, 255, 224)
-    draw_glow_circle(cell, cx, cy, radius * (2.25 + stage * 0.08), glow, 10)
-    draw_glow_circle(cell, cx, cy, radius * 1.28, (255, 255, 242, 120 + stage * 12), 5)
-    draw.ellipse((sx(cx - radius), sx(cy - radius), sx(cx + radius), sx(cy + radius)), fill=core)
-    draw.ellipse((sx(cx - radius * 0.46), sx(cy - radius * 0.46), sx(cx + radius * 0.46), sx(cy + radius * 0.46)), fill=(87, 231, 255, 232))
-    for ring in range(5 + stage):
-        offset = ring * (7 + stage) + frame % 4
-        alpha = 148 - ring * 17
-        if alpha <= 0:
-            continue
-        draw_scaled_arc(draw, (cx - radius - offset, cy - radius - offset, cx + radius + offset, cy + radius + offset), 202 + ring * 13 + stage * 8, 160 + ring * 11, (99, 231, 255, alpha), 3 + min(stage, 2))
-    for trail in range(6 + stage):
-        yy = cy + sin(frame * 0.9 + trail) * (7 + stage)
-        draw_scaled_line(draw, [(cx - radius - 46 - trail * 8, yy), (cx - radius * 0.45, yy + 2)], (97, 225, 255, 118 - trail * 11), 4)
-    if stage >= 2:
-        for spark in range(9):
-            t = frame * 0.7 + spark * 0.6
-            px = cx + cos(t) * (radius + 16 + spark * 2)
-            py = cy + sin(t * 1.13) * (radius * 0.72 + spark)
-            draw.ellipse((sx(px - 2.2), sx(py - 2.2), sx(px + 2.2), sx(py + 2.2)), fill=(238, 255, 255, 124))
+    radius = 59 + stage * 3 + sin(phase) * 2
+    paint_energy_trail(cell, cx, cy, radius, frame, stage + 1, 7100)
+    paint_energy_blob(cell, cx, cy, radius, frame, stage + 1, 7200)
     return finalize(cell)
 
 
