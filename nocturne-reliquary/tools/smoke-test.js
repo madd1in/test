@@ -145,6 +145,7 @@ async function browserSmoke() {
   const titleFrameA = await canvasProbe();
   const titleState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
   const titleHudDisplay = await page.evaluate(() => getComputedStyle(document.getElementById("hud")).display);
+  const titleTouchDisplay = await page.evaluate(() => getComputedStyle(document.getElementById("touchControls")).display);
   await page.waitForTimeout(640);
   const titleFrameB = await canvasProbe();
   const titleFrameDelta = Math.abs(titleFrameB.checksum - titleFrameA.checksum);
@@ -250,6 +251,12 @@ async function browserSmoke() {
   transitionStates.push(await transitionProbe("aqueduct up to observatory", () => {
     window.__NOCTURNE_TEST_TELEPORT("aqueduct", 456, 60);
     window.__NOCTURNE_TEST_INPUT("up", true);
+  }, "observatory"));
+  transitionStates.push(await transitionProbe("auto aqueduct upper hatch without up input", async () => {
+    if (document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
+    window.__NOCTURNE_TEST_TELEPORT("aqueduct", 456, 132);
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    window.__NOCTURNE_TEST_SET_PLAYER_RAW(456, 132, false);
   }, "observatory"));
   transitionStates.push(await transitionProbe("cavern right to aqueduct", () => {
     window.__NOCTURNE_TEST_TELEPORT("cavern", 1370, 330);
@@ -517,14 +524,19 @@ async function browserSmoke() {
   const drawbridgeLoweringState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
 
   await page.evaluate(() => {
-    window.__NOCTURNE_TEST_TELEPORT("gate", 190, 352);
+    window.__NOCTURNE_TEST_TELEPORT("gate", 650, 352);
     if (!document.body.classList.contains("mobile-mode")) document.getElementById("mobileButton").click();
   });
   await page.waitForTimeout(240);
   const mobileJumpStart = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
   const canvasBox = await page.locator("#game").boundingBox();
   assert(canvasBox, "canvas box missing for mobile jump probe");
-  await page.mouse.click(canvasBox.x + canvasBox.width * 0.25, canvasBox.y + canvasBox.height * 0.82);
+  const jumpButtonBox = await page.locator('#touchControls button[data-touch="jump"]').boundingBox();
+  assert(jumpButtonBox, "jump touch button box missing");
+  await page.mouse.move(jumpButtonBox.x + jumpButtonBox.width / 2, jumpButtonBox.y + jumpButtonBox.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(140);
+  await page.mouse.up();
   await page.waitForTimeout(360);
   const mobileJumpState = await page.evaluate(() => window.__NOCTURNE_DEBUG_STATE());
 
@@ -650,7 +662,7 @@ async function browserSmoke() {
 
   await closeBrowser(browser);
   await closeServer(server);
-  return { url, state, titleState, titleHudDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, clockGalleryReentryProbe, galleryPixelProbe, puzzleProbe, pacingGateProbe, portraitWarpBefore, portraitWarpAfter, surgeProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
+  return { url, state, titleState, titleHudDisplay, titleTouchDisplay, titleFrameA, titleFrameB, titleFrameDelta, newRunState, movementState, transitionStates, clockGalleryReentryProbe, galleryPixelProbe, puzzleProbe, pacingGateProbe, portraitWarpBefore, portraitWarpAfter, surgeProbe, mapCycleProbe, archiveWardenBoundsProbe, tideWardenRecoveryProbe, grottoMechanicProbe, enemyVisibilityProbe, chestVisualProbe, drawbridgeRaisedState, drawbridgeLoweringState, mobileJumpStart, mobileJumpState, mobileTitleState, mobileStartState, consoleErrors, pageErrors, badResponses };
 }
 
 (async () => {
@@ -714,6 +726,7 @@ async function browserSmoke() {
   assert(result.titleState.titleVisuals.parallax.includes("paraForest") && result.titleState.titleVisuals.parallax.includes("paraMist"), "title screen should expose parallax layers");
   assert(result.titleState.titleVisuals.mode7, "title screen should expose Mode7/stretch visuals");
   assert(result.titleHudDisplay === "none", `HUD should be hidden behind the title screen: ${result.titleHudDisplay}`);
+  assert(result.titleTouchDisplay === "none", `touch controls should be hidden behind the title screen: ${result.titleTouchDisplay}`);
   assert(result.titleFrameA.lit > 1800 && result.titleFrameB.lit > 1800, `title canvas appears too dark: ${JSON.stringify({ before: result.titleFrameA, after: result.titleFrameB })}`);
   assert(result.titleFrameDelta > 0, `title canvas should animate between frames: ${JSON.stringify({ before: result.titleFrameA, after: result.titleFrameB })}`);
   assert(result.state.titleHidden, "title did not hide after begin");
@@ -786,7 +799,7 @@ async function browserSmoke() {
   assert(result.state.tuningInfo.playerMotionSet === "imagen-hd-player-72f-resliced-blended-motion-v4", "player movement should use resliced blended 72-frame motion tuning");
   assert(result.state.tuningInfo.accessibilityHud === "low-reading-hud-v1", "low-reading accessibility HUD should be wired");
   assert(result.state.tuningInfo.controlSkin === "gothic-medallion-controls-v1", "gothic medallion control skin should be wired");
-  assert(result.state.tuningInfo.mobileTouch === "transient-joystick-v1-readable-actions", "mobile touch tuning should use the transient joystick and readable action targets");
+  assert(result.state.tuningInfo.mobileTouch === "transient-joystick-v2-large-auto-hatches", "mobile touch tuning should use the transient joystick with larger targets and auto ceiling hatches");
   assert(result.state.tuningInfo.mobileCeilingDoors === "auto-enter-touch-overlap-v1", "mobile ceiling doors should auto-enter when the player overlaps the hatch");
   assert(result.state.tuningInfo.mobileDoorReentryGuard === "block-reverse-door-until-clear-or-side-step-v2", "mobile door reentry guard should clear when side-stepping away from hatches");
   assert(result.state.tuningInfo.mobileFont === "compact-cinzel-v1", "mobile font tuning should be wired");
@@ -892,7 +905,7 @@ async function browserSmoke() {
   assert(result.state.touchButtonText === "", "touch buttons should not expose selectable text");
   assert(result.state.touchUserSelect === "none" || result.state.touchWebkitUserSelect === "none", "touch buttons should disable text selection");
   assert(result.state.touchButtonClipPath !== "none" && /Pirata|Cinzel/.test(result.state.iconButtonFontFamily), `controls should use gothic medallion/plaque styling: ${JSON.stringify({ clip: result.state.touchButtonClipPath, font: result.state.iconButtonFontFamily })}`);
-  assert(result.state.touchButtonMinSize >= 64, `touch buttons should be at least 64px: ${result.state.touchButtonMinSize}`);
+  assert(result.state.touchButtonMinSize >= 72, `touch buttons should be at least 72px: ${result.state.touchButtonMinSize}`);
   assert(result.state.hasFullscreen, "fullscreen button missing");
   assert(result.state.hasMobile, "mobile mode button missing");
   assert(result.state.mobileMode, "manual mobile toggle should leave mobile mode enabled for desktop probe");

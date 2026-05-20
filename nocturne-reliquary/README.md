@@ -54,6 +54,7 @@ Open `index.html` in a browser, or serve this folder with any static server.
 - Lord Veyr uses a new Imagen-derived 16-frame HD boss strip
 - Safer room exits use expanded trigger zones, spawn settling, transition cooldowns, and last-safe-ground recovery
 - Mobile buttons use non-selectable icon glyphs to avoid Chrome copy overlays
+- Mobile buttons use larger 72px+ touch targets, and ceiling exits auto-trigger when reached without requiring Up
 - Aerial whip stalls descent briefly for safer mid-air attacks
 - Moon chain combo rewards quick kills with extra MP
 - Local sprite-sheet animation for player, enemies, boss, projectiles, and whip

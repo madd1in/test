@@ -394,7 +394,7 @@
     playerMotionSet: "imagen-hd-player-72f-resliced-blended-motion-v4",
     accessibilityHud: "low-reading-hud-v1",
     controlSkin: "gothic-medallion-controls-v1",
-    mobileTouch: "transient-joystick-v1-readable-actions",
+    mobileTouch: "transient-joystick-v2-large-auto-hatches",
     mobileCeilingDoors: "auto-enter-touch-overlap-v1",
     mobileDoorReentryGuard: "block-reverse-door-until-clear-or-side-step-v2",
     mobileFont: "compact-cinzel-v1",
@@ -5573,7 +5573,7 @@
   function doorTriggerBox(door) {
     if (door.side === "left") return { x: -54, y: door.y - 42, w: door.w + 78, h: door.h + 84 };
     if (door.side === "right") return { x: door.x - 24, y: door.y - 42, w: door.w + 78, h: door.h + 84 };
-    if (door.side === "up") return { x: door.x - 32, y: door.y - 16, w: door.w + 64, h: door.h + 42 };
+    if (door.side === "up") return { x: door.x - 64, y: door.y - 34, w: door.w + 128, h: door.h + 132 };
     if (door.side === "down") return { x: door.x - 32, y: door.y - 12, w: door.w + 64, h: door.h + 46 };
     return door;
   }
@@ -5635,16 +5635,18 @@
   function doorIntent(door) {
     if (door.side === "left") return actionDown("left") || player.x <= door.x + door.w + 8;
     if (door.side === "right") return actionDown("right") || player.x + player.w >= door.x - 8;
-    if (door.side === "up") return actionDown("up") || mobileCeilingDoorIntent(door);
+    if (door.side === "up") return actionDown("up") || ceilingDoorAutoIntent(door);
     if (door.side === "down") return actionDown("down");
     return true;
   }
 
-  function mobileCeilingDoorIntent(door) {
-    if (door.side !== "up" || (!game.mobileMode && !isMobileLayout())) return false;
+  function ceilingDoorAutoIntent(door) {
+    if (door.side !== "up") return false;
     const playerCenterX = player.x + player.w / 2;
     const doorCenterX = door.x + door.w / 2;
-    return Math.abs(playerCenterX - doorCenterX) <= Math.max(42, door.w * 0.55);
+    const xTolerance = Math.max(86, door.w * 1.05);
+    const reachedCeilingZone = player.y <= door.y + door.h + 128 || player.vy < 0;
+    return reachedCeilingZone && Math.abs(playerCenterX - doorCenterX) <= xTolerance;
   }
 
   function nudgeFromDoor(door) {

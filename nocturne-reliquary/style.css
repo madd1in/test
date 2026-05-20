@@ -812,9 +812,9 @@ h1::before {
 }
 
 .touch-controls {
-  --touch-size: 64px;
-  --move-touch-size: 72px;
-  --touch-gap: 8px;
+  --touch-size: 72px;
+  --move-touch-size: 84px;
+  --touch-gap: 10px;
   position: absolute;
   z-index: 9;
   inset: auto 0 max(14px, env(safe-area-inset-bottom)) 0;
@@ -992,6 +992,11 @@ body.mobile-mode .touch-controls {
   display: flex;
 }
 
+body.title-active.mobile-mode .touch-controls,
+body.title-active .touch-controls {
+  display: none;
+}
+
 #app:fullscreen {
   background: #050408;
 }
@@ -1008,8 +1013,8 @@ body.mobile-mode .touch-controls {
 
 @media (pointer: coarse) {
   .touch-controls {
-    --touch-size: 68px;
-    --move-touch-size: 76px;
+    --touch-size: 78px;
+    --move-touch-size: 90px;
     display: flex;
   }
 
@@ -1032,9 +1037,9 @@ body.mobile-mode .touch-controls {
 
 @media (max-width: 520px) {
   .touch-controls {
-    --touch-size: 64px;
-    --move-touch-size: 74px;
-    --touch-gap: 5px;
+    --touch-size: 70px;
+    --move-touch-size: 80px;
+    --touch-gap: 6px;
     gap: 8px;
     padding: 0 max(6px, env(safe-area-inset-right)) 0 max(6px, env(safe-area-inset-left));
   }
@@ -1046,8 +1051,8 @@ body.mobile-mode .touch-controls {
 
 @media (max-width: 380px) {
   .touch-controls {
-    --touch-size: 62px;
-    --move-touch-size: 70px;
+    --touch-size: 68px;
+    --move-touch-size: 76px;
   }
 }
 
@@ -1281,6 +1286,8 @@ body.mobile-mode .touch-controls {
   }
 
   .touch-controls {
+    --touch-size: 72px;
+    --move-touch-size: 82px;
     inset: auto 0 max(8px, env(safe-area-inset-bottom)) 0;
   }
 
