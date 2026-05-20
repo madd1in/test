@@ -70,6 +70,7 @@ const imageSources = {
   blackbeard: "assets/sprites/bosses/blackbeard_imagen_hd.webp",
   threeHeadedMonkeyAnim: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
   blackbeardAnim: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
+  timeTentacleAnim: "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp?v=time-tentacle-v1",
   newEnemyTrio: "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png?v=slice-clean-v2",
   beachClearPuddle: "assets/sprites/beach-props-v2/clear_puddle.webp",
   beachTidePuddle: "assets/sprites/beach-props-v2/tide_puddle.webp",
@@ -355,6 +356,7 @@ const GOTHIC_PROP = { w: 256, h: 256, cols: 4, rows: 2 };
 const SPECTRAL_CAPTAIN = { w: 384, h: 512, cols: 4 };
 const THREE_HEADED_MONKEY_ANIM = { w: 706, h: 720, cols: 4, rows: 2, frames: 8, fps: 6.8 };
 const BLACKBEARD_ANIM = { w: 758, h: 900, cols: 4, rows: 2, frames: 8, fps: 6.4 };
+const TIME_TENTACLE_ANIM = { w: 256, h: 512, cols: 6, rows: 2, frames: 12, fps: 10.5 };
 const NEW_ENEMY_TRIO = { w: 256, h: 256, cols: 8, rows: 3, frames: 8, fps: 8.2 };
 const PROJECTILE_FX = { w: 400, h: 400, cols: 4, rows: 2 };
 const PLAYER_EFFECT_FX = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -927,7 +929,7 @@ const enemyTypes = [
   { id: "gargoyle", name: "Moon Gargoyle", gothicRow: 7, gothicAnim: "gargoyle", hp: 96, speed: 64, radius: 39, damage: 15, scale: 0.58, xp: 21, tint: "#8bd7b4", flying: true },
   { id: "cook", name: "Grog Cook", row: 8, hp: 39, speed: 60, radius: 26, damage: 8, scale: 0.45, xp: 9, tint: "#ff765f", humanNpc: true },
   { id: "hand", name: "Seafoam Hand", sprite: "seaHand", enemyAnim: "seaHand", hp: 50, speed: 82, radius: 28, damage: 10, scale: 0.22, xp: 11, tint: "#79e0d8" },
-  { id: "tideTentacle", name: "Zeit-Tentakel", newEnemyAnim: "tideTentacle", hp: 72, speed: 72, radius: 30, damage: 12, scale: 0.58, xp: 17, tint: "#d07cff", phase: true },
+  { id: "tideTentacle", name: "Zeit-Tentakel", newEnemyAnim: "tideTentacle", timeTentacle: true, hp: 86, speed: 76, radius: 34, damage: 13, scale: 0.31, xp: 21, tint: "#d07cff", phase: true, bossCandidate: true },
   { id: "reefSquid", name: "Riff-Squid", newEnemyAnim: "reefSquid", hp: 38, speed: 130, radius: 22, damage: 8, scale: 0.42, xp: 10, tint: "#ff8aa3", flying: true },
   { id: "cactusStack", name: "Kaktus-Stack", newEnemyAnim: "cactusStack", hp: 92, speed: 54, radius: 31, damage: 15, scale: 0.52, xp: 22, tint: "#a9d95a" },
   { id: "powderImp", name: "Powder Imp", extraSprite: "powderImp", enemyAnim: "powderImp", hp: 34, speed: 112, radius: 21, damage: 8, scale: 0.22, xp: 9, tint: "#ffb14c" },
@@ -944,7 +946,7 @@ const enemyTypes = [
   { id: "threeHeadedMonkey", name: "Dreikopf-Affe", threeHeadedMonkey: true, hp: 235, speed: 66, radius: 56, damage: 22, scale: 0.34, xp: 64, tint: "#80ff9e", bossCandidate: true },
   { id: "blackbeard", name: "Blackbeard", blackbeard: true, hp: 320, speed: 58, radius: 56, damage: 24, scale: 0.3, xp: 72, tint: "#ffb14c", bossCandidate: true, humanNpc: true },
 ];
-const activeBossCycle = ["idol", "coralBrute", "threeHeadedMonkey", "gargoyle", "cactusStack"];
+const activeBossCycle = ["idol", "tideTentacle", "coralBrute", "threeHeadedMonkey", "gargoyle", "cactusStack"];
 
 const upgrades = [
   {
@@ -1983,6 +1985,7 @@ const MOBILE_BOOT_IMAGE_KEYS = [
   "enemyAnimSheet",
   "gothicEnemies",
   "newEnemyTrio",
+  "timeTentacleAnim",
   "beachClearPuddle",
   "beachTidePuddle",
   "beachHedgeCluster",
@@ -3962,6 +3965,8 @@ function updateSpawns(dt) {
         ? "Korallenbrecher voraus. Lass dich nicht festnageln!"
         : bossType.id === "threeHeadedMonkey"
           ? "Dreikoepfiger Affe voraus. Nicht alle Koepfe anstarren!"
+          : bossType.id === "tideTentacle"
+            ? "Zeit-Tentakel voraus. Seine Fluchkugeln kommen im Takt!"
           : bossType.id === "gargoyle"
             ? "Mond-Gargoyle voraus. Halt Abstand zu den Fluegeln!"
             : bossType.id === "cactusStack"
@@ -4244,7 +4249,17 @@ function enemyProjectileProfile(enemy) {
     return { fx: "ghostCannonball", range: 690, cooldown: 2.65, speed: 222, radius: 16, damage: 12, life: 4.0 };
   }
   if (enemy.type.id === "tideTentacle") {
-    return { fx: "monkeyCurseOrb", range: 620, cooldown: 2.5, speed: 214, radius: 15, damage: 10, life: 3.7 };
+    return {
+      fx: "monkeyCurseOrb",
+      range: enemy.boss ? 780 : 620,
+      cooldown: enemy.boss ? 2.05 : 2.5,
+      speed: enemy.boss ? 228 : 214,
+      radius: enemy.boss ? 18 : 15,
+      damage: enemy.boss ? 13 : 10,
+      life: enemy.boss ? 4.2 : 3.7,
+      count: enemy.boss ? 3 : 1,
+      spread: enemy.boss ? 0.2 : 0,
+    };
   }
   if (enemy.type.id === "reefSquid") {
     return { fx: "compassBolt", range: 560, cooldown: 2.2, speed: 248, radius: 13, damage: 8, life: 3.1 };
@@ -5475,6 +5490,17 @@ function drawEnemies() {
       w = GOTHIC_ENEMY.w * drawScale * (enemy.boss ? 1.18 : 1);
       h = GOTHIC_ENEMY.h * drawScale * (enemy.boss ? 1.18 : 1);
       ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
+    } else if (enemy.type.timeTentacle && images.timeTentacleAnim) {
+      const attackFrames = enemy.actionKind === "monkeyCurseOrb" ? [7, 8, 9, 10] : [8, 9, 10, 11];
+      const frame = bossAnimFrame(enemy, TIME_TENTACLE_ANIM, attackFrames);
+      const sx = (frame % TIME_TENTACLE_ANIM.cols) * TIME_TENTACLE_ANIM.w;
+      const sy = Math.floor(frame / TIME_TENTACLE_ANIM.cols) * TIME_TENTACLE_ANIM.h;
+      const bob = Math.sin(state.elapsed * 5.8 + enemy.frameOffset) * (enemy.boss ? 5 : 3.5);
+      const animScale = animatedEnemyDrawScale(enemy, TIME_TENTACLE_ANIM.h) * (enemy.boss ? 1.12 : 1);
+      w = TIME_TENTACLE_ANIM.w * animScale * (enemy.boss ? 1.16 : 1);
+      h = TIME_TENTACLE_ANIM.h * animScale * (enemy.boss ? 1.16 : 1);
+      ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 30 : enemy.boss ? 18 : 12;
+      ctx.drawImage(images.timeTentacleAnim, sx, sy, TIME_TENTACLE_ANIM.w, TIME_TENTACLE_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
     } else if (enemy.type.newEnemyAnim && images.newEnemyTrio) {
       const anim = newEnemyAnimMap[enemy.type.newEnemyAnim] || newEnemyAnimMap.tideTentacle;
       const frame = bossAnimFrame(enemy, NEW_ENEMY_TRIO, anim.attackFrames, anim.loopFrames);
@@ -6865,6 +6891,30 @@ window.__MONKEY_TIDE_BLACKBEARD_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_TIME_TENTACLE_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
+  const p = state.player;
+  window.__MONKEY_TIDE_SPAWN_ENEMY("tideTentacle", p.x + 410, p.y + 36, true);
+  const boss = [...state.enemies].reverse().find((enemy) => enemy.type.id === "tideTentacle");
+  if (boss) {
+    boss.shootTimer = 0;
+    const dx = p.x - boss.x;
+    const dy = p.y - boss.y;
+    updateEnemyRangedAttack(boss, 1 / 60, Math.hypot(dx, dy), dx, dy);
+  }
+  render();
+  const profile = boss ? enemyProjectileProfile(boss) : null;
+  return {
+    boss: boss ? { id: boss.type.id, name: boss.type.name, hp: boss.hp, boss: boss.boss } : null,
+    assetLoaded: !!images.timeTentacleAnim,
+    animationLoaded: !!images.timeTentacleAnim,
+    animationFrames: { ...TIME_TENTACLE_ANIM },
+    profile,
+    curseOrbs: state.projectiles.filter((projectile) => projectile.type === "curseOrb" && projectile.fx === "monkeyCurseOrb").length,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_NEW_ENEMY_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
@@ -7381,7 +7431,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     animatedMinimumHeight: ENEMY_TUNING.minAnimatedVisualHeight,
     animatedBoost: ENEMY_TUNING.animatedVisualBoost,
     animatedProjectedHeights: Object.fromEntries(enemyTypes
-      .filter((type) => (type.enemyAnim || type.gothicAnim || type.newEnemyAnim) && !type.humanNpc)
+      .filter((type) => (type.enemyAnim || type.gothicAnim || type.newEnemyAnim || type.timeTentacle) && !type.humanNpc)
       .map((type) => {
         const mockEnemy = {
           type,
@@ -7389,7 +7439,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
           boss: !!type.bossCandidate || type.id === "idol",
           elite: false,
         };
-        const sourceHeight = type.gothicAnim ? GOTHIC_ENEMY_ANIM.h : type.newEnemyAnim ? NEW_ENEMY_TRIO.h : ENEMY_ANIM.h;
+        const sourceHeight = type.timeTentacle ? TIME_TENTACLE_ANIM.h : type.gothicAnim ? GOTHIC_ENEMY_ANIM.h : type.newEnemyAnim ? NEW_ENEMY_TRIO.h : ENEMY_ANIM.h;
         return [type.id, Math.round(sourceHeight * animatedEnemyDrawScale(mockEnemy, sourceHeight))];
       })),
   },
@@ -7521,11 +7571,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
     blackbeard: !!images.blackbeard,
     threeHeadedMonkeyAnim: !!images.threeHeadedMonkeyAnim,
     blackbeardAnim: !!images.blackbeardAnim,
+    timeTentacleAnim: !!images.timeTentacleAnim,
+    timeTentacleAnimSource: imageSources.timeTentacleAnim,
     newEnemyTrio: !!images.newEnemyTrio,
     newEnemyTrioSource: imageSources.newEnemyTrio,
     bossAnimationFrames: {
       threeHeadedMonkey: { ...THREE_HEADED_MONKEY_ANIM },
       blackbeard: { ...BLACKBEARD_ANIM },
+      timeTentacle: { ...TIME_TENTACLE_ANIM },
     },
     newEnemyAnimationFrames: { ...NEW_ENEMY_TRIO },
     newEnemyTypes: enemyTypes.filter((type) => type.newEnemyAnim).map((type) => type.id),
@@ -7606,6 +7659,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     fusionRelicTypes: fusionRelicIds,
     enemyProjectiles: state.projectiles.filter((projectile) => projectile.type === "curseOrb").length,
     threeHeadedMonkeyVolley: enemyProjectileProfile({ type: enemyType("threeHeadedMonkey"), boss: true })?.count === 3,
+    timeTentacleVolley: enemyProjectileProfile({ type: enemyType("tideTentacle"), boss: true })?.count === 3,
     blackbeardBroadside: enemyProjectileProfile({ type: enemyType("blackbeard"), boss: true })?.fx === "ghostCannonball"
       && enemyProjectileProfile({ type: enemyType("blackbeard"), boss: true })?.count === 3,
   },

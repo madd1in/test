@@ -123,6 +123,7 @@ async function run() {
     "assets/sprites/bosses/blackbeard_imagen_hd.webp",
     "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
     "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
+    "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
@@ -1167,11 +1168,13 @@ async function run() {
   assert(debug.crossoverAssets.blackbeard && debug.preloadedAssetKeys.includes("blackbeard"), `Blackbeard boss asset missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.threeHeadedMonkeyAnim && debug.preloadedAssetKeys.includes("threeHeadedMonkeyAnim"), `Three-headed monkey animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.blackbeardAnim && debug.preloadedAssetKeys.includes("blackbeardAnim"), `Blackbeard animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.bossAnimationFrames.threeHeadedMonkey.frames === 8 && debug.crossoverAssets.bossAnimationFrames.blackbeard.frames === 8, `Boss animation framesets should expose 8 frames: ${JSON.stringify(debug.crossoverAssets.bossAnimationFrames)}`);
+  assert(debug.crossoverAssets.timeTentacleAnim && debug.preloadedAssetKeys.includes("timeTentacleAnim"), `Time tentacle animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.bossAnimationFrames.threeHeadedMonkey.frames === 8 && debug.crossoverAssets.bossAnimationFrames.blackbeard.frames === 8 && debug.crossoverAssets.bossAnimationFrames.timeTentacle.frames === 12, `Boss animation framesets should expose expected frame counts: ${JSON.stringify(debug.crossoverAssets.bossAnimationFrames)}`);
   const bossAnimAlphaProbe = await page.evaluate(async () => {
     const assets = [
-      { src: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp?alpha-clean", w: 706, h: 720, frames: 8 },
-      { src: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp?alpha-clean", w: 758, h: 900, frames: 8 },
+      { src: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp?alpha-clean", w: 706, h: 720, frames: 8, cols: 4 },
+      { src: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp?alpha-clean", w: 758, h: 900, frames: 8, cols: 4 },
+      { src: "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp?alpha-clean", w: 256, h: 512, frames: 12, cols: 6 },
     ];
     const results = [];
     for (const asset of assets) {
@@ -1185,8 +1188,8 @@ async function run() {
       ctx.drawImage(img, 0, 0);
       const frameResults = [];
       for (let frame = 0; frame < asset.frames; frame += 1) {
-        const x0 = frame % 4 * asset.w;
-        const y0 = Math.floor(frame / 4) * asset.h;
+        const x0 = frame % asset.cols * asset.w;
+        const y0 = Math.floor(frame / asset.cols) * asset.h;
         const data = ctx.getImageData(x0, y0, asset.w, asset.h).data;
         let edgeAlpha = 0;
         let visible = 0;
@@ -1206,7 +1209,7 @@ async function run() {
     return results;
   });
   assert(bossAnimAlphaProbe.every((asset) => asset.frameResults.every((frame) => frame.edgeAlpha === 0 && frame.visible > 30000)), `Boss animation sheets still look sliced: ${JSON.stringify(bossAnimAlphaProbe)}`);
-  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey") && debug.crossoverAssets.bossTypes.includes("blackbeard"), `Boss roster missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey") && debug.crossoverAssets.bossTypes.includes("blackbeard") && debug.crossoverAssets.bossTypes.includes("tideTentacle"), `Boss roster missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemies && debug.extraAssets.extraItems, `Extra Imagen sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemyTypes.length >= 8 && debug.extraAssets.extraEnemyTypes.includes("tideWitch") && debug.extraAssets.extraEnemyTypes.includes("stormDuelist"), `Extra enemies missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraItemTypes.length >= 8 && debug.extraAssets.extraItemTypes.includes("cursedPearl") && debug.extraAssets.extraItemTypes.includes("grogLantern"), `Extra item icons missing: ${JSON.stringify(debug)}`);
@@ -1339,6 +1342,7 @@ async function run() {
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu v4 action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.timeTentacleVolley === true, `Time tentacle boss should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
@@ -1374,6 +1378,11 @@ async function run() {
   assert(blackbeardProbe.assetLoaded && blackbeardProbe.boss?.id === "blackbeard", `Blackbeard boss did not spawn: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.animationLoaded && blackbeardProbe.animationFrames.frames === 8, `Blackbeard animation probe missing: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.profile?.count === 3 && blackbeardProbe.cannonballs >= 3, `Blackbeard broadside did not fire: ${JSON.stringify(blackbeardProbe)}`);
+
+  const timeTentacleProbe = await page.evaluate(() => window.__MONKEY_TIDE_TIME_TENTACLE_PROBE());
+  assert(timeTentacleProbe.assetLoaded && timeTentacleProbe.boss?.id === "tideTentacle", `Time tentacle boss did not spawn: ${JSON.stringify(timeTentacleProbe)}`);
+  assert(timeTentacleProbe.animationLoaded && timeTentacleProbe.animationFrames.frames === 12 && timeTentacleProbe.animationFrames.cols === 6, `Time tentacle animation probe missing frames: ${JSON.stringify(timeTentacleProbe)}`);
+  assert(timeTentacleProbe.profile?.count === 3 && timeTentacleProbe.curseOrbs >= 3, `Time tentacle curse volley did not fire: ${JSON.stringify(timeTentacleProbe)}`);
 
   const newEnemyProbe = await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
   assert(newEnemyProbe.assetLoaded && newEnemyProbe.animationFrames.frames === 8, `New enemy animation sheet missing: ${JSON.stringify(newEnemyProbe)}`);
