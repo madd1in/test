@@ -36,7 +36,7 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle und Blutrosen-Relikt; die alten Kerzenprops spawnen nicht mehr.
 - Imagen-HD-Frameset fuer einen LeChuck-artigen Fluchkapitaen als neuen Boss.
-- Neues Imagen-HD-Frameset fuer Zeit-Tentakel, Riff-Squid und Kaktus-Stack Gegner.
+- Neues 12-Frame-Imagen-HD-Frameset fuer einen point-and-click-artigen Zeit-Tentakel; Riff-Squid und Kaktus-Stack bleiben im zusaetzlichen Gegner-Sheet.
 - Neue freigestellte Palmenprops und kleinere offene Schatzkisten im Verhaeltnis zum Spieler.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Spielstart wird erst freigegeben, wenn die lokalen BGM-Tracks wirklich vorgeladen und abspielbereit sind.
@@ -67,11 +67,13 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Arcade-Movement-Pass: deutlich hoeheres Lauftempo, sehr kurzer Dash-Cooldown, schnellerer Dash-Burst, frueher voller Mobile-Stick und korrigierte Dash-Cooldown-Caps bei Traits/Upgrades.
 - Desktop ist nochmals weiter herausgezoomt; Flutwellen markieren jetzt Elite-Omen-Gegner mit Extra-Beute, damit Wellen ein klares Zwischenziel haben.
 - Dhampir/Alucard nutzt ein nachnormalisiertes Walksheet mit stabiler Frame-Hoehe und entfernten Fuss-/Slice-Artefakten.
+- Rum-Korsar nutzt ein nachgereinigtes Walksheet ohne fremde abgeschnittene Zellreste unter den Lauf-Frames; das HUD benennt immer den wirklich gewaehlten Charakter.
 - Jeder Charakter hat nun ein kleines Gameplay-Trait, z.B. Fluchsog, Mondbiss, Rumspurt, Sternenkompass oder Doppelermittlung.
 - Treffer-, Crit-, Streak- und Pickup-Texte werden als lesbare Screen-Schrift skaliert statt in der herausgezoomten Welt winzig zu werden.
 - HD-Pfuetzen sind wieder sichtbar und geben beim Durchlaufen einen kleinen Gezeiten-Slip statt nur Deko zu sein.
 - Erkunderte Buesche, Huetten und Wracks bleiben voll gemalt statt ausgegraut; Schatzfunde wechseln auf ein eigenes offenes Imagen-HD-Truhenasset.
 - Dreikoepfiger Affe ist als eigener Imagen-HD-Boss im Boss-Zyklus und feuert eine dreifache Fluchsalve.
+- Zeit-Tentakel ist jetzt auch Bosskandidat mit eigenem 12-Frame-HD-Sheet und dreifacher Fluchkugel-Salve.
 - Blackbeard ist als eigener Imagen-HD-Boss im Boss-Zyklus und feuert eine dreifache Geisterkanonen-Breitseite.
 - Dreikoepfiger Affe und Blackbeard nutzen eigene neue Imagen-HD-8-Frame-Animationssheets statt statischer Einzelbilder.
 - Map-spezifische Busch-/Hecken-Hindernisse nutzen die HD-Prop-Assets und bleiben Teil der Kollisionslogik.

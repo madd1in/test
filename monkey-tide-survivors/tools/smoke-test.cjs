@@ -45,15 +45,28 @@ function staticServer() {
 }
 
 function resolvePlaywright() {
-  try {
-    return require("playwright");
-  } catch {
+  const candidates = [
+    () => require("playwright"),
+    () => require(path.join(bundledNodeModules, "playwright")),
+    ...(
+      fs.existsSync(path.join(bundledNodeModules, ".pnpm"))
+        ? fs.readdirSync(path.join(bundledNodeModules, ".pnpm"))
+          .filter((entry) => /^playwright@\d/.test(entry))
+          .sort()
+          .reverse()
+          .map((entry) => () => require(path.join(bundledNodeModules, ".pnpm", entry, "node_modules", "playwright")))
+        : []
+    ),
+  ];
+  let lastError = null;
+  for (const load of candidates) {
     try {
-      return require(path.join(bundledNodeModules, "playwright"));
-    } catch {
-      return require(path.join(bundledNodeModules, ".pnpm", "playwright@1.59.1", "node_modules", "playwright"));
+      return load();
+    } catch (error) {
+      lastError = error;
     }
   }
+  throw lastError;
 }
 
 async function closeServer(server) {
@@ -80,6 +93,7 @@ async function run() {
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean.webp",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png",
+    "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png",
     "assets/sprites/player_skin_select_imagen_hd.webp",
     "assets/sprites/fighters_walkcycles_imagen_hd_source.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
@@ -123,6 +137,7 @@ async function run() {
     "assets/sprites/bosses/blackbeard_imagen_hd.webp",
     "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp",
     "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp",
+    "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean.png",
     "assets/sprites/new_enemy_trio_imagen_hd_sheet_clean_v2.png",
     "assets/sprites/beach-props-v2/clear_puddle.webp",
@@ -654,10 +669,49 @@ async function run() {
   );
   assert(debug.performance.stablePropScale && debug.performance.stablePlayerScale, `Sprite scale pulse guards missing: ${JSON.stringify(debug.performance)}`);
   assert(debug.playerSkin === "curseMonkey" && debug.player.skin === "curseMonkey", `Selected player skin did not reach runtime: ${JSON.stringify(debug)}`);
+  assert(debug.hudPlayerLabel === "Fluchaffe", `HUD player label did not follow selected skin: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAsset === true && debug.preloadedAssetKeys.includes("playerSkins"), `Player skin atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.playerSkinAnimationAsset === true && debug.preloadedAssetKeys.includes("playerSkinWalks"), `Player walkcycle atlas is not preloaded: ${JSON.stringify(debug)}`);
-  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v3.png"), `Runtime should use the normalized monkey-and-Alucard-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
+  assert(debug.playerSkinAnimationSource.includes("player_skin_walkcycles_imagen_hd_clean_v4.png"), `Runtime should use the normalized Rum-Korsar-safe walksheet: ${JSON.stringify(debug.playerSkinAnimationSource)}`);
   assert(debug.playerSkinSourceRects.rumCorsair.x === 34 && debug.playerSkinSourceRects.rumCorsair.y === 512 && debug.playerSkinSourceRects.rumCorsair.w === 461 && debug.playerSkinSourceRects.rumCorsair.h === 512 && debug.playerSkinSourceRects.rumCorsair.animDrawYOffset === 33, `Rum corsair/Jack Sparrow crop should keep foot padding: ${JSON.stringify(debug.playerSkinSourceRects.rumCorsair)}`);
+  const rumCorsairSlice = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?rum-corsair-safe";
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const row = 3;
+    const cell = 256;
+    const frames = [];
+    for (let col = 0; col < 8; col += 1) {
+      const data = ctx.getImageData(col * cell, row * cell, cell, cell).data;
+      let visible = 0;
+      let edgeAlpha = 0;
+      let bottomPixels = 0;
+      let minY = cell;
+      let maxY = -1;
+      for (let y = 0; y < cell; y += 1) {
+        for (let x = 0; x < cell; x += 1) {
+          const alpha = data[(y * cell + x) * 4 + 3];
+          if (alpha <= 8) continue;
+          visible += 1;
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+          if (x === 0 || y === 0 || x === cell - 1 || y === cell - 1) edgeAlpha += 1;
+          if (y >= 220) bottomPixels += 1;
+        }
+      }
+      frames.push({ col, visible, edgeAlpha, bottomPixels, minY, maxY });
+    }
+    return frames;
+  });
+  assert(
+    rumCorsairSlice.every((frame) => frame.edgeAlpha === 0 && frame.bottomPixels === 0 && frame.visible >= 16000 && frame.minY >= 18 && frame.maxY <= 212),
+    `Rum-Korsar walk row still contains sliced lower artifacts: ${JSON.stringify(rumCorsairSlice)}`,
+  );
   assert(debug.playerSkinSelectAsset === true && debug.preloadedAssetKeys.includes("playerSkinSelect"), `Player selection atlas is not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAsset === true && debug.fighterSkinSelectAsset === true && debug.preloadedAssetKeys.includes("fighterWalks") && debug.preloadedAssetKeys.includes("fighterSelect"), `Fighter sprite sheets are not preloaded: ${JSON.stringify(debug)}`);
   assert(debug.fighterSkinAnimationSource.includes("fighters_walkcycles_imagen_hd_clean_v2.png"), `Runtime should use the repaired fighter walksheet: ${JSON.stringify(debug.fighterSkinAnimationSource)}`);
@@ -733,7 +787,7 @@ async function run() {
   assert(starFarmboySlice.every((count) => count <= 8), `Skywalker/starFarmboy walk row has lower stray pixels: ${JSON.stringify(starFarmboySlice)}`);
   const starFarmboyHeadSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?skywalker-head-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?skywalker-head-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -768,7 +822,7 @@ async function run() {
   assert(starFarmboyHeadSafe.every((box) => box.edgeAlpha === 0 && box.minY >= 36 && box.maxY <= 242), `Skywalker/starFarmboy row still lacks headroom: ${JSON.stringify(starFarmboyHeadSafe)}`);
   const dhampirFootSafe = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?dhampir-foot-safe";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?dhampir-foot-safe";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -841,7 +895,7 @@ async function run() {
   );
   const curseMonkeyStable = await page.evaluate(async () => {
     const img = new Image();
-    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v3.png?curse-monkey-stable";
+    img.src = "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v4.png?curse-monkey-stable";
     await img.decode();
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -1167,11 +1221,13 @@ async function run() {
   assert(debug.crossoverAssets.blackbeard && debug.preloadedAssetKeys.includes("blackbeard"), `Blackbeard boss asset missing: ${JSON.stringify(debug)}`);
   assert(debug.crossoverAssets.threeHeadedMonkeyAnim && debug.preloadedAssetKeys.includes("threeHeadedMonkeyAnim"), `Three-headed monkey animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
   assert(debug.crossoverAssets.blackbeardAnim && debug.preloadedAssetKeys.includes("blackbeardAnim"), `Blackbeard animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
-  assert(debug.crossoverAssets.bossAnimationFrames.threeHeadedMonkey.frames === 8 && debug.crossoverAssets.bossAnimationFrames.blackbeard.frames === 8, `Boss animation framesets should expose 8 frames: ${JSON.stringify(debug.crossoverAssets.bossAnimationFrames)}`);
+  assert(debug.crossoverAssets.timeTentacleAnim && debug.preloadedAssetKeys.includes("timeTentacleAnim"), `Time tentacle animation sheet missing: ${JSON.stringify(debug.crossoverAssets)}`);
+  assert(debug.crossoverAssets.bossAnimationFrames.threeHeadedMonkey.frames === 8 && debug.crossoverAssets.bossAnimationFrames.blackbeard.frames === 8 && debug.crossoverAssets.bossAnimationFrames.timeTentacle.frames === 12, `Boss animation framesets should expose expected frame counts: ${JSON.stringify(debug.crossoverAssets.bossAnimationFrames)}`);
   const bossAnimAlphaProbe = await page.evaluate(async () => {
     const assets = [
-      { src: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp?alpha-clean", w: 706, h: 720, frames: 8 },
-      { src: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp?alpha-clean", w: 758, h: 900, frames: 8 },
+      { src: "assets/sprites/bosses/three_headed_monkey_anim_imagen_hd.webp?alpha-clean", w: 706, h: 720, frames: 8, cols: 4 },
+      { src: "assets/sprites/bosses/blackbeard_anim_imagen_hd.webp?alpha-clean", w: 758, h: 900, frames: 8, cols: 4 },
+      { src: "assets/sprites/bosses/time_tentacle_anim_imagen_hd.webp?alpha-clean", w: 256, h: 512, frames: 12, cols: 6 },
     ];
     const results = [];
     for (const asset of assets) {
@@ -1185,8 +1241,8 @@ async function run() {
       ctx.drawImage(img, 0, 0);
       const frameResults = [];
       for (let frame = 0; frame < asset.frames; frame += 1) {
-        const x0 = frame % 4 * asset.w;
-        const y0 = Math.floor(frame / 4) * asset.h;
+        const x0 = frame % asset.cols * asset.w;
+        const y0 = Math.floor(frame / asset.cols) * asset.h;
         const data = ctx.getImageData(x0, y0, asset.w, asset.h).data;
         let edgeAlpha = 0;
         let visible = 0;
@@ -1206,7 +1262,7 @@ async function run() {
     return results;
   });
   assert(bossAnimAlphaProbe.every((asset) => asset.frameResults.every((frame) => frame.edgeAlpha === 0 && frame.visible > 30000)), `Boss animation sheets still look sliced: ${JSON.stringify(bossAnimAlphaProbe)}`);
-  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey") && debug.crossoverAssets.bossTypes.includes("blackbeard"), `Boss roster missing: ${JSON.stringify(debug)}`);
+  assert(debug.crossoverAssets.bossTypes.includes("spectralCaptain") && debug.crossoverAssets.bossTypes.includes("coralBrute") && debug.crossoverAssets.bossTypes.includes("threeHeadedMonkey") && debug.crossoverAssets.bossTypes.includes("blackbeard") && debug.crossoverAssets.bossTypes.includes("tideTentacle"), `Boss roster missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemies && debug.extraAssets.extraItems, `Extra Imagen sheets missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraEnemyTypes.length >= 8 && debug.extraAssets.extraEnemyTypes.includes("tideWitch") && debug.extraAssets.extraEnemyTypes.includes("stormDuelist"), `Extra enemies missing: ${JSON.stringify(debug)}`);
   assert(debug.extraAssets.extraItemTypes.length >= 8 && debug.extraAssets.extraItemTypes.includes("cursedPearl") && debug.extraAssets.extraItemTypes.includes("grogLantern"), `Extra item icons missing: ${JSON.stringify(debug)}`);
@@ -1339,6 +1395,7 @@ async function run() {
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu v4 action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.timeTentacleVolley === true, `Time tentacle boss should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.upgradeIcons.coconut === "coconutBoomerang" && debug.weaponLoadoutIcons.coconut === "coconutBoomerang", `Coconut boomerang preview still uses the wrong icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
@@ -1374,6 +1431,11 @@ async function run() {
   assert(blackbeardProbe.assetLoaded && blackbeardProbe.boss?.id === "blackbeard", `Blackbeard boss did not spawn: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.animationLoaded && blackbeardProbe.animationFrames.frames === 8, `Blackbeard animation probe missing: ${JSON.stringify(blackbeardProbe)}`);
   assert(blackbeardProbe.profile?.count === 3 && blackbeardProbe.cannonballs >= 3, `Blackbeard broadside did not fire: ${JSON.stringify(blackbeardProbe)}`);
+
+  const timeTentacleProbe = await page.evaluate(() => window.__MONKEY_TIDE_TIME_TENTACLE_PROBE());
+  assert(timeTentacleProbe.assetLoaded && timeTentacleProbe.boss?.id === "tideTentacle", `Time tentacle boss did not spawn: ${JSON.stringify(timeTentacleProbe)}`);
+  assert(timeTentacleProbe.animationLoaded && timeTentacleProbe.animationFrames.frames === 12 && timeTentacleProbe.animationFrames.cols === 6, `Time tentacle animation probe missing frames: ${JSON.stringify(timeTentacleProbe)}`);
+  assert(timeTentacleProbe.profile?.count === 3 && timeTentacleProbe.curseOrbs >= 3, `Time tentacle curse volley did not fire: ${JSON.stringify(timeTentacleProbe)}`);
 
   const newEnemyProbe = await page.evaluate(() => window.__MONKEY_TIDE_NEW_ENEMY_PROBE());
   assert(newEnemyProbe.assetLoaded && newEnemyProbe.animationFrames.frames === 8, `New enemy animation sheet missing: ${JSON.stringify(newEnemyProbe)}`);
