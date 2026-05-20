@@ -15,7 +15,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Fighter haben automatische Signature-Moves mit sichtbarem Loadout-Cooldown: Hadoken, Dragon Kick, Sonic Boom und Lightning Kicks.
 - Normalisiertes Walkcycle-Sheet fuer saubere Bottom-Center-Anker bei Fluchaffe, Dhampir-Jaeger, Rum-Korsar und Sternenfarmboy; Sternenfarmboy/Skywalker hat mehr Headroom im Frameset.
 - Sternenfarmboy/Skywalker nutzt ein neues Walksheet mit stabilerem Kopf-Headroom, bereinigter Auswahlzelle und gepolstertem statischen Fallback-Crop.
-- Eigene BGM-Profile pro spielbarem Charakter mit lokalen MP3s, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
+- Dhampir/Alucard nutzt ein nochmals bereinigtes Foot-Padding-Walksheet, einen gepolsterten statischen Crop und eine Auswahlzelle ohne unteren Splitter.
+- Eigene BGM-Profile pro spielbarem Charakter mit jeweils eigenem lokalen Main-Track, individuellen Startpunkten/Tempo-Varianten und passenden Rush-Handoffs.
 - Ryu, Ken, Guile und Chun Li nutzen jetzt ihre neuen Downloads-Signature-Tracks: `Dojo Crash Duel`, `Steel Punch Parade`, `Jet Fuel Glory` und `Bamboo Arcade`, plus `Gasket Thunder` als Street-Fighter-Rush-Layer.
 - Eigene lokale SFX-Profile pro spielbarem Charakter fuer Slash, Dash, Treffer, Power-ups, Warnungen und Boss-Downs.
 - Charakterauswahl nutzt einen normalisierten Auswahl-Atlas aus dem ersten statischen HD-Char-Sheet.
@@ -37,7 +38,8 @@ Ein eigenstaendiges Vampire-Survivors-artiges Browsergame mit lokal wiederverwen
 - Extra Imagen-HD-Sprites fuer Krabben, Affenidol, Banane, Rum-Bombe, Wasserhand und Charms.
 - Gothic-Vampire-Hunter-Crossover mit Fledermaus, Knochenkorsar, Mond-Gargoyle und Blutrosen-Relikt; die alten Kerzenprops spawnen nicht mehr.
 - Imagen-HD-Frameset fuer einen LeChuck-artigen Fluchkapitaen als neuen Boss.
-- Neues 12-Frame-Imagen-HD-Frameset fuer einen point-and-click-artigen Zeit-Tentakel; Riff-Squid und Kaktus-Stack bleiben im zusaetzlichen Gegner-Sheet.
+- Neues 12-Frame-Imagen-HD-Frameset fuer einen point-and-click-artigen Zeit-Tentakel; Riff-Squid und Kaktus-Stack haben jetzt ein eigenes 11-Frame-HD-Sheet mit sauberem Squid-/Kaktus-Wobble.
+- Saebel-Slash startet weiter vor der Spielfigur und trifft nur noch klar im Vorwaertskegel statt hinter/um den Player herum.
 - Neue freigestellte Palmenprops und kleinere offene Schatzkisten im Verhaeltnis zum Spieler.
 - Lokale BGM- und SFX-Dateien ohne externe Runtime-Abhaengigkeiten.
 - Spielstart wird erst freigegeben, wenn die lokalen BGM-Tracks wirklich vorgeladen und abspielbereit sind.
