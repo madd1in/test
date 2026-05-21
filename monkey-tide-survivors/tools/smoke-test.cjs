@@ -113,6 +113,7 @@ async function run() {
     "assets/sprites/ryu_action_sheet_imagen_hd_5row_source_v1.png",
     "assets/sprites/ryu_action_sheet_imagen_hd_v8.png",
     "assets/sprites/ryu_action_sheet_imagen_hd_v10.png",
+    "assets/sprites/ryu_action_sheet_imagen_hd_v12.png",
     "assets/sprites/ryu_hadoken_cast_strip_imagen_hd_source_v1.png",
     "assets/sprites/ryu_hadoken_fx_imagen_hd.png",
     "assets/sprites/ryu_hadoken_fx_imagen_hd_v2.png",
@@ -125,6 +126,9 @@ async function run() {
     "assets/sprites/ken_dragon_fx_imagen_hd_v4.png",
     "assets/sprites/tatsumaki_senpukyaku_imagen_hd_source_v2.png",
     "assets/sprites/tatsumaki_senpukyaku_preview_v2.png",
+    "assets/sprites/ryu_tatsumaki_spin_imagen_hd_source_v4.png",
+    "assets/sprites/ryu_tatsumaki_frame9_imagen_hd_source_v1.png",
+    "assets/sprites/ryu_tatsumaki_spin_preview_v4.png",
     "assets/sprites/guile_action_sheet_imagen_hd_source.png",
     "assets/sprites/guile_action_sheet_imagen_hd.png",
     "assets/sprites/guile_action_sheet_imagen_hd_clean_v2.png",
@@ -253,6 +257,7 @@ async function run() {
     "tools/prepare_complex_fighter_action_assets.py",
     "tools/prepare_sonic_boom_assets.py",
     "tools/prepare_chun_li_action_assets.py",
+    "tools/prepare_ryu_tatsumaki_spin_assets.py",
     "tools/build_xp_crystal_variants.py",
     "tools/repair_fighter_gargoyle_slicing.py",
     "tools/repair_enemy_slicing.py",
@@ -397,7 +402,7 @@ async function run() {
   const ryuActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_RYU_ACTION_PROBE());
   assert(
     ryuActionProbe.assetLoaded
-      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd_v10.png")
+      && ryuActionProbe.source.includes("ryu_action_sheet_imagen_hd_v12.png")
       && ryuActionProbe.frames.rows === 5
       && ryuActionProbe.frames.frames === 12
       && ryuActionProbe.hadokenFxLoaded
@@ -659,7 +664,7 @@ async function run() {
       return { size: [img.naturalWidth, img.naturalHeight], frames };
     }
     return {
-      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd_v10.png?ryu-tatsumaki-v2-probe", 256, 256, 12, 5),
+      ryu: await scanSheet("assets/sprites/ryu_action_sheet_imagen_hd_v12.png?ryu-tatsumaki-v4-probe", 256, 256, 12, 5),
       ryuHadoken: await scanSheet("assets/sprites/ryu_hadoken_fx_imagen_hd_v7.png?ryu-hadoken-v7-probe", 256, 256, 12, 4),
       ken: await scanSheet("assets/sprites/ken_action_sheet_imagen_hd_v6.png?ken-tatsumaki-v2-probe", 256, 256, 12, 5),
       kenDragon: await scanSheet("assets/sprites/ken_dragon_fx_imagen_hd_v4.png?ken-dragon-v4-probe", 256, 256, 12, 3),
