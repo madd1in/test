@@ -426,25 +426,30 @@ async function run() {
       && kenActionProbe.dragonFxFrames.frames === 12
       && kenActionProbe.rows.walk === 0
       && kenActionProbe.rows.stepKick === 1
+      && kenActionProbe.rows.shoryuken === 2
       && kenActionProbe.rows.dragonPunch === 2
       && kenActionProbe.rows.tatsuKick === 3
       && kenActionProbe.rows.dragonKick === 4
       && kenActionProbe.fxRows.stepKick === 0
+      && kenActionProbe.fxRows.shoryuken === 1
       && kenActionProbe.fxRows.dragonPunch === 1
+      && kenActionProbe.fxRows.tatsuKick === 2
       && kenActionProbe.fxRows.dragonKick === 2
-      && kenActionProbe.weaponDisplay.name === "Dragon Rush"
-      && kenActionProbe.upgradeDisplay.name === "Dragon Rush Loop"
-      && kenActionProbe.arsenal.stepKicks >= 8
-      && kenActionProbe.arsenal.dragonPunches >= 1
-      && kenActionProbe.arsenal.tatsuKicks >= 1
-      && kenActionProbe.arsenal.dragonKicks >= 5
+      && kenActionProbe.weaponDisplay.name === "Shoryuken"
+      && kenActionProbe.upgradeDisplay.name === "Shoryuken Loop"
+      && kenActionProbe.arsenal.stepKicks >= 6
+      && kenActionProbe.arsenal.shoryukens >= 12
+      && kenActionProbe.arsenal.dragonPunches >= 12
+      && kenActionProbe.arsenal.tatsuKicks >= 3
+      && kenActionProbe.arsenal.dragonKicks >= 3
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "shoryuken")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "stepKick")
-      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonPunch")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "tatsuKick")
-      && kenActionProbe.kenZones.some((zone) => zone.signature === "dragonKick")
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonKick")
+      && kenActionProbe.kenZones.some((zone) => zone.signature === "shoryuken")
       && kenActionProbe.slashZones === 0
       && kenActionProbe.iconStyleUsesDragonSheet,
-    `Ken should use dedicated Dragon Rush action and FX sheets: ${JSON.stringify(kenActionProbe)}`,
+    `Ken should default to Shoryuken while exposing Step Kick, Tatsu, and Dragon Kick action/FX rows: ${JSON.stringify(kenActionProbe)}`,
   );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
@@ -1705,7 +1710,7 @@ async function run() {
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.weaponEvolution?.fusionRelics?.asset && debug.weaponEvolution.fusionRelics.frames.frames === 4 && debug.weaponEvolution.fusionRelics.types.length === 4, `Fusion relic animation metadata missing: ${JSON.stringify(debug.weaponEvolution?.fusionRelics)}`);
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu complex action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
-  assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("shoryuken") && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.timeTentacleVolley === true, `Time tentacle boss should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
