@@ -105,6 +105,7 @@ async function run() {
     "assets/sprites/fighters_walkcycles_imagen_hd_clean.png",
     "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png",
     "assets/sprites/fighters_select_imagen_hd.png",
+    "assets/sprites/fighter_select_actions_hd.png",
     "assets/sprites/ryu_action_sheet_imagen_hd.png",
     "assets/sprites/ryu_action_sheet_imagen_hd_v2.png",
     "assets/sprites/ryu_action_sheet_imagen_hd_v3.png",
@@ -360,20 +361,25 @@ async function run() {
   assert(skinUi.length >= 7, `Player skin picker is missing options: ${JSON.stringify(skinUi)}`);
   assert(skinUi.some((skin) => skin.id === "curseMonkey") && skinUi.some((skin) => skin.id === "freelanceDuo"), `Requested alternate skins missing: ${JSON.stringify(skinUi)}`);
   assert(JSON.stringify(skinUi.slice(0, 5).map((skin) => skin.id)) === JSON.stringify(["default", "ryu", "ken", "guile", "chunLi"]), `Fighter skins should be immediately visible near the top of the picker: ${JSON.stringify(skinUi)}`);
-  const fighterUi = await page.evaluate(() => ["ryu", "ken", "guile", "chunLi"].map((id) => {
+  const fighterUi = await page.evaluate(() => {
+    return ["ryu", "ken", "guile", "chunLi"].map((id) => {
     const button = document.querySelector(`[data-skin="${id}"]`);
     const icon = button?.querySelector(".skin-icon");
     const rect = button?.getBoundingClientRect();
+    const style = icon ? getComputedStyle(icon) : null;
     return {
       id,
       exists: !!button,
       archetype: button?.dataset.archetype,
       label: button?.textContent.trim(),
-      selectSheet: icon ? getComputedStyle(icon).backgroundImage.includes("fighters_select_imagen_hd.png") : false,
+      actionSelectSheet: style ? style.backgroundImage.includes("fighter_select_actions_hd.png") : false,
+      oldSelectSheet: style ? style.backgroundImage.includes("fighters_select_imagen_hd.png") : false,
+      backgroundSize: style?.backgroundSize || "",
       visible: rect ? rect.width > 30 && rect.height > 30 && rect.bottom > 0 && rect.top < innerHeight : false,
     };
-  }));
-  assert(fighterUi.every((skin) => skin.exists && skin.archetype === "Fighter" && skin.selectSheet && skin.visible), `Fighter picker cards are not visibly wired: ${JSON.stringify(fighterUi)}`);
+    });
+  });
+  assert(fighterUi.every((skin) => skin.exists && skin.archetype === "Fighter" && skin.actionSelectSheet && !skin.oldSelectSheet && skin.backgroundSize.includes("400%") && skin.visible), `Fighter picker cards should use the new action-frame select atlas: ${JSON.stringify(fighterUi)}`);
   const pickerUsesSelectSheet = await page.evaluate(() => getComputedStyle(document.querySelector("#skinPicker .skin-icon")).backgroundImage.includes("player_skin_select_imagen_hd_clean_v4.webp"));
   assert(pickerUsesSelectSheet, "Character picker is not using the cleaned first-sheet selection atlas");
   const freelanceDuoUsesFixedCrop = await page.evaluate(() => getComputedStyle(document.querySelector('[data-skin="freelanceDuo"] .skin-icon')).backgroundImage.includes("sam_max_duo_fixed_hd.png"));
@@ -407,6 +413,7 @@ async function run() {
       && ryuActionProbe.arsenal.whirlwindKicks >= 1
       && ryuActionProbe.hadokenProjectiles.length >= 1
       && ryuActionProbe.hadokenProjectiles.some((projectile) => projectile.stage === 3 && projectile.size >= 130 && projectile.radius >= 35 && projectile.speed >= 1050)
+      && ryuActionProbe.hadokenProjectiles.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
       && ryuActionProbe.hadokenBursts >= 1
       && ryuActionProbe.slashZones === 0
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuStrike" && zone.move === "shoryuken")
@@ -470,6 +477,7 @@ async function run() {
       && guileActionProbe.upgradeDisplay.name === "Sonic Boom Drill"
       && guileActionProbe.signatureProjectiles >= 7
       && guileActionProbe.sonicProjectiles.every((projectile) => projectile.stage === 3 && projectile.size >= 150 && projectile.radius >= 32 && projectile.speed >= 980)
+      && guileActionProbe.sonicProjectiles.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
       && guileActionProbe.sonicBursts >= 1
       && guileActionProbe.slashZones === 0
       && guileActionProbe.guileZones >= 4
@@ -504,12 +512,46 @@ async function run() {
       && chunLiActionProbe.arsenal.lightningKicks >= 1
       && chunLiActionProbe.kiKouKenProjectiles.length >= 1
       && chunLiActionProbe.kiKouKenProjectiles.every((projectile) => projectile.size >= 108 && projectile.radius >= 24 && projectile.speed >= 760)
+      && chunLiActionProbe.kiKouKenProjectiles.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
       && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiKick" && zone.move === "thousandKick")
       && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiWhirlwind" && zone.move === "whirlwindKick")
       && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiProjectileBurst" && zone.fx === "kiKouKen")
       && chunLiActionProbe.slashZones === 0
       && chunLiActionProbe.iconStyleUsesProjectileSheet,
     `Chun Li should use Ki Kou Ken, Thousand Kick, Whirlwind Kick, and dedicated projectile frames: ${JSON.stringify(chunLiActionProbe)}`,
+  );
+  const fireballStageProbe = await page.evaluate(() => window.__MONKEY_TIDE_FIREBALL_STAGE_PROBE());
+  const keepsHorizontal = (shots) => shots.every((projectile) => projectile && projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed);
+  const hasSteppedSizes = (shots) => {
+    const sizes = shots.map((projectile) => projectile.size);
+    return sizes.every((size, index) => index === 0 || size >= sizes[index - 1])
+      && sizes[0] === sizes[1]
+      && sizes[2] === sizes[3]
+      && sizes[4] === sizes[5]
+      && sizes[6] > sizes[4]
+      && new Set(sizes).size >= 3;
+  };
+  const hasThreeStepSizes = (shots) => {
+    const sizes = shots.map((projectile) => projectile.size);
+    return sizes.every((size, index) => index === 0 || size >= sizes[index - 1])
+      && sizes[0] === sizes[1]
+      && sizes[1] === sizes[2]
+      && sizes[3] === sizes[4]
+      && sizes[4] === sizes[5]
+      && sizes[6] > sizes[5]
+      && new Set(sizes).size === 3;
+  };
+  assert(
+    keepsHorizontal(fireballStageProbe.ryu)
+      && keepsHorizontal(fireballStageProbe.guile)
+      && keepsHorizontal(fireballStageProbe.chunLi)
+      && hasSteppedSizes(fireballStageProbe.ryu)
+      && hasSteppedSizes(fireballStageProbe.guile)
+      && hasThreeStepSizes(fireballStageProbe.chunLi)
+      && fireballStageProbe.ryu.at(-1).size >= 140
+      && fireballStageProbe.guile.at(-1).size >= 150
+      && fireballStageProbe.chunLi.at(-1).size >= 126,
+    `Fighter fireballs should stay horizontal and grow only by upgrade stage into EX-sized variants: ${JSON.stringify(fireballStageProbe)}`,
   );
   const guileSonicAssetProbe = await page.evaluate(async () => {
     async function scanSheet(src, frameW, frameH, cols, rows) {
@@ -1291,17 +1333,17 @@ async function run() {
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
-  assert(debug.audio.sfx.pickup >= 0.19 && debug.audio.sfx.gate >= 0.2 && debug.audio.sfx.pickup <= 0.24, `SFX should be clearly audible without clipping: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfxMasterGain === 0.68 && debug.audio.sfx.pickup >= 0.13 && debug.audio.sfx.gate >= 0.14 && debug.audio.sfx.pickup <= 0.14, `SFX should be quieter but still audible: ${JSON.stringify(debug)}`);
   assert(
-    debug.audio.sfx.downloadBossWarning >= 0.33
-      && debug.audio.sfx.quickCutlass >= 0.29
-      && debug.audio.sfx.cannonFire >= 0.33
-      && debug.audio.sfx.curseMonkeyWarning >= 0.33
-      && debug.audio.sfxToMusicRatio >= 0.7
+    debug.audio.sfx.downloadBossWarning >= 0.22
+      && debug.audio.sfx.quickCutlass >= 0.2
+      && debug.audio.sfx.cannonFire >= 0.22
+      && debug.audio.sfx.curseMonkeyWarning >= 0.22
+      && debug.audio.sfxToMusicRatio >= 0.49
       && debug.audio.sfxDebug.attempts >= 1
       && debug.audio.sfxDebug.started >= 1
-      && debug.audio.sfxDebug.lastVolume >= 0.2,
-    `Downloaded SFX should punch through under music: ${JSON.stringify(debug)}`,
+      && debug.audio.sfxDebug.lastVolume >= 0.13,
+    `Downloaded SFX should sit lower without disappearing under music: ${JSON.stringify(debug)}`,
   );
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.quickCutlass.includes("/from-downloads/quick-cutlass.mp3") && debug.audio.sources.cannonFire.includes("/from-downloads/cartoon-cannon-fire.mp3") && debug.audio.sources.doubloonPing.includes("/from-downloads/doubloon-ping.mp3") && debug.audio.sources.treasureClink.includes("/from-downloads/treasure-clink.mp3"), `Expanded Downloads SFX set missing: ${JSON.stringify(debug.audio.sources)}`);
@@ -1712,6 +1754,8 @@ async function run() {
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu complex action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("shoryuken") && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.rows === 5 && movement.totalFrames === movement.rows * movement.framesPerRow && movement.actions.length === 5), `Street Fighter basic movement should cycle every action row and frame: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
+  assert(debug.combatAssets.streetFighterBasicMovement.ryu.totalFrames === 60 && debug.combatAssets.streetFighterBasicMovement.ken.totalFrames === 60 && debug.combatAssets.streetFighterBasicMovement.guile.totalFrames === 40 && debug.combatAssets.streetFighterBasicMovement.chunLi.totalFrames === 60, `Street Fighter basic movement frame counts are wrong: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.timeTentacleVolley === true, `Time tentacle boss should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
