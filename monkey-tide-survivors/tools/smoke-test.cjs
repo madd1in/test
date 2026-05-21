@@ -442,13 +442,15 @@ async function run() {
       && kenActionProbe.fxRows.dragonPunch === 1
       && kenActionProbe.fxRows.tatsuKick === 2
       && kenActionProbe.fxRows.dragonKick === 2
-      && kenActionProbe.weaponDisplay.name === "Shoryuken"
-      && kenActionProbe.upgradeDisplay.name === "Shoryuken Loop"
-      && kenActionProbe.arsenal.stepKicks >= 6
-      && kenActionProbe.arsenal.shoryukens >= 12
-      && kenActionProbe.arsenal.dragonPunches >= 12
-      && kenActionProbe.arsenal.tatsuKicks >= 3
-      && kenActionProbe.arsenal.dragonKicks >= 3
+      && kenActionProbe.weaponDisplay.name === "Dragon Rush"
+      && kenActionProbe.upgradeDisplay.name === "Dragon Rush Mix"
+      && kenActionProbe.arsenal.stepKicks >= 5
+      && kenActionProbe.arsenal.shoryukens >= 3
+      && kenActionProbe.arsenal.shoryukens <= 7
+      && kenActionProbe.arsenal.stepKicks + kenActionProbe.arsenal.tatsuKicks + kenActionProbe.arsenal.dragonKicks > kenActionProbe.arsenal.shoryukens * 2
+      && kenActionProbe.arsenal.dragonPunches === kenActionProbe.arsenal.shoryukens
+      && kenActionProbe.arsenal.tatsuKicks >= 4
+      && kenActionProbe.arsenal.dragonKicks >= 2
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "shoryuken")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "stepKick")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "tatsuKick")
@@ -456,7 +458,7 @@ async function run() {
       && kenActionProbe.kenZones.some((zone) => zone.signature === "shoryuken")
       && kenActionProbe.slashZones === 0
       && kenActionProbe.iconStyleUsesDragonSheet,
-    `Ken should default to Shoryuken while exposing Step Kick, Tatsu, and Dragon Kick action/FX rows: ${JSON.stringify(kenActionProbe)}`,
+    `Ken should rotate Dragon Rush moves without devolving into Shoryuken spam: ${JSON.stringify(kenActionProbe)}`,
   );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
@@ -1858,22 +1860,28 @@ async function run() {
         hasHotkey: !!card.querySelector(".upgrade-hotkey"),
         hasIconWrap: !!card.querySelector(".upgrade-icon-wrap .upgrade-icon"),
         animationName: style.animationName,
+        auraAnimationName: getComputedStyle(card.querySelector(".upgrade-aura")).animationName,
         transitionDuration: style.transitionDuration,
       };
     });
     const panelStyle = getComputedStyle(document.querySelector(".upgrade-panel"));
+    const panelFoilStyle = getComputedStyle(document.querySelector(".upgrade-panel"), "::before");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
     const selected = document.querySelector(".upgrade-card.selected")?.dataset.upgradeIndex;
     const selectedStyle = getComputedStyle(document.querySelector(".upgrade-card.selected"));
+    const selectedHotkeyStyle = getComputedStyle(document.querySelector(".upgrade-card.selected .upgrade-hotkey"));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
-    return { before, selected, menuCards, panelAnimation: panelStyle.animationName, selectedTransform: selectedStyle.transform, after: window.__MONKEY_TIDE_DEBUG() };
+    return { before, selected, menuCards, panelAnimation: panelStyle.animationName, panelFoilAnimation: panelFoilStyle.animationName, selectedAnimation: selectedStyle.animationName, selectedHotkeyAnimation: selectedHotkeyStyle.animationName, selectedTransform: selectedStyle.transform, after: window.__MONKEY_TIDE_DEBUG() };
   });
   assert(upgradeProbe.before.phase === "levelup", `Forced level-up did not open upgrades: ${JSON.stringify(upgradeProbe)}`);
   assert(upgradeProbe.before.audio.activeTrack && Math.max(upgradeProbe.before.audio.mainVolume, upgradeProbe.before.audio.rushVolume) > 0, `BGM should keep playing while choosing an upgrade: ${JSON.stringify(upgradeProbe.before.audio)}`);
   assert(
     upgradeProbe.menuCards.length >= 3
-      && upgradeProbe.menuCards.every((card) => card.kind && card.hasAura && card.hasHotkey && card.hasIconWrap && card.animationName.includes("upgradeCardIn") && card.transitionDuration !== "0s")
-      && upgradeProbe.panelAnimation.includes("upgradePanelIn"),
+      && upgradeProbe.menuCards.every((card) => card.kind && card.hasAura && card.hasHotkey && card.hasIconWrap && card.animationName.includes("upgradeCardIn") && card.auraAnimationName.includes("auraDrift") && card.transitionDuration !== "0s")
+      && upgradeProbe.panelAnimation.includes("upgradePanelIn")
+      && upgradeProbe.panelFoilAnimation.includes("panelFoil")
+      && upgradeProbe.selectedAnimation.includes("selectedCardBreath")
+      && upgradeProbe.selectedHotkeyAnimation.includes("hotkeyGleam"),
     `Upgrade selection menu should use the animated relic-card treatment: ${JSON.stringify(upgradeProbe)}`,
   );
   assert(upgradeProbe.selected === "1", `Keyboard did not move upgrade focus: ${JSON.stringify(upgradeProbe)}`);
