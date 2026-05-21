@@ -433,6 +433,7 @@ async function run() {
       && kenActionProbe.dragonFxFrames.frames === 12
       && kenActionProbe.rows.walk === 0
       && kenActionProbe.rows.stepKick === 1
+      && kenActionProbe.rows.hadoken === 1
       && kenActionProbe.rows.shoryuken === 2
       && kenActionProbe.rows.dragonPunch === 2
       && kenActionProbe.rows.tatsuKick === 3
@@ -444,13 +445,13 @@ async function run() {
       && kenActionProbe.fxRows.dragonKick === 2
       && kenActionProbe.weaponDisplay.name === "Dragon Rush"
       && kenActionProbe.upgradeDisplay.name === "Dragon Rush Mix"
-      && kenActionProbe.arsenal.stepKicks >= 5
-      && kenActionProbe.arsenal.hadokens >= 3
-      && kenActionProbe.arsenal.shoryukens <= 1
+      && kenActionProbe.arsenal.stepKicks >= 1
+      && kenActionProbe.arsenal.hadokens >= 8
+      && kenActionProbe.arsenal.shoryukens >= 4
       && kenActionProbe.arsenal.dragonPunches >= 3
       && kenActionProbe.arsenal.tatsuKicks >= 2
-      && kenActionProbe.arsenal.dragonKicks >= 2
-      && kenActionProbe.kenHadokens.length >= 3
+      && kenActionProbe.arsenal.dragonKicks >= 1
+      && kenActionProbe.kenHadokens.length >= 8
       && kenActionProbe.kenHadokens.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonPunch")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "stepKick")
@@ -459,7 +460,7 @@ async function run() {
       && kenActionProbe.kenZones.some((zone) => zone.signature === "shoryuken")
       && kenActionProbe.slashZones === 0
       && kenActionProbe.iconStyleUsesDragonSheet,
-    `Ken should rotate Dragon Rush moves without devolving into Shoryuken spam: ${JSON.stringify(kenActionProbe)}`,
+    `Ken should throw more Hadokens and land more Shoryukens while keeping the full Dragon Rush kit visible: ${JSON.stringify(kenActionProbe)}`,
   );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
@@ -526,7 +527,7 @@ async function run() {
   const streetFighterIdleProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_IDLE_PROBE());
   assert(
     streetFighterIdleProbe.ryu?.currentAction?.type === "shoryuken"
-      && streetFighterIdleProbe.ken?.currentAction?.type === "stepKick"
+      && streetFighterIdleProbe.ken?.currentAction?.type === "shoryuken"
       && streetFighterIdleProbe.guile?.currentAction?.type === "kneeBazooka"
       && streetFighterIdleProbe.chunLi?.currentAction?.type === "thousandKick"
       && Object.entries(streetFighterIdleProbe).every(([skinId, probe]) => probe.contactCounters?.[skinId] === 1 && probe.idleShare >= 0.18 && probe.idleShare <= 0.26 && probe.ambientActions.length >= 3 && probe.zones.length >= 1 && probe.contactHit === true && probe.playerDamaged === false && probe.invuln > 0),
