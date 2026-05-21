@@ -50,7 +50,7 @@ const imageSources = {
   playerSkinWalks: "assets/sprites/player_skin_walkcycles_imagen_hd_clean_v6.png?v=alucard-foot-clean-v1",
   playerSkinSelect: "assets/sprites/player_skin_select_imagen_hd_clean_v4.webp?v=alucard-select-clean-v1",
   fighterWalks: "assets/sprites/fighters_walkcycles_imagen_hd_clean_v2.png?v=fighters-slice-repair-v2",
-  fighterSelect: "assets/sprites/fighters_select_imagen_hd.png?v=fighters-imagen-v1",
+  fighterSelect: "assets/sprites/fighter_select_actions_hd.png?v=fighter-select-actions-v1",
   ryuActions: "assets/sprites/ryu_action_sheet_imagen_hd_v8.png?v=ryu-action-v8",
   ryuHadokenFx: "assets/sprites/ryu_hadoken_fx_imagen_hd_v7.png?v=ryu-hadoken-v7",
   kenActions: "assets/sprites/ken_action_sheet_imagen_hd_v4.png?v=ken-action-v4",
@@ -158,6 +158,7 @@ const audioSources = {
 const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
+const SFX_MASTER_GAIN = 0.68;
 const soundConfig = {
   pickup: { volume: 0.2, cooldown: 190 },
   chime: { volume: 0.22, cooldown: 440 },
@@ -356,6 +357,12 @@ const CHUN_LI_ACTION = {
   frames: 12,
   fps: 18,
   rowsByAction: { walk: 0, thousandKick: 1, kiKouKen: 2, whirlwindKick: 3, lightningKick: 4 },
+};
+const STREET_FIGHTER_BASIC_MOVEMENT = {
+  ryu: ["walk", "hadoken", "shoryuken", "whirlwindKick", "focusStance"],
+  ken: ["walk", "stepKick", "shoryuken", "tatsuKick", "dragonKick"],
+  guile: ["walk", "sonicBoom", "kneeBazooka", "reversePunch", "flashKick"],
+  chunLi: ["walk", "thousandKick", "kiKouKen", "whirlwindKick", "lightningKick"],
 };
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
@@ -950,6 +957,36 @@ function ryuHadokenStage(level = 1) {
   return clamp(Math.floor((Math.max(1, level) - 1) / 2), 0, RYU_HADOKEN_FX.rows - 1);
 }
 
+function kiKouKenStage(level = 1) {
+  return clamp(Math.floor((Math.max(1, level) - 1) / 3), 0, CHUN_LI_PROJECTILE_FX.rows - 1);
+}
+
+function stagedProjectileValue(values, stage) {
+  return values[clamp(stage, 0, values.length - 1)] ?? values[0];
+}
+
+const FIREBALL_STAGE_TUNING = {
+  hadoken: {
+    size: [82, 100, 118, 142],
+    radius: [21, 26, 31, 38],
+  },
+  sonicBoom: {
+    size: [86, 106, 128, 154],
+    radius: [23, 27, 32, 37],
+  },
+  kiKouKen: {
+    size: [82, 102, 126],
+    radius: [22, 27, 33],
+  },
+};
+
+function horizontalProjectileAngle(referenceAngle = 0) {
+  const x = Math.cos(Number.isFinite(referenceAngle) ? referenceAngle : 0);
+  const fallback = Math.sign(state?.player?.facing || 1) || 1;
+  const dir = Math.abs(x) > 0.12 ? Math.sign(x) : fallback;
+  return dir < 0 ? Math.PI : 0;
+}
+
 const enemyTypes = [
   { id: "deckhand", name: "Deckhand Echo", row: 7, hp: 20, speed: 78, radius: 22, damage: 5, scale: 0.44, xp: 5, tint: "#f0c45d", humanNpc: true },
   { id: "crab", name: "Coconut Crab", sprite: "crab", enemyAnim: "crab", hp: 25, speed: 112, radius: 22, damage: 5, scale: 0.22, xp: 6, tint: "#ff8b46" },
@@ -1382,7 +1419,7 @@ function normalizeSoundKey(key, fallback = "pickup") {
 }
 
 function soundVolume(key, gain = 1) {
-  return clamp((soundConfig[key]?.volume ?? 0.16) * gain, 0, 1);
+  return clamp((soundConfig[key]?.volume ?? 0.16) * SFX_MASTER_GAIN * gain, 0, 1);
 }
 
 function ensureSfxAudioContext() {
@@ -1565,6 +1602,30 @@ function actionFrame(action, config) {
   if (!action) return 0;
   const progress = clamp(1 - action.timer / Math.max(0.001, action.maxTimer || 0.48), 0, 0.999);
   return Math.min(config.frames - 1, Math.floor(progress * config.frames));
+}
+
+function basicMovementFrame(config, actions, rowForAction, moving) {
+  const rowActions = actions?.length ? actions : ["walk"];
+  const fps = (moving ? config.fps : Math.max(7, config.fps * 0.52)) || 12;
+  const total = rowActions.length * config.frames;
+  const index = positiveModulo(Math.floor((state?.elapsed || 0) * fps), total);
+  const action = rowActions[Math.floor(index / config.frames)] || rowActions[0];
+  return {
+    action,
+    frame: index % config.frames,
+    row: rowForAction(action),
+    index,
+    total,
+  };
+}
+
+function basicMovementSummary(config, actions) {
+  return {
+    rows: actions.length,
+    framesPerRow: config.frames,
+    totalFrames: actions.length * config.frames,
+    actions: [...actions],
+  };
 }
 
 function guileActionRow(type = "walk") {
@@ -2039,6 +2100,10 @@ const MOBILE_BOOT_IMAGE_KEYS = [
   "characters",
   "playerSkinSelect",
   "fighterSelect",
+  "ryuActions",
+  "kenActions",
+  "guileActions",
+  "chunLiActions",
   "items",
   "newSprites",
   "enemyAnimSheet",
@@ -2348,10 +2413,29 @@ async function boot() {
   render();
 }
 
+function spriteSheetCellStyle(src, config, row, frame) {
+  const safeFrame = clamp(frame || 0, 0, Math.max(0, config.frames - 1));
+  const safeRow = clamp(row || 0, 0, Math.max(0, config.rows - 1));
+  const x = safeFrame / Math.max(1, config.frames - 1) * 100;
+  const y = safeRow / Math.max(1, config.rows - 1) * 100;
+  return `background-image:url('${src}');background-size:${config.frames * 100}% ${config.rows * 100}%;background-position:${x}% ${y}%;background-repeat:no-repeat;`;
+}
+
+function streetFighterSkinIconStyle(id) {
+  const actionSelectIndex = { ryu: 0, ken: 1, guile: 2, chunLi: 3 }[id];
+  if (actionSelectIndex !== undefined) {
+    const x = actionSelectIndex / Math.max(1, FIGHTER_SELECT.cols - 1) * 100;
+    return `background-image:url('${imageSources.fighterSelect}');background-size:${FIGHTER_SELECT.cols * 100}% 100%;background-position:${x}% 50%;background-repeat:no-repeat;`;
+  }
+  return null;
+}
+
 function skinIconStyle(id) {
   if (id === "freelanceDuo") {
     return `background-image:url('${imageSources.samMaxDuo}');background-size:contain;background-repeat:no-repeat;background-position:center 58%;`;
   }
+  const fighterActionStyle = streetFighterSkinIconStyle(id);
+  if (fighterActionStyle) return fighterActionStyle;
   const skin = playerSkinMap[id];
   if (skin?.animSheet === "fighterWalks" || skin?.selectIndex !== undefined) {
     const index = clamp(skin.selectIndex ?? skin.fighterRow ?? 0, 0, FIGHTER_SELECT.cols - 1);
@@ -3441,8 +3525,11 @@ function castSignatureMove(signature) {
 function fireSignatureProjectile(signature, angle) {
   const p = state.player;
   if (signature.id === "sonicBoom") {
+    const shotAngle = horizontalProjectileAngle(angle);
     const level = Math.max(1, state.weapons.cutlass.level || 1);
     const stage = sonicBoomStage(level);
+    const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage);
+    const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage);
     const speed = Math.max(signature.speed || 560, 690 + level * 18 + stage * 34);
     state.projectiles.push({
       type: "signature",
@@ -3451,46 +3538,51 @@ function fireSignatureProjectile(signature, angle) {
       sonicLevel: level,
       sonicStage: stage,
       animSeed: Math.floor(Math.random() * SONIC_BOOM_FX.frames),
-      x: p.x + Math.cos(angle) * 58,
-      y: p.y + Math.sin(angle) * 38 - 8,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      r: 24 + stage * 3 + Math.min(4, level),
+      x: p.x + Math.cos(shotAngle) * 58,
+      y: p.y - 8,
+      vx: Math.cos(shotAngle) * speed,
+      vy: 0,
+      r: radius,
       damage: (signature.damage || 26) + level * 5,
       signatureDamage: state.stats.signatureDamage || 1,
       life: 1.55 + stage * 0.18 + level * 0.04,
       pierce: Math.max(signature.pierce ?? 1, 2 + stage + Math.floor(level / 3)),
-      spin: angle,
-      size: 112 + stage * 20 + level * 2,
+      spin: shotAngle,
+      size,
       retarget: false,
     });
     return;
   }
   if (signature.id === "hadoken" && isRyuSkin()) {
-    const focus = Math.max(1, Math.min(7, state.level + Math.floor((state.signatureMove?.casts || 0) / 2)));
+    const focus = Math.max(1, Math.min(7, state.weapons.cutlass.level || 1));
     fireRyuHadoken(focus, angle, { signature, countArsenal: false, action: false, signatureCast: true });
     return;
   }
   if (signature.id === "kiKouKen" && isChunLiSkin()) {
-    const focus = Math.max(1, Math.min(8, state.level + Math.floor((ensureChunLiArsenal().casts || 0) / 2)));
+    const shotAngle = horizontalProjectileAngle(angle);
+    const focus = Math.max(1, Math.min(8, state.weapons.cutlass.level || 1));
+    const stage = kiKouKenStage(focus);
+    const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.size, stage);
+    const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.radius, stage);
     const speed = Math.max(signature.speed || 620, 760 + focus * 18);
     state.projectiles.push({
       type: "signature",
       icon: "kiKouKen",
       signatureId: "kiKouKen",
       fx: "kiKouKen",
+      kiKouKenStage: stage,
       animSeed: Math.floor(Math.random() * CHUN_LI_PROJECTILE_FX.frames),
-      x: p.x + Math.cos(angle) * 58,
-      y: p.y + Math.sin(angle) * 38 - 8,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      r: (signature.radius || 22) + 2 + Math.min(7, focus),
+      x: p.x + Math.cos(shotAngle) * 58,
+      y: p.y - 8,
+      vx: Math.cos(shotAngle) * speed,
+      vy: 0,
+      r: radius,
       damage: (signature.damage || 30) + focus * 4,
       signatureDamage: state.stats.signatureDamage || 1,
       life: 1.72 + focus * 0.05,
       pierce: Math.max(signature.pierce ?? 1, 3 + Math.floor(focus / 2)),
-      spin: angle,
-      size: 104 + focus * 4,
+      spin: shotAngle,
+      size,
       retarget: false,
     });
     return;
@@ -3518,12 +3610,14 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
   const p = state.player;
   const signature = options.signature || state.characterTrait?.signature || { id: "hadoken", speed: 690, damage: 34, radius: 21, pierce: 2 };
   const target = nearestEnemy();
-  const angle = options.exactAngle === false && target ? Math.atan2(target.y - p.y, target.x - p.x) : (target && !options.signatureCast ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle);
+  const aimAngle = options.exactAngle === false && target ? Math.atan2(target.y - p.y, target.x - p.x) : (target && !options.signatureCast ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle);
+  const angle = horizontalProjectileAngle(aimAngle);
   const safeLevel = Math.max(1, level || 1);
   const stage = ryuHadokenStage(safeLevel);
+  const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage);
+  const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage);
   const speed = Math.max(signature.speed || 620, 720 + safeLevel * 36 + stage * 40);
   const count = safeLevel >= 7 ? 2 : 1;
-  const spread = count > 1 ? 0.16 : 0;
   const arsenal = ensureRyuArsenal();
   if (options.countArsenal !== false) {
     arsenal.casts += 1;
@@ -3532,7 +3626,7 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
   }
   if (options.action !== false) triggerPlayerAction("hadoken", options.signatureCast ? 0.68 : 0.56);
   for (let i = 0; i < count; i += 1) {
-    const shotAngle = angle + (i - (count - 1) / 2) * spread;
+    const laneOffset = count > 1 ? (i - (count - 1) / 2) * 22 : 0;
     state.projectiles.push({
       type: "signature",
       icon: "hadoken",
@@ -3540,23 +3634,23 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
       hadokenLevel: safeLevel,
       hadokenStage: stage,
       animSeed: Math.floor(Math.random() * RYU_HADOKEN_FX.frames),
-      x: p.x + Math.cos(shotAngle) * 58,
-      y: p.y + Math.sin(shotAngle) * 38 - 8,
-      vx: Math.cos(shotAngle) * speed,
-      vy: Math.sin(shotAngle) * speed,
-      r: (signature.radius || 20) + 3 + stage * 3 + Math.min(5, safeLevel),
+      x: p.x + Math.cos(angle) * 58,
+      y: p.y - 8 + laneOffset,
+      vx: Math.cos(angle) * speed,
+      vy: 0,
+      r: radius,
       damage: (signature.damage || 30) + safeLevel * (options.signatureCast ? 5 : 7) + stage * 4,
       signatureDamage: state.stats.signatureDamage || 1,
       life: 1.58 + safeLevel * 0.06 + stage * 0.1,
       pierce: Math.max(signature.pierce ?? 1, 1 + stage + Math.floor(safeLevel / 3)),
-      spin: shotAngle,
-      size: 96 + stage * 18 + safeLevel * 3,
+      spin: angle,
+      size,
       retarget: false,
     });
   }
   playSkinSound("hit", "quickCutlass", { cooldown: options.signatureCast ? 420 : 220 });
-  if (!options.signatureCast && safeLevel >= 3 && arsenal.casts % 4 === 0) castRyuShoryuken(signature, angle);
-  if (!options.signatureCast && safeLevel >= 6 && arsenal.casts % 7 === 0) castRyuWhirlwindKick(signature, angle);
+  if (!options.signatureCast && safeLevel >= 3 && arsenal.casts % 4 === 0) castRyuShoryuken(signature, aimAngle);
+  if (!options.signatureCast && safeLevel >= 6 && arsenal.casts % 7 === 0) castRyuWhirlwindKick(signature, aimAngle);
 }
 
 function castRyuShoryuken(signature, angle) {
@@ -3845,16 +3939,18 @@ function fireGuileSonicBoom(level, fallbackAngle = 0) {
   const p = state.player;
   if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
   const target = nearestEnemy();
-  const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
+  const aimAngle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
+  const angle = horizontalProjectileAngle(aimAngle);
   const stage = sonicBoomStage(level);
+  const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage);
+  const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage);
   const speed = 690 + level * 30 + stage * 36;
   const count = level >= 7 ? 2 : 1;
-  const spread = count > 1 ? 0.18 : 0;
   state.guileArsenal.sonicBooms += count;
   state.guileArsenal.casts += 1;
   triggerPlayerAction("sonicBoom", 0.5);
   for (let i = 0; i < count; i += 1) {
-    const shotAngle = angle + (i - (count - 1) / 2) * spread;
+    const laneOffset = count > 1 ? (i - (count - 1) / 2) * 22 : 0;
     state.projectiles.push({
       type: "signature",
       icon: "sonicBoom",
@@ -3862,23 +3958,23 @@ function fireGuileSonicBoom(level, fallbackAngle = 0) {
       sonicLevel: level,
       sonicStage: stage,
       animSeed: Math.floor(Math.random() * SONIC_BOOM_FX.frames),
-      x: p.x + Math.cos(shotAngle) * 60,
-      y: p.y + Math.sin(shotAngle) * 40 - 10,
-      vx: Math.cos(shotAngle) * speed,
-      vy: Math.sin(shotAngle) * speed,
-      r: 24 + stage * 3 + Math.min(5, level),
+      x: p.x + Math.cos(angle) * 60,
+      y: p.y - 10 + laneOffset,
+      vx: Math.cos(angle) * speed,
+      vy: 0,
+      r: radius,
       damage: 28 + level * 9 + stage * 4,
       life: 1.45 + level * 0.11 + stage * 0.08,
       pierce: 2 + stage + Math.floor(level / 2),
-      spin: shotAngle,
-      size: 116 + stage * 20 + level * 3,
+      spin: angle,
+      size,
       signatureDamage: state.stats.signatureDamage || 1,
       retarget: false,
     });
   }
   playSkinSound("hit", "slashSwish", { cooldown: 260 });
-  if (level >= 2 && state.guileArsenal.casts % 3 === 0) castGuileKneeBazooka(level, angle);
-  if (level >= 4 && state.guileArsenal.casts % 5 === 0) castGuileReversePunch(level, angle);
+  if (level >= 2 && state.guileArsenal.casts % 3 === 0) castGuileKneeBazooka(level, aimAngle);
+  if (level >= 4 && state.guileArsenal.casts % 5 === 0) castGuileReversePunch(level, aimAngle);
   if (level >= 6 && state.guileArsenal.casts % 7 === 0) castGuileFlashKick(level);
 }
 
@@ -5877,8 +5973,9 @@ function drawPlayer() {
     ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
   } else if (skin.animSheet === "ryuActions" && images.ryuActions) {
     const action = state.playerAction;
-    const frame = action ? ryuActionFrame(action) : moving ? Math.floor(state.elapsed * RYU_ACTION.fps) % RYU_ACTION.frames : 0;
-    const row = ryuActionRow(action?.type || "walk");
+    const basic = action ? null : basicMovementFrame(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu, ryuActionRow, moving);
+    const frame = action ? ryuActionFrame(action) : basic.frame;
+    const row = action ? ryuActionRow(action.type) : basic.row;
     const sx = frame * RYU_ACTION.w;
     const sy = row * RYU_ACTION.h;
     const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 0.9;
@@ -5888,8 +5985,9 @@ function drawPlayer() {
     ctx.drawImage(images.ryuActions, sx, sy, RYU_ACTION.w, RYU_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 25) + bob, w, h);
   } else if (skin.animSheet === "kenActions" && images.kenActions) {
     const action = state.playerAction;
-    const frame = action ? kenActionFrame(action) : moving ? Math.floor(state.elapsed * KEN_ACTION.fps) % KEN_ACTION.frames : 0;
-    const row = kenActionRow(action?.type || "walk");
+    const basic = action ? null : basicMovementFrame(KEN_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ken, kenActionRow, moving);
+    const frame = action ? kenActionFrame(action) : basic.frame;
+    const row = action ? kenActionRow(action.type) : basic.row;
     const sx = frame * KEN_ACTION.w;
     const sy = row * KEN_ACTION.h;
     const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 0.9;
@@ -5899,8 +5997,9 @@ function drawPlayer() {
     ctx.drawImage(images.kenActions, sx, sy, KEN_ACTION.w, KEN_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 29) + bob, w, h);
   } else if (skin.animSheet === "guileActions" && images.guileActions) {
     const action = state.playerAction;
-    const frame = action ? guileActionFrame(action) : moving ? Math.floor(state.elapsed * 12) % GUILE_ACTION.frames : 0;
-    const row = guileActionRow(action?.type || "walk");
+    const basic = action ? null : basicMovementFrame(GUILE_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.guile, guileActionRow, moving);
+    const frame = action ? guileActionFrame(action) : basic.frame;
+    const row = action ? guileActionRow(action.type) : basic.row;
     const sx = frame * GUILE_ACTION.w;
     const sy = row * GUILE_ACTION.h;
     const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 1.0;
@@ -5910,8 +6009,9 @@ function drawPlayer() {
     ctx.drawImage(images.guileActions, sx, sy, GUILE_ACTION.w, GUILE_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 24) + bob, w, h);
   } else if (skin.animSheet === "chunLiActions" && images.chunLiActions) {
     const action = state.playerAction;
-    const frame = action ? chunLiActionFrame(action) : moving ? Math.floor(state.elapsed * CHUN_LI_ACTION.fps) % CHUN_LI_ACTION.frames : 0;
-    const row = chunLiActionRow(action?.type || "walk");
+    const basic = action ? null : basicMovementFrame(CHUN_LI_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.chunLi, chunLiActionRow, moving);
+    const frame = action ? chunLiActionFrame(action) : basic.frame;
+    const row = action ? chunLiActionRow(action.type) : basic.row;
     const sx = frame * CHUN_LI_ACTION.w;
     const sy = row * CHUN_LI_ACTION.h;
     const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 0.9;
@@ -6981,6 +7081,8 @@ window.__MONKEY_TIDE_CLEAR_PLAYTEST_AREA = (radius = 680) => {
   const p = state.player;
   const shouldRemove = (prop) => propBlocksMovement(prop) && Math.hypot(prop.x - p.x, prop.y - p.y) < radius;
   const removed = new Set(state.props.filter(shouldRemove));
+  const gemsBefore = state.gems.length;
+  const particlesBefore = state.particles.length;
   if (removed.size > 0) {
     state.props = state.props.filter((prop) => !removed.has(prop));
     state.looseProps = (state.looseProps || []).filter((prop) => !removed.has(prop));
@@ -6988,7 +7090,9 @@ window.__MONKEY_TIDE_CLEAR_PLAYTEST_AREA = (radius = 680) => {
       state.propsByChunk.set(key, list.filter((prop) => !removed.has(prop)));
     }
   }
-  return { removed: removed.size, debug: window.__MONKEY_TIDE_DEBUG() };
+  state.gems = [];
+  state.particles = state.particles.filter((particle) => Math.hypot((particle.x || 0) - p.x, (particle.y || 0) - p.y) >= radius);
+  return { removed: removed.size, gemsRemoved: gemsBefore, particlesRemoved: particlesBefore - state.particles.length, debug: window.__MONKEY_TIDE_DEBUG() };
 };
 window.__MONKEY_TIDE_SPAWN_ENEMY = (id, x = state.player.x + 260, y = state.player.y, boss = false) => {
   const type = enemyType(id);
@@ -7479,6 +7583,8 @@ window.__MONKEY_TIDE_RYU_ACTION_PROBE = () => {
       radius: projectile.r,
       pierce: projectile.pierce,
       speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+      vx: Math.round(projectile.vx),
+      vy: Math.round(projectile.vy),
     })),
     hadokenBursts: state.zones.filter((zone) => zone.type === "ryuHadokenBurst").length,
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
@@ -7573,6 +7679,8 @@ window.__MONKEY_TIDE_GUILE_ACTION_PROBE = () => {
       radius: projectile.r,
       pierce: projectile.pierce,
       speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+      vx: Math.round(projectile.vx),
+      vy: Math.round(projectile.vy),
     })),
     sonicBursts: state.zones.filter((zone) => zone.type === "sonicBoomBurst").length,
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
@@ -7622,12 +7730,51 @@ window.__MONKEY_TIDE_CHUN_LI_ACTION_PROBE = () => {
       radius: projectile.r,
       pierce: projectile.pierce,
       speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+      vx: Math.round(projectile.vx),
+      vy: Math.round(projectile.vy),
     })),
     chunLiZones: state.zones.filter((zone) => zone.type === "chunLiKick" || zone.type === "chunLiWhirlwind" || zone.type === "chunLiProjectileBurst").map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, radius: zone.radius })),
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
     currentAction: state.playerAction ? { ...state.playerAction, row: chunLiActionRow(state.playerAction.type), frame: chunLiActionFrame(state.playerAction) } : null,
     enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
     iconStyleUsesProjectileSheet: ["kiKouKen", "thousandKickArc", "whirlwindKickArc"].every((icon) => iconStyle(icon).includes(imageSources.chunLiProjectiles)),
+  };
+  state = savedState;
+  selectedSkin = savedSkin;
+  muted = savedMuted;
+  renderSkinPicker();
+  render();
+  return result;
+};
+window.__MONKEY_TIDE_FIREBALL_STAGE_PROBE = () => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  const savedMuted = muted;
+  muted = true;
+  function sample(skinId, level, fire) {
+    selectedSkin = skinId;
+    state = makeState();
+    state.phase = "playing";
+    state.weapons.cutlass.level = level;
+    fire();
+    const projectile = state.projectiles.find((entry) => ["hadoken", "sonicBoom", "kiKouKen"].includes(entry.signatureId));
+    return projectile ? {
+      skin: skinId,
+      level,
+      id: projectile.signatureId,
+      stage: projectile.hadokenStage ?? projectile.sonicStage ?? projectile.kiKouKenStage ?? 0,
+      size: projectile.size,
+      radius: projectile.r,
+      vx: Math.round(projectile.vx),
+      vy: Math.round(projectile.vy),
+      speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+    } : null;
+  }
+  const levels = [1, 2, 3, 4, 5, 6, 7];
+  const result = {
+    ryu: levels.map((level) => sample("ryu", level, () => fireRyuHadoken(level, 0, { exactAngle: true }))),
+    guile: levels.map((level) => sample("guile", level, () => fireGuileSonicBoom(level, 0))),
+    chunLi: levels.map((level) => sample("chunLi", level, () => fireSignatureProjectile(state.characterTrait.signature, 0))),
   };
   state = savedState;
   selectedSkin = savedSkin;
@@ -7681,6 +7828,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
   chunLiActionAsset: !!images.chunLiActions,
   chunLiActionSource: imageSources.chunLiActions,
   chunLiActionFrames: { ...CHUN_LI_ACTION },
+  streetFighterBasicMovement: {
+    ryu: basicMovementSummary(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu),
+    ken: basicMovementSummary(KEN_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ken),
+    guile: basicMovementSummary(GUILE_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.guile),
+    chunLi: basicMovementSummary(CHUN_LI_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.chunLi),
+  },
   chunLiProjectileAsset: !!images.chunLiProjectiles,
   chunLiProjectileSource: imageSources.chunLiProjectiles,
   chunLiProjectileFrames: { ...CHUN_LI_PROJECTILE_FX },
@@ -7933,7 +8086,9 @@ window.__MONKEY_TIDE_DEBUG = () => {
       rush: musicBuffers.has(musicTrackKeys.rush) || !rushMusic || Math.abs((rushMusic.currentTime || 0) - (musicTrackMeta.rush?.startAt || 0)) <= 0.35 || activeMusicTrack === "rush",
     },
     overlapSafe: !isMusicTrackPlaying("main") || !isMusicTrackPlaying("rush") || (music?.volume || 0) === 0 || (rushMusic?.volume || 0) === 0,
-    sfx: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
+    sfxMasterGain: SFX_MASTER_GAIN,
+    sfx: Object.fromEntries(Object.keys(soundConfig).map((key) => [key, soundVolume(key)])),
+    sfxRaw: Object.fromEntries(Object.entries(soundConfig).map(([key, config]) => [key, config.volume])),
     sfxDebug: { ...sfxDebug },
     sfxUnlock: { ...sfxUnlockState },
     sfxEngine: {
@@ -7948,7 +8103,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
       pending: musicBufferPromises.size,
       active: Object.fromEntries(Object.entries(musicWebTracks).map(([slot, track]) => [slot, !!track && !track.stopped])),
     },
-    sfxToMusicRatio: Number((Math.max(...Object.values(soundConfig).map((config) => config.volume)) / Math.max(0.01, music?.volume ?? 0, rushMusic?.volume ?? 0)).toFixed(2)),
+    sfxToMusicRatio: Number((Math.max(...Object.keys(soundConfig).map((key) => soundVolume(key))) / Math.max(0.01, music?.volume ?? 0, rushMusic?.volume ?? 0)).toFixed(2)),
     sfxLocalDownloads: Object.entries(audioSources)
       .filter(([key]) => !key.startsWith("bgm"))
       .every(([, src]) => src.startsWith("assets/audio/sfx/") && /\.(mp3|wav)$/i.test(src)),
@@ -8050,6 +8205,12 @@ window.__MONKEY_TIDE_DEBUG = () => {
     kenDragonFxFrames: { ...KEN_DRAGON_FX },
     guileActionFrames: { ...GUILE_ACTION },
     chunLiActionFrames: { ...CHUN_LI_ACTION },
+    streetFighterBasicMovement: {
+      ryu: basicMovementSummary(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu),
+      ken: basicMovementSummary(KEN_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ken),
+      guile: basicMovementSummary(GUILE_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.guile),
+      chunLi: basicMovementSummary(CHUN_LI_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.chunLi),
+    },
     chunLiProjectileFrames: { ...CHUN_LI_PROJECTILE_FX },
     sonicBoomFrames: { ...SONIC_BOOM_FX },
     signatureWeaponFrames: { ...SIGNATURE_WEAPON_FX },
