@@ -1754,8 +1754,11 @@ async function run() {
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu complex action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("shoryuken") && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
-  assert(Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.rows === 5 && movement.totalFrames === movement.rows * movement.framesPerRow && movement.actions.length === 5), `Street Fighter basic movement should cycle every action row and frame: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
-  assert(debug.combatAssets.streetFighterBasicMovement.ryu.totalFrames === 60 && debug.combatAssets.streetFighterBasicMovement.ken.totalFrames === 60 && debug.combatAssets.streetFighterBasicMovement.guile.totalFrames === 40 && debug.combatAssets.streetFighterBasicMovement.chunLi.totalFrames === 60, `Street Fighter basic movement frame counts are wrong: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
+  assert(
+    Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.ambientActions.length >= 2 && movement.sparseActionShare <= 0.05),
+    `Street Fighter basic movement should stay on walking with only sparse idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
+  );
+  assert(debug.combatAssets.streetFighterBasicMovement.ryu.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.ken.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.guile.totalFrames === 8 && debug.combatAssets.streetFighterBasicMovement.chunLi.totalFrames === 12, `Street Fighter walking frame counts are wrong: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.timeTentacleVolley === true, `Time tentacle boss should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.blackbeardBroadside === true, `Blackbeard should fire a three-shot cannon broadside: ${JSON.stringify(debug.combatAssets)}`);
@@ -1847,13 +1850,32 @@ async function run() {
   const upgradeProbe = await page.evaluate(() => {
     if (window.__MONKEY_TIDE_DEBUG().phase !== "levelup") window.__MONKEY_TIDE_FORCE_LEVELUP();
     const before = window.__MONKEY_TIDE_DEBUG();
+    const menuCards = [...document.querySelectorAll(".upgrade-card")].map((card) => {
+      const style = getComputedStyle(card);
+      return {
+        kind: card.dataset.upgradeKind,
+        hasAura: !!card.querySelector(".upgrade-aura"),
+        hasHotkey: !!card.querySelector(".upgrade-hotkey"),
+        hasIconWrap: !!card.querySelector(".upgrade-icon-wrap .upgrade-icon"),
+        animationName: style.animationName,
+        transitionDuration: style.transitionDuration,
+      };
+    });
+    const panelStyle = getComputedStyle(document.querySelector(".upgrade-panel"));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
     const selected = document.querySelector(".upgrade-card.selected")?.dataset.upgradeIndex;
+    const selectedStyle = getComputedStyle(document.querySelector(".upgrade-card.selected"));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
-    return { before, selected, after: window.__MONKEY_TIDE_DEBUG() };
+    return { before, selected, menuCards, panelAnimation: panelStyle.animationName, selectedTransform: selectedStyle.transform, after: window.__MONKEY_TIDE_DEBUG() };
   });
   assert(upgradeProbe.before.phase === "levelup", `Forced level-up did not open upgrades: ${JSON.stringify(upgradeProbe)}`);
   assert(upgradeProbe.before.audio.activeTrack && Math.max(upgradeProbe.before.audio.mainVolume, upgradeProbe.before.audio.rushVolume) > 0, `BGM should keep playing while choosing an upgrade: ${JSON.stringify(upgradeProbe.before.audio)}`);
+  assert(
+    upgradeProbe.menuCards.length >= 3
+      && upgradeProbe.menuCards.every((card) => card.kind && card.hasAura && card.hasHotkey && card.hasIconWrap && card.animationName.includes("upgradeCardIn") && card.transitionDuration !== "0s")
+      && upgradeProbe.panelAnimation.includes("upgradePanelIn"),
+    `Upgrade selection menu should use the animated relic-card treatment: ${JSON.stringify(upgradeProbe)}`,
+  );
   assert(upgradeProbe.selected === "1", `Keyboard did not move upgrade focus: ${JSON.stringify(upgradeProbe)}`);
   assert(upgradeProbe.after.phase === "playing", `Enter did not choose upgrade: ${JSON.stringify(upgradeProbe)}`);
 
