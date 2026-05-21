@@ -376,6 +376,9 @@ const STREET_FIGHTER_MOVE_UNLOCKS = {
   guile: { sonicBoom: 1, kneeBazooka: 3, reversePunch: 5, flashKick: 6 },
   chunLi: { thousandKick: 1, kiKouKen: 3, whirlwindKick: 5, lightningKick: 6 },
 };
+const STREET_FIGHTER_IDLE_NEARBY_RADIUS = 420;
+const STREET_FIGHTER_IDLE_FIREBALL_DELAY = { min: 5.6, spread: 2.7 };
+const STREET_FIGHTER_IDLE_FRAMES = [0, 1, 0, 2];
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
@@ -1638,12 +1641,16 @@ function streetFighterActionsForProfile(profile, level = streetFighterMoveLevel(
 function basicMovementFrame(config, profile, rowForAction, moving) {
   const movement = profile || { base: "walk", ambient: [] };
   const baseAction = movement.base || "walk";
-  const fps = (moving ? config.fps : Math.max(6, config.fps * 0.42)) || 12;
+  const quietIdle = !moving && streetFighterPeacefulIdle(movement.skinId);
+  const idleFrames = movement.idleFrames || STREET_FIGHTER_IDLE_FRAMES;
+  const fps = quietIdle ? 3.8 : (moving ? config.fps : Math.max(6, config.fps * 0.42)) || 12;
   const elapsed = state?.elapsed || 0;
   let action = baseAction;
-  let frame = positiveModulo(Math.floor(elapsed * fps), config.frames);
+  let frame = quietIdle
+    ? idleFrames[positiveModulo(Math.floor(elapsed * fps), idleFrames.length)] || 0
+    : positiveModulo(Math.floor(elapsed * fps), config.frames);
   const ambientActions = streetFighterActionsForProfile(movement);
-  if (!moving && ambientActions.length) {
+  if (!moving && !quietIdle && ambientActions.length) {
     const every = Math.max(3, movement.ambientEvery || 9);
     const duration = Math.min(every * 0.18, Math.max(0.18, movement.ambientDuration || 0.36));
     const cycleTime = positiveModulo(elapsed, every);
@@ -1685,6 +1692,9 @@ function basicMovementSummary(config, profile) {
     startupActions,
     allAmbientActions: [...(movement.ambient || [])],
     unlocks: movement.skinId ? { ...STREET_FIGHTER_MOVE_UNLOCKS[movement.skinId] } : {},
+    idleFrames: [...(movement.idleFrames || STREET_FIGHTER_IDLE_FRAMES)],
+    peacefulIdleOnly: true,
+    peacefulIdleNearbyRadius: STREET_FIGHTER_IDLE_NEARBY_RADIUS,
     ambientEvery,
     ambientDuration,
     sparseActionShare: ambientEvery > 0 ? Number((ambientDuration / ambientEvery).toFixed(3)) : 0,
@@ -3427,18 +3437,20 @@ function updateWeapons(dt) {
     const baseCooldown = isGuileSkin() ? 0.72 : isRyuSkin() ? 0.66 : isKenSkin() ? 0.5 : isChunLiSkin() ? 0.54 : 0.6;
     const cooldown = Math.max(0.18, (baseCooldown - lvl * 0.05) * cooldownMult);
     w.cutlass.timer = cooldown;
-    const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
-    if (isGuileSkin()) {
-      fireGuileSonicBoom(lvl, direction);
-    } else if (isRyuSkin()) {
-      fireRyuHadoken(lvl, direction);
-    } else if (isKenSkin()) {
-      castKenShoryuken(lvl, direction);
-    } else if (isChunLiSkin()) {
-      castChunLiThousandKick(lvl, direction);
-    } else {
-      slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10, lvl);
-      if (saberTornadoReady()) castSaberTornado(direction, lvl, w.rope.level);
+    if (!streetFighterSkinId() || !streetFighterPeacefulIdle()) {
+      const direction = Math.atan2(p.moveY || 0.15, p.moveX || p.facing);
+      if (isGuileSkin()) {
+        fireGuileSonicBoom(lvl, direction);
+      } else if (isRyuSkin()) {
+        fireRyuHadoken(lvl, direction);
+      } else if (isKenSkin()) {
+        castKenShoryuken(lvl, direction);
+      } else if (isChunLiSkin()) {
+        castChunLiThousandKick(lvl, direction);
+      } else {
+        slash(direction, 114 + lvl * 18, 44 + lvl * 8, 28 + lvl * 10, lvl);
+        if (saberTornadoReady()) castSaberTornado(direction, lvl, w.rope.level);
+      }
     }
   }
   if (w.coconut.level > 0) {
@@ -3480,6 +3492,10 @@ function updateSignatureMove(dt) {
   if (!state.signatureMove) state.signatureMove = { timer: 1.2, casts: 0, last: null };
   state.signatureMove.timer -= dt;
   if (state.signatureMove.timer > 0) return;
+  if (streetFighterPeacefulIdle()) {
+    state.signatureMove.timer = 0.45;
+    return;
+  }
   const cast = castSignatureMove(signature);
   const cooldown = Math.max(1.35, (signature.cooldown || 4) * Math.max(0.7, activeCooldownMultiplier()) * (state.stats.signatureCooldown || 1));
   state.signatureMove.timer = cast ? cooldown : 0.35;
@@ -4066,20 +4082,89 @@ function streetFighterSkinId(skinId = state?.player?.skin || selectedSkin) {
   return null;
 }
 
+function streetFighterStandingStill() {
+  const p = state?.player;
+  if (!p) return false;
+  return Math.hypot(p.moveX || 0, p.moveY || 0) <= 0.05 && (p.dash || 0) <= 0;
+}
+
+function streetFighterHasNearbyEnemy(radius = STREET_FIGHTER_IDLE_NEARBY_RADIUS) {
+  const p = state?.player;
+  if (!p || !state?.enemies) return false;
+  for (const enemy of state.enemies) {
+    if (!enemy || enemy.hp <= 0) continue;
+    if (Math.hypot(enemy.x - p.x, enemy.y - p.y) <= radius + (enemy.r || 0)) return true;
+  }
+  return false;
+}
+
+function streetFighterPeacefulIdle(skinId = streetFighterSkinId()) {
+  return !!skinId && state?.phase === "playing" && streetFighterStandingStill() && !streetFighterHasNearbyEnemy();
+}
+
+function nextStreetFighterIdleFireballDelay() {
+  return STREET_FIGHTER_IDLE_FIREBALL_DELAY.min + Math.random() * STREET_FIGHTER_IDLE_FIREBALL_DELAY.spread;
+}
+
 function ensureStreetFighterIdleState() {
   if (!state.streetFighterIdle) state.streetFighterIdle = {};
   if (!state.streetFighterIdle.contactCounters) state.streetFighterIdle.contactCounters = { ryu: 0, ken: 0, guile: 0, chunLi: 0 };
+  if (!state.streetFighterIdle.fireballTimers) state.streetFighterIdle.fireballTimers = {};
+  if (!state.streetFighterIdle.fireballs) state.streetFighterIdle.fireballs = { ryu: 0, ken: 0, guile: 0, chunLi: 0 };
   for (const id of ["ryu", "ken", "guile", "chunLi"]) {
     if (state.streetFighterIdle.contactCounters[id] === undefined) state.streetFighterIdle.contactCounters[id] = 0;
+    if (state.streetFighterIdle.fireballs[id] === undefined) state.streetFighterIdle.fireballs[id] = 0;
+    if (state.streetFighterIdle.fireballTimers[id] === undefined) state.streetFighterIdle.fireballTimers[id] = nextStreetFighterIdleFireballDelay();
   }
   if (state.streetFighterIdle.contactCooldown === undefined) state.streetFighterIdle.contactCooldown = 0;
   return state.streetFighterIdle;
 }
 
 function updateStreetFighterIdleState(dt) {
-  if (!state?.player || !streetFighterSkinId()) return;
+  const skinId = streetFighterSkinId();
+  if (!state?.player || !skinId) return;
   const idle = ensureStreetFighterIdleState();
   idle.contactCooldown = Math.max(0, idle.contactCooldown - dt);
+  if (!streetFighterPeacefulIdle(skinId) || state.playerAction) {
+    idle.fireballTimers[skinId] = Math.max(idle.fireballTimers[skinId] || 0, 1.2);
+    return;
+  }
+  idle.fireballTimers[skinId] -= dt;
+  if (idle.fireballTimers[skinId] > 0) return;
+  if (castStreetFighterIdleFireball(skinId)) {
+    idle.fireballs[skinId] = (idle.fireballs[skinId] || 0) + 1;
+  }
+  idle.fireballTimers[skinId] = nextStreetFighterIdleFireballDelay();
+}
+
+function castStreetFighterIdleFireball(skinId = streetFighterSkinId()) {
+  const p = state?.player;
+  if (!p || !skinId) return false;
+  const level = streetFighterMoveLevel(skinId);
+  const angle = p.facing < 0 ? Math.PI : 0;
+  const signature = state.characterTrait?.signature || characterTrait(skinId)?.signature || { id: "hadoken", damage: 30, radius: 22, pierce: 2 };
+  if (skinId === "ryu" && streetFighterMoveUnlocked("ryu", "hadoken", level)) {
+    fireRyuHadoken(level, angle, { signature, exactAngle: true, signatureCast: true });
+    return true;
+  }
+  if (skinId === "ken" && streetFighterMoveUnlocked("ken", "hadoken", level)) {
+    fireKenHadoken(level, angle, signature, { exactAngle: true, signatureCast: true });
+    return true;
+  }
+  if (skinId === "guile" && streetFighterMoveUnlocked("guile", "sonicBoom", level)) {
+    fireGuileSonicBoom(level, angle, { exactAngle: true, followups: false });
+    return true;
+  }
+  if (skinId === "chunLi" && streetFighterMoveUnlocked("chunLi", "kiKouKen", level)) {
+    const arsenal = ensureChunLiArsenal();
+    arsenal.casts += 1;
+    arsenal.kiKouKens += 1;
+    triggerPlayerAction("kiKouKen", 0.62);
+    fireSignatureProjectile({ ...signature, id: "kiKouKen", icon: "kiKouKen" }, angle);
+    playSkinSound("hit", "quickCutlass", { cooldown: 420 });
+    return true;
+  }
+  return false;
 }
 
 function triggerStreetFighterContactCounter(enemy, dx, dy, dist) {
@@ -4180,10 +4265,10 @@ function slash(angle, radius, arc, damage, level = 1) {
   }
 }
 
-function fireGuileSonicBoom(level, fallbackAngle = 0) {
+function fireGuileSonicBoom(level, fallbackAngle = 0, options = {}) {
   const p = state.player;
   if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
-  const target = nearestEnemy();
+  const target = options.exactAngle ? null : nearestEnemy();
   const aimAngle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   const angle = horizontalProjectileAngle(aimAngle);
   const stage = sonicBoomStage(level);
@@ -4193,7 +4278,7 @@ function fireGuileSonicBoom(level, fallbackAngle = 0) {
   const count = level >= 7 ? 2 : 1;
   state.guileArsenal.sonicBooms += count;
   state.guileArsenal.casts += 1;
-  triggerPlayerAction("sonicBoom", 0.5);
+  if (options.showPlayerAction !== false) triggerPlayerAction("sonicBoom", 0.5);
   for (let i = 0; i < count; i += 1) {
     const laneOffset = count > 1 ? (i - (count - 1) / 2) * 22 : 0;
     state.projectiles.push({
@@ -4218,9 +4303,11 @@ function fireGuileSonicBoom(level, fallbackAngle = 0) {
     });
   }
   playSkinSound("hit", "slashSwish", { cooldown: 260 });
-  if (level >= 2 && state.guileArsenal.casts % 3 === 0) castGuileKneeBazooka(level, aimAngle);
-  if (level >= 4 && state.guileArsenal.casts % 5 === 0) castGuileReversePunch(level, aimAngle);
-  if (level >= 6 && state.guileArsenal.casts % 7 === 0) castGuileFlashKick(level);
+  if (options.followups !== false) {
+    if (level >= 2 && state.guileArsenal.casts % 3 === 0) castGuileKneeBazooka(level, aimAngle);
+    if (level >= 4 && state.guileArsenal.casts % 5 === 0) castGuileReversePunch(level, aimAngle);
+    if (level >= 6 && state.guileArsenal.casts % 7 === 0) castGuileFlashKick(level);
+  }
 }
 
 function castGuileKneeBazooka(level, angle) {
@@ -8082,6 +8169,67 @@ window.__MONKEY_TIDE_STREET_FIGHTER_IDLE_PROBE = () => {
   render();
   return results;
 };
+window.__MONKEY_TIDE_STREET_FIGHTER_PEACEFUL_IDLE_PROBE = () => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  const savedMuted = muted;
+  const results = {};
+  muted = true;
+  const rowForSkin = {
+    ryu: ryuActionRow,
+    ken: kenActionRow,
+    guile: guileActionRow,
+    chunLi: chunLiActionRow,
+  };
+  for (const skinId of ["ryu", "ken", "guile", "chunLi"]) {
+    selectedSkin = skinId;
+    state = makeState();
+    state.phase = "playing";
+    state.weapons.cutlass.level = 7;
+    state.weapons.cutlass.timer = 0;
+    const p = state.player;
+    p.moveX = 0;
+    p.moveY = 0;
+    p.dash = 0;
+    p.facing = 1;
+    const profile = STREET_FIGHTER_BASIC_MOVEMENT[skinId];
+    const config = actionConfigForSkin(skinId);
+    const rowForAction = rowForSkin[skinId];
+    const idle = ensureStreetFighterIdleState();
+    idle.fireballTimers[skinId] = 99;
+    const samples = [0.25, 1.1, 2.05, 3.2].map((elapsed) => {
+      state.elapsed = elapsed;
+      return basicMovementFrame(config, profile, rowForAction, false);
+    });
+    updateWeapons(1 / 60);
+    const weaponSkipped = !state.playerAction && state.zones.length === 0 && state.projectiles.length === 0 && state.weapons.cutlass.timer > 0;
+    idle.fireballTimers[skinId] = 0;
+    state.elapsed = 8;
+    updateStreetFighterIdleState(1 / 60);
+    const projectile = state.projectiles.find((entry) => ["hadoken", "sonicBoom", "kiKouKen"].includes(entry.signatureId));
+    results[skinId] = {
+      peaceful: streetFighterPeacefulIdle(skinId),
+      samples: samples.map((sample) => ({ action: sample.action, row: sample.row, frame: sample.frame, ambient: sample.ambient })),
+      bounceOnly: samples.every((sample) => sample.action === "walk" && sample.row === rowForAction("walk") && !sample.ambient && STREET_FIGHTER_IDLE_FRAMES.includes(sample.frame)),
+      weaponSkipped,
+      fireballs: { ...ensureStreetFighterIdleState().fireballs },
+      currentAction: state.playerAction ? { ...state.playerAction } : null,
+      projectile: projectile ? {
+        id: projectile.signatureId,
+        vx: Math.round(projectile.vx),
+        vy: Math.round(projectile.vy),
+        speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+        retarget: projectile.retarget,
+      } : null,
+    };
+  }
+  state = savedState;
+  selectedSkin = savedSkin;
+  muted = savedMuted;
+  renderSkinPicker();
+  render();
+  return results;
+};
 window.__MONKEY_TIDE_STREET_FIGHTER_STARTER_KIT_PROBE = () => {
   const savedState = state;
   const savedSkin = selectedSkin;
@@ -8599,6 +8747,8 @@ window.__MONKEY_TIDE_DEBUG = () => {
     chunLiActionFrames: { ...CHUN_LI_ACTION },
     streetFighterWalkFirstCombatFlow: true,
     streetFighterIdleContactCounters: true,
+    streetFighterPeacefulIdleOnly: true,
+    streetFighterIdleNearbyRadius: STREET_FIGHTER_IDLE_NEARBY_RADIUS,
     streetFighterStarterMoves: { ...STREET_FIGHTER_STARTER_MOVES },
     streetFighterBasicMovement: {
       ryu: basicMovementSummary(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu),

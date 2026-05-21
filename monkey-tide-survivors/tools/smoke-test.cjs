@@ -532,6 +532,20 @@ async function run() {
       && Object.entries(streetFighterIdleProbe).every(([skinId, probe]) => probe.contactCounters?.[skinId] === 1 && probe.idleShare >= 0.18 && probe.idleShare <= 0.26 && probe.ambientActions.length >= 3 && probe.zones.length >= 1 && probe.contactHit === true && probe.playerDamaged === false && probe.invuln > 0),
     `Street Fighter skins should idle actively and counter on standing contact: ${JSON.stringify(streetFighterIdleProbe)}`,
   );
+  const streetFighterPeacefulIdleProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_PEACEFUL_IDLE_PROBE());
+  assert(
+    Object.entries(streetFighterPeacefulIdleProbe).every(([skinId, probe]) => (
+      probe.peaceful === true
+        && probe.bounceOnly === true
+        && probe.weaponSkipped === true
+        && probe.fireballs?.[skinId] === 1
+        && probe.projectile
+        && probe.projectile.vy === 0
+        && Math.abs(probe.projectile.vx) === probe.projectile.speed
+        && probe.projectile.retarget === false
+    )),
+    `Peaceful Street Fighter idle should only foot-bounce and occasionally throw a horizontal fireball: ${JSON.stringify(streetFighterPeacefulIdleProbe)}`,
+  );
   const streetFighterStarterProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_STARTER_KIT_PROBE());
   assert(
     Object.values(streetFighterStarterProbe).every((probe) => probe.moves.length === 1 && probe.moves[0] === probe.starter && probe.startupActions.length === 1 && probe.startupActions[0] === probe.starter && probe.allAmbientActions.length >= 3),
@@ -1775,6 +1789,8 @@ async function run() {
     debug.combatAssets.streetFighterWalkFirstCombatFlow === true
       &&
     debug.combatAssets.streetFighterIdleContactCounters === true
+      &&
+    debug.combatAssets.streetFighterPeacefulIdleOnly === true
       &&
     Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.startupActions.length === 1 && movement.ambientActions.length >= 1 && movement.allAmbientActions.length >= 3 && movement.sparseActionShare >= 0.18 && movement.sparseActionShare <= 0.26),
     `Street Fighter basic movement should stay walk-first with one starter and later idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
