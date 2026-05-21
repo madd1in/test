@@ -337,7 +337,7 @@ const KEN_ACTION = {
   rows: 5,
   frames: 12,
   fps: 18,
-  rowsByAction: { walk: 0, stepKick: 1, dragonPunch: 2, tatsuKick: 3, dragonKick: 4 },
+  rowsByAction: { walk: 0, stepKick: 1, shoryuken: 2, dragonPunch: 2, tatsuKick: 3, dragonKick: 4 },
 };
 const GUILE_ACTION = {
   w: 256,
@@ -378,7 +378,7 @@ const FUSION_RELIC = { w: 256, h: 256, cols: 4, rows: 4, frames: 4, fps: 5.5 };
 const SIGNATURE_WEAPON_FX = { w: 256, h: 256, cols: 4, rows: 11, frames: 4, fps: 8.5 };
 const SONIC_BOOM_FX = { w: 256, h: 256, cols: 8, rows: 4, frames: 8, fps: 17 };
 const RYU_HADOKEN_FX = { w: 256, h: 256, cols: 12, rows: 4, frames: 12, fps: 18 };
-const KEN_DRAGON_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { stepKick: 0, dragonPunch: 1, dragonKick: 2 } };
+const KEN_DRAGON_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { stepKick: 0, shoryuken: 1, dragonPunch: 1, tatsuKick: 2, dragonKick: 2 } };
 const CHUN_LI_PROJECTILE_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { kiKouKen: 0, thousandKickArc: 1, whirlwindKickArc: 2 } };
 const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -552,12 +552,12 @@ const playerSkinMap = {
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "curseMonkeyWarning", bossDown: "curseMonkeyBossDown" },
     trait: {
       id: "dragonRush",
-      name: "Dragon Rush",
-      desc: "Schneller Dash, etwas mehr Tempo",
+      name: "Shoryuken Rush",
+      desc: "Startet mit Shoryuken; Step Kick, Tatsu und Dragon Kick chainen sichtbar nach.",
       speed: 14,
       dashCooldown: -0.07,
       damage: 0.035,
-      signature: { id: "dragonKick", label: "Dragon Kick", icon: "dragonKick", pattern: "burst", cooldown: 4.3, damage: 34, radius: 132, color: "#ff9d42" },
+      signature: { id: "shoryuken", label: "Shoryuken", icon: "shoryuken", pattern: "kenShoryuken", cooldown: 3.15, damage: 38, radius: 118, color: "#ffbf4f" },
     },
   },
   guile: {
@@ -875,7 +875,9 @@ const ryuHadokenFxMap = {
 
 const kenDragonFxMap = {
   stepKick: { row: 0 },
+  shoryuken: { row: 1 },
   dragonPunch: { row: 1 },
+  tatsuKick: { row: 2 },
   dragonKick: { row: 2 },
 };
 
@@ -932,6 +934,8 @@ const signatureWeaponMap = {
   starSaberArc: { row: 5, draw: "arc" },
   freelanceNet: { row: 6, draw: "trap" },
   hadoken: { row: 7, draw: "projectile" },
+  shoryuken: { row: 8, draw: "burst" },
+  dragonPunch: { row: 8, draw: "burst" },
   dragonKick: { row: 8, draw: "burst" },
   sonicBoom: { row: 9, draw: "projectile" },
   lightningFan: { row: 10, draw: "arc" },
@@ -1599,9 +1603,9 @@ function weaponPresentation(id, skinId = state?.player?.skin || selectedSkin) {
   if (id === "cutlass" && isKenSkin(skinId)) {
     return {
       id,
-      name: "Dragon Rush",
-      icon: "dragonKick",
-      desc: "Ken startet mit Step-Kick-Combos; hoehere Level zünden Dragon Punch, Tatsu und Dragon Kick.",
+      name: "Shoryuken",
+      icon: "shoryuken",
+      desc: "Ken startet mit Shoryuken; hoehere Level blenden Step Kick, Tatsu und Dragon Kick sichtbar in die Combo.",
     };
   }
   if (id === "cutlass" && isChunLiSkin(skinId)) {
@@ -1636,9 +1640,9 @@ function upgradePresentation(upgrade) {
   if (upgrade.id === "cutlass" && isKenSkin()) {
     return {
       ...upgrade,
-      name: "Dragon Rush Loop",
-      icon: "dragonKick",
-      desc: "Levelt Kens Step-Kick-Combo; hoehere Stufen triggern Dragon Punch, Tatsu und Signature-Kicks.",
+      name: "Shoryuken Loop",
+      icon: "shoryuken",
+      desc: "Levelt Kens Shoryuken als Startwaffe; Step Kick, Tatsu und Dragon Kick werden zu haeufigen Follow-ups.",
     };
   }
   if (upgrade.id === "cutlass" && isChunLiSkin()) {
@@ -1703,7 +1707,7 @@ function makeState() {
     signatureMove: { timer: Math.max(0.38, 1.2 - skillBonus.signatureStart), casts: 0, last: null },
     playerAction: null,
     ryuArsenal: { casts: 0, hadokens: 0, weaponHadokens: 0, shoryukens: 0, whirlwindKicks: 0 },
-    kenArsenal: { casts: 0, stepKicks: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 },
+    kenArsenal: { casts: 0, stepKicks: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 },
     guileArsenal: { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 },
     chunLiArsenal: { casts: 0, kiKouKens: 0, thousandKicks: 0, whirlwindKicks: 0, lightningKicks: 0 },
     coins: skillBonus.starterCoins,
@@ -2077,7 +2081,7 @@ function skinImageKeys(skinId = selectedSkin) {
     skin.animSheet === "fighterWalks" ? "fighterWalks" : null,
     skin.animSheet === "samMaxDuoWalk" ? "samMaxDuoWalk" : null,
     trait?.signature?.id === "hadoken" ? "ryuHadokenFx" : null,
-    trait?.signature?.id === "dragonKick" ? "kenDragonFx" : null,
+    ["shoryuken", "dragonPunch", "dragonKick"].includes(trait?.signature?.id) ? "kenDragonFx" : null,
     trait?.signature?.id === "sonicBoom" ? "sonicBoomFx" : null,
     trait?.signature?.id === "kiKouKen" ? "chunLiProjectiles" : null,
   ].filter(Boolean), imageSources);
@@ -3272,7 +3276,7 @@ function updateWeapons(dt) {
     } else if (isRyuSkin()) {
       fireRyuHadoken(lvl, direction);
     } else if (isKenSkin()) {
-      castKenStepKick(lvl, direction);
+      castKenShoryuken(lvl, direction);
     } else if (isChunLiSkin()) {
       castChunLiThousandKick(lvl, direction);
     } else {
@@ -3331,7 +3335,8 @@ function ensureRyuArsenal() {
 }
 
 function ensureKenArsenal() {
-  if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 };
+  if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 };
+  if (state.kenArsenal.shoryukens === undefined) state.kenArsenal.shoryukens = state.kenArsenal.dragonPunches || 0;
   return state.kenArsenal;
 }
 
@@ -3346,6 +3351,20 @@ function castSignatureMove(signature) {
   const p = state.player;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
   const damage = (signature.damage || 28) * state.stats.damage * (state.stats.signatureDamage || 1);
+  if (signature.id === "shoryuken" && isKenSkin()) {
+    const arsenal = ensureKenArsenal();
+    arsenal.casts += 1;
+    const castIndex = arsenal.casts;
+    if (castIndex % 2 === 1) castKenStepKick(Math.max(1, state.weapons.cutlass.level || 1), angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
+    if (castIndex % 2 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
+    if (castIndex % 3 === 0) castKenDragonKick(signature, angle, { showPlayerAction: false });
+    castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", signatureCast: true });
+    state.signatureMove.casts += 1;
+    state.signatureMove.last = signature.id;
+    floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
+    playSkinSound("powerup", "upgradeMagic", { cooldown: 1200 });
+    return true;
+  }
   if (signature.id === "sonicBoom") {
     triggerPlayerAction("sonicBoom", 0.5);
     if (!state.guileArsenal) state.guileArsenal = { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 };
@@ -3585,18 +3604,31 @@ function castRyuWhirlwindKick(signature, angle) {
   playSkinSound("dash", "dashWhooshFast", { cooldown: 360 });
 }
 
-function castKenStepKick(level, fallbackAngle = 0) {
+function castKenShoryuken(level, fallbackAngle = 0) {
   const p = state.player;
-  const arsenal = ensureKenArsenal();
   const target = nearestEnemy();
   const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
+  const signature = state.characterTrait?.signature || { id: "shoryuken", damage: 38, radius: 118 };
+  const arsenal = ensureKenArsenal();
+  const nextPunch = (arsenal.dragonPunches || 0) + 1;
+  if (level >= 2 && nextPunch % 2 === 0) castKenStepKick(level, angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
+  if (level >= 4 && nextPunch % 3 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
+  if (level >= 5 && nextPunch % 4 === 0) castKenDragonKick(signature, angle, { showPlayerAction: false });
+  castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level });
+}
+
+function castKenStepKick(level, fallbackAngle = 0, options = {}) {
+  const p = state.player;
+  const arsenal = ensureKenArsenal();
+  const target = options.exactAngle ? null : nearestEnemy();
+  const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   arsenal.stepKicks += 1;
-  triggerPlayerAction("stepKick", 0.48);
+  if (options.showPlayerAction !== false) triggerPlayerAction("stepKick", 0.48);
   const reach = 112 + level * 10;
   const radius = 58 + level * 6;
   const cx = p.x + Math.cos(angle) * reach * 0.58;
   const cy = p.y + Math.sin(angle) * reach * 0.58 - 8;
-  state.zones.push({ type: "kenStrike", move: "stepKick", fx: "stepKick", x: cx, y: cy, angle, radius, life: 0.24, maxLife: 0.24, level });
+  state.zones.push({ type: "kenStrike", move: "stepKick", fx: "stepKick", x: cx, y: cy, angle, radius, life: 0.24, maxLife: 0.24, level, signature: options.signature?.id });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -3607,19 +3639,23 @@ function castKenStepKick(level, fallbackAngle = 0) {
     }
   }
   playSkinSound("slash", "quickCutlass", { cooldown: 150 });
-  if (level >= 3 && arsenal.stepKicks % 4 === 0) castKenDragonPunch(state.characterTrait?.signature || { id: "dragonKick", damage: 32 }, angle);
-  if (level >= 6 && arsenal.stepKicks % 7 === 0) castKenTatsuKick(state.characterTrait?.signature || { id: "dragonKick", damage: 32 }, angle);
+  if (options.followups !== false && level >= 3 && arsenal.stepKicks % 4 === 0) castKenDragonPunch(state.characterTrait?.signature || { id: "shoryuken", damage: 38 }, angle, { move: "shoryuken", fx: "shoryuken" });
+  if (options.followups !== false && level >= 6 && arsenal.stepKicks % 7 === 0) castKenTatsuKick(state.characterTrait?.signature || { id: "shoryuken", damage: 38 }, angle);
 }
 
-function castKenDragonPunch(signature, angle) {
+function castKenDragonPunch(signature, angle, options = {}) {
   const p = state.player;
   const arsenal = ensureKenArsenal();
   arsenal.dragonPunches += 1;
-  triggerPlayerAction("dragonPunch", 0.68);
-  const radius = 88 + Math.min(34, state.level * 4);
+  arsenal.shoryukens += 1;
+  const move = options.move || "shoryuken";
+  const fx = options.fx || "shoryuken";
+  if (options.showPlayerAction !== false) triggerPlayerAction(move, options.signatureCast ? 0.74 : 0.66);
+  const level = Math.max(1, options.level || state.weapons.cutlass.level || state.level || 1);
+  const radius = 82 + Math.min(46, level * 6 + state.level * 2);
   const cx = p.x + Math.cos(angle) * 50;
   const cy = p.y + Math.sin(angle) * 36 - 36;
-  state.zones.push({ type: "kenStrike", move: "dragonPunch", fx: "dragonPunch", x: cx, y: cy, angle, radius, life: 0.36, maxLife: 0.36, signature: signature.id });
+  state.zones.push({ type: "kenStrike", move, fx, x: cx, y: cy, angle, radius, life: 0.38, maxLife: 0.38, signature: signature.id });
   for (const enemy of state.enemies) {
     const dx = enemy.x - cx;
     const dy = enemy.y - cy;
@@ -3633,13 +3669,13 @@ function castKenDragonPunch(signature, angle) {
   playSkinSound("hit", "cutlassImpact", { cooldown: 300 });
 }
 
-function castKenTatsuKick(signature, angle) {
+function castKenTatsuKick(signature, angle, options = {}) {
   const p = state.player;
   const arsenal = ensureKenArsenal();
   arsenal.tatsuKicks += 1;
-  triggerPlayerAction("tatsuKick", 0.76);
+  if (options.showPlayerAction !== false) triggerPlayerAction("tatsuKick", 0.76);
   const radius = 118 + Math.min(40, state.level * 4);
-  state.zones.push({ type: "kenWhirlwind", move: "tatsuKick", fx: "stepKick", x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
+  state.zones.push({ type: "kenWhirlwind", move: "tatsuKick", fx: "tatsuKick", x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -3654,6 +3690,31 @@ function castKenTatsuKick(signature, angle) {
   }
   shake(0.22);
   playSkinSound("dash", "dashWhooshFast", { cooldown: 330 });
+}
+
+function castKenDragonKick(signature, angle, options = {}) {
+  const p = state.player;
+  const arsenal = ensureKenArsenal();
+  arsenal.dragonKicks += 1;
+  if (options.showPlayerAction !== false) triggerPlayerAction("dragonKick", 0.74);
+  const reach = 142 + Math.min(42, state.weapons.cutlass.level * 7);
+  const radius = 78 + Math.min(38, state.level * 4);
+  const cx = p.x + Math.cos(angle) * reach * 0.58;
+  const cy = p.y + Math.sin(angle) * reach * 0.58 - 10;
+  state.zones.push({ type: "kenStrike", move: "dragonKick", fx: "dragonKick", x: cx, y: cy, angle, radius, life: 0.34, maxLife: 0.34, signature: signature.id });
+  for (const enemy of state.enemies) {
+    const dx = enemy.x - p.x;
+    const dy = enemy.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    const delta = Math.abs(shortAngle(Math.atan2(dy, dx) - angle));
+    if (dist <= reach + enemy.r && delta < 0.92) {
+      hurtEnemy(enemy, (signature.damage || 36) * 0.76 * state.stats.damage * (state.stats.signatureDamage || 1), Math.cos(angle) * 1.25, Math.sin(angle) * 0.9);
+      enemy.x += Math.cos(angle) * 18;
+      enemy.y += Math.sin(angle) * 14;
+    }
+  }
+  shake(0.26);
+  playSkinSound("dash", "dashWhooshFast", { cooldown: 360 });
 }
 
 function castChunLiThousandKick(level, fallbackAngle = 0) {
@@ -5832,7 +5893,7 @@ function drawPlayer() {
     const sx = frame * KEN_ACTION.w;
     const sy = row * KEN_ACTION.h;
     const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 0.9;
-    const actionScale = action?.type === "dragonKick" ? 1.2 : action?.type === "dragonPunch" || action?.type === "tatsuKick" ? 1.14 : action ? 1.08 : 1;
+    const actionScale = action?.type === "dragonKick" ? 1.2 : action?.type === "shoryuken" || action?.type === "dragonPunch" || action?.type === "tatsuKick" ? 1.14 : action ? 1.08 : 1;
     const h = skin.animH * actionScale;
     const w = h;
     ctx.drawImage(images.kenActions, sx, sy, KEN_ACTION.w, KEN_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 29) + bob, w, h);
@@ -7446,7 +7507,7 @@ window.__MONKEY_TIDE_KEN_ACTION_PROBE = () => {
     window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 204 + i * 34, p.y + (i % 4 - 1.5) * 38, false);
   }
   state.weapons.cutlass.level = 7;
-  for (let i = 0; i < 8; i += 1) castKenStepKick(7, 0);
+  for (let i = 0; i < 8; i += 1) castKenShoryuken(7, 0);
   state.signatureMove.timer = 0;
   for (let i = 0; i < 5; i += 1) castSignatureMove(state.characterTrait.signature);
   const cutlassUpgrade = upgrades.find((upgrade) => upgrade.id === "cutlass");
@@ -7463,11 +7524,11 @@ window.__MONKEY_TIDE_KEN_ACTION_PROBE = () => {
     weaponDisplay: weaponPresentation("cutlass", "ken"),
     upgradeDisplay: cutlassUpgrade ? upgradePresentation(cutlassUpgrade) : null,
     arsenal: { ...ensureKenArsenal() },
-    kenZones: state.zones.filter((zone) => zone.type === "kenStrike" || zone.type === "kenWhirlwind" || zone.signature === "dragonKick").map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, signature: zone.signature, radius: zone.radius })),
+    kenZones: state.zones.filter((zone) => zone.type === "kenStrike" || zone.type === "kenWhirlwind" || ["shoryuken", "dragonKick"].includes(zone.signature)).map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, signature: zone.signature, radius: zone.radius })),
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
     currentAction: state.playerAction ? { ...state.playerAction, row: kenActionRow(state.playerAction.type), frame: kenActionFrame(state.playerAction) } : null,
     enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
-    iconStyleUsesDragonSheet: ["dragonKick", "dragonPunch", "stepKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
+    iconStyleUsesDragonSheet: ["shoryuken", "dragonKick", "dragonPunch", "stepKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
   };
   state = savedState;
   selectedSkin = savedSkin;
@@ -7767,7 +7828,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   uiIconSources: {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
     ryuHadokenIcons: ["hadoken", "hadoken2", "hadoken3", "hadoken4"].every((icon) => iconStyle(icon).includes(imageSources.ryuHadokenFx)),
-    kenDragonIcons: ["dragonKick", "dragonPunch", "stepKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
+    kenDragonIcons: ["shoryuken", "dragonKick", "dragonPunch", "stepKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
     chunLiProjectileIcons: ["kiKouKen", "thousandKickArc", "whirlwindKickArc"].every((icon) => iconStyle(icon).includes(imageSources.chunLiProjectiles)),
   },
   balance: { ...BALANCE },
