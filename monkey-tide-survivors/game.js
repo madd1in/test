@@ -379,6 +379,17 @@ const STREET_FIGHTER_MOVE_UNLOCKS = {
 const STREET_FIGHTER_IDLE_NEARBY_RADIUS = 420;
 const STREET_FIGHTER_IDLE_FIREBALL_DELAY = { min: 5.6, spread: 2.7 };
 const STREET_FIGHTER_IDLE_FRAMES = [0, 1, 0, 2];
+const STREET_FIGHTER_FLOW_SKINS = ["ryu", "ken", "guile", "chunLi"];
+const STREET_FIGHTER_FLOW_THRESHOLD = 3;
+const STREET_FIGHTER_FLOW_MAX_CHARGES = 2;
+const STREET_FIGHTER_EX_TUNING = {
+  size: 1.2,
+  radius: 1.16,
+  speed: 1.09,
+  damage: 1.24,
+  life: 0.18,
+  pierce: 1,
+};
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
 const NEWSPRITE = { w: 384, h: 512, cols: 4, rows: 2 };
@@ -1849,6 +1860,14 @@ function makeState() {
     signatureMove: { timer: Math.max(0.38, 1.2 - skillBonus.signatureStart), casts: 0, last: null },
     playerAction: null,
     streetFighterIdle: { contactCooldown: 0, contactCounters: { ryu: 0, ken: 0, guile: 0, chunLi: 0 } },
+    streetFighterFlow: {
+      chain: Object.fromEntries(STREET_FIGHTER_FLOW_SKINS.map((id) => [id, 0])),
+      charges: Object.fromEntries(STREET_FIGHTER_FLOW_SKINS.map((id) => [id, 0])),
+      totalEx: Object.fromEntries(STREET_FIGHTER_FLOW_SKINS.map((id) => [id, 0])),
+      lastSkin: null,
+      lastMove: null,
+      readyMove: null,
+    },
     ryuArsenal: { casts: 0, hadokens: 0, weaponHadokens: 0, shoryukens: 0, whirlwindKicks: 0 },
     kenArsenal: { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 },
     guileArsenal: { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 },
@@ -3519,6 +3538,81 @@ function ensureChunLiArsenal() {
   return state.chunLiArsenal;
 }
 
+function ensureStreetFighterFlowState() {
+  if (!state.streetFighterFlow) state.streetFighterFlow = {};
+  const flow = state.streetFighterFlow;
+  if (!flow.chain) flow.chain = {};
+  if (!flow.charges) flow.charges = {};
+  if (!flow.totalEx) flow.totalEx = {};
+  for (const id of STREET_FIGHTER_FLOW_SKINS) {
+    if (flow.chain[id] === undefined) flow.chain[id] = 0;
+    if (flow.charges[id] === undefined) flow.charges[id] = 0;
+    if (flow.totalEx[id] === undefined) flow.totalEx[id] = 0;
+  }
+  if (flow.lastSkin === undefined) flow.lastSkin = null;
+  if (flow.lastMove === undefined) flow.lastMove = null;
+  if (flow.readyMove === undefined) flow.readyMove = null;
+  return flow;
+}
+
+function streetFighterFlowSkin(skinId = streetFighterSkinId()) {
+  return STREET_FIGHTER_FLOW_SKINS.includes(skinId) ? skinId : null;
+}
+
+function registerStreetFighterFlowMove(skinId = streetFighterSkinId(), move = "signature", options = {}) {
+  const id = streetFighterFlowSkin(skinId);
+  if (!id || options.noFlow || options.flow === false) return false;
+  const flow = ensureStreetFighterFlowState();
+  flow.chain[id] = Math.min(STREET_FIGHTER_FLOW_THRESHOLD, (flow.chain[id] || 0) + 1);
+  flow.lastSkin = id;
+  flow.lastMove = move;
+  if (flow.chain[id] < STREET_FIGHTER_FLOW_THRESHOLD) return false;
+  flow.chain[id] = 0;
+  flow.charges[id] = Math.min(STREET_FIGHTER_FLOW_MAX_CHARGES, (flow.charges[id] || 0) + 1);
+  flow.readyMove = move;
+  return true;
+}
+
+function markStreetFighterExFlash(skinId, move, x, y, radius = 72) {
+  if (!state?.zones) return;
+  state.zones.push({
+    type: "streetFighterExFlash",
+    skinId,
+    move,
+    x,
+    y,
+    radius: Math.max(96, radius * 2.2),
+    life: 0.34,
+    maxLife: 0.34,
+  });
+  floatingText("EX", x, y - Math.max(56, radius * 0.65), "#fff2a8", 0.58, 24, { priority: 1 });
+}
+
+function consumeStreetFighterEx(skinId = streetFighterSkinId(), move = "signature", origin = {}, options = {}) {
+  const id = streetFighterFlowSkin(skinId);
+  if (!id || options.noEx || options.ex === false) return null;
+  const flow = ensureStreetFighterFlowState();
+  if ((flow.charges[id] || 0) <= 0) return null;
+  flow.charges[id] -= 1;
+  flow.totalEx[id] = (flow.totalEx[id] || 0) + 1;
+  markStreetFighterExFlash(id, move, origin.x ?? state.player.x, origin.y ?? state.player.y, origin.radius || 72);
+  return { ...STREET_FIGHTER_EX_TUNING, skinId: id, move, count: flow.totalEx[id] };
+}
+
+function streetFighterExProjectileStats(stats, ex) {
+  if (!ex) return { ...stats, ex: false };
+  return {
+    ...stats,
+    size: stats.size * ex.size,
+    radius: stats.radius * ex.radius,
+    speed: stats.speed * ex.speed,
+    damage: stats.damage * ex.damage,
+    life: stats.life + ex.life,
+    pierce: stats.pierce + ex.pierce,
+    ex: true,
+  };
+}
+
 function castSignatureMove(signature) {
   const target = nearestEnemy();
   if (!target) return false;
@@ -3634,9 +3728,16 @@ function fireSignatureProjectile(signature, angle) {
     const shotAngle = horizontalProjectileAngle(angle);
     const level = Math.max(1, state.weapons.cutlass.level || 1);
     const stage = sonicBoomStage(level);
-    const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage);
-    const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage);
-    const speed = Math.max(signature.speed || 560, 690 + level * 18 + stage * 34);
+    registerStreetFighterFlowMove("guile", "sonicBoom");
+    const baseStats = {
+      size: stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage),
+      radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage),
+      speed: Math.max(signature.speed || 560, 690 + level * 18 + stage * 34),
+      damage: (signature.damage || 26) + level * 5,
+      life: 1.55 + stage * 0.18 + level * 0.04,
+      pierce: Math.max(signature.pierce ?? 1, 2 + stage + Math.floor(level / 3)),
+    };
+    const stats = streetFighterExProjectileStats(baseStats, consumeStreetFighterEx("guile", "sonicBoom", { x: p.x, y: p.y - 8, radius: baseStats.radius }));
     state.projectiles.push({
       type: "signature",
       icon: "sonicBoom",
@@ -3646,15 +3747,17 @@ function fireSignatureProjectile(signature, angle) {
       animSeed: Math.floor(Math.random() * SONIC_BOOM_FX.frames),
       x: p.x + Math.cos(shotAngle) * 58,
       y: p.y - 8,
-      vx: Math.cos(shotAngle) * speed,
+      vx: Math.cos(shotAngle) * stats.speed,
       vy: 0,
-      r: radius,
-      damage: (signature.damage || 26) + level * 5,
+      r: stats.radius,
+      damage: stats.damage,
       signatureDamage: state.stats.signatureDamage || 1,
-      life: 1.55 + stage * 0.18 + level * 0.04,
-      pierce: Math.max(signature.pierce ?? 1, 2 + stage + Math.floor(level / 3)),
+      life: stats.life,
+      pierce: stats.pierce,
       spin: shotAngle,
-      size,
+      size: stats.size,
+      ex: stats.ex,
+      exMove: stats.ex ? "sonicBoom" : null,
       retarget: false,
     });
     return;
@@ -3668,9 +3771,16 @@ function fireSignatureProjectile(signature, angle) {
     const shotAngle = horizontalProjectileAngle(angle);
     const focus = Math.max(1, Math.min(8, state.weapons.cutlass.level || 1));
     const stage = kiKouKenStage(focus);
-    const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.size, stage);
-    const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.radius, stage);
-    const speed = Math.max(signature.speed || 620, 760 + focus * 18);
+    registerStreetFighterFlowMove("chunLi", "kiKouKen");
+    const baseStats = {
+      size: stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.size, stage),
+      radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.radius, stage),
+      speed: Math.max(signature.speed || 620, 760 + focus * 18),
+      damage: (signature.damage || 30) + focus * 4,
+      life: 1.72 + focus * 0.05,
+      pierce: Math.max(signature.pierce ?? 1, 3 + Math.floor(focus / 2)),
+    };
+    const stats = streetFighterExProjectileStats(baseStats, consumeStreetFighterEx("chunLi", "kiKouKen", { x: p.x, y: p.y - 8, radius: baseStats.radius }));
     state.projectiles.push({
       type: "signature",
       icon: "kiKouKen",
@@ -3680,15 +3790,17 @@ function fireSignatureProjectile(signature, angle) {
       animSeed: Math.floor(Math.random() * CHUN_LI_PROJECTILE_FX.frames),
       x: p.x + Math.cos(shotAngle) * 58,
       y: p.y - 8,
-      vx: Math.cos(shotAngle) * speed,
+      vx: Math.cos(shotAngle) * stats.speed,
       vy: 0,
-      r: radius,
-      damage: (signature.damage || 30) + focus * 4,
+      r: stats.radius,
+      damage: stats.damage,
       signatureDamage: state.stats.signatureDamage || 1,
-      life: 1.72 + focus * 0.05,
-      pierce: Math.max(signature.pierce ?? 1, 3 + Math.floor(focus / 2)),
+      life: stats.life,
+      pierce: stats.pierce,
       spin: shotAngle,
-      size,
+      size: stats.size,
+      ex: stats.ex,
+      exMove: stats.ex ? "kiKouKen" : null,
       retarget: false,
     });
     return;
@@ -3720,9 +3832,16 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
   const angle = horizontalProjectileAngle(aimAngle);
   const safeLevel = Math.max(1, level || 1);
   const stage = ryuHadokenStage(safeLevel);
-  const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage);
-  const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage);
-  const speed = Math.max(signature.speed || 620, 720 + safeLevel * 36 + stage * 40);
+  registerStreetFighterFlowMove("ryu", "hadoken", options);
+  const baseStats = {
+    size: stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage),
+    radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage),
+    speed: Math.max(signature.speed || 620, 720 + safeLevel * 36 + stage * 40),
+    damage: (signature.damage || 30) + safeLevel * (options.signatureCast ? 5 : 7) + stage * 4,
+    life: 1.58 + safeLevel * 0.06 + stage * 0.1,
+    pierce: Math.max(signature.pierce ?? 1, 1 + stage + Math.floor(safeLevel / 3)),
+  };
+  const stats = streetFighterExProjectileStats(baseStats, consumeStreetFighterEx("ryu", "hadoken", { x: p.x, y: p.y - 8, radius: baseStats.radius }, options));
   const count = safeLevel >= 7 ? 2 : 1;
   const arsenal = ensureRyuArsenal();
   if (options.countArsenal !== false) {
@@ -3742,15 +3861,17 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
       animSeed: Math.floor(Math.random() * RYU_HADOKEN_FX.frames),
       x: p.x + Math.cos(angle) * 58,
       y: p.y - 8 + laneOffset,
-      vx: Math.cos(angle) * speed,
+      vx: Math.cos(angle) * stats.speed,
       vy: 0,
-      r: radius,
-      damage: (signature.damage || 30) + safeLevel * (options.signatureCast ? 5 : 7) + stage * 4,
+      r: stats.radius,
+      damage: stats.damage,
       signatureDamage: state.stats.signatureDamage || 1,
-      life: 1.58 + safeLevel * 0.06 + stage * 0.1,
-      pierce: Math.max(signature.pierce ?? 1, 1 + stage + Math.floor(safeLevel / 3)),
+      life: stats.life,
+      pierce: stats.pierce,
       spin: angle,
-      size,
+      size: stats.size,
+      ex: stats.ex,
+      exMove: stats.ex ? "hadoken" : null,
       retarget: false,
     });
   }
@@ -3763,6 +3884,7 @@ function castRyuShoryuken(signature, angle) {
   const p = state.player;
   const arsenal = ensureRyuArsenal();
   arsenal.shoryukens += 1;
+  registerStreetFighterFlowMove("ryu", "shoryuken");
   triggerPlayerAction("shoryuken", 0.72);
   const radius = 82 + Math.min(28, state.level * 3);
   const cx = p.x + Math.cos(angle) * 48;
@@ -3785,6 +3907,7 @@ function castRyuWhirlwindKick(signature, angle) {
   const p = state.player;
   const arsenal = ensureRyuArsenal();
   arsenal.whirlwindKicks += 1;
+  registerStreetFighterFlowMove("ryu", "whirlwindKick");
   triggerPlayerAction("whirlwindKick", 0.78);
   const radius = 118 + Math.min(36, state.level * 4);
   state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.2 });
@@ -3811,9 +3934,16 @@ function fireKenHadoken(level, fallbackAngle = 0, signature = state.characterTra
   const angle = horizontalProjectileAngle(aimAngle);
   const safeLevel = Math.max(1, level || 1);
   const stage = ryuHadokenStage(safeLevel);
-  const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage) * 0.94;
-  const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage) * 0.92;
-  const speed = Math.max(signature.speed || 620, 700 + safeLevel * 30 + stage * 36);
+  registerStreetFighterFlowMove("ken", "hadoken", options);
+  const baseStats = {
+    size: stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage) * 0.94,
+    radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage) * 0.92,
+    speed: Math.max(signature.speed || 620, 700 + safeLevel * 30 + stage * 36),
+    damage: (signature.damage || 30) * 0.78 + safeLevel * 5 + stage * 3,
+    life: 1.48 + safeLevel * 0.05 + stage * 0.08,
+    pierce: Math.max(signature.pierce ?? 1, 1 + stage + Math.floor(safeLevel / 4)),
+  };
+  const stats = streetFighterExProjectileStats(baseStats, consumeStreetFighterEx("ken", "hadoken", { x: p.x, y: p.y - 8, radius: baseStats.radius }, options));
   const arsenal = ensureKenArsenal();
   arsenal.hadokens += 1;
   if (options.showPlayerAction !== false) triggerPlayerAction("hadoken", options.signatureCast ? 0.56 : 0.48);
@@ -3827,15 +3957,17 @@ function fireKenHadoken(level, fallbackAngle = 0, signature = state.characterTra
     animSeed: Math.floor(Math.random() * RYU_HADOKEN_FX.frames),
     x: p.x + Math.cos(angle) * 58,
     y: p.y - 8,
-    vx: Math.cos(angle) * speed,
+    vx: Math.cos(angle) * stats.speed,
     vy: 0,
-    r: radius,
-    damage: (signature.damage || 30) * 0.78 + safeLevel * 5 + stage * 3,
+    r: stats.radius,
+    damage: stats.damage,
     signatureDamage: state.stats.signatureDamage || 1,
-    life: 1.48 + safeLevel * 0.05 + stage * 0.08,
-    pierce: Math.max(signature.pierce ?? 1, 1 + stage + Math.floor(safeLevel / 4)),
+    life: stats.life,
+    pierce: stats.pierce,
     spin: angle,
-    size,
+    size: stats.size,
+    ex: stats.ex,
+    exMove: stats.ex ? "hadoken" : null,
     retarget: false,
   });
   playSkinSound("hit", "quickCutlass", { cooldown: options.signatureCast ? 420 : 240 });
@@ -3916,6 +4048,7 @@ function castKenStepKick(level, fallbackAngle = 0, options = {}) {
   const target = options.exactAngle ? null : nearestEnemy();
   const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   arsenal.stepKicks += 1;
+  registerStreetFighterFlowMove("ken", "stepKick", options);
   if (options.showPlayerAction !== false) triggerPlayerAction("stepKick", 0.48);
   const reach = 112 + level * 10;
   const radius = 58 + level * 6;
@@ -3943,6 +4076,7 @@ function castKenDragonPunch(signature, angle, options = {}) {
   const fx = options.fx || "shoryuken";
   arsenal.dragonPunches += 1;
   if (move === "shoryuken") arsenal.shoryukens += 1;
+  registerStreetFighterFlowMove("ken", move, options);
   if (options.showPlayerAction !== false) triggerPlayerAction(move, options.signatureCast ? 0.74 : 0.66);
   const level = Math.max(1, options.level || state.weapons.cutlass.level || state.level || 1);
   const radius = 82 + Math.min(46, level * 6 + state.level * 2);
@@ -3966,6 +4100,7 @@ function castKenTatsuKick(signature, angle, options = {}) {
   const p = state.player;
   const arsenal = ensureKenArsenal();
   arsenal.tatsuKicks += 1;
+  registerStreetFighterFlowMove("ken", "tatsuKick", options);
   if (options.showPlayerAction !== false) triggerPlayerAction("tatsuKick", 0.76);
   const radius = 118 + Math.min(40, state.level * 4);
   state.zones.push({ type: "kenWhirlwind", move: "tatsuKick", fx: "tatsuKick", x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.6 });
@@ -3989,6 +4124,7 @@ function castKenDragonKick(signature, angle, options = {}) {
   const p = state.player;
   const arsenal = ensureKenArsenal();
   arsenal.dragonKicks += 1;
+  registerStreetFighterFlowMove("ken", "dragonKick", options);
   if (options.showPlayerAction !== false) triggerPlayerAction("dragonKick", 0.74);
   const reach = 142 + Math.min(42, state.weapons.cutlass.level * 7);
   const radius = 78 + Math.min(38, state.level * 4);
@@ -4016,6 +4152,7 @@ function castChunLiThousandKick(level, fallbackAngle = 0) {
   const target = nearestEnemy();
   const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   arsenal.thousandKicks += 1;
+  registerStreetFighterFlowMove("chunLi", "thousandKick");
   triggerPlayerAction("thousandKick", 0.52);
   const reach = 106 + level * 9;
   const radius = 66 + level * 6;
@@ -4039,6 +4176,7 @@ function castChunLiWhirlwindKick(signature, angle) {
   const p = state.player;
   const arsenal = ensureChunLiArsenal();
   arsenal.whirlwindKicks += 1;
+  registerStreetFighterFlowMove("chunLi", "whirlwindKick");
   triggerPlayerAction("whirlwindKick", 0.78);
   const radius = 116 + Math.min(38, state.level * 4);
   state.zones.push({ type: "chunLiWhirlwind", move: "whirlwindKick", fx: "whirlwindKickArc", x: p.x, y: p.y - 12, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.45 });
@@ -4062,6 +4200,7 @@ function castChunLiLightningKick(signature, angle) {
   const p = state.player;
   const arsenal = ensureChunLiArsenal();
   arsenal.lightningKicks += 1;
+  registerStreetFighterFlowMove("chunLi", "lightningKick");
   triggerPlayerAction("lightningKick", 0.66);
   const radius = 92 + Math.min(32, state.level * 4);
   const cx = p.x + Math.cos(angle) * 54;
@@ -4281,9 +4420,16 @@ function fireGuileSonicBoom(level, fallbackAngle = 0, options = {}) {
   const aimAngle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   const angle = horizontalProjectileAngle(aimAngle);
   const stage = sonicBoomStage(level);
-  const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage);
-  const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage);
-  const speed = 690 + level * 30 + stage * 36;
+  registerStreetFighterFlowMove("guile", "sonicBoom", options);
+  const baseStats = {
+    size: stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage),
+    radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage),
+    speed: 690 + level * 30 + stage * 36,
+    damage: 28 + level * 9 + stage * 4,
+    life: 1.45 + level * 0.11 + stage * 0.08,
+    pierce: 2 + stage + Math.floor(level / 2),
+  };
+  const stats = streetFighterExProjectileStats(baseStats, consumeStreetFighterEx("guile", "sonicBoom", { x: p.x, y: p.y - 10, radius: baseStats.radius }, options));
   const count = level >= 7 ? 2 : 1;
   state.guileArsenal.sonicBooms += count;
   state.guileArsenal.casts += 1;
@@ -4299,14 +4445,16 @@ function fireGuileSonicBoom(level, fallbackAngle = 0, options = {}) {
       animSeed: Math.floor(Math.random() * SONIC_BOOM_FX.frames),
       x: p.x + Math.cos(angle) * 60,
       y: p.y - 10 + laneOffset,
-      vx: Math.cos(angle) * speed,
+      vx: Math.cos(angle) * stats.speed,
       vy: 0,
-      r: radius,
-      damage: 28 + level * 9 + stage * 4,
-      life: 1.45 + level * 0.11 + stage * 0.08,
-      pierce: 2 + stage + Math.floor(level / 2),
+      r: stats.radius,
+      damage: stats.damage,
+      life: stats.life,
+      pierce: stats.pierce,
       spin: angle,
-      size,
+      size: stats.size,
+      ex: stats.ex,
+      exMove: stats.ex ? "sonicBoom" : null,
       signatureDamage: state.stats.signatureDamage || 1,
       retarget: false,
     });
@@ -4323,6 +4471,7 @@ function castGuileKneeBazooka(level, angle) {
   const p = state.player;
   triggerPlayerAction("kneeBazooka", 0.46);
   state.guileArsenal.kneeBazookas += 1;
+  registerStreetFighterFlowMove("guile", "kneeBazooka");
   const reach = 106 + level * 7;
   const cx = p.x + Math.cos(angle) * reach * 0.58;
   const cy = p.y + Math.sin(angle) * reach * 0.58;
@@ -4342,6 +4491,7 @@ function castGuileReversePunch(level, angle) {
   const p = state.player;
   triggerPlayerAction("reversePunch", 0.42);
   state.guileArsenal.reversePunches += 1;
+  registerStreetFighterFlowMove("guile", "reversePunch");
   const radius = 88 + level * 9;
   const cx = p.x + Math.cos(angle) * radius * 0.36;
   const cy = p.y + Math.sin(angle) * radius * 0.36;
@@ -4361,6 +4511,7 @@ function castGuileFlashKick(level) {
   const p = state.player;
   triggerPlayerAction("flashKick", 0.62);
   state.guileArsenal.flashKicks += 1;
+  registerStreetFighterFlowMove("guile", "flashKick");
   p.invuln = Math.max(p.invuln, 0.36);
   const radius = 118 + level * 10;
   state.zones.push({ type: "guileFlashKick", move: "flashKick", x: p.x, y: p.y - 12, angle: -Math.PI / 2, radius, life: 0.38, maxLife: 0.38 });
@@ -4956,10 +5107,11 @@ function spawnSonicBoomBurst(projectile) {
     x: projectile.x,
     y: projectile.y,
     angle: Math.atan2(projectile.vy || 0, projectile.vx || 1),
-    radius: (projectile.r || 24) * (1.8 + stage * 0.18),
-    life: 0.2,
-    maxLife: 0.2,
+    radius: (projectile.r || 24) * (projectile.ex ? 2.15 : 1.8 + stage * 0.18),
+    life: projectile.ex ? 0.26 : 0.2,
+    maxLife: projectile.ex ? 0.26 : 0.2,
     stage,
+    ex: !!projectile.ex,
     frameSeed: projectile.animSeed || 0,
   });
 }
@@ -4971,10 +5123,11 @@ function spawnRyuHadokenBurst(projectile) {
     x: projectile.x,
     y: projectile.y,
     angle: Math.atan2(projectile.vy || 0, projectile.vx || 1),
-    radius: (projectile.r || 24) * (1.85 + stage * 0.2),
-    life: 0.22,
-    maxLife: 0.22,
+    radius: (projectile.r || 24) * (projectile.ex ? 2.2 : 1.85 + stage * 0.2),
+    life: projectile.ex ? 0.28 : 0.22,
+    maxLife: projectile.ex ? 0.28 : 0.22,
     stage,
+    ex: !!projectile.ex,
     frameSeed: projectile.animSeed || 0,
   });
 }
@@ -4986,9 +5139,10 @@ function spawnChunLiProjectileBurst(projectile) {
     x: projectile.x,
     y: projectile.y,
     angle: Math.atan2(projectile.vy || 0, projectile.vx || 1),
-    radius: (projectile.r || 24) * 1.95,
-    life: 0.22,
-    maxLife: 0.22,
+    radius: (projectile.r || 24) * (projectile.ex ? 2.26 : 1.95),
+    life: projectile.ex ? 0.28 : 0.22,
+    maxLife: projectile.ex ? 0.28 : 0.22,
+    ex: !!projectile.ex,
     frameSeed: projectile.animSeed || 0,
   });
 }
@@ -6420,16 +6574,19 @@ function drawProjectiles() {
     if (!onScreen(projectile.x, projectile.y, 100)) continue;
     if (projectile.signatureId === "sonicBoom" && images.sonicBoomFx) {
       const size = projectile.size || 118;
+      drawStreetFighterExProjectileHalo(projectile, ox + projectile.x, oy + projectile.y, size);
       drawSonicBoomFx(projectile, ox + projectile.x, oy + projectile.y, size, size, 0.98);
       continue;
     }
     if (projectile.signatureId === "hadoken" && images.ryuHadokenFx) {
       const size = projectile.size || 104;
+      drawStreetFighterExProjectileHalo(projectile, ox + projectile.x, oy + projectile.y, size);
       drawRyuHadokenFx(projectile, ox + projectile.x, oy + projectile.y, size, size, 0.98);
       continue;
     }
     if (projectile.signatureId === "kiKouKen" && images.chunLiProjectiles) {
       const size = projectile.size || 108;
+      drawStreetFighterExProjectileHalo(projectile, ox + projectile.x, oy + projectile.y, size);
       drawChunLiProjectileFx(projectile.fx || "kiKouKen", projectile, ox + projectile.x, oy + projectile.y, size, size, 0.98);
       continue;
     }
@@ -6451,6 +6608,19 @@ function drawProjectiles() {
       drawProjectileFx("compassBolt", ox + point.x, oy + point.y, 54, 54, state.weapons.compass.angle, 0.9);
     }
   }
+}
+
+function drawStreetFighterExProjectileHalo(projectile, x, y, size) {
+  if (!projectile.ex) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((projectile.spin || 0) + state.elapsed * 1.2);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.32 + Math.sin(state.elapsed * 12) * 0.05;
+  drawPlayerEffectAt("treasureGlint", -size * 0.72, -size * 0.72, size * 1.44, size * 1.44);
+  ctx.globalAlpha = 0.18;
+  drawPlayerEffectAt("tidePulse", -size * 0.92, -size * 0.92, size * 1.84, size * 1.84);
+  ctx.restore();
 }
 
 function drawSpinKickActionFrames(drawFrameAt, move, frameCount, size, alpha, spinRate = 5.2) {
@@ -6504,6 +6674,14 @@ function drawWeaponEffects() {
       const burstSize = zone.radius * 2.2;
       drawPlayerEffectAt("curseBurst", -burstSize * 0.56, -burstSize * 0.56, burstSize * 1.12, burstSize * 1.12);
       drawProjectileFxAt(zone.fx === "ghostCannonball" ? "ghostCannonball" : "monkeyCurseOrb", -burstSize / 2, -burstSize / 2, burstSize, burstSize);
+    } else if (zone.type === "streetFighterExFlash") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(state.elapsed * 1.15);
+      const burstSize = zone.radius * (1.45 + (1 - a) * 0.35);
+      ctx.globalCompositeOperation = "lighter";
+      drawPlayerEffectAt("treasureGlint", -burstSize * 0.52, -burstSize * 0.52, burstSize * 1.04, burstSize * 1.04);
+      ctx.globalAlpha = a * 0.28;
+      drawPlayerEffectAt("tidePulse", -burstSize * 0.72, -burstSize * 0.72, burstSize * 1.44, burstSize * 1.44);
     } else if (zone.type === "sonicBoomBurst") {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate(zone.angle || 0);
@@ -8332,6 +8510,95 @@ window.__MONKEY_TIDE_FIREBALL_STAGE_PROBE = () => {
   render();
   return result;
 };
+window.__MONKEY_TIDE_STREET_FIGHTER_EX_FLOW_PROBE = () => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  const savedMuted = muted;
+  const results = {};
+  muted = true;
+  const level = 7;
+  const baseProjectileStats = (skinId) => {
+    if (skinId === "guile") {
+      const stage = sonicBoomStage(level);
+      return {
+        stage,
+        size: stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.size, stage),
+        radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.sonicBoom.radius, stage),
+      };
+    }
+    if (skinId === "chunLi") {
+      const stage = kiKouKenStage(level);
+      return {
+        stage,
+        size: stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.size, stage),
+        radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.kiKouKen.radius, stage),
+      };
+    }
+    const stage = ryuHadokenStage(level);
+    return {
+      stage,
+      size: stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage) * (skinId === "ken" ? 0.94 : 1),
+      radius: stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage) * (skinId === "ken" ? 0.92 : 1),
+    };
+  };
+  for (const skinId of STREET_FIGHTER_FLOW_SKINS) {
+    selectedSkin = skinId;
+    state = makeState();
+    state.phase = "playing";
+    state.weapons.cutlass.level = level;
+    const p = state.player;
+    for (let i = 0; i < 8; i += 1) {
+      window.__MONKEY_TIDE_SPAWN_ENEMY("crab", p.x + 260 + i * 38, p.y + (i % 3 - 1) * 46, false);
+    }
+    const signature = state.characterTrait.signature || characterTrait(skinId).signature;
+    if (skinId === "ryu") {
+      castRyuShoryuken(signature, 0);
+      castRyuWhirlwindKick(signature, 0);
+      fireRyuHadoken(level, 0, { signature, exactAngle: true });
+    } else if (skinId === "ken") {
+      castKenStepKick(level, 0, { exactAngle: true, followups: false, signature });
+      castKenDragonPunch(signature, 0, { move: "shoryuken", fx: "shoryuken", level });
+      fireKenHadoken(level, 0, signature, { exactAngle: true });
+    } else if (skinId === "guile") {
+      castGuileKneeBazooka(level, 0);
+      castGuileReversePunch(level, 0);
+      fireGuileSonicBoom(level, 0, { exactAngle: true, followups: false });
+    } else if (skinId === "chunLi") {
+      castChunLiThousandKick(level, 0);
+      castChunLiWhirlwindKick(signature, 0);
+      fireSignatureProjectile({ ...signature, id: "kiKouKen", icon: "kiKouKen" }, 0);
+    }
+    const projectile = state.projectiles.find((entry) => entry.ex) || state.projectiles.find((entry) => ["hadoken", "sonicBoom", "kiKouKen"].includes(entry.signatureId));
+    const flow = ensureStreetFighterFlowState();
+    const base = baseProjectileStats(skinId);
+    results[skinId] = {
+      base,
+      chain: flow.chain[skinId],
+      charges: flow.charges[skinId],
+      totalEx: flow.totalEx[skinId],
+      lastMove: flow.lastMove,
+      readyMove: flow.readyMove,
+      exFlash: state.zones.filter((zone) => zone.type === "streetFighterExFlash" && zone.skinId === skinId).length,
+      projectile: projectile ? {
+        id: projectile.signatureId,
+        ex: !!projectile.ex,
+        exMove: projectile.exMove || null,
+        size: projectile.size,
+        radius: projectile.r,
+        speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+        vx: Math.round(projectile.vx),
+        vy: Math.round(projectile.vy),
+        pierce: projectile.pierce,
+      } : null,
+    };
+  }
+  state = savedState;
+  selectedSkin = savedSkin;
+  muted = savedMuted;
+  renderSkinPicker();
+  render();
+  return results;
+};
 window.__MONKEY_TIDE_DEBUG = () => {
   const resized = syncCanvasSize();
   if (resized) render();
@@ -8414,6 +8681,14 @@ window.__MONKEY_TIDE_DEBUG = () => {
     return [id, { x: skin.x, y: skin.y, w: skin.w, h: skin.h, animRow: skin.animRow, animSheet: skin.animSheet, fighterRow: skin.fighterRow, selectIndex: skin.selectIndex, animDrawYOffset: skin.animDrawYOffset }];
   })),
   playerAction: state.playerAction ? { ...state.playerAction } : null,
+  streetFighterFlow: state.streetFighterFlow ? {
+    chain: { ...ensureStreetFighterFlowState().chain },
+    charges: { ...ensureStreetFighterFlowState().charges },
+    totalEx: { ...ensureStreetFighterFlowState().totalEx },
+    lastSkin: ensureStreetFighterFlowState().lastSkin,
+    lastMove: ensureStreetFighterFlowState().lastMove,
+    readyMove: ensureStreetFighterFlowState().readyMove,
+  } : null,
   ryuArsenal: state.ryuArsenal ? { ...state.ryuArsenal } : null,
   guileArsenal: state.guileArsenal ? { ...state.guileArsenal } : null,
   chunLiArsenal: state.chunLiArsenal ? { ...state.chunLiArsenal } : null,
@@ -8759,6 +9034,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
     streetFighterPeacefulIdleOnly: true,
     streetFighterIdleNearbyRadius: STREET_FIGHTER_IDLE_NEARBY_RADIUS,
     streetFighterStarterMoves: { ...STREET_FIGHTER_STARTER_MOVES },
+    streetFighterExFlow: true,
+    streetFighterExThreshold: STREET_FIGHTER_FLOW_THRESHOLD,
+    streetFighterExMaxCharges: STREET_FIGHTER_FLOW_MAX_CHARGES,
+    streetFighterExTuning: { ...STREET_FIGHTER_EX_TUNING },
     streetFighterBasicMovement: {
       ryu: basicMovementSummary(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu),
       ken: basicMovementSummary(KEN_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ken),

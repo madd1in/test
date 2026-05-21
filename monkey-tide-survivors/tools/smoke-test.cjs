@@ -585,6 +585,23 @@ async function run() {
       && fireballStageProbe.chunLi.at(-1).size >= 126,
     `Fighter fireballs should stay horizontal and grow only by upgrade stage into EX-sized variants: ${JSON.stringify(fireballStageProbe)}`,
   );
+  const streetFighterExFlowProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_EX_FLOW_PROBE());
+  assert(
+    Object.values(streetFighterExFlowProbe).every((probe) => (
+      probe.projectile
+        && probe.projectile.ex === true
+        && probe.projectile.vy === 0
+        && Math.abs(probe.projectile.vx) === probe.projectile.speed
+        && probe.projectile.size > probe.base.size
+        && probe.projectile.radius > probe.base.radius
+        && probe.projectile.pierce >= 1
+        && probe.exFlash >= 1
+        && probe.totalEx >= 1
+        && probe.chain === 0
+        && probe.charges === 0
+    )),
+    `Street Fighter combo flow should charge and spend a visible EX projectile: ${JSON.stringify(streetFighterExFlowProbe)}`,
+  );
   const guileSonicAssetProbe = await page.evaluate(async () => {
     async function scanSheet(src, frameW, frameH, cols, rows) {
       const img = new Image();
@@ -1793,8 +1810,12 @@ async function run() {
       &&
     debug.combatAssets.streetFighterPeacefulIdleOnly === true
       &&
+    debug.combatAssets.streetFighterExFlow === true
+      &&
+    debug.combatAssets.streetFighterExThreshold === 3
+      &&
     Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.startupActions.length === 1 && movement.ambientActions.length >= 1 && movement.allAmbientActions.length >= 3 && movement.sparseActionShare >= 0.18 && movement.sparseActionShare <= 0.26),
-    `Street Fighter basic movement should stay walk-first with one starter and later idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
+    `Street Fighter basic movement should stay walk-first with one starter and later idle flourishes plus EX flow: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
   );
   assert(debug.combatAssets.streetFighterBasicMovement.ryu.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.ken.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.guile.totalFrames === 8 && debug.combatAssets.streetFighterBasicMovement.chunLi.totalFrames === 12, `Street Fighter walking frame counts are wrong: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
