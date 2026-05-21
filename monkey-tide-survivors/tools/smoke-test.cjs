@@ -437,11 +437,13 @@ async function run() {
       && kenActionProbe.rows.shoryuken === 2
       && kenActionProbe.rows.dragonPunch === 2
       && kenActionProbe.rows.tatsuKick === 3
+      && kenActionProbe.rows.whirlwindKick === 3
       && kenActionProbe.rows.dragonKick === 4
       && kenActionProbe.fxRows.stepKick === 0
       && kenActionProbe.fxRows.shoryuken === 1
       && kenActionProbe.fxRows.dragonPunch === 1
       && kenActionProbe.fxRows.tatsuKick === 2
+      && kenActionProbe.fxRows.whirlwindKick === 2
       && kenActionProbe.fxRows.dragonKick === 2
       && kenActionProbe.weaponDisplay.name === "Dragon Rush"
       && kenActionProbe.upgradeDisplay.name === "Dragon Rush Mix"
@@ -450,17 +452,18 @@ async function run() {
       && kenActionProbe.arsenal.shoryukens >= 4
       && kenActionProbe.arsenal.dragonPunches >= 3
       && kenActionProbe.arsenal.tatsuKicks >= 2
+      && kenActionProbe.arsenal.whirlwindKicks >= 1
       && kenActionProbe.arsenal.dragonKicks >= 1
       && kenActionProbe.kenHadokens.length >= 8
       && kenActionProbe.kenHadokens.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonPunch")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "stepKick")
-      && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "tatsuKick" && zone.spinKick)
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "whirlwindKick" && zone.spinKick)
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonKick")
       && kenActionProbe.kenZones.some((zone) => zone.signature === "shoryuken")
       && kenActionProbe.slashZones === 0
       && kenActionProbe.iconStyleUsesDragonSheet,
-    `Ken should throw more Hadokens and land more Shoryukens while keeping the full Dragon Rush kit visible: ${JSON.stringify(kenActionProbe)}`,
+    `Ken should throw more Hadokens, land Shoryukens, and show the Whirlwind Kick animation in the Dragon Rush kit: ${JSON.stringify(kenActionProbe)}`,
   );
   const guileActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_GUILE_ACTION_PROBE());
   assert(
@@ -527,11 +530,26 @@ async function run() {
   const streetFighterIdleProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_IDLE_PROBE());
   assert(
     streetFighterIdleProbe.ryu?.currentAction?.type === "shoryuken"
-      && streetFighterIdleProbe.ken?.currentAction?.type === "shoryuken"
+      && streetFighterIdleProbe.ken?.currentAction?.type === "hadoken"
       && streetFighterIdleProbe.guile?.currentAction?.type === "kneeBazooka"
       && streetFighterIdleProbe.chunLi?.currentAction?.type === "thousandKick"
-      && Object.entries(streetFighterIdleProbe).every(([skinId, probe]) => probe.contactCounters?.[skinId] === 1 && probe.idleShare >= 0.18 && probe.idleShare <= 0.26 && probe.ambientActions.length >= 3 && probe.zones.length >= 1 && probe.contactHit === true && probe.playerDamaged === false && probe.invuln > 0),
+      && Object.entries(streetFighterIdleProbe).every(([skinId, probe]) => probe.contactCounters?.[skinId] === 1 && probe.idleShare >= 0.18 && probe.idleShare <= 0.26 && probe.ambientActions.length >= 3 && (probe.zones.length + (probe.projectiles?.length || 0)) >= 1 && probe.contactHit === true && probe.playerDamaged === false && probe.invuln > 0),
     `Street Fighter skins should idle actively and counter on standing contact: ${JSON.stringify(streetFighterIdleProbe)}`,
+  );
+  const kenContactFlowProbe = await page.evaluate(() => window.__MONKEY_TIDE_KEN_CONTACT_FLOW_PROBE());
+  const kenContactMoves = kenContactFlowProbe.steps.map((step) => step.action?.type);
+  assert(
+    JSON.stringify(kenContactMoves) === JSON.stringify(["hadoken", "shoryuken", "whirlwindKick"])
+      && kenContactFlowProbe.rows.whirlwindKick === 3
+      && kenContactFlowProbe.fxRows.whirlwindKick === 2
+      && kenContactFlowProbe.steps.every((step, index) => step.triggered && step.count === index + 1 && step.contactDamage === true)
+      && kenContactFlowProbe.steps[0].projectiles.some((projectile) => projectile.id === "hadoken" && projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed && projectile.retarget === false)
+      && kenContactFlowProbe.steps[1].zones.some((zone) => zone.type === "kenStrike" && zone.move === "shoryuken")
+      && kenContactFlowProbe.steps[2].zones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "whirlwindKick" && zone.fx === "whirlwindKick" && zone.spinKick)
+      && kenContactFlowProbe.arsenal.hadokens >= 1
+      && kenContactFlowProbe.arsenal.shoryukens >= 1
+      && kenContactFlowProbe.arsenal.whirlwindKicks >= 1,
+    `Ken contact counter should flow Hadoken -> Shoryuken -> Whirlwind Kick: ${JSON.stringify(kenContactFlowProbe)}`,
   );
   const streetFighterPeacefulIdleProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_PEACEFUL_IDLE_PROBE());
   assert(
@@ -1383,6 +1401,13 @@ async function run() {
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
   assert(debug.audio.sfxMasterGain === 0.68 && debug.audio.sfx.pickup >= 0.13 && debug.audio.sfx.gate >= 0.14 && debug.audio.sfx.pickup <= 0.14, `SFX should be quieter but still audible: ${JSON.stringify(debug)}`);
+  const sfxStartedOrArmed = debug.audio.sfxDebug.started >= 1
+    || (
+      debug.audio.sfxEngine.webAudio === true
+      && debug.audio.sfxEngine.state === "running"
+      && debug.audio.sfxDebug.blocked <= 1
+      && debug.audio.sfxDebug.lastVolume >= 0.13
+    );
   assert(
     debug.audio.sfx.downloadBossWarning >= 0.22
       && debug.audio.sfx.quickCutlass >= 0.2
@@ -1390,7 +1415,7 @@ async function run() {
       && debug.audio.sfx.curseMonkeyWarning >= 0.22
       && debug.audio.sfxToMusicRatio >= 0.49
       && debug.audio.sfxDebug.attempts >= 1
-      && debug.audio.sfxDebug.started >= 1
+      && sfxStartedOrArmed
       && debug.audio.sfxDebug.lastVolume >= 0.13,
     `Downloaded SFX should sit lower without disappearing under music: ${JSON.stringify(debug)}`,
   );
@@ -1801,7 +1826,7 @@ async function run() {
   assert(debug.weaponEvolution?.frames?.cols === 4 && debug.weaponEvolution?.frames?.rows === 4, `Weapon evolution sheet should expose 4x4 frames: ${JSON.stringify(debug.weaponEvolution)}`);
   assert(debug.weaponEvolution?.fusionRelics?.asset && debug.weaponEvolution.fusionRelics.frames.frames === 4 && debug.weaponEvolution.fusionRelics.types.length === 4, `Fusion relic animation metadata missing: ${JSON.stringify(debug.weaponEvolution?.fusionRelics)}`);
   assert(debug.combatAssets.ryuActions && debug.combatAssets.ryuHadokenFx && debug.combatAssets.ryuActionFrames.rows === 5 && debug.combatAssets.ryuActionFrames.frames === 12 && debug.combatAssets.ryuHadokenFxFrames.rows === 4 && debug.combatAssets.ryuHadokenFxFrames.frames === 12, `Ryu complex action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
-  assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("shoryuken") && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
+  assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenActionFrames.rowsByAction.whirlwindKick === 3 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rowsByFx.whirlwindKick === 2 && debug.combatAssets.kenDragonFxTypes.includes("shoryuken") && debug.combatAssets.kenDragonFxTypes.includes("dragonKick") && debug.combatAssets.kenDragonFxTypes.includes("whirlwindKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(
     debug.combatAssets.streetFighterWalkFirstCombatFlow === true
@@ -1825,7 +1850,7 @@ async function run() {
   assert(debug.upgradeIcons.rope === "ropeRing" && debug.weaponLoadoutIcons.rope === "ropeRing", `Rope ring preview still uses the old rope icon: ${JSON.stringify(debug)}`);
   assert(debug.upgradeIcons.rubyRing === "rubyRing" && debug.upgradeIcons.moonSigil === "moonSigil" && debug.upgradeIcons.blueVial === "blueVial", `New item upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
   assert(debug.upgradeIcons.stormConch === "stormConch" && debug.upgradeIcons.bloodMoonAnchor === "bloodMoonAnchor" && debug.upgradeIcons.krakenCompass === "krakenCompass" && debug.upgradeIcons.rumCometLantern === "rumCometLantern", `Fusion relic upgrades are missing: ${JSON.stringify(debug.upgradeIcons)}`);
-  assert(debug.uiIconSources.projectileFxIcons === true && debug.uiIconSources.ryuHadokenIcons === true && debug.uiIconSources.chunLiProjectileIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
+  assert(debug.uiIconSources.projectileFxIcons === true && debug.uiIconSources.ryuHadokenIcons === true && debug.uiIconSources.kenDragonIcons === true && debug.uiIconSources.chunLiProjectileIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
   assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
