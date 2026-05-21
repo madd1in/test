@@ -532,6 +532,11 @@ async function run() {
       && Object.entries(streetFighterIdleProbe).every(([skinId, probe]) => probe.contactCounters?.[skinId] === 1 && probe.idleShare >= 0.18 && probe.idleShare <= 0.26 && probe.ambientActions.length >= 3 && probe.zones.length >= 1 && probe.contactHit === true && probe.playerDamaged === false && probe.invuln > 0),
     `Street Fighter skins should idle actively and counter on standing contact: ${JSON.stringify(streetFighterIdleProbe)}`,
   );
+  const streetFighterStarterProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_STARTER_KIT_PROBE());
+  assert(
+    Object.values(streetFighterStarterProbe).every((probe) => probe.moves.length === 1 && probe.moves[0] === probe.starter && probe.startupActions.length === 1 && probe.startupActions[0] === probe.starter && probe.allAmbientActions.length >= 3),
+    `Street Fighter starters should expose exactly one move before upgrades: ${JSON.stringify(streetFighterStarterProbe)}`,
+  );
   const fireballStageProbe = await page.evaluate(() => window.__MONKEY_TIDE_FIREBALL_STAGE_PROBE());
   const keepsHorizontal = (shots) => shots.every((projectile) => projectile && projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed);
   const hasSteppedSizes = (shots) => {
@@ -1771,8 +1776,8 @@ async function run() {
       &&
     debug.combatAssets.streetFighterIdleContactCounters === true
       &&
-    Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.ambientActions.length >= 3 && movement.sparseActionShare >= 0.18 && movement.sparseActionShare <= 0.26),
-    `Street Fighter basic movement should stay walk-first with active idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
+    Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.startupActions.length === 1 && movement.ambientActions.length >= 1 && movement.allAmbientActions.length >= 3 && movement.sparseActionShare >= 0.18 && movement.sparseActionShare <= 0.26),
+    `Street Fighter basic movement should stay walk-first with one starter and later idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
   );
   assert(debug.combatAssets.streetFighterBasicMovement.ryu.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.ken.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.guile.totalFrames === 8 && debug.combatAssets.streetFighterBasicMovement.chunLi.totalFrames === 12, `Street Fighter walking frame counts are wrong: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
