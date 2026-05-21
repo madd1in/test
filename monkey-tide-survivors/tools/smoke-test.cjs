@@ -523,6 +523,15 @@ async function run() {
       && chunLiActionProbe.iconStyleUsesProjectileSheet,
     `Chun Li should use Ki Kou Ken, Thousand Kick, Whirlwind Kick, and dedicated projectile frames: ${JSON.stringify(chunLiActionProbe)}`,
   );
+  const streetFighterIdleProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREET_FIGHTER_IDLE_PROBE());
+  assert(
+    streetFighterIdleProbe.ryu?.currentAction?.type === "shoryuken"
+      && streetFighterIdleProbe.ken?.currentAction?.type === "stepKick"
+      && streetFighterIdleProbe.guile?.currentAction?.type === "kneeBazooka"
+      && streetFighterIdleProbe.chunLi?.currentAction?.type === "thousandKick"
+      && Object.entries(streetFighterIdleProbe).every(([skinId, probe]) => probe.contactCounters?.[skinId] === 1 && probe.idleShare >= 0.18 && probe.idleShare <= 0.26 && probe.ambientActions.length >= 3 && probe.zones.length >= 1 && probe.contactHit === true && probe.playerDamaged === false && probe.invuln > 0),
+    `Street Fighter skins should idle actively and counter on standing contact: ${JSON.stringify(streetFighterIdleProbe)}`,
+  );
   const fireballStageProbe = await page.evaluate(() => window.__MONKEY_TIDE_FIREBALL_STAGE_PROBE());
   const keepsHorizontal = (shots) => shots.every((projectile) => projectile && projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed);
   const hasSteppedSizes = (shots) => {
@@ -1760,8 +1769,10 @@ async function run() {
   assert(
     debug.combatAssets.streetFighterWalkFirstCombatFlow === true
       &&
-    Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.ambientActions.length >= 2 && movement.sparseActionShare <= 0.05),
-    `Street Fighter basic movement should stay on walking with only sparse idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
+    debug.combatAssets.streetFighterIdleContactCounters === true
+      &&
+    Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.ambientActions.length >= 3 && movement.sparseActionShare >= 0.18 && movement.sparseActionShare <= 0.26),
+    `Street Fighter basic movement should stay walk-first with active idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
   );
   assert(debug.combatAssets.streetFighterBasicMovement.ryu.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.ken.totalFrames === 12 && debug.combatAssets.streetFighterBasicMovement.guile.totalFrames === 8 && debug.combatAssets.streetFighterBasicMovement.chunLi.totalFrames === 12, `Street Fighter walking frame counts are wrong: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`);
   assert(debug.combatAssets.threeHeadedMonkeyVolley === true, `Three-headed monkey should fire a three-shot curse volley: ${JSON.stringify(debug.combatAssets)}`);
