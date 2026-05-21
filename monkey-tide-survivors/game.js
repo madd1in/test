@@ -338,7 +338,7 @@ const KEN_ACTION = {
   rows: 5,
   frames: 12,
   fps: 18,
-  rowsByAction: { walk: 0, stepKick: 1, hadoken: 1, shoryuken: 2, dragonPunch: 2, tatsuKick: 3, dragonKick: 4 },
+  rowsByAction: { walk: 0, stepKick: 1, hadoken: 1, shoryuken: 2, dragonPunch: 2, tatsuKick: 3, whirlwindKick: 3, dragonKick: 4 },
 };
 const GUILE_ACTION = {
   w: 256,
@@ -360,7 +360,7 @@ const CHUN_LI_ACTION = {
 };
 const STREET_FIGHTER_BASIC_MOVEMENT = {
   ryu: { skinId: "ryu", base: "walk", ambient: ["hadoken", "focusStance", "shoryuken", "whirlwindKick"], ambientEvery: 2.8, ambientDuration: 0.58 },
-  ken: { skinId: "ken", base: "walk", ambient: ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "tatsuKick", "dragonKick"], ambientEvery: 2.25, ambientDuration: 0.54 },
+  ken: { skinId: "ken", base: "walk", ambient: ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "whirlwindKick", "dragonKick"], ambientEvery: 2.25, ambientDuration: 0.54 },
   guile: { skinId: "guile", base: "walk", ambient: ["sonicBoom", "kneeBazooka", "reversePunch", "flashKick"], ambientEvery: 2.65, ambientDuration: 0.54 },
   chunLi: { skinId: "chunLi", base: "walk", ambient: ["thousandKick", "kiKouKen", "whirlwindKick", "lightningKick"], ambientEvery: 2.35, ambientDuration: 0.52 },
 };
@@ -372,7 +372,7 @@ const STREET_FIGHTER_STARTER_MOVES = {
 };
 const STREET_FIGHTER_MOVE_UNLOCKS = {
   ryu: { hadoken: 1, focusStance: 2, shoryuken: 3, whirlwindKick: 6 },
-  ken: { stepKick: 1, hadoken: 2, shoryuken: 3, dragonPunch: 4, tatsuKick: 5, dragonKick: 6 },
+  ken: { stepKick: 1, hadoken: 2, shoryuken: 3, dragonPunch: 4, tatsuKick: 5, whirlwindKick: 5, dragonKick: 6 },
   guile: { sonicBoom: 1, kneeBazooka: 3, reversePunch: 5, flashKick: 6 },
   chunLi: { thousandKick: 1, kiKouKen: 3, whirlwindKick: 5, lightningKick: 6 },
 };
@@ -411,7 +411,7 @@ const FUSION_RELIC = { w: 256, h: 256, cols: 4, rows: 4, frames: 4, fps: 5.5 };
 const SIGNATURE_WEAPON_FX = { w: 256, h: 256, cols: 4, rows: 11, frames: 4, fps: 8.5 };
 const SONIC_BOOM_FX = { w: 256, h: 256, cols: 8, rows: 4, frames: 8, fps: 17 };
 const RYU_HADOKEN_FX = { w: 256, h: 256, cols: 12, rows: 4, frames: 12, fps: 18 };
-const KEN_DRAGON_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { stepKick: 0, shoryuken: 1, dragonPunch: 1, tatsuKick: 2, dragonKick: 2 } };
+const KEN_DRAGON_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { stepKick: 0, shoryuken: 1, dragonPunch: 1, tatsuKick: 2, whirlwindKick: 2, dragonKick: 2 } };
 const CHUN_LI_PROJECTILE_FX = { w: 256, h: 256, cols: 12, rows: 3, frames: 12, fps: 18, rowsByFx: { kiKouKen: 0, thousandKickArc: 1, whirlwindKickArc: 2 } };
 const XP_CRYSTAL_ANIM = { w: 256, h: 256, frames: 8, fps: 10.5 };
 const EXTRA_ENEMY = { w: 512, h: 512, cols: 4, rows: 2 };
@@ -910,6 +910,7 @@ const kenDragonFxMap = {
   shoryuken: { row: 1 },
   dragonPunch: { row: 1 },
   tatsuKick: { row: 2 },
+  whirlwindKick: { row: 2 },
   dragonKick: { row: 2 },
 };
 
@@ -1787,7 +1788,7 @@ function upgradePresentation(upgrade) {
       ...upgrade,
       name: "Dragon Rush Mix",
       icon: "shoryuken",
-      desc: "Levelt Kens Step-Kick-Start in Hadoken, Dragon Punch, Tatsu und Dragon Kick hinein.",
+      desc: "Levelt Kens Step-Kick-Start in Hadoken, Dragon Punch, Whirlwind Kick und Dragon Kick hinein.",
     };
   }
   if (upgrade.id === "cutlass" && isChunLiSkin()) {
@@ -1869,7 +1870,7 @@ function makeState() {
       readyMove: null,
     },
     ryuArsenal: { casts: 0, hadokens: 0, weaponHadokens: 0, shoryukens: 0, whirlwindKicks: 0 },
-    kenArsenal: { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 },
+    kenArsenal: { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, whirlwindKicks: 0, dragonKicks: 0 },
     guileArsenal: { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 },
     chunLiArsenal: { casts: 0, kiKouKens: 0, thousandKicks: 0, whirlwindKicks: 0, lightningKicks: 0 },
     coins: skillBonus.starterCoins,
@@ -3527,9 +3528,10 @@ function ensureRyuArsenal() {
 }
 
 function ensureKenArsenal() {
-  if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 };
+  if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, whirlwindKicks: 0, dragonKicks: 0 };
   if (state.kenArsenal.hadokens === undefined) state.kenArsenal.hadokens = 0;
   if (state.kenArsenal.shoryukens === undefined) state.kenArsenal.shoryukens = state.kenArsenal.dragonPunches || 0;
+  if (state.kenArsenal.whirlwindKicks === undefined) state.kenArsenal.whirlwindKicks = 0;
   return state.kenArsenal;
 }
 
@@ -3630,7 +3632,7 @@ function castSignatureMove(signature) {
     castKenComboMove(mainMove, level, angle, signature, { signatureCast: true });
     if (level >= 2 && mainMove !== "hadoken" && castIndex % 2 === 0) fireKenHadoken(level, angle, signature, { showPlayerAction: false, exactAngle: true, signatureCast: true });
     if (level >= 3 && mainMove !== "shoryuken" && castIndex % 2 === 1) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level, showPlayerAction: false });
-    if (level >= 5 && mainMove !== "tatsuKick" && castIndex % 5 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
+    if (level >= 5 && !["tatsuKick", "whirlwindKick"].includes(mainMove) && castIndex % 5 === 0) castKenWhirlwindKick(signature, angle, { showPlayerAction: false });
     state.signatureMove.casts += 1;
     state.signatureMove.last = signature.id;
     floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
@@ -3977,9 +3979,9 @@ function kenComboChoice(level, castIndex, signatureCast = false) {
   const safeLevel = Math.max(1, level || 1);
   const sequences = signatureCast
     ? safeLevel >= 6
-      ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "hadoken", "shoryuken", "tatsuKick", "dragonKick"]
+      ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "hadoken", "shoryuken", "whirlwindKick", "dragonKick"]
       : safeLevel >= 5
-        ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "tatsuKick"]
+        ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "whirlwindKick"]
         : safeLevel >= 4
           ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "stepKick"]
           : safeLevel >= 3
@@ -3988,9 +3990,9 @@ function kenComboChoice(level, castIndex, signatureCast = false) {
               ? ["stepKick", "hadoken", "stepKick", "hadoken"]
               : ["stepKick"]
     : safeLevel >= 6
-      ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "hadoken", "tatsuKick", "dragonKick", "shoryuken", "hadoken"]
+      ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "hadoken", "whirlwindKick", "dragonKick", "shoryuken", "hadoken"]
       : safeLevel >= 5
-        ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "tatsuKick", "hadoken"]
+        ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "whirlwindKick", "hadoken"]
         : safeLevel >= 4
           ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch"]
           : safeLevel >= 3
@@ -4006,9 +4008,10 @@ function castKenComboMove(move, level, angle, signature, options = {}) {
     fireKenHadoken(level, angle, signature, options);
     return "hadoken";
   }
-  if (move === "tatsuKick") {
-    castKenTatsuKick(signature, angle, options);
-    return "tatsuKick";
+  if (move === "tatsuKick" || move === "whirlwindKick") {
+    const isWhirlwind = move === "whirlwindKick";
+    castKenTatsuKick(signature, angle, isWhirlwind ? { ...options, move: "whirlwindKick", fx: "whirlwindKick" } : options);
+    return move;
   }
   if (move === "dragonKick") {
     castKenDragonKick(signature, angle, options);
@@ -4039,7 +4042,7 @@ function castKenShoryuken(level, fallbackAngle = 0) {
   if (level >= 2 && mainMove !== "hadoken" && castIndex % 4 === 0) fireKenHadoken(level, angle, signature, { showPlayerAction: false, exactAngle: true });
   if (level >= 3 && mainMove !== "shoryuken" && castIndex % 3 === 0) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level, showPlayerAction: false });
   if (level >= 5 && mainMove !== "dragonPunch" && castIndex % 6 === 0) castKenDragonPunch(signature, angle, { move: "dragonPunch", fx: "dragonPunch", level, showPlayerAction: false });
-  if (level >= 6 && mainMove !== "tatsuKick" && castIndex % 8 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
+  if (level >= 6 && !["tatsuKick", "whirlwindKick"].includes(mainMove) && castIndex % 8 === 0) castKenWhirlwindKick(signature, angle, { showPlayerAction: false });
 }
 
 function castKenStepKick(level, fallbackAngle = 0, options = {}) {
@@ -4099,11 +4102,14 @@ function castKenDragonPunch(signature, angle, options = {}) {
 function castKenTatsuKick(signature, angle, options = {}) {
   const p = state.player;
   const arsenal = ensureKenArsenal();
+  const move = options.move || "tatsuKick";
+  const fx = options.fx || move;
   arsenal.tatsuKicks += 1;
-  registerStreetFighterFlowMove("ken", "tatsuKick", options);
-  if (options.showPlayerAction !== false) triggerPlayerAction("tatsuKick", 0.76);
+  if (move === "whirlwindKick") arsenal.whirlwindKicks += 1;
+  registerStreetFighterFlowMove("ken", move, options);
+  if (options.showPlayerAction !== false) triggerPlayerAction(move, 0.76);
   const radius = 118 + Math.min(40, state.level * 4);
-  state.zones.push({ type: "kenWhirlwind", move: "tatsuKick", fx: "tatsuKick", x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.6 });
+  state.zones.push({ type: "kenWhirlwind", move, fx, x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.6 });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -4118,6 +4124,10 @@ function castKenTatsuKick(signature, angle, options = {}) {
   }
   shake(0.22);
   playSkinSound("dash", "dashWhooshFast", { cooldown: 330 });
+}
+
+function castKenWhirlwindKick(signature, angle, options = {}) {
+  castKenTatsuKick(signature, angle, { ...options, move: "whirlwindKick", fx: "whirlwindKick" });
 }
 
 function castKenDragonKick(signature, angle, options = {}) {
@@ -4334,10 +4344,15 @@ function triggerStreetFighterContactCounter(enemy, dx, dy, dist) {
     else if (streetFighterMoveUnlocked("ryu", "shoryuken", level)) castRyuShoryuken(signature, angle);
     else fireRyuHadoken(level, angle, { signature, exactAngle: true, signatureCast: true });
   } else if (skinId === "ken") {
-    if (streetFighterMoveUnlocked("ken", "shoryuken", level) && count % 2 === 1) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level });
-    else if (streetFighterMoveUnlocked("ken", "hadoken", level) && count % 3 === 0) fireKenHadoken(level, angle, signature, { exactAngle: true, signatureCast: true });
-    else if (streetFighterMoveUnlocked("ken", "tatsuKick", level) && count % 4 === 0) castKenTatsuKick(signature, angle);
-    else if (streetFighterMoveUnlocked("ken", "dragonPunch", level)) castKenDragonPunch(signature, angle, { move: "dragonPunch", fx: "dragonPunch", level });
+    const flowReady = streetFighterMoveUnlocked("ken", "hadoken", level)
+      && streetFighterMoveUnlocked("ken", "shoryuken", level)
+      && streetFighterMoveUnlocked("ken", "whirlwindKick", level);
+    const flowMove = flowReady ? ["hadoken", "shoryuken", "whirlwindKick"][positiveModulo(count - 1, 3)] : null;
+    if (flowMove === "hadoken") fireKenHadoken(level, angle, signature, { exactAngle: true, signatureCast: true });
+    else if (flowMove === "shoryuken") castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level });
+    else if (flowMove === "whirlwindKick") castKenWhirlwindKick(signature, angle);
+    else if (streetFighterMoveUnlocked("ken", "shoryuken", level)) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level });
+    else if (streetFighterMoveUnlocked("ken", "hadoken", level)) fireKenHadoken(level, angle, signature, { exactAngle: true, signatureCast: true });
     else castKenStepKick(level, angle, { exactAngle: true, followups: false, signature });
   } else if (skinId === "guile") {
     if (streetFighterMoveUnlocked("guile", "flashKick", level) && count % 3 === 0) castGuileFlashKick(level);
@@ -6501,7 +6516,7 @@ function drawPlayer() {
     const sx = frame * KEN_ACTION.w;
     const sy = row * KEN_ACTION.h;
     const bob = action ? 0 : moving ? 0 : Math.sin(state.elapsed * 3.2) * 0.9;
-    const actionScale = action?.type === "dragonKick" ? 1.2 : action?.type === "shoryuken" || action?.type === "dragonPunch" || action?.type === "tatsuKick" ? 1.14 : action ? 1.08 : 1;
+    const actionScale = action?.type === "dragonKick" ? 1.2 : action?.type === "shoryuken" || action?.type === "dragonPunch" || action?.type === "tatsuKick" || action?.type === "whirlwindKick" ? 1.14 : action ? 1.08 : 1;
     const h = skin.animH * actionScale;
     const w = h;
     ctx.drawImage(images.kenActions, sx, sy, KEN_ACTION.w, KEN_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 29) + bob, w, h);
@@ -8203,7 +8218,7 @@ window.__MONKEY_TIDE_KEN_ACTION_PROBE = () => {
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
     currentAction: state.playerAction ? { ...state.playerAction, row: kenActionRow(state.playerAction.type), frame: kenActionFrame(state.playerAction) } : null,
     enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
-    iconStyleUsesDragonSheet: ["shoryuken", "dragonKick", "dragonPunch", "stepKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
+    iconStyleUsesDragonSheet: ["shoryuken", "dragonKick", "dragonPunch", "stepKick", "whirlwindKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
   };
   state = savedState;
   selectedSkin = savedSkin;
@@ -8343,6 +8358,7 @@ window.__MONKEY_TIDE_STREET_FIGHTER_IDLE_PROBE = () => {
       idleShare: basicMovementSummary(config, profile).sparseActionShare,
       ambientActions: [...(profile.ambient || [])],
       zones: state.zones.filter((zone) => ["ryuStrike", "ryuWhirlwind", "kenStrike", "kenWhirlwind", "guileStrike", "guileFlashKick", "chunLiKick", "chunLiWhirlwind"].includes(zone.type)).map((zone) => ({ type: zone.type, move: zone.move, spinKick: !!zone.spinKick })),
+      projectiles: state.projectiles.filter((projectile) => ["hadoken", "sonicBoom", "kiKouKen"].includes(projectile.signatureId)).map((projectile) => ({ id: projectile.signatureId, vx: Math.round(projectile.vx), vy: Math.round(projectile.vy) })),
       damagedEnemies: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
       contactHit: state.killCount > killsBefore || state.enemies.some((enemy) => enemy.hp < enemy.maxHp),
       playerDamaged: p.hp < hpBefore,
@@ -8355,6 +8371,87 @@ window.__MONKEY_TIDE_STREET_FIGHTER_IDLE_PROBE = () => {
   renderSkinPicker();
   render();
   return results;
+};
+window.__MONKEY_TIDE_KEN_CONTACT_FLOW_PROBE = () => {
+  const savedState = state;
+  const savedSkin = selectedSkin;
+  const savedMuted = muted;
+  selectedSkin = "ken";
+  state = makeState();
+  state.phase = "playing";
+  muted = true;
+  state.weapons.cutlass.level = 7;
+  const p = state.player;
+  p.moveX = 0;
+  p.moveY = 0;
+  p.dash = 0;
+  const idle = ensureStreetFighterIdleState();
+  const steps = [];
+  for (let i = 0; i < 3; i += 1) {
+    idle.contactCooldown = 0;
+    const beforeZones = state.zones.length;
+    const beforeProjectiles = state.projectiles.length;
+    const type = enemyType("crab");
+    const enemy = {
+      id: `ken-contact-probe-${i}`,
+      type,
+      x: p.x + 8 + i * 3,
+      y: p.y,
+      hp: type.hp,
+      maxHp: type.hp,
+      r: type.radius * ENEMY_TUNING.hitboxScale,
+      speed: 0,
+      damage: type.damage,
+      row: type.row,
+      frameOffset: 0,
+      hit: 0,
+      boss: false,
+      shootTimer: 99,
+      actionPulse: 0,
+      actionKind: null,
+    };
+    state.enemies.push(enemy);
+    const dx = p.x - enemy.x;
+    const dy = p.y - enemy.y;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const hpBefore = enemy.hp;
+    const triggered = triggerStreetFighterContactCounter(enemy, dx, dy, distance);
+    const zones = state.zones.slice(beforeZones).filter((zone) => ["kenStrike", "kenWhirlwind"].includes(zone.type)).map((zone) => ({
+      type: zone.type,
+      move: zone.move,
+      fx: zone.fx,
+      spinKick: !!zone.spinKick,
+      radius: zone.radius,
+    }));
+    const projectiles = state.projectiles.slice(beforeProjectiles).filter((projectile) => projectile.signatureId === "hadoken").map((projectile) => ({
+      id: projectile.signatureId,
+      vx: Math.round(projectile.vx),
+      vy: Math.round(projectile.vy),
+      speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+      retarget: projectile.retarget,
+    }));
+    steps.push({
+      triggered,
+      count: idle.contactCounters.ken,
+      action: state.playerAction ? { ...state.playerAction, row: kenActionRow(state.playerAction.type), frame: kenActionFrame(state.playerAction) } : null,
+      zones,
+      projectiles,
+      contactDamage: enemy.hp < hpBefore,
+    });
+  }
+  const result = {
+    rows: Object.fromEntries(Object.keys(KEN_ACTION.rowsByAction).map((action) => [action, kenActionRow(action)])),
+    fxRows: Object.fromEntries(Object.keys(KEN_DRAGON_FX.rowsByFx).map((fx) => [fx, KEN_DRAGON_FX.rowsByFx[fx]])),
+    steps,
+    arsenal: { ...ensureKenArsenal() },
+    contactCounters: { ...idle.contactCounters },
+  };
+  state = savedState;
+  selectedSkin = savedSkin;
+  muted = savedMuted;
+  renderSkinPicker();
+  render();
+  return result;
 };
 window.__MONKEY_TIDE_STREET_FIGHTER_PEACEFUL_IDLE_PROBE = () => {
   const savedState = state;
@@ -8805,7 +8902,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
   uiIconSources: {
     projectileFxIcons: ["coconutBoomerang", "ropeRing"].every((icon) => iconStyle(icon).includes(imageSources.projectileFx)),
     ryuHadokenIcons: ["hadoken", "hadoken2", "hadoken3", "hadoken4"].every((icon) => iconStyle(icon).includes(imageSources.ryuHadokenFx)),
-    kenDragonIcons: ["shoryuken", "dragonKick", "dragonPunch", "stepKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
+    kenDragonIcons: ["shoryuken", "dragonKick", "dragonPunch", "stepKick", "whirlwindKick"].every((icon) => iconStyle(icon).includes(imageSources.kenDragonFx)),
     chunLiProjectileIcons: ["kiKouKen", "thousandKickArc", "whirlwindKickArc"].every((icon) => iconStyle(icon).includes(imageSources.chunLiProjectiles)),
   },
   balance: { ...BALANCE },
