@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Monkey Tide Survivors</title>
-    <link rel="stylesheet" href="style.css?v=signature-roguelite-v1">
+    <link rel="stylesheet" href="style.css?v=momentum-polish-v1">
   </head>
   <body>
     <main id="app" aria-label="Monkey Tide Survivors">
@@ -16,19 +16,24 @@
           <div class="bar-frame"><div id="hpBar" class="bar hp"></div></div>
           <span id="hpText" class="value">100 / 100</span>
         </div>
-        <div class="hud-card compact">
+        <div class="hud-card compact time-card">
           <span class="label">Zeit</span>
           <span id="timeText" class="value">00:00</span>
         </div>
-        <div class="hud-card compact">
+        <div class="hud-card compact level-card">
           <span class="label">Level</span>
           <span id="levelText" class="value">1</span>
         </div>
-        <div class="hud-card compact">
+        <div id="momentumCard" class="hud-card compact momentum-card">
+          <span class="label">Momentum</span>
+          <span id="momentumText" class="value">0x</span>
+          <span id="momentumDetail" class="momentum-detail">Schatz 18</span>
+        </div>
+        <div class="hud-card compact coin-card">
           <span class="label">Beute</span>
           <span id="coinText" class="value">0</span>
         </div>
-        <div class="hud-card grow">
+        <div class="hud-card grow xp-card">
           <span class="label">Erfahrung</span>
           <div class="bar-frame"><div id="xpBar" class="bar xp"></div></div>
         </div>
@@ -84,6 +89,6 @@
         <button id="dashButton" class="dash-button" type="button" title="Dash">DASH</button>
       </div>
     </main>
-    <script src="game.js?v=platformer-enemies-slash-v1"></script>
+    <script src="game.js?v=momentum-polish-v1"></script>
   </body>
 </html>
