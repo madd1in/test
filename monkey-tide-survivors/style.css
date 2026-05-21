@@ -785,6 +785,20 @@ button:disabled {
   animation: upgradePanelIn 240ms cubic-bezier(0.18, 0.86, 0.24, 1.12) both;
 }
 
+.upgrade-panel::before {
+  position: absolute;
+  inset: 13px;
+  border-radius: 6px;
+  background:
+    linear-gradient(100deg, transparent 10%, rgba(255, 231, 139, 0.14) 22%, transparent 35%),
+    repeating-linear-gradient(126deg, transparent 0 32px, rgba(54, 190, 162, 0.05) 33px 35px, transparent 36px 70px);
+  content: "";
+  mix-blend-mode: screen;
+  opacity: 0.56;
+  pointer-events: none;
+  animation: panelFoil 5.8s ease-in-out infinite;
+}
+
 .upgrade-panel .eyebrow {
   color: rgba(255, 232, 162, 0.88);
   text-shadow: 0 2px 0 rgba(42, 16, 4, 0.82), 0 0 14px rgba(54, 190, 162, 0.24);
@@ -797,6 +811,7 @@ button:disabled {
     0 3px 0 #4a240b,
     0 7px 0 rgba(88, 39, 8, 0.28),
     0 0 22px rgba(255, 216, 108, 0.26);
+  animation: rewardTitleGlow 2.6s ease-in-out infinite alternate;
 }
 
 .upgrade-grid {
@@ -890,6 +905,10 @@ button:disabled {
     0 22px 38px rgba(21, 8, 2, 0.32),
     0 0 28px rgba(54, 190, 162, 0.16);
   transform: translateY(-5px) scale(1.015);
+  animation:
+    upgradeCardIn 310ms cubic-bezier(0.18, 0.9, 0.22, 1.1) backwards,
+    selectedCardBreath 1.9s ease-in-out infinite alternate;
+  animation-delay: calc(var(--choice-index, 0) * 68ms + 70ms), 340ms;
 }
 
 .upgrade-card.selected::before {
@@ -908,6 +927,7 @@ button:disabled {
     linear-gradient(180deg, transparent, rgba(231, 85, 63, 0.1));
   opacity: 0.52;
   transform: skewY(-2deg);
+  animation: auraDrift 3.6s ease-in-out infinite alternate;
 }
 
 .upgrade-hotkey {
@@ -925,6 +945,10 @@ button:disabled {
   font-size: 0.7rem;
   font-weight: 900;
   text-shadow: 0 1px 0 rgba(32, 12, 2, 0.7);
+}
+
+.upgrade-card.selected .upgrade-hotkey {
+  animation: hotkeyGleam 1.45s ease-in-out infinite alternate;
 }
 
 .upgrade-icon-wrap {
@@ -953,6 +977,10 @@ button:disabled {
 
 .upgrade-card.selected .upgrade-icon-wrap::before {
   animation: iconCompass 2.8s linear infinite;
+}
+
+.upgrade-card.selected .upgrade-icon-wrap {
+  animation: iconLift 1.7s ease-in-out infinite alternate;
 }
 
 .upgrade-icon {
@@ -1016,6 +1044,59 @@ button:disabled {
   }
 }
 
+@keyframes panelFoil {
+  0%,
+  100% {
+    opacity: 0.34;
+    transform: translateX(-1.5%);
+  }
+
+  48% {
+    opacity: 0.68;
+    transform: translateX(1.5%);
+  }
+}
+
+@keyframes rewardTitleGlow {
+  from {
+    filter: saturate(1) brightness(1);
+  }
+
+  to {
+    filter: saturate(1.18) brightness(1.08);
+  }
+}
+
+@keyframes selectedCardBreath {
+  from {
+    box-shadow:
+      0 0 0 3px rgba(240, 196, 93, 0.2),
+      0 9px 0 rgba(91, 40, 10, 0.25),
+      0 22px 38px rgba(21, 8, 2, 0.32),
+      0 0 24px rgba(54, 190, 162, 0.12);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 3px rgba(240, 196, 93, 0.34),
+      0 9px 0 rgba(91, 40, 10, 0.25),
+      0 24px 42px rgba(21, 8, 2, 0.36),
+      0 0 36px rgba(54, 190, 162, 0.24);
+  }
+}
+
+@keyframes auraDrift {
+  from {
+    opacity: 0.36;
+    transform: skewY(-2deg) translateX(-3px);
+  }
+
+  to {
+    opacity: 0.68;
+    transform: skewY(-2deg) translateX(3px);
+  }
+}
+
 @keyframes relicCurrent {
   from {
     transform: translateX(-8%);
@@ -1044,6 +1125,28 @@ button:disabled {
   }
 }
 
+@keyframes iconLift {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes hotkeyGleam {
+  from {
+    background: rgba(53, 24, 7, 0.56);
+    color: #ffe7aa;
+  }
+
+  to {
+    background: rgba(242, 182, 73, 0.82);
+    color: #3a200c;
+  }
+}
+
 @keyframes pipPulse {
   from {
     filter: brightness(1);
@@ -1056,9 +1159,15 @@ button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .level-overlay::before,
+  .upgrade-panel::before,
+  .upgrade-panel h2,
   .upgrade-panel,
   .upgrade-card,
   .upgrade-card.selected::before,
+  .upgrade-card.selected,
+  .upgrade-aura,
+  .upgrade-card.selected .upgrade-hotkey,
+  .upgrade-card.selected .upgrade-icon-wrap,
   .upgrade-card.selected .upgrade-icon-wrap::before,
   .upgrade-card.selected .progress-pip.filled {
     animation: none;

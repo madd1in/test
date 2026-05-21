@@ -559,12 +559,12 @@ const playerSkinMap = {
     sfx: { confirm: "pirateUiClick", slash: "quickCutlass", dash: "dashWhooshFast", hurt: "downloadHit", hit: "seaMonsterPop", pickup: "doubloonPing", powerup: "treasureMapMagic", warning: "curseMonkeyWarning", bossDown: "curseMonkeyBossDown" },
     trait: {
       id: "dragonRush",
-      name: "Shoryuken Rush",
-      desc: "Startet mit Shoryuken; Step Kick, Tatsu und Dragon Kick chainen sichtbar nach.",
+      name: "Dragon Rush",
+      desc: "Startet mit einer Step-Kick/Shoryuken-Rotation; Tatsu und Dragon Kick mischen spaeter sichtbar mit.",
       speed: 14,
       dashCooldown: -0.07,
       damage: 0.035,
-      signature: { id: "shoryuken", label: "Shoryuken", icon: "shoryuken", pattern: "kenShoryuken", cooldown: 3.15, damage: 38, radius: 118, color: "#ffbf4f" },
+      signature: { id: "shoryuken", label: "Dragon Rush", icon: "shoryuken", pattern: "kenShoryuken", cooldown: 3.15, damage: 38, radius: 118, color: "#ffbf4f" },
     },
   },
   guile: {
@@ -1682,9 +1682,9 @@ function weaponPresentation(id, skinId = state?.player?.skin || selectedSkin) {
   if (id === "cutlass" && isKenSkin(skinId)) {
     return {
       id,
-      name: "Shoryuken",
+      name: "Dragon Rush",
       icon: "shoryuken",
-      desc: "Ken startet mit Shoryuken; hoehere Level blenden Step Kick, Tatsu und Dragon Kick sichtbar in die Combo.",
+      desc: "Ken rotiert Step Kick, Shoryuken, Tatsu und Dragon Kick statt nur einen Uppercut zu loopen.",
     };
   }
   if (id === "cutlass" && isChunLiSkin(skinId)) {
@@ -1719,9 +1719,9 @@ function upgradePresentation(upgrade) {
   if (upgrade.id === "cutlass" && isKenSkin()) {
     return {
       ...upgrade,
-      name: "Shoryuken Loop",
+      name: "Dragon Rush Mix",
       icon: "shoryuken",
-      desc: "Levelt Kens Shoryuken als Startwaffe; Step Kick, Tatsu und Dragon Kick werden zu haeufigen Follow-ups.",
+      desc: "Levelt Kens Dragon Rush; weniger Uppercut-Spam, mehr Step Kick, Tatsu und Dragon Kick im Wechsel.",
     };
   }
   if (upgrade.id === "cutlass" && isChunLiSkin()) {
@@ -3457,10 +3457,11 @@ function castSignatureMove(signature) {
     const arsenal = ensureKenArsenal();
     arsenal.casts += 1;
     const castIndex = arsenal.casts;
-    if (castIndex % 2 === 1) castKenStepKick(Math.max(1, state.weapons.cutlass.level || 1), angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
-    if (castIndex % 2 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
-    if (castIndex % 3 === 0) castKenDragonKick(signature, angle, { showPlayerAction: false });
-    castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", signatureCast: true });
+    const level = Math.max(1, state.weapons.cutlass.level || 1);
+    const mainMove = kenComboChoice(level, castIndex, true);
+    castKenComboMove(mainMove, level, angle, signature, { signatureCast: true });
+    if (level >= 3 && mainMove !== "stepKick" && castIndex % 2 === 1) castKenStepKick(level, angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
+    if (level >= 5 && mainMove !== "tatsuKick" && castIndex % 3 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
     state.signatureMove.casts += 1;
     state.signatureMove.last = signature.id;
     floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
@@ -3716,17 +3717,53 @@ function castRyuWhirlwindKick(signature, angle) {
   playSkinSound("dash", "dashWhooshFast", { cooldown: 360 });
 }
 
+function kenComboChoice(level, castIndex, signatureCast = false) {
+  const safeLevel = Math.max(1, level || 1);
+  const sequences = signatureCast
+    ? safeLevel >= 6
+      ? ["stepKick", "tatsuKick", "dragonKick", "shoryuken", "stepKick", "tatsuKick"]
+      : safeLevel >= 3
+        ? ["stepKick", "shoryuken", "tatsuKick", "stepKick"]
+        : ["stepKick", "shoryuken", "stepKick"]
+    : safeLevel >= 6
+      ? ["stepKick", "tatsuKick", "shoryuken", "stepKick", "dragonKick", "tatsuKick", "stepKick", "shoryuken"]
+      : safeLevel >= 4
+        ? ["stepKick", "shoryuken", "tatsuKick", "stepKick", "dragonKick", "shoryuken"]
+        : safeLevel >= 2
+          ? ["stepKick", "shoryuken", "stepKick", "tatsuKick"]
+          : ["stepKick", "shoryuken", "stepKick"];
+  return sequences[positiveModulo((castIndex || 1) - 1, sequences.length)] || "stepKick";
+}
+
+function castKenComboMove(move, level, angle, signature, options = {}) {
+  if (move === "tatsuKick") {
+    castKenTatsuKick(signature, angle, options);
+    return "tatsuKick";
+  }
+  if (move === "dragonKick") {
+    castKenDragonKick(signature, angle, options);
+    return "dragonKick";
+  }
+  if (move === "shoryuken") {
+    castKenDragonPunch(signature, angle, { ...options, move: "shoryuken", fx: "shoryuken", level });
+    return "shoryuken";
+  }
+  castKenStepKick(level, angle, { ...options, followups: false, exactAngle: true, signature });
+  return "stepKick";
+}
+
 function castKenShoryuken(level, fallbackAngle = 0) {
   const p = state.player;
   const target = nearestEnemy();
   const angle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
   const signature = state.characterTrait?.signature || { id: "shoryuken", damage: 38, radius: 118 };
   const arsenal = ensureKenArsenal();
-  const nextPunch = (arsenal.dragonPunches || 0) + 1;
-  if (level >= 2 && nextPunch % 2 === 0) castKenStepKick(level, angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
-  if (level >= 4 && nextPunch % 3 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
-  if (level >= 5 && nextPunch % 4 === 0) castKenDragonKick(signature, angle, { showPlayerAction: false });
-  castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level });
+  arsenal.casts += 1;
+  const castIndex = arsenal.casts;
+  const mainMove = kenComboChoice(level, castIndex, false);
+  castKenComboMove(mainMove, level, angle, signature);
+  if (level >= 5 && mainMove !== "shoryuken" && castIndex % 6 === 0) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level, showPlayerAction: false });
+  if (level >= 6 && mainMove !== "tatsuKick" && castIndex % 8 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
 }
 
 function castKenStepKick(level, fallbackAngle = 0, options = {}) {
