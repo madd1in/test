@@ -1853,6 +1853,7 @@ async function run() {
   assert(debug.uiIconSources.projectileFxIcons === true && debug.uiIconSources.ryuHadokenIcons === true && debug.uiIconSources.kenDragonIcons === true && debug.uiIconSources.chunLiProjectileIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
+  assert(debug.engagement?.momentumHud?.text && debug.engagement?.momentumHud?.detail && debug.engagement?.momentumMultiplier?.speed === 1, `Momentum HUD/debug state missing: ${JSON.stringify(debug.engagement)}`);
   assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("beachHut") && debug.obstacles.blockingPropTypes.includes("boatWreck"), `Huts and wrecks are not blocking: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("hedgeCluster") || debug.obstacles.blockingPropTypes.includes("palmHedge"), `Hedge blockers are missing: ${JSON.stringify(debug.obstacles)}`);
@@ -1870,6 +1871,18 @@ async function run() {
 
   const streakProbe = await page.evaluate(() => window.__MONKEY_TIDE_STREAK_CACHE_PROBE());
   assert(streakProbe.cache?.hasFade && !streakProbe.cache.inSightline && streakProbe.cache.distance >= 900, `Streak cache spawned inside the visible playfield: ${JSON.stringify(streakProbe)}`);
+  const momentumProbe = await page.evaluate(() => window.__MONKEY_TIDE_MOMENTUM_PROBE());
+  assert(
+    momentumProbe.hud.text
+      && momentumProbe.hud.detail.includes("Testtempo")
+      && momentumProbe.hud.hot
+      && momentumProbe.hud.surging
+      && momentumProbe.speed > 1
+      && momentumProbe.damage > 1
+      && momentumProbe.cooldown < 1
+      && momentumProbe.debug.engagement.momentumHud.surgeActive,
+    `Momentum surge HUD/buff loop did not activate: ${JSON.stringify(momentumProbe)}`,
+  );
 
   const monkeyProbe = await page.evaluate(() => window.__MONKEY_TIDE_THREE_MONKEY_PROBE());
   assert(monkeyProbe.assetLoaded && monkeyProbe.boss?.id === "threeHeadedMonkey", `Three-headed monkey boss did not spawn: ${JSON.stringify(monkeyProbe)}`);
@@ -1941,6 +1954,7 @@ async function run() {
         hasAura: !!card.querySelector(".upgrade-aura"),
         hasHotkey: !!card.querySelector(".upgrade-hotkey"),
         hasIconWrap: !!card.querySelector(".upgrade-icon-wrap .upgrade-icon"),
+        hasTag: !!card.querySelector(".upgrade-tag")?.textContent.trim(),
         animationName: style.animationName,
         auraAnimationName: getComputedStyle(card.querySelector(".upgrade-aura")).animationName,
         transitionDuration: style.transitionDuration,
@@ -1959,7 +1973,7 @@ async function run() {
   assert(upgradeProbe.before.audio.activeTrack && Math.max(upgradeProbe.before.audio.mainVolume, upgradeProbe.before.audio.rushVolume) > 0, `BGM should keep playing while choosing an upgrade: ${JSON.stringify(upgradeProbe.before.audio)}`);
   assert(
     upgradeProbe.menuCards.length >= 3
-      && upgradeProbe.menuCards.every((card) => card.kind && card.hasAura && card.hasHotkey && card.hasIconWrap && card.animationName.includes("upgradeCardIn") && card.auraAnimationName.includes("auraDrift") && card.transitionDuration !== "0s")
+      && upgradeProbe.menuCards.every((card) => card.kind && card.hasAura && card.hasHotkey && card.hasIconWrap && card.hasTag && card.animationName.includes("upgradeCardIn") && card.auraAnimationName.includes("auraDrift") && card.transitionDuration !== "0s")
       && upgradeProbe.panelAnimation.includes("upgradePanelIn")
       && upgradeProbe.panelFoilAnimation.includes("panelFoil")
       && upgradeProbe.selectedAnimation.includes("selectedCardBreath")

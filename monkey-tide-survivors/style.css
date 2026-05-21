@@ -80,7 +80,7 @@ button:disabled {
   right: max(168px, calc(env(safe-area-inset-right) + 168px));
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(180px, 1.25fr) repeat(3, minmax(78px, 0.45fr)) minmax(160px, 1fr);
+  grid-template-columns: minmax(180px, 1.25fr) repeat(4, minmax(78px, 0.45fr)) minmax(160px, 1fr);
   gap: 10px;
   pointer-events: none;
 }
@@ -114,6 +114,57 @@ button:disabled {
 
 .hud-card.compact {
   text-align: center;
+}
+
+.momentum-card {
+  position: relative;
+  overflow: hidden;
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(83, 255, 229, 0.2), transparent 58%),
+    linear-gradient(180deg, rgba(255, 236, 169, 0.52), rgba(139, 73, 23, 0.16)),
+    var(--ui-scrap);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-blend-mode: screen, multiply, normal;
+}
+
+.momentum-card::after {
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(255, 242, 199, 0.2);
+  border-radius: 6px;
+  content: "";
+  pointer-events: none;
+}
+
+.momentum-card.hot {
+  border-color: rgba(54, 190, 162, 0.72);
+  filter: saturate(1.08);
+}
+
+.momentum-card.surging {
+  box-shadow:
+    0 4px 0 rgba(66, 32, 9, 0.32),
+    0 13px 26px rgba(45, 22, 4, 0.28),
+    0 0 20px rgba(83, 255, 229, 0.24),
+    inset 0 0 0 1px rgba(255, 234, 170, 0.16);
+  animation: momentumCardPulse 0.72s ease-out;
+}
+
+.momentum-card .value {
+  white-space: nowrap;
+  font-size: clamp(0.92rem, 1.35vw, 1.12rem);
+}
+
+.momentum-detail {
+  display: block;
+  margin-top: 3px;
+  color: rgba(58, 32, 12, 0.76);
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 244, 199, 0.44);
+  white-space: nowrap;
 }
 
 .label,
@@ -827,7 +878,7 @@ button:disabled {
   overflow: hidden;
   display: grid;
   min-height: 230px;
-  grid-template-rows: 92px auto auto auto 1fr;
+  grid-template-rows: 92px auto auto auto auto 1fr;
   gap: 9px;
   padding: 14px 14px 16px;
   border: 2px solid rgba(72, 38, 12, 0.58);
@@ -1007,6 +1058,27 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.upgrade-tag {
+  justify-self: start;
+  max-width: 100%;
+  padding: 3px 8px 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 232, 162, 0.48);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(54, 190, 162, 0.24), rgba(240, 196, 93, 0.22)),
+    rgba(52, 24, 7, 0.2);
+  color: #3a200c;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 246, 207, 0.22);
+}
+
 .upgrade-desc {
   color: rgba(58, 32, 12, 0.76);
   font-size: 0.92rem;
@@ -1157,7 +1229,18 @@ button:disabled {
   }
 }
 
+@keyframes momentumCardPulse {
+  from {
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .momentum-card.surging,
   .level-overlay::before,
   .upgrade-panel::before,
   .upgrade-panel h2,
@@ -1264,7 +1347,7 @@ button:disabled {
     top: max(8px, env(safe-area-inset-top));
     left: max(8px, env(safe-area-inset-left));
     right: max(144px, calc(env(safe-area-inset-right) + 144px));
-    grid-template-columns: minmax(118px, 1fr) 54px;
+    grid-template-columns: minmax(118px, 1fr) 76px;
     gap: 6px;
   }
 
@@ -1290,10 +1373,19 @@ button:disabled {
     margin-top: 4px;
   }
 
-  .hud-card.compact:nth-of-type(2),
-  .hud-card.compact:nth-of-type(4),
-  .hud-card.grow {
+  .time-card,
+  .level-card,
+  .coin-card,
+  .xp-card {
     display: none;
+  }
+
+  .momentum-card .value {
+    font-size: 0.82rem;
+  }
+
+  .momentum-detail {
+    font-size: 0.52rem;
   }
 
   .corner-controls {
@@ -1493,20 +1585,21 @@ button:disabled {
     top: max(8px, env(safe-area-inset-top));
     left: max(8px, env(safe-area-inset-left));
     right: auto;
-    width: min(340px, calc(100vw - 158px));
-    grid-template-columns: minmax(130px, 1fr) 56px;
+    width: min(352px, calc(100vw - 158px));
+    grid-template-columns: minmax(124px, 1fr) 70px;
     gap: 6px;
   }
 
   .hud-card {
-    min-height: 38px;
-    padding: 5px 7px;
+    min-height: 34px;
+    padding: 4px 6px;
     border-width: 1px;
   }
 
-  .hud-card.compact:nth-of-type(2),
-  .hud-card.compact:nth-of-type(4),
-  .hud-card.grow {
+  .time-card,
+  .level-card,
+  .coin-card,
+  .xp-card {
     display: none;
   }
 
@@ -1516,8 +1609,12 @@ button:disabled {
   }
 
   .value {
-    margin-top: 3px;
-    font-size: 0.92rem;
+    margin-top: 2px;
+    font-size: 0.86rem;
+  }
+
+  .momentum-detail {
+    display: none;
   }
 
   .bar-frame {
@@ -1644,7 +1741,7 @@ button:disabled {
     top: max(8px, env(safe-area-inset-top));
     left: max(8px, env(safe-area-inset-left));
     right: max(144px, calc(env(safe-area-inset-right) + 144px));
-    grid-template-columns: minmax(118px, 1fr) 54px;
+    grid-template-columns: minmax(118px, 1fr) 76px;
   }
 
   .corner-controls {

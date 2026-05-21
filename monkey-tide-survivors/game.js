@@ -31,6 +31,9 @@ const ui = {
   xpBar: document.getElementById("xpBar"),
   timeText: document.getElementById("timeText"),
   levelText: document.getElementById("levelText"),
+  momentumCard: document.getElementById("momentumCard"),
+  momentumText: document.getElementById("momentumText"),
+  momentumDetail: document.getElementById("momentumDetail"),
   coinText: document.getElementById("coinText"),
   upgradeChoices: document.getElementById("upgradeChoices"),
   loadingText: document.getElementById("loadingText"),
@@ -389,6 +392,14 @@ const STREET_FIGHTER_EX_TUNING = {
   damage: 1.24,
   life: 0.18,
   pierce: 1,
+};
+const MOMENTUM_SURGE_TUNING = {
+  duration: 5.2,
+  exDuration: 4,
+  maxStacks: 3,
+  speed: 0.035,
+  damage: 0.045,
+  cooldown: 0.035,
 };
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
@@ -1854,7 +1865,8 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, momentumSurges: 0, unlocked: [] },
+    momentum: { timer: 0, duration: 0, stacks: 0, pulse: 0, label: "", surges: 0 },
     fusionMoments: { seen: new Set(), count: 0 },
     omenShards: { count: 0, nextReward: 3, boons: 0 },
     powerupDropCooldown: 0,
@@ -3223,6 +3235,7 @@ function update(dt) {
     unlockAchievements();
   }
   state.warningTimer = Math.max(0, state.warningTimer - dt);
+  updateMomentumSurge(dt);
   updatePlayerAction(dt);
   updatePlayer(dt);
   ensurePropChunks();
@@ -3561,10 +3574,113 @@ function streetFighterFlowSkin(skinId = streetFighterSkinId()) {
   return STREET_FIGHTER_FLOW_SKINS.includes(skinId) ? skinId : null;
 }
 
+function ensureMomentumState() {
+  if (!state.momentum) state.momentum = { timer: 0, duration: 0, stacks: 0, pulse: 0, label: "", surges: 0 };
+  const momentum = state.momentum;
+  momentum.timer = Math.max(0, momentum.timer || 0);
+  momentum.duration = Math.max(0, momentum.duration || 0);
+  momentum.stacks = Math.max(0, momentum.stacks || 0);
+  momentum.pulse = Math.max(0, momentum.pulse || 0);
+  momentum.label = momentum.label || "";
+  momentum.surges = Math.max(0, momentum.surges || 0);
+  return momentum;
+}
+
+function triggerMomentumSurge(label = "Momentum", options = {}) {
+  if (!state?.player) return null;
+  const momentum = ensureMomentumState();
+  const duration = options.duration || MOMENTUM_SURGE_TUNING.duration;
+  momentum.stacks = Math.min(MOMENTUM_SURGE_TUNING.maxStacks, Math.max(1, momentum.stacks + (options.stacks || 1)));
+  momentum.duration = Math.max(momentum.duration || 0, duration);
+  momentum.timer = Math.max(momentum.timer || 0, duration);
+  momentum.pulse = 0.72;
+  momentum.label = label;
+  momentum.surges += 1;
+  if (state.runStats) state.runStats.momentumSurges = (state.runStats.momentumSurges || 0) + 1;
+  if (!options.quiet) {
+    const p = state.player;
+    const color = options.color || "#53ffe5";
+    floatingText(label, p.x, p.y - 104, color, 0.72, options.size || 18, { priority: 2 });
+    const sparks = isMobileLike() ? 3 : 7;
+    for (let i = 0; i < sparks; i += 1) {
+      const angle = (Math.PI * 2 * i) / sparks + Math.random() * 0.3;
+      state.particles.push({
+        x: p.x + Math.cos(angle) * 24,
+        y: p.y - 30 + Math.sin(angle) * 18,
+        vx: Math.cos(angle) * (70 + Math.random() * 55),
+        vy: Math.sin(angle) * 45 - 40,
+        life: 0.42 + Math.random() * 0.2,
+        color,
+        size: 3 + Math.random() * 3,
+      });
+    }
+    playSound("doubloonPing", { cooldown: 680 });
+  }
+  return momentum;
+}
+
+function updateMomentumSurge(dt) {
+  const momentum = ensureMomentumState();
+  momentum.pulse = Math.max(0, momentum.pulse - dt);
+  if (momentum.timer <= 0) return;
+  momentum.timer = Math.max(0, momentum.timer - dt);
+  if (momentum.timer <= 0) {
+    momentum.stacks = 0;
+    momentum.duration = 0;
+    momentum.label = "";
+  }
+}
+
+function activeMomentumMultiplier(stat) {
+  if (!state?.momentum || state.momentum.timer <= 0) return 1;
+  const stacks = clamp(state.momentum.stacks || 1, 1, MOMENTUM_SURGE_TUNING.maxStacks);
+  if (stat === "speed") return 1 + stacks * MOMENTUM_SURGE_TUNING.speed;
+  if (stat === "damage") return 1 + stacks * MOMENTUM_SURGE_TUNING.damage;
+  if (stat === "cooldown") return Math.max(0.88, 1 - stacks * MOMENTUM_SURGE_TUNING.cooldown);
+  return 1;
+}
+
+function momentumHudState() {
+  if (!state) return { streak: 0, cacheRemaining: 18, text: "0x", detail: "Schatz 18", hot: false, surgeActive: false };
+  const streak = state.streak || {};
+  const streakCount = streak.count || 0;
+  const nextCache = Math.max(18, streak.nextCache || 18);
+  const cacheRemaining = Math.max(0, nextCache - streakCount);
+  const momentum = ensureMomentumState();
+  const fighterSkin = streetFighterSkinId();
+  const flow = state.streetFighterFlow || null;
+  const exCharges = fighterSkin ? (flow?.charges?.[fighterSkin] || 0) : 0;
+  const flowChain = fighterSkin ? (flow?.chain?.[fighterSkin] || 0) : 0;
+  const surgeActive = momentum.timer > 0;
+  const text = fighterSkin ? `${streakCount}x EX${exCharges}` : `${streakCount}x`;
+  const detail = surgeActive
+    ? `${momentum.label || "Surge"} ${Math.ceil(momentum.timer)}s`
+    : fighterSkin
+      ? `Kette ${flowChain}/${STREET_FIGHTER_FLOW_THRESHOLD}`
+      : `Schatz ${cacheRemaining}`;
+  return {
+    streak: streakCount,
+    best: streak.best || 0,
+    nextCache,
+    cacheRemaining,
+    fighterSkin,
+    exCharges,
+    flowChain,
+    surgeActive,
+    surgeTimer: momentum.timer,
+    stacks: momentum.stacks || 0,
+    surges: momentum.surges || 0,
+    text,
+    detail,
+    hot: surgeActive || exCharges > 0 || (streakCount > 0 && cacheRemaining <= 4),
+  };
+}
+
 function registerStreetFighterFlowMove(skinId = streetFighterSkinId(), move = "signature", options = {}) {
   const id = streetFighterFlowSkin(skinId);
   if (!id || options.noFlow || options.flow === false) return false;
   const flow = ensureStreetFighterFlowState();
+  const previousCharges = flow.charges[id] || 0;
   flow.chain[id] = Math.min(STREET_FIGHTER_FLOW_THRESHOLD, (flow.chain[id] || 0) + 1);
   flow.lastSkin = id;
   flow.lastMove = move;
@@ -3572,6 +3688,9 @@ function registerStreetFighterFlowMove(skinId = streetFighterSkinId(), move = "s
   flow.chain[id] = 0;
   flow.charges[id] = Math.min(STREET_FIGHTER_FLOW_MAX_CHARGES, (flow.charges[id] || 0) + 1);
   flow.readyMove = move;
+  if (flow.charges[id] > previousCharges) {
+    triggerMomentumSurge("EX bereit", { duration: MOMENTUM_SURGE_TUNING.exDuration, color: "#fff2a8", size: 20 });
+  }
   return true;
 }
 
@@ -5382,7 +5501,7 @@ function powerUpType(id) {
 }
 
 function activePowerMultiplier(stat) {
-  return state.powerups.reduce((value, powerup) => value * (powerUpType(powerup.id)[stat] || 1), 1);
+  return state.powerups.reduce((value, powerup) => value * (powerUpType(powerup.id)[stat] || 1), 1) * activeMomentumMultiplier(stat);
 }
 
 function activePowerBonus(stat) {
@@ -5641,6 +5760,7 @@ function recordStreakKill(enemy) {
   }
   if (streak.count >= streak.nextCache) {
     spawnStreakCache(streak.count);
+    triggerMomentumSurge("Schatztempo", { duration: MOMENTUM_SURGE_TUNING.duration, color: "#53ffe5" });
     streak.nextCache += 16;
   }
   unlockAchievements();
@@ -5866,6 +5986,18 @@ function upgradeVisualKind(upgrade) {
   return "tempo";
 }
 
+function upgradeSynergyTag(upgrade, current, next) {
+  const kind = upgradeVisualKind(upgrade);
+  if (kind === "fusion") return "Fusionpfad";
+  if (next >= upgrade.max) return "Finale";
+  const fighter = streetFighterSkinId();
+  if (fighter && upgrade.id === "cutlass") return "Move-Kette";
+  if (state.weapons[upgrade.id]?.level > 0 || current > 0) return "Ausbauen";
+  if (["powderPouch", "rubyRing", "moonSigil", "obsidianCompass", "gothicAxe"].includes(upgrade.id)) return "Kombo-Teil";
+  if (kind === "guard") return "Rettung";
+  return "Tempo";
+}
+
 function showUpgrades() {
   ui.upgradeChoices.innerHTML = "";
   activeUpgradeChoices = chooseUpgrades();
@@ -5874,6 +6006,7 @@ function showUpgrades() {
     const view = upgradePresentation(upgrade);
     const current = state.upgradeCounts[upgrade.id] || 0;
     const next = Math.min(upgrade.max, current + 1);
+    const tag = upgradeSynergyTag(upgrade, current, next);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "upgrade-card";
@@ -5888,6 +6021,7 @@ function showUpgrades() {
       </span>
       <span class="upgrade-name">${view.name}</span>
       <span class="upgrade-tier">Stufe ${next}/${upgrade.max}</span>
+      <span class="upgrade-tag">${tag}</span>
       <span class="upgrade-progress">${upgradeProgressPips(next, upgrade.max)}</span>
       <span class="upgrade-desc">${upgradeDescription(view)}</span>
     `;
@@ -5982,6 +6116,13 @@ function updateDom() {
   ui.xpBar.style.transform = `scaleX(${clamp(state.xp / state.nextXp, 0, 1)})`;
   ui.timeText.textContent = formatTime(state.elapsed);
   ui.levelText.textContent = state.level;
+  const momentumHud = momentumHudState();
+  if (ui.momentumText) ui.momentumText.textContent = momentumHud.text;
+  if (ui.momentumDetail) ui.momentumDetail.textContent = momentumHud.detail;
+  if (ui.momentumCard) {
+    ui.momentumCard.classList.toggle("hot", momentumHud.hot);
+    ui.momentumCard.classList.toggle("surging", momentumHud.surgeActive || (state.momentum?.pulse || 0) > 0);
+  }
   ui.coinText.textContent = state.coins;
   ui.audioButton.textContent = muted ? "OFF" : "ON";
   ui.pauseButton.textContent = state.phase === "paused" ? ">" : "II";
@@ -7823,6 +7964,27 @@ window.__MONKEY_TIDE_STREAK_CACHE_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_MOMENTUM_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  const before = momentumHudState();
+  triggerMomentumSurge("Testtempo", { quiet: true, duration: 4.4 });
+  updateDom();
+  const hud = {
+    text: ui.momentumText?.textContent || "",
+    detail: ui.momentumDetail?.textContent || "",
+    hot: ui.momentumCard?.classList.contains("hot") || false,
+    surging: ui.momentumCard?.classList.contains("surging") || false,
+  };
+  render();
+  return {
+    before,
+    hud,
+    speed: activeMomentumMultiplier("speed"),
+    damage: activeMomentumMultiplier("damage"),
+    cooldown: activeMomentumMultiplier("cooldown"),
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_THREE_MONKEY_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.elapsed = Math.max(state.elapsed, BALANCE.rangedPressureAt + 8);
@@ -8798,6 +8960,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
   },
   engagement: {
     streak: { ...state.streak },
+    momentumHud: momentumHudState(),
+    momentumMultiplier: {
+      speed: activeMomentumMultiplier("speed"),
+      damage: activeMomentumMultiplier("damage"),
+      cooldown: activeMomentumMultiplier("cooldown"),
+    },
+    momentumSurges: state.runStats.momentumSurges || 0,
     pressureWave: state.pressureWave,
     pressureTimer: state.pressureTimer,
     pressureWaves: state.runStats.pressureWaves,
