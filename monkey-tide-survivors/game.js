@@ -360,7 +360,7 @@ const CHUN_LI_ACTION = {
 };
 const STREET_FIGHTER_BASIC_MOVEMENT = {
   ryu: { base: "walk", ambient: ["hadoken", "focusStance"], ambientEvery: 9.4, ambientDuration: 0.42 },
-  ken: { base: "walk", ambient: ["shoryuken", "tatsuKick", "stepKick"], ambientEvery: 10.6, ambientDuration: 0.38 },
+  ken: { base: "walk", ambient: ["stepKick", "dragonPunch", "tatsuKick"], ambientEvery: 10.8, ambientDuration: 0.34 },
   guile: { base: "walk", ambient: ["sonicBoom", "reversePunch"], ambientEvery: 10.2, ambientDuration: 0.42 },
   chunLi: { base: "walk", ambient: ["kiKouKen", "thousandKick", "whirlwindKick"], ambientEvery: 11.2, ambientDuration: 0.34 },
 };
@@ -1570,10 +1570,10 @@ function actionConfigForSkin(skinId = state?.player?.skin || selectedSkin) {
   return null;
 }
 
-function triggerPlayerAction(type, duration = 0.48) {
+function triggerPlayerAction(type, duration = 0.48, options = {}) {
   const config = actionConfigForSkin();
   if (!state?.player || !config || config.rowsByAction[type] === undefined) return;
-  state.playerAction = { type, timer: duration, maxTimer: duration };
+  state.playerAction = { type, timer: duration, maxTimer: duration, forceWhileMoving: !!options.forceWhileMoving };
 }
 
 function updatePlayerAction(dt) {
@@ -1628,6 +1628,11 @@ function basicMovementFrame(config, profile, rowForAction, moving) {
     total: config.frames,
     ambient: action !== baseAction,
   };
+}
+
+function fighterDisplayAction(action, moving) {
+  if (!action) return null;
+  return moving && !action.forceWhileMoving ? null : action;
 }
 
 function basicMovementSummary(config, profile) {
@@ -1786,7 +1791,7 @@ function makeState() {
     signatureMove: { timer: Math.max(0.38, 1.2 - skillBonus.signatureStart), casts: 0, last: null },
     playerAction: null,
     ryuArsenal: { casts: 0, hadokens: 0, weaponHadokens: 0, shoryukens: 0, whirlwindKicks: 0 },
-    kenArsenal: { casts: 0, stepKicks: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 },
+    kenArsenal: { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 },
     guileArsenal: { casts: 0, sonicBooms: 0, kneeBazookas: 0, reversePunches: 0, flashKicks: 0 },
     chunLiArsenal: { casts: 0, kiKouKens: 0, thousandKicks: 0, whirlwindKicks: 0, lightningKicks: 0 },
     coins: skillBonus.starterCoins,
@@ -3437,7 +3442,8 @@ function ensureRyuArsenal() {
 }
 
 function ensureKenArsenal() {
-  if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 };
+  if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, dragonKicks: 0 };
+  if (state.kenArsenal.hadokens === undefined) state.kenArsenal.hadokens = 0;
   if (state.kenArsenal.shoryukens === undefined) state.kenArsenal.shoryukens = state.kenArsenal.dragonPunches || 0;
   return state.kenArsenal;
 }
@@ -3461,7 +3467,7 @@ function castSignatureMove(signature) {
     const mainMove = kenComboChoice(level, castIndex, true);
     castKenComboMove(mainMove, level, angle, signature, { signatureCast: true });
     if (level >= 3 && mainMove !== "stepKick" && castIndex % 2 === 1) castKenStepKick(level, angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
-    if (level >= 5 && mainMove !== "tatsuKick" && castIndex % 3 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
+    if (level >= 5 && mainMove !== "tatsuKick" && castIndex % 4 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
     state.signatureMove.casts += 1;
     state.signatureMove.last = signature.id;
     floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
@@ -3700,7 +3706,7 @@ function castRyuWhirlwindKick(signature, angle) {
   arsenal.whirlwindKicks += 1;
   triggerPlayerAction("whirlwindKick", 0.78);
   const radius = 118 + Math.min(36, state.level * 4);
-  state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
+  state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.2 });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -3717,25 +3723,66 @@ function castRyuWhirlwindKick(signature, angle) {
   playSkinSound("dash", "dashWhooshFast", { cooldown: 360 });
 }
 
+function fireKenHadoken(level, fallbackAngle = 0, signature = state.characterTrait?.signature || {}, options = {}) {
+  const p = state.player;
+  const target = options.exactAngle || options.signatureCast ? null : nearestEnemy();
+  const aimAngle = target ? Math.atan2(target.y - p.y, target.x - p.x) : fallbackAngle;
+  const angle = horizontalProjectileAngle(aimAngle);
+  const safeLevel = Math.max(1, level || 1);
+  const stage = ryuHadokenStage(safeLevel);
+  const size = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.size, stage) * 0.94;
+  const radius = stagedProjectileValue(FIREBALL_STAGE_TUNING.hadoken.radius, stage) * 0.92;
+  const speed = Math.max(signature.speed || 620, 700 + safeLevel * 30 + stage * 36);
+  const arsenal = ensureKenArsenal();
+  arsenal.hadokens += 1;
+  if (options.showPlayerAction !== false) triggerPlayerAction("stepKick", options.signatureCast ? 0.46 : 0.38);
+  state.projectiles.push({
+    type: "signature",
+    icon: "hadoken",
+    signatureId: "hadoken",
+    kenHadoken: true,
+    hadokenLevel: safeLevel,
+    hadokenStage: stage,
+    animSeed: Math.floor(Math.random() * RYU_HADOKEN_FX.frames),
+    x: p.x + Math.cos(angle) * 58,
+    y: p.y - 8,
+    vx: Math.cos(angle) * speed,
+    vy: 0,
+    r: radius,
+    damage: (signature.damage || 30) * 0.78 + safeLevel * 5 + stage * 3,
+    signatureDamage: state.stats.signatureDamage || 1,
+    life: 1.48 + safeLevel * 0.05 + stage * 0.08,
+    pierce: Math.max(signature.pierce ?? 1, 1 + stage + Math.floor(safeLevel / 4)),
+    spin: angle,
+    size,
+    retarget: false,
+  });
+  playSkinSound("hit", "quickCutlass", { cooldown: options.signatureCast ? 420 : 240 });
+}
+
 function kenComboChoice(level, castIndex, signatureCast = false) {
   const safeLevel = Math.max(1, level || 1);
   const sequences = signatureCast
     ? safeLevel >= 6
-      ? ["stepKick", "tatsuKick", "dragonKick", "shoryuken", "stepKick", "tatsuKick"]
+      ? ["stepKick", "hadoken", "dragonKick", "dragonPunch", "tatsuKick", "hadoken"]
       : safeLevel >= 3
-        ? ["stepKick", "shoryuken", "tatsuKick", "stepKick"]
-        : ["stepKick", "shoryuken", "stepKick"]
+        ? ["stepKick", "hadoken", "dragonPunch", "tatsuKick"]
+        : ["stepKick", "hadoken", "dragonPunch"]
     : safeLevel >= 6
-      ? ["stepKick", "tatsuKick", "shoryuken", "stepKick", "dragonKick", "tatsuKick", "stepKick", "shoryuken"]
+      ? ["stepKick", "hadoken", "dragonPunch", "stepKick", "tatsuKick", "hadoken", "dragonKick", "stepKick"]
       : safeLevel >= 4
-        ? ["stepKick", "shoryuken", "tatsuKick", "stepKick", "dragonKick", "shoryuken"]
+        ? ["stepKick", "hadoken", "dragonPunch", "tatsuKick", "stepKick", "dragonKick"]
         : safeLevel >= 2
-          ? ["stepKick", "shoryuken", "stepKick", "tatsuKick"]
-          : ["stepKick", "shoryuken", "stepKick"];
+          ? ["stepKick", "hadoken", "stepKick", "dragonPunch"]
+          : ["stepKick", "hadoken", "stepKick"];
   return sequences[positiveModulo((castIndex || 1) - 1, sequences.length)] || "stepKick";
 }
 
 function castKenComboMove(move, level, angle, signature, options = {}) {
+  if (move === "hadoken") {
+    fireKenHadoken(level, angle, signature, options);
+    return "hadoken";
+  }
   if (move === "tatsuKick") {
     castKenTatsuKick(signature, angle, options);
     return "tatsuKick";
@@ -3743,6 +3790,10 @@ function castKenComboMove(move, level, angle, signature, options = {}) {
   if (move === "dragonKick") {
     castKenDragonKick(signature, angle, options);
     return "dragonKick";
+  }
+  if (move === "dragonPunch") {
+    castKenDragonPunch(signature, angle, { ...options, move: "dragonPunch", fx: "dragonPunch", level });
+    return "dragonPunch";
   }
   if (move === "shoryuken") {
     castKenDragonPunch(signature, angle, { ...options, move: "shoryuken", fx: "shoryuken", level });
@@ -3762,7 +3813,7 @@ function castKenShoryuken(level, fallbackAngle = 0) {
   const castIndex = arsenal.casts;
   const mainMove = kenComboChoice(level, castIndex, false);
   castKenComboMove(mainMove, level, angle, signature);
-  if (level >= 5 && mainMove !== "shoryuken" && castIndex % 6 === 0) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level, showPlayerAction: false });
+  if (level >= 5 && mainMove !== "dragonPunch" && castIndex % 6 === 0) castKenDragonPunch(signature, angle, { move: "dragonPunch", fx: "dragonPunch", level, showPlayerAction: false });
   if (level >= 6 && mainMove !== "tatsuKick" && castIndex % 8 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
 }
 
@@ -3788,17 +3839,17 @@ function castKenStepKick(level, fallbackAngle = 0, options = {}) {
     }
   }
   playSkinSound("slash", "quickCutlass", { cooldown: 150 });
-  if (options.followups !== false && level >= 3 && arsenal.stepKicks % 4 === 0) castKenDragonPunch(state.characterTrait?.signature || { id: "shoryuken", damage: 38 }, angle, { move: "shoryuken", fx: "shoryuken" });
+  if (options.followups !== false && level >= 3 && arsenal.stepKicks % 4 === 0) castKenDragonPunch(state.characterTrait?.signature || { id: "shoryuken", damage: 38 }, angle, { move: "dragonPunch", fx: "dragonPunch" });
   if (options.followups !== false && level >= 6 && arsenal.stepKicks % 7 === 0) castKenTatsuKick(state.characterTrait?.signature || { id: "shoryuken", damage: 38 }, angle);
 }
 
 function castKenDragonPunch(signature, angle, options = {}) {
   const p = state.player;
   const arsenal = ensureKenArsenal();
-  arsenal.dragonPunches += 1;
-  arsenal.shoryukens += 1;
   const move = options.move || "shoryuken";
   const fx = options.fx || "shoryuken";
+  arsenal.dragonPunches += 1;
+  if (move === "shoryuken") arsenal.shoryukens += 1;
   if (options.showPlayerAction !== false) triggerPlayerAction(move, options.signatureCast ? 0.74 : 0.66);
   const level = Math.max(1, options.level || state.weapons.cutlass.level || state.level || 1);
   const radius = 82 + Math.min(46, level * 6 + state.level * 2);
@@ -3824,7 +3875,7 @@ function castKenTatsuKick(signature, angle, options = {}) {
   arsenal.tatsuKicks += 1;
   if (options.showPlayerAction !== false) triggerPlayerAction("tatsuKick", 0.76);
   const radius = 118 + Math.min(40, state.level * 4);
-  state.zones.push({ type: "kenWhirlwind", move: "tatsuKick", fx: "tatsuKick", x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
+  state.zones.push({ type: "kenWhirlwind", move: "tatsuKick", fx: "tatsuKick", x: p.x, y: p.y - 14, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.6 });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -3897,7 +3948,7 @@ function castChunLiWhirlwindKick(signature, angle) {
   arsenal.whirlwindKicks += 1;
   triggerPlayerAction("whirlwindKick", 0.78);
   const radius = 116 + Math.min(38, state.level * 4);
-  state.zones.push({ type: "chunLiWhirlwind", move: "whirlwindKick", fx: "whirlwindKickArc", x: p.x, y: p.y - 12, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id });
+  state.zones.push({ type: "chunLiWhirlwind", move: "whirlwindKick", fx: "whirlwindKickArc", x: p.x, y: p.y - 12, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.45 });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
@@ -6040,7 +6091,7 @@ function drawPlayer() {
     const w = h * (SAM_MAX_DUO_WALK.w / SAM_MAX_DUO_WALK.h);
     ctx.drawImage(images.samMaxDuoWalk, sx, sy, SAM_MAX_DUO_WALK.w, SAM_MAX_DUO_WALK.h, -w / 2, -h + 34 + bob, w, h);
   } else if (skin.animSheet === "ryuActions" && images.ryuActions) {
-    const action = state.playerAction;
+    const action = fighterDisplayAction(state.playerAction, moving);
     const basic = action ? null : basicMovementFrame(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu, ryuActionRow, moving);
     const frame = action ? ryuActionFrame(action) : basic.frame;
     const row = action ? ryuActionRow(action.type) : basic.row;
@@ -6052,7 +6103,7 @@ function drawPlayer() {
     const w = h;
     ctx.drawImage(images.ryuActions, sx, sy, RYU_ACTION.w, RYU_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 25) + bob, w, h);
   } else if (skin.animSheet === "kenActions" && images.kenActions) {
-    const action = state.playerAction;
+    const action = fighterDisplayAction(state.playerAction, moving);
     const basic = action ? null : basicMovementFrame(KEN_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ken, kenActionRow, moving);
     const frame = action ? kenActionFrame(action) : basic.frame;
     const row = action ? kenActionRow(action.type) : basic.row;
@@ -6064,7 +6115,7 @@ function drawPlayer() {
     const w = h;
     ctx.drawImage(images.kenActions, sx, sy, KEN_ACTION.w, KEN_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 29) + bob, w, h);
   } else if (skin.animSheet === "guileActions" && images.guileActions) {
-    const action = state.playerAction;
+    const action = fighterDisplayAction(state.playerAction, moving);
     const basic = action ? null : basicMovementFrame(GUILE_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.guile, guileActionRow, moving);
     const frame = action ? guileActionFrame(action) : basic.frame;
     const row = action ? guileActionRow(action.type) : basic.row;
@@ -6076,7 +6127,7 @@ function drawPlayer() {
     const w = h;
     ctx.drawImage(images.guileActions, sx, sy, GUILE_ACTION.w, GUILE_ACTION.h, -w / 2, -h + (skin.animDrawYOffset ?? 24) + bob, w, h);
   } else if (skin.animSheet === "chunLiActions" && images.chunLiActions) {
-    const action = state.playerAction;
+    const action = fighterDisplayAction(state.playerAction, moving);
     const basic = action ? null : basicMovementFrame(CHUN_LI_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.chunLi, chunLiActionRow, moving);
     const frame = action ? chunLiActionFrame(action) : basic.frame;
     const row = action ? chunLiActionRow(action.type) : basic.row;
@@ -6165,6 +6216,19 @@ function drawProjectiles() {
   }
 }
 
+function drawSpinKickActionFrames(drawFrameAt, move, frameCount, size, alpha, spinRate = 5.2) {
+  const copies = lowFxMode() ? 3 : 4;
+  for (let i = 0; i < copies; i += 1) {
+    const sweep = state.elapsed * spinRate + (i / copies) * Math.PI * 2;
+    const frame = Math.floor(state.elapsed * frameCount * 2.1 + i * (frameCount / copies));
+    ctx.save();
+    ctx.rotate(sweep);
+    ctx.globalAlpha = alpha * (i === 0 ? 0.42 : 0.26);
+    drawFrameAt(move, frame, -size * 0.43, -size * 0.68, size * 0.86, size * 0.86);
+    ctx.restore();
+  }
+}
+
 function drawWeaponEffects() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
@@ -6238,20 +6302,28 @@ function drawWeaponEffects() {
       drawGuileActionFrameAt(zone.move, Math.floor((1 - a) * GUILE_ACTION.frames), -size / 2, -size * 0.58, size, size);
     } else if (zone.type === "ryuStrike" || zone.type === "ryuWhirlwind") {
       ctx.translate(ox + zone.x, oy + zone.y);
-      ctx.rotate(zone.type === "ryuWhirlwind" ? (zone.angle || 0) + state.elapsed * 3.4 : zone.angle || 0);
+      ctx.rotate(zone.angle || 0);
       const size = zone.radius * (zone.type === "ryuWhirlwind" ? 2.05 : 1.9);
       drawPlayerEffectAt(zone.type === "ryuWhirlwind" ? "tidePulse" : "compassBeam", -size / 2, -size / 2, size, size);
-      ctx.globalAlpha = a * (zone.type === "ryuWhirlwind" ? 0.52 : 0.46);
-      drawRyuActionFrameAt(zone.move, Math.floor((1 - a) * RYU_ACTION.frames), -size / 2, -size * 0.58, size, size);
+      if (zone.type === "ryuWhirlwind") {
+        drawSpinKickActionFrames(drawRyuActionFrameAt, zone.move, RYU_ACTION.frames, size, a * 0.58, zone.spinRate || 5.2);
+      } else {
+        ctx.globalAlpha = a * 0.46;
+        drawRyuActionFrameAt(zone.move, Math.floor((1 - a) * RYU_ACTION.frames), -size / 2, -size * 0.58, size, size);
+      }
     } else if (zone.type === "kenStrike" || zone.type === "kenWhirlwind") {
       ctx.translate(ox + zone.x, oy + zone.y);
-      ctx.rotate(zone.type === "kenWhirlwind" ? (zone.angle || 0) + state.elapsed * 3.8 : zone.angle || 0);
+      ctx.rotate(zone.angle || 0);
       const size = zone.radius * (zone.type === "kenWhirlwind" ? 2.08 : 1.92);
       drawPlayerEffectAt(zone.type === "kenWhirlwind" ? "tidePulse" : "compassBeam", -size / 2, -size / 2, size, size);
       ctx.globalAlpha = a * 0.7;
       drawKenDragonFxAt(zone.fx || "stepKick", Math.floor((1 - a) * KEN_DRAGON_FX.frames), -size / 2, -size / 2, size, size);
-      ctx.globalAlpha = a * 0.42;
-      drawKenActionFrameAt(zone.move, Math.floor((1 - a) * KEN_ACTION.frames), -size / 2, -size * 0.58, size, size);
+      if (zone.type === "kenWhirlwind") {
+        drawSpinKickActionFrames(drawKenActionFrameAt, zone.move, KEN_ACTION.frames, size, a * 0.54, zone.spinRate || 5.6);
+      } else {
+        ctx.globalAlpha = a * 0.42;
+        drawKenActionFrameAt(zone.move, Math.floor((1 - a) * KEN_ACTION.frames), -size / 2, -size * 0.58, size, size);
+      }
     } else if (zone.type === "chunLiProjectileBurst") {
       ctx.translate(ox + zone.x, oy + zone.y);
       ctx.rotate((zone.angle || 0) + state.elapsed * 0.5);
@@ -6261,13 +6333,17 @@ function drawWeaponEffects() {
       drawChunLiProjectileFxAt(zone.fx || "kiKouKen", Math.floor((1 - a) * CHUN_LI_PROJECTILE_FX.frames + (zone.frameSeed || 0)), -burstSize / 2, -burstSize / 2, burstSize, burstSize);
     } else if (zone.type === "chunLiKick" || zone.type === "chunLiWhirlwind") {
       ctx.translate(ox + zone.x, oy + zone.y);
-      ctx.rotate(zone.type === "chunLiWhirlwind" ? (zone.angle || 0) + state.elapsed * 3.7 : zone.angle || 0);
+      ctx.rotate(zone.angle || 0);
       const size = zone.radius * (zone.type === "chunLiWhirlwind" ? 2.08 : 1.92);
       drawPlayerEffectAt(zone.type === "chunLiWhirlwind" ? "tidePulse" : "compassBeam", -size / 2, -size / 2, size, size);
       ctx.globalAlpha = a * (zone.type === "chunLiWhirlwind" ? 0.62 : 0.54);
       drawChunLiProjectileFxAt(zone.fx || "thousandKickArc", Math.floor((1 - a) * CHUN_LI_PROJECTILE_FX.frames), -size / 2, -size / 2, size, size);
-      ctx.globalAlpha = a * 0.42;
-      drawChunLiActionFrameAt(zone.move, Math.floor((1 - a) * CHUN_LI_ACTION.frames), -size / 2, -size * 0.58, size, size);
+      if (zone.type === "chunLiWhirlwind") {
+        drawSpinKickActionFrames(drawChunLiActionFrameAt, zone.move, CHUN_LI_ACTION.frames, size, a * 0.5, zone.spinRate || 5.45);
+      } else {
+        ctx.globalAlpha = a * 0.42;
+        drawChunLiActionFrameAt(zone.move, Math.floor((1 - a) * CHUN_LI_ACTION.frames), -size / 2, -size * 0.58, size, size);
+      }
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -7656,7 +7732,7 @@ window.__MONKEY_TIDE_RYU_ACTION_PROBE = () => {
     })),
     hadokenBursts: state.zones.filter((zone) => zone.type === "ryuHadokenBurst").length,
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
-    ryuZones: state.zones.filter((zone) => zone.type === "ryuStrike" || zone.type === "ryuWhirlwind").map((zone) => ({ type: zone.type, move: zone.move, radius: zone.radius })),
+    ryuZones: state.zones.filter((zone) => zone.type === "ryuStrike" || zone.type === "ryuWhirlwind").map((zone) => ({ type: zone.type, move: zone.move, radius: zone.radius, spinKick: !!zone.spinKick })),
     currentAction: state.playerAction ? { ...state.playerAction, row: ryuActionRow(state.playerAction.type), frame: ryuActionFrame(state.playerAction) } : null,
     enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
     iconStyleUsesHadokenSheet: ["hadoken", "hadoken2", "hadoken3", "hadoken4"].every((icon) => iconStyle(icon).includes(imageSources.ryuHadokenFx)),
@@ -7698,7 +7774,16 @@ window.__MONKEY_TIDE_KEN_ACTION_PROBE = () => {
     weaponDisplay: weaponPresentation("cutlass", "ken"),
     upgradeDisplay: cutlassUpgrade ? upgradePresentation(cutlassUpgrade) : null,
     arsenal: { ...ensureKenArsenal() },
-    kenZones: state.zones.filter((zone) => zone.type === "kenStrike" || zone.type === "kenWhirlwind" || ["shoryuken", "dragonKick"].includes(zone.signature)).map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, signature: zone.signature, radius: zone.radius })),
+    kenHadokens: state.projectiles.filter((projectile) => projectile.kenHadoken).map((projectile) => ({
+      stage: projectile.hadokenStage,
+      level: projectile.hadokenLevel,
+      size: projectile.size,
+      radius: projectile.r,
+      speed: Math.round(Math.hypot(projectile.vx, projectile.vy)),
+      vx: Math.round(projectile.vx),
+      vy: Math.round(projectile.vy),
+    })),
+    kenZones: state.zones.filter((zone) => zone.type === "kenStrike" || zone.type === "kenWhirlwind" || ["shoryuken", "dragonKick"].includes(zone.signature)).map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, signature: zone.signature, radius: zone.radius, spinKick: !!zone.spinKick })),
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
     currentAction: state.playerAction ? { ...state.playerAction, row: kenActionRow(state.playerAction.type), frame: kenActionFrame(state.playerAction) } : null,
     enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
@@ -7801,7 +7886,7 @@ window.__MONKEY_TIDE_CHUN_LI_ACTION_PROBE = () => {
       vx: Math.round(projectile.vx),
       vy: Math.round(projectile.vy),
     })),
-    chunLiZones: state.zones.filter((zone) => zone.type === "chunLiKick" || zone.type === "chunLiWhirlwind" || zone.type === "chunLiProjectileBurst").map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, radius: zone.radius })),
+    chunLiZones: state.zones.filter((zone) => zone.type === "chunLiKick" || zone.type === "chunLiWhirlwind" || zone.type === "chunLiProjectileBurst").map((zone) => ({ type: zone.type, move: zone.move, fx: zone.fx, radius: zone.radius, spinKick: !!zone.spinKick })),
     slashZones: state.zones.filter((zone) => zone.type === "slash").length,
     currentAction: state.playerAction ? { ...state.playerAction, row: chunLiActionRow(state.playerAction.type), frame: chunLiActionFrame(state.playerAction) } : null,
     enemiesDamaged: state.enemies.filter((enemy) => enemy.hp < enemy.maxHp).length,
@@ -8273,6 +8358,7 @@ window.__MONKEY_TIDE_DEBUG = () => {
     kenDragonFxFrames: { ...KEN_DRAGON_FX },
     guileActionFrames: { ...GUILE_ACTION },
     chunLiActionFrames: { ...CHUN_LI_ACTION },
+    streetFighterWalkFirstCombatFlow: true,
     streetFighterBasicMovement: {
       ryu: basicMovementSummary(RYU_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ryu),
       ken: basicMovementSummary(KEN_ACTION, STREET_FIGHTER_BASIC_MOVEMENT.ken),

@@ -417,7 +417,7 @@ async function run() {
       && ryuActionProbe.hadokenBursts >= 1
       && ryuActionProbe.slashZones === 0
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuStrike" && zone.move === "shoryuken")
-      && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick")
+      && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick" && zone.spinKick)
       && ryuActionProbe.iconStyleUsesHadokenSheet,
     `Ryu should use the new complex 5-row Imagen action sheet and frequent Hadoken weapon loop: ${JSON.stringify(ryuActionProbe)}`,
   );
@@ -445,15 +445,16 @@ async function run() {
       && kenActionProbe.weaponDisplay.name === "Dragon Rush"
       && kenActionProbe.upgradeDisplay.name === "Dragon Rush Mix"
       && kenActionProbe.arsenal.stepKicks >= 5
-      && kenActionProbe.arsenal.shoryukens >= 3
-      && kenActionProbe.arsenal.shoryukens <= 7
-      && kenActionProbe.arsenal.stepKicks + kenActionProbe.arsenal.tatsuKicks + kenActionProbe.arsenal.dragonKicks > kenActionProbe.arsenal.shoryukens * 2
-      && kenActionProbe.arsenal.dragonPunches === kenActionProbe.arsenal.shoryukens
-      && kenActionProbe.arsenal.tatsuKicks >= 4
+      && kenActionProbe.arsenal.hadokens >= 3
+      && kenActionProbe.arsenal.shoryukens <= 1
+      && kenActionProbe.arsenal.dragonPunches >= 3
+      && kenActionProbe.arsenal.tatsuKicks >= 2
       && kenActionProbe.arsenal.dragonKicks >= 2
-      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "shoryuken")
+      && kenActionProbe.kenHadokens.length >= 3
+      && kenActionProbe.kenHadokens.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonPunch")
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "stepKick")
-      && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "tatsuKick")
+      && kenActionProbe.kenZones.some((zone) => zone.type === "kenWhirlwind" && zone.move === "tatsuKick" && zone.spinKick)
       && kenActionProbe.kenZones.some((zone) => zone.type === "kenStrike" && zone.move === "dragonKick")
       && kenActionProbe.kenZones.some((zone) => zone.signature === "shoryuken")
       && kenActionProbe.slashZones === 0
@@ -516,7 +517,7 @@ async function run() {
       && chunLiActionProbe.kiKouKenProjectiles.every((projectile) => projectile.size >= 108 && projectile.radius >= 24 && projectile.speed >= 760)
       && chunLiActionProbe.kiKouKenProjectiles.every((projectile) => projectile.vy === 0 && Math.abs(projectile.vx) === projectile.speed)
       && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiKick" && zone.move === "thousandKick")
-      && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiWhirlwind" && zone.move === "whirlwindKick")
+      && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiWhirlwind" && zone.move === "whirlwindKick" && zone.spinKick)
       && chunLiActionProbe.chunLiZones.some((zone) => zone.type === "chunLiProjectileBurst" && zone.fx === "kiKouKen")
       && chunLiActionProbe.slashZones === 0
       && chunLiActionProbe.iconStyleUsesProjectileSheet,
@@ -1757,6 +1758,8 @@ async function run() {
   assert(debug.combatAssets.kenActions && debug.combatAssets.kenDragonFx && debug.combatAssets.kenActionFrames.rows === 5 && debug.combatAssets.kenActionFrames.frames === 12 && debug.combatAssets.kenDragonFxFrames.rows === 3 && debug.combatAssets.kenDragonFxFrames.frames === 12 && debug.combatAssets.kenDragonFxTypes.includes("shoryuken") && debug.combatAssets.kenDragonFxTypes.includes("dragonKick"), `Ken complex action/dragon combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(debug.combatAssets.chunLiActions && debug.combatAssets.chunLiProjectiles && debug.combatAssets.chunLiActionFrames.rows === 5 && debug.combatAssets.chunLiActionFrames.frames === 12 && debug.combatAssets.chunLiProjectileFrames.rows === 3 && debug.combatAssets.chunLiProjectileFrames.frames === 12, `Chun Li action/projectile combat assets are not wired: ${JSON.stringify(debug.combatAssets)}`);
   assert(
+    debug.combatAssets.streetFighterWalkFirstCombatFlow === true
+      &&
     Object.values(debug.combatAssets.streetFighterBasicMovement).every((movement) => movement.baseAction === "walk" && movement.rows === 1 && movement.totalFrames === movement.framesPerRow && movement.ambientActions.length >= 2 && movement.sparseActionShare <= 0.05),
     `Street Fighter basic movement should stay on walking with only sparse idle flourishes: ${JSON.stringify(debug.combatAssets.streetFighterBasicMovement)}`,
   );
