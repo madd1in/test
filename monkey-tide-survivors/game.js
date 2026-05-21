@@ -338,7 +338,7 @@ const KEN_ACTION = {
   rows: 5,
   frames: 12,
   fps: 18,
-  rowsByAction: { walk: 0, stepKick: 1, shoryuken: 2, dragonPunch: 2, tatsuKick: 3, dragonKick: 4 },
+  rowsByAction: { walk: 0, stepKick: 1, hadoken: 1, shoryuken: 2, dragonPunch: 2, tatsuKick: 3, dragonKick: 4 },
 };
 const GUILE_ACTION = {
   w: 256,
@@ -360,7 +360,7 @@ const CHUN_LI_ACTION = {
 };
 const STREET_FIGHTER_BASIC_MOVEMENT = {
   ryu: { skinId: "ryu", base: "walk", ambient: ["hadoken", "focusStance", "shoryuken", "whirlwindKick"], ambientEvery: 2.8, ambientDuration: 0.58 },
-  ken: { skinId: "ken", base: "walk", ambient: ["stepKick", "hadoken", "dragonPunch", "tatsuKick", "dragonKick"], ambientEvery: 2.25, ambientDuration: 0.54 },
+  ken: { skinId: "ken", base: "walk", ambient: ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "tatsuKick", "dragonKick"], ambientEvery: 2.25, ambientDuration: 0.54 },
   guile: { skinId: "guile", base: "walk", ambient: ["sonicBoom", "kneeBazooka", "reversePunch", "flashKick"], ambientEvery: 2.65, ambientDuration: 0.54 },
   chunLi: { skinId: "chunLi", base: "walk", ambient: ["thousandKick", "kiKouKen", "whirlwindKick", "lightningKick"], ambientEvery: 2.35, ambientDuration: 0.52 },
 };
@@ -372,7 +372,7 @@ const STREET_FIGHTER_STARTER_MOVES = {
 };
 const STREET_FIGHTER_MOVE_UNLOCKS = {
   ryu: { hadoken: 1, focusStance: 2, shoryuken: 3, whirlwindKick: 6 },
-  ken: { stepKick: 1, hadoken: 3, dragonPunch: 4, tatsuKick: 5, dragonKick: 6, shoryuken: 4 },
+  ken: { stepKick: 1, hadoken: 2, shoryuken: 3, dragonPunch: 4, tatsuKick: 5, dragonKick: 6 },
   guile: { sonicBoom: 1, kneeBazooka: 3, reversePunch: 5, flashKick: 6 },
   chunLi: { thousandKick: 1, kiKouKen: 3, whirlwindKick: 5, lightningKick: 6 },
 };
@@ -574,7 +574,7 @@ const playerSkinMap = {
     trait: {
       id: "dragonRush",
       name: "Dragon Rush",
-      desc: "Startet nur mit Step Kick; Hadoken, Dragon Punch, Tatsu und Dragon Kick schalten erst durch Level frei.",
+      desc: "Startet nur mit Step Kick; Hadoken, Shoryuken, Tatsu und Dragon Kick schalten erst durch Level frei.",
       speed: 14,
       dashCooldown: -0.07,
       damage: 0.035,
@@ -3534,8 +3534,9 @@ function castSignatureMove(signature) {
     const level = fighterLevel;
     const mainMove = kenComboChoice(level, castIndex, true);
     castKenComboMove(mainMove, level, angle, signature, { signatureCast: true });
-    if (level >= 3 && mainMove !== "stepKick" && castIndex % 2 === 1) castKenStepKick(level, angle, { showPlayerAction: false, followups: false, exactAngle: true, signature });
-    if (level >= 5 && mainMove !== "tatsuKick" && castIndex % 4 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
+    if (level >= 2 && mainMove !== "hadoken" && castIndex % 2 === 0) fireKenHadoken(level, angle, signature, { showPlayerAction: false, exactAngle: true, signatureCast: true });
+    if (level >= 3 && mainMove !== "shoryuken" && castIndex % 2 === 1) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level, showPlayerAction: false });
+    if (level >= 5 && mainMove !== "tatsuKick" && castIndex % 5 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
     state.signatureMove.casts += 1;
     state.signatureMove.last = signature.id;
     floatingText(signature.label || "Signature", p.x, p.y - 112, signature.color || "#fff2c7", 0.72, 22, { priority: 2 });
@@ -3815,7 +3816,7 @@ function fireKenHadoken(level, fallbackAngle = 0, signature = state.characterTra
   const speed = Math.max(signature.speed || 620, 700 + safeLevel * 30 + stage * 36);
   const arsenal = ensureKenArsenal();
   arsenal.hadokens += 1;
-  if (options.showPlayerAction !== false) triggerPlayerAction("stepKick", options.signatureCast ? 0.46 : 0.38);
+  if (options.showPlayerAction !== false) triggerPlayerAction("hadoken", options.signatureCast ? 0.56 : 0.48);
   state.projectiles.push({
     type: "signature",
     icon: "hadoken",
@@ -3844,23 +3845,27 @@ function kenComboChoice(level, castIndex, signatureCast = false) {
   const safeLevel = Math.max(1, level || 1);
   const sequences = signatureCast
     ? safeLevel >= 6
-      ? ["stepKick", "hadoken", "dragonKick", "dragonPunch", "tatsuKick", "hadoken"]
+      ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "hadoken", "shoryuken", "tatsuKick", "dragonKick"]
       : safeLevel >= 5
-        ? ["stepKick", "hadoken", "dragonPunch", "tatsuKick"]
+        ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "tatsuKick"]
         : safeLevel >= 4
-          ? ["stepKick", "hadoken", "dragonPunch", "stepKick"]
+          ? ["hadoken", "shoryuken", "hadoken", "dragonPunch", "stepKick"]
           : safeLevel >= 3
-            ? ["stepKick", "hadoken", "stepKick"]
-            : ["stepKick"]
+            ? ["hadoken", "shoryuken", "stepKick", "hadoken"]
+            : safeLevel >= 2
+              ? ["stepKick", "hadoken", "stepKick", "hadoken"]
+              : ["stepKick"]
     : safeLevel >= 6
-      ? ["stepKick", "hadoken", "dragonPunch", "stepKick", "tatsuKick", "hadoken", "dragonKick", "stepKick"]
+      ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "hadoken", "tatsuKick", "dragonKick", "shoryuken", "hadoken"]
       : safeLevel >= 5
-        ? ["stepKick", "hadoken", "dragonPunch", "tatsuKick", "stepKick", "dragonKick"]
+        ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch", "tatsuKick", "hadoken"]
         : safeLevel >= 4
-          ? ["stepKick", "hadoken", "dragonPunch", "stepKick"]
+          ? ["stepKick", "hadoken", "shoryuken", "hadoken", "dragonPunch"]
           : safeLevel >= 3
-            ? ["stepKick", "hadoken", "stepKick"]
-            : ["stepKick"];
+            ? ["stepKick", "hadoken", "shoryuken", "hadoken"]
+            : safeLevel >= 2
+              ? ["stepKick", "hadoken", "stepKick", "hadoken"]
+              : ["stepKick"];
   return sequences[positiveModulo((castIndex || 1) - 1, sequences.length)] || "stepKick";
 }
 
@@ -3899,6 +3904,8 @@ function castKenShoryuken(level, fallbackAngle = 0) {
   const castIndex = arsenal.casts;
   const mainMove = kenComboChoice(level, castIndex, false);
   castKenComboMove(mainMove, level, angle, signature);
+  if (level >= 2 && mainMove !== "hadoken" && castIndex % 4 === 0) fireKenHadoken(level, angle, signature, { showPlayerAction: false, exactAngle: true });
+  if (level >= 3 && mainMove !== "shoryuken" && castIndex % 3 === 0) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level, showPlayerAction: false });
   if (level >= 5 && mainMove !== "dragonPunch" && castIndex % 6 === 0) castKenDragonPunch(signature, angle, { move: "dragonPunch", fx: "dragonPunch", level, showPlayerAction: false });
   if (level >= 6 && mainMove !== "tatsuKick" && castIndex % 8 === 0) castKenTatsuKick(signature, angle, { showPlayerAction: false });
 }
@@ -4188,8 +4195,10 @@ function triggerStreetFighterContactCounter(enemy, dx, dy, dist) {
     else if (streetFighterMoveUnlocked("ryu", "shoryuken", level)) castRyuShoryuken(signature, angle);
     else fireRyuHadoken(level, angle, { signature, exactAngle: true, signatureCast: true });
   } else if (skinId === "ken") {
-    if (streetFighterMoveUnlocked("ken", "tatsuKick", level) && count % 3 === 0) castKenTatsuKick(signature, angle);
-    else if (streetFighterMoveUnlocked("ken", "dragonPunch", level) && count % 2 === 0) castKenDragonPunch(signature, angle, { move: "dragonPunch", fx: "dragonPunch", level });
+    if (streetFighterMoveUnlocked("ken", "shoryuken", level) && count % 2 === 1) castKenDragonPunch(signature, angle, { move: "shoryuken", fx: "shoryuken", level });
+    else if (streetFighterMoveUnlocked("ken", "hadoken", level) && count % 3 === 0) fireKenHadoken(level, angle, signature, { exactAngle: true, signatureCast: true });
+    else if (streetFighterMoveUnlocked("ken", "tatsuKick", level) && count % 4 === 0) castKenTatsuKick(signature, angle);
+    else if (streetFighterMoveUnlocked("ken", "dragonPunch", level)) castKenDragonPunch(signature, angle, { move: "dragonPunch", fx: "dragonPunch", level });
     else castKenStepKick(level, angle, { exactAngle: true, followups: false, signature });
   } else if (skinId === "guile") {
     if (streetFighterMoveUnlocked("guile", "flashKick", level) && count % 3 === 0) castGuileFlashKick(level);
