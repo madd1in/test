@@ -748,11 +748,55 @@ button:disabled {
 }
 
 .level-overlay {
-  background: rgba(27, 13, 5, 0.55);
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 50% 44%, rgba(54, 190, 162, 0.24), transparent 42%),
+    linear-gradient(120deg, rgba(19, 8, 3, 0.76), rgba(47, 19, 8, 0.54) 48%, rgba(9, 42, 38, 0.7));
+}
+
+.level-overlay::before,
+.level-overlay::after {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+}
+
+.level-overlay::before {
+  background:
+    linear-gradient(115deg, transparent 18%, rgba(255, 216, 108, 0.16) 34%, transparent 52%),
+    repeating-linear-gradient(90deg, rgba(255, 240, 189, 0.035) 0 1px, transparent 1px 74px);
+  mix-blend-mode: screen;
+  opacity: 0.62;
+  animation: relicCurrent 8s linear infinite;
+}
+
+.level-overlay::after {
+  background: radial-gradient(ellipse at 50% 52%, transparent 0 44%, rgba(8, 3, 1, 0.38) 72%);
 }
 
 .upgrade-panel {
   width: min(930px, calc(100vw - 28px));
+  box-shadow:
+    0 8px 0 rgba(62, 28, 7, 0.38),
+    0 28px 58px rgba(12, 5, 2, 0.5),
+    inset 0 0 0 1px rgba(255, 246, 207, 0.18);
+  animation: upgradePanelIn 240ms cubic-bezier(0.18, 0.86, 0.24, 1.12) both;
+}
+
+.upgrade-panel .eyebrow {
+  color: rgba(255, 232, 162, 0.88);
+  text-shadow: 0 2px 0 rgba(42, 16, 4, 0.82), 0 0 14px rgba(54, 190, 162, 0.24);
+}
+
+.upgrade-panel h2 {
+  margin-bottom: 12px;
+  color: #ffe58f;
+  text-shadow:
+    0 3px 0 #4a240b,
+    0 7px 0 rgba(88, 39, 8, 0.28),
+    0 0 22px rgba(255, 216, 108, 0.26);
 }
 
 .upgrade-grid {
@@ -763,22 +807,71 @@ button:disabled {
 }
 
 .upgrade-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
   min-height: 230px;
-  grid-template-rows: 82px auto auto auto 1fr;
+  grid-template-rows: 92px auto auto auto 1fr;
   gap: 9px;
-  padding: 14px;
-  border: 2px solid rgba(72, 38, 12, 0.5);
+  padding: 14px 14px 16px;
+  border: 2px solid rgba(72, 38, 12, 0.58);
   border-radius: 8px;
+  background-color: rgba(117, 58, 15, 0.2);
   background-image:
-    radial-gradient(circle at 18% 18%, rgba(255, 239, 178, 0.18), transparent 38%),
-    linear-gradient(180deg, rgba(255, 220, 134, 0.18), rgba(89, 44, 13, 0.12)),
+    radial-gradient(ellipse at 20% 14%, rgba(255, 239, 178, 0.16), transparent 36%),
+    linear-gradient(145deg, rgba(128, 63, 17, 0.18), rgba(44, 126, 113, 0.08) 48%, rgba(75, 33, 9, 0.28)),
     var(--ui-card);
   background-position: center;
   background-size: 100% 100%, 100% 100%, 100% 100%;
-  background-blend-mode: soft-light, multiply, normal;
+  background-blend-mode: multiply, multiply, normal;
   color: #3a200c;
   text-align: left;
+  box-shadow:
+    0 5px 0 rgba(77, 34, 8, 0.25),
+    0 18px 30px rgba(25, 10, 3, 0.22),
+    inset 0 0 0 1px rgba(255, 246, 207, 0.13),
+    inset 0 -44px 80px rgba(67, 28, 7, 0.16);
+  transform-origin: 50% 100%;
+  animation: upgradeCardIn 310ms cubic-bezier(0.18, 0.9, 0.22, 1.1) backwards;
+  animation-delay: calc(var(--choice-index, 0) * 68ms + 70ms);
+  transition: transform 150ms ease, filter 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.upgrade-card::before {
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  background: linear-gradient(112deg, transparent 16%, rgba(255, 247, 198, 0.42) 48%, transparent 72%);
+  content: "";
+  opacity: 0;
+  transform: translateX(-80%);
+}
+
+.upgrade-card::after {
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border: 1px solid rgba(255, 236, 171, 0.2);
+  border-radius: 6px;
+  content: "";
+}
+
+.upgrade-card[data-upgrade-kind="fusion"] {
+  border-color: rgba(54, 190, 162, 0.7);
+  background-color: rgba(38, 114, 104, 0.18);
+  background-image:
+    radial-gradient(ellipse at 20% 14%, rgba(199, 255, 241, 0.14), transparent 36%),
+    linear-gradient(145deg, rgba(92, 52, 18, 0.18), rgba(54, 190, 162, 0.18) 50%, rgba(80, 30, 92, 0.18)),
+    var(--ui-card);
+}
+
+.upgrade-card[data-upgrade-kind="weapon"] {
+  border-color: rgba(242, 182, 73, 0.72);
+}
+
+.upgrade-card[data-upgrade-kind="guard"] {
+  border-color: rgba(103, 206, 231, 0.62);
 }
 
 .upgrade-card:hover,
@@ -790,22 +883,90 @@ button:disabled {
 
 .upgrade-card.selected {
   border-color: rgba(119, 65, 17, 0.9);
-  box-shadow: 0 0 0 3px rgba(240, 196, 93, 0.22), 0 13px 24px rgba(51, 28, 12, 0.2);
-  transform: translateY(-2px);
+  filter: saturate(1.12) brightness(1.06);
+  box-shadow:
+    0 0 0 3px rgba(240, 196, 93, 0.22),
+    0 9px 0 rgba(91, 40, 10, 0.25),
+    0 22px 38px rgba(21, 8, 2, 0.32),
+    0 0 28px rgba(54, 190, 162, 0.16);
+  transform: translateY(-5px) scale(1.015);
+}
+
+.upgrade-card.selected::before {
+  opacity: 0.78;
+  animation: cardGleam 2.4s ease-in-out infinite;
+}
+
+.upgrade-aura {
+  position: absolute;
+  inset: auto 10px 10px 10px;
+  height: 46%;
+  z-index: -1;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent, rgba(54, 190, 162, 0.14), transparent),
+    linear-gradient(180deg, transparent, rgba(231, 85, 63, 0.1));
+  opacity: 0.52;
+  transform: skewY(-2deg);
+}
+
+.upgrade-hotkey {
+  position: absolute;
+  top: 11px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 231, 170, 0.52);
+  border-radius: 999px;
+  background: rgba(53, 24, 7, 0.56);
+  color: #ffe7aa;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-shadow: 0 1px 0 rgba(32, 12, 2, 0.7);
+}
+
+.upgrade-icon-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 235, 163, 0.22), transparent 64%),
+    rgba(49, 26, 9, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    0 8px 16px rgba(37, 15, 3, 0.22);
+}
+
+.upgrade-icon-wrap::before {
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(255, 231, 170, 0.38);
+  border-radius: 6px;
+  content: "";
+  transform: rotate(4deg);
+}
+
+.upgrade-card.selected .upgrade-icon-wrap::before {
+  animation: iconCompass 2.8s linear infinite;
 }
 
 .upgrade-icon {
-  width: 82px;
-  height: 82px;
-  border-radius: 8px;
+  width: 74px;
+  height: 74px;
+  border-radius: 7px;
   background-position: center;
   background-size: cover;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  filter: drop-shadow(0 7px 4px rgba(36, 15, 3, 0.34));
 }
 
 .upgrade-name {
   color: #51290d;
-  font-size: 1.12rem;
+  font-size: 1.08rem;
   font-weight: 900;
   line-height: 1.1;
 }
@@ -823,6 +984,89 @@ button:disabled {
   font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.35;
+}
+
+.upgrade-card.selected .progress-pip.filled {
+  animation: pipPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes upgradePanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes upgradeCardIn {
+  from {
+    opacity: 0;
+    clip-path: inset(14% 0 0 0 round 8px);
+    filter: blur(2px) saturate(0.86);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 8px);
+    filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes relicCurrent {
+  from {
+    transform: translateX(-8%);
+  }
+
+  to {
+    transform: translateX(8%);
+  }
+}
+
+@keyframes cardGleam {
+  0%,
+  42% {
+    transform: translateX(-92%);
+  }
+
+  74%,
+  100% {
+    transform: translateX(92%);
+  }
+}
+
+@keyframes iconCompass {
+  to {
+    transform: rotate(364deg);
+  }
+}
+
+@keyframes pipPulse {
+  from {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-overlay::before,
+  .upgrade-panel,
+  .upgrade-card,
+  .upgrade-card.selected::before,
+  .upgrade-card.selected .upgrade-icon-wrap::before,
+  .upgrade-card.selected .progress-pip.filled {
+    animation: none;
+  }
+
+  .upgrade-card {
+    transition: none;
+  }
 }
 
 .touch-controls {
@@ -1017,12 +1261,18 @@ button:disabled {
     min-height: 126px;
     grid-template-columns: 72px 1fr;
     grid-template-rows: auto auto auto 1fr;
+    padding: 12px;
   }
 
-  .upgrade-icon {
+  .upgrade-icon-wrap {
     grid-row: 1 / span 4;
     width: 72px;
     height: 72px;
+  }
+
+  .upgrade-icon {
+    width: 58px;
+    height: 58px;
   }
 
   .touch-controls {

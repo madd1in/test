@@ -359,10 +359,10 @@ const CHUN_LI_ACTION = {
   rowsByAction: { walk: 0, thousandKick: 1, kiKouKen: 2, whirlwindKick: 3, lightningKick: 4 },
 };
 const STREET_FIGHTER_BASIC_MOVEMENT = {
-  ryu: ["walk", "hadoken", "shoryuken", "whirlwindKick", "focusStance"],
-  ken: ["walk", "stepKick", "shoryuken", "tatsuKick", "dragonKick"],
-  guile: ["walk", "sonicBoom", "kneeBazooka", "reversePunch", "flashKick"],
-  chunLi: ["walk", "thousandKick", "kiKouKen", "whirlwindKick", "lightningKick"],
+  ryu: { base: "walk", ambient: ["hadoken", "focusStance"], ambientEvery: 9.4, ambientDuration: 0.42 },
+  ken: { base: "walk", ambient: ["shoryuken", "tatsuKick", "stepKick"], ambientEvery: 10.6, ambientDuration: 0.38 },
+  guile: { base: "walk", ambient: ["sonicBoom", "reversePunch"], ambientEvery: 10.2, ambientDuration: 0.42 },
+  chunLi: { base: "walk", ambient: ["kiKouKen", "thousandKick", "whirlwindKick"], ambientEvery: 11.2, ambientDuration: 0.34 },
 };
 const SAM_MAX_DUO_WALK = { w: 384, h: 512, cols: 4, rows: 2, frames: 8 };
 const ITEM = { w: 512, h: 512, cols: 4 };
@@ -1604,27 +1604,45 @@ function actionFrame(action, config) {
   return Math.min(config.frames - 1, Math.floor(progress * config.frames));
 }
 
-function basicMovementFrame(config, actions, rowForAction, moving) {
-  const rowActions = actions?.length ? actions : ["walk"];
-  const fps = (moving ? config.fps : Math.max(7, config.fps * 0.52)) || 12;
-  const total = rowActions.length * config.frames;
-  const index = positiveModulo(Math.floor((state?.elapsed || 0) * fps), total);
-  const action = rowActions[Math.floor(index / config.frames)] || rowActions[0];
+function basicMovementFrame(config, profile, rowForAction, moving) {
+  const movement = profile || { base: "walk", ambient: [] };
+  const baseAction = movement.base || "walk";
+  const fps = (moving ? config.fps : Math.max(6, config.fps * 0.42)) || 12;
+  const elapsed = state?.elapsed || 0;
+  let action = baseAction;
+  let frame = positiveModulo(Math.floor(elapsed * fps), config.frames);
+  if (!moving && movement.ambient?.length) {
+    const every = Math.max(3, movement.ambientEvery || 9);
+    const duration = Math.min(every * 0.18, Math.max(0.18, movement.ambientDuration || 0.36));
+    const cycleTime = positiveModulo(elapsed, every);
+    if (cycleTime < duration) {
+      action = movement.ambient[Math.floor(elapsed / every) % movement.ambient.length] || baseAction;
+      frame = Math.min(config.frames - 1, Math.floor(cycleTime / duration * config.frames));
+    }
+  }
   return {
     action,
-    frame: index % config.frames,
+    frame,
     row: rowForAction(action),
-    index,
-    total,
+    index: frame,
+    total: config.frames,
+    ambient: action !== baseAction,
   };
 }
 
-function basicMovementSummary(config, actions) {
+function basicMovementSummary(config, profile) {
+  const movement = profile || { base: "walk", ambient: [] };
+  const ambientEvery = movement.ambientEvery || 0;
+  const ambientDuration = movement.ambientDuration || 0;
   return {
-    rows: actions.length,
+    rows: 1,
     framesPerRow: config.frames,
-    totalFrames: actions.length * config.frames,
-    actions: [...actions],
+    totalFrames: config.frames,
+    baseAction: movement.base || "walk",
+    ambientActions: [...(movement.ambient || [])],
+    ambientEvery,
+    ambientDuration,
+    sparseActionShare: ambientEvery > 0 ? Number((ambientDuration / ambientEvery).toFixed(3)) : 0,
   };
 }
 
@@ -5347,6 +5365,13 @@ function upgradeMax(id) {
   return upgrades.find((upgrade) => upgrade.id === id)?.max || 1;
 }
 
+function upgradeVisualKind(upgrade) {
+  if (["stormConch", "bloodMoonAnchor", "krakenCompass", "rumCometLantern"].includes(upgrade.id)) return "fusion";
+  if (state.weapons[upgrade.id] || ["powderPouch", "obsidianCompass", "moonSigil", "gothicAxe"].includes(upgrade.id)) return "weapon";
+  if (["heart", "captainSeal", "grogLantern", "voodooDoll", "blueVial"].includes(upgrade.id)) return "guard";
+  return "tempo";
+}
+
 function showUpgrades() {
   ui.upgradeChoices.innerHTML = "";
   activeUpgradeChoices = chooseUpgrades();
@@ -5359,8 +5384,14 @@ function showUpgrades() {
     button.type = "button";
     button.className = "upgrade-card";
     button.dataset.upgradeIndex = String(index);
+    button.dataset.upgradeKind = upgradeVisualKind(upgrade);
+    button.style.setProperty("--choice-index", index);
     button.innerHTML = `
-      <span class="upgrade-icon" style="${iconStyle(view.icon)}"></span>
+      <span class="upgrade-aura" aria-hidden="true"></span>
+      <span class="upgrade-hotkey" aria-hidden="true">${index + 1}</span>
+      <span class="upgrade-icon-wrap">
+        <span class="upgrade-icon" style="${iconStyle(view.icon)}"></span>
+      </span>
       <span class="upgrade-name">${view.name}</span>
       <span class="upgrade-tier">Stufe ${next}/${upgrade.max}</span>
       <span class="upgrade-progress">${upgradeProgressPips(next, upgrade.max)}</span>
