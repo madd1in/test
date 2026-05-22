@@ -8,6 +8,7 @@ const ui = {
   upgradeOverlay: document.getElementById("upgradeOverlay"),
   endOverlay: document.getElementById("endOverlay"),
   hud: document.getElementById("hud"),
+  contractCard: document.getElementById("contractCard"),
   loadout: document.getElementById("loadout"),
   skinPicker: document.getElementById("skinPicker"),
   mapPicker: document.getElementById("mapPicker"),
@@ -808,6 +809,209 @@ const TIDE_RIFT_TUNING = {
   pickupRadius: 112,
   pulseRadius: 132,
 };
+const runContractDefinitions = [
+  {
+    id: "riftHunter",
+    name: "Rissjaeger",
+    icon: "cursedPearl",
+    color: "#53ffe5",
+    target: 2,
+    coins: 12,
+    desc: "2 Tide-Risse sammeln",
+    progress: () => state.runStats?.tideRifts || 0,
+    apply: () => {
+      state.stats.magnet += 20;
+      spawnPowerup(state.player.x + 68, state.player.y - 28, "signatureOverdrive", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "omenHunter",
+    name: "Omenjagd",
+    icon: "bloodRose",
+    color: "#ffdf6e",
+    target: 2,
+    coins: 14,
+    desc: "2 Elite-Omen brechen",
+    progress: () => (state.runStats?.elites || 0) + (state.runStats?.omenBoons || 0),
+    apply: () => {
+      state.stats.damage += 0.035;
+      spawnPowerup(state.player.x - 64, state.player.y + 30, "omenBounty", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "streakChart",
+    name: "Streak-Karte",
+    icon: "map",
+    color: "#fff2c7",
+    target: 18,
+    coins: 10,
+    desc: "18er Streak erreichen",
+    progress: () => state.streak?.best || 0,
+    apply: () => {
+      state.stats.cooldown *= 0.98;
+      triggerMomentumSurge("Auftragstempo", { duration: 7, stacks: 2, color: "#fff2c7", quiet: true });
+    },
+  },
+  {
+    id: "treasureRoute",
+    name: "Schatzroute",
+    icon: "skullCoin",
+    color: "#f0c45d",
+    target: 80,
+    coins: 20,
+    desc: "80 Dublonen im Run sammeln",
+    progress: () => state.coins || 0,
+    apply: () => {
+      state.stats.pickupValue += 0.06;
+      state.stats.magnet += 12;
+    },
+  },
+  {
+    id: "wreckRun",
+    name: "Wracklauf",
+    icon: "boatWreck",
+    color: "#bfffea",
+    target: 3,
+    coins: 12,
+    desc: "3 Orte erkunden",
+    progress: () => state.runStats?.landmarks || 0,
+    apply: () => {
+      state.stats.magnet += 18;
+      spawnPowerup(state.player.x + 42, state.player.y + 62, "tideVacuum", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "fusionTrial",
+    name: "Fusionsprobe",
+    icon: "rubyRing",
+    color: "#ff8aa3",
+    target: 1,
+    coins: 16,
+    desc: "1 Fusion entfachen",
+    progress: () => state.runStats?.fusions || 0,
+    apply: () => {
+      state.stats.chainDamage += 0.05;
+      spawnPowerup(state.player.x - 48, state.player.y - 64, "fusionSpark", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "relicChain",
+    name: "Reliktkette",
+    icon: "captainSeal",
+    color: "#9f6cff",
+    target: 4,
+    coins: 10,
+    desc: "4 Power-ups sammeln",
+    progress: () => state.runStats?.powerups || 0,
+    apply: () => {
+      state.stats.powerupDuration *= 1.04;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 30);
+    },
+  },
+];
+
+function stringSeed(value) {
+  let seed = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    seed ^= value.charCodeAt(i);
+    seed = Math.imul(seed, 16777619);
+  }
+  return seed >>> 0;
+}
+
+function runContractDefinition(id) {
+  return runContractDefinitions.find((contract) => contract.id === id) || runContractDefinitions[0];
+}
+
+function createRunContracts(forcedIds = null) {
+  if (Array.isArray(forcedIds) && forcedIds.length) {
+    return forcedIds.map((id) => ({ id, progress: 0, completed: false, justCompleted: 0 }));
+  }
+  const seed = stringSeed(`${selectedMap}:${selectedSkin}:${metaProgress.runs || 0}`);
+  const deck = [...runContractDefinitions];
+  const picked = [];
+  for (let i = 0; deck.length && picked.length < 3; i += 1) {
+    const index = (seed + i * 5 + picked.length * 3) % deck.length;
+    picked.push(deck.splice(index, 1)[0]);
+  }
+  return picked.map((contract) => ({ id: contract.id, progress: 0, completed: false, justCompleted: 0 }));
+}
+
+function ensureRunContracts() {
+  if (!state.contracts || !state.contracts.length) state.contracts = createRunContracts();
+  return state.contracts;
+}
+
+function runContractProgress(contract) {
+  const definition = runContractDefinition(contract.id);
+  const progress = definition.progress ? definition.progress() : contract.progress || 0;
+  return clamp(Math.floor(progress || 0), 0, definition.target);
+}
+
+function completeRunContract(contract, definition = runContractDefinition(contract.id)) {
+  if (contract.completed) return;
+  contract.completed = true;
+  contract.progress = definition.target;
+  contract.justCompleted = 1.35;
+  state.runStats.contracts = (state.runStats.contracts || 0) + 1;
+  state.runStats.flowRewards += 1;
+  metaProgress.flowRewards += 1;
+  const coinReward = definition.coins ?? 10;
+  state.coins += coinReward;
+  metaProgress.coins += coinReward;
+  definition.apply?.();
+  state.zones.push({
+    type: "contractSeal",
+    icon: definition.icon,
+    color: definition.color,
+    x: state.player.x,
+    y: state.player.y - 8,
+    radius: 136,
+    life: 0.82,
+    maxLife: 0.82,
+  });
+  floatingText(`Auftrag: ${definition.name}`, state.player.x, state.player.y - 118, definition.color, 0.9, 18, { priority: 2 });
+  playSound("treasureClink", { cooldown: 520 });
+  triggerMomentumSurge("Auftragsflow", { duration: 5.5, color: definition.color, quiet: true });
+}
+
+function updateRunContracts(dt) {
+  if (state.phase !== "playing") return;
+  const contracts = ensureRunContracts();
+  let changed = false;
+  for (const contract of contracts) {
+    contract.justCompleted = Math.max(0, (contract.justCompleted || 0) - dt);
+    if (contract.completed) continue;
+    contract.progress = runContractProgress(contract);
+    const definition = runContractDefinition(contract.id);
+    if (contract.progress >= definition.target) {
+      completeRunContract(contract, definition);
+      changed = true;
+    }
+  }
+  if (changed) {
+    unlockAchievements();
+    saveMetaProgress();
+    renderMetaProgress();
+    renderMetaSkills();
+  }
+}
+
+function runContractSnapshot(contract) {
+  const definition = runContractDefinition(contract.id);
+  const progress = contract.completed ? definition.target : runContractProgress(contract);
+  return {
+    id: contract.id,
+    name: definition.name,
+    desc: definition.desc,
+    icon: definition.icon,
+    color: definition.color,
+    progress,
+    target: definition.target,
+    completed: !!contract.completed,
+    justCompleted: contract.justCompleted || 0,
+  };
+}
 
 const metaSkillDefinitions = [
   { id: "tideHeart", name: "Flutherz", icon: "lime", max: 5, baseCost: 16, costStep: 18, desc: "+12 Start-HP pro Rang." },
@@ -1914,7 +2118,8 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, unlocked: [] },
+    contracts: createRunContracts(),
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, contracts: 0, unlocked: [] },
     momentum: { timer: 0, duration: 0, stacks: 0, pulse: 0, label: "", surges: 0 },
     fusionMoments: { seen: new Set(), count: 0 },
     omenShards: { count: 0, nextReward: 3, boons: 0 },
@@ -3219,6 +3424,7 @@ function startGame(options = {}) {
   ui.endOverlay.hidden = true;
   ui.upgradeOverlay.hidden = true;
   ui.hud.hidden = false;
+  if (ui.contractCard) ui.contractCard.hidden = false;
   ui.loadout.hidden = false;
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
@@ -3243,8 +3449,9 @@ function endGame(victory) {
   state.phase = victory ? "victory" : "gameover";
   ui.endEyebrow.textContent = victory ? "Flut gebrochen" : "Vertrag beendet";
   ui.endTitle.textContent = victory ? "Strand gehalten" : "Die Geistercrew war schneller";
-  ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level}`;
+  ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level} - ${state.runStats.contracts || 0} Auftraege`;
   ui.endOverlay.hidden = false;
+  if (ui.contractCard) ui.contractCard.hidden = true;
   playSkinSound(victory ? "powerup" : "hurt", victory ? "chime" : "gate", { force: true });
   syncMusic();
   speak(
@@ -3300,6 +3507,7 @@ function update(dt) {
   updateProjectiles(dt);
   updateGems(dt);
   updateStreak(dt);
+  updateRunContracts(dt);
   updateParticles(dt);
   updateDomThrottled(dt);
   updateVoiceCues();
@@ -6319,7 +6527,42 @@ function updateDom() {
   ui.pauseButton.textContent = state.phase === "paused" ? ">" : "II";
   ui.fullscreenButton.textContent = document.fullscreenElement ? "MIN" : "FS";
   ui.fullscreenButton.title = document.fullscreenElement ? "Vollbild verlassen" : "Vollbild";
+  updateContractHud();
   updateLoadout();
+}
+
+function updateContractHud() {
+  if (!ui.contractCard) return;
+  const activePhase = state.phase === "playing" || state.phase === "levelup" || state.phase === "paused";
+  ui.contractCard.hidden = !activePhase;
+  if (!activePhase) return;
+  const contracts = ensureRunContracts();
+  const snapshots = contracts.map(runContractSnapshot);
+  const focused = snapshots.find((contract) => !contract.completed)
+    || snapshots.find((contract) => contract.justCompleted > 0)
+    || snapshots[snapshots.length - 1];
+  if (!focused) {
+    ui.contractCard.hidden = true;
+    return;
+  }
+  const completed = snapshots.filter((contract) => contract.completed).length;
+  const pct = clamp(focused.progress / Math.max(1, focused.target), 0, 1);
+  const flash = snapshots.some((contract) => contract.justCompleted > 0);
+  ui.contractCard.classList.toggle("complete", completed === snapshots.length);
+  ui.contractCard.classList.toggle("flash", flash);
+  ui.contractCard.style.setProperty("--contract-color", focused.color);
+  ui.contractCard.innerHTML = `
+    <div class="contract-head">
+      <span class="contract-icon" style="${iconStyle(focused.icon)}"></span>
+      <span class="contract-title">
+        <span class="contract-label">Run-Auftrag</span>
+        <strong>${focused.name}</strong>
+      </span>
+      <span class="contract-count">${completed}/${snapshots.length}</span>
+    </div>
+    <div class="contract-meter"><span style="transform:scaleX(${pct})"></span></div>
+    <div class="contract-detail">${focused.desc} - ${focused.progress}/${focused.target}</div>
+  `;
 }
 
 function updateLoadout() {
@@ -6402,6 +6645,7 @@ function render() {
     drawPlayer();
     drawProjectiles();
     drawWeaponEffects();
+    drawWaypoints();
     drawParticles();
     drawTexts();
     if (!lowFxMode()) drawVignette();
@@ -6569,6 +6813,88 @@ function drawTideRifts() {
     drawItemAt(type.icon, -size * 0.42, -size * 0.42, size * 0.84, size * 0.84);
     ctx.restore();
   }
+}
+
+function waypointTargets() {
+  if (!state || state.phase === "menu") return [];
+  const targets = [];
+  for (const rift of state.tideRifts || []) {
+    if (rift.collected || onScreen(rift.x, rift.y, 130)) continue;
+    const type = tideRiftType(rift.type);
+    targets.push({ type: "rift", id: rift.type, icon: type.icon, color: type.color, x: rift.x, y: rift.y, priority: 3, label: "Riss" });
+  }
+  for (const prop of state.props || []) {
+    if (!prop.streakCache || prop.discovered || prop.used || onScreen(prop.x, prop.y, 130)) continue;
+    targets.push({ type: "cache", id: "streakCache", icon: "buriedTreasure", color: "#fff2c7", x: prop.x, y: prop.y, priority: 2, label: "Schatz" });
+  }
+  targets.sort((a, b) => b.priority - a.priority || Math.hypot(a.x - state.player.x, a.y - state.player.y) - Math.hypot(b.x - state.player.x, b.y - state.player.y));
+  return targets.slice(0, isMobileLike() ? 3 : 5);
+}
+
+function drawWaypoints() {
+  const targets = waypointTargets();
+  if (!targets.length) return;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
+  const cx = scene.w / 2;
+  const cy = scene.h / 2;
+  const pad = isMobileLike() ? 58 : 74;
+  const minX = pad;
+  const maxX = scene.w - pad;
+  const minY = pad;
+  const maxY = scene.h - pad;
+  targets.forEach((target, index) => {
+    const sx = ox + target.x;
+    const sy = oy + target.y;
+    const dx = sx - cx;
+    const dy = sy - cy;
+    const dist = Math.max(1, Math.hypot(dx, dy));
+    const angle = Math.atan2(dy, dx);
+    const limitX = dx >= 0 ? maxX - cx : cx - minX;
+    const limitY = dy >= 0 ? maxY - cy : cy - minY;
+    const t = Math.min(limitX / Math.max(1, Math.abs(dx)), limitY / Math.max(1, Math.abs(dy)));
+    const x = clamp(cx + dx * t, minX, maxX);
+    const y = clamp(cy + dy * t, minY, maxY);
+    drawWaypointMarker(target, x, y, angle, dist, index);
+  });
+}
+
+function drawWaypointMarker(target, x, y, angle, dist, index = 0) {
+  const size = isMobileLike() ? 34 : 42;
+  const pulse = 1 + Math.sin(state.elapsed * 5.4 + index) * 0.045;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.globalAlpha = 0.84;
+  ctx.fillStyle = "rgba(34, 19, 8, 0.62)";
+  ctx.strokeStyle = target.color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(size * 0.5 * pulse, 0);
+  ctx.lineTo(-size * 0.32, -size * 0.34);
+  ctx.lineTo(-size * 0.18, 0);
+  ctx.lineTo(-size * 0.32, size * 0.34);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "rgba(35, 20, 9, 0.58)";
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.46, 0, Math.PI * 2);
+  ctx.fill();
+  drawItemAt(target.icon, -size * 0.28, -size * 0.28, size * 0.56, size * 0.56);
+  if (!isMobileLike()) {
+    ctx.fillStyle = target.color;
+    ctx.font = "900 10px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(dist > 1200 ? "weit" : target.label, 0, size * 0.44);
+  }
+  ctx.restore();
 }
 
 function xpCrystalTier(gem) {
@@ -7238,6 +7564,21 @@ function drawWeaponEffects() {
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = a * 0.72;
       drawItemAt(zone.icon || "cursedPearl", -size * 0.22, -size * 0.22, size * 0.44, size * 0.44);
+    } else if (zone.type === "contractSeal") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(state.elapsed * 0.72);
+      const size = zone.radius * (1.65 + (1 - a) * 0.4);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = a * 0.52;
+      drawPlayerEffectAt("treasureGlint", -size * 0.5, -size * 0.5, size, size);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = a * 0.8;
+      ctx.strokeStyle = zone.color || "#fff2c7";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.26, 0, Math.PI * 2);
+      ctx.stroke();
+      drawItemAt(zone.icon || "captainSeal", -size * 0.16, -size * 0.16, size * 0.32, size * 0.32);
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -8460,6 +8801,58 @@ window.__MONKEY_TIDE_TIDE_RIFT_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_CONTRACT_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.contracts = createRunContracts(["riftHunter", "omenHunter", "streakChart"]);
+  state.runStats.tideRifts = Math.max(state.runStats.tideRifts || 0, 2);
+  state.runStats.elites = Math.max(state.runStats.elites || 0, 2);
+  state.streak.best = Math.max(state.streak.best || 0, 18);
+  state.streak.count = Math.max(state.streak.count || 0, 18);
+  const beforeFlow = metaProgress.flowRewards;
+  const beforeCoins = state.coins;
+  const beforeZones = state.zones.length;
+  updateRunContracts(0.016);
+  updateContractHud();
+  render();
+  return {
+    active: state.contracts.map(runContractSnapshot),
+    completed: state.runStats.contracts || 0,
+    flowRewardsGained: metaProgress.flowRewards - beforeFlow,
+    coinsGained: state.coins - beforeCoins,
+    contractZones: state.zones.slice(beforeZones).filter((zone) => zone.type === "contractSeal").length,
+    hud: ui.contractCard?.textContent?.trim() || "",
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
+window.__MONKEY_TIDE_WAYPOINT_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  const p = state.player;
+  state.tideRifts = [];
+  spawnTideRift({
+    type: "flowRift",
+    x: p.x + offscreenRewardDistance(),
+    y: p.y + 80,
+    life: 28,
+    quiet: true,
+  });
+  addPropToTarget(state, {
+    x: p.x - offscreenRewardDistance(),
+    y: p.y - 90,
+    icon: "buriedTreasure",
+    scale: 0.82,
+    spin: 0,
+    interactive: true,
+    streakCache: true,
+    createdAt: state.elapsed - 2,
+    fadeIn: 1,
+  });
+  const targets = waypointTargets();
+  render();
+  return {
+    targets: targets.map((target) => ({ type: target.type, id: target.id, icon: target.icon, onscreen: onScreen(target.x, target.y, 130) })),
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
@@ -9341,6 +9734,16 @@ window.__MONKEY_TIDE_DEBUG = () => {
       timer: state.tideRiftTimer || 0,
       types: tideRiftTypes.map((rift) => rift.id),
       powerups: tideRiftTypes.map((rift) => rift.powerup),
+    },
+    contracts: {
+      active: ensureRunContracts().map(runContractSnapshot),
+      completed: state.runStats.contracts || 0,
+      definitions: runContractDefinitions.map((contract) => contract.id),
+      hudText: ui.contractCard?.textContent?.trim() || "",
+    },
+    waypoints: {
+      active: waypointTargets().length,
+      types: waypointTargets().map((target) => target.type),
     },
     activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id),
     selectedUpgradeIndex,

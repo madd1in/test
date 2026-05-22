@@ -1934,6 +1934,27 @@ async function run() {
       && tideRiftProbe.debug.engagement.tideRifts.types.includes("forgeRift"),
     `Tide Rift mini-event loop did not trigger cleanly: ${JSON.stringify(tideRiftProbe)}`,
   );
+  const contractProbe = await page.evaluate(() => window.__MONKEY_TIDE_CONTRACT_PROBE());
+  assert(
+    contractProbe.active.length === 3
+      && contractProbe.active.every((contract) => contract.completed && contract.progress === contract.target)
+      && contractProbe.flowRewardsGained >= 3
+      && contractProbe.coinsGained >= 30
+      && contractProbe.contractZones >= 3
+      && contractProbe.hud.includes("Run-Auftrag")
+      && contractProbe.debug.engagement.contracts.definitions.length >= 7
+      && contractProbe.debug.engagement.contracts.completed >= 3,
+    `Run contracts did not complete and reward cleanly: ${JSON.stringify(contractProbe)}`,
+  );
+  const waypointProbe = await page.evaluate(() => window.__MONKEY_TIDE_WAYPOINT_PROBE());
+  assert(
+    waypointProbe.targets.length >= 2
+      && waypointProbe.targets.some((target) => target.type === "rift")
+      && waypointProbe.targets.some((target) => target.type === "cache")
+      && waypointProbe.targets.every((target) => target.onscreen === false)
+      && waypointProbe.debug.engagement.waypoints.active >= 2,
+    `Offscreen reward waypoints did not track Rifts and Streak caches: ${JSON.stringify(waypointProbe)}`,
+  );
 
   const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
   assert(weaponEvolutionProbe.assetLoaded && weaponEvolutionProbe.slash?.blades === 5, `Fivefold cutlass animation did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
