@@ -1946,6 +1946,26 @@ async function run() {
       && contractProbe.debug.engagement.contracts.completed >= 3,
     `Run contracts did not complete and reward cleanly: ${JSON.stringify(contractProbe)}`,
   );
+  const captainOrderProbe = await page.evaluate(() => window.__MONKEY_TIDE_CAPTAIN_ORDER_PROBE());
+  assert(
+    captainOrderProbe.completed >= 1
+      && captainOrderProbe.flowRewardsGained >= 1
+      && captainOrderProbe.coinsGained >= 10
+      && captainOrderProbe.powerupDrops >= 1
+      && captainOrderProbe.orderZones >= 2
+      && captainOrderProbe.hud.includes("Captain")
+      && captainOrderProbe.debug.engagement.captainOrders.definitions.length >= 5
+      && captainOrderProbe.debug.engagement.captainOrders.completed >= 1,
+    `Captain's Orders did not complete and reward cleanly: ${JSON.stringify(captainOrderProbe)}`,
+  );
+  const captainRiftOrderProbe = await page.evaluate(() => window.__MONKEY_TIDE_CAPTAIN_RIFT_ORDER_PROBE());
+  assert(
+    captainRiftOrderProbe.started === "riftCommand"
+      && captainRiftOrderProbe.spawned >= 1
+      && captainRiftOrderProbe.completed >= 1
+      && captainRiftOrderProbe.debug.engagement.captainOrders.history.some((entry) => entry.id === "riftCommand" && entry.result === "complete"),
+    `Captain's Rift Order did not spawn and complete its rift objective: ${JSON.stringify(captainRiftOrderProbe)}`,
+  );
   const waypointProbe = await page.evaluate(() => window.__MONKEY_TIDE_WAYPOINT_PROBE());
   assert(
     waypointProbe.targets.length >= 2
