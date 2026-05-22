@@ -757,6 +757,7 @@ const powerUpTypes = [
   { id: "fusionSpark", name: "Fusionsfunke", icon: "rubyRing", duration: 10, speed: 1.12, damage: 1.18, cooldown: 0.9, color: "#ff8aa3" },
   { id: "stormRhythm", name: "Sturmtakt", icon: "captainSeal", duration: 8, speed: 1.16, damage: 1.1, cooldown: 0.88, magnet: 70, color: "#bfffea" },
   { id: "omenBounty", name: "Omen-Beute", icon: "bloodRose", duration: 10, speed: 1.1, damage: 1.16, cooldown: 0.91, magnet: 60, color: "#ffdf6e" },
+  { id: "signatureOverdrive", name: "Signature-Overdrive", icon: "rubyRing", duration: 8, speed: 1.08, damage: 1.24, cooldown: 0.86, magnet: 54, color: "#aef7ff" },
 ];
 const powerupDropTuning = {
   randomDropChance: 0.004,
@@ -766,6 +767,19 @@ const powerupDropTuning = {
   cacheChance: 0.22,
   magnetRange: 84,
   life: 18,
+};
+const tideRiftTypes = [
+  { id: "flowRift", name: "Flow-Riss", icon: "cursedPearl", color: "#53ffe5", powerup: "tideVacuum", label: "Flowtempo", boon: "magnet" },
+  { id: "forgeRift", name: "Schmiede-Riss", icon: "rubyRing", color: "#ff8aa3", powerup: "signatureOverdrive", label: "Signature-Drive", boon: "signature" },
+  { id: "omenRift", name: "Omen-Riss", icon: "bloodRose", color: "#ffdf6e", powerup: "omenBounty", label: "Omen-Jagd", boon: "ambush" },
+];
+const TIDE_RIFT_TUNING = {
+  firstAt: 24,
+  interval: 56,
+  minInterval: 34,
+  life: 38,
+  pickupRadius: 112,
+  pulseRadius: 132,
 };
 
 const metaSkillDefinitions = [
@@ -1865,6 +1879,7 @@ function makeState() {
     elapsed: 0,
     spawnTimer: 0,
     bossTimer: 0,
+    tideRiftTimer: TIDE_RIFT_TUNING.firstAt,
     bossCount: 0,
     pressureTimer: BALANCE.pressureWaveFirstAt,
     pressureWave: 0,
@@ -1872,7 +1887,7 @@ function makeState() {
     wave: 1,
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
-    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, momentumSurges: 0, unlocked: [] },
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, unlocked: [] },
     momentum: { timer: 0, duration: 0, stacks: 0, pulse: 0, label: "", surges: 0 },
     fusionMoments: { seen: new Set(), count: 0 },
     omenShards: { count: 0, nextReward: 3, boons: 0 },
@@ -1965,6 +1980,7 @@ function makeState() {
     particles: [],
     texts: [],
     powerups: [],
+    tideRifts: [],
     props: [],
     propChunks: new Set(),
     propsByChunk: new Map(),
@@ -3247,6 +3263,7 @@ function update(dt) {
   updatePlayer(dt);
   ensurePropChunks();
   updateTidePuddles(dt);
+  updateTideRifts(dt);
   updatePowerups(dt);
   updateWeapons(dt);
   updateSignatureMove(dt);
@@ -5513,6 +5530,130 @@ function updateTidePuddles(dt) {
   }
 }
 
+function tideRiftType(id) {
+  return tideRiftTypes.find((rift) => rift.id === id) || tideRiftTypes[0];
+}
+
+function updateTideRifts(dt) {
+  if (!state.tideRifts) state.tideRifts = [];
+  state.tideRiftTimer = Math.max(0, (state.tideRiftTimer ?? TIDE_RIFT_TUNING.firstAt) - dt);
+  if (state.elapsed >= TIDE_RIFT_TUNING.firstAt && state.tideRiftTimer <= 0 && state.tideRifts.length === 0) {
+    spawnTideRift();
+    const pressureHurry = Math.min(22, (state.pressureWave || 0) * 2.4);
+    state.tideRiftTimer = Math.max(TIDE_RIFT_TUNING.minInterval, TIDE_RIFT_TUNING.interval - pressureHurry);
+  }
+
+  const p = state.player;
+  for (const rift of state.tideRifts) {
+    rift.life -= dt;
+    rift.pulse = (rift.pulse || 0) + dt;
+    const dist = Math.hypot(rift.x - p.x, rift.y - p.y);
+    if (dist <= TIDE_RIFT_TUNING.pickupRadius) {
+      activateTideRift(rift);
+      rift.collected = true;
+    } else if (rift.life < 6 && !rift.warned) {
+      rift.warned = true;
+      floatingText(`${tideRiftType(rift.type).name} verblasst`, rift.x, rift.y - 72, "#bfffea", 0.62, 16, { priority: 1 });
+    }
+  }
+  state.tideRifts = state.tideRifts.filter((rift) => !rift.collected && rift.life > 0);
+}
+
+function spawnTideRift(options = {}) {
+  if (!state.tideRifts) state.tideRifts = [];
+  const p = state.player;
+  const typeIndex = (state.runStats?.tideRifts || 0) + Math.floor((state.elapsed || 0) / TIDE_RIFT_TUNING.interval);
+  const type = tideRiftType(options.type || options.id || tideRiftTypes[typeIndex % tideRiftTypes.length].id);
+  let x = Number.isFinite(options.x) ? options.x : p.x;
+  let y = Number.isFinite(options.y) ? options.y : p.y;
+  if (!Number.isFinite(options.x) || !Number.isFinite(options.y)) {
+    const baseDistance = offscreenRewardDistance() * 0.72;
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = baseDistance + Math.random() * 360;
+      x = clamp(p.x + Math.cos(angle) * distance, 180, WORLD.w - 180);
+      y = clamp(p.y + Math.sin(angle) * distance, 180, WORLD.h - 180);
+      if (!isInSpawnSightline(x, y, state, 90)) break;
+    }
+  }
+  const maxLife = options.life || TIDE_RIFT_TUNING.life;
+  const rift = {
+    id: cryptoId(),
+    type: type.id,
+    x,
+    y,
+    life: maxLife,
+    maxLife,
+    pulse: Math.random() * Math.PI * 2,
+    createdAt: state.elapsed,
+  };
+  state.tideRifts.push(rift);
+  if (!options.quiet) {
+    floatingText(`${type.name} am Horizont`, p.x, p.y - 118, type.color, 0.86, 18, { priority: 2 });
+    state.zones.push({ type: "tideRiftPing", icon: type.icon, x, y, radius: TIDE_RIFT_TUNING.pulseRadius, life: 0.72, maxLife: 0.72, color: type.color });
+    playSound("treasureMapMagic", { cooldown: 1200 });
+    speak(`${type.name} gesichtet. Lauf durch den Riss fuer Beute!`, { key: `tide-rift-${type.id}`, cooldown: 18000, rate: 1.06 });
+  }
+  return rift;
+}
+
+function activateTideRift(rift) {
+  const type = tideRiftType(rift.type);
+  state.runStats.tideRifts = (state.runStats.tideRifts || 0) + 1;
+  state.runStats.flowRewards += 1;
+  metaProgress.flowRewards += 1;
+  triggerMomentumSurge(type.label, { duration: 6.4, stacks: type.boon === "ambush" ? 2 : 1, color: type.color, size: 20 });
+  spawnPowerup(rift.x - 28, rift.y + 18, type.powerup, { life: 26, cooldown: 10 });
+  state.zones.push({ type: "tideRiftBurst", icon: type.icon, x: rift.x, y: rift.y, radius: 148, life: 0.92, maxLife: 0.92, color: type.color });
+
+  if (type.boon === "magnet") {
+    state.stats.magnet += 12;
+  } else if (type.boon === "signature") {
+    state.stats.signatureDamage += 0.04;
+    if (state.signatureMove) state.signatureMove.timer = Math.min(state.signatureMove.timer, 0.08);
+  } else if (type.boon === "ambush") {
+    spawnTideRiftAmbush(rift);
+  }
+
+  const gems = type.boon === "ambush"
+    ? [{ tier: "red", value: 52 }, { tier: "blue", value: 22 }, { tier: "green", value: 10 }]
+    : [{ tier: "blue", value: 24 }, { tier: "green", value: 12 }, { tier: "green", value: 9 }];
+  gems.forEach((gem, index) => {
+    const angle = (Math.PI * 2 * index) / gems.length - Math.PI / 2;
+    state.gems.push({
+      kind: "xp",
+      icon: "skullCoin",
+      xpTier: gem.tier,
+      x: rift.x + Math.cos(angle) * 46,
+      y: rift.y + Math.sin(angle) * 34,
+      r: 12,
+      value: gem.value,
+      life: 36,
+    });
+  });
+  state.gems.push({ kind: "coin", icon: "coin", x: rift.x + 36, y: rift.y + 10, r: 12, value: type.boon === "ambush" ? 18 : 10, life: 36 });
+  floatingText(type.name, rift.x, rift.y - 86, type.color, 0.9, 24, { priority: 3 });
+  playSkinSound("powerup", "upgradeMagic", { force: true });
+  unlockAchievements();
+  saveMetaProgress();
+  renderMetaProgress();
+}
+
+function spawnTideRiftAmbush(rift) {
+  const pool = pressureWavePool();
+  const count = isMobileLike() ? 4 : 6;
+  for (let i = 0; i < count; i += 1) {
+    const enemy = spawnEnemy(enemyType(pool[(i + state.pressureWave) % pool.length]));
+    if (!enemy) continue;
+    const angle = (Math.PI * 2 * i) / count;
+    enemy.x = clamp(rift.x + Math.cos(angle) * (180 + i * 12), 100, WORLD.w - 100);
+    enemy.y = clamp(rift.y + Math.sin(angle) * (145 + i * 8), 100, WORLD.h - 100);
+    if (i === 0) markEliteEnemy(enemy, Math.max(1, state.pressureWave + 1));
+  }
+  state.warningTimer = Math.max(state.warningTimer, 1.2);
+  floatingText("Riss-Ambush", rift.x, rift.y - 116, "#ffdf6e", 0.82, 22, { priority: 3 });
+}
+
 function updatePowerups(dt) {
   for (const powerup of state.powerups) powerup.timer -= dt;
   state.powerups = state.powerups.filter((powerup) => powerup.timer > 0);
@@ -6229,6 +6370,7 @@ function render() {
   if (state.phase !== "menu") {
     drawProps();
     drawGems();
+    drawTideRifts();
     drawEnemies();
     drawPlayer();
     drawProjectiles();
@@ -6374,6 +6516,30 @@ function drawGems() {
       continue;
     }
     drawItemAt(gem.icon, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+}
+
+function drawTideRifts() {
+  if (!state.tideRifts?.length) return;
+  const ox = scene.w / 2 - state.camera.x;
+  const oy = scene.h / 2 - state.camera.y;
+  for (const rift of state.tideRifts) {
+    if (!onScreen(rift.x, rift.y, 180)) continue;
+    const type = tideRiftType(rift.type);
+    const lifeAlpha = clamp(rift.life / Math.max(1, rift.maxLife), 0, 1);
+    const pulse = 1 + Math.sin(state.elapsed * 5.2 + (rift.pulse || 0)) * 0.08;
+    const size = 82 * pulse;
+    ctx.save();
+    ctx.translate(ox + rift.x, oy + rift.y + Math.sin(state.elapsed * 2.4 + rift.x) * 5);
+    ctx.globalAlpha = Math.max(0.18, Math.min(0.88, lifeAlpha));
+    ctx.globalCompositeOperation = "lighter";
+    drawPlayerEffectAt("treasureGlint", -size * 0.86, -size * 0.86, size * 1.72, size * 1.72);
+    ctx.rotate(-state.elapsed * 0.72);
+    drawPlayerEffectAt("tidePulse", -size * 1.08, -size * 1.08, size * 2.16, size * 2.16);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.rotate(state.elapsed * 1.34);
+    drawItemAt(type.icon, -size * 0.42, -size * 0.42, size * 0.84, size * 0.84);
     ctx.restore();
   }
 }
@@ -6938,6 +7104,17 @@ function drawWeaponEffects() {
         ctx.globalAlpha = a * 0.42;
         drawChunLiActionFrameAt(zone.move, Math.floor((1 - a) * CHUN_LI_ACTION.frames), -size / 2, -size * 0.58, size, size);
       }
+    } else if (zone.type === "tideRiftPing" || zone.type === "tideRiftBurst") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate((zone.type === "tideRiftBurst" ? 1 : -1) * state.elapsed * 0.85);
+      const size = zone.radius * (zone.type === "tideRiftBurst" ? 2.25 : 1.72) * (1 + (1 - a) * 0.28);
+      ctx.globalCompositeOperation = "lighter";
+      drawPlayerEffectAt("treasureGlint", -size * 0.5, -size * 0.5, size, size);
+      ctx.globalAlpha = a * 0.46;
+      drawPlayerEffectAt("tidePulse", -size * 0.64, -size * 0.64, size * 1.28, size * 1.28);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = a * 0.72;
+      drawItemAt(zone.icon || "cursedPearl", -size * 0.22, -size * 0.22, size * 0.44, size * 0.44);
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -8122,6 +8299,44 @@ window.__MONKEY_TIDE_OMEN_SHARD_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_TIDE_RIFT_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.tideRifts = [];
+  state.enemies = state.enemies.filter((enemy) => enemy.boss);
+  const p = state.player;
+  const beforeFlow = metaProgress.flowRewards;
+  const beforePowerups = state.gems.filter((gem) => gem.kind === "powerup").length;
+  const beforeZones = state.zones.length;
+  const beforeXp = state.gems.filter((gem) => gem.kind === "xp").length;
+  const beforeCoins = state.gems.filter((gem) => gem.kind === "coin").length;
+  const spawned = tideRiftTypes.map((type, index) => spawnTideRift({
+    type: type.id,
+    x: p.x + 72 + index * 74,
+    y: p.y - 46 + index * 34,
+    life: 24,
+    quiet: true,
+  }));
+  spawned.forEach((rift) => {
+    activateTideRift(rift);
+    rift.collected = true;
+  });
+  state.tideRifts = state.tideRifts.filter((rift) => !rift.collected);
+  render();
+  return {
+    types: tideRiftTypes.map((type) => type.id),
+    spawned: spawned.map((rift) => rift.type),
+    collected: state.runStats.tideRifts || 0,
+    flowRewardsGained: metaProgress.flowRewards - beforeFlow,
+    powerupDrops: state.gems.filter((gem) => gem.kind === "powerup").length - beforePowerups,
+    activePowerups: state.gems.filter((gem) => gem.kind === "powerup").map((gem) => gem.powerup),
+    xpGems: state.gems.filter((gem) => gem.kind === "xp").length - beforeXp,
+    coinGems: state.gems.filter((gem) => gem.kind === "coin").length - beforeCoins,
+    riftZones: state.zones.slice(beforeZones).filter((zone) => zone.type === "tideRiftBurst").length,
+    ambushElites: state.enemies.filter((enemy) => enemy.elite).length,
+    signatureTimer: state.signatureMove?.timer ?? null,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   state.weapons.cutlass.level = Math.max(state.weapons.cutlass.level, 5);
@@ -8997,6 +9212,13 @@ window.__MONKEY_TIDE_DEBUG = () => {
     elitesDefeated: state.runStats.elites,
     omenShards: { ...ensureOmenShards() },
     omenBoons: state.runStats.omenBoons || 0,
+    tideRifts: {
+      active: state.tideRifts?.length || 0,
+      collected: state.runStats.tideRifts || 0,
+      timer: state.tideRiftTimer || 0,
+      types: tideRiftTypes.map((rift) => rift.id),
+      powerups: tideRiftTypes.map((rift) => rift.powerup),
+    },
     activeUpgradeChoices: activeUpgradeChoices.map((upgrade) => upgrade.id),
     selectedUpgradeIndex,
   },
