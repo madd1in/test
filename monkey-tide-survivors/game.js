@@ -1610,7 +1610,14 @@ function actionConfigForSkin(skinId = state?.player?.skin || selectedSkin) {
 function triggerPlayerAction(type, duration = 0.48, options = {}) {
   const config = actionConfigForSkin();
   if (!state?.player || !config || config.rowsByAction[type] === undefined) return;
-  state.playerAction = { type, timer: duration, maxTimer: duration, forceWhileMoving: !!options.forceWhileMoving };
+  if (state.playerAction?.lockAction && !options.overrideLock) return;
+  state.playerAction = {
+    type,
+    timer: duration,
+    maxTimer: duration,
+    forceWhileMoving: !!options.forceWhileMoving,
+    lockAction: !!options.lockAction,
+  };
 }
 
 function updatePlayerAction(dt) {
@@ -4022,7 +4029,7 @@ function castRyuShoryuken(signature, angle) {
   const arsenal = ensureRyuArsenal();
   arsenal.shoryukens += 1;
   registerStreetFighterFlowMove("ryu", "shoryuken");
-  triggerPlayerAction("shoryuken", 0.72);
+  triggerPlayerAction("shoryuken", 0.82, { forceWhileMoving: true, lockAction: true });
   const radius = 82 + Math.min(28, state.level * 3);
   const cx = p.x + Math.cos(angle) * 48;
   const cy = p.y + Math.sin(angle) * 34 - 38;
@@ -4045,9 +4052,9 @@ function castRyuWhirlwindKick(signature, angle) {
   const arsenal = ensureRyuArsenal();
   arsenal.whirlwindKicks += 1;
   registerStreetFighterFlowMove("ryu", "whirlwindKick");
-  triggerPlayerAction("whirlwindKick", 0.78);
-  const radius = 118 + Math.min(36, state.level * 4);
-  state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.42, maxLife: 0.42, signature: signature.id, spinKick: true, spinRate: 5.2 });
+  triggerPlayerAction("whirlwindKick", 1.05, { forceWhileMoving: true, lockAction: true, overrideLock: true });
+  const radius = 136 + Math.min(42, state.level * 5);
+  state.zones.push({ type: "ryuWhirlwind", move: "whirlwindKick", x: p.x, y: p.y - 16, angle, radius, life: 0.72, maxLife: 0.72, signature: signature.id, spinKick: true, spinRate: 6.2 });
   for (const enemy of state.enemies) {
     const dx = enemy.x - p.x;
     const dy = enemy.y - p.y;
