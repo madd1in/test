@@ -1866,7 +1866,7 @@ async function run() {
   assert(debug.uiIconSources.projectileFxIcons === true && debug.uiIconSources.ryuHadokenIcons === true && debug.uiIconSources.kenDragonIcons === true && debug.uiIconSources.chunLiProjectileIcons === true, `Projectile FX icons are not available to the UI: ${JSON.stringify(debug)}`);
   assert(debug.ropeVisual.renderMode === "ropeWardSprites" && debug.ropeVisual.sprite === "ropeRing", `Rope ring still uses the old rotating aura mode: ${JSON.stringify(debug)}`);
   assert(debug.engagement?.streak?.nextCache >= 18 && debug.engagement?.streak?.caches >= 0, `Streak treasure loop missing: ${JSON.stringify(debug)}`);
-  assert(debug.engagement?.momentumHud?.text && debug.engagement?.momentumHud?.detail && debug.engagement?.momentumMultiplier?.speed === 1, `Momentum HUD/debug state missing: ${JSON.stringify(debug.engagement)}`);
+  assert(debug.engagement?.momentumHud?.text && debug.engagement?.momentumHud?.detail && debug.engagement?.momentumMultiplier?.speed >= 1 && debug.engagement?.tideRifts?.types?.includes("forgeRift"), `Momentum and Tide Rift HUD/debug state missing: ${JSON.stringify(debug.engagement)}`);
   assert(debug.obstacles.blockingProps >= 20, `Massive blocking obstacles are missing: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("beachHut") && debug.obstacles.blockingPropTypes.includes("boatWreck"), `Huts and wrecks are not blocking: ${JSON.stringify(debug.obstacles)}`);
   assert(debug.obstacles.blockingPropTypes.includes("hedgeCluster") || debug.obstacles.blockingPropTypes.includes("palmHedge"), `Hedge blockers are missing: ${JSON.stringify(debug.obstacles)}`);
@@ -1918,6 +1918,20 @@ async function run() {
   assert(["tideTentacle", "reefSquid", "cactusStack"].every((id) => newEnemyProbe.spawned.includes(id)), `New enemy trio did not spawn: ${JSON.stringify(newEnemyProbe)}`);
   const omenProbe = await page.evaluate(() => window.__MONKEY_TIDE_OMEN_SHARD_PROBE());
   assert(omenProbe.omen.count === 3 && omenProbe.omen.boons >= 1 && omenProbe.omen.nextReward === 6 && omenProbe.powerupDrops >= 1 && omenProbe.omenZones >= 1, `Omen shard elite reward loop did not trigger: ${JSON.stringify(omenProbe)}`);
+  const tideRiftProbe = await page.evaluate(() => window.__MONKEY_TIDE_TIDE_RIFT_PROBE());
+  assert(
+    tideRiftProbe.types.length >= 3
+      && tideRiftProbe.spawned.length === tideRiftProbe.types.length
+      && tideRiftProbe.flowRewardsGained >= tideRiftProbe.types.length
+      && tideRiftProbe.powerupDrops >= tideRiftProbe.types.length
+      && tideRiftProbe.activePowerups.includes("signatureOverdrive")
+      && tideRiftProbe.xpGems >= tideRiftProbe.types.length * 3
+      && tideRiftProbe.coinGems >= tideRiftProbe.types.length
+      && tideRiftProbe.riftZones >= tideRiftProbe.types.length
+      && tideRiftProbe.ambushElites >= 1
+      && tideRiftProbe.debug.engagement.tideRifts.types.includes("forgeRift"),
+    `Tide Rift mini-event loop did not trigger cleanly: ${JSON.stringify(tideRiftProbe)}`,
+  );
 
   const weaponEvolutionProbe = await page.evaluate(() => window.__MONKEY_TIDE_WEAPON_EVOLUTION_PROBE());
   assert(weaponEvolutionProbe.assetLoaded && weaponEvolutionProbe.slash?.blades === 5, `Fivefold cutlass animation did not activate: ${JSON.stringify(weaponEvolutionProbe)}`);
@@ -1933,7 +1947,7 @@ async function run() {
 
   const progressProbe = await page.evaluate(() => window.__MONKEY_TIDE_PROGRESS_PROBE());
   assert(progressProbe.powerups.types.length >= 10 && progressProbe.powerups.active.length >= 10, `Power-up system did not activate all item types: ${JSON.stringify(progressProbe.powerups)}`);
-  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever") && progressProbe.powerups.types.includes("stormRhythm") && progressProbe.powerups.types.includes("omenBounty"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
+  assert(progressProbe.powerups.types.includes("fusionSpark") && progressProbe.powerups.types.includes("saberFever") && progressProbe.powerups.types.includes("stormRhythm") && progressProbe.powerups.types.includes("omenBounty") && progressProbe.powerups.types.includes("signatureOverdrive"), `New power-up types missing: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.randomDropChance <= 0.004 && progressProbe.powerups.streakDropEvery >= 40, `Power-up drops are too frequent: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.powerups.combatCooldown >= 40 && progressProbe.powerups.magnetRange <= 90, `Power-up pickups are too intrusive: ${JSON.stringify(progressProbe.powerups)}`);
   assert(progressProbe.levelFlow.reducedInterruptions && progressProbe.levelFlow.choiceLevels[0] === 3 && progressProbe.levelFlow.choiceLevels[1] === 7 && progressProbe.levelFlow.choiceLevels[2] === 11 && progressProbe.levelFlow.rewardTypes >= 6, `Level-up flow rewards are incomplete: ${JSON.stringify(progressProbe.levelFlow)}`);
