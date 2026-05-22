@@ -308,14 +308,41 @@ const CONTROL_TUNING = {
   stickCurve: 0.34,
 };
 const ENEMY_TUNING = {
-  visualScale: 1.32,
+  visualScale: 1.44,
   hitboxScale: 1.14,
-  animatedVisualBoost: 1.16,
-  minAnimatedVisualHeight: 96,
-  minAnimatedVisualRadiusRatio: 3.65,
+  animatedVisualBoost: 1.28,
+  minAnimatedVisualHeight: 124,
+  minAnimatedVisualRadiusRatio: 4.05,
+  minStaticVisualHeight: 104,
+  minStaticVisualRadiusRatio: 3.82,
   pressureWaveDesktopCap: 8,
   pressureWaveMobileCap: 5,
   secondEliteFromWave: 3,
+};
+const ENEMY_SOURCE_CROPS = {
+  enemyAnimSheet: { l: 7, t: 6, r: 7, b: 8 },
+  gothicEnemyAnimSheet: { l: 8, t: 6, r: 8, b: 8 },
+  platformerEnemies: { l: 7, t: 5, r: 7, b: 8 },
+  newEnemyTrio: { l: 7, t: 5, r: 7, b: 8 },
+  gothicEnemies: { l: 3, t: 3, r: 3, b: 4 },
+  extraEnemies: { l: 16, t: 14, r: 16, b: 18 },
+  newSprites: { l: 5, t: 5, r: 5, b: 6 },
+  characters: { l: 4, t: 4, r: 4, b: 6 },
+  bossAnim: { l: 7, t: 6, r: 7, b: 8 },
+  captain: { l: 7, t: 6, r: 7, b: 8 },
+};
+const ENEMY_TYPE_SOURCE_CROPS = {
+  crab: { l: 9, t: 7, r: 9, b: 9 },
+  hand: { l: 10, t: 7, r: 10, b: 9 },
+  powderImp: { l: 9, t: 7, r: 9, b: 9 },
+  lanternWraith: { l: 10, t: 8, r: 10, b: 10 },
+  barrelMaw: { l: 9, t: 8, r: 9, b: 10 },
+  gargoyle: { l: 10, t: 8, r: 10, b: 10 },
+  reefSquid: { l: 10, t: 7, r: 10, b: 10 },
+  cactusStack: { l: 8, t: 6, r: 8, b: 9 },
+  tideTentacle: { l: 8, t: 7, r: 8, b: 10 },
+  blackbeard: { l: 8, t: 7, r: 8, b: 9 },
+  threeHeadedMonkey: { l: 8, t: 7, r: 8, b: 9 },
 };
 let mobileLike = false;
 
@@ -6609,6 +6636,98 @@ function animatedEnemyDrawScale(enemy, sourceHeight = ENEMY_ANIM.h) {
   return Math.max(baseScale, minHeight / sourceHeight);
 }
 
+function staticEnemyDrawScale(enemy, sourceHeight) {
+  const baseScale = enemyBaseDrawScale(enemy) * (enemy.boss ? 1.18 : 1);
+  const minHeight = Math.max(
+    ENEMY_TUNING.minStaticVisualHeight,
+    enemy.r * ENEMY_TUNING.minStaticVisualRadiusRatio,
+  ) * (enemy.boss ? 1.08 : 1);
+  return Math.max(baseScale, minHeight / sourceHeight);
+}
+
+function enemySourceCrop(profile, typeId) {
+  const base = ENEMY_SOURCE_CROPS[profile] || { l: 0, t: 0, r: 0, b: 0 };
+  const typeCrop = ENEMY_TYPE_SOURCE_CROPS[typeId] || {};
+  return {
+    l: typeCrop.l ?? base.l ?? 0,
+    t: typeCrop.t ?? base.t ?? 0,
+    r: typeCrop.r ?? base.r ?? 0,
+    b: typeCrop.b ?? base.b ?? 0,
+  };
+}
+
+function drawEnemyFrame(image, sx, sy, sw, sh, dx, dy, dw, dh, profile, enemy) {
+  const crop = enemySourceCrop(profile, enemy?.type?.id);
+  const safeL = clamp(crop.l || 0, 0, Math.floor(sw * 0.16));
+  const safeT = clamp(crop.t || 0, 0, Math.floor(sh * 0.16));
+  const safeR = clamp(crop.r || 0, 0, Math.floor(sw * 0.16));
+  const safeB = clamp(crop.b || 0, 0, Math.floor(sh * 0.16));
+  const sourceW = Math.max(1, sw - safeL - safeR);
+  const sourceH = Math.max(1, sh - safeT - safeB);
+  ctx.drawImage(
+    image,
+    sx + safeL,
+    sy + safeT,
+    sourceW,
+    sourceH,
+    dx,
+    dy,
+    dw,
+    dh,
+  );
+}
+
+function enemySourceProfileForType(type) {
+  if (type.threeHeadedMonkey || type.blackbeard || type.timeTentacle) return "bossAnim";
+  if (type.captainSheet) return "captain";
+  if (type.gothicAnim) return "gothicEnemyAnimSheet";
+  if (type.gothicRow !== undefined) return "gothicEnemies";
+  if (type.newEnemyAnim && platformerEnemyAnimMap[type.newEnemyAnim]) return "platformerEnemies";
+  if (type.newEnemyAnim) return "newEnemyTrio";
+  if (type.enemyAnim) return "enemyAnimSheet";
+  if (type.extraSprite) return "extraEnemies";
+  if (type.sprite) return "newSprites";
+  return "characters";
+}
+
+function enemySourceHeightForType(type) {
+  if (type.threeHeadedMonkey) return THREE_HEADED_MONKEY_ANIM.h;
+  if (type.blackbeard) return BLACKBEARD_ANIM.h;
+  if (type.captainSheet) return SPECTRAL_CAPTAIN.h;
+  if (type.gothicAnim) return GOTHIC_ENEMY_ANIM.h;
+  if (type.gothicRow !== undefined) return GOTHIC_ENEMY.h;
+  if (type.timeTentacle) return TIME_TENTACLE_ANIM.h;
+  if (type.newEnemyAnim && platformerEnemyAnimMap[type.newEnemyAnim]) return PLATFORMER_ENEMY_ANIM.h;
+  if (type.newEnemyAnim) return NEW_ENEMY_TRIO.h;
+  if (type.enemyAnim) return ENEMY_ANIM.h;
+  if (type.extraSprite) return EXTRA_ENEMY.h;
+  if (type.sprite) return NEWSPRITE.h;
+  return CHAR.h;
+}
+
+function enemyUsesAnimatedSheet(type) {
+  return !!(type.gothicAnim || type.timeTentacle || type.newEnemyAnim || type.enemyAnim);
+}
+
+function projectedEnemyVisualHeight(type, boss = false, elite = false) {
+  const sourceHeight = enemySourceHeightForType(type);
+  const mockEnemy = {
+    type,
+    r: type.radius * ENEMY_TUNING.hitboxScale * (boss ? 1.25 : 1),
+    boss,
+    elite,
+  };
+  if (enemyUsesAnimatedSheet(type)) {
+    let extra = 1;
+    if (type.gothicAnim) extra = type.id === "gargoyle" ? 1.08 : 1;
+    else if (type.timeTentacle) extra = boss ? 1.16 : 1;
+    else if (type.newEnemyAnim && platformerEnemyAnimMap[type.newEnemyAnim]) extra = type.id === "reefSquid" ? 1.08 : 1.03;
+    else if (type.newEnemyAnim) extra = type.id === "reefSquid" ? 1.05 : 1;
+    return Math.round(sourceHeight * animatedEnemyDrawScale(mockEnemy, sourceHeight) * extra);
+  }
+  return Math.round(sourceHeight * staticEnemyDrawScale(mockEnemy, sourceHeight));
+}
+
 function drawEnemies() {
   const ox = scene.w / 2 - state.camera.x;
   const oy = scene.h / 2 - state.camera.y;
@@ -6635,7 +6754,7 @@ function drawEnemies() {
       w = THREE_HEADED_MONKEY_ANIM.w * drawScale * (enemy.boss ? 1.18 : 1);
       h = THREE_HEADED_MONKEY_ANIM.h * drawScale * (enemy.boss ? 1.18 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 30 : 18;
-      ctx.drawImage(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.threeHeadedMonkeyAnim, sx, sy, THREE_HEADED_MONKEY_ANIM.w, THREE_HEADED_MONKEY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h, "bossAnim", enemy);
     } else if (enemy.type.threeHeadedMonkey && images.threeHeadedMonkey) {
       const bob = Math.sin(state.elapsed * 4.8 + enemy.frameOffset) * 4;
       w = images.threeHeadedMonkey.width * drawScale * (enemy.boss ? 1.18 : 1);
@@ -6650,7 +6769,7 @@ function drawEnemies() {
       w = BLACKBEARD_ANIM.w * drawScale * (enemy.boss ? 1.08 : 1);
       h = BLACKBEARD_ANIM.h * drawScale * (enemy.boss ? 1.08 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 32 : 20;
-      ctx.drawImage(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.blackbeardAnim, sx, sy, BLACKBEARD_ANIM.w, BLACKBEARD_ANIM.h, -w / 2, -h + enemy.r + bob, w, h, "bossAnim", enemy);
     } else if (enemy.type.blackbeard && images.blackbeard) {
       const bob = Math.sin(state.elapsed * 4.2 + enemy.frameOffset) * 4.5;
       w = images.blackbeard.width * drawScale * (enemy.boss ? 1.08 : 1);
@@ -6664,7 +6783,7 @@ function drawEnemies() {
       w = SPECTRAL_CAPTAIN.w * drawScale * (enemy.boss ? 1.05 : 1);
       h = SPECTRAL_CAPTAIN.h * drawScale * (enemy.boss ? 1.05 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 28 : 18;
-      ctx.drawImage(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.spectralCaptain, sx, 0, SPECTRAL_CAPTAIN.w, SPECTRAL_CAPTAIN.h, -w / 2, -h + enemy.r + bob, w, h, "captain", enemy);
     } else if (enemy.type.gothicAnim && images.gothicEnemyAnimSheet) {
       const anim = gothicEnemyAnimMap[enemy.type.gothicAnim] || gothicEnemyAnimMap.boneCorsair;
       const frame = bossAnimFrame(enemy, GOTHIC_ENEMY_ANIM, anim.attackFrames, anim.loopFrames);
@@ -6675,15 +6794,16 @@ function drawEnemies() {
       w = GOTHIC_ENEMY_ANIM.w * animScale * (enemy.boss ? 1.18 : 1);
       h = GOTHIC_ENEMY_ANIM.h * animScale * (enemy.boss ? 1.18 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 28 : 14;
-      ctx.drawImage(images.gothicEnemyAnimSheet, sx, sy, GOTHIC_ENEMY_ANIM.w, GOTHIC_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.gothicEnemyAnimSheet, sx, sy, GOTHIC_ENEMY_ANIM.w, GOTHIC_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h, "gothicEnemyAnimSheet", enemy);
     } else if (enemy.type.gothicRow !== undefined) {
       const frame = (Math.floor(state.elapsed * 8) + enemy.frameOffset) % GOTHIC_ENEMY.cols;
       const sx = frame * GOTHIC_ENEMY.w;
       const sy = enemy.type.gothicRow * GOTHIC_ENEMY.h;
       const bob = enemy.type.id === "cryptBat" ? Math.sin(state.elapsed * 8 + enemy.frameOffset) * 8 : 0;
-      w = GOTHIC_ENEMY.w * drawScale * (enemy.boss ? 1.18 : 1);
-      h = GOTHIC_ENEMY.h * drawScale * (enemy.boss ? 1.18 : 1);
-      ctx.drawImage(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
+      const staticScale = staticEnemyDrawScale(enemy, GOTHIC_ENEMY.h);
+      w = GOTHIC_ENEMY.w * staticScale;
+      h = GOTHIC_ENEMY.h * staticScale;
+      drawEnemyFrame(images.gothicEnemies, sx, sy, GOTHIC_ENEMY.w, GOTHIC_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h, "gothicEnemies", enemy);
     } else if (enemy.type.timeTentacle && images.timeTentacleAnim) {
       const attackFrames = enemy.actionKind === "monkeyCurseOrb" ? [7, 8, 9, 10] : [8, 9, 10, 11];
       const frame = bossAnimFrame(enemy, TIME_TENTACLE_ANIM, attackFrames);
@@ -6694,7 +6814,7 @@ function drawEnemies() {
       w = TIME_TENTACLE_ANIM.w * animScale * (enemy.boss ? 1.16 : 1);
       h = TIME_TENTACLE_ANIM.h * animScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 30 : enemy.boss ? 18 : 12;
-      ctx.drawImage(images.timeTentacleAnim, sx, sy, TIME_TENTACLE_ANIM.w, TIME_TENTACLE_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.timeTentacleAnim, sx, sy, TIME_TENTACLE_ANIM.w, TIME_TENTACLE_ANIM.h, -w / 2, -h + enemy.r + bob, w, h, "bossAnim", enemy);
     } else if (enemy.type.newEnemyAnim && platformerEnemyAnimMap[enemy.type.newEnemyAnim] && images.platformerEnemies) {
       const anim = platformerEnemyAnimMap[enemy.type.newEnemyAnim];
       const frame = bossAnimFrame(enemy, PLATFORMER_ENEMY_ANIM, anim.attackFrames, anim.loopFrames);
@@ -6707,7 +6827,7 @@ function drawEnemies() {
       w = PLATFORMER_ENEMY_ANIM.w * animScale * (enemy.boss ? 1.16 : 1);
       h = PLATFORMER_ENEMY_ANIM.h * animScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 28 : 13;
-      ctx.drawImage(images.platformerEnemies, sx, sy, PLATFORMER_ENEMY_ANIM.w, PLATFORMER_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.platformerEnemies, sx, sy, PLATFORMER_ENEMY_ANIM.w, PLATFORMER_ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h, "platformerEnemies", enemy);
     } else if (enemy.type.newEnemyAnim && images.newEnemyTrio) {
       const anim = newEnemyAnimMap[enemy.type.newEnemyAnim] || newEnemyAnimMap.tideTentacle;
       const frame = bossAnimFrame(enemy, NEW_ENEMY_TRIO, anim.attackFrames, anim.loopFrames);
@@ -6720,7 +6840,7 @@ function drawEnemies() {
       w = NEW_ENEMY_TRIO.w * animScale * (enemy.boss ? 1.16 : 1);
       h = NEW_ENEMY_TRIO.h * animScale * (enemy.boss ? 1.16 : 1);
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 26 : 12;
-      ctx.drawImage(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.newEnemyTrio, sx, sy, NEW_ENEMY_TRIO.w, NEW_ENEMY_TRIO.h, -w / 2, -h + enemy.r + bob, w, h, "newEnemyTrio", enemy);
     } else if (enemy.type.enemyAnim && images.enemyAnimSheet) {
       const anim = enemyAnimMap[enemy.type.enemyAnim] || enemyAnimMap.crab;
       const frame = bossAnimFrame(enemy, ENEMY_ANIM, anim.attackFrames, anim.loopFrames);
@@ -6733,26 +6853,29 @@ function drawEnemies() {
       w = ENEMY_ANIM.w * animScale;
       h = ENEMY_ANIM.h * animScale;
       ctx.shadowBlur = lowFx ? 0 : enemy.hit > 0 ? 26 : 12;
-      ctx.drawImage(images.enemyAnimSheet, sx, sy, ENEMY_ANIM.w, ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h);
+      drawEnemyFrame(images.enemyAnimSheet, sx, sy, ENEMY_ANIM.w, ENEMY_ANIM.h, -w / 2, -h + enemy.r + bob, w, h, "enemyAnimSheet", enemy);
     } else if (enemy.type.extraSprite) {
       const src = extraEnemyMap[enemy.type.extraSprite] || extraEnemyMap.reefRaider;
       const bob = Math.sin(state.elapsed * (enemy.type.id === "powderImp" ? 9 : 5.5) + enemy.frameOffset) * (enemy.type.id === "lanternWraith" ? 7 : 3.5);
-      w = EXTRA_ENEMY.w * drawScale * (enemy.boss ? 1.16 : 1);
-      h = EXTRA_ENEMY.h * drawScale * (enemy.boss ? 1.16 : 1);
-      ctx.drawImage(images.extraEnemies, src.x * EXTRA_ENEMY.w, src.y * EXTRA_ENEMY.h, EXTRA_ENEMY.w, EXTRA_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h);
+      const staticScale = staticEnemyDrawScale(enemy, EXTRA_ENEMY.h);
+      w = EXTRA_ENEMY.w * staticScale;
+      h = EXTRA_ENEMY.h * staticScale;
+      drawEnemyFrame(images.extraEnemies, src.x * EXTRA_ENEMY.w, src.y * EXTRA_ENEMY.h, EXTRA_ENEMY.w, EXTRA_ENEMY.h, -w / 2, -h + enemy.r + bob, w, h, "extraEnemies", enemy);
     } else if (enemy.type.sprite) {
       const src = newSpriteMap[enemy.type.sprite];
       const bob = Math.sin(state.elapsed * (enemy.type.id === "crab" ? 10 : 6) + enemy.frameOffset) * (enemy.type.id === "crab" ? 5 : 3);
-      w = NEWSPRITE.w * drawScale * (enemy.boss ? 1.22 : 1);
-      h = NEWSPRITE.h * drawScale * (enemy.boss ? 1.22 : 1);
-      ctx.drawImage(images.newSprites, src.x * NEWSPRITE.w, src.y * NEWSPRITE.h, NEWSPRITE.w, NEWSPRITE.h, -w / 2, -h + enemy.r + bob, w, h);
+      const staticScale = staticEnemyDrawScale(enemy, NEWSPRITE.h);
+      w = NEWSPRITE.w * staticScale;
+      h = NEWSPRITE.h * staticScale;
+      drawEnemyFrame(images.newSprites, src.x * NEWSPRITE.w, src.y * NEWSPRITE.h, NEWSPRITE.w, NEWSPRITE.h, -w / 2, -h + enemy.r + bob, w, h, "newSprites", enemy);
     } else {
       const frame = (Math.floor(state.elapsed * 9) + enemy.frameOffset) % 16;
       const sx = frame * CHAR.w;
       const sy = (enemy.row || 0) * CHAR.h;
-      w = CHAR.w * drawScale * (enemy.boss ? 1.15 : 1);
-      h = CHAR.h * drawScale * (enemy.boss ? 1.15 : 1);
-      ctx.drawImage(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h);
+      const staticScale = staticEnemyDrawScale(enemy, CHAR.h);
+      w = CHAR.w * staticScale;
+      h = CHAR.h * staticScale;
+      drawEnemyFrame(images.characters, sx, sy, CHAR.w, CHAR.h, -w / 2, -h + enemy.r, w, h, "characters", enemy);
     }
     ctx.restore();
     if (enemy.elite) {
@@ -9323,18 +9446,22 @@ window.__MONKEY_TIDE_DEBUG = () => {
   enemyTuning: { ...ENEMY_TUNING },
   enemyVisualReadability: {
     animatedMinimumHeight: ENEMY_TUNING.minAnimatedVisualHeight,
+    staticMinimumHeight: ENEMY_TUNING.minStaticVisualHeight,
     animatedBoost: ENEMY_TUNING.animatedVisualBoost,
+    runtimeSourceCrops: {
+      profiles: { ...ENEMY_SOURCE_CROPS },
+      typeOverrides: { ...ENEMY_TYPE_SOURCE_CROPS },
+    },
+    projectedHeights: Object.fromEntries(enemyTypes
+      .filter((type) => !type.humanNpc)
+      .map((type) => [type.id, projectedEnemyVisualHeight(type, !!type.bossCandidate || type.id === "idol")])),
+    sourceProfiles: Object.fromEntries(enemyTypes
+      .filter((type) => !type.humanNpc)
+      .map((type) => [type.id, enemySourceProfileForType(type)])),
     animatedProjectedHeights: Object.fromEntries(enemyTypes
       .filter((type) => (type.enemyAnim || type.gothicAnim || type.newEnemyAnim || type.timeTentacle) && !type.humanNpc)
       .map((type) => {
-        const mockEnemy = {
-          type,
-          r: type.radius * ENEMY_TUNING.hitboxScale,
-          boss: !!type.bossCandidate || type.id === "idol",
-          elite: false,
-        };
-        const sourceHeight = type.timeTentacle ? TIME_TENTACLE_ANIM.h : type.gothicAnim ? GOTHIC_ENEMY_ANIM.h : type.newEnemyAnim ? NEW_ENEMY_TRIO.h : ENEMY_ANIM.h;
-        return [type.id, Math.round(sourceHeight * animatedEnemyDrawScale(mockEnemy, sourceHeight))];
+        return [type.id, projectedEnemyVisualHeight(type, !!type.bossCandidate || type.id === "idol")];
       })),
   },
   enemyRoster: {
