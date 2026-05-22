@@ -1367,9 +1367,9 @@ async function run() {
   assert(Object.values(debug.map.backgrounds).filter(Boolean).length >= 4 && new Set(Object.values(debug.map.backgrounds)).size >= 4, `Map backgrounds are not varied: ${JSON.stringify(debug.map)}`);
   assert(Object.values(debug.map.backgrounds).every((key) => debug.preloadedAssetKeys.includes(key)), `Map backgrounds are not preloaded: ${JSON.stringify(debug.map)}`);
   assert(Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmCaper") && Object.values(debug.map.musicProfiles).some((profile) => profile.mainKey === "bgmShoreline"), `Map BGM profiles are not varied: ${JSON.stringify(debug.map.musicProfiles)}`);
-  assert(debug.audio.music.main >= 0.4, `Main music config should remain present under louder SFX: ${JSON.stringify(debug)}`);
-  assert(debug.audio.music.rush >= 0.38 && debug.audio.music.rushStart <= 125, `Rush music should enter early without burying SFX: ${JSON.stringify(debug)}`);
-  assert(debug.audio.activeTrack === "rush" && debug.audio.armedTrack === "rush" && debug.audio.rushVolume >= 0.38 && debug.audio.rushVolume <= 0.42, `Quick wave should hand off to a capped rush BGM: ${JSON.stringify(debug.audio)}`);
+  assert(debug.audio.music.main >= 0.49, `Main music config should sit above the quieter SFX bed: ${JSON.stringify(debug)}`);
+  assert(debug.audio.music.rush >= 0.46 && debug.audio.music.rushStart <= 125, `Rush music should enter early and carry the mix: ${JSON.stringify(debug)}`);
+  assert(debug.audio.activeTrack === "rush" && debug.audio.armedTrack === "rush" && debug.audio.rushVolume >= 0.47 && debug.audio.rushVolume <= 0.49, `Quick wave should hand off to a music-forward capped rush BGM: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.gestureUnlocked && debug.audio.soundPoolsPrimed && debug.audio.instantStartMode && debug.audio.lowLatencyNoSeek && debug.audio.lastStartLatencyMs <= 350, `BGM/SFX should be unlocked by the first user gesture: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.overlapSafe === true && !(debug.audio.tracksPlaying.main && debug.audio.tracksPlaying.rush), `BGM tracks are overlapping: ${JSON.stringify(debug.audio)}`);
   assert(debug.audio.startReady.main && debug.audio.startReady.rush, `BGM should be pre-seeked before play to avoid delayed starts: ${JSON.stringify(debug.audio)}`);
@@ -1409,24 +1409,25 @@ async function run() {
     `Driving Download BGM tracks are not selected: ${JSON.stringify(debug.audio)}`,
   );
   assert(debug.audio.musicPreload.ready && debug.audio.musicPreload.loaded === debug.audio.musicPreload.total && debug.audio.musicPreload.decoded === debug.audio.musicPreload.total && debug.audio.musicPreload.failed.length === 0, `BGM was not fully preloaded before start: ${JSON.stringify(debug.audio.musicPreload)}`);
-  assert(debug.audio.sfxMasterGain === 0.68 && debug.audio.sfx.pickup >= 0.13 && debug.audio.sfx.gate >= 0.14 && debug.audio.sfx.pickup <= 0.14, `SFX should be quieter but still audible: ${JSON.stringify(debug)}`);
+  assert(debug.audio.sfxMasterGain === 0.54 && debug.audio.sfx.pickup >= 0.1 && debug.audio.sfx.gate >= 0.11 && debug.audio.sfx.pickup <= 0.11, `SFX should be lower while still audible: ${JSON.stringify(debug)}`);
   const sfxStartedOrArmed = debug.audio.sfxDebug.started >= 1
     || (
       debug.audio.sfxEngine.webAudio === true
       && debug.audio.sfxEngine.state === "running"
       && debug.audio.sfxDebug.blocked <= 1
-      && debug.audio.sfxDebug.lastVolume >= 0.13
+      && debug.audio.sfxDebug.lastVolume >= 0.1
     );
   assert(
-    debug.audio.sfx.downloadBossWarning >= 0.22
-      && debug.audio.sfx.quickCutlass >= 0.2
-      && debug.audio.sfx.cannonFire >= 0.22
-      && debug.audio.sfx.curseMonkeyWarning >= 0.22
-      && debug.audio.sfxToMusicRatio >= 0.49
+    debug.audio.sfx.downloadBossWarning >= 0.18
+      && debug.audio.sfx.quickCutlass >= 0.16
+      && debug.audio.sfx.cannonFire >= 0.18
+      && debug.audio.sfx.curseMonkeyWarning >= 0.18
+      && debug.audio.sfxToMusicRatio >= 0.38
+      && debug.audio.sfxToMusicRatio <= 0.41
       && debug.audio.sfxDebug.attempts >= 1
       && sfxStartedOrArmed
-      && debug.audio.sfxDebug.lastVolume >= 0.13,
-    `Downloaded SFX should sit lower without disappearing under music: ${JSON.stringify(debug)}`,
+      && debug.audio.sfxDebug.lastVolume >= 0.1,
+    `Downloaded SFX should stay present but below the music bed: ${JSON.stringify(debug)}`,
   );
   assert(debug.audio.sfxLocalDownloads && debug.audio.sources.pickup.includes("/from-downloads/") && debug.audio.sources.confirm.includes("/from-downloads/"), `Base SFX are not using Downloads assets: ${JSON.stringify(debug)}`);
   assert(debug.audio.sources.quickCutlass.includes("/from-downloads/quick-cutlass.mp3") && debug.audio.sources.cannonFire.includes("/from-downloads/cartoon-cannon-fire.mp3") && debug.audio.sources.doubloonPing.includes("/from-downloads/doubloon-ping.mp3") && debug.audio.sources.treasureClink.includes("/from-downloads/treasure-clink.mp3"), `Expanded Downloads SFX set missing: ${JSON.stringify(debug.audio.sources)}`);

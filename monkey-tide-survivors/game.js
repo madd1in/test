@@ -161,7 +161,7 @@ const audioSources = {
 const images = {};
 const soundPools = {};
 const soundLastPlayed = new Map();
-const SFX_MASTER_GAIN = 0.68;
+const SFX_MASTER_GAIN = 0.54;
 const soundConfig = {
   pickup: { volume: 0.2, cooldown: 190 },
   chime: { volume: 0.22, cooldown: 440 },
@@ -203,11 +203,11 @@ const soundConfig = {
   curseMonkeyBossDown: { volume: 0.36, cooldown: 1600 },
 };
 const musicConfig = {
-  main: 0.44,
-  maxMain: 0.46,
+  main: 0.5,
+  maxMain: 0.52,
   mainRushDuck: 0.06,
-  rush: 0.4,
-  maxRush: 0.42,
+  rush: 0.47,
+  maxRush: 0.49,
   rushStart: 112,
   rushFade: 74,
 };
@@ -374,7 +374,7 @@ const STREET_FIGHTER_STARTER_MOVES = {
   chunLi: "thousandKick",
 };
 const STREET_FIGHTER_MOVE_UNLOCKS = {
-  ryu: { hadoken: 1, focusStance: 2, shoryuken: 3, whirlwindKick: 6 },
+  ryu: { hadoken: 1, focusStance: 2, shoryuken: 2, whirlwindKick: 4 },
   ken: { stepKick: 1, hadoken: 2, shoryuken: 3, dragonPunch: 4, tatsuKick: 5, whirlwindKick: 5, dragonKick: 6 },
   guile: { sonicBoom: 1, kneeBazooka: 3, reversePunch: 5, flashKick: 6 },
   chunLi: { thousandKick: 1, kiKouKen: 3, whirlwindKick: 5, lightningKick: 6 },
@@ -3540,6 +3540,24 @@ function ensureRyuArsenal() {
   return state.ryuArsenal;
 }
 
+function ryuFollowupMove(level, castIndex) {
+  if (streetFighterMoveUnlocked("ryu", "whirlwindKick", level) && castIndex % 4 === 0) return "whirlwindKick";
+  if (streetFighterMoveUnlocked("ryu", "shoryuken", level) && castIndex % 2 === 0) return "shoryuken";
+  return null;
+}
+
+function castRyuFollowupMove(move, signature, angle) {
+  if (move === "whirlwindKick") {
+    castRyuWhirlwindKick(signature, angle);
+    return true;
+  }
+  if (move === "shoryuken") {
+    castRyuShoryuken(signature, angle);
+    return true;
+  }
+  return false;
+}
+
 function ensureKenArsenal() {
   if (!state.kenArsenal) state.kenArsenal = { casts: 0, stepKicks: 0, hadokens: 0, shoryukens: 0, dragonPunches: 0, tatsuKicks: 0, whirlwindKicks: 0, dragonKicks: 0 };
   if (state.kenArsenal.hadokens === undefined) state.kenArsenal.hadokens = 0;
@@ -3824,8 +3842,7 @@ function castSignatureMove(signature) {
   if (signature.id === "hadoken" && isRyuSkin()) {
     const arsenal = ensureRyuArsenal();
     const level = streetFighterMoveLevel("ryu");
-    if (streetFighterMoveUnlocked("ryu", "shoryuken", level) && arsenal.casts % 3 === 0) castRyuShoryuken(signature, angle);
-    if (streetFighterMoveUnlocked("ryu", "whirlwindKick", level) && arsenal.casts % 5 === 0) castRyuWhirlwindKick(signature, angle);
+    castRyuFollowupMove(ryuFollowupMove(level, arsenal.casts), signature, angle);
   }
   if (signature.id === "dragonKick" && isKenSkin()) {
     const arsenal = ensureKenArsenal();
@@ -3997,8 +4014,7 @@ function fireRyuHadoken(level, fallbackAngle = 0, options = {}) {
     });
   }
   playSkinSound("hit", "quickCutlass", { cooldown: options.signatureCast ? 420 : 220 });
-  if (!options.signatureCast && safeLevel >= 3 && arsenal.casts % 4 === 0) castRyuShoryuken(signature, aimAngle);
-  if (!options.signatureCast && safeLevel >= 6 && arsenal.casts % 7 === 0) castRyuWhirlwindKick(signature, aimAngle);
+  if (!options.signatureCast) castRyuFollowupMove(ryuFollowupMove(safeLevel, arsenal.casts), signature, aimAngle);
 }
 
 function castRyuShoryuken(signature, angle) {
