@@ -10,6 +10,7 @@ const ui = {
   hud: document.getElementById("hud"),
   contractCard: document.getElementById("contractCard"),
   orderCard: document.getElementById("orderCard"),
+  favorCard: document.getElementById("favorCard"),
   loadout: document.getElementById("loadout"),
   skinPicker: document.getElementById("skinPicker"),
   mapPicker: document.getElementById("mapPicker"),
@@ -816,6 +817,7 @@ const CAPTAIN_ORDER_TUNING = {
   failDelay: 18,
   idleDelay: 42,
 };
+const TIDE_FAVOR_TARGET = 3;
 const runContractDefinitions = [
   {
     id: "riftHunter",
@@ -980,6 +982,7 @@ function completeRunContract(contract, definition = runContractDefinition(contra
   floatingText(`Auftrag: ${definition.name}`, state.player.x, state.player.y - 118, definition.color, 0.9, 18, { priority: 2 });
   playSound("treasureClink", { cooldown: 520 });
   triggerMomentumSurge("Auftragsflow", { duration: 5.5, color: definition.color, quiet: true });
+  awardTideFavor(definition.name, 1, definition.color);
 }
 
 function updateRunContracts(dt) {
@@ -1211,6 +1214,7 @@ function completeCaptainOrder(active, definition = captainOrderDefinition(active
   floatingText(`Befehl erfuellt: ${definition.name}`, state.player.x, state.player.y - 124, definition.color, 0.9, 18, { priority: 2 });
   playSound("treasureClink", { cooldown: 520 });
   triggerMomentumSurge("Captain's Flow", { duration: 5.8, color: definition.color, quiet: true });
+  awardTideFavor(definition.name, 1, definition.color);
   unlockAchievements();
   saveMetaProgress();
   renderMetaProgress();
@@ -1241,6 +1245,123 @@ function captainOrderSnapshot(active = ensureCaptainOrders().active) {
     target: definition.target,
     timeLeft: active.timeLeft,
     duration: active.duration,
+  };
+}
+
+function ensureTideFavor() {
+  if (!state.tideFavor) state.tideFavor = { points: 0, target: TIDE_FAVOR_TARGET, caches: 0, pulse: 0, lastSource: "", spawned: 0 };
+  state.tideFavor.points = clamp(Math.floor(state.tideFavor.points || 0), 0, state.tideFavor.target || TIDE_FAVOR_TARGET);
+  state.tideFavor.target = Math.max(2, state.tideFavor.target || TIDE_FAVOR_TARGET);
+  state.tideFavor.pulse = Math.max(0, state.tideFavor.pulse || 0);
+  state.tideFavor.caches = Math.max(0, state.tideFavor.caches || 0);
+  state.tideFavor.spawned = Math.max(0, state.tideFavor.spawned || 0);
+  return state.tideFavor;
+}
+
+function awardTideFavor(source = "Flow", amount = 1, color = "#53ffe5") {
+  if (!state?.player) return null;
+  const favor = ensureTideFavor();
+  favor.points += amount;
+  favor.lastSource = source;
+  favor.pulse = 0.86;
+  state.zones.push({
+    type: "tideFavor",
+    icon: "cursedPearl",
+    color,
+    x: state.player.x,
+    y: state.player.y - 10,
+    radius: 104,
+    life: 0.48,
+    maxLife: 0.48,
+  });
+  if (favor.points >= favor.target) {
+    favor.points -= favor.target;
+    spawnLegendCache(source, color);
+  } else {
+    floatingText(`Tide Favor ${favor.points}/${favor.target}`, state.player.x, state.player.y - 132, color, 0.68, 15, { priority: 1 });
+  }
+  return favor;
+}
+
+function updateTideFavor(dt) {
+  const favor = ensureTideFavor();
+  favor.pulse = Math.max(0, favor.pulse - dt);
+}
+
+function spawnLegendCache(source = "Flow", color = "#ffdf6e") {
+  const favor = ensureTideFavor();
+  const p = state.player;
+  let x = p.x;
+  let y = p.y;
+  const baseDistance = offscreenRewardDistance() * 0.92;
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = baseDistance + Math.random() * 460;
+    x = clamp(p.x + Math.cos(angle) * distance, 220, WORLD.w - 220);
+    y = clamp(p.y + Math.sin(angle) * distance, 220, WORLD.h - 220);
+    if (!isInSpawnSightline(x, y, state, 130)) break;
+  }
+  addPropToTarget(state, {
+    x,
+    y,
+    icon: "buriedTreasure",
+    scale: 0.9,
+    spin: Math.random(),
+    interactive: true,
+    legendCache: true,
+    createdAt: state.elapsed,
+    fadeIn: 1,
+  });
+  favor.caches += 1;
+  favor.spawned += 1;
+  state.runStats.legendCachesSpawned = (state.runStats.legendCachesSpawned || 0) + 1;
+  floatingText("Legendenschatz am Horizont", p.x, p.y - 138, color, 0.9, 18, { priority: 3 });
+  state.zones.push({ type: "legendCachePing", icon: "rubyRing", color, x, y, radius: 138, life: 0.82, maxLife: 0.82 });
+  playSound("treasureMapMagic", { cooldown: 900 });
+  speak(`Legendenschatz durch ${source} aufgetaucht. Folge dem Favor-Signal!`, { key: "legend-cache", cooldown: 12000, rate: 1.06 });
+}
+
+function collectLegendCache(prop) {
+  prop.discovered = true;
+  prop.used = true;
+  prop.icon = "openTreasureChest";
+  const favor = ensureTideFavor();
+  state.runStats.legendCaches = (state.runStats.legendCaches || 0) + 1;
+  state.runStats.flowRewards += 1;
+  metaProgress.flowRewards += 1;
+  state.coins += 18;
+  metaProgress.coins += 18;
+  state.stats.damage += 0.028;
+  state.stats.magnet += 18;
+  state.stats.cooldown = Math.max(0.8, (state.stats.cooldown || 1) - 0.012);
+  favor.pulse = 1;
+  state.gems.push({ kind: "xp", icon: "skullCoin", xpTier: "red", x: prop.x, y: prop.y - 22, r: 12, value: 74, life: 38 });
+  state.gems.push({ kind: "coin", icon: "coin", x: prop.x + 34, y: prop.y + 12, r: 12, value: 34, life: 38 });
+  state.gems.push({ kind: "coin", icon: "coin", x: prop.x - 34, y: prop.y + 12, r: 12, value: 24, life: 38 });
+  spawnPowerup(prop.x - 46, prop.y + 26, "signatureOverdrive", { life: 24, cooldown: 10 });
+  spawnPowerup(prop.x + 50, prop.y + 28, "fusionSpark", { life: 24, cooldown: 10 });
+  state.zones.push({ type: "legendCacheBurst", icon: "rubyRing", color: "#ffdf6e", x: prop.x, y: prop.y, radius: 176, life: 1.05, maxLife: 1.05 });
+  floatingText("Legendenschatz", prop.x, prop.y - 92, "#ffdf6e", 0.98, 24, { priority: 3 });
+  triggerMomentumSurge("Legendensog", { duration: 7.2, stacks: 2, color: "#ffdf6e", quiet: true });
+  unlockAchievements();
+  saveMetaProgress();
+  renderMetaProgress();
+  renderMetaSkills();
+  playSkinSound("powerup", "upgradeMagic", { force: true });
+  playSound("treasureClink", { force: true });
+}
+
+function tideFavorSnapshot() {
+  const favor = ensureTideFavor();
+  return {
+    points: favor.points,
+    target: favor.target,
+    caches: favor.caches,
+    spawned: favor.spawned,
+    collected: state.runStats?.legendCaches || 0,
+    lastSource: favor.lastSource || "",
+    pulse: favor.pulse,
+    activeCaches: state.props.filter((prop) => prop.legendCache && !prop.discovered && !prop.used).length,
   };
 }
 
@@ -2351,7 +2472,8 @@ function makeState() {
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
     contracts: createRunContracts(),
     captainOrders: { timer: CAPTAIN_ORDER_TUNING.firstAt, active: null, completed: 0, failed: 0, index: 0, history: [], justCompleted: 0 },
-    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, contracts: 0, orders: 0, unlocked: [] },
+    tideFavor: { points: 0, target: TIDE_FAVOR_TARGET, caches: 0, pulse: 0, lastSource: "", spawned: 0 },
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, contracts: 0, orders: 0, legendCaches: 0, legendCachesSpawned: 0, unlocked: [] },
     momentum: { timer: 0, duration: 0, stacks: 0, pulse: 0, label: "", surges: 0 },
     fusionMoments: { seen: new Set(), count: 0 },
     omenShards: { count: 0, nextReward: 3, boons: 0 },
@@ -3658,6 +3780,7 @@ function startGame(options = {}) {
   ui.hud.hidden = false;
   if (ui.contractCard) ui.contractCard.hidden = false;
   if (ui.orderCard) ui.orderCard.hidden = false;
+  if (ui.favorCard) ui.favorCard.hidden = false;
   ui.loadout.hidden = false;
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
@@ -3682,10 +3805,11 @@ function endGame(victory) {
   state.phase = victory ? "victory" : "gameover";
   ui.endEyebrow.textContent = victory ? "Flut gebrochen" : "Vertrag beendet";
   ui.endTitle.textContent = victory ? "Strand gehalten" : "Die Geistercrew war schneller";
-  ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level} - ${state.runStats.contracts || 0} Auftraege - ${state.runStats.orders || 0} Befehle`;
+  ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level} - ${state.runStats.contracts || 0} Auftraege - ${state.runStats.orders || 0} Befehle - ${state.runStats.legendCaches || 0} Legenden`;
   ui.endOverlay.hidden = false;
   if (ui.contractCard) ui.contractCard.hidden = true;
   if (ui.orderCard) ui.orderCard.hidden = true;
+  if (ui.favorCard) ui.favorCard.hidden = true;
   playSkinSound(victory ? "powerup" : "hurt", victory ? "chime" : "gate", { force: true });
   syncMusic();
   speak(
@@ -3743,6 +3867,7 @@ function update(dt) {
   updateStreak(dt);
   updateRunContracts(dt);
   updateCaptainOrders(dt);
+  updateTideFavor(dt);
   updateParticles(dt);
   updateDomThrottled(dt);
   updateVoiceCues();
@@ -5941,6 +6066,10 @@ function updateExploration() {
     const dist = Math.hypot(prop.x - p.x, prop.y - p.y);
     const radius = prop.icon === "beachHut" || prop.icon === "boatWreck" ? 150 : prop.icon === "conchShrine" ? 122 : 105;
     if (dist > radius) continue;
+    if (prop.legendCache) {
+      collectLegendCache(prop);
+      continue;
+    }
     prop.discovered = true;
     const isChest = prop.icon === "treasureChest" || prop.icon === "buriedTreasure";
     const isShrine = prop.icon === "conchShrine";
@@ -6764,6 +6893,7 @@ function updateDom() {
   ui.fullscreenButton.title = document.fullscreenElement ? "Vollbild verlassen" : "Vollbild";
   updateContractHud();
   updateCaptainOrderHud();
+  updateTideFavorHud();
   updateLoadout();
 }
 
@@ -6840,6 +6970,28 @@ function updateCaptainOrderHud() {
     </div>
     <div class="order-meter"><span style="transform:scaleX(${pct})"></span><i style="transform:scaleX(${timePct})"></i></div>
     <div class="order-detail">${active.desc} - ${active.progress}/${active.target}</div>
+  `;
+}
+
+function updateTideFavorHud() {
+  if (!ui.favorCard) return;
+  const activePhase = state.phase === "playing" || state.phase === "levelup" || state.phase === "paused";
+  ui.favorCard.hidden = !activePhase;
+  if (!activePhase) return;
+  const favor = tideFavorSnapshot();
+  const pct = clamp(favor.points / Math.max(1, favor.target), 0, 1);
+  ui.favorCard.classList.toggle("hot", favor.activeCaches > 0 || favor.pulse > 0);
+  ui.favorCard.style.setProperty("--favor-pct", pct);
+  ui.favorCard.innerHTML = `
+    <div class="favor-head">
+      <span class="favor-icon" style="${iconStyle("cursedPearl")}"></span>
+      <span class="favor-title">
+        <span class="favor-label">Tide Favor</span>
+        <strong>${favor.activeCaches > 0 ? "Legendenschatz aktiv" : `${favor.points}/${favor.target}`}</strong>
+      </span>
+      <span class="favor-count">${favor.collected}</span>
+    </div>
+    <div class="favor-pips">${Array.from({ length: favor.target }, (_, index) => `<span class="${index < favor.points ? "filled" : ""}"></span>`).join("")}</div>
   `;
 }
 
@@ -7102,6 +7254,10 @@ function waypointTargets() {
     targets.push({ type: "rift", id: rift.type, icon: type.icon, color: type.color, x: rift.x, y: rift.y, priority: 3, label: "Riss" });
   }
   for (const prop of state.props || []) {
+    if (prop.legendCache && !prop.discovered && !prop.used && !onScreen(prop.x, prop.y, 130)) {
+      targets.push({ type: "legend", id: "legendCache", icon: "rubyRing", color: "#ffdf6e", x: prop.x, y: prop.y, priority: 4, label: "Legende" });
+      continue;
+    }
     if (!prop.streakCache || prop.discovered || prop.used || onScreen(prop.x, prop.y, 130)) continue;
     targets.push({ type: "cache", id: "streakCache", icon: "buriedTreasure", color: "#fff2c7", x: prop.x, y: prop.y, priority: 2, label: "Schatz" });
   }
@@ -7876,6 +8032,22 @@ function drawWeaponEffects() {
       ctx.closePath();
       ctx.stroke();
       drawItemAt(zone.icon || "map", -size * 0.16, -size * 0.16, size * 0.32, size * 0.32);
+    } else if (zone.type === "tideFavor" || zone.type === "legendCachePing" || zone.type === "legendCacheBurst") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(state.elapsed * (zone.type === "legendCacheBurst" ? 1.0 : -0.68));
+      const size = zone.radius * (zone.type === "legendCacheBurst" ? 2.05 : 1.55) * (1 + (1 - a) * 0.28);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = a * (zone.type === "tideFavor" ? 0.34 : 0.5);
+      drawPlayerEffectAt("treasureGlint", -size * 0.5, -size * 0.5, size, size);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = a * 0.82;
+      ctx.strokeStyle = zone.color || "#ffdf6e";
+      ctx.lineWidth = zone.type === "legendCacheBurst" ? 5 : 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.rotate(-state.elapsed * 1.8);
+      drawItemAt(zone.icon || "rubyRing", -size * 0.15, -size * 0.15, size * 0.3, size * 0.3);
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -9161,6 +9333,41 @@ window.__MONKEY_TIDE_CAPTAIN_RIFT_ORDER_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_TIDE_FAVOR_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.props = state.props.filter((prop) => !prop.legendCache);
+  reindexProps(state);
+  state.tideFavor = { points: TIDE_FAVOR_TARGET - 1, target: TIDE_FAVOR_TARGET, caches: 0, pulse: 0, lastSource: "", spawned: 0 };
+  const beforeProps = state.props.length;
+  const beforeFlow = metaProgress.flowRewards;
+  const beforeCoins = state.coins;
+  const beforePowerups = state.gems.filter((gem) => gem.kind === "powerup").length;
+  const beforeZones = state.zones.length;
+  awardTideFavor("Probe", 1, "#ffdf6e");
+  const cache = state.props.slice(beforeProps).find((prop) => prop.legendCache);
+  const waypoints = waypointTargets();
+  if (cache) {
+    state.player.x = cache.x;
+    state.player.y = cache.y;
+    state.camera.x = cache.x;
+    state.camera.y = cache.y;
+    updateExploration();
+  }
+  updateTideFavorHud();
+  render();
+  return {
+    spawnedCache: !!cache,
+    cacheDiscovered: !!cache?.discovered,
+    waypoints: waypoints.map((target) => target.type),
+    favor: tideFavorSnapshot(),
+    flowRewardsGained: metaProgress.flowRewards - beforeFlow,
+    coinsGained: state.coins - beforeCoins,
+    powerupDrops: state.gems.filter((gem) => gem.kind === "powerup").length - beforePowerups,
+    favorZones: state.zones.slice(beforeZones).filter((zone) => ["tideFavor", "legendCachePing", "legendCacheBurst"].includes(zone.type)).length,
+    hud: ui.favorCard?.textContent?.trim() || "",
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_WAYPOINT_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   const p = state.player;
@@ -10086,6 +10293,10 @@ window.__MONKEY_TIDE_DEBUG = () => {
       history: [...(ensureCaptainOrders().history || [])],
       definitions: captainOrderDefinitions.map((order) => order.id),
       hudText: ui.orderCard?.textContent?.trim() || "",
+    },
+    tideFavor: {
+      ...tideFavorSnapshot(),
+      hudText: ui.favorCard?.textContent?.trim() || "",
     },
     waypoints: {
       active: waypointTargets().length,

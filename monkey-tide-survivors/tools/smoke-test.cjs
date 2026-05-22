@@ -1966,6 +1966,20 @@ async function run() {
       && captainRiftOrderProbe.debug.engagement.captainOrders.history.some((entry) => entry.id === "riftCommand" && entry.result === "complete"),
     `Captain's Rift Order did not spawn and complete its rift objective: ${JSON.stringify(captainRiftOrderProbe)}`,
   );
+  const tideFavorProbe = await page.evaluate(() => window.__MONKEY_TIDE_TIDE_FAVOR_PROBE());
+  assert(
+    tideFavorProbe.spawnedCache
+      && tideFavorProbe.cacheDiscovered
+      && tideFavorProbe.waypoints.includes("legend")
+      && tideFavorProbe.flowRewardsGained >= 1
+      && tideFavorProbe.coinsGained >= 18
+      && tideFavorProbe.powerupDrops >= 2
+      && tideFavorProbe.favorZones >= 3
+      && tideFavorProbe.favor.collected >= 1
+      && tideFavorProbe.debug.engagement.tideFavor.activeCaches === 0
+      && tideFavorProbe.hud.includes("Tide Favor"),
+    `Tide Favor did not spawn and reward the Legend Cache: ${JSON.stringify(tideFavorProbe)}`,
+  );
   const waypointProbe = await page.evaluate(() => window.__MONKEY_TIDE_WAYPOINT_PROBE());
   assert(
     waypointProbe.targets.length >= 2

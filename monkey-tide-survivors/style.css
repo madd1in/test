@@ -408,6 +408,109 @@ button:disabled {
   white-space: nowrap;
 }
 
+.favor-card {
+  position: fixed;
+  top: max(250px, calc(env(safe-area-inset-top) + 250px));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 5;
+  width: min(232px, calc(100vw - 188px));
+  min-height: 46px;
+  padding: 6px 8px 7px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 223, 145, 0.34);
+  border-radius: 8px;
+  background-image:
+    linear-gradient(100deg, rgba(83, 255, 229, 0.16), rgba(255, 223, 110, 0.12) 52%, transparent),
+    linear-gradient(180deg, rgba(255, 236, 169, 0.32), rgba(40, 22, 9, 0.18)),
+    var(--ui-scrap);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-blend-mode: screen, multiply, normal;
+  box-shadow:
+    0 4px 0 rgba(66, 32, 9, 0.2),
+    0 10px 18px rgba(45, 22, 4, 0.18),
+    inset 0 0 0 1px rgba(255, 234, 170, 0.12);
+  color: #331806;
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+}
+
+.favor-card.hot {
+  border-color: rgba(255, 223, 110, 0.66);
+  animation: contractFlash 0.72s ease-out;
+}
+
+.favor-head {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.favor-icon {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 242, 199, 0.28);
+  border-radius: 6px;
+  background-position: center;
+  background-size: cover;
+}
+
+.favor-title {
+  min-width: 0;
+}
+
+.favor-label {
+  display: block;
+  color: rgba(58, 32, 12, 0.62);
+  font-size: 0.48rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.favor-title strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #3a200c;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.02;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favor-count {
+  padding: 2px 6px 3px;
+  border: 1px solid rgba(255, 231, 170, 0.3);
+  border-radius: 999px;
+  background: rgba(53, 24, 7, 0.26);
+  color: #ffe7aa;
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(32, 12, 2, 0.58);
+}
+
+.favor-pips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.favor-pips span {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(76, 39, 13, 0.25);
+}
+
+.favor-pips span.filled {
+  background: linear-gradient(90deg, #53ffe5, #ffdf6e);
+  box-shadow: 0 0 9px rgba(83, 255, 229, 0.28);
+}
+
 .label,
 .eyebrow {
   display: block;
@@ -1496,6 +1599,7 @@ button:disabled {
   .momentum-card.surging,
   .contract-card.flash,
   .order-card.flash,
+  .favor-card.hot,
   .level-overlay::before,
   .upgrade-panel::before,
   .upgrade-panel h2,
@@ -1707,6 +1811,42 @@ button:disabled {
   .order-meter {
     height: 3px;
     margin-top: 4px;
+  }
+
+  .favor-card {
+    top: max(162px, calc(env(safe-area-inset-top) + 162px));
+    left: max(8px, env(safe-area-inset-left));
+    width: min(210px, calc(100vw - 154px));
+    min-height: 34px;
+    padding: 4px 6px;
+    border-width: 1px;
+  }
+
+  .favor-head {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 5px;
+  }
+
+  .favor-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .favor-title strong {
+    font-size: 0.62rem;
+  }
+
+  .favor-label {
+    display: none;
+  }
+
+  .favor-pips {
+    gap: 3px;
+    margin-top: 4px;
+  }
+
+  .favor-pips span {
+    height: 3px;
   }
 
   .corner-controls {
@@ -2004,6 +2144,42 @@ button:disabled {
     margin-top: 4px;
   }
 
+  .favor-card {
+    top: max(138px, calc(env(safe-area-inset-top) + 138px));
+    left: max(8px, env(safe-area-inset-left));
+    width: min(214px, calc(100vw - 160px));
+    min-height: 32px;
+    padding: 4px 6px;
+    border-width: 1px;
+  }
+
+  .favor-head {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 5px;
+  }
+
+  .favor-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .favor-title strong {
+    font-size: 0.6rem;
+  }
+
+  .favor-label {
+    display: none;
+  }
+
+  .favor-pips {
+    gap: 3px;
+    margin-top: 3px;
+  }
+
+  .favor-pips span {
+    height: 3px;
+  }
+
   .bar-frame {
     height: 6px;
     margin-top: 4px;
@@ -2152,6 +2328,10 @@ button:disabled {
 
   .order-card {
     width: min(238px, calc(100vw - 154px));
+  }
+
+  .favor-card {
+    width: min(208px, calc(100vw - 154px));
   }
 
   .loadout-item {
