@@ -9,6 +9,7 @@ const ui = {
   endOverlay: document.getElementById("endOverlay"),
   hud: document.getElementById("hud"),
   contractCard: document.getElementById("contractCard"),
+  orderCard: document.getElementById("orderCard"),
   loadout: document.getElementById("loadout"),
   skinPicker: document.getElementById("skinPicker"),
   mapPicker: document.getElementById("mapPicker"),
@@ -809,6 +810,12 @@ const TIDE_RIFT_TUNING = {
   pickupRadius: 112,
   pulseRadius: 132,
 };
+const CAPTAIN_ORDER_TUNING = {
+  firstAt: 18,
+  successDelay: 28,
+  failDelay: 18,
+  idleDelay: 42,
+};
 const runContractDefinitions = [
   {
     id: "riftHunter",
@@ -1010,6 +1017,230 @@ function runContractSnapshot(contract) {
     target: definition.target,
     completed: !!contract.completed,
     justCompleted: contract.justCompleted || 0,
+  };
+}
+
+const captainOrderDefinitions = [
+  {
+    id: "boardingCall",
+    name: "Enterkommando",
+    icon: "captainCutlass",
+    color: "#fff2c7",
+    duration: 26,
+    target: 18,
+    coins: 12,
+    desc: "18 Gegner brechen",
+    progress: (order) => state.killCount - order.start.kills,
+    apply: () => {
+      state.stats.damage += 0.026;
+      spawnPowerup(state.player.x + 54, state.player.y - 44, "blackPowder", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "goldCurrent",
+    name: "Goldstroemung",
+    icon: "skullCoin",
+    color: "#f0c45d",
+    duration: 28,
+    target: 36,
+    coins: 18,
+    desc: "36 Dublonen sammeln",
+    progress: (order) => state.coins - order.start.coins,
+    apply: () => {
+      state.stats.pickupValue += 0.04;
+      spawnPowerup(state.player.x - 56, state.player.y - 36, "pearlMagnet", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "riftCommand",
+    name: "Rissbefehl",
+    icon: "cursedPearl",
+    color: "#53ffe5",
+    duration: 34,
+    target: 1,
+    coins: 14,
+    desc: "1 Tide-Riss nehmen",
+    progress: (order) => (state.runStats?.tideRifts || 0) - order.start.tideRifts,
+    onStart: () => {
+      if ((state.tideRifts || []).length) return;
+      const p = state.player;
+      const x = clamp(p.x + p.facing * 540, 180, WORLD.w - 180);
+      const y = clamp(p.y - 120, 180, WORLD.h - 180);
+      spawnTideRift({ type: "flowRift", x, y, life: 34, quiet: true });
+    },
+    apply: () => {
+      state.stats.signatureDamage += 0.035;
+      spawnPowerup(state.player.x + 62, state.player.y + 36, "signatureOverdrive", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "relicDrill",
+    name: "Reliktdrill",
+    icon: "captainSeal",
+    color: "#bfffea",
+    duration: 36,
+    target: 2,
+    coins: 12,
+    desc: "2 Power-ups sammeln",
+    progress: (order) => (state.runStats?.powerups || 0) - order.start.powerups,
+    apply: () => {
+      state.stats.powerupDuration *= 1.03;
+      spawnPowerup(state.player.x - 54, state.player.y + 42, "stormRhythm", { life: 18, cooldown: 10 });
+    },
+  },
+  {
+    id: "flowSprint",
+    name: "Flowtakt",
+    icon: "tideBoots",
+    color: "#ff8aa3",
+    duration: 30,
+    target: 10,
+    coins: 10,
+    desc: "10er Streak im Zeitfenster",
+    progress: (order) => Math.max(0, (state.streak?.best || 0) - order.start.bestStreak),
+    apply: () => {
+      state.stats.cooldown = Math.max(0.8, (state.stats.cooldown || 1) - 0.018);
+      triggerMomentumSurge("Flowtakt", { duration: 6.5, stacks: 2, color: "#ff8aa3", quiet: true });
+    },
+  },
+];
+
+function captainOrderCounters() {
+  return {
+    kills: state.killCount || 0,
+    coins: state.coins || 0,
+    powerups: state.runStats?.powerups || 0,
+    tideRifts: state.runStats?.tideRifts || 0,
+    bestStreak: state.streak?.best || 0,
+  };
+}
+
+function captainOrderDefinition(id) {
+  return captainOrderDefinitions.find((order) => order.id === id) || captainOrderDefinitions[0];
+}
+
+function ensureCaptainOrders() {
+  if (!state.captainOrders) {
+    state.captainOrders = { timer: CAPTAIN_ORDER_TUNING.firstAt, active: null, completed: 0, failed: 0, index: 0, history: [], justCompleted: 0 };
+  }
+  return state.captainOrders;
+}
+
+function chooseCaptainOrderDefinition(forcedId = null) {
+  if (forcedId) return captainOrderDefinition(forcedId);
+  const orders = ensureCaptainOrders();
+  const seed = stringSeed(`${state.map}:${state.player.skin}:captain:${orders.index}:${metaProgress.runs || 0}`);
+  return captainOrderDefinitions[(seed + orders.index * 3) % captainOrderDefinitions.length];
+}
+
+function startCaptainOrder(forcedId = null) {
+  const orders = ensureCaptainOrders();
+  const definition = chooseCaptainOrderDefinition(forcedId);
+  orders.index += 1;
+  orders.active = {
+    id: definition.id,
+    timeLeft: definition.duration,
+    duration: definition.duration,
+    target: definition.target,
+    progress: 0,
+    start: captainOrderCounters(),
+  };
+  orders.timer = 0;
+  definition.onStart?.(orders.active);
+  state.zones.push({
+    type: "captainOrder",
+    icon: definition.icon,
+    color: definition.color,
+    x: state.player.x,
+    y: state.player.y - 18,
+    radius: 116,
+    life: 0.52,
+    maxLife: 0.52,
+  });
+  floatingText(definition.name, state.player.x, state.player.y - 124, definition.color, 0.78, 18, { priority: 2 });
+  playSound("mapRustle", { cooldown: 900 });
+  speak(`${definition.name}. ${definition.desc}.`, { key: `captain-order-${definition.id}`, cooldown: 12000, rate: 1.06 });
+  return orders.active;
+}
+
+function updateCaptainOrders(dt) {
+  if (state.phase !== "playing") return;
+  const orders = ensureCaptainOrders();
+  orders.justCompleted = Math.max(0, (orders.justCompleted || 0) - dt);
+  if (!orders.active) {
+    orders.timer = Math.max(0, (orders.timer ?? CAPTAIN_ORDER_TUNING.firstAt) - dt);
+    if (state.elapsed >= CAPTAIN_ORDER_TUNING.firstAt && orders.timer <= 0) startCaptainOrder();
+    return;
+  }
+  const active = orders.active;
+  const definition = captainOrderDefinition(active.id);
+  active.timeLeft = Math.max(0, active.timeLeft - dt);
+  active.progress = clamp(Math.floor(definition.progress(active) || 0), 0, active.target);
+  if (active.progress >= active.target) {
+    completeCaptainOrder(active, definition);
+  } else if (active.timeLeft <= 0) {
+    failCaptainOrder(active, definition);
+  }
+}
+
+function completeCaptainOrder(active, definition = captainOrderDefinition(active.id)) {
+  const orders = ensureCaptainOrders();
+  orders.completed += 1;
+  orders.justCompleted = 1.2;
+  orders.history.unshift({ id: active.id, result: "complete", elapsed: Math.floor(state.elapsed) });
+  orders.history = orders.history.slice(0, 5);
+  orders.active = null;
+  orders.timer = CAPTAIN_ORDER_TUNING.successDelay;
+  state.runStats.orders = (state.runStats.orders || 0) + 1;
+  state.runStats.flowRewards += 1;
+  metaProgress.flowRewards += 1;
+  const coins = definition.coins ?? 10;
+  state.coins += coins;
+  metaProgress.coins += coins;
+  definition.apply?.(active);
+  state.zones.push({
+    type: "captainOrderBurst",
+    icon: definition.icon,
+    color: definition.color,
+    x: state.player.x,
+    y: state.player.y - 16,
+    radius: 146,
+    life: 0.84,
+    maxLife: 0.84,
+  });
+  floatingText(`Befehl erfuellt: ${definition.name}`, state.player.x, state.player.y - 124, definition.color, 0.9, 18, { priority: 2 });
+  playSound("treasureClink", { cooldown: 520 });
+  triggerMomentumSurge("Captain's Flow", { duration: 5.8, color: definition.color, quiet: true });
+  unlockAchievements();
+  saveMetaProgress();
+  renderMetaProgress();
+  renderMetaSkills();
+}
+
+function failCaptainOrder(active, definition = captainOrderDefinition(active.id)) {
+  const orders = ensureCaptainOrders();
+  orders.failed += 1;
+  orders.history.unshift({ id: active.id, result: "miss", elapsed: Math.floor(state.elapsed) });
+  orders.history = orders.history.slice(0, 5);
+  orders.active = null;
+  orders.timer = CAPTAIN_ORDER_TUNING.failDelay;
+  floatingText(`${definition.name} verpasst`, state.player.x, state.player.y - 112, "rgba(255, 232, 165, 0.9)", 0.58, 14, { priority: 1 });
+}
+
+function captainOrderSnapshot(active = ensureCaptainOrders().active) {
+  if (!active) return null;
+  const definition = captainOrderDefinition(active.id);
+  const progress = clamp(Math.floor(definition.progress(active) || 0), 0, definition.target);
+  return {
+    id: active.id,
+    name: definition.name,
+    desc: definition.desc,
+    icon: definition.icon,
+    color: definition.color,
+    progress,
+    target: definition.target,
+    timeLeft: active.timeLeft,
+    duration: active.duration,
   };
 }
 
@@ -2119,7 +2350,8 @@ function makeState() {
     killCount: 0,
     streak: { count: 0, timer: 0, best: 0, nextCache: 18, caches: 0 },
     contracts: createRunContracts(),
-    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, contracts: 0, unlocked: [] },
+    captainOrders: { timer: CAPTAIN_ORDER_TUNING.firstAt, active: null, completed: 0, failed: 0, index: 0, history: [], justCompleted: 0 },
+    runStats: { landmarks: 0, powerups: 0, fusions: 0, flowRewards: 0, pressureWaves: 0, elites: 0, omenBoons: 0, tideRifts: 0, momentumSurges: 0, contracts: 0, orders: 0, unlocked: [] },
     momentum: { timer: 0, duration: 0, stacks: 0, pulse: 0, label: "", surges: 0 },
     fusionMoments: { seen: new Set(), count: 0 },
     omenShards: { count: 0, nextReward: 3, boons: 0 },
@@ -3425,6 +3657,7 @@ function startGame(options = {}) {
   ui.upgradeOverlay.hidden = true;
   ui.hud.hidden = false;
   if (ui.contractCard) ui.contractCard.hidden = false;
+  if (ui.orderCard) ui.orderCard.hidden = false;
   ui.loadout.hidden = false;
   ui.cornerControls.hidden = false;
   ui.touchControls.hidden = false;
@@ -3449,9 +3682,10 @@ function endGame(victory) {
   state.phase = victory ? "victory" : "gameover";
   ui.endEyebrow.textContent = victory ? "Flut gebrochen" : "Vertrag beendet";
   ui.endTitle.textContent = victory ? "Strand gehalten" : "Die Geistercrew war schneller";
-  ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level} - ${state.runStats.contracts || 0} Auftraege`;
+  ui.endStats.textContent = `${formatTime(state.elapsed)} - ${state.killCount} Gegner - ${state.coins} Dublonen - Level ${state.level} - ${state.runStats.contracts || 0} Auftraege - ${state.runStats.orders || 0} Befehle`;
   ui.endOverlay.hidden = false;
   if (ui.contractCard) ui.contractCard.hidden = true;
+  if (ui.orderCard) ui.orderCard.hidden = true;
   playSkinSound(victory ? "powerup" : "hurt", victory ? "chime" : "gate", { force: true });
   syncMusic();
   speak(
@@ -3508,6 +3742,7 @@ function update(dt) {
   updateGems(dt);
   updateStreak(dt);
   updateRunContracts(dt);
+  updateCaptainOrders(dt);
   updateParticles(dt);
   updateDomThrottled(dt);
   updateVoiceCues();
@@ -6528,6 +6763,7 @@ function updateDom() {
   ui.fullscreenButton.textContent = document.fullscreenElement ? "MIN" : "FS";
   ui.fullscreenButton.title = document.fullscreenElement ? "Vollbild verlassen" : "Vollbild";
   updateContractHud();
+  updateCaptainOrderHud();
   updateLoadout();
 }
 
@@ -6562,6 +6798,48 @@ function updateContractHud() {
     </div>
     <div class="contract-meter"><span style="transform:scaleX(${pct})"></span></div>
     <div class="contract-detail">${focused.desc} - ${focused.progress}/${focused.target}</div>
+  `;
+}
+
+function updateCaptainOrderHud() {
+  if (!ui.orderCard) return;
+  const activePhase = state.phase === "playing" || state.phase === "levelup" || state.phase === "paused";
+  ui.orderCard.hidden = !activePhase;
+  if (!activePhase) return;
+  const orders = ensureCaptainOrders();
+  const active = captainOrderSnapshot();
+  if (!active) {
+    const timer = Math.ceil(orders.timer || 0);
+    ui.orderCard.classList.remove("active", "flash");
+    ui.orderCard.style.setProperty("--order-color", "#f0c45d");
+    ui.orderCard.innerHTML = `
+      <div class="order-head">
+        <span class="order-icon" style="${iconStyle("map")}"></span>
+        <span class="order-title">
+          <span class="order-label">Captain</span>
+          <strong>${timer > 0 ? `Naechster Befehl ${timer}s` : "Befehl bereit"}</strong>
+        </span>
+        <span class="order-count">${orders.completed || 0}</span>
+      </div>
+    `;
+    return;
+  }
+  const pct = clamp(active.progress / Math.max(1, active.target), 0, 1);
+  const timePct = clamp(active.timeLeft / Math.max(1, active.duration), 0, 1);
+  ui.orderCard.classList.add("active");
+  ui.orderCard.classList.toggle("flash", (orders.justCompleted || 0) > 0);
+  ui.orderCard.style.setProperty("--order-color", active.color);
+  ui.orderCard.innerHTML = `
+    <div class="order-head">
+      <span class="order-icon" style="${iconStyle(active.icon)}"></span>
+      <span class="order-title">
+        <span class="order-label">Captain's Order</span>
+        <strong>${active.name}</strong>
+      </span>
+      <span class="order-count">${Math.ceil(active.timeLeft)}s</span>
+    </div>
+    <div class="order-meter"><span style="transform:scaleX(${pct})"></span><i style="transform:scaleX(${timePct})"></i></div>
+    <div class="order-detail">${active.desc} - ${active.progress}/${active.target}</div>
   `;
 }
 
@@ -7579,6 +7857,25 @@ function drawWeaponEffects() {
       ctx.arc(0, 0, size * 0.26, 0, Math.PI * 2);
       ctx.stroke();
       drawItemAt(zone.icon || "captainSeal", -size * 0.16, -size * 0.16, size * 0.32, size * 0.32);
+    } else if (zone.type === "captainOrder" || zone.type === "captainOrderBurst") {
+      ctx.translate(ox + zone.x, oy + zone.y);
+      ctx.rotate(state.elapsed * (zone.type === "captainOrderBurst" ? 0.9 : -0.55));
+      const size = zone.radius * (zone.type === "captainOrderBurst" ? 1.9 : 1.52) * (1 + (1 - a) * 0.22);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = a * 0.42;
+      drawPlayerEffectAt("compassBeam", -size * 0.5, -size * 0.5, size, size);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = a * 0.82;
+      ctx.strokeStyle = zone.color || "#f0c45d";
+      ctx.lineWidth = zone.type === "captainOrderBurst" ? 5 : 3;
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.28);
+      ctx.lineTo(size * 0.22, size * 0.04);
+      ctx.lineTo(0, size * 0.28);
+      ctx.lineTo(-size * 0.22, size * 0.04);
+      ctx.closePath();
+      ctx.stroke();
+      drawItemAt(zone.icon || "map", -size * 0.16, -size * 0.16, size * 0.32, size * 0.32);
     } else if (zone.type === "tideRipple") {
       ctx.translate(ox + zone.x, oy + zone.y);
       const rippleSize = zone.radius * 2.2;
@@ -8824,6 +9121,46 @@ window.__MONKEY_TIDE_CONTRACT_PROBE = () => {
     debug: window.__MONKEY_TIDE_DEBUG(),
   };
 };
+window.__MONKEY_TIDE_CAPTAIN_ORDER_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.captainOrders = { timer: 0, active: null, completed: 0, failed: 0, index: 0, history: [], justCompleted: 0 };
+  const beforeFlow = metaProgress.flowRewards;
+  const beforeCoins = state.coins;
+  const beforePowerups = state.gems.filter((gem) => gem.kind === "powerup").length;
+  const beforeZones = state.zones.length;
+  const active = startCaptainOrder("boardingCall");
+  state.killCount += active.target;
+  updateCaptainOrders(0.016);
+  updateCaptainOrderHud();
+  render();
+  return {
+    completed: state.runStats.orders || 0,
+    orderState: { ...ensureCaptainOrders(), active: captainOrderSnapshot() },
+    flowRewardsGained: metaProgress.flowRewards - beforeFlow,
+    coinsGained: state.coins - beforeCoins,
+    powerupDrops: state.gems.filter((gem) => gem.kind === "powerup").length - beforePowerups,
+    orderZones: state.zones.slice(beforeZones).filter((zone) => zone.type === "captainOrder" || zone.type === "captainOrderBurst").length,
+    hud: ui.orderCard?.textContent?.trim() || "",
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
+window.__MONKEY_TIDE_CAPTAIN_RIFT_ORDER_PROBE = () => {
+  if (state.phase !== "playing") state.phase = "playing";
+  state.captainOrders = { timer: 0, active: null, completed: 0, failed: 0, index: 0, history: [], justCompleted: 0 };
+  state.tideRifts = [];
+  const before = state.runStats.tideRifts || 0;
+  const active = startCaptainOrder("riftCommand");
+  const spawned = state.tideRifts.length;
+  state.runStats.tideRifts = before + 1;
+  updateCaptainOrders(0.016);
+  updateCaptainOrderHud();
+  return {
+    started: active?.id,
+    spawned,
+    completed: state.runStats.orders || 0,
+    debug: window.__MONKEY_TIDE_DEBUG(),
+  };
+};
 window.__MONKEY_TIDE_WAYPOINT_PROBE = () => {
   if (state.phase !== "playing") state.phase = "playing";
   const p = state.player;
@@ -9740,6 +10077,15 @@ window.__MONKEY_TIDE_DEBUG = () => {
       completed: state.runStats.contracts || 0,
       definitions: runContractDefinitions.map((contract) => contract.id),
       hudText: ui.contractCard?.textContent?.trim() || "",
+    },
+    captainOrders: {
+      active: captainOrderSnapshot(),
+      completed: ensureCaptainOrders().completed || 0,
+      failed: ensureCaptainOrders().failed || 0,
+      timer: ensureCaptainOrders().timer || 0,
+      history: [...(ensureCaptainOrders().history || [])],
+      definitions: captainOrderDefinitions.map((order) => order.id),
+      hudText: ui.orderCard?.textContent?.trim() || "",
     },
     waypoints: {
       active: waypointTargets().length,

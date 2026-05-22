@@ -284,6 +284,130 @@ button:disabled {
   white-space: nowrap;
 }
 
+.order-card {
+  position: fixed;
+  top: max(176px, calc(env(safe-area-inset-top) + 176px));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 5;
+  width: min(286px, calc(100vw - 188px));
+  min-height: 64px;
+  padding: 7px 9px 8px;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--order-color, #f0c45d) 42%, rgba(70, 35, 12, 0.68));
+  border-radius: 8px;
+  background-image:
+    linear-gradient(110deg, color-mix(in srgb, var(--order-color, #f0c45d) 18%, transparent), transparent 54%),
+    linear-gradient(180deg, rgba(255, 236, 169, 0.36), rgba(40, 22, 9, 0.2)),
+    var(--ui-scrap);
+  background-position: center;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-blend-mode: screen, multiply, normal;
+  box-shadow:
+    0 4px 0 rgba(66, 32, 9, 0.24),
+    0 12px 22px rgba(45, 22, 4, 0.2),
+    inset 0 0 0 1px rgba(255, 234, 170, 0.13);
+  color: #331806;
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+}
+
+.order-card.flash {
+  animation: contractFlash 0.72s ease-out;
+}
+
+.order-head {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.order-icon {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 242, 199, 0.3);
+  border-radius: 6px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(255, 246, 207, 0.11), 0 3px 8px rgba(31, 13, 4, 0.18);
+}
+
+.order-title {
+  min-width: 0;
+}
+
+.order-label {
+  display: block;
+  color: rgba(58, 32, 12, 0.64);
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.order-title strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #3a200c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.02;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-count {
+  padding: 3px 6px 4px;
+  border: 1px solid rgba(255, 231, 170, 0.34);
+  border-radius: 999px;
+  background: rgba(53, 24, 7, 0.28);
+  color: #ffe7aa;
+  font-size: 0.6rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(32, 12, 2, 0.62);
+}
+
+.order-meter {
+  position: relative;
+  height: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(76, 39, 13, 0.25);
+}
+
+.order-meter span,
+.order-meter i {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: left center;
+}
+
+.order-meter span {
+  background: linear-gradient(90deg, var(--order-color, #f0c45d), #fff2c7);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--order-color, #f0c45d) 50%, transparent);
+}
+
+.order-meter i {
+  top: auto;
+  height: 1px;
+  background: rgba(53, 24, 7, 0.5);
+}
+
+.order-detail {
+  overflow: hidden;
+  margin-top: 5px;
+  color: rgba(58, 32, 12, 0.72);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .label,
 .eyebrow {
   display: block;
@@ -1371,6 +1495,7 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .momentum-card.surging,
   .contract-card.flash,
+  .order-card.flash,
   .level-overlay::before,
   .upgrade-panel::before,
   .upgrade-panel h2,
@@ -1549,6 +1674,39 @@ button:disabled {
   .contract-meter {
     height: 4px;
     margin-top: 5px;
+  }
+
+  .order-card {
+    top: max(112px, calc(env(safe-area-inset-top) + 112px));
+    left: max(8px, env(safe-area-inset-left));
+    width: min(238px, calc(100vw - 154px));
+    min-height: 44px;
+    padding: 5px 7px;
+    border-width: 1px;
+  }
+
+  .order-head {
+    grid-template-columns: 25px minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .order-icon {
+    width: 25px;
+    height: 25px;
+  }
+
+  .order-title strong {
+    font-size: 0.68rem;
+  }
+
+  .order-label,
+  .order-detail {
+    display: none;
+  }
+
+  .order-meter {
+    height: 3px;
+    margin-top: 4px;
   }
 
   .corner-controls {
@@ -1813,6 +1971,39 @@ button:disabled {
     margin-top: 4px;
   }
 
+  .order-card {
+    top: max(96px, calc(env(safe-area-inset-top) + 96px));
+    left: max(8px, env(safe-area-inset-left));
+    width: min(244px, calc(100vw - 160px));
+    min-height: 38px;
+    padding: 4px 6px;
+    border-width: 1px;
+  }
+
+  .order-head {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .order-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .order-title strong {
+    font-size: 0.66rem;
+  }
+
+  .order-label,
+  .order-detail {
+    display: none;
+  }
+
+  .order-meter {
+    height: 3px;
+    margin-top: 4px;
+  }
+
   .bar-frame {
     height: 6px;
     margin-top: 4px;
@@ -1957,6 +2148,10 @@ button:disabled {
 
   .contract-card {
     width: min(248px, calc(100vw - 154px));
+  }
+
+  .order-card {
+    width: min(238px, calc(100vw - 154px));
   }
 
   .loadout-item {
