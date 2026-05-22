@@ -427,8 +427,11 @@ async function run() {
       && ryuActionProbe.slashZones === 0
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuStrike" && zone.move === "shoryuken")
       && ryuActionProbe.ryuZones.some((zone) => zone.type === "ryuWhirlwind" && zone.move === "whirlwindKick" && zone.spinKick)
+      && ryuActionProbe.currentAction?.type === "whirlwindKick"
+      && ryuActionProbe.currentAction?.forceWhileMoving === true
+      && ryuActionProbe.currentAction?.lockAction === true
       && ryuActionProbe.iconStyleUsesHadokenSheet,
-    `Ryu should use the new complex 5-row Imagen action sheet and frequent Hadoken weapon loop: ${JSON.stringify(ryuActionProbe)}`,
+    `Ryu should visibly hold the Whirlwind Kick action even while moving: ${JSON.stringify(ryuActionProbe)}`,
   );
   const kenActionProbe = await page.evaluate(() => window.__MONKEY_TIDE_KEN_ACTION_PROBE());
   assert(
