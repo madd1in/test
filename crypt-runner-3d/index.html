@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#090b10" />
+    <title>Crypt Runner 3D</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="game-shell" aria-label="Crypt Runner 3D">
+      <canvas id="scene" aria-label="3D Endless Runner"></canvas>
+
+      <section class="top-hud" aria-label="Status" aria-live="polite">
+        <div class="brand">
+          <span>Crypt</span>
+          <strong>Runner 3D</strong>
+        </div>
+        <div class="hud-chip">
+          <span>Distanz</span>
+          <strong id="distance-value">0 m</strong>
+        </div>
+        <div class="hud-chip">
+          <span>Punkte</span>
+          <strong id="score-value">0</strong>
+        </div>
+        <div class="hud-chip">
+          <span>Tempo</span>
+          <strong id="speed-value">0</strong>
+        </div>
+        <div class="meter-chip">
+          <span>Leben</span>
+          <div class="meter"><i id="health-fill"></i></div>
+        </div>
+        <div class="meter-chip">
+          <span>Dash</span>
+          <div class="meter"><i id="boost-fill"></i></div>
+        </div>
+        <div class="hud-actions">
+          <button id="pause-button" class="icon-button" type="button" aria-label="Pause">II</button>
+          <button id="audio-button" class="icon-button" type="button" aria-label="Audio umschalten" aria-pressed="false">A</button>
+        </div>
+      </section>
+
+      <div id="toast" class="toast" aria-live="assertive">Bereit</div>
+
+      <section id="menu" class="screen active" aria-label="Start">
+        <div class="menu-panel">
+          <p class="eyebrow">HD Vault Run</p>
+          <h1>Crypt Runner 3D</h1>
+          <p>Die Katakombe zieht endlos nach vorn. Sammle Splitter, halte den Lauf, brich durch die Tore.</p>
+          <div class="menu-actions">
+            <button id="start-button" class="primary-button" type="button">Start</button>
+            <button id="menu-audio-button" type="button" aria-pressed="false">Audio</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="results" class="screen" aria-label="Ergebnis">
+        <div class="menu-panel compact">
+          <p class="eyebrow">Run beendet</p>
+          <h2 id="result-title">Krypta geschlossen</h2>
+          <p id="result-copy">0 m</p>
+          <div class="menu-actions">
+            <button id="again-button" class="primary-button" type="button">Nochmal</button>
+            <button id="result-audio-button" type="button" aria-pressed="false">Audio</button>
+          </div>
+        </div>
+      </section>
+
+      <nav class="touch-controls" aria-label="Touch Controls">
+        <button type="button" data-touch="left" aria-label="Links">&lt;</button>
+        <button type="button" data-touch="jump" aria-label="Springen">^</button>
+        <button type="button" data-touch="dash" aria-label="Dash">&gt;&gt;</button>
+        <button type="button" data-touch="right" aria-label="Rechts">&gt;</button>
+      </nav>
+    </main>
+
+    <script type="module" src="./js/game.js"></script>
+  </body>
+</html>
