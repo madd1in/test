@@ -11,6 +11,7 @@
     score: document.getElementById("scoreValue"),
     boostFill: document.getElementById("boostFill"),
     hullFill: document.getElementById("hullFill"),
+    itemValue: document.getElementById("itemValue"),
     overlay: document.getElementById("overlay"),
     overlayTitle: document.getElementById("overlayTitle"),
     overlayText: document.getElementById("overlayText"),
@@ -35,10 +36,14 @@
 
   const imageSources = {
     playerChase: "assets/images/player-chase-imagen.png",
+    playerSheet: "assets/images/player-car-sheet.png",
     horizon3d: "assets/images/horizon-3d-imagen.png",
+    bgClean: "assets/images/bg-clean-imagen.png",
     parallaxForeground: "assets/images/parallax-foreground-imagen.png",
     roadTexture: "assets/images/road-texture-imagen.png",
     rivalCar: "assets/images/rival-car-imagen.png",
+    rivalSheet: "assets/images/rival-car-sheet.png",
+    itemMorphSheet: "assets/images/item-morph-sheet.png",
     boostCell: "assets/images/boost-cell-imagen.png",
     boostPad: "assets/images/boost-pad-imagen.png",
     drone: "assets/images/drone-imagen.png",
@@ -48,11 +53,15 @@
 
   const audioSources = {
     bgm: "assets/audio/bgm-loop.wav",
+    bgmLocal: "assets/audio/local/ridge-bgm.wav",
     engine: "assets/audio/engine-loop.wav",
     boost: "assets/audio/boost.wav",
     crash: "assets/audio/crash.wav",
+    crashLocal: "assets/audio/local/ridge-crash.wav",
     pickup: "assets/audio/pickup.wav",
-    checkpoint: "assets/audio/checkpoint.wav"
+    pickupLocal: "assets/audio/local/ridge-pickup.wav",
+    checkpoint: "assets/audio/checkpoint.wav",
+    checkpointLocal: "assets/audio/local/ridge-finish.wav"
   };
 
   const images = {};
@@ -76,17 +85,23 @@
     constructor() {
       this.enabled = true;
       this.unlocked = false;
-      this.bgm = new Audio(audioSources.bgm);
+      this.bgm = new Audio(audioSources.bgmLocal);
+      this.bgmLayer = new Audio(audioSources.bgm);
       this.engine = new Audio(audioSources.engine);
       this.sfx = {
         boost: new Audio(audioSources.boost),
-        crash: new Audio(audioSources.crash),
-        pickup: new Audio(audioSources.pickup),
-        checkpoint: new Audio(audioSources.checkpoint)
+        crash: new Audio(audioSources.crashLocal),
+        pickup: new Audio(audioSources.pickupLocal),
+        checkpoint: new Audio(audioSources.checkpointLocal),
+        crashSynth: new Audio(audioSources.crash),
+        pickupSynth: new Audio(audioSources.pickup),
+        checkpointSynth: new Audio(audioSources.checkpoint)
       };
       this.bgm.loop = true;
+      this.bgmLayer.loop = true;
       this.engine.loop = true;
-      this.bgm.volume = 0.34;
+      this.bgm.volume = 0.38;
+      this.bgmLayer.volume = 0.1;
       this.engine.volume = 0.16;
       for (const sound of Object.values(this.sfx)) {
         sound.preload = "auto";
@@ -98,6 +113,7 @@
       if (this.unlocked || !this.enabled) return;
       this.unlocked = true;
       this.bgm.play().catch(() => {});
+      this.bgmLayer.play().catch(() => {});
       this.engine.play().catch(() => {});
     }
 
@@ -109,6 +125,7 @@
         this.unlock();
       } else {
         this.bgm.pause();
+        this.bgmLayer.pause();
         this.engine.pause();
       }
     }
@@ -124,7 +141,8 @@
       if (!this.enabled || !this.unlocked) return;
       this.engine.volume = mode === "playing" ? 0.1 + Math.min(speed / 720, 1) * 0.18 : 0.04;
       this.engine.playbackRate = 0.72 + Math.min(speed / 720, 1) * 0.92 + (boosting ? 0.16 : 0);
-      this.bgm.volume = mode === "playing" ? 0.34 : 0.22;
+      this.bgm.volume = mode === "playing" ? 0.38 : 0.22;
+      this.bgmLayer.volume = mode === "playing" ? 0.08 : 0.03;
     }
   }
 
@@ -148,6 +166,11 @@
       particles: [],
       combo: 0,
       comboTimer: 0,
+      itemName: "Ready",
+      itemTimer: 0,
+      shield: 0,
+      overdrive: 0,
+      empPulse: 0,
       roadShake: 0,
       flash: 0
     };
@@ -250,8 +273,8 @@
       imageKey,
       world,
       lane,
-      w: 96,
-      h: 132,
+      w: 104,
+      h: 130,
       hit: false,
       scored: false,
       drift: (Math.random() - 0.5) * 18,
@@ -262,10 +285,10 @@
   function makePickup(world, lane) {
     return {
       type: "pickup",
-      imageKey: "boostCell",
+      imageKey: "itemMorphSheet",
       world,
       lane,
-      w: 72,
+      w: 86,
       h: 72,
       hit: false,
       phase: Math.random() * Math.PI * 2
@@ -304,7 +327,7 @@
     mode = "playing";
     audio.unlock();
     closeOverlay();
-    showMessage("Imagen HD rush");
+    showMessage("Polished HD rush");
   }
 
   function pauseRace() {
@@ -369,7 +392,7 @@
 
     const maxSpeed = boosting ? 720 : 492;
     if (boosting) {
-      state.speed += 430 * dt;
+      state.speed += state.overdrive > 0 ? 500 * dt : 430 * dt;
       state.boost = Math.max(0, state.boost - 29 * dt);
       state.score += 110 * dt;
       addTrailParticles(2);
@@ -400,6 +423,11 @@
     state.spawnTimer -= dt;
     state.comboTimer = Math.max(0, state.comboTimer - dt);
     if (state.comboTimer === 0) state.combo = 0;
+    state.itemTimer = Math.max(0, state.itemTimer - dt);
+    state.shield = Math.max(0, state.shield - dt);
+    state.overdrive = Math.max(0, state.overdrive - dt);
+    state.empPulse = Math.max(0, state.empPulse - dt);
+    if (state.itemTimer === 0 && state.itemName !== "Ready") state.itemName = "Ready";
     state.roadShake = Math.max(0, state.roadShake - dt * 8);
     state.flash = Math.max(0, state.flash - dt * 2.2);
 
@@ -470,6 +498,15 @@
     const screenX = W / 2 + (obj.lane - state.playerLane) * 0.34;
     const screenY = H - 138;
     if (obj.type === "traffic" || obj.type === "drone") {
+      if (state.shield > 0) {
+        state.shield = 0;
+        state.score += 500;
+        state.speed *= 0.9;
+        addSparks(screenX, screenY, "#35e7ff", 24);
+        audio.play("checkpointSynth");
+        showMessage("Shield break");
+        return;
+      }
       const damage = obj.type === "drone" ? 22 : 17;
       state.health = Math.max(0, state.health - damage);
       state.speed *= obj.type === "drone" ? 0.48 : 0.62;
@@ -478,15 +515,16 @@
       state.score = Math.max(0, state.score - 700);
       addSparks(screenX, screenY, "#ff4e5f", 20);
       audio.play("crash");
+      audio.play("crashSynth");
       showMessage("Impact");
     } else if (obj.type === "pickup") {
-      state.boost = Math.min(100, state.boost + 25);
       state.combo += 1;
       state.comboTimer = 2.2;
-      state.score += 460 + state.combo * 90;
+      state.score += 500 + state.combo * 110;
+      activateMorphItem();
       addSparks(screenX, screenY - 50, "#9cff46", 16);
       audio.play("pickup");
-      showMessage(state.combo > 1 ? `Cell chain x${state.combo}` : "Boost cell");
+      audio.play("pickupSynth");
     } else if (obj.type === "boostPad") {
       state.boost = Math.min(100, state.boost + 44);
       state.speed = Math.max(state.speed, 540);
@@ -495,6 +533,23 @@
       audio.play("boost");
       showMessage("Launch strip");
     }
+  }
+
+  function activateMorphItem() {
+    const roll = Math.floor((state.distance * 0.017 + performance.now() * 0.006) % 6);
+    const items = [
+      { name: "Nitro", run: () => { state.boost = Math.min(100, state.boost + 38); state.speed = Math.max(state.speed, 560); } },
+      { name: "Shield", run: () => { state.shield = 6.5; } },
+      { name: "EMP", run: () => { state.empPulse = 1.4; state.objects.forEach((obj) => { if (obj.type === "drone" && obj.world - state.distance < 1400) obj.hit = true; }); } },
+      { name: "Repair", run: () => { state.health = Math.min(100, state.health + 22); } },
+      { name: "Prism", run: () => { state.score += 1400; state.comboTimer = 3; } },
+      { name: "Overdrive", run: () => { state.overdrive = 4.2; state.boost = Math.min(100, state.boost + 16); } }
+    ];
+    const item = items[roll];
+    item.run();
+    state.itemName = item.name;
+    state.itemTimer = 4.5;
+    showMessage(`${item.name} item`);
   }
 
   function handleCheckpoints() {
@@ -506,6 +561,7 @@
     state.boost = Math.min(100, state.boost + 16);
     state.flash = 0.82;
     audio.play("checkpoint");
+    audio.play("checkpointSynth");
     showMessage(left > 0 ? "Checkpoint +" : "Finish gate");
   }
 
@@ -575,7 +631,10 @@
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
-    if (images.horizon3d) {
+    if (images.bgClean) {
+      const horizonShift = (roadCurve(state.distance + 1800) - roadCurve(state.distance)) * 0.018;
+      drawCoverImage(images.bgClean, -60 + horizonShift, -52, W + 120, 448);
+    } else if (images.horizon3d) {
       const horizonShift = (roadCurve(state.distance + 1300) - roadCurve(state.distance)) * 0.05;
       drawCoverImage(images.horizon3d, -80 + horizonShift, -28, W + 160, 420);
     } else if (images.skyline) {
@@ -587,8 +646,8 @@
     }
 
     if (images.parallaxForeground) {
-      drawParallaxLayer(images.parallaxForeground, 0.075, 82, 438, 0.58);
-      drawParallaxLayer(images.parallaxForeground, 0.18, 210, 350, 0.28);
+      drawParallaxLayer(images.parallaxForeground, 0.045, 130, 360, 0.2);
+      drawParallaxLayer(images.parallaxForeground, 0.12, 252, 300, 0.12);
     }
 
     const fog = ctx.createLinearGradient(0, 140, 0, HORIZON + 42);
@@ -655,6 +714,7 @@
         ctx.save();
         ctx.clip();
         const sourceY = Math.min(images.roadTexture.naturalHeight - 2, Math.floor((w1 * 0.46) % images.roadTexture.naturalHeight));
+        ctx.globalAlpha = 0.82;
         ctx.drawImage(
           images.roadTexture,
           0,
@@ -666,7 +726,7 @@
           Math.max(right1, right2) - Math.min(left1, left2),
           rowStep + 1
         );
-        ctx.globalAlpha = alt ? 0.14 : 0.22;
+        ctx.globalAlpha = alt ? 0.11 : 0.17;
         ctx.fillStyle = alt ? "#35e7ff" : "#ff3dbd";
         ctx.fillRect(Math.min(left1, left2), y1, Math.max(right1, right2) - Math.min(left1, left2), rowStep + 1);
         ctx.restore();
@@ -735,7 +795,15 @@
       const width = obj.w * p.scale;
       const height = obj.h * p.scale;
       if (obj.type === "boostPad") drawRoadGlow(p.x, p.y, width * 1.3, height * 0.7, "#9cff46");
-      drawAsset(obj.imageKey, p.x, p.y + bob, width, height, rotation);
+      if (obj.type === "traffic" && images.rivalSheet) {
+        const frame = state.empPulse > 0 ? 3 : Math.abs(obj.drift) > 8 ? (obj.drift < 0 ? 1 : 2) : Math.floor((state.distance * 0.015 + obj.phase) % 2);
+        drawSheetFrame("rivalSheet", 4, frame, p.x, p.y + bob, width * 1.18, height * 1.18, rotation);
+      } else if (obj.type === "pickup" && images.itemMorphSheet) {
+        const frame = Math.floor((performance.now() * 0.012 + obj.phase + p.depth * 0.004) % 8);
+        drawSheetFrame("itemMorphSheet", 8, frame, p.x, p.y + bob, width * 1.4, height * 1.4, rotation + Math.sin(performance.now() * 0.004 + obj.phase) * 0.18);
+      } else {
+        drawAsset(obj.imageKey, p.x, p.y + bob, width, height, rotation);
+      }
       if (obj.type === "pickup") drawPickupRing(p.x, p.y + bob, p.scale);
       if (obj.type === "drone") drawDroneBeam(p.x, p.y, p.scale);
     }
@@ -810,12 +878,56 @@
 
     ctx.translate(x, y);
     ctx.rotate(tilt);
-    if (images.playerChase) {
+    if (state.shield > 0) drawPlayerShield(0, -72, 1);
+    if (images.playerSheet) {
+      let frame = 0;
+      if (state.flash > 0.25) frame = 4;
+      else if (boosting || state.overdrive > 0) frame = 3;
+      else if (state.cameraLean < -0.18) frame = 1;
+      else if (state.cameraLean > 0.18) frame = 2;
+      drawSheetFrameAtCurrentTransform("playerSheet", 5, frame, -214, -250, 428, 388);
+    } else if (images.playerChase) {
       ctx.drawImage(images.playerChase, -190, -246, 380, 380);
     } else {
       ctx.fillStyle = "#35e7ff";
       ctx.fillRect(-70, -180, 140, 220);
     }
+    ctx.restore();
+    if (state.shield > 0) drawHudAura(x, y - 70, "#35e7ff", 0.22 + Math.sin(performance.now() * 0.012) * 0.08);
+    if (state.empPulse > 0) drawEmpPulse();
+  }
+
+  function drawPlayerShield(x, y, scale) {
+    ctx.save();
+    ctx.globalAlpha = 0.34 + Math.sin(performance.now() * 0.012) * 0.08;
+    ctx.strokeStyle = "#35e7ff";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 205 * scale, 148 * scale, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawHudAura(x, y, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 220, 160, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEmpPulse() {
+    ctx.save();
+    const radius = (1.4 - state.empPulse) * 460;
+    ctx.globalAlpha = Math.max(0, state.empPulse / 1.4) * 0.42;
+    ctx.strokeStyle = "#ff3dbd";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(W / 2, H - 120, radius, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -831,6 +943,24 @@
       ctx.fillRect(-w / 2, -h / 2, w, h);
     }
     ctx.restore();
+  }
+
+  function drawSheetFrame(key, columns, frame, x, y, w, h, rotation = 0) {
+    const image = images[key];
+    if (!image) return drawAsset(key, x, y, w, h, rotation);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    drawSheetFrameAtCurrentTransform(key, columns, frame, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
+  function drawSheetFrameAtCurrentTransform(key, columns, frame, x, y, w, h) {
+    const image = images[key];
+    if (!image) return;
+    const frameWidth = image.naturalWidth / columns;
+    const sx = Math.max(0, Math.min(columns - 1, frame)) * frameWidth;
+    ctx.drawImage(image, sx, 0, frameWidth, image.naturalHeight, x, y, w, h);
   }
 
   function drawParticles() {
@@ -865,6 +995,7 @@
     ui.time.textContent = Math.max(0, Math.ceil(state.timeLeft)).toString();
     ui.distance.textContent = (state.distance / 1000).toFixed(1);
     ui.score.textContent = Math.round(state.score).toLocaleString("de-DE");
+    ui.itemValue.textContent = state.itemName;
     ui.boostFill.style.transform = `scaleX(${clamp(state.boost / 100, 0, 1)})`;
     ui.hullFill.style.transform = `scaleX(${clamp(state.health / 100, 0, 1)})`;
   }

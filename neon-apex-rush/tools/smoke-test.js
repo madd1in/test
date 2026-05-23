@@ -8,13 +8,20 @@ const required = [
   "style.css",
   "game.js",
   "assets/images/key-art.png",
+  "assets/images/bg-clean-imagen.png",
   "assets/images/horizon-3d-imagen.png",
   "assets/images/parallax-foreground-imagen.png",
   "assets/images/road-texture-imagen.png",
   "assets/images/player-chase-source.png",
   "assets/images/player-chase-imagen.png",
+  "assets/images/player-car-sheet-source.png",
+  "assets/images/player-car-sheet.png",
   "assets/images/rival-car-imagen-source.png",
   "assets/images/rival-car-imagen.png",
+  "assets/images/rival-car-sheet-source.png",
+  "assets/images/rival-car-sheet.png",
+  "assets/images/item-morph-sheet-source.png",
+  "assets/images/item-morph-sheet.png",
   "assets/images/boost-cell-imagen-source.png",
   "assets/images/boost-cell-imagen.png",
   "assets/images/boost-pad-imagen-source.png",
@@ -36,7 +43,11 @@ const required = [
   "assets/audio/boost.wav",
   "assets/audio/crash.wav",
   "assets/audio/pickup.wav",
-  "assets/audio/checkpoint.wav"
+  "assets/audio/checkpoint.wav",
+  "assets/audio/local/ridge-bgm.wav",
+  "assets/audio/local/ridge-crash.wav",
+  "assets/audio/local/ridge-pickup.wav",
+  "assets/audio/local/ridge-finish.wav"
 ];
 
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
@@ -63,7 +74,7 @@ for (const audio of required.filter((file) => file.endsWith(".wav"))) {
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "game.js"), "utf8");
-if (!html.includes("gameCanvas") || !js.includes("requestAnimationFrame") || !js.includes("AudioDeck") || !js.includes("drawMode7Road") || !js.includes("parallaxForeground") || !js.includes("roadTexture")) {
+if (!html.includes("itemValue") || !js.includes("requestAnimationFrame") || !js.includes("AudioDeck") || !js.includes("drawMode7Road") || !js.includes("itemMorphSheet") || !js.includes("playerSheet") || !js.includes("bgClean")) {
   console.error("Game wiring check failed.");
   process.exit(1);
 }
