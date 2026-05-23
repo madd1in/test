@@ -13,8 +13,9 @@ Open `http://localhost:4179`.
 
 ## Assets
 
-- HD background and asset sheet were generated with the built-in image generation tool.
-- The asset sheet was chroma-key cleaned into `assets/generated/rift-asset-sheet-alpha.png`.
+- HD background, ship sheet, and object/enemy sheet were generated with the built-in image generation tool.
+- The new background was exported as `assets/generated/rift-loop-bg-tile.png` for horizontal repeat.
+- The ship and props sheets were chroma-key cleaned into alpha PNGs.
 - BGM uses `Steel Punch Parade.mp3` copied from `C:\Users\User\Downloads`.
 
 ## Controls

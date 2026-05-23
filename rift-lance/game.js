@@ -29,8 +29,9 @@
   };
 
   const assets = {
-    bg: loadImage("assets/generated/rift-corridor-hd.png"),
+    bg: loadImage("assets/generated/rift-loop-bg-tile.png"),
     sheet: loadImage("assets/generated/rift-asset-sheet-alpha.png"),
+    props: loadImage("assets/generated/rift-props-sheet-alpha.png"),
   };
 
   const clips = {
@@ -51,6 +52,21 @@
       [898, 716, 282, 202],
       [1192, 706, 286, 220],
     ],
+  };
+  const PROP = 362;
+  const propClips = {
+    frigate: [0, 0, PROP, PROP],
+    needle: [PROP, 0, PROP, PROP],
+    carrier: [PROP * 2, 0, PROP, PROP],
+    mine: [PROP * 3, 0, PROP, PROP],
+    asteroidDark: [0, PROP, PROP, PROP],
+    asteroidOre: [PROP, PROP, PROP, PROP],
+    asteroidIce: [PROP * 2, PROP, PROP, PROP],
+    relay: [PROP * 3, PROP, PROP, PROP],
+    core: [0, PROP * 2, PROP, PROP],
+    battery: [PROP, PROP * 2, PROP, PROP],
+    blackHole: [PROP * 2, PROP * 2, PROP, PROP],
+    crate: [PROP * 3, PROP * 2, PROP, PROP],
   };
 
   const input = {
@@ -368,7 +384,9 @@
   }
 
   function spawnEnemy() {
-    const kinds = ["skimmer", "blade", "turret"];
+    const kinds = state.wave < 2
+      ? ["skimmer", "blade", "turret", "needle"]
+      : ["skimmer", "blade", "turret", "needle", "frigate", "carrier"];
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     const y = rand(100, H - 92);
     const waveBoost = Math.min(5, state.wave);
@@ -386,24 +404,125 @@
       shot: rand(0.45, 1.4),
       value: kind === "turret" ? 240 : 150,
     };
+    if (kind === "needle") {
+      Object.assign(enemy, {
+        vx: -rand(420, 560) - waveBoost * 34,
+        vy: rand(-120, 120),
+        r: 25,
+        hp: 24 + state.wave * 5,
+        value: 220,
+        art: "needle",
+      });
+    } else if (kind === "frigate") {
+      Object.assign(enemy, {
+        vx: -rand(120, 180) - waveBoost * 10,
+        vy: rand(-25, 25),
+        r: 46,
+        hp: 120 + state.wave * 28,
+        shot: rand(0.35, 0.9),
+        value: 520,
+        art: "frigate",
+      });
+    } else if (kind === "carrier") {
+      Object.assign(enemy, {
+        vx: -rand(95, 145) - waveBoost * 8,
+        vy: rand(-35, 35),
+        r: 55,
+        hp: 155 + state.wave * 34,
+        shot: rand(0.7, 1.2),
+        value: 680,
+        art: "carrier",
+      });
+    }
     enemy.maxHp = enemy.hp;
     enemies.push(enemy);
   }
 
+  function spawnEscort(x, y) {
+    const escort = {
+      kind: "escort",
+      x,
+      y,
+      baseY: y,
+      vx: -rand(300, 400) - state.wave * 12,
+      vy: rand(-90, 90),
+      r: 22,
+      hp: 24 + state.wave * 4,
+      maxHp: 24 + state.wave * 4,
+      t: rand(0, TAU),
+      shot: rand(0.5, 1.1),
+      value: 120,
+    };
+    enemies.push(escort);
+  }
+
   function spawnHazard() {
-    enemies.push({
-      kind: "asteroid",
-      x: W + 100,
-      y: rand(120, H - 80),
-      vx: -rand(250, 430) - state.wave * 10,
-      vy: rand(-40, 40),
-      r: rand(20, 46),
-      hp: 22 + state.wave * 5,
-      maxHp: 22 + state.wave * 5,
-      rot: rand(0, TAU),
-      spin: rand(-2.5, 2.5),
-      value: 90,
-    });
+    const roll = Math.random();
+    const asteroidArts = ["asteroidDark", "asteroidOre", "asteroidIce"];
+    let hazard;
+    if (roll < 0.48) {
+      const r = rand(30, 58);
+      const hp = 26 + r * 0.8 + state.wave * 7;
+      hazard = {
+        kind: "asteroid",
+        art: asteroidArts[Math.floor(Math.random() * asteroidArts.length)],
+        x: W + 100,
+        y: rand(120, H - 80),
+        vx: -rand(250, 430) - state.wave * 10,
+        vy: rand(-40, 40),
+        r,
+        hp,
+        maxHp: hp,
+        rot: rand(0, TAU),
+        spin: rand(-2.5, 2.5),
+        value: 110,
+      };
+    } else if (roll < 0.72) {
+      hazard = {
+        kind: "mine",
+        art: "mine",
+        x: W + 110,
+        y: rand(110, H - 86),
+        vx: -rand(120, 190) - state.wave * 8,
+        vy: rand(-20, 20),
+        r: 39,
+        hp: 46 + state.wave * 8,
+        maxHp: 46 + state.wave * 8,
+        t: rand(0, TAU),
+        shot: 0.9,
+        value: 260,
+      };
+    } else if (roll < 0.9) {
+      hazard = {
+        kind: "relay",
+        art: "relay",
+        x: W + 140,
+        y: rand(125, H - 100),
+        vx: -rand(150, 230),
+        vy: rand(-18, 18),
+        r: 48,
+        hp: 66 + state.wave * 12,
+        maxHp: 66 + state.wave * 12,
+        rot: rand(-0.35, 0.35),
+        spin: rand(-0.45, 0.45),
+        value: 360,
+      };
+    } else {
+      hazard = {
+        kind: "blackHole",
+        art: "blackHole",
+        x: W + 120,
+        y: rand(150, H - 130),
+        vx: -rand(90, 135),
+        vy: rand(-10, 10),
+        r: 58,
+        hp: 96 + state.wave * 18,
+        maxHp: 96 + state.wave * 18,
+        t: 0,
+        value: 620,
+      };
+    }
+    enemies.push(hazard);
   }
 
   function spawnBoss() {
@@ -439,6 +558,32 @@
           enemyShot(e.x - 35, e.y, -420, (player.y - e.y) * 1.2);
           e.shot = clamp(1.15 - state.wave * 0.055, 0.46, 1.15);
         }
+      } else if (e.kind === "escort") {
+        e.y = e.baseY + Math.sin(e.t * 7.6) * 32;
+        e.shot -= dt;
+        if (e.shot <= 0) {
+          enemyShot(e.x - 28, e.y, -500, (player.y - e.y) * 1.4);
+          e.shot = clamp(1.1 - state.wave * 0.04, 0.48, 1.1);
+        }
+      } else if (e.kind === "needle") {
+        e.vy += Math.sin(e.t * 9.2) * dt * 180;
+        if (Math.abs(e.y - player.y) < 42) e.vx -= dt * 190;
+      } else if (e.kind === "frigate") {
+        e.vy += (player.y - e.y) * dt * 0.36;
+        e.shot -= dt;
+        if (e.shot <= 0) {
+          [-0.42, 0, 0.42].forEach((spread) => enemyShot(e.x - 58, e.y + spread * 52, -520, (player.y - e.y) * 0.9 + spread * 220));
+          e.shot = clamp(0.95 - state.wave * 0.035, 0.42, 0.95);
+        }
+      } else if (e.kind === "carrier") {
+        e.y = e.baseY + Math.sin(e.t * 2.1) * 56;
+        e.shot -= dt;
+        if (e.shot <= 0) {
+          spawnEscort(e.x - 70, e.y - 42);
+          spawnEscort(e.x - 74, e.y + 42);
+          enemyShot(e.x - 70, e.y, -480, (player.y - e.y) * 1.05);
+          e.shot = clamp(2.25 - state.wave * 0.08, 1.2, 2.25);
+        }
       } else if (e.kind === "boss") {
         e.vx += ((W - 210) - e.x) * dt * 0.26;
         e.vx = clamp(e.vx, -130, 40);
@@ -451,9 +596,49 @@
         }
       } else if (e.kind === "asteroid") {
         e.rot += e.spin * dt;
+      } else if (e.kind === "mine") {
+        e.t += dt;
+        e.shot -= dt;
+        if (dist2(e, player) < 220 * 220 && e.shot <= 0) {
+          for (let a = 0; a < TAU; a += TAU / 8) {
+            enemyBullets.push({
+              x: e.x,
+              y: e.y,
+              vx: Math.cos(a) * 330 - 140,
+              vy: Math.sin(a) * 330,
+              damage: 10,
+              radius: 8,
+              color: "#ff4d76",
+              life: 1.5,
+            });
+          }
+          e.shot = 1.6;
+          burst(e.x, e.y, "#ff4d76", 12, 1);
+        }
+      } else if (e.kind === "relay") {
+        e.rot += e.spin * dt;
+      } else if (e.kind === "blackHole") {
+        e.t += dt;
+        applyGravityWell(e, dt);
       }
       if (e.x < -260 || e.y < -160 || e.y > H + 160) enemies.splice(i, 1);
     }
+  }
+
+  function applyGravityWell(well, dt) {
+    const pull = (body, strength) => {
+      const dx = well.x - body.x;
+      const dy = well.y - body.y;
+      const d = Math.max(80, Math.hypot(dx, dy));
+      if (d > 280) return;
+      const force = strength * (1 - d / 280) * dt;
+      body.vx = (body.vx || 0) + (dx / d) * force;
+      body.vy = (body.vy || 0) + (dy / d) * force;
+    };
+    pull(player, 520);
+    pull(drone, 360);
+    for (const b of bullets) pull(b, 260);
+    for (const b of enemyBullets) pull(b, 160);
   }
 
   function enemyShot(x, y, vx, vy) {
@@ -538,10 +723,21 @@
       const p = pickups[i];
       if (dist2(p, player) < (p.r + player.r) ** 2) {
         pickups.splice(i, 1);
-        player.hull = clamp(player.hull + 14, 0, 100);
-        player.heat = Math.max(0, player.heat - 36);
+        if (p.kind === "battery") {
+          player.heat = Math.max(0, player.heat - 54);
+          player.charge = clamp(player.charge + 24, 0, 100);
+          setBanner("HEAT VENT", 0.7);
+        } else if (p.kind === "crate") {
+          player.hull = clamp(player.hull + 8, 0, 100);
+          addScore(260);
+          burst(player.x + 50, player.y, "#ffbc55", 18, 1.2);
+          setBanner("SALVAGE", 0.7);
+        } else {
+          player.hull = clamp(player.hull + 16, 0, 100);
+          player.heat = Math.max(0, player.heat - 28);
+          setBanner("CORE SYNC", 0.7);
+        }
         addScore(120);
-        setBanner("CORE SYNC", 0.7);
       }
     }
   }
@@ -552,8 +748,10 @@
     burst(enemy.x, enemy.y, enemy.kind === "boss" ? "#ffbc55" : "#ff4d76", count, enemy.kind === "boss" ? 2.6 : 1.3);
     state.shake = state.reducedMotion ? 0.08 : Math.max(state.shake, enemy.kind === "boss" ? 0.7 : 0.22);
     if (score) addScore(enemy.value);
-    if (Math.random() < (enemy.kind === "boss" ? 1 : 0.12)) {
-      pickups.push({ x: enemy.x, y: enemy.y, r: 18, t: 0 });
+    const dropChance = enemy.kind === "boss" ? 1 : enemy.kind === "relay" || enemy.kind === "carrier" ? 0.34 : 0.12;
+    if (Math.random() < dropChance) {
+      const kind = enemy.kind === "relay" ? "crate" : player.heat > 55 ? "battery" : "core";
+      pickups.push({ kind, x: enemy.x, y: enemy.y, r: kind === "crate" ? 24 : 18, t: 0 });
     }
   }
 
@@ -625,16 +823,9 @@
     ctx.fillStyle = "#05070d";
     ctx.fillRect(-40, -40, W + 80, H + 80);
     if (bg.complete && bg.naturalWidth) {
-      const scroll = state.time * (state.reducedMotion ? 28 : 72);
-      const imgW = W * 1.78;
-      const imgH = H;
-      const x = -(scroll % imgW);
-      ctx.globalAlpha = 0.95;
-      ctx.drawImage(bg, x, 0, imgW, imgH);
-      ctx.drawImage(bg, x + imgW, 0, imgW, imgH);
-      ctx.globalAlpha = 0.52;
-      ctx.drawImage(bg, x * 0.45, -40, imgW, imgH + 80);
-      ctx.drawImage(bg, x * 0.45 + imgW, -40, imgW, imgH + 80);
+      const scroll = state.time * (state.reducedMotion ? 24 : 82);
+      drawTiledBackground(bg, scroll * 0.32, -32, H + 64, 0.42);
+      drawTiledBackground(bg, scroll, 0, H, 0.92);
       ctx.globalAlpha = 1;
     }
     drawStars();
@@ -644,6 +835,15 @@
     grd.addColorStop(1, "rgba(255, 77, 118, 0.18)");
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawTiledBackground(img, scroll, y, h, alpha) {
+    const tileW = h * (img.naturalWidth / img.naturalHeight);
+    const startX = -((scroll % tileW) + tileW) % tileW;
+    ctx.globalAlpha = alpha;
+    for (let x = startX - tileW; x < W + tileW; x += tileW) {
+      ctx.drawImage(img, x, y, tileW, h);
+    }
   }
 
   function drawStars() {
@@ -663,7 +863,7 @@
   function drawPlayer() {
     const flicker = player.invuln > 0 && Math.floor(state.time * 24) % 2 === 0;
     if (flicker) ctx.globalAlpha = 0.42;
-    drawClip("player", player.x - 58, player.y - 33, 130, 58);
+    drawClip("player", player.x - 58, player.y - 33, 130, 58, true);
     if (player.charge > 2) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -698,11 +898,17 @@
     for (const e of enemies) {
       if (e.kind === "asteroid") {
         drawAsteroid(e);
+      } else if (e.kind === "mine" || e.kind === "relay" || e.kind === "blackHole") {
+        drawHazardObject(e);
       } else if (e.kind === "boss") {
         drawClip("boss", e.x - 164, e.y - 48, 245, 74);
         drawHealthBar(e, 170);
+      } else if (e.kind === "needle" || e.kind === "frigate" || e.kind === "carrier") {
+        const size = e.kind === "needle" ? [108, 72] : e.kind === "frigate" ? [134, 90] : [152, 96];
+        drawPropAt(e.art, e.x - size[0] * 0.5, e.y - size[1] * 0.5, size[0], size[1]);
+        drawHealthBar(e, e.kind === "needle" ? 50 : 76);
       } else {
-        const clip = e.kind === "skimmer" ? "droneA" : e.kind === "blade" ? "droneB" : "droneC";
+        const clip = e.kind === "skimmer" || e.kind === "escort" ? "droneA" : e.kind === "blade" ? "droneB" : "droneC";
         drawClip(clip, e.x - 44, e.y - 30, 88, 54);
         drawHealthBar(e, 46);
       }
@@ -713,24 +919,31 @@
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.rotate(e.rot);
-    ctx.fillStyle = "#2a3038";
-    ctx.strokeStyle = "#ffbc55";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < 10; i += 1) {
-      const angle = (i / 10) * TAU;
-      const radius = e.r * (0.72 + ((i * 37) % 10) / 34);
-      const px = Math.cos(angle) * radius;
-      const py = Math.sin(angle) * radius;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 0.35;
-    ctx.stroke();
+    drawPropAt(e.art, -e.r * 1.35, -e.r * 1.35, e.r * 2.7, e.r * 2.7);
     ctx.restore();
-    ctx.globalAlpha = 1;
+    drawHealthBar(e, e.r * 1.6);
+  }
+
+  function drawHazardObject(e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.rot || 0);
+    if (e.kind === "blackHole") {
+      const pulse = 1 + Math.sin(e.t * 7) * 0.08;
+      drawPropAt(e.art, -e.r * 1.35 * pulse, -e.r * 1.35 * pulse, e.r * 2.7 * pulse, e.r * 2.7 * pulse);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = "rgba(84,243,255,0.38)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r * 1.62 + Math.sin(e.t * 5) * 8, 0, TAU);
+      ctx.stroke();
+    } else {
+      const pulse = e.kind === "mine" ? 1 + Math.sin((e.t || 0) * 8) * 0.05 : 1;
+      const scale = e.kind === "relay" ? 1.85 : 1.35;
+      drawPropAt(e.art, -e.r * scale * pulse, -e.r * scale * pulse, e.r * scale * 2 * pulse, e.r * scale * 2 * pulse);
+    }
+    ctx.restore();
+    drawHealthBar(e, e.kind === "relay" ? 74 : 58);
   }
 
   function drawHealthBar(e, width) {
@@ -771,7 +984,15 @@
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.t * 3);
-      drawClipAt("shield", -24, -24, 48, 48);
+      const art = p.kind === "battery" ? "battery" : p.kind === "crate" ? "crate" : "core";
+      const size = p.kind === "crate" ? 58 : 50;
+      drawPropAt(art, -size * 0.5, -size * 0.5, size, size);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = p.kind === "battery" ? "rgba(84,243,255,0.55)" : "rgba(255,188,85,0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.45 + Math.sin(p.t * 6) * 4, 0, TAU);
+      ctx.stroke();
       ctx.restore();
     }
   }
@@ -802,20 +1023,41 @@
     }
   }
 
-  function drawClip(name, x, y, w, h) {
-    drawClipAt(name, x, y, w, h);
+  function drawClip(name, x, y, w, h, flipX = false) {
+    drawClipAt(name, x, y, w, h, flipX);
   }
 
-  function drawClipAt(name, x, y, w, h) {
+  function drawClipAt(name, x, y, w, h, flipX = false) {
     const sheet = assets.sheet;
     const clip = clips[name];
     if (sheet.complete && sheet.naturalWidth && clip) {
-      ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], x, y, w, h);
+      if (flipX) {
+        ctx.save();
+        ctx.translate(x + w, y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], 0, 0, w, h);
+        ctx.restore();
+      } else {
+        ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], x, y, w, h);
+      }
       return;
     }
     ctx.fillStyle = name === "player" ? "#54f3ff" : "#ff4d76";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.45, h * 0.35, 0, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawPropAt(name, x, y, w, h) {
+    const sheet = assets.props;
+    const clip = propClips[name];
+    if (sheet.complete && sheet.naturalWidth && clip) {
+      ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], x, y, w, h);
+      return;
+    }
+    ctx.fillStyle = name === "blackHole" ? "#1d0f3d" : name && name.includes("asteroid") ? "#353942" : "#ffbc55";
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.36, h * 0.34, 0, 0, TAU);
     ctx.fill();
   }
 
