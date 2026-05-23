@@ -22,6 +22,10 @@ const required = [
   "assets/images/rival-car-sheet.png",
   "assets/images/item-morph-sheet-source.png",
   "assets/images/item-morph-sheet.png",
+  "assets/images/boost-gate-sheet-source.png",
+  "assets/images/boost-gate-sheet.png",
+  "assets/images/status-badge-sheet-source.png",
+  "assets/images/status-badge-sheet.png",
   "assets/images/boost-cell-imagen-source.png",
   "assets/images/boost-cell-imagen.png",
   "assets/images/boost-pad-imagen-source.png",
@@ -47,7 +51,13 @@ const required = [
   "assets/audio/local/ridge-bgm.wav",
   "assets/audio/local/ridge-crash.wav",
   "assets/audio/local/ridge-pickup.wav",
-  "assets/audio/local/ridge-finish.wav"
+  "assets/audio/local/ridge-finish.wav",
+  "assets/audio/downloads/jet-fuel-glory-upbeat.mp3",
+  "assets/audio/downloads/retro-pickup.mp3",
+  "assets/audio/downloads/retro-boost.mp3",
+  "assets/audio/downloads/playful-checkpoint.mp3",
+  "assets/audio/downloads/healing-sparkle.mp3",
+  "assets/audio/downloads/arcade-impact.mp3"
 ];
 
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
@@ -72,9 +82,19 @@ for (const audio of required.filter((file) => file.endsWith(".wav"))) {
   }
 }
 
+for (const audio of required.filter((file) => file.endsWith(".mp3"))) {
+  const buffer = fs.readFileSync(path.join(root, audio));
+  const id3 = buffer.toString("ascii", 0, 3);
+  const frame = buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
+  if ((id3 !== "ID3" && !frame) || buffer.length < 1000) {
+    console.error(`Invalid MP3 asset: ${audio}`);
+    process.exit(1);
+  }
+}
+
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "game.js"), "utf8");
-if (!html.includes("itemValue") || !js.includes("requestAnimationFrame") || !js.includes("AudioDeck") || !js.includes("drawMode7Road") || !js.includes("itemMorphSheet") || !js.includes("playerSheet") || !js.includes("bgClean")) {
+if (!html.includes("itemValue") || !html.includes("rushValue") || !js.includes("requestAnimationFrame") || !js.includes("AudioDeck") || !js.includes("drawMode7Road") || !js.includes("itemMorphSheet") || !js.includes("playerSheet") || !js.includes("bgClean") || !js.includes("boostGateSheet") || !js.includes("bgmDownload")) {
   console.error("Game wiring check failed.");
   process.exit(1);
 }

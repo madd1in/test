@@ -9,6 +9,7 @@
     time: document.getElementById("timeValue"),
     distance: document.getElementById("distanceValue"),
     score: document.getElementById("scoreValue"),
+    rush: document.getElementById("rushValue"),
     boostFill: document.getElementById("boostFill"),
     hullFill: document.getElementById("hullFill"),
     itemValue: document.getElementById("itemValue"),
@@ -33,6 +34,12 @@
   const FINISH_DISTANCE = 14800;
   const CHECKPOINT_STEP = 2100;
   const LANES = [-420, -140, 140, 420];
+  const UI_BADGES = {
+    lap: 0,
+    rival: 1,
+    perfect: 2,
+    turbo: 3
+  };
 
   const imageSources = {
     playerChase: "assets/images/player-chase-imagen.png",
@@ -44,6 +51,8 @@
     rivalCar: "assets/images/rival-car-imagen.png",
     rivalSheet: "assets/images/rival-car-sheet.png",
     itemMorphSheet: "assets/images/item-morph-sheet.png",
+    boostGateSheet: "assets/images/boost-gate-sheet.png",
+    statusBadges: "assets/images/status-badge-sheet.png",
     boostCell: "assets/images/boost-cell-imagen.png",
     boostPad: "assets/images/boost-pad-imagen.png",
     drone: "assets/images/drone-imagen.png",
@@ -54,14 +63,20 @@
   const audioSources = {
     bgm: "assets/audio/bgm-loop.wav",
     bgmLocal: "assets/audio/local/ridge-bgm.wav",
+    bgmDownload: "assets/audio/downloads/jet-fuel-glory-upbeat.mp3",
     engine: "assets/audio/engine-loop.wav",
     boost: "assets/audio/boost.wav",
+    boostDownload: "assets/audio/downloads/retro-boost.mp3",
     crash: "assets/audio/crash.wav",
     crashLocal: "assets/audio/local/ridge-crash.wav",
+    crashDownload: "assets/audio/downloads/arcade-impact.mp3",
     pickup: "assets/audio/pickup.wav",
     pickupLocal: "assets/audio/local/ridge-pickup.wav",
+    pickupDownload: "assets/audio/downloads/retro-pickup.mp3",
+    repairDownload: "assets/audio/downloads/healing-sparkle.mp3",
     checkpoint: "assets/audio/checkpoint.wav",
-    checkpointLocal: "assets/audio/local/ridge-finish.wav"
+    checkpointLocal: "assets/audio/local/ridge-finish.wav",
+    checkpointDownload: "assets/audio/downloads/playful-checkpoint.mp3"
   };
 
   const images = {};
@@ -75,9 +90,18 @@
 
   let dpr = 1;
   let lastTime = 0;
+  let renderNow = 0;
   let mode = "ready";
   let primaryAction = () => startRace();
   let messageTimer = 0;
+  const perf = {
+    avgFrameMs: 16.7,
+    dprCap: 1.22,
+    roadStep: 7,
+    textureStride: 2,
+    lastAdjust: 0
+  };
+  const gradients = {};
 
   const state = createInitialState();
 
@@ -85,14 +109,15 @@
     constructor() {
       this.enabled = true;
       this.unlocked = false;
-      this.bgm = new Audio(audioSources.bgmLocal);
-      this.bgmLayer = new Audio(audioSources.bgm);
+      this.bgm = new Audio(audioSources.bgmDownload);
+      this.bgmLayer = new Audio(audioSources.bgmLocal);
       this.engine = new Audio(audioSources.engine);
       this.sfx = {
-        boost: new Audio(audioSources.boost),
-        crash: new Audio(audioSources.crashLocal),
-        pickup: new Audio(audioSources.pickupLocal),
-        checkpoint: new Audio(audioSources.checkpointLocal),
+        boost: new Audio(audioSources.boostDownload),
+        crash: new Audio(audioSources.crashDownload),
+        pickup: new Audio(audioSources.pickupDownload),
+        repair: new Audio(audioSources.repairDownload),
+        checkpoint: new Audio(audioSources.checkpointDownload),
         crashSynth: new Audio(audioSources.crash),
         pickupSynth: new Audio(audioSources.pickup),
         checkpointSynth: new Audio(audioSources.checkpoint)
@@ -100,8 +125,8 @@
       this.bgm.loop = true;
       this.bgmLayer.loop = true;
       this.engine.loop = true;
-      this.bgm.volume = 0.38;
-      this.bgmLayer.volume = 0.1;
+      this.bgm.volume = 0.46;
+      this.bgmLayer.volume = 0.06;
       this.engine.volume = 0.16;
       for (const sound of Object.values(this.sfx)) {
         sound.preload = "auto";
@@ -141,8 +166,9 @@
       if (!this.enabled || !this.unlocked) return;
       this.engine.volume = mode === "playing" ? 0.1 + Math.min(speed / 720, 1) * 0.18 : 0.04;
       this.engine.playbackRate = 0.72 + Math.min(speed / 720, 1) * 0.92 + (boosting ? 0.16 : 0);
-      this.bgm.volume = mode === "playing" ? 0.38 : 0.22;
-      this.bgmLayer.volume = mode === "playing" ? 0.08 : 0.03;
+      this.bgm.playbackRate = mode === "playing" ? 1.04 + Math.min(speed / 860, 1) * 0.04 : 1;
+      this.bgm.volume = mode === "playing" ? 0.46 : 0.22;
+      this.bgmLayer.volume = mode === "playing" ? 0.045 : 0.02;
     }
   }
 
@@ -170,7 +196,11 @@
       itemTimer: 0,
       shield: 0,
       overdrive: 0,
+      magnet: 0,
       empPulse: 0,
+      waveCooldown: 0,
+      badgeFrame: UI_BADGES.lap,
+      badgeTimer: 0,
       roadShake: 0,
       flash: 0
     };
@@ -183,11 +213,11 @@
   }
 
   function spawnOpeningTraffic() {
-    state.objects.push(makeTraffic(state.distance + 760, LANES[1]));
-    state.objects.push(makeTraffic(state.distance + 1220, LANES[2]));
-    state.objects.push(makePickup(state.distance + 1540, LANES[0]));
-    state.objects.push(makeBoostPad(state.distance + 1960, LANES[3]));
-    state.objects.push(makeDrone(state.distance + 2360, LANES[1]));
+    state.objects.push(makeTraffic(state.distance + 900, LANES[2]));
+    state.objects.push(makeSpeedGate(state.distance + 1260, LANES[1]));
+    state.objects.push(makePickup(state.distance + 1620, LANES[0]));
+    state.objects.push(makeBoostPad(state.distance + 2060, LANES[3]));
+    state.objects.push(makeDrone(state.distance + 2520, LANES[1]));
   }
 
   function loadImages() {
@@ -206,10 +236,34 @@
   }
 
   function resizeCanvas() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
+    const viewportCap = window.innerWidth <= 820 || window.innerHeight <= 520 ? 1.04 : perf.dprCap;
+    dpr = Math.min(window.devicePixelRatio || 1, viewportCap);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "medium";
+    buildGradients();
+  }
+
+  function buildGradients() {
+    gradients.sky = ctx.createLinearGradient(0, 0, 0, H);
+    gradients.sky.addColorStop(0, "#070914");
+    gradients.sky.addColorStop(0.45, "#11152c");
+    gradients.sky.addColorStop(1, "#05070d");
+
+    gradients.fog = ctx.createLinearGradient(0, 140, 0, HORIZON + 42);
+    gradients.fog.addColorStop(0, "rgba(5, 7, 13, 0)");
+    gradients.fog.addColorStop(1, "rgba(5, 7, 13, 0.86)");
+
+    gradients.nearRoad = ctx.createLinearGradient(0, HORIZON, 0, H);
+    gradients.nearRoad.addColorStop(0, "rgba(5,7,13,0.45)");
+    gradients.nearRoad.addColorStop(0.35, "rgba(5,7,13,0)");
+    gradients.nearRoad.addColorStop(1, "rgba(0,0,0,0.16)");
+
+    gradients.vignette = ctx.createRadialGradient(W / 2, H * 0.52, 240, W / 2, H * 0.52, 770);
+    gradients.vignette.addColorStop(0, "rgba(0,0,0,0)");
+    gradients.vignette.addColorStop(1, "rgba(0,0,0,0.46)");
   }
 
   function clamp(value, min, max) {
@@ -308,6 +362,19 @@
     };
   }
 
+  function makeSpeedGate(world, lane) {
+    return {
+      type: "speedGate",
+      imageKey: "boostGateSheet",
+      world,
+      lane,
+      w: 236,
+      h: 164,
+      hit: false,
+      phase: Math.random() * Math.PI * 2
+    };
+  }
+
   function makeDrone(world, lane) {
     return {
       type: "drone",
@@ -324,10 +391,11 @@
 
   function startRace() {
     resetState();
+    state.speed = 240;
     mode = "playing";
     audio.unlock();
     closeOverlay();
-    showMessage("Polished HD rush");
+    showMessage("Apex launch", UI_BADGES.lap);
   }
 
   function pauseRace() {
@@ -370,10 +438,14 @@
     ui.overlay.classList.remove("is-open");
   }
 
-  function showMessage(text) {
+  function showMessage(text, badgeFrame = null) {
     ui.messageFeed.textContent = text;
     ui.messageFeed.classList.add("is-visible");
     messageTimer = 1.8;
+    if (badgeFrame !== null) {
+      state.badgeFrame = badgeFrame;
+      state.badgeTimer = 1.25;
+    }
   }
 
   function update(dt) {
@@ -382,33 +454,34 @@
       return;
     }
 
-    const accelerating = keys.up || (!keys.down && state.speed < 270);
+    const autoCruise = state.overdrive > 0 ? 560 : 430;
+    const accelerating = keys.up || (!keys.down && state.speed < autoCruise);
     const braking = keys.down;
-    const boosting = keys.boost && state.boost > 0 && state.speed > 135;
+    const boosting = keys.boost && state.boost > 0 && state.speed > 105;
 
-    if (accelerating) state.speed += 222 * dt;
-    if (braking) state.speed -= 370 * dt;
-    state.speed -= 36 * dt;
+    if (accelerating) state.speed += (keys.up ? 380 : 295) * dt;
+    if (braking) state.speed -= 470 * dt;
+    state.speed -= (state.speed > 560 ? 32 : 20) * dt;
 
-    const maxSpeed = boosting ? 720 : 492;
+    const maxSpeed = boosting ? (state.overdrive > 0 ? 920 : 820) : (state.overdrive > 0 ? 690 : 610);
     if (boosting) {
-      state.speed += state.overdrive > 0 ? 500 * dt : 430 * dt;
-      state.boost = Math.max(0, state.boost - 29 * dt);
-      state.score += 110 * dt;
-      addTrailParticles(2);
+      state.speed += state.overdrive > 0 ? 630 * dt : 540 * dt;
+      state.boost = Math.max(0, state.boost - 25 * dt);
+      state.score += 155 * dt;
+      addTrailParticles(state.overdrive > 0 ? 3 : 2);
     } else {
-      state.boost = Math.min(100, state.boost + (state.speed > 260 ? 4.7 : 7.6) * dt);
+      state.boost = Math.min(100, state.boost + (state.speed > 360 ? 5.2 : 9.2) * dt);
     }
     state.speed = clamp(state.speed, 0, maxSpeed);
 
     const steer = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
-    const steerPower = 760 + state.speed * 0.46;
+    const steerPower = 820 + state.speed * 0.52;
     state.playerLaneV += steer * steerPower * dt;
     state.playerLaneV *= Math.pow(0.0012, dt);
     state.playerLane += state.playerLaneV * dt;
     state.playerLane = clamp(state.playerLane, -ROAD_WORLD_HALF + 86, ROAD_WORLD_HALF - 86);
     state.cameraLean += (steer * 0.9 + state.playerLaneV / 880 - state.cameraLean) * Math.min(1, dt * 7);
-    state.cameraBob += dt * (4.2 + state.speed / 120);
+    state.cameraBob += dt * (5.5 + state.speed / 82);
 
     const offroad = Math.abs(state.playerLane) > ROAD_WORLD_HALF - 130;
     if (offroad) {
@@ -417,7 +490,7 @@
       if (Math.random() < 0.12) addSparks(W / 2 + state.playerLane * 0.12, H - 122, "#ffb247", 1);
     }
 
-    state.distance += state.speed * dt;
+    state.distance += state.speed * 1.12 * dt;
     state.timeLeft -= dt;
     state.score += (state.speed * 0.24 + (boosting ? 135 : 0)) * dt;
     state.spawnTimer -= dt;
@@ -426,14 +499,17 @@
     state.itemTimer = Math.max(0, state.itemTimer - dt);
     state.shield = Math.max(0, state.shield - dt);
     state.overdrive = Math.max(0, state.overdrive - dt);
+    state.magnet = Math.max(0, state.magnet - dt);
     state.empPulse = Math.max(0, state.empPulse - dt);
+    state.waveCooldown = Math.max(0, state.waveCooldown - dt);
+    state.badgeTimer = Math.max(0, state.badgeTimer - dt * 1.2);
     if (state.itemTimer === 0 && state.itemName !== "Ready") state.itemName = "Ready";
     state.roadShake = Math.max(0, state.roadShake - dt * 8);
     state.flash = Math.max(0, state.flash - dt * 2.2);
 
     if (state.spawnTimer <= 0) {
       spawnRoadObject();
-      state.spawnTimer = clamp(0.74 - state.distance / 56000, 0.34, 0.74);
+      state.spawnTimer = clamp(0.64 - state.distance / 52000, 0.28, 0.64);
     }
 
     updateObjects(dt);
@@ -456,12 +532,21 @@
     const lane = randomChoice(LANES);
     const world = state.distance + 1350 + Math.random() * 780;
     const roll = Math.random();
-    if (roll < 0.47) {
+    if (roll < 0.12 && state.distance > 2600 && state.waveCooldown <= 0) {
+      const lanes = [...LANES].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < 3; i += 1) {
+        state.objects.push(makeTraffic(world + i * 210, lanes[i]));
+      }
+      state.waveCooldown = 6.5;
+      showMessage("Rival wave", UI_BADGES.rival);
+    } else if (roll < 0.38) {
       state.objects.push(makeTraffic(world, lane));
-    } else if (roll < 0.68) {
+    } else if (roll < 0.58) {
       state.objects.push(makePickup(world, lane));
-    } else if (roll < 0.83) {
+    } else if (roll < 0.72) {
       state.objects.push(makeBoostPad(world, lane));
+    } else if (roll < 0.86) {
+      state.objects.push(makeSpeedGate(world, lane));
     } else {
       state.objects.push(makeDrone(world, lane));
     }
@@ -474,9 +559,12 @@
       if (z < -80) continue;
       if (obj.type === "traffic") obj.lane += obj.drift * dt;
       if (obj.type === "drone") obj.lane += Math.sin(state.distance * 0.012 + obj.phase) * 18 * dt;
+      if (state.magnet > 0 && (obj.type === "pickup" || obj.type === "boostPad") && z < 920) {
+        obj.lane += (state.playerLane - obj.lane) * Math.min(1, dt * 2.4);
+      }
 
       if (!obj.hit && z > 80 && z < 172) {
-        const collisionWidth = obj.type === "boostPad" ? 150 : obj.type === "pickup" ? 82 : 118;
+        const collisionWidth = obj.type === "speedGate" ? 215 : obj.type === "boostPad" ? 150 : obj.type === "pickup" ? 82 : 118;
         if (Math.abs(obj.lane - state.playerLane) < collisionWidth) collideWith(obj);
       }
       if (!obj.hit && !obj.scored && (obj.type === "traffic" || obj.type === "drone") && z < 70) {
@@ -527,29 +615,43 @@
       audio.play("pickupSynth");
     } else if (obj.type === "boostPad") {
       state.boost = Math.min(100, state.boost + 44);
-      state.speed = Math.max(state.speed, 540);
+      state.speed = Math.max(state.speed, 610);
       state.score += 980;
       addTrailParticles(18);
       audio.play("boost");
-      showMessage("Launch strip");
+      showMessage("Turbo strip", UI_BADGES.turbo);
+    } else if (obj.type === "speedGate") {
+      const centered = Math.abs(obj.lane - state.playerLane) < 78;
+      state.combo += centered ? 2 : 1;
+      state.comboTimer = 3;
+      state.boost = Math.min(100, state.boost + (centered ? 28 : 16));
+      state.speed = Math.max(state.speed, centered ? 740 : 640);
+      state.score += centered ? 1850 : 980;
+      state.flash = Math.max(state.flash, centered ? 0.42 : 0.24);
+      addTrailParticles(centered ? 24 : 14);
+      audio.play("boost");
+      audio.play("checkpointSynth");
+      showMessage(centered ? "Perfect line" : "Gate boost", centered ? UI_BADGES.perfect : UI_BADGES.turbo);
     }
   }
 
   function activateMorphItem() {
-    const roll = Math.floor((state.distance * 0.017 + performance.now() * 0.006) % 6);
+    const roll = Math.floor((state.distance * 0.017 + renderNow * 0.006) % 8);
     const items = [
       { name: "Nitro", run: () => { state.boost = Math.min(100, state.boost + 38); state.speed = Math.max(state.speed, 560); } },
       { name: "Shield", run: () => { state.shield = 6.5; } },
       { name: "EMP", run: () => { state.empPulse = 1.4; state.objects.forEach((obj) => { if (obj.type === "drone" && obj.world - state.distance < 1400) obj.hit = true; }); } },
-      { name: "Repair", run: () => { state.health = Math.min(100, state.health + 22); } },
+      { name: "Repair", run: () => { state.health = Math.min(100, state.health + 22); audio.play("repair"); } },
       { name: "Prism", run: () => { state.score += 1400; state.comboTimer = 3; } },
-      { name: "Overdrive", run: () => { state.overdrive = 4.2; state.boost = Math.min(100, state.boost + 16); } }
+      { name: "Overdrive", run: () => { state.overdrive = 4.2; state.boost = Math.min(100, state.boost + 16); } },
+      { name: "Magnet", run: () => { state.magnet = 6.2; } },
+      { name: "Time Warp", run: () => { state.timeLeft += 4; state.speed = Math.max(state.speed, 620); } }
     ];
     const item = items[roll];
     item.run();
     state.itemName = item.name;
     state.itemTimer = 4.5;
-    showMessage(`${item.name} item`);
+    showMessage(`${item.name} item`, item.name === "Overdrive" || item.name === "Nitro" || item.name === "Time Warp" ? UI_BADGES.turbo : UI_BADGES.lap);
   }
 
   function handleCheckpoints() {
@@ -562,11 +664,12 @@
     state.flash = 0.82;
     audio.play("checkpoint");
     audio.play("checkpointSynth");
-    showMessage(left > 0 ? "Checkpoint +" : "Finish gate");
+    showMessage(left > 0 ? "Checkpoint +" : "Finish gate", UI_BADGES.lap);
   }
 
   function addSparks(x, y, color, count) {
     for (let i = 0; i < count; i += 1) {
+      if (state.particles.length > 130) break;
       state.particles.push({
         x,
         y,
@@ -582,6 +685,7 @@
 
   function addTrailParticles(count) {
     for (let i = 0; i < count; i += 1) {
+      if (state.particles.length > 150) break;
       state.particles.push({
         x: W / 2 + (Math.random() - 0.5) * 130 + state.cameraLean * 20,
         y: H - 46 + Math.random() * 28,
@@ -617,18 +721,16 @@
     drawMode7Road();
     drawRoadObjects();
     drawPlayer();
+    drawSpeedLines();
     drawParticles();
+    drawStatusBadge();
     drawVignette();
     if (state.flash > 0) drawFlash();
     ctx.restore();
   }
 
   function drawBackground() {
-    const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, "#070914");
-    sky.addColorStop(0.45, "#11152c");
-    sky.addColorStop(1, "#05070d");
-    ctx.fillStyle = sky;
+    ctx.fillStyle = gradients.sky || "#070914";
     ctx.fillRect(0, 0, W, H);
 
     if (images.bgClean) {
@@ -650,10 +752,7 @@
       drawParallaxLayer(images.parallaxForeground, 0.12, 252, 300, 0.12);
     }
 
-    const fog = ctx.createLinearGradient(0, 140, 0, HORIZON + 42);
-    fog.addColorStop(0, "rgba(5, 7, 13, 0)");
-    fog.addColorStop(1, "rgba(5, 7, 13, 0.86)");
-    ctx.fillStyle = fog;
+    ctx.fillStyle = gradients.fog || "rgba(5, 7, 13, 0.72)";
     ctx.fillRect(0, 0, W, HORIZON + 64);
   }
 
@@ -685,8 +784,9 @@
   }
 
   function drawMode7Road() {
-    const rowStep = 5;
+    const rowStep = perf.roadStep;
     const cameraWorld = state.distance + CAMERA_Z;
+    let segment = 0;
     for (let y = HORIZON; y < H + rowStep; y += rowStep) {
       const y1 = y;
       const y2 = y + rowStep;
@@ -710,11 +810,14 @@
       ctx.lineTo(right2, y2);
       ctx.lineTo(left2, y2);
       ctx.closePath();
-      if (images.roadTexture) {
+      ctx.fillStyle = alt ? "#171d27" : "#111722";
+      ctx.fill();
+
+      if (images.roadTexture && segment % perf.textureStride === 0) {
         ctx.save();
         ctx.clip();
         const sourceY = Math.min(images.roadTexture.naturalHeight - 2, Math.floor((w1 * 0.46) % images.roadTexture.naturalHeight));
-        ctx.globalAlpha = 0.82;
+        ctx.globalAlpha = 0.58;
         ctx.drawImage(
           images.roadTexture,
           0,
@@ -726,13 +829,10 @@
           Math.max(right1, right2) - Math.min(left1, left2),
           rowStep + 1
         );
-        ctx.globalAlpha = alt ? 0.11 : 0.17;
+        ctx.globalAlpha = alt ? 0.08 : 0.12;
         ctx.fillStyle = alt ? "#35e7ff" : "#ff3dbd";
         ctx.fillRect(Math.min(left1, left2), y1, Math.max(right1, right2) - Math.min(left1, left2), rowStep + 1);
         ctx.restore();
-      } else {
-        ctx.fillStyle = alt ? "#151923" : "#10141d";
-        ctx.fill();
       }
 
       drawShoulder(left1, left2, y1, y2, alt ? "#ff3dbd" : "#35e7ff", -1);
@@ -741,13 +841,10 @@
       for (const lane of [-ROAD_WORLD_HALF / 2, 0, ROAD_WORLD_HALF / 2]) {
         drawLaneLine(w1, w2, d1, d2, y1, y2, lane);
       }
+      segment += 1;
     }
 
-    const nearGrad = ctx.createLinearGradient(0, HORIZON, 0, H);
-    nearGrad.addColorStop(0, "rgba(5,7,13,0.45)");
-    nearGrad.addColorStop(0.35, "rgba(5,7,13,0)");
-    nearGrad.addColorStop(1, "rgba(0,0,0,0.16)");
-    ctx.fillStyle = nearGrad;
+    ctx.fillStyle = gradients.nearRoad || "rgba(5,7,13,0.18)";
     ctx.fillRect(0, HORIZON, W, H - HORIZON);
   }
 
@@ -788,8 +885,9 @@
     for (const { obj, p } of drawables) {
       let bob = 0;
       let rotation = 0;
-      if (obj.type === "pickup") bob = Math.sin(performance.now() * 0.006 + obj.phase) * 6 * p.scale;
-      if (obj.type === "drone") bob = Math.sin(performance.now() * 0.005 + obj.phase) * 12 * p.scale;
+      if (obj.type === "pickup") bob = Math.sin(renderNow * 0.006 + obj.phase) * 6 * p.scale;
+      if (obj.type === "drone") bob = Math.sin(renderNow * 0.005 + obj.phase) * 12 * p.scale;
+      if (obj.type === "speedGate") bob = Math.sin(renderNow * 0.004 + obj.phase) * 4 * p.scale;
       if (obj.type === "traffic") rotation = Math.sin(obj.phase + state.distance * 0.005) * 0.035;
 
       const width = obj.w * p.scale;
@@ -799,8 +897,12 @@
         const frame = state.empPulse > 0 ? 3 : Math.abs(obj.drift) > 8 ? (obj.drift < 0 ? 1 : 2) : Math.floor((state.distance * 0.015 + obj.phase) % 2);
         drawSheetFrame("rivalSheet", 4, frame, p.x, p.y + bob, width * 1.18, height * 1.18, rotation);
       } else if (obj.type === "pickup" && images.itemMorphSheet) {
-        const frame = Math.floor((performance.now() * 0.012 + obj.phase + p.depth * 0.004) % 8);
-        drawSheetFrame("itemMorphSheet", 8, frame, p.x, p.y + bob, width * 1.4, height * 1.4, rotation + Math.sin(performance.now() * 0.004 + obj.phase) * 0.18);
+        const frame = Math.floor((renderNow * 0.012 + obj.phase + p.depth * 0.004) % 8);
+        drawSheetFrame("itemMorphSheet", 8, frame, p.x, p.y + bob, width * 1.4, height * 1.4, rotation + Math.sin(renderNow * 0.004 + obj.phase) * 0.18);
+      } else if (obj.type === "speedGate" && images.boostGateSheet) {
+        const frame = Math.floor((renderNow * 0.008 + obj.phase) % 4);
+        drawRoadGlow(p.x, p.y + bob, width * 1.2, height * 0.82, "#35e7ff");
+        drawSheetFrame("boostGateSheet", 4, frame, p.x, p.y + bob, width * 1.75, height * 1.75, 0);
       } else {
         drawAsset(obj.imageKey, p.x, p.y + bob, width, height, rotation);
       }
@@ -825,7 +927,7 @@
     ctx.strokeStyle = "#9cff46";
     ctx.lineWidth = Math.max(2, 4 * scale);
     ctx.beginPath();
-    ctx.arc(x, y, 36 * scale + Math.sin(performance.now() * 0.006) * 4, 0, Math.PI * 2);
+    ctx.arc(x, y, 36 * scale + Math.sin(renderNow * 0.006) * 4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -893,13 +995,14 @@
       ctx.fillRect(-70, -180, 140, 220);
     }
     ctx.restore();
-    if (state.shield > 0) drawHudAura(x, y - 70, "#35e7ff", 0.22 + Math.sin(performance.now() * 0.012) * 0.08);
+    if (state.shield > 0) drawHudAura(x, y - 70, "#35e7ff", 0.22 + Math.sin(renderNow * 0.012) * 0.08);
+    if (state.magnet > 0) drawHudAura(x, y - 70, "#9cff46", 0.12 + Math.sin(renderNow * 0.01) * 0.05);
     if (state.empPulse > 0) drawEmpPulse();
   }
 
   function drawPlayerShield(x, y, scale) {
     ctx.save();
-    ctx.globalAlpha = 0.34 + Math.sin(performance.now() * 0.012) * 0.08;
+    ctx.globalAlpha = 0.34 + Math.sin(renderNow * 0.012) * 0.08;
     ctx.strokeStyle = "#35e7ff";
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -928,6 +1031,41 @@
     ctx.beginPath();
     ctx.arc(W / 2, H - 120, radius, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawSpeedLines() {
+    const intensity = clamp((state.speed - 430) / 360 + (state.overdrive > 0 ? 0.22 : 0), 0, 1);
+    if (intensity <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = 0.12 + intensity * 0.18;
+    ctx.lineWidth = 2 + intensity * 3;
+    const pulse = renderNow * 0.036;
+    for (let i = 0; i < 18; i += 1) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const row = (i * 41 + pulse) % 520;
+      const y = HORIZON + 44 + row;
+      const near = clamp((y - HORIZON) / (H - HORIZON), 0, 1);
+      const x1 = W / 2 + side * (230 + near * 120 + Math.sin(i * 1.7) * 42);
+      const x2 = x1 + side * (190 + near * 280);
+      ctx.strokeStyle = i % 3 === 0 ? "#ff3dbd" : "#35e7ff";
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y + 62 + near * 42);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawStatusBadge() {
+    if (state.badgeTimer <= 0 || !images.statusBadges) return;
+    const alpha = clamp(state.badgeTimer, 0, 1);
+    const pop = 1 + Math.sin(alpha * Math.PI) * 0.06;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(224, 98);
+    ctx.scale(pop, pop);
+    drawSheetFrameAtCurrentTransform("statusBadges", 4, state.badgeFrame, -170, -48, 340, 96);
     ctx.restore();
   }
 
@@ -976,10 +1114,7 @@
   }
 
   function drawVignette() {
-    const vignette = ctx.createRadialGradient(W / 2, H * 0.52, 240, W / 2, H * 0.52, 770);
-    vignette.addColorStop(0, "rgba(0,0,0,0)");
-    vignette.addColorStop(1, "rgba(0,0,0,0.46)");
-    ctx.fillStyle = vignette;
+    ctx.fillStyle = gradients.vignette || "rgba(0,0,0,0.16)";
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -995,17 +1130,38 @@
     ui.time.textContent = Math.max(0, Math.ceil(state.timeLeft)).toString();
     ui.distance.textContent = (state.distance / 1000).toFixed(1);
     ui.score.textContent = Math.round(state.score).toLocaleString("de-DE");
+    ui.rush.textContent = state.combo > 0 ? `${Math.min(9, state.combo + 1)}x` : `${Math.max(1, Math.floor(state.speed / 240))}x`;
     ui.itemValue.textContent = state.itemName;
     ui.boostFill.style.transform = `scaleX(${clamp(state.boost / 100, 0, 1)})`;
     ui.hullFill.style.transform = `scaleX(${clamp(state.health / 100, 0, 1)})`;
   }
 
   function frame(now) {
-    const dt = Math.min((now - lastTime) / 1000 || 0, 0.033);
+    renderNow = now;
+    const frameMs = now - lastTime || 16.7;
+    perf.avgFrameMs = perf.avgFrameMs * 0.94 + frameMs * 0.06;
+    adaptPerformance(now);
+    const dt = Math.min(frameMs / 1000 || 0, 0.04);
     lastTime = now;
     update(dt);
     draw();
     requestAnimationFrame(frame);
+  }
+
+  function adaptPerformance(now) {
+    if (now - perf.lastAdjust < 1200) return;
+    perf.lastAdjust = now;
+    if (perf.avgFrameMs > 24 && perf.dprCap > 1.04) {
+      perf.dprCap = 1.04;
+      perf.roadStep = 9;
+      perf.textureStride = 3;
+      resizeCanvas();
+    } else if (perf.avgFrameMs < 17.8 && perf.dprCap < 1.22) {
+      perf.dprCap = 1.22;
+      perf.roadStep = 7;
+      perf.textureStride = 2;
+      resizeCanvas();
+    }
   }
 
   function setKey(action, pressed) {
