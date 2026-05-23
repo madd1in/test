@@ -1,6 +1,6 @@
 # Neon Apex Rush
 
-Neues statisches Browser-Arcade-Racing-Game mit lokalen HD-Grafikassets, lokalem Synthwave-BGM und lokalen SFX.
+Static browser arcade racing game with third-person chase cam, Mode-7-style pseudo-3D road rendering, local Imagen HD assets, parallax background layers, local synthwave BGM, and local SFX.
 
 ## Start
 
@@ -8,7 +8,7 @@ Neues statisches Browser-Arcade-Racing-Game mit lokalen HD-Grafikassets, lokalem
 node tools\serve.js
 ```
 
-Dann im Browser öffnen:
+Open:
 
 ```text
 http://127.0.0.1:4187/
@@ -21,11 +21,13 @@ http://127.0.0.1:4187/
 - P or Escape pauses
 - M toggles sound
 
-## Assets
+## Assets And Features
 
-- `assets/images/key-art.png` wurde mit dem Bildgenerator erstellt und lokal ins Projekt kopiert.
-- Die Fahrzeug-, Pickup-, Hazard- und Skyline-Grafiken liegen als lokale SVG-HD-Assets unter `assets/images/`.
-- `assets/audio/*.wav` werden lokal aus `tools/generate-audio.js` erzeugt.
+- `key-art.png`, `horizon-3d-imagen.png`, `parallax-foreground-imagen.png`, and `road-texture-imagen.png` were generated with Imagen and copied locally.
+- Player car, rival car, boost cell, boost pad, drone, and UI panel are local transparent Imagen HD PNG assets.
+- `*-source.png` files are the chroma-key sources; matching `*-imagen.png` files are the locally cut-out gameplay assets.
+- Gameplay ideas added: near-miss boost bonus, hovering drone hazards, textured Mode-7 road, parallax foreground, and bitmap-skinned HUD/menu panels.
+- `assets/audio/*.wav` files are generated locally from `tools/generate-audio.js`.
 
 ## Checks
 

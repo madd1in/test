@@ -24,20 +24,25 @@
 
   const W = 1280;
   const H = 720;
-  const PLAYER_Y = 584;
-  const FINISH_DISTANCE = 12800;
-  const CHECKPOINT_STEP = 1850;
-  const ROAD_HALF_WIDTH = 334;
-  const LANES = [-210, -70, 70, 210];
+  const HORIZON = 246;
+  const DEPTH_SCALE = 42000;
+  const ROAD_SCREEN_SCALE = 64000;
+  const ROAD_WORLD_HALF = 720;
+  const CAMERA_Z = 100;
+  const FINISH_DISTANCE = 14800;
+  const CHECKPOINT_STEP = 2100;
+  const LANES = [-420, -140, 140, 420];
 
   const imageSources = {
-    player: "assets/images/player-car.svg",
-    trafficRuby: "assets/images/traffic-ruby.svg",
-    trafficCyan: "assets/images/traffic-cyan.svg",
-    trafficGold: "assets/images/traffic-gold.svg",
-    boostCell: "assets/images/boost-cell.svg",
-    boostPad: "assets/images/boost-pad.svg",
-    drone: "assets/images/hazard-drone.svg",
+    playerChase: "assets/images/player-chase-imagen.png",
+    horizon3d: "assets/images/horizon-3d-imagen.png",
+    parallaxForeground: "assets/images/parallax-foreground-imagen.png",
+    roadTexture: "assets/images/road-texture-imagen.png",
+    rivalCar: "assets/images/rival-car-imagen.png",
+    boostCell: "assets/images/boost-cell-imagen.png",
+    boostPad: "assets/images/boost-pad-imagen.png",
+    drone: "assets/images/drone-imagen.png",
+    uiPanel: "assets/images/ui-panel-imagen.png",
     skyline: "assets/images/skyline.svg"
   };
 
@@ -81,7 +86,7 @@
       };
       this.bgm.loop = true;
       this.engine.loop = true;
-      this.bgm.volume = 0.33;
+      this.bgm.volume = 0.34;
       this.engine.volume = 0.16;
       for (const sound of Object.values(this.sfx)) {
         sound.preload = "auto";
@@ -117,8 +122,8 @@
 
     update(speed, boosting) {
       if (!this.enabled || !this.unlocked) return;
-      this.engine.volume = mode === "playing" ? 0.1 + Math.min(speed / 680, 1) * 0.16 : 0.04;
-      this.engine.playbackRate = 0.78 + Math.min(speed / 680, 1) * 0.82 + (boosting ? 0.12 : 0);
+      this.engine.volume = mode === "playing" ? 0.1 + Math.min(speed / 720, 1) * 0.18 : 0.04;
+      this.engine.playbackRate = 0.72 + Math.min(speed / 720, 1) * 0.92 + (boosting ? 0.16 : 0);
       this.bgm.volume = mode === "playing" ? 0.34 : 0.22;
     }
   }
@@ -129,20 +134,21 @@
     return {
       distance: 0,
       speed: 0,
-      targetSpeed: 0,
       score: 0,
-      timeLeft: 95,
+      timeLeft: 98,
       health: 100,
-      boost: 68,
-      playerX: W / 2,
-      playerVX: 0,
-      roadShake: 0,
+      boost: 72,
+      playerLane: 0,
+      playerLaneV: 0,
+      cameraLean: 0,
+      cameraBob: 0,
       spawnTimer: 0,
       nextCheckpoint: CHECKPOINT_STEP,
       objects: [],
       particles: [],
       combo: 0,
       comboTimer: 0,
+      roadShake: 0,
       flash: 0
     };
   }
@@ -154,9 +160,11 @@
   }
 
   function spawnOpeningTraffic() {
-    state.objects.push(makeTraffic(state.distance + 760, LANES[1], "trafficCyan"));
-    state.objects.push(makePickup(state.distance + 1100, LANES[2]));
-    state.objects.push(makeBoostPad(state.distance + 1480, LANES[0]));
+    state.objects.push(makeTraffic(state.distance + 760, LANES[1]));
+    state.objects.push(makeTraffic(state.distance + 1220, LANES[2]));
+    state.objects.push(makePickup(state.distance + 1540, LANES[0]));
+    state.objects.push(makeBoostPad(state.distance + 1960, LANES[3]));
+    state.objects.push(makeDrone(state.distance + 2360, LANES[1]));
   }
 
   function loadImages() {
@@ -181,17 +189,6 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function roadCenterAt(worldY) {
-    return W / 2
-      + Math.sin(worldY * 0.00138) * 132
-      + Math.sin(worldY * 0.00039 + 1.6) * 74
-      + Math.sin(worldY * 0.0028 + 0.4) * 22;
-  }
-
-  function roadTiltAt(worldY) {
-    return Math.cos(worldY * 0.00138) * 0.11 + Math.cos(worldY * 0.00039 + 1.6) * 0.045;
-  }
-
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -200,17 +197,65 @@
     return items[Math.floor(Math.random() * items.length)];
   }
 
-  function makeTraffic(world, lane, imageKey = randomChoice(["trafficRuby", "trafficCyan", "trafficGold"])) {
+  function roadCurve(world) {
+    return Math.sin(world * 0.00105) * 390
+      + Math.sin(world * 0.00034 + 1.4) * 260
+      + Math.sin(world * 0.0023 + 0.5) * 70;
+  }
+
+  function roadPitch(world) {
+    return Math.sin(world * 0.0017 + 0.6) * 18 + Math.sin(world * 0.00072) * 26;
+  }
+
+  function cameraLane() {
+    return state.playerLane * 0.74;
+  }
+
+  function roadCenterScreen(world, depth) {
+    const cameraWorld = state.distance + CAMERA_Z;
+    const curveOffset = (roadCurve(world) - roadCurve(cameraWorld)) * 44 / Math.max(depth, 70);
+    const leanOffset = -state.cameraLean * 34;
+    return W / 2 + curveOffset - cameraLane() * roadScale(depth) + leanOffset;
+  }
+
+  function roadHalfScreen(depth) {
+    return ROAD_SCREEN_SCALE / Math.max(depth, 42);
+  }
+
+  function roadScale(depth) {
+    return roadHalfScreen(depth) / ROAD_WORLD_HALF;
+  }
+
+  function depthForRow(y) {
+    return DEPTH_SCALE / Math.max(1, y - HORIZON);
+  }
+
+  function yForDepth(depth) {
+    return HORIZON + DEPTH_SCALE / Math.max(depth, 1);
+  }
+
+  function project(world, lane) {
+    const depth = world - state.distance;
+    if (depth < 54) return null;
+    const y = yForDepth(depth) + roadPitch(world) * 0.26;
+    if (y < HORIZON - 80 || y > H + 170) return null;
+    const x = roadCenterScreen(world, depth) + (lane - cameraLane()) * roadScale(depth);
+    const scale = clamp(300 / depth, 0.08, 3.2);
+    return { x, y, depth, scale };
+  }
+
+  function makeTraffic(world, lane, imageKey = "rivalCar") {
     return {
       type: "traffic",
       imageKey,
       world,
       lane,
-      w: 58,
-      h: 108,
-      drift: (Math.random() - 0.5) * 18,
+      w: 96,
+      h: 132,
       hit: false,
-      spin: (Math.random() - 0.5) * 0.05
+      scored: false,
+      drift: (Math.random() - 0.5) * 18,
+      phase: Math.random() * Math.PI * 2
     };
   }
 
@@ -220,10 +265,10 @@
       imageKey: "boostCell",
       world,
       lane,
-      w: 54,
-      h: 54,
-      bob: Math.random() * Math.PI * 2,
-      hit: false
+      w: 72,
+      h: 72,
+      hit: false,
+      phase: Math.random() * Math.PI * 2
     };
   }
 
@@ -233,9 +278,10 @@
       imageKey: "boostPad",
       world,
       lane,
-      w: 118,
-      h: 62,
-      hit: false
+      w: 190,
+      h: 86,
+      hit: false,
+      phase: 0
     };
   }
 
@@ -245,9 +291,10 @@
       imageKey: "drone",
       world,
       lane,
-      w: 66,
-      h: 66,
+      w: 90,
+      h: 90,
       hit: false,
+      scored: false,
       phase: Math.random() * Math.PI * 2
     };
   }
@@ -257,13 +304,13 @@
     mode = "playing";
     audio.unlock();
     closeOverlay();
-    showMessage("Checkpoint sprint");
+    showMessage("Imagen HD rush");
   }
 
   function pauseRace() {
     if (mode !== "playing") return;
     mode = "paused";
-    openOverlay("Paused", "The highway is holding its breath.", "Resume");
+    openOverlay("Paused", "Third-person pursuit view is holding position.", "Resume");
     primaryAction = resumeRace;
   }
 
@@ -276,9 +323,9 @@
 
   function finishRace() {
     mode = "finished";
-    state.score += Math.round(state.timeLeft * 180 + state.health * 35 + state.boost * 18);
+    state.score += Math.round(state.timeLeft * 190 + state.health * 40 + state.boost * 22);
     audio.play("checkpoint");
-    openOverlay("Finish Clear", `Score ${Math.round(state.score).toLocaleString("de-DE")} - neon run complete.`, "Race Again");
+    openOverlay("Finish Clear", `Score ${Math.round(state.score).toLocaleString("de-DE")} - chase run complete.`, "Race Again");
     primaryAction = startRace;
   }
 
@@ -312,48 +359,44 @@
       return;
     }
 
-    const accelerating = keys.up || (!keys.down && state.speed < 230);
+    const accelerating = keys.up || (!keys.down && state.speed < 270);
     const braking = keys.down;
-    const boosting = keys.boost && state.boost > 0 && state.speed > 125;
+    const boosting = keys.boost && state.boost > 0 && state.speed > 135;
 
-    if (accelerating) state.speed += 212 * dt;
-    if (braking) state.speed -= 360 * dt;
-    state.speed -= 38 * dt;
+    if (accelerating) state.speed += 222 * dt;
+    if (braking) state.speed -= 370 * dt;
+    state.speed -= 36 * dt;
 
-    const maxSpeed = boosting ? 690 : 472;
+    const maxSpeed = boosting ? 720 : 492;
     if (boosting) {
-      state.speed += 420 * dt;
-      state.boost = Math.max(0, state.boost - 28 * dt);
-      state.score += 95 * dt;
+      state.speed += 430 * dt;
+      state.boost = Math.max(0, state.boost - 29 * dt);
+      state.score += 110 * dt;
       addTrailParticles(2);
     } else {
-      state.boost = Math.min(100, state.boost + (state.speed > 240 ? 4.8 : 7.2) * dt);
+      state.boost = Math.min(100, state.boost + (state.speed > 260 ? 4.7 : 7.6) * dt);
     }
     state.speed = clamp(state.speed, 0, maxSpeed);
 
     const steer = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
-    const steerPower = 560 + state.speed * 0.36;
-    state.playerVX += steer * steerPower * dt;
-    state.playerVX *= Math.pow(0.0018, dt);
-    state.playerX += state.playerVX * dt;
+    const steerPower = 760 + state.speed * 0.46;
+    state.playerLaneV += steer * steerPower * dt;
+    state.playerLaneV *= Math.pow(0.0012, dt);
+    state.playerLane += state.playerLaneV * dt;
+    state.playerLane = clamp(state.playerLane, -ROAD_WORLD_HALF + 86, ROAD_WORLD_HALF - 86);
+    state.cameraLean += (steer * 0.9 + state.playerLaneV / 880 - state.cameraLean) * Math.min(1, dt * 7);
+    state.cameraBob += dt * (4.2 + state.speed / 120);
 
-    const roadCenter = roadCenterAt(state.distance + 630);
-    const margin = 44;
-    const leftEdge = roadCenter - ROAD_HALF_WIDTH + margin;
-    const rightEdge = roadCenter + ROAD_HALF_WIDTH - margin;
-    if (state.playerX < leftEdge) {
-      state.playerX = leftEdge;
-      state.playerVX *= -0.18;
-      offroadPenalty(dt);
-    } else if (state.playerX > rightEdge) {
-      state.playerX = rightEdge;
-      state.playerVX *= -0.18;
-      offroadPenalty(dt);
+    const offroad = Math.abs(state.playerLane) > ROAD_WORLD_HALF - 130;
+    if (offroad) {
+      state.speed -= 130 * dt;
+      state.health = Math.max(0, state.health - 4.5 * dt);
+      if (Math.random() < 0.12) addSparks(W / 2 + state.playerLane * 0.12, H - 122, "#ffb247", 1);
     }
 
     state.distance += state.speed * dt;
     state.timeLeft -= dt;
-    state.score += (state.speed * 0.22 + (boosting ? 120 : 0)) * dt;
+    state.score += (state.speed * 0.24 + (boosting ? 135 : 0)) * dt;
     state.spawnTimer -= dt;
     state.comboTimer = Math.max(0, state.comboTimer - dt);
     if (state.comboTimer === 0) state.combo = 0;
@@ -362,10 +405,10 @@
 
     if (state.spawnTimer <= 0) {
       spawnRoadObject();
-      state.spawnTimer = clamp(0.72 - state.distance / 52000, 0.38, 0.72);
+      state.spawnTimer = clamp(0.74 - state.distance / 56000, 0.34, 0.74);
     }
 
-    updateObjects();
+    updateObjects(dt);
     updateParticles(dt);
     handleCheckpoints();
 
@@ -381,38 +424,40 @@
     }
   }
 
-  function offroadPenalty(dt) {
-    state.speed -= 115 * dt;
-    state.health = Math.max(0, state.health - 4 * dt);
-    if (Math.random() < 0.16) addSparks(state.playerX, PLAYER_Y + 26, "#ffb247", 1);
-  }
-
   function spawnRoadObject() {
     const lane = randomChoice(LANES);
-    const world = state.distance + 930 + Math.random() * 240;
+    const world = state.distance + 1350 + Math.random() * 780;
     const roll = Math.random();
-    if (roll < 0.54) {
+    if (roll < 0.47) {
       state.objects.push(makeTraffic(world, lane));
-    } else if (roll < 0.78) {
+    } else if (roll < 0.68) {
       state.objects.push(makePickup(world, lane));
-    } else if (roll < 0.91) {
+    } else if (roll < 0.83) {
       state.objects.push(makeBoostPad(world, lane));
     } else {
       state.objects.push(makeDrone(world, lane));
     }
   }
 
-  function updateObjects() {
+  function updateObjects(dt) {
     const remaining = [];
     for (const obj of state.objects) {
-      if (obj.type === "traffic") obj.lane += obj.drift * 0.0018;
-      const screen = screenForObject(obj);
-      if (screen.y > H + 150) continue;
-      if (!obj.hit && screen.y > PLAYER_Y - 72 && screen.y < PLAYER_Y + 62) {
-        const playerHalf = 42;
-        const objectHalf = obj.w * 0.48;
-        if (Math.abs(screen.x - state.playerX) < playerHalf + objectHalf) {
-          collideWith(obj, screen);
+      const z = obj.world - state.distance;
+      if (z < -80) continue;
+      if (obj.type === "traffic") obj.lane += obj.drift * dt;
+      if (obj.type === "drone") obj.lane += Math.sin(state.distance * 0.012 + obj.phase) * 18 * dt;
+
+      if (!obj.hit && z > 80 && z < 172) {
+        const collisionWidth = obj.type === "boostPad" ? 150 : obj.type === "pickup" ? 82 : 118;
+        if (Math.abs(obj.lane - state.playerLane) < collisionWidth) collideWith(obj);
+      }
+      if (!obj.hit && !obj.scored && (obj.type === "traffic" || obj.type === "drone") && z < 70) {
+        obj.scored = true;
+        if (Math.abs(obj.lane - state.playerLane) < 230) {
+          state.score += 420;
+          state.boost = Math.min(100, state.boost + 5);
+          showMessage("Near miss +boost");
+          addSparks(W / 2 + (obj.lane - state.playerLane) * 0.22, H - 168, "#35e7ff", 8);
         }
       }
       remaining.push(obj);
@@ -420,54 +465,46 @@
     state.objects = remaining;
   }
 
-  function collideWith(obj, screen) {
+  function collideWith(obj) {
     obj.hit = true;
+    const screenX = W / 2 + (obj.lane - state.playerLane) * 0.34;
+    const screenY = H - 138;
     if (obj.type === "traffic" || obj.type === "drone") {
-      const damage = obj.type === "drone" ? 20 : 16;
+      const damage = obj.type === "drone" ? 22 : 17;
       state.health = Math.max(0, state.health - damage);
       state.speed *= obj.type === "drone" ? 0.48 : 0.62;
       state.roadShake = 1;
       state.flash = 1;
-      state.score = Math.max(0, state.score - 650);
-      addSparks(screen.x, screen.y, "#ff4e5f", 18);
+      state.score = Math.max(0, state.score - 700);
+      addSparks(screenX, screenY, "#ff4e5f", 20);
       audio.play("crash");
       showMessage("Impact");
     } else if (obj.type === "pickup") {
-      state.boost = Math.min(100, state.boost + 24);
+      state.boost = Math.min(100, state.boost + 25);
       state.combo += 1;
       state.comboTimer = 2.2;
-      state.score += 420 + state.combo * 85;
-      addSparks(screen.x, screen.y, "#9cff46", 14);
+      state.score += 460 + state.combo * 90;
+      addSparks(screenX, screenY - 50, "#9cff46", 16);
       audio.play("pickup");
       showMessage(state.combo > 1 ? `Cell chain x${state.combo}` : "Boost cell");
     } else if (obj.type === "boostPad") {
-      state.boost = Math.min(100, state.boost + 42);
-      state.speed = Math.max(state.speed, 520);
-      state.score += 900;
-      addTrailParticles(16);
+      state.boost = Math.min(100, state.boost + 44);
+      state.speed = Math.max(state.speed, 540);
+      state.score += 980;
+      addTrailParticles(18);
       audio.play("boost");
       showMessage("Launch strip");
     }
-  }
-
-  function screenForObject(obj) {
-    const screenY = 104 + (obj.world - state.distance) * 0.58;
-    const center = roadCenterAt(obj.world);
-    const sway = obj.type === "drone" ? Math.sin(performance.now() * 0.004 + obj.phase) * 18 : 0;
-    return {
-      x: center + obj.lane + sway,
-      y: screenY
-    };
   }
 
   function handleCheckpoints() {
     if (state.distance < state.nextCheckpoint) return;
     const left = Math.max(0, FINISH_DISTANCE - state.distance);
     state.timeLeft += left > 0 ? 18 : 0;
-    state.score += 2000;
+    state.score += 2200;
     state.nextCheckpoint += CHECKPOINT_STEP;
     state.boost = Math.min(100, state.boost + 16);
-    state.flash = 0.8;
+    state.flash = 0.82;
     audio.play("checkpoint");
     showMessage(left > 0 ? "Checkpoint +" : "Finish gate");
   }
@@ -477,8 +514,8 @@
       state.particles.push({
         x,
         y,
-        vx: (Math.random() - 0.5) * 520,
-        vy: (Math.random() - 0.5) * 320,
+        vx: (Math.random() - 0.5) * 560,
+        vy: (Math.random() - 0.5) * 360,
         life: 0.35 + Math.random() * 0.45,
         age: 0,
         size: 2 + Math.random() * 5,
@@ -490,13 +527,13 @@
   function addTrailParticles(count) {
     for (let i = 0; i < count; i += 1) {
       state.particles.push({
-        x: state.playerX + (Math.random() - 0.5) * 58,
-        y: PLAYER_Y + 58 + Math.random() * 20,
-        vx: (Math.random() - 0.5) * 90,
-        vy: 210 + Math.random() * 160,
-        life: 0.3 + Math.random() * 0.35,
+        x: W / 2 + (Math.random() - 0.5) * 130 + state.cameraLean * 20,
+        y: H - 46 + Math.random() * 28,
+        vx: (Math.random() - 0.5) * 110,
+        vy: 230 + Math.random() * 180,
+        life: 0.32 + Math.random() * 0.38,
         age: 0,
-        size: 4 + Math.random() * 9,
+        size: 5 + Math.random() * 12,
         color: Math.random() > 0.5 ? "#35e7ff" : "#ff3dbd"
       });
     }
@@ -518,167 +555,268 @@
 
   function draw() {
     ctx.save();
-    const shake = state.roadShake > 0 ? state.roadShake * 8 : 0;
+    const shake = state.roadShake > 0 ? state.roadShake * 9 : 0;
     if (shake) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     drawBackground();
-    drawRoad();
+    drawMode7Road();
     drawRoadObjects();
     drawPlayer();
     drawParticles();
+    drawVignette();
     if (state.flash > 0) drawFlash();
     ctx.restore();
   }
 
   function drawBackground() {
     const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, "#080a18");
-    sky.addColorStop(0.48, "#111128");
+    sky.addColorStop(0, "#070914");
+    sky.addColorStop(0.45, "#11152c");
     sky.addColorStop(1, "#05070d");
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
+    if (images.horizon3d) {
+      const horizonShift = (roadCurve(state.distance + 1300) - roadCurve(state.distance)) * 0.05;
+      drawCoverImage(images.horizon3d, -80 + horizonShift, -28, W + 160, 420);
+    } else if (images.skyline) {
+      const parallax = (state.distance * 0.02) % W;
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(images.skyline, -parallax, 30, W, 214);
+      ctx.drawImage(images.skyline, W - parallax, 30, W, 214);
+      ctx.globalAlpha = 1;
+    }
+
+    if (images.parallaxForeground) {
+      drawParallaxLayer(images.parallaxForeground, 0.075, 82, 438, 0.58);
+      drawParallaxLayer(images.parallaxForeground, 0.18, 210, 350, 0.28);
+    }
+
+    const fog = ctx.createLinearGradient(0, 140, 0, HORIZON + 42);
+    fog.addColorStop(0, "rgba(5, 7, 13, 0)");
+    fog.addColorStop(1, "rgba(5, 7, 13, 0.86)");
+    ctx.fillStyle = fog;
+    ctx.fillRect(0, 0, W, HORIZON + 64);
+  }
+
+  function drawParallaxLayer(image, speed, y, h, alpha) {
+    const w = W + 180;
+    const shift = ((state.distance * speed) % w + w) % w;
     ctx.save();
-    const parallax = (state.distance * 0.02) % W;
-    if (images.skyline) {
-      ctx.globalAlpha = 0.9;
-      ctx.drawImage(images.skyline, -parallax, 36, W, 210);
-      ctx.drawImage(images.skyline, W - parallax, 36, W, 210);
-    }
-    ctx.globalAlpha = 0.32;
-    for (let i = 0; i < 18; i += 1) {
-      const x = (i * 91 - state.distance * 0.085) % (W + 120) - 60;
-      const h = 88 + ((i * 37) % 130);
-      ctx.fillStyle = i % 3 === 0 ? "#122739" : "#181b31";
-      ctx.fillRect(x, 204 - h, 48 + (i % 4) * 14, h);
-      ctx.fillStyle = i % 2 ? "rgba(255, 211, 77, 0.34)" : "rgba(53, 231, 255, 0.28)";
-      for (let y = 204 - h + 12; y < 192; y += 22) {
-        ctx.fillRect(x + 9, y, 8, 5);
-        ctx.fillRect(x + 28, y, 8, 5);
-      }
-    }
+    ctx.globalAlpha = alpha;
+    drawCoverImage(image, -shift - 90, y, w, h);
+    drawCoverImage(image, w - shift - 90, y, w, h);
     ctx.restore();
   }
 
-  function drawRoad() {
-    const segmentH = 36;
-    const start = -segmentH;
-    const worldBase = state.distance + 60;
-
-    for (let y = start; y < H + segmentH; y += segmentH) {
-      const w1 = worldBase + y * 1.6;
-      const w2 = worldBase + (y + segmentH) * 1.6;
-      const c1 = roadCenterAt(w1);
-      const c2 = roadCenterAt(w2);
-      const alt = Math.floor(w1 / 92) % 2 === 0;
-      drawRoadStrip(y, y + segmentH, c1, c2, alt);
-      drawLaneMarkers(y, y + segmentH, c1, c2, w1);
-      drawRails(y, y + segmentH, c1, c2, w1);
+  function drawCoverImage(image, x, y, w, h) {
+    const sourceRatio = image.naturalWidth / image.naturalHeight;
+    const targetRatio = w / h;
+    let sx = 0;
+    let sy = 0;
+    let sw = image.naturalWidth;
+    let sh = image.naturalHeight;
+    if (sourceRatio > targetRatio) {
+      sw = image.naturalHeight * targetRatio;
+      sx = (image.naturalWidth - sw) / 2;
+    } else {
+      sh = image.naturalWidth / targetRatio;
+      sy = (image.naturalHeight - sh) / 2;
     }
+    ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
   }
 
-  function drawRoadStrip(y1, y2, c1, c2, alt) {
-    const left1 = c1 - ROAD_HALF_WIDTH;
-    const right1 = c1 + ROAD_HALF_WIDTH;
-    const left2 = c2 - ROAD_HALF_WIDTH;
-    const right2 = c2 + ROAD_HALF_WIDTH;
-    ctx.beginPath();
-    ctx.moveTo(left1, y1);
-    ctx.lineTo(right1, y1);
-    ctx.lineTo(right2, y2);
-    ctx.lineTo(left2, y2);
-    ctx.closePath();
-    ctx.fillStyle = alt ? "#151923" : "#10141d";
-    ctx.fill();
+  function drawMode7Road() {
+    const rowStep = 5;
+    const cameraWorld = state.distance + CAMERA_Z;
+    for (let y = HORIZON; y < H + rowStep; y += rowStep) {
+      const y1 = y;
+      const y2 = y + rowStep;
+      const d1 = depthForRow(y1);
+      const d2 = depthForRow(y2);
+      const w1 = cameraWorld + d1;
+      const w2 = cameraWorld + d2;
+      const c1 = roadCenterScreen(w1, d1);
+      const c2 = roadCenterScreen(w2, d2);
+      const h1 = roadHalfScreen(d1);
+      const h2 = roadHalfScreen(d2);
+      const left1 = c1 - h1;
+      const right1 = c1 + h1;
+      const left2 = c2 - h2;
+      const right2 = c2 + h2;
+      const alt = Math.floor((w1 + state.distance * 0.25) / 150) % 2 === 0;
 
-    ctx.beginPath();
-    ctx.moveTo(left1 - 18, y1);
-    ctx.lineTo(left1, y1);
-    ctx.lineTo(left2, y2);
-    ctx.lineTo(left2 - 18, y2);
-    ctx.closePath();
-    ctx.fillStyle = alt ? "#ff3dbd" : "#35e7ff";
-    ctx.globalAlpha = 0.42;
-    ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(left1, y1);
+      ctx.lineTo(right1, y1);
+      ctx.lineTo(right2, y2);
+      ctx.lineTo(left2, y2);
+      ctx.closePath();
+      if (images.roadTexture) {
+        ctx.save();
+        ctx.clip();
+        const sourceY = Math.min(images.roadTexture.naturalHeight - 2, Math.floor((w1 * 0.46) % images.roadTexture.naturalHeight));
+        ctx.drawImage(
+          images.roadTexture,
+          0,
+          sourceY,
+          images.roadTexture.naturalWidth,
+          2,
+          Math.min(left1, left2),
+          y1,
+          Math.max(right1, right2) - Math.min(left1, left2),
+          rowStep + 1
+        );
+        ctx.globalAlpha = alt ? 0.14 : 0.22;
+        ctx.fillStyle = alt ? "#35e7ff" : "#ff3dbd";
+        ctx.fillRect(Math.min(left1, left2), y1, Math.max(right1, right2) - Math.min(left1, left2), rowStep + 1);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = alt ? "#151923" : "#10141d";
+        ctx.fill();
+      }
 
+      drawShoulder(left1, left2, y1, y2, alt ? "#ff3dbd" : "#35e7ff", -1);
+      drawShoulder(right1, right2, y1, y2, alt ? "#35e7ff" : "#ffd34d", 1);
+
+      for (const lane of [-ROAD_WORLD_HALF / 2, 0, ROAD_WORLD_HALF / 2]) {
+        drawLaneLine(w1, w2, d1, d2, y1, y2, lane);
+      }
+    }
+
+    const nearGrad = ctx.createLinearGradient(0, HORIZON, 0, H);
+    nearGrad.addColorStop(0, "rgba(5,7,13,0.45)");
+    nearGrad.addColorStop(0.35, "rgba(5,7,13,0)");
+    nearGrad.addColorStop(1, "rgba(0,0,0,0.16)");
+    ctx.fillStyle = nearGrad;
+    ctx.fillRect(0, HORIZON, W, H - HORIZON);
+  }
+
+  function drawShoulder(edge1, edge2, y1, y2, color, side) {
+    const width1 = 18 + (y1 - HORIZON) * 0.055;
+    const width2 = 18 + (y2 - HORIZON) * 0.055;
     ctx.beginPath();
-    ctx.moveTo(right1, y1);
-    ctx.lineTo(right1 + 18, y1);
-    ctx.lineTo(right2 + 18, y2);
-    ctx.lineTo(right2, y2);
+    ctx.moveTo(edge1, y1);
+    ctx.lineTo(edge1 + width1 * side, y1);
+    ctx.lineTo(edge2 + width2 * side, y2);
+    ctx.lineTo(edge2, y2);
     ctx.closePath();
-    ctx.fillStyle = alt ? "#35e7ff" : "#ffd34d";
+    ctx.globalAlpha = 0.46;
+    ctx.fillStyle = color;
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
-  function drawLaneMarkers(y1, y2, c1, c2, world) {
-    if (Math.floor(world / 72) % 2 !== 0) return;
-    for (const offset of [-140, 0, 140]) {
-      const x1 = c1 + offset;
-      const x2 = c2 + offset;
-      ctx.strokeStyle = offset === 0 ? "rgba(255,255,255,0.58)" : "rgba(53,231,255,0.42)";
-      ctx.lineWidth = offset === 0 ? 5 : 4;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1 + 7);
-      ctx.lineTo(x2, y2 - 7);
-      ctx.stroke();
-    }
-  }
-
-  function drawRails(y1, y2, c1, c2, world) {
-    const pulse = Math.floor(world / 120) % 2;
-    ctx.strokeStyle = pulse ? "rgba(156,255,70,0.34)" : "rgba(255,211,77,0.34)";
-    ctx.lineWidth = 2;
+  function drawLaneLine(w1, w2, d1, d2, y1, y2, lane) {
+    if (Math.floor(w1 / 130) % 2 !== 0) return;
+    const x1 = roadCenterScreen(w1, d1) + (lane - cameraLane()) * roadScale(d1);
+    const x2 = roadCenterScreen(w2, d2) + (lane - cameraLane()) * roadScale(d2);
+    ctx.strokeStyle = lane === 0 ? "rgba(255,255,255,0.62)" : "rgba(53,231,255,0.42)";
+    ctx.lineWidth = lane === 0 ? 5 : 4;
     ctx.beginPath();
-    ctx.moveTo(c1 - ROAD_HALF_WIDTH - 38, y1);
-    ctx.lineTo(c2 - ROAD_HALF_WIDTH - 38, y2);
-    ctx.moveTo(c1 + ROAD_HALF_WIDTH + 38, y1);
-    ctx.lineTo(c2 + ROAD_HALF_WIDTH + 38, y2);
+    ctx.moveTo(x1, y1 + 1);
+    ctx.lineTo(x2, y2 - 1);
     ctx.stroke();
   }
 
   function drawRoadObjects() {
     const drawables = state.objects
       .filter((obj) => !obj.hit)
-      .map((obj) => ({ obj, screen: screenForObject(obj) }))
-      .filter(({ screen }) => screen.y > -140 && screen.y < H + 140)
-      .sort((a, b) => a.screen.y - b.screen.y);
+      .map((obj) => ({ obj, p: project(obj.world, obj.lane) }))
+      .filter(({ p }) => p)
+      .sort((a, b) => b.p.depth - a.p.depth);
 
-    for (const { obj, screen } of drawables) {
-      const scale = 0.82 + (screen.y / H) * 0.24;
-      const bob = obj.type === "pickup" ? Math.sin(performance.now() * 0.006 + obj.bob) * 7 : 0;
-      drawAsset(obj.imageKey, screen.x, screen.y + bob, obj.w * scale, obj.h * scale, obj.spin || 0);
-      if (obj.type === "pickup") {
-        ctx.save();
-        ctx.globalAlpha = 0.38;
-        ctx.strokeStyle = "#9cff46";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(screen.x, screen.y + bob, 34 + Math.sin(performance.now() * 0.006) * 4, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
+    for (const { obj, p } of drawables) {
+      let bob = 0;
+      let rotation = 0;
+      if (obj.type === "pickup") bob = Math.sin(performance.now() * 0.006 + obj.phase) * 6 * p.scale;
+      if (obj.type === "drone") bob = Math.sin(performance.now() * 0.005 + obj.phase) * 12 * p.scale;
+      if (obj.type === "traffic") rotation = Math.sin(obj.phase + state.distance * 0.005) * 0.035;
+
+      const width = obj.w * p.scale;
+      const height = obj.h * p.scale;
+      if (obj.type === "boostPad") drawRoadGlow(p.x, p.y, width * 1.3, height * 0.7, "#9cff46");
+      drawAsset(obj.imageKey, p.x, p.y + bob, width, height, rotation);
+      if (obj.type === "pickup") drawPickupRing(p.x, p.y + bob, p.scale);
+      if (obj.type === "drone") drawDroneBeam(p.x, p.y, p.scale);
     }
   }
 
+  function drawRoadGlow(x, y, w, h, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.32;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y + h * 0.18, w, h, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPickupRing(x, y, scale) {
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = "#9cff46";
+    ctx.lineWidth = Math.max(2, 4 * scale);
+    ctx.beginPath();
+    ctx.arc(x, y, 36 * scale + Math.sin(performance.now() * 0.006) * 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawDroneBeam(x, y, scale) {
+    ctx.save();
+    const beam = ctx.createLinearGradient(x, y, x, y + 160 * scale);
+    beam.addColorStop(0, "rgba(255,78,95,0.38)");
+    beam.addColorStop(1, "rgba(255,78,95,0)");
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(x - 18 * scale, y + 28 * scale);
+    ctx.lineTo(x + 18 * scale, y + 28 * scale);
+    ctx.lineTo(x + 62 * scale, y + 180 * scale);
+    ctx.lineTo(x - 62 * scale, y + 180 * scale);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawPlayer() {
-    const tilt = clamp(state.playerVX / 760, -0.22, 0.22) + roadTiltAt(state.distance + 620) * 0.26;
-    const boosting = keys.boost && state.boost > 0 && state.speed > 125 && mode === "playing";
+    const boosting = keys.boost && state.boost > 0 && state.speed > 135 && mode === "playing";
+    const x = W / 2 + state.playerLane * 0.1 + state.cameraLean * 12;
+    const y = H - 110 + Math.sin(state.cameraBob) * 3;
+    const tilt = clamp(state.cameraLean * 0.08, -0.14, 0.14);
+
+    ctx.save();
     if (boosting) {
-      const grad = ctx.createLinearGradient(state.playerX, PLAYER_Y + 44, state.playerX, H);
-      grad.addColorStop(0, "rgba(53,231,255,0.7)");
-      grad.addColorStop(0.55, "rgba(255,61,189,0.34)");
-      grad.addColorStop(1, "rgba(255,61,189,0)");
-      ctx.fillStyle = grad;
+      const boost = ctx.createLinearGradient(x, y + 72, x, H + 60);
+      boost.addColorStop(0, "rgba(53,231,255,0.78)");
+      boost.addColorStop(0.42, "rgba(255,61,189,0.42)");
+      boost.addColorStop(1, "rgba(255,61,189,0)");
+      ctx.fillStyle = boost;
       ctx.beginPath();
-      ctx.moveTo(state.playerX - 38, PLAYER_Y + 46);
-      ctx.lineTo(state.playerX + 38, PLAYER_Y + 46);
-      ctx.lineTo(state.playerX + 92, H);
-      ctx.lineTo(state.playerX - 92, H);
+      ctx.moveTo(x - 84, y + 78);
+      ctx.lineTo(x + 84, y + 78);
+      ctx.lineTo(x + 210, H + 44);
+      ctx.lineTo(x - 210, H + 44);
       ctx.closePath();
       ctx.fill();
     }
-    drawAsset("player", state.playerX, PLAYER_Y, 92, 142, tilt);
+
+    const shadow = ctx.createRadialGradient(x, y + 132, 10, x, y + 132, 190);
+    shadow.addColorStop(0, "rgba(0,0,0,0.48)");
+    shadow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = shadow;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 130, 186, 42, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    if (images.playerChase) {
+      ctx.drawImage(images.playerChase, -190, -246, 380, 380);
+    } else {
+      ctx.fillStyle = "#35e7ff";
+      ctx.fillRect(-70, -180, 140, 220);
+    }
+    ctx.restore();
   }
 
   function drawAsset(key, x, y, w, h, rotation = 0) {
@@ -705,6 +843,14 @@
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+  }
+
+  function drawVignette() {
+    const vignette = ctx.createRadialGradient(W / 2, H * 0.52, 240, W / 2, H * 0.52, 770);
+    vignette.addColorStop(0, "rgba(0,0,0,0)");
+    vignette.addColorStop(1, "rgba(0,0,0,0.46)");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
   }
 
   function drawFlash() {

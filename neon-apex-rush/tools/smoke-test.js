@@ -8,6 +8,21 @@ const required = [
   "style.css",
   "game.js",
   "assets/images/key-art.png",
+  "assets/images/horizon-3d-imagen.png",
+  "assets/images/parallax-foreground-imagen.png",
+  "assets/images/road-texture-imagen.png",
+  "assets/images/player-chase-source.png",
+  "assets/images/player-chase-imagen.png",
+  "assets/images/rival-car-imagen-source.png",
+  "assets/images/rival-car-imagen.png",
+  "assets/images/boost-cell-imagen-source.png",
+  "assets/images/boost-cell-imagen.png",
+  "assets/images/boost-pad-imagen-source.png",
+  "assets/images/boost-pad-imagen.png",
+  "assets/images/drone-imagen-source.png",
+  "assets/images/drone-imagen.png",
+  "assets/images/ui-panel-imagen-source.png",
+  "assets/images/ui-panel-imagen.png",
   "assets/images/player-car.svg",
   "assets/images/traffic-ruby.svg",
   "assets/images/traffic-cyan.svg",
@@ -48,7 +63,7 @@ for (const audio of required.filter((file) => file.endsWith(".wav"))) {
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "game.js"), "utf8");
-if (!html.includes("gameCanvas") || !js.includes("requestAnimationFrame") || !js.includes("AudioDeck")) {
+if (!html.includes("gameCanvas") || !js.includes("requestAnimationFrame") || !js.includes("AudioDeck") || !js.includes("drawMode7Road") || !js.includes("parallaxForeground") || !js.includes("roadTexture")) {
   console.error("Game wiring check failed.");
   process.exit(1);
 }
