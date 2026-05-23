@@ -7,6 +7,8 @@ Standalone Three.js endless runner for GitHub Pages.
 - Run forward through three lanes.
 - Collect green shards and violet boost rings.
 - Jump low gates and dash through trouble.
+- Hit lane-colored riff notes to build multipliers.
+- Dash through power chords to trigger Overdrive.
 
 ## Assets
 
@@ -17,7 +19,11 @@ HD art and MP3 files are copied from `C:\Users\User\Downloads` into `assets/`.
 - `gothic-atlas.png`
 - `jet-fuel-glory.mp3`
 - `steel-punch-parade.mp3`
-- six short SFX clips
+- `gasket-thunder.mp3`
+- `dojo-crash-duel.mp3`
+- `bamboo-arcade.mp3`
+- `turbo-banana-cup.mp3`
+- ten short SFX clips
 
 ## Local
 
