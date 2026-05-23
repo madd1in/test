@@ -22,17 +22,15 @@ const ASSETS = {
       dash: "./assets/audio/sfx/dash.mp3",
       jump: "./assets/audio/sfx/jump.mp3",
       checkpoint: "./assets/audio/sfx/checkpoint.mp3",
-      riffHit: "./assets/audio/sfx/riff-hit.mp3",
-      riffMiss: "./assets/audio/sfx/riff-miss.mp3",
-      powerChord: "./assets/audio/sfx/power-chord.mp3",
-      beatTick: "./assets/audio/sfx/beat-tick.mp3"
+      relic: "./assets/audio/sfx/relic-ping.mp3",
+      surge: "./assets/audio/sfx/surge-burst.mp3",
+      curse: "./assets/audio/sfx/curse-fizzle.mp3",
+      warning: "./assets/audio/sfx/danger-tick.mp3"
     }
   }
 };
 
 const LANES = [-4.2, 0, 4.2];
-const NOTE_COLORS = [0x9fe070, 0xe45454, 0xf3bf56];
-const RIFF_SEQUENCE = [1, 0, 1, 2, "chord", 2, 1, 0];
 const PLAYER_Z = 5.4;
 const ROAD_SEGMENT_LENGTH = 18;
 const ROAD_SEGMENTS = 34;
@@ -57,13 +55,9 @@ const ui = {
   distance: document.getElementById("distance-value"),
   score: document.getElementById("score-value"),
   speed: document.getElementById("speed-value"),
-  riff: document.getElementById("riff-value"),
+  streak: document.getElementById("streak-value"),
   health: document.getElementById("health-fill"),
   boost: document.getElementById("boost-fill"),
-  beat: document.getElementById("beat-value"),
-  riffFill: document.getElementById("riff-fill"),
-  rhythmHud: document.querySelector(".rhythm-hud"),
-  frets: [...document.querySelectorAll(".fret")],
   toast: document.getElementById("toast"),
   resultTitle: document.getElementById("result-title"),
   resultCopy: document.getElementById("result-copy")
@@ -91,16 +85,11 @@ function createState() {
     damageFlash: 0,
     cameraShake: 0,
     streak: 0,
-    riffCombo: 0,
-    riffMultiplier: 1,
-    riffEnergy: 0,
-    bestRiff: 0,
+    relics: 0,
+    surgeTimer: 0,
     checkpoint: 500,
     nextSpawn: 26,
-    nextRiff: 74,
     runTime: 0,
-    beatPulse: 0,
-    overdriveTimer: 0,
     toastTimer: 0,
     demoInputTimer: 0
   };
@@ -188,14 +177,14 @@ class AudioDeck {
       const audio = new Audio(src);
       audio.loop = true;
       audio.preload = "auto";
-      audio.volume = 0.36;
+      audio.volume = 0.58;
       return audio;
     });
     this.sfx = Object.fromEntries(
       Object.entries(ASSETS.audio.sfx).map(([key, src]) => {
         const audio = new Audio(src);
         audio.preload = "auto";
-        audio.volume = key === "impact" ? 0.62 : key === "powerChord" ? 0.78 : 0.54;
+        audio.volume = key === "impact" ? 0.68 : key === "surge" ? 0.78 : 0.6;
         return [key, audio];
       })
     );
@@ -205,7 +194,7 @@ class AudioDeck {
     this.enabled = enabled;
     [ui.audioButton, ui.menuAudioButton, ui.resultAudioButton].forEach((button) => {
       button.setAttribute("aria-pressed", String(enabled));
-      button.textContent = enabled ? "Audio On" : "Audio";
+      button.textContent = button === ui.audioButton ? (enabled ? "On" : "BGM") : enabled ? "BGM an" : "BGM aus";
     });
     if (enabled) this.unlock();
     else this.stop();
@@ -221,6 +210,7 @@ class AudioDeck {
     if (!this.enabled || !this.unlocked) return;
     this.bgm.forEach((track, index) => {
       if (index === this.trackIndex) {
+        track.muted = false;
         track.play().catch(() => {});
       } else {
         track.pause();
@@ -248,7 +238,7 @@ class AudioDeck {
       this.playMusic();
     }
     const active = this.bgm[this.trackIndex];
-    active.volume = 0.28 + clamp(speed / 70, 0, 1) * 0.16;
+    active.volume = 0.42 + clamp(speed / 70, 0, 1) * 0.22;
     active.playbackRate = 1 + clamp(speed / 72, 0, 1) * 0.08;
   }
 }
@@ -390,26 +380,12 @@ class CryptRunnerGame {
         roughness: 0.18,
         metalness: 0.18
       }),
-      noteGreen: new THREE.MeshStandardMaterial({
-        color: 0x9fe070,
-        emissive: 0x2d8d59,
-        emissiveIntensity: 1.3,
-        roughness: 0.22,
-        metalness: 0.16
-      }),
-      noteRed: new THREE.MeshStandardMaterial({
-        color: 0xe45454,
-        emissive: 0x8b2d4e,
-        emissiveIntensity: 1.3,
-        roughness: 0.22,
-        metalness: 0.16
-      }),
-      noteGold: new THREE.MeshStandardMaterial({
+      relic: new THREE.MeshStandardMaterial({
         color: 0xf3bf56,
-        emissive: 0xa25e24,
-        emissiveIntensity: 1.3,
+        emissive: 0x7a4a16,
+        emissiveIntensity: 1.45,
         roughness: 0.2,
-        metalness: 0.2
+        metalness: 0.38
       }),
       obstacle: new THREE.MeshStandardMaterial({ color: 0x353b43, roughness: 0.8, metalness: 0.08 }),
       obstacleTrim: new THREE.MeshStandardMaterial({
@@ -665,7 +641,8 @@ class CryptRunnerGame {
     ui.results.classList.remove("active");
     ui.pauseButton.textContent = "II";
     if (!options.muted) {
-      this.audio.unlock();
+      if (!this.audio.enabled) this.audio.setEnabled(true);
+      else this.audio.unlock();
       this.audio.play("start");
     }
     this.showToast("Run gestartet", 1.1);
@@ -695,7 +672,7 @@ class CryptRunnerGame {
     } else {
       ui.resultTitle.textContent = "Krypta geschlossen";
     }
-    ui.resultCopy.textContent = `${meters.toLocaleString("de-DE")} m / ${Math.floor(this.state.score).toLocaleString("de-DE")} Punkte / ${this.state.bestRiff}er Riff`;
+    ui.resultCopy.textContent = `${meters.toLocaleString("de-DE")} m / ${Math.floor(this.state.score).toLocaleString("de-DE")} Punkte / ${this.state.relics} Relikte`;
     ui.results.classList.add("active");
     this.audio.play("impact");
   }
@@ -737,10 +714,11 @@ class CryptRunnerGame {
     if (this.state.boost < 18 || this.state.dashTimer > 0.05) return;
     this.state.boost = Math.max(0, this.state.boost - 22);
     this.state.dashTimer = 0.42;
+    this.state.surgeTimer = Math.max(this.state.surgeTimer, 0.9);
     this.state.invulnerable = 0.58;
     this.state.speed += 14;
     this.state.cameraShake = Math.max(this.state.cameraShake, 0.35);
-    this.audio.play("dash");
+    this.audio.play("dash", 1.02, 1);
     this.spawnSpark(this.state.playerX, 1.2, PLAYER_Z - 0.2, 0x8b6af8, 18);
   }
 
@@ -759,8 +737,7 @@ class CryptRunnerGame {
 
     if (type === "crystal") this.buildCrystal(mesh);
     if (type === "boost") this.buildBoostRing(mesh);
-    if (type === "note") this.buildRiffNote(mesh, lane);
-    if (type === "chord") this.buildRiffChord(mesh);
+    if (type === "relic") this.buildRelic(mesh);
     if (type === "obstacle") this.buildObelisk(mesh);
     if (type === "gate") this.buildLowGate(mesh);
     if (type === "spikes") this.buildSpikes(mesh);
@@ -795,31 +772,17 @@ class CryptRunnerGame {
     group.add(ring, glow);
   }
 
-  buildRiffNote(group, lane) {
-    const materials = [this.materials.noteGreen, this.materials.noteRed, this.materials.noteGold];
-    const core = new THREE.Mesh(new THREE.DodecahedronGeometry(0.58, 0), materials[lane]);
-    core.position.y = 1.42;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.045, 8, 40), this.materials.glowTeal);
-    ring.position.y = 1.42;
-    ring.rotation.x = Math.PI / 2;
-    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 2.4), this.materials.glowGold);
-    tail.position.set(0, 1.42, -1.35);
-    group.add(core, ring, tail);
-  }
-
-  buildRiffChord(group) {
-    const materials = [this.materials.noteGreen, this.materials.noteRed, this.materials.noteGold];
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(9.2, 0.1, 0.28), this.materials.glowGold);
-    beam.position.y = 1.44;
-    group.add(beam);
-    for (let lane = 0; lane < 3; lane += 1) {
-      const note = new THREE.Mesh(new THREE.OctahedronGeometry(0.62, 0), materials[lane]);
-      note.position.set(LANES[lane] - LANES[1], 1.44, 0);
-      const halo = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.04, 8, 36), this.materials.glowTeal);
-      halo.position.copy(note.position);
-      halo.rotation.x = Math.PI / 2;
-      group.add(note, halo);
-    }
+  buildRelic(group) {
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 0.2, 8), this.materials.obstacleTrim);
+    base.position.y = 1.02;
+    const idol = new THREE.Mesh(new THREE.DodecahedronGeometry(0.54, 0), this.materials.relic);
+    idol.position.y = 1.46;
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.42, 6), this.materials.glowGold);
+    crown.position.y = 2.02;
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.045, 8, 44), this.materials.glowTeal);
+    halo.position.y = 1.52;
+    halo.rotation.x = Math.PI / 2;
+    group.add(base, idol, crown, halo);
   }
 
   buildObelisk(group) {
@@ -886,16 +849,15 @@ class CryptRunnerGame {
     s.laneCooldown = Math.max(0, s.laneCooldown - dt);
     s.invulnerable = Math.max(0, s.invulnerable - dt);
     s.dashTimer = Math.max(0, s.dashTimer - dt);
+    s.surgeTimer = Math.max(0, s.surgeTimer - dt);
     s.damageFlash = Math.max(0, s.damageFlash - dt * 3.2);
     s.cameraShake = Math.max(0, s.cameraShake - dt * 2.5);
-    s.beatPulse = Math.max(0, s.beatPulse - dt * 4);
-    s.overdriveTimer = Math.max(0, s.overdriveTimer - dt);
     const difficulty = 1 + s.distance / 2200;
-    const overdriveBonus = s.overdriveTimer > 0 ? 9 : 0;
-    s.targetSpeed = clamp(30 + difficulty * 4.2 + overdriveBonus, 30, 74);
+    const surgeBonus = s.surgeTimer > 0 ? 5 : 0;
+    s.targetSpeed = clamp(30 + difficulty * 4.2 + surgeBonus, 30, 70);
     s.speed = lerp(s.speed, s.targetSpeed + (s.dashTimer > 0 ? 22 : 0), 1 - Math.pow(0.002, dt));
     s.distance += s.speed * dt;
-    s.score += s.speed * dt * (1.6 + s.streak * 0.035) * s.riffMultiplier * (s.overdriveTimer > 0 ? 1.28 : 1);
+    s.score += s.speed * dt * (1.6 + s.streak * 0.035) * (s.surgeTimer > 0 ? 1.12 : 1);
     s.boost = clamp(s.boost + dt * (s.dashTimer > 0 ? -24 : 7.5), 0, 100);
 
     if (!s.grounded) {
@@ -930,11 +892,6 @@ class CryptRunnerGame {
       s.nextSpawn += gap;
     }
 
-    while (s.nextRiff < s.distance + SPAWN_AHEAD) {
-      this.spawnRiffPhrase(s.nextRiff);
-      s.nextRiff += clamp(82 - difficulty * 3.2, 56, 82);
-    }
-
     if (this.demoMode) this.updateDemo(dt);
     this.updateHud();
     if (s.health <= 0) this.endRun();
@@ -947,12 +904,9 @@ class CryptRunnerGame {
     const danger = this.entities
       .filter((entity) => !entity.hit && entity.z - s.distance > 14 && entity.z - s.distance < 55)
       .sort((a, b) => a.z - b.z)[0];
-    if (danger && danger.type === "note" && danger.lane !== s.targetLane) {
+    if (danger && danger.type === "relic" && danger.lane !== s.targetLane) {
       s.targetLane = danger.lane;
-      s.demoInputTimer = 0.26;
-    } else if (danger && danger.type === "chord" && s.boost > 25) {
-      this.dash();
-      s.demoInputTimer = 0.42;
+      s.demoInputTimer = 0.32;
     } else if (danger && ["obstacle", "spikes"].includes(danger.type) && danger.lane === s.targetLane) {
       const options = [0, 1, 2].filter((lane) => lane !== danger.lane);
       s.targetLane = options[Math.floor(Math.random() * options.length)];
@@ -974,19 +928,24 @@ class CryptRunnerGame {
   spawnPattern(z) {
     const roll = Math.random();
     const lane = Math.floor(Math.random() * 3);
-    if (roll < 0.2) {
+    if (roll < 0.18) {
       this.makeEntity("crystal", lane, z);
       this.makeEntity("crystal", lane, z + 8);
       this.makeEntity("crystal", lane, z + 16);
-    } else if (roll < 0.38) {
+    } else if (roll < 0.34) {
       this.makeEntity("boost", lane, z + 4);
       this.makeEntity("crystal", lane, z + 12);
-    } else if (roll < 0.6) {
+    } else if (roll < 0.54) {
       this.makeEntity("obstacle", lane, z);
       this.makeEntity("crystal", (lane + 1 + Math.floor(Math.random() * 2)) % 3, z + 8);
-    } else if (roll < 0.78) {
+    } else if (roll < 0.72) {
       this.makeEntity("gate", lane, z);
       this.makeEntity("crystal", lane, z + 10);
+    } else if (roll < 0.84) {
+      const relicLane = (lane + 1 + Math.floor(Math.random() * 2)) % 3;
+      this.makeEntity("obstacle", lane, z);
+      this.makeEntity("relic", relicLane, z + 7);
+      this.makeEntity("crystal", relicLane, z + 15);
     } else {
       const openLane = lane;
       [0, 1, 2].forEach((entryLane) => {
@@ -994,55 +953,6 @@ class CryptRunnerGame {
       });
       this.makeEntity("boost", openLane, z + 10);
     }
-  }
-
-  spawnRiffPhrase(z) {
-    RIFF_SEQUENCE.forEach((entry, index) => {
-      const noteZ = z + index * 8.2;
-      if (entry === "chord") this.makeEntity("chord", 1, noteZ);
-      else this.makeEntity("note", entry, noteZ);
-    });
-  }
-
-  hitRiff(entity) {
-    const s = this.state;
-    s.riffCombo += entity.type === "chord" ? 2 : 1;
-    s.bestRiff = Math.max(s.bestRiff, s.riffCombo);
-    s.riffMultiplier = clamp(1 + Math.floor(s.riffCombo / 8), 1, 5);
-    s.riffEnergy = clamp(s.riffEnergy + (entity.type === "chord" ? 18 : 8), 0, 100);
-    s.score += (entity.type === "chord" ? 980 : 440) * s.riffMultiplier;
-    s.boost = clamp(s.boost + (entity.type === "chord" ? 10 : 4), 0, 100);
-    s.beatPulse = 1;
-    entity.mesh.visible = false;
-    this.audio.play(entity.type === "chord" ? "powerChord" : "riffHit", 1 + Math.min(s.riffCombo, 16) * 0.012);
-    this.spawnSpark(
-      entity.type === "chord" ? 0 : LANES[entity.lane],
-      1.35,
-      PLAYER_Z,
-      NOTE_COLORS[entity.lane] || 0xf3bf56,
-      entity.type === "chord" ? 24 : 12
-    );
-    if (s.riffEnergy >= 100) {
-      s.riffEnergy = 0;
-      s.overdriveTimer = 8.5;
-      s.cameraShake = Math.max(s.cameraShake, 0.65);
-      this.audio.play("powerChord", 0.9, 1);
-      this.showToast("Overdrive", 1.1);
-    } else if (s.riffCombo > 0 && s.riffCombo % 8 === 0) {
-      this.showToast(`Riff x${s.riffMultiplier}`, 0.8);
-    }
-  }
-
-  missRiff(entity) {
-    entity.hit = true;
-    entity.mesh.visible = false;
-    if (this.state.riffCombo > 0) {
-      this.audio.play("riffMiss", 1, 0.62);
-      this.showToast("Riff verloren", 0.75);
-    }
-    this.state.riffCombo = 0;
-    this.state.riffMultiplier = 1;
-    this.state.riffEnergy = Math.max(0, this.state.riffEnergy - 12);
   }
 
   updateWorldPositions() {
@@ -1081,27 +991,15 @@ class CryptRunnerGame {
       if (entity.type === "boost") {
         entity.mesh.rotation.z += dt * 1.8;
       }
+      if (entity.type === "relic") {
+        entity.mesh.rotation.y += dt * 2.6;
+        entity.mesh.position.y = Math.sin(this.state.runTime * 4.4 + entity.phase) * 0.1;
+      }
       if (entity.type === "gate") {
         entity.mesh.position.y = Math.sin(this.state.runTime * 3 + entity.phase) * 0.035;
       }
-      if (entity.type === "note" || entity.type === "chord") {
-        entity.mesh.rotation.y += dt * (entity.type === "chord" ? 2.4 : 4.2);
-        entity.mesh.scale.setScalar(1 + Math.sin(this.state.runTime * 8 + entity.phase) * 0.08);
-        if (!entity.hit && !entity.tick && rel < 10 && rel > -1.8) {
-          entity.tick = true;
-          this.audio.play("beatTick", 1, 0.34);
-        }
-      }
 
-      if (!entity.hit && (entity.type === "note" || entity.type === "chord")) {
-        const inWindow = rel < 1.25 && rel > -1.65;
-        if (entity.type === "chord") {
-          if (inWindow && (this.state.dashTimer > 0 || this.state.overdriveTimer > 0)) this.collide(entity);
-        } else if (inWindow && Math.abs(this.state.playerX - LANES[entity.lane]) < 1.3) {
-          this.collide(entity);
-        }
-        if (!entity.hit && rel < -1.9) this.missRiff(entity);
-      } else if (!entity.hit && rel < 1.35 && rel > -1.8 && Math.abs(this.state.playerX - LANES[entity.lane]) < 1.46) {
+      if (!entity.hit && rel < 1.35 && rel > -1.8 && Math.abs(this.state.playerX - LANES[entity.lane]) < 1.46) {
         this.collide(entity);
       }
       if (rel > DESPAWN_BEHIND) alive.push(entity);
@@ -1126,14 +1024,24 @@ class CryptRunnerGame {
       this.state.score += 640;
       this.state.boost = clamp(this.state.boost + 32, 0, 100);
       this.state.dashTimer = Math.max(this.state.dashTimer, 0.48);
+      this.state.surgeTimer = Math.max(this.state.surgeTimer, 1.4);
       this.state.invulnerable = Math.max(this.state.invulnerable, 0.5);
       entity.mesh.visible = false;
-      this.audio.play("dash");
+      this.audio.play("surge");
       this.spawnSpark(LANES[entity.lane], 1.45, PLAYER_Z, 0x8b6af8, 20);
       return;
     }
-    if (entity.type === "note" || entity.type === "chord") {
-      this.hitRiff(entity);
+    if (entity.type === "relic") {
+      this.state.relics += 1;
+      this.state.streak += 2;
+      this.state.score += 1500 + this.state.streak * 120;
+      this.state.health = clamp(this.state.health + 4, 0, 100);
+      this.state.boost = clamp(this.state.boost + 18, 0, 100);
+      this.state.surgeTimer = Math.max(this.state.surgeTimer, 1.6);
+      entity.mesh.visible = false;
+      this.audio.play("relic");
+      this.spawnSpark(LANES[entity.lane], 1.45, PLAYER_Z, 0xf3bf56, 24);
+      this.showToast("Relikt gesichert", 0.85);
       return;
     }
 
@@ -1142,7 +1050,7 @@ class CryptRunnerGame {
     if (breaks) {
       this.state.score += entity.type === "gate" ? 740 : 520;
       this.spawnSpark(LANES[entity.lane], 1.0, PLAYER_Z, 0xf3bf56, 16);
-      this.audio.play("checkpoint");
+      this.audio.play("surge", 0.96, 0.8);
       entity.mesh.visible = false;
       return;
     }
@@ -1154,6 +1062,7 @@ class CryptRunnerGame {
     this.state.cameraShake = 1;
     this.state.invulnerable = 0.65;
     this.audio.play("impact");
+    this.audio.play("curse", 0.92, 0.48);
     this.spawnSpark(LANES[entity.lane], 0.7, PLAYER_Z + 0.4, 0xe45454, 24);
     this.showToast("Treffer", 0.85);
   }
@@ -1211,9 +1120,9 @@ class CryptRunnerGame {
     this.rightArm.rotation.x = -armSwing;
     this.playerShadow.scale.setScalar(clamp(1.1 - s.playerY * 0.15, 0.62, 1.1));
     this.playerShadow.material.opacity = clamp(0.32 - s.playerY * 0.055, 0.06, 0.32);
-    this.playerHalo.rotation.z += dt * (s.dashTimer > 0 || s.overdriveTimer > 0 ? 8 : 2.2);
+    this.playerHalo.rotation.z += dt * (s.dashTimer > 0 || s.surgeTimer > 0 ? 8 : 2.2);
     this.playerHalo.material.opacity =
-      s.dashTimer > 0 || s.overdriveTimer > 0 ? 0.84 : 0.42 + Math.sin(this.state.runTime * 5) * 0.08;
+      s.dashTimer > 0 || s.surgeTimer > 0 ? 0.84 : 0.42 + Math.sin(this.state.runTime * 5) * 0.08;
   }
 
   updateCamera(dt) {
@@ -1228,7 +1137,7 @@ class CryptRunnerGame {
     this.camera.lookAt(this.cameraTarget);
     this.camera.fov = lerp(
       this.camera.fov,
-      62 + clamp(s.speed - 42, 0, 30) * 0.22 + (s.dashTimer > 0 ? 3 : 0) + (s.overdriveTimer > 0 ? 2 : 0),
+      62 + clamp(s.speed - 42, 0, 30) * 0.22 + (s.dashTimer > 0 ? 3 : 0) + (s.surgeTimer > 0 ? 1.4 : 0),
       1 - Math.pow(0.002, dt)
     );
     this.camera.updateProjectionMatrix();
@@ -1251,20 +1160,9 @@ class CryptRunnerGame {
     ui.distance.textContent = `${Math.floor(s.distance).toLocaleString("de-DE")} m`;
     ui.score.textContent = Math.floor(s.score).toLocaleString("de-DE");
     ui.speed.textContent = String(Math.round(s.speed * 3.1));
-    ui.riff.textContent = `${s.riffCombo} x${s.riffMultiplier}`;
+    ui.streak.textContent = String(s.streak);
     ui.health.style.transform = `scaleX(${clamp(s.health / 100, 0, 1)})`;
     ui.boost.style.transform = `scaleX(${clamp(s.boost / 100, 0, 1)})`;
-    ui.beat.textContent = s.overdriveTimer > 0 ? "Drive" : s.riffCombo > 0 ? "Hit" : "Ready";
-    ui.riffFill.style.transform = `scaleX(${clamp(
-      s.overdriveTimer > 0 ? s.overdriveTimer / 8.5 : s.riffEnergy / 100,
-      0,
-      1
-    )})`;
-    ui.rhythmHud.classList.toggle("overdrive", s.overdriveTimer > 0);
-    ui.frets.forEach((fret, index) => {
-      fret.classList.toggle("active", index === s.targetLane);
-      fret.classList.toggle("hit", s.beatPulse > 0.18 && (index === s.targetLane || s.overdriveTimer > 0));
-    });
     if (s.damageFlash > 0) {
       ui.shell.style.filter = `brightness(${1 + s.damageFlash * 0.22}) saturate(${1 + s.damageFlash * 0.25})`;
     } else {

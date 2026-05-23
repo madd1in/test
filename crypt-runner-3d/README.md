@@ -7,8 +7,8 @@ Standalone Three.js endless runner for GitHub Pages.
 - Run forward through three lanes.
 - Collect green shards and violet boost rings.
 - Jump low gates and dash through trouble.
-- Hit lane-colored riff notes to build multipliers.
-- Dash through power chords to trigger Overdrive.
+- Grab rare gold relics to restore health and spike your score.
+- BGM starts from the Start button click, with louder rotating tracks.
 
 ## Assets
 
@@ -23,7 +23,7 @@ HD art and MP3 files are copied from `C:\Users\User\Downloads` into `assets/`.
 - `dojo-crash-duel.mp3`
 - `bamboo-arcade.mp3`
 - `turbo-banana-cup.mp3`
-- ten short SFX clips
+- ten short SFX clips, including relic and surge pickups
 
 ## Local
 
