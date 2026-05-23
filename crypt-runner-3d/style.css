@@ -9,6 +9,7 @@
   --crimson: #e45454;
   --violet: #8b6af8;
   --green: #9fe070;
+  --stone: #2b3037;
 }
 
 * {
@@ -44,10 +45,22 @@ button {
 #scene {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
   display: block;
   touch-action: none;
+}
+
+#game-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 55%, transparent 30%, rgba(0, 0, 0, 0.2) 70%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.28), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.3));
 }
 
 .top-hud {
@@ -68,10 +81,34 @@ button {
 .meter-chip,
 .hud-actions {
   min-width: 0;
-  border: 1px solid var(--edge);
-  background: linear-gradient(180deg, rgba(17, 20, 28, 0.82), rgba(8, 10, 15, 0.58));
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(231, 207, 145, 0.22);
+  background:
+    linear-gradient(180deg, rgba(20, 22, 26, 0.9), rgba(8, 10, 15, 0.72)),
+    url("./assets/art/gothic-atlas.png");
+  background-size: auto, 520px 520px;
+  background-position: center, center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 202, 0.16),
+    inset 0 -12px 28px rgba(0, 0, 0, 0.22),
+    0 12px 34px rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(14px);
+}
+
+.brand::after,
+.hud-chip::after,
+.meter-chip::after,
+.hud-actions::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 5px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(243, 191, 86, 0.42), transparent);
+  opacity: 0.78;
 }
 
 .brand,
@@ -138,10 +175,6 @@ button {
   background: linear-gradient(90deg, var(--violet), var(--gold));
 }
 
-#riff-fill {
-  background: linear-gradient(90deg, var(--crimson), var(--gold), var(--teal));
-}
-
 .hud-actions {
   display: flex;
   gap: 8px;
@@ -167,9 +200,10 @@ button {
 }
 
 .icon-button {
-  width: 40px;
+  width: 46px;
   height: 40px;
   border-radius: 8px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -179,94 +213,6 @@ button {
   transform: translateY(-1px);
   border-color: rgba(83, 229, 215, 0.62);
   background: rgba(83, 229, 215, 0.15);
-}
-
-.rhythm-hud {
-  position: absolute;
-  left: 50%;
-  bottom: max(18px, env(safe-area-inset-bottom));
-  z-index: 6;
-  display: grid;
-  grid-template-columns: 78px 190px 140px;
-  gap: 8px;
-  align-items: center;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.rhythm-stat,
-.fret-board,
-.rhythm-meter {
-  min-height: 48px;
-  border: 1px solid var(--edge);
-  border-radius: 8px;
-  background: rgba(9, 11, 16, 0.68);
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(14px);
-}
-
-.rhythm-stat,
-.rhythm-meter {
-  padding: 8px 10px;
-}
-
-.rhythm-stat span,
-.rhythm-meter span {
-  display: block;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
-.rhythm-stat strong {
-  display: block;
-  margin-top: 4px;
-  color: #fff8e7;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.fret-board {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-  padding: 7px;
-}
-
-.fret {
-  display: block;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  opacity: 0.58;
-  transform: scale(0.94);
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.fret.green {
-  background: linear-gradient(180deg, #9fe070, #2d8d59);
-}
-
-.fret.red {
-  background: linear-gradient(180deg, #f06868, #8b2d4e);
-}
-
-.fret.gold {
-  background: linear-gradient(180deg, #f3bf56, #a25e24);
-}
-
-.fret.active,
-.fret.hit {
-  opacity: 1;
-  transform: scale(1);
-  box-shadow: 0 0 18px rgba(243, 191, 86, 0.5);
-}
-
-.rhythm-hud.overdrive .fret {
-  box-shadow: 0 0 22px rgba(83, 229, 215, 0.58);
 }
 
 .toast {
@@ -305,7 +251,10 @@ button {
   padding: 24px;
   background:
     radial-gradient(circle at 50% 38%, rgba(83, 229, 215, 0.12), transparent 32%),
+    url("./assets/art/catacomb-hall.png"),
     linear-gradient(180deg, rgba(5, 7, 11, 0.28), rgba(5, 7, 11, 0.78));
+  background-size: auto, cover, auto;
+  background-position: center, center, center;
 }
 
 .screen.active {
@@ -314,12 +263,53 @@ button {
 
 .menu-panel {
   width: min(560px, calc(100vw - 32px));
+  position: relative;
+  overflow: hidden;
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(243, 191, 86, 0.3);
   border-radius: 8px;
-  background: rgba(8, 10, 15, 0.78);
-  box-shadow: 0 30px 88px rgba(0, 0, 0, 0.52);
+  background:
+    linear-gradient(180deg, rgba(10, 11, 15, 0.88), rgba(10, 12, 18, 0.76)),
+    url("./assets/art/gothic-atlas.png");
+  background-size: auto, 620px 620px;
+  background-position: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 199, 0.18),
+    inset 0 -22px 40px rgba(0, 0, 0, 0.24),
+    0 30px 88px rgba(0, 0, 0, 0.52);
   backdrop-filter: blur(18px);
+}
+
+.menu-panel::before {
+  content: "";
+  position: absolute;
+  right: -28px;
+  bottom: -30px;
+  width: 190px;
+  height: 190px;
+  background: url("./assets/art/castle-props.png") center / cover;
+  opacity: 0.3;
+  filter: saturate(1.25) contrast(1.08);
+  pointer-events: none;
+}
+
+.menu-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.menu-sigil {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(243, 191, 86, 0.32);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(243, 191, 86, 0.2), rgba(83, 229, 215, 0.08) 46%, rgba(0, 0, 0, 0.18) 70%),
+    url("./assets/art/gothic-atlas.png") center / 360px 360px;
+  box-shadow:
+    inset 0 0 18px rgba(243, 191, 86, 0.18),
+    0 0 30px rgba(83, 229, 215, 0.14);
 }
 
 .menu-panel.compact {
@@ -391,7 +381,9 @@ h2 {
   width: 58px;
   height: 54px;
   border-radius: 8px;
-  background: rgba(9, 12, 17, 0.72);
+  background:
+    linear-gradient(180deg, rgba(20, 22, 27, 0.78), rgba(9, 12, 17, 0.72)),
+    url("./assets/art/gothic-atlas.png") center / 480px 480px;
   backdrop-filter: blur(13px);
   font-size: 18px;
   font-weight: 900;
@@ -454,36 +446,15 @@ h2 {
     font-size: 16px;
   }
 
-  .rhythm-hud {
-    bottom: max(84px, calc(env(safe-area-inset-bottom) + 84px));
-    grid-template-columns: 66px minmax(120px, 1fr) 118px;
-    width: min(374px, calc(100vw - 16px));
-    gap: 6px;
-  }
-
-  .rhythm-stat,
-  .fret-board,
-  .rhythm-meter {
-    min-height: 42px;
-  }
-
-  .rhythm-stat strong {
-    font-size: 15px;
-  }
-
-  .fret-board {
-    gap: 5px;
-    padding: 6px;
-  }
-
   .hud-actions {
     justify-content: space-between;
     background: rgba(9, 12, 17, 0.66);
   }
 
   .icon-button {
-    width: 38px;
+    width: 42px;
     height: 36px;
+    font-size: 11px;
   }
 
   .toast {
