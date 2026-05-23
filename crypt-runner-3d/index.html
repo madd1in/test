@@ -29,9 +29,9 @@
           <span>Tempo</span>
           <strong id="speed-value">0</strong>
         </div>
-        <div class="hud-chip">
-          <span>Serie</span>
-          <strong id="streak-value">0</strong>
+        <div class="meter-chip fever-chip">
+          <span>Fieber <b id="streak-value">0x</b></span>
+          <div class="meter"><i id="fever-fill"></i></div>
         </div>
         <div class="meter-chip">
           <span>Leben</span>
@@ -48,13 +48,17 @@
       </section>
 
       <div id="toast" class="toast" aria-live="assertive">Bereit</div>
+      <section class="run-status" aria-label="Run Status">
+        <span id="status-label">Kammer ruhig</span>
+        <strong id="relic-value">0 Relikte</strong>
+      </section>
 
       <section id="menu" class="screen active" aria-label="Start">
         <div class="menu-panel">
           <div class="menu-sigil" aria-hidden="true"></div>
           <p class="eyebrow">HD Vault Run</p>
           <h1>Crypt Runner 3D</h1>
-          <p>Die Katakombe zieht endlos nach vorn. Sammle Splitter und Relikte, halte die Serie, nutze Dash-Ringe und brich durch die Tore.</p>
+          <p>Die Katakombe zieht endlos nach vorn. Sammle Splitter und Relikte, lade Schatzfieber, nutze Dash-Ringe und brich durch die Tore.</p>
           <div class="menu-actions">
             <button id="start-button" class="primary-button" type="button">Start</button>
             <button id="menu-audio-button" type="button" aria-pressed="false">BGM</button>

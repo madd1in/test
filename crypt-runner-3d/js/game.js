@@ -58,6 +58,10 @@ const ui = {
   streak: document.getElementById("streak-value"),
   health: document.getElementById("health-fill"),
   boost: document.getElementById("boost-fill"),
+  fever: document.getElementById("fever-fill"),
+  feverChip: document.querySelector(".fever-chip"),
+  statusLabel: document.getElementById("status-label"),
+  relic: document.getElementById("relic-value"),
   toast: document.getElementById("toast"),
   resultTitle: document.getElementById("result-title"),
   resultCopy: document.getElementById("result-copy")
@@ -87,6 +91,11 @@ function createState() {
     streak: 0,
     relics: 0,
     surgeTimer: 0,
+    feverCharge: 0,
+    feverTimer: 0,
+    feverCount: 0,
+    warningCooldown: 0,
+    bestStreak: 0,
     checkpoint: 500,
     nextSpawn: 26,
     runTime: 0,
@@ -230,7 +239,7 @@ class AudioDeck {
     sound.play().catch(() => {});
   }
 
-  update(speed, distance) {
+  update(speed, distance, feverTimer = 0) {
     if (!this.enabled || !this.unlocked) return;
     const nextTrack = Math.floor(distance / 1300) % this.bgm.length;
     if (nextTrack !== this.trackIndex) {
@@ -238,8 +247,9 @@ class AudioDeck {
       this.playMusic();
     }
     const active = this.bgm[this.trackIndex];
-    active.volume = 0.42 + clamp(speed / 70, 0, 1) * 0.22;
-    active.playbackRate = 1 + clamp(speed / 72, 0, 1) * 0.08;
+    const fever = feverTimer > 0 ? 1 : 0;
+    active.volume = 0.42 + clamp(speed / 70, 0, 1) * 0.2 + fever * 0.08;
+    active.playbackRate = 1 + clamp(speed / 72, 0, 1) * 0.08 + fever * 0.035;
   }
 }
 
@@ -251,6 +261,7 @@ class CryptRunnerGame {
     this.touch = new Set();
     this.entities = [];
     this.particles = [];
+    this.motes = [];
     this.roadSegments = [];
     this.sideProps = [];
     this.clock = new THREE.Clock();
@@ -387,6 +398,13 @@ class CryptRunnerGame {
         roughness: 0.2,
         metalness: 0.38
       }),
+      treasure: new THREE.MeshStandardMaterial({
+        color: 0xd89a39,
+        emissive: 0x5c3108,
+        emissiveIntensity: 0.6,
+        roughness: 0.36,
+        metalness: 0.45
+      }),
       obstacle: new THREE.MeshStandardMaterial({ color: 0x353b43, roughness: 0.8, metalness: 0.08 }),
       obstacleTrim: new THREE.MeshStandardMaterial({
         color: 0xb89145,
@@ -434,18 +452,22 @@ class CryptRunnerGame {
     sun.shadow.camera.top = 46;
     sun.shadow.camera.bottom = -46;
     this.scene.add(sun);
+    this.sunLight = sun;
 
     const tealLight = new THREE.PointLight(0x53e5d7, 6.8, 80);
     tealLight.position.set(0, 5, -22);
     this.scene.add(tealLight);
+    this.tealLight = tealLight;
 
     const redLight = new THREE.PointLight(0xe45454, 3.2, 80);
     redLight.position.set(-14, 5, -54);
     this.scene.add(redLight);
+    this.redLight = redLight;
 
     this.createRoad();
     this.createBackdrop();
     this.createSideProps();
+    this.createMotes();
   }
 
   createRoad() {
@@ -512,6 +534,12 @@ class CryptRunnerGame {
         arch.castShadow = true;
         pair.add(arch);
       }
+      if (i % 6 === 2) {
+        pair.add(this.makeTreasurePile(-8.55, 0, 0.9));
+      }
+      if (i % 7 === 3) {
+        pair.add(this.makeRuneSlab(8.42, 0, -0.7));
+      }
       this.propGroup.add(pair);
       this.sideProps.push(pair);
     }
@@ -544,6 +572,55 @@ class CryptRunnerGame {
     banner.position.set(x, y, z);
     banner.rotation.y = rotation;
     return banner;
+  }
+
+  makeTreasurePile(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.55, 0.68), this.materials.treasure);
+    chest.position.y = 0.34;
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 1.08, 10, 1, false, 0, Math.PI), this.materials.obstacleTrim);
+    lid.position.y = 0.72;
+    lid.rotation.z = Math.PI / 2;
+    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), this.materials.glowGold);
+    glint.position.set(0.34, 1.02, 0.1);
+    group.add(chest, lid, glint);
+    return group;
+  }
+
+  makeRuneSlab(x, y, z) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.15, 1.25), this.materials.obstacle);
+    slab.position.y = 1.12;
+    const rune = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 1.08), this.materials.glowTeal);
+    rune.position.set(-0.18, 1.26, 0);
+    rune.rotation.y = Math.PI / 2;
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 1.42), this.materials.obstacleTrim);
+    cap.position.y = 2.28;
+    group.add(slab, rune, cap);
+    return group;
+  }
+
+  createMotes() {
+    this.moteGroup = new THREE.Group();
+    this.scene.add(this.moteGroup);
+    for (let i = 0; i < 78; i += 1) {
+      const warm = i % 3 !== 0;
+      const material = new THREE.MeshBasicMaterial({
+        color: warm ? 0xf3bf56 : 0x53e5d7,
+        transparent: true,
+        opacity: warm ? 0.18 : 0.12,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const mote = new THREE.Mesh(new THREE.SphereGeometry(0.025 + Math.random() * 0.045, 6, 6), material);
+      mote.position.set((Math.random() - 0.5) * 16, 1.4 + Math.random() * 7.4, PLAYER_Z - Math.random() * 180);
+      mote.userData.drift = 0.35 + Math.random() * 0.8;
+      mote.userData.phase = Math.random() * Math.PI * 2;
+      this.moteGroup.add(mote);
+      this.motes.push(mote);
+    }
   }
 
   createPlayer() {
@@ -672,7 +749,7 @@ class CryptRunnerGame {
     } else {
       ui.resultTitle.textContent = "Krypta geschlossen";
     }
-    ui.resultCopy.textContent = `${meters.toLocaleString("de-DE")} m / ${Math.floor(this.state.score).toLocaleString("de-DE")} Punkte / ${this.state.relics} Relikte`;
+    ui.resultCopy.textContent = `${meters.toLocaleString("de-DE")} m / ${Math.floor(this.state.score).toLocaleString("de-DE")} Punkte / ${this.state.relics} Relikte / ${this.state.bestStreak}er Serie`;
     ui.results.classList.add("active");
     this.audio.play("impact");
   }
@@ -683,6 +760,7 @@ class CryptRunnerGame {
     this.makeEntity("obstacle", 0, 44);
     this.makeEntity("crystal", 2, 52);
     this.makeEntity("boost", 2, 62);
+    this.makeEntity("relic", 1, 72);
     this.state.nextSpawn = 78;
   }
 
@@ -836,11 +914,13 @@ class CryptRunnerGame {
     }
     this.updateWorldPositions();
     this.updateEntities(dt);
+    this.updateMotes(dt);
     this.updateParticles(dt);
     this.updatePlayerVisuals(dt);
     this.updateCamera(dt);
+    this.updateLighting(dt);
     this.updateToast(dt);
-    this.audio.update(this.state.speed, this.state.distance);
+    this.audio.update(this.state.speed, this.state.distance, this.state.feverTimer);
   }
 
   updateSimulation(dt) {
@@ -850,14 +930,17 @@ class CryptRunnerGame {
     s.invulnerable = Math.max(0, s.invulnerable - dt);
     s.dashTimer = Math.max(0, s.dashTimer - dt);
     s.surgeTimer = Math.max(0, s.surgeTimer - dt);
+    s.feverTimer = Math.max(0, s.feverTimer - dt);
+    s.warningCooldown = Math.max(0, s.warningCooldown - dt);
     s.damageFlash = Math.max(0, s.damageFlash - dt * 3.2);
     s.cameraShake = Math.max(0, s.cameraShake - dt * 2.5);
     const difficulty = 1 + s.distance / 2200;
     const surgeBonus = s.surgeTimer > 0 ? 5 : 0;
-    s.targetSpeed = clamp(30 + difficulty * 4.2 + surgeBonus, 30, 70);
+    const feverBonus = s.feverTimer > 0 ? 7 : 0;
+    s.targetSpeed = clamp(30 + difficulty * 4.2 + surgeBonus + feverBonus, 30, 78);
     s.speed = lerp(s.speed, s.targetSpeed + (s.dashTimer > 0 ? 22 : 0), 1 - Math.pow(0.002, dt));
     s.distance += s.speed * dt;
-    s.score += s.speed * dt * (1.6 + s.streak * 0.035) * (s.surgeTimer > 0 ? 1.12 : 1);
+    s.score += s.speed * dt * (1.6 + s.streak * 0.035) * (s.surgeTimer > 0 ? 1.12 : 1) * (s.feverTimer > 0 ? 1.36 : 1);
     s.boost = clamp(s.boost + dt * (s.dashTimer > 0 ? -24 : 7.5), 0, 100);
 
     if (!s.grounded) {
@@ -882,6 +965,7 @@ class CryptRunnerGame {
       s.health = clamp(s.health + 6, 0, 100);
       s.boost = clamp(s.boost + 14, 0, 100);
       s.score += 900;
+      this.gainFever(18);
       this.audio.play("checkpoint");
       this.showToast("Siegel passiert", 1);
     }
@@ -892,9 +976,54 @@ class CryptRunnerGame {
       s.nextSpawn += gap;
     }
 
+    this.updateDangerCue();
+
     if (this.demoMode) this.updateDemo(dt);
     this.updateHud();
     if (s.health <= 0) this.endRun();
+  }
+
+  gainFever(amount) {
+    const s = this.state;
+    if (s.mode !== "playing") return;
+    if (s.feverTimer > 0) {
+      s.score += amount * 22;
+      return;
+    }
+    s.feverCharge = clamp(s.feverCharge + amount, 0, 100);
+    if (s.feverCharge >= 100) this.startFever();
+  }
+
+  startFever() {
+    const s = this.state;
+    s.feverCharge = 0;
+    s.feverTimer = 8.2;
+    s.feverCount += 1;
+    s.surgeTimer = Math.max(s.surgeTimer, 2.2);
+    s.cameraShake = Math.max(s.cameraShake, 0.62);
+    s.boost = clamp(s.boost + 18, 0, 100);
+    this.audio.play("surge", 0.88, 1);
+    this.spawnSpark(0, 1.55, PLAYER_Z, 0xf3bf56, 38);
+    this.showToast("Schatzfieber", 1.05);
+  }
+
+  updateDangerCue() {
+    const s = this.state;
+    if (s.warningCooldown > 0 || s.invulnerable > 0 || s.mode !== "playing") return;
+    const threat = this.entities.find((entity) => {
+      const rel = entity.z - s.distance;
+      return (
+        !entity.hit &&
+        ["obstacle", "spikes", "gate"].includes(entity.type) &&
+        entity.lane === s.targetLane &&
+        rel > 8 &&
+        rel < 23
+      );
+    });
+    if (!threat) return;
+    s.warningCooldown = 0.9;
+    this.audio.play("warning", 1.05, 0.38);
+    if (s.health < 45) this.showToast("Fluchdruck", 0.55);
   }
 
   updateDemo(dt) {
@@ -1012,8 +1141,10 @@ class CryptRunnerGame {
     entity.hit = true;
     if (entity.type === "crystal") {
       this.state.streak += 1;
+      this.state.bestStreak = Math.max(this.state.bestStreak, this.state.streak);
       this.state.score += 360 + this.state.streak * 80;
       this.state.boost = clamp(this.state.boost + 8, 0, 100);
+      this.gainFever(7 + Math.min(this.state.streak, 10));
       entity.mesh.visible = false;
       this.audio.play("pickup");
       this.spawnSpark(LANES[entity.lane], 1.45, PLAYER_Z, 0x9fe070, 12);
@@ -1026,6 +1157,7 @@ class CryptRunnerGame {
       this.state.dashTimer = Math.max(this.state.dashTimer, 0.48);
       this.state.surgeTimer = Math.max(this.state.surgeTimer, 1.4);
       this.state.invulnerable = Math.max(this.state.invulnerable, 0.5);
+      this.gainFever(12);
       entity.mesh.visible = false;
       this.audio.play("surge");
       this.spawnSpark(LANES[entity.lane], 1.45, PLAYER_Z, 0x8b6af8, 20);
@@ -1034,10 +1166,12 @@ class CryptRunnerGame {
     if (entity.type === "relic") {
       this.state.relics += 1;
       this.state.streak += 2;
+      this.state.bestStreak = Math.max(this.state.bestStreak, this.state.streak);
       this.state.score += 1500 + this.state.streak * 120;
       this.state.health = clamp(this.state.health + 4, 0, 100);
       this.state.boost = clamp(this.state.boost + 18, 0, 100);
       this.state.surgeTimer = Math.max(this.state.surgeTimer, 1.6);
+      this.gainFever(32);
       entity.mesh.visible = false;
       this.audio.play("relic");
       this.spawnSpark(LANES[entity.lane], 1.45, PLAYER_Z, 0xf3bf56, 24);
@@ -1049,6 +1183,7 @@ class CryptRunnerGame {
     const breaks = this.state.invulnerable > 0 || this.state.dashTimer > 0 || clearsGate;
     if (breaks) {
       this.state.score += entity.type === "gate" ? 740 : 520;
+      this.gainFever(entity.type === "gate" ? 9 : 6);
       this.spawnSpark(LANES[entity.lane], 1.0, PLAYER_Z, 0xf3bf56, 16);
       this.audio.play("surge", 0.96, 0.8);
       entity.mesh.visible = false;
@@ -1058,6 +1193,7 @@ class CryptRunnerGame {
     this.state.health = Math.max(0, this.state.health - (entity.type === "spikes" ? 28 : 21));
     this.state.speed *= 0.62;
     this.state.streak = 0;
+    this.state.feverCharge = Math.max(0, this.state.feverCharge - 18);
     this.state.damageFlash = 1;
     this.state.cameraShake = 1;
     this.state.invulnerable = 0.65;
@@ -1107,6 +1243,34 @@ class CryptRunnerGame {
     this.particles = alive;
   }
 
+  updateMotes(dt) {
+    const s = this.state;
+    const driftSpeed = (s.speed * 0.28 + (s.feverTimer > 0 ? 9 : 0)) * dt;
+    for (const mote of this.motes) {
+      mote.position.z += driftSpeed * mote.userData.drift;
+      mote.position.y += Math.sin(s.runTime * 1.8 + mote.userData.phase) * dt * 0.12;
+      mote.position.x += Math.sin(s.runTime * 0.9 + mote.userData.phase) * dt * 0.08;
+      if (mote.position.z > PLAYER_Z + 14) {
+        mote.position.z = PLAYER_Z - 170 - Math.random() * 30;
+        mote.position.x = (Math.random() - 0.5) * 16;
+        mote.position.y = 1.4 + Math.random() * 7.4;
+      }
+      mote.material.opacity = (s.feverTimer > 0 ? 0.24 : 0.14) + Math.sin(s.runTime * 2 + mote.userData.phase) * 0.04;
+    }
+  }
+
+  updateLighting() {
+    const s = this.state;
+    const pulse = Math.sin(s.runTime * 2.2) * 0.35;
+    const fever = s.feverTimer > 0 ? 1 : 0;
+    const danger = s.health < 35 || s.damageFlash > 0 ? 1 : 0;
+    this.tealLight.intensity = 6.5 + pulse + fever * 2.2;
+    this.redLight.intensity = 2.8 + danger * 2.8 + s.damageFlash * 3.2;
+    this.sunLight.intensity = 2.2 + fever * 0.42;
+    this.scene.fog.near = 28 - fever * 4;
+    this.scene.fog.far = 240 + fever * 24;
+  }
+
   updatePlayerVisuals(dt) {
     const s = this.state;
     this.player.position.set(s.playerX, s.playerY, PLAYER_Z);
@@ -1120,9 +1284,9 @@ class CryptRunnerGame {
     this.rightArm.rotation.x = -armSwing;
     this.playerShadow.scale.setScalar(clamp(1.1 - s.playerY * 0.15, 0.62, 1.1));
     this.playerShadow.material.opacity = clamp(0.32 - s.playerY * 0.055, 0.06, 0.32);
-    this.playerHalo.rotation.z += dt * (s.dashTimer > 0 || s.surgeTimer > 0 ? 8 : 2.2);
+    this.playerHalo.rotation.z += dt * (s.dashTimer > 0 || s.surgeTimer > 0 || s.feverTimer > 0 ? 8 : 2.2);
     this.playerHalo.material.opacity =
-      s.dashTimer > 0 || s.surgeTimer > 0 ? 0.84 : 0.42 + Math.sin(this.state.runTime * 5) * 0.08;
+      s.dashTimer > 0 || s.surgeTimer > 0 || s.feverTimer > 0 ? 0.84 : 0.42 + Math.sin(this.state.runTime * 5) * 0.08;
   }
 
   updateCamera(dt) {
@@ -1137,7 +1301,7 @@ class CryptRunnerGame {
     this.camera.lookAt(this.cameraTarget);
     this.camera.fov = lerp(
       this.camera.fov,
-      62 + clamp(s.speed - 42, 0, 30) * 0.22 + (s.dashTimer > 0 ? 3 : 0) + (s.surgeTimer > 0 ? 1.4 : 0),
+      62 + clamp(s.speed - 42, 0, 30) * 0.22 + (s.dashTimer > 0 ? 3 : 0) + (s.surgeTimer > 0 ? 1.4 : 0) + (s.feverTimer > 0 ? 2.2 : 0),
       1 - Math.pow(0.002, dt)
     );
     this.camera.updateProjectionMatrix();
@@ -1160,9 +1324,24 @@ class CryptRunnerGame {
     ui.distance.textContent = `${Math.floor(s.distance).toLocaleString("de-DE")} m`;
     ui.score.textContent = Math.floor(s.score).toLocaleString("de-DE");
     ui.speed.textContent = String(Math.round(s.speed * 3.1));
-    ui.streak.textContent = String(s.streak);
+    ui.streak.textContent = `${s.streak}x`;
     ui.health.style.transform = `scaleX(${clamp(s.health / 100, 0, 1)})`;
     ui.boost.style.transform = `scaleX(${clamp(s.boost / 100, 0, 1)})`;
+    ui.fever.style.transform = `scaleX(${clamp(s.feverTimer > 0 ? s.feverTimer / 8.2 : s.feverCharge / 100, 0, 1)})`;
+    ui.relic.textContent = `${s.relics} ${s.relics === 1 ? "Relikt" : "Relikte"}`;
+    ui.statusLabel.textContent =
+      s.feverTimer > 0
+        ? "Schatzfieber"
+        : s.health < 35
+          ? "Fluchdruck"
+          : s.surgeTimer > 0
+            ? "Surge aktiv"
+            : s.streak >= 8
+              ? "Serie aktiv"
+              : "Kammer ruhig";
+    ui.shell.classList.toggle("fever", s.feverTimer > 0);
+    ui.shell.classList.toggle("danger", s.health < 35 || s.damageFlash > 0.55);
+    ui.feverChip.classList.toggle("active", s.feverTimer > 0);
     if (s.damageFlash > 0) {
       ui.shell.style.filter = `brightness(${1 + s.damageFlash * 0.22}) saturate(${1 + s.damageFlash * 0.25})`;
     } else {

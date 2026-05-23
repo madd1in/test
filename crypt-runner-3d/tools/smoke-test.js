@@ -67,7 +67,7 @@ const removedSpawnMarker = "spawn" + "R" + "iffPhrase";
 const checks = [
   [html.includes("scene") && html.includes("top-hud"), "canvas and HUD are present"],
   [html.includes("data-touch=\"dash\"") && html.includes("results"), "touch and result UI are present"],
-  [html.includes("streak-value") && !html.includes(removedHudMarker), "series HUD is present"],
+  [html.includes("fever-fill") && html.includes("run-status") && !html.includes(removedHudMarker), "treasure fever HUD is present"],
   [css.includes("@media") && css.includes("grid-template-columns"), "responsive CSS is present"],
   [css.includes("gothic-atlas.png") && css.includes("castle-props.png"), "asset-driven UI polish is present"],
   [js.includes("import * as THREE") && js.includes("WebGLRenderer"), "Three.js renderer is wired"],
@@ -75,6 +75,9 @@ const checks = [
   [js.includes("spawnPattern") && js.includes("collide(entity)"), "runner spawning and collisions are wired"],
   [js.includes("AudioDeck") && js.includes("gasket-thunder.mp3"), "download audio manifest is wired"],
   [js.includes("buildRelic") && js.includes("relic-ping.mp3"), "relic pickup gameplay is wired"],
+  [js.includes("startFever") && js.includes("feverCharge"), "treasure fever gameplay is wired"],
+  [js.includes("createMotes") && js.includes("updateLighting"), "atmosphere polish is wired"],
+  [js.includes("makeTreasurePile") && js.includes("makeRuneSlab"), "side prop variety is wired"],
   [js.includes("setEnabled(true)") && js.includes("BGM an"), "BGM auto-start path is wired"],
   [!js.includes(removedSpawnMarker), "old note-chain concept is removed"],
   [js.includes("catacomb-hall.png") && js.includes("gothic-atlas.png"), "download image assets are wired"],
