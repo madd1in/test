@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 384" role="img" aria-label="Neon city skyline">
+  <defs>
+    <linearGradient id="skylineGrad" x1="0" y1="0" x2="0" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17213d"/>
+      <stop offset="1" stop-color="#060914"/>
+    </linearGradient>
+  </defs>
+  <rect width="2048" height="384" fill="none"/>
+  <g fill="url(#skylineGrad)" stroke="#35e7ff" stroke-opacity=".18" stroke-width="3">
+    <path d="M0 384V168h70V94h92v160h74V132h118v252Z"/>
+    <path d="M326 384V214h64V74h102v98h96v212Z"/>
+    <path d="M568 384V118h74V40h72v78h64v266Z"/>
+    <path d="M802 384V188h110V92h84v292Z"/>
+    <path d="M1040 384V148h76V70h110v314Z"/>
+    <path d="M1262 384V206h92V112h128v272Z"/>
+    <path d="M1508 384V132h72V58h96v326Z"/>
+    <path d="M1716 384V178h106V100h96v284Z"/>
+    <path d="M1926 384V218h122v166Z"/>
+  </g>
+  <g fill="#ffd34d" opacity=".6">
+    <rect x="90" y="128" width="13" height="8"/><rect x="124" y="128" width="13" height="8"/>
+    <rect x="404" y="112" width="12" height="8"/><rect x="444" y="146" width="12" height="8"/>
+    <rect x="606" y="148" width="12" height="8"/><rect x="704" y="184" width="12" height="8"/>
+    <rect x="858" y="218" width="12" height="8"/><rect x="942" y="148" width="12" height="8"/>
+    <rect x="1086" y="122" width="12" height="8"/><rect x="1176" y="196" width="12" height="8"/>
+    <rect x="1326" y="144" width="12" height="8"/><rect x="1430" y="218" width="12" height="8"/>
+    <rect x="1550" y="104" width="12" height="8"/><rect x="1630" y="180" width="12" height="8"/>
+    <rect x="1772" y="132" width="12" height="8"/><rect x="1876" y="218" width="12" height="8"/>
+  </g>
+  <g fill="#ff3dbd" opacity=".42">
+    <rect x="36" y="254" width="84" height="7"/><rect x="488" y="246" width="72" height="7"/>
+    <rect x="734" y="270" width="96" height="7"/><rect x="1212" y="258" width="92" height="7"/>
+    <rect x="1680" y="270" width="100" height="7"/>
+  </g>
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-label="Neon player race car">
+  <defs>
+    <linearGradient id="body" x1="118" y1="92" x2="394" y2="676" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8fbff"/>
+      <stop offset="0.23" stop-color="#5defff"/>
+      <stop offset="0.58" stop-color="#1b4fd8"/>
+      <stop offset="1" stop-color="#08152f"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="256" y1="172" x2="256" y2="412" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e9ffff"/>
+      <stop offset="0.45" stop-color="#35e7ff"/>
+      <stop offset="1" stop-color="#081a38"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <path d="M98 650 144 148 256 58l112 90 46 502-86 68-72-38-72 38Z" fill="#071020" opacity=".96"/>
+  <path d="M119 628 158 174l98-78 98 78 39 454-65 52-72-40-72 40Z" fill="url(#body)" stroke="#a5f7ff" stroke-width="10"/>
+  <path d="M178 251 256 168l78 83 18 142-96 52-96-52Z" fill="url(#glass)" stroke="#e6ffff" stroke-width="8"/>
+  <path d="M151 504 224 470v92l-88 50Zm210-1-73-33v92l88 50Z" fill="#ff3dbd" opacity=".86" filter="url(#glow)"/>
+  <path d="M164 190 101 248 72 486l58-34Zm184 0 63 58 29 238-58-34Z" fill="#0b1024" stroke="#35e7ff" stroke-width="8"/>
+  <path d="M222 126h68l20 52H202Z" fill="#fff7c9"/>
+  <path d="M210 636h92l-46 58Z" fill="#9cff46" filter="url(#glow)"/>
+  <path d="M188 360h136" stroke="#ffffff" stroke-width="10" opacity=".45"/>
+</svg>

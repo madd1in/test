@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-label="Cyan traffic racer">
+  <defs>
+    <linearGradient id="cyanBody" x1="122" y1="88" x2="390" y2="676" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8ffff"/>
+      <stop offset="0.24" stop-color="#35e7ff"/>
+      <stop offset="0.62" stop-color="#0b75a8"/>
+      <stop offset="1" stop-color="#071425"/>
+    </linearGradient>
+    <linearGradient id="cyanGlass" x1="256" y1="196" x2="256" y2="436" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#9cff46"/>
+      <stop offset="1" stop-color="#0b1a14"/>
+    </linearGradient>
+  </defs>
+  <path d="M112 644 154 152 256 70l102 82 42 492-66 70-78-42-78 42Z" fill="#060a13"/>
+  <path d="M136 622 171 185l85-70 85 70 35 437-46 50-74-39-74 39Z" fill="url(#cyanBody)" stroke="#ccfbff" stroke-width="10"/>
+  <path d="M178 276 256 198l78 78 15 129-93 47-93-47Z" fill="url(#cyanGlass)" stroke="#ecffe6" stroke-width="8"/>
+  <path d="M155 214 104 276 86 498l58-28Zm202 0 51 62 18 222-58-28Z" fill="#11182b" stroke="#9cff46" stroke-width="8"/>
+  <path d="M207 618h98l-49 62Z" fill="#ff3dbd"/>
+  <path d="M192 348h128" stroke="#ffffff" stroke-width="10" opacity=".42"/>
+</svg>

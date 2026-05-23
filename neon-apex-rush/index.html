@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Neon Apex Rush</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Neon Apex Rush Arcade Racing Game">
+      <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+      <section class="hud hud-top" aria-live="polite">
+        <div class="hud-chip">
+          <span class="hud-label">Speed</span>
+          <strong id="speedValue">0</strong>
+          <span class="hud-unit">km/h</span>
+        </div>
+        <div class="hud-chip">
+          <span class="hud-label">Time</span>
+          <strong id="timeValue">95</strong>
+        </div>
+        <div class="hud-chip">
+          <span class="hud-label">Distance</span>
+          <strong id="distanceValue">0.0</strong>
+          <span class="hud-unit">km</span>
+        </div>
+        <div class="hud-chip">
+          <span class="hud-label">Score</span>
+          <strong id="scoreValue">0</strong>
+        </div>
+      </section>
+
+      <section class="hud hud-bottom">
+        <div class="meter">
+          <span class="hud-label">Boost</span>
+          <div class="meter-track"><span id="boostFill" class="meter-fill boost-fill"></span></div>
+        </div>
+        <div class="meter">
+          <span class="hud-label">Hull</span>
+          <div class="meter-track"><span id="hullFill" class="meter-fill hull-fill"></span></div>
+        </div>
+      </section>
+
+      <aside id="messageFeed" class="message-feed" aria-live="assertive"></aside>
+
+      <section id="overlay" class="overlay is-open">
+        <div class="overlay-panel">
+          <div class="brand-mark">NAR</div>
+          <h1 id="overlayTitle">Neon Apex Rush</h1>
+          <p id="overlayText">Sprint the night highway before the clock burns out.</p>
+          <div class="overlay-actions">
+            <button id="primaryButton" type="button">Start Race</button>
+            <button id="soundButton" type="button" aria-pressed="false">Sound</button>
+          </div>
+        </div>
+      </section>
+
+      <nav class="touch-controls" aria-label="Mobile racing controls">
+        <button id="touchLeft" type="button" aria-label="Left">&lt;</button>
+        <button id="touchBoost" type="button" aria-label="Boost">&gt;&gt;</button>
+        <button id="touchRight" type="button" aria-label="Right">&gt;</button>
+      </nav>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>

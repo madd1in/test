@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Hazard drone">
+  <defs>
+    <radialGradient id="eye" cx="50%" cy="44%" r="54%">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.34" stop-color="#ff4e5f"/>
+      <stop offset="1" stop-color="#2a0710"/>
+    </radialGradient>
+  </defs>
+  <path d="M128 26 224 80v96l-96 54-96-54V80Z" fill="#0c0e18" stroke="#ff8794" stroke-width="10"/>
+  <circle cx="128" cy="128" r="56" fill="url(#eye)" stroke="#ffd7dc" stroke-width="8"/>
+  <path d="M34 83 8 55m214 28 26-28M34 173 8 201m214-28 26 28" stroke="#35e7ff" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="128" cy="128" r="18" fill="#06080d"/>
+</svg>

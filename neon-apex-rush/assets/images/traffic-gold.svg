@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-label="Gold traffic racer">
+  <defs>
+    <linearGradient id="goldBody" x1="126" y1="92" x2="386" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffdf0"/>
+      <stop offset="0.22" stop-color="#ffd34d"/>
+      <stop offset="0.58" stop-color="#d77927"/>
+      <stop offset="1" stop-color="#281104"/>
+    </linearGradient>
+    <linearGradient id="goldGlass" x1="256" y1="188" x2="256" y2="424" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.48" stop-color="#ff3dbd"/>
+      <stop offset="1" stop-color="#271022"/>
+    </linearGradient>
+  </defs>
+  <path d="M100 650 148 162 256 74l108 88 48 488-80 64-76-38-76 38Z" fill="#09090f"/>
+  <path d="M126 625 166 190l90-72 90 72 40 435-56 45-74-37-74 37Z" fill="url(#goldBody)" stroke="#fff5bb" stroke-width="10"/>
+  <path d="M175 270 256 190l81 80 14 126-95 48-95-48Z" fill="url(#goldGlass)" stroke="#ffeafa" stroke-width="8"/>
+  <path d="M141 496 222 462v82l-96 44Zm230 0-81-34v82l96 44Z" fill="#35e7ff" opacity=".78"/>
+  <path d="M199 135h114l16 47H183Z" fill="#f8fbff"/>
+  <path d="M178 362h156" stroke="#ffffff" stroke-width="10" opacity=".36"/>
+</svg>

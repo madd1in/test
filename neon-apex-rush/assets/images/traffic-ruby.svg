@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-label="Ruby traffic racer">
+  <defs>
+    <linearGradient id="redBody" x1="116" y1="96" x2="396" y2="664" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff1f6"/>
+      <stop offset="0.18" stop-color="#ff4e5f"/>
+      <stop offset="0.58" stop-color="#9d1739"/>
+      <stop offset="1" stop-color="#260713"/>
+    </linearGradient>
+    <linearGradient id="redGlass" x1="256" y1="184" x2="256" y2="414" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.52" stop-color="#ffb247"/>
+      <stop offset="1" stop-color="#27121a"/>
+    </linearGradient>
+  </defs>
+  <path d="M104 648 146 160l110-82 110 82 42 488-78 70-74-36-74 36Z" fill="#080914"/>
+  <path d="M128 624 164 188l92-70 92 70 36 436-54 46-74-36-74 36Z" fill="url(#redBody)" stroke="#ffb7c4" stroke-width="10"/>
+  <path d="M178 265 256 190l78 75 16 126-94 50-94-50Z" fill="url(#redGlass)" stroke="#ffe7c7" stroke-width="8"/>
+  <path d="M144 472 218 444v86l-89 43Zm224 0-74-28v86l89 43Z" fill="#ffd34d" opacity=".84"/>
+  <path d="M205 132h102l17 47H188Z" fill="#f8fbff"/>
+  <path d="M168 350h176" stroke="#ffffff" stroke-width="9" opacity=".35"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Boost cell">
+  <defs>
+    <radialGradient id="cell" cx="50%" cy="42%" r="58%">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.28" stop-color="#9cff46"/>
+      <stop offset="0.68" stop-color="#35e7ff"/>
+      <stop offset="1" stop-color="#071425"/>
+    </radialGradient>
+    <filter id="cellGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <path d="M128 14 226 70v116l-98 56-98-56V70Z" fill="url(#cell)" stroke="#eaffd8" stroke-width="10" filter="url(#cellGlow)"/>
+  <path d="M131 46 82 133h39l-17 77 70-103h-43Z" fill="#06101d" opacity=".84"/>
+  <path d="M58 78 128 38l70 40" fill="none" stroke="#ffffff" stroke-width="8" opacity=".64"/>
+</svg>

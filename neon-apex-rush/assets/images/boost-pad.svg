@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Boost pad">
+  <defs>
+    <linearGradient id="pad" x1="28" y1="128" x2="484" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071425"/>
+      <stop offset="0.2" stop-color="#0b3653"/>
+      <stop offset="0.5" stop-color="#35e7ff"/>
+      <stop offset="0.78" stop-color="#9cff46"/>
+      <stop offset="1" stop-color="#071425"/>
+    </linearGradient>
+  </defs>
+  <path d="M44 42h424l-42 172H86Z" fill="#050914" stroke="#e9ffff" stroke-width="8"/>
+  <path d="M74 68h364l-29 120H103Z" fill="url(#pad)"/>
+  <path d="M150 194 222 128 150 62h72l72 66-72 66Zm156 0 72-66-72-66h72l72 66-72 66Z" fill="#f8fbff" opacity=".84"/>
+</svg>
