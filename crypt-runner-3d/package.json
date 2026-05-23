@@ -1,0 +1,12 @@
+{
+  "name": "crypt-runner-3d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A standalone Three.js 3D endless runner with HD downloaded art and audio assets.",
+  "scripts": {
+    "serve": "node tools/serve.js",
+    "check": "node tools/smoke-test.js",
+    "browser": "node tools/browser-smoke.js"
+  }
+}
