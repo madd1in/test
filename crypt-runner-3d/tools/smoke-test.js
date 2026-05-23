@@ -13,12 +13,20 @@ const requiredFiles = [
   "assets/art/gothic-atlas.png",
   "assets/audio/bgm/jet-fuel-glory.mp3",
   "assets/audio/bgm/steel-punch-parade.mp3",
+  "assets/audio/bgm/gasket-thunder.mp3",
+  "assets/audio/bgm/dojo-crash-duel.mp3",
+  "assets/audio/bgm/bamboo-arcade.mp3",
+  "assets/audio/bgm/turbo-banana-cup.mp3",
   "assets/audio/sfx/arcade-start.mp3",
   "assets/audio/sfx/checkpoint.mp3",
   "assets/audio/sfx/dash.mp3",
   "assets/audio/sfx/gem-pickup.mp3",
   "assets/audio/sfx/impact.mp3",
-  "assets/audio/sfx/jump.mp3"
+  "assets/audio/sfx/jump.mp3",
+  "assets/audio/sfx/riff-hit.mp3",
+  "assets/audio/sfx/riff-miss.mp3",
+  "assets/audio/sfx/power-chord.mp3",
+  "assets/audio/sfx/beat-tick.mp3"
 ];
 
 for (const file of requiredFiles) {
@@ -57,11 +65,14 @@ const js = readFileSync(join(root, "js/game.js"), "utf8");
 const checks = [
   [html.includes("scene") && html.includes("top-hud"), "canvas and HUD are present"],
   [html.includes("data-touch=\"dash\"") && html.includes("results"), "touch and result UI are present"],
+  [html.includes("riff-value") && html.includes("fret-board"), "rhythm HUD is present"],
   [css.includes("@media") && css.includes("grid-template-columns"), "responsive CSS is present"],
   [js.includes("import * as THREE") && js.includes("WebGLRenderer"), "Three.js renderer is wired"],
   [js.includes("class CryptRunnerGame") && js.includes("createState"), "game state class is wired"],
   [js.includes("spawnPattern") && js.includes("collide(entity)"), "runner spawning and collisions are wired"],
-  [js.includes("AudioDeck") && js.includes("jet-fuel-glory.mp3"), "download audio manifest is wired"],
+  [js.includes("AudioDeck") && js.includes("gasket-thunder.mp3"), "download audio manifest is wired"],
+  [js.includes("spawnRiffPhrase") && js.includes("buildRiffChord"), "rhythm note gameplay is wired"],
+  [js.includes("power-chord.mp3") && js.includes("riff-hit.mp3"), "rhythm SFX are wired"],
   [js.includes("catacomb-hall.png") && js.includes("gothic-atlas.png"), "download image assets are wired"],
   [js.includes("preserveDrawingBuffer") && js.includes("autoplay"), "browser visual test hooks are present"]
 ];

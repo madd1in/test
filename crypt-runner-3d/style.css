@@ -57,7 +57,7 @@ button {
   right: max(14px, env(safe-area-inset-right));
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(116px, 1.1fr) repeat(3, minmax(86px, 0.7fr)) repeat(2, minmax(118px, 0.9fr)) auto;
+  grid-template-columns: minmax(116px, 1.1fr) repeat(4, minmax(82px, 0.7fr)) repeat(2, minmax(118px, 0.9fr)) auto;
   gap: 8px;
   align-items: stretch;
   pointer-events: none;
@@ -138,6 +138,10 @@ button {
   background: linear-gradient(90deg, var(--violet), var(--gold));
 }
 
+#riff-fill {
+  background: linear-gradient(90deg, var(--crimson), var(--gold), var(--teal));
+}
+
 .hud-actions {
   display: flex;
   gap: 8px;
@@ -175,6 +179,94 @@ button {
   transform: translateY(-1px);
   border-color: rgba(83, 229, 215, 0.62);
   background: rgba(83, 229, 215, 0.15);
+}
+
+.rhythm-hud {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 6;
+  display: grid;
+  grid-template-columns: 78px 190px 140px;
+  gap: 8px;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rhythm-stat,
+.fret-board,
+.rhythm-meter {
+  min-height: 48px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(9, 11, 16, 0.68);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(14px);
+}
+
+.rhythm-stat,
+.rhythm-meter {
+  padding: 8px 10px;
+}
+
+.rhythm-stat span,
+.rhythm-meter span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.rhythm-stat strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff8e7;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.fret-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  padding: 7px;
+}
+
+.fret {
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  opacity: 0.58;
+  transform: scale(0.94);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.fret.green {
+  background: linear-gradient(180deg, #9fe070, #2d8d59);
+}
+
+.fret.red {
+  background: linear-gradient(180deg, #f06868, #8b2d4e);
+}
+
+.fret.gold {
+  background: linear-gradient(180deg, #f3bf56, #a25e24);
+}
+
+.fret.active,
+.fret.hit {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 0 18px rgba(243, 191, 86, 0.5);
+}
+
+.rhythm-hud.overdrive .fret {
+  box-shadow: 0 0 22px rgba(83, 229, 215, 0.58);
 }
 
 .toast {
@@ -360,6 +452,28 @@ h2 {
   .brand strong,
   .hud-chip strong {
     font-size: 16px;
+  }
+
+  .rhythm-hud {
+    bottom: max(84px, calc(env(safe-area-inset-bottom) + 84px));
+    grid-template-columns: 66px minmax(120px, 1fr) 118px;
+    width: min(374px, calc(100vw - 16px));
+    gap: 6px;
+  }
+
+  .rhythm-stat,
+  .fret-board,
+  .rhythm-meter {
+    min-height: 42px;
+  }
+
+  .rhythm-stat strong {
+    font-size: 15px;
+  }
+
+  .fret-board {
+    gap: 5px;
+    padding: 6px;
   }
 
   .hud-actions {

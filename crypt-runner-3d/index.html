@@ -29,6 +29,10 @@
           <span>Tempo</span>
           <strong id="speed-value">0</strong>
         </div>
+        <div class="hud-chip">
+          <span>Riff</span>
+          <strong id="riff-value">0 x1</strong>
+        </div>
         <div class="meter-chip">
           <span>Leben</span>
           <div class="meter"><i id="health-fill"></i></div>
@@ -43,13 +47,29 @@
         </div>
       </section>
 
+      <section class="rhythm-hud" aria-label="Rhythmus">
+        <div class="rhythm-stat">
+          <span>Fret</span>
+          <strong id="beat-value">Ready</strong>
+        </div>
+        <div id="fret-board" class="fret-board" aria-hidden="true">
+          <i class="fret green"></i>
+          <i class="fret red"></i>
+          <i class="fret gold"></i>
+        </div>
+        <div class="rhythm-meter">
+          <span>Overdrive</span>
+          <div class="meter"><i id="riff-fill"></i></div>
+        </div>
+      </section>
+
       <div id="toast" class="toast" aria-live="assertive">Bereit</div>
 
       <section id="menu" class="screen active" aria-label="Start">
         <div class="menu-panel">
           <p class="eyebrow">HD Vault Run</p>
           <h1>Crypt Runner 3D</h1>
-          <p>Die Katakombe zieht endlos nach vorn. Sammle Splitter, halte den Lauf, brich durch die Tore.</p>
+          <p>Die Katakombe zieht endlos nach vorn. Sammle Splitter, triff Riff-Noten, lade Power-Chords und brich durch die Tore.</p>
           <div class="menu-actions">
             <button id="start-button" class="primary-button" type="button">Start</button>
             <button id="menu-audio-button" type="button" aria-pressed="false">Audio</button>
