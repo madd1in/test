@@ -36,6 +36,7 @@ Open `http://localhost:4179`.
 - Player and enemies were scaled down again and now use asset-backed dark ring/backplate sprites so they separate from the moving background.
 - Aura rings were softened and ships now get a brighter gamma plus sprite-glow pass over a darker playfield.
 - The current start screen/HUD uses raster chrome overlays so the frames and buttons feel less sterile.
+- Performance pass removes per-sprite blur/filter work, moves the nebula background out of the canvas redraw loop, lowers render scale, delays heavy audio preload, and keeps the font atlas as a subtle texture behind readable live text.
 
 ## Controls
 

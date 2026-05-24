@@ -2,7 +2,7 @@
   "use strict";
 
   const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const ctx = canvas.getContext("2d", { alpha: true });
   const hud = {
     score: document.getElementById("score"),
     hull: document.getElementById("hull"),
@@ -22,8 +22,9 @@
   const H = 720;
   const TAU = Math.PI * 2;
   const PLAYER_MAX_HULL = 120;
-  const SHIP_GAMMA_FILTER = "brightness(2.05) contrast(1.28) saturate(1.24)";
-  const SHIP_GLOW_FILTER = "brightness(2.7) contrast(1.12) saturate(1.38) blur(0.45px)";
+  const MAX_RENDER_DPR = 0.75;
+  const PLAYER_HIGHLIGHT_ALPHA = 0.26;
+  const ENEMY_HIGHLIGHT_ALPHA = 0.12;
   const rand = (min, max) => min + Math.random() * (max - min);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const dist2 = (a, b) => {
@@ -236,7 +237,9 @@
   const enemies = [];
   const particles = [];
   const pickups = [];
-  const stars = Array.from({ length: 150 }, () => ({
+  let backgroundGradient = null;
+  let vignetteGradient = null;
+  const stars = Array.from({ length: 72 }, () => ({
     x: rand(0, W),
     y: rand(0, H),
     z: rand(0.15, 1),
@@ -271,12 +274,14 @@
     el.classList.add("bitmap-text");
     if (variant) el.classList.add(`bitmap-text--${variant}`);
     const fragment = document.createDocumentFragment();
+    const raster = document.createElement("span");
+    raster.className = "bitmap-raster";
+    raster.setAttribute("aria-hidden", "true");
     for (const char of value) {
       if (char === " ") {
         const space = document.createElement("span");
         space.className = "bitmap-space";
-        space.setAttribute("aria-hidden", "true");
-        fragment.appendChild(space);
+        raster.appendChild(space);
         continue;
       }
       const index = bitmapLookup.get(char);
@@ -285,9 +290,14 @@
       glyph.className = "bitmap-glyph";
       glyph.style.setProperty("--mask-x", `${-(index % BITMAP_FONT_COLS) * BITMAP_GLYPH_W}em`);
       glyph.style.setProperty("--mask-y", `-${Math.floor(index / BITMAP_FONT_COLS)}em`);
-      glyph.setAttribute("aria-hidden", "true");
-      fragment.appendChild(glyph);
+      raster.appendChild(glyph);
     }
+    const readable = document.createElement("span");
+    readable.className = "bitmap-readable";
+    readable.setAttribute("aria-hidden", "true");
+    readable.textContent = value;
+    fragment.appendChild(raster);
+    fragment.appendChild(readable);
     el.replaceChildren(fragment);
   }
 
@@ -1168,33 +1178,12 @@
   }
 
   function drawBackground() {
-    const bg = assets.bg;
-    ctx.fillStyle = "#05070d";
-    ctx.fillRect(-40, -40, W + 80, H + 80);
-    if (bg.complete && bg.naturalWidth) {
-      const scroll = state.time * (state.reducedMotion ? 24 : 82);
-      drawTiledBackground(bg, scroll * 0.32, -32, H + 64, 0.34);
-      drawTiledBackground(bg, scroll, 0, H, 0.74);
-      ctx.globalAlpha = 1;
-    }
-    ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+    ctx.clearRect(-40, -40, W + 80, H + 80);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
     ctx.fillRect(0, 0, W, H);
     drawStars();
-    const grd = ctx.createLinearGradient(0, 0, W, 0);
-    grd.addColorStop(0, "rgba(5, 7, 13, 0.42)");
-    grd.addColorStop(0.55, "rgba(5, 7, 13, 0.14)");
-    grd.addColorStop(1, "rgba(255, 77, 118, 0.1)");
-    ctx.fillStyle = grd;
+    ctx.fillStyle = backgroundGradient;
     ctx.fillRect(0, 0, W, H);
-  }
-
-  function drawTiledBackground(img, scroll, y, h, alpha) {
-    const tileW = h * (img.naturalWidth / img.naturalHeight);
-    const startX = -((scroll % tileW) + tileW) % tileW;
-    ctx.globalAlpha = alpha;
-    for (let x = startX - tileW; x < W + tileW; x += tileW) {
-      ctx.drawImage(img, x, y, tileW, h);
-    }
   }
 
   function drawStars() {
@@ -1426,10 +1415,7 @@
   }
 
   function drawVignette() {
-    const g = ctx.createRadialGradient(W * 0.55, H * 0.5, H * 0.18, W * 0.55, H * 0.5, H * 0.82);
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, "rgba(0,0,0,0.48)");
-    ctx.fillStyle = g;
+    ctx.fillStyle = vignetteGradient;
     ctx.fillRect(0, 0, W, H);
     if (state.flash > 0) {
       ctx.fillStyle = `rgba(255, 77, 118, ${state.flash * 0.18})`;
@@ -1469,49 +1455,29 @@
     drawRingAt(ringName, x, y, w, h, rotation, alpha);
   }
 
-  function withShipGamma(draw) {
-    const previousFilter = ctx.filter;
-    const previousShadowColor = ctx.shadowColor;
-    const previousShadowBlur = ctx.shadowBlur;
-    const previousShadowOffsetX = ctx.shadowOffsetX;
-    const previousShadowOffsetY = ctx.shadowOffsetY;
-    ctx.filter = SHIP_GAMMA_FILTER;
-    ctx.shadowColor = "rgba(205, 255, 255, 0.46)";
-    ctx.shadowBlur = 11;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    draw();
-    ctx.filter = previousFilter;
-    ctx.shadowColor = previousShadowColor;
-    ctx.shadowBlur = previousShadowBlur;
-    ctx.shadowOffsetX = previousShadowOffsetX;
-    ctx.shadowOffsetY = previousShadowOffsetY;
-  }
-
-  function withShipGlow(draw, alpha = 0.2) {
+  function withShipHighlight(draw, alpha = ENEMY_HIGHLIGHT_ALPHA) {
     ctx.save();
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = "screen";
     ctx.globalAlpha *= alpha;
-    ctx.filter = SHIP_GLOW_FILTER;
-    ctx.shadowColor = "rgba(93, 244, 255, 0.36)";
-    ctx.shadowBlur = 14;
     draw();
     ctx.restore();
   }
 
   function drawShipClip(name, x, y, w, h, flipX = false) {
-    withShipGlow(() => drawClip(name, x, y, w, h, flipX), name === "player" ? 0.28 : 0.2);
-    withShipGamma(() => drawClip(name, x, y, w, h, flipX));
+    drawClip(name, x, y, w, h, flipX);
+    if (name === "player") withShipHighlight(() => drawClip(name, x, y, w, h, flipX), PLAYER_HIGHLIGHT_ALPHA);
+    else if (name === "boss") withShipHighlight(() => drawClip(name, x, y, w, h, flipX), 0.16);
   }
 
   function drawShipClipAt(name, x, y, w, h, flipX = false) {
-    withShipGlow(() => drawClipAt(name, x, y, w, h, flipX), name === "shield" ? 0.18 : 0.2);
-    withShipGamma(() => drawClipAt(name, x, y, w, h, flipX));
+    drawClipAt(name, x, y, w, h, flipX);
   }
 
   function drawShipPropAt(name, x, y, w, h) {
-    withShipGlow(() => drawPropAt(name, x, y, w, h), name === "frigate" || name === "carrier" ? 0.18 : 0.2);
-    withShipGamma(() => drawPropAt(name, x, y, w, h));
+    drawPropAt(name, x, y, w, h);
+    if (name === "needle" || name === "frigate" || name === "carrier") {
+      withShipHighlight(() => drawPropAt(name, x, y, w, h), ENEMY_HIGHLIGHT_ALPHA);
+    }
   }
 
   function drawClip(name, x, y, w, h, flipX = false) {
@@ -1629,14 +1595,21 @@
   }
 
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_RENDER_DPR);
     canvas.width = Math.floor(W * dpr);
     canvas.height = Math.floor(H * dpr);
     canvas.style.width = "100vw";
     canvas.style.height = "100vh";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingQuality = "medium";
+    backgroundGradient = ctx.createLinearGradient(0, 0, W, 0);
+    backgroundGradient.addColorStop(0, "rgba(5, 7, 13, 0.28)");
+    backgroundGradient.addColorStop(0.55, "rgba(5, 7, 13, 0.06)");
+    backgroundGradient.addColorStop(1, "rgba(255, 77, 118, 0.08)");
+    vignetteGradient = ctx.createRadialGradient(W * 0.55, H * 0.5, H * 0.18, W * 0.55, H * 0.5, H * 0.82);
+    vignetteGradient.addColorStop(0, "rgba(0,0,0,0)");
+    vignetteGradient.addColorStop(1, "rgba(0,0,0,0.48)");
   }
 
   function frame(now) {
