@@ -8,6 +8,7 @@
     hull: document.getElementById("hull"),
     heat: document.getElementById("heat"),
     wave: document.getElementById("wave"),
+    chain: document.getElementById("chain"),
     best: document.getElementById("best"),
   };
   const menu = document.getElementById("menu");
@@ -34,6 +35,7 @@
     sheet: loadImage("assets/generated/rift-asset-sheet-alpha.png"),
     props: loadImage("assets/generated/rift-props-sheet-alpha.png"),
     fx: loadImage("assets/generated/rift-projectiles-sheet-alpha.png"),
+    boom: loadImage("assets/generated/rift-explosions-sheet-alpha.png"),
   };
 
   const clips = {
@@ -90,6 +92,26 @@
     deflect: [FX_W * 2, FX_H * 3, FX_W, FX_H],
     gravityRipple: [FX_W * 3, FX_H * 3, FX_W, FX_H],
   };
+  const BOOM_W = 384;
+  const BOOM_H = 1024 / 3;
+  const boomClips = {
+    impactTeal: [0, 0, BOOM_W, BOOM_H],
+    impactAmber: [BOOM_W, 0, BOOM_W, BOOM_H],
+    shieldCrack: [BOOM_W * 2, 0, BOOM_W, BOOM_H],
+    plasmaBurst: [BOOM_W * 3, 0, BOOM_W, BOOM_H],
+    medium: [
+      [0, BOOM_H, BOOM_W, BOOM_H],
+      [BOOM_W, BOOM_H, BOOM_W, BOOM_H],
+      [BOOM_W * 2, BOOM_H, BOOM_W, BOOM_H],
+      [BOOM_W * 3, BOOM_H, BOOM_W, BOOM_H],
+    ],
+    large: [
+      [0, BOOM_H * 2, BOOM_W, BOOM_H],
+      [BOOM_W, BOOM_H * 2, BOOM_W, BOOM_H],
+      [BOOM_W * 2, BOOM_H * 2, BOOM_W, BOOM_H],
+      [BOOM_W * 3, BOOM_H * 2, BOOM_W, BOOM_H],
+    ],
+  };
 
   const input = {
     left: false,
@@ -112,6 +134,8 @@
     flash: 0,
     score: 0,
     best: Number(localStorage.getItem("rift-lance-best") || 0),
+    chain: 0,
+    chainTimer: 0,
     wave: 1,
     spawnTimer: 0,
     hazardTimer: 0,
@@ -127,7 +151,7 @@
     y: H * 0.5,
     vx: 0,
     vy: 0,
-    r: 22,
+    r: 18,
     hull: PLAYER_MAX_HULL,
     heat: 0,
     fireTimer: 0,
@@ -142,7 +166,7 @@
     y: H * 0.5,
     vx: 0,
     vy: 0,
-    r: 18,
+    r: 14,
     angle: 0,
     fireTimer: 0,
     recall: 0,
@@ -207,6 +231,8 @@
       shake: 0,
       flash: 0,
       score: 0,
+      chain: 0,
+      chainTimer: 0,
       wave: 1,
       spawnTimer: 0.85,
       hazardTimer: 2.4,
@@ -256,6 +282,7 @@
     hud.hull.textContent = String(Math.max(0, Math.ceil(player.hull)));
     hud.heat.textContent = `${Math.round(player.heat)}%`;
     hud.wave.textContent = String(state.wave).padStart(2, "0");
+    hud.chain.textContent = String(state.chain);
     hud.best.textContent = String(Math.floor(state.best));
   }
 
@@ -263,6 +290,10 @@
     state.time += dt;
     state.shake = Math.max(0, state.shake - dt * 8);
     state.flash = Math.max(0, state.flash - dt * 3.4);
+    if (state.chainTimer > 0) {
+      state.chainTimer -= dt;
+      if (state.chainTimer <= 0) state.chain = 0;
+    }
     if (state.bannerTimer > 0) {
       state.bannerTimer -= dt;
       if (state.bannerTimer <= 0) banner.classList.remove("is-live");
@@ -439,7 +470,7 @@
       baseY: y,
       vx: -rand(210, 330) - waveBoost * 24,
       vy: rand(-55, 55),
-      r: kind === "blade" ? 32 : 27,
+      r: kind === "blade" ? 25 : 21,
       hp: kind === "turret" ? 42 + state.wave * 6 : 26 + state.wave * 5,
       maxHp: 1,
       t: rand(0, TAU),
@@ -450,7 +481,7 @@
       Object.assign(enemy, {
         vx: -rand(420, 560) - waveBoost * 34,
         vy: rand(-120, 120),
-        r: 25,
+        r: 19,
         hp: 20 + state.wave * 4,
         value: 220,
         art: "needle",
@@ -459,7 +490,7 @@
       Object.assign(enemy, {
         vx: -rand(120, 180) - waveBoost * 10,
         vy: rand(-25, 25),
-        r: 46,
+        r: 36,
         hp: 98 + state.wave * 22,
         shot: rand(0.35, 0.9),
         value: 520,
@@ -469,7 +500,7 @@
       Object.assign(enemy, {
         vx: -rand(95, 145) - waveBoost * 8,
         vy: rand(-35, 35),
-        r: 55,
+        r: 42,
         hp: 126 + state.wave * 28,
         shot: rand(0.7, 1.2),
         value: 680,
@@ -488,7 +519,7 @@
       baseY: y,
       vx: -rand(300, 400) - state.wave * 12,
       vy: rand(-90, 90),
-      r: 22,
+      r: 18,
       hp: 24 + state.wave * 4,
       maxHp: 24 + state.wave * 4,
       t: rand(0, TAU),
@@ -503,7 +534,7 @@
     const asteroidArts = ["asteroidDark", "asteroidOre", "asteroidIce"];
     let hazard;
     if (roll < 0.48) {
-      const r = rand(30, 58);
+      const r = rand(24, 46);
       const hp = 20 + r * 0.62 + state.wave * 5;
       hazard = {
         kind: "asteroid",
@@ -527,7 +558,7 @@
         y: rand(110, H - 86),
         vx: -rand(120, 190) - state.wave * 8,
         vy: rand(-20, 20),
-        r: 39,
+        r: 32,
         hp: 38 + state.wave * 6,
         maxHp: 38 + state.wave * 6,
         t: rand(0, TAU),
@@ -542,7 +573,7 @@
         y: rand(125, H - 100),
         vx: -rand(150, 230),
         vy: rand(-18, 18),
-        r: 48,
+        r: 40,
         hp: 54 + state.wave * 9,
         maxHp: 54 + state.wave * 9,
         rot: rand(-0.35, 0.35),
@@ -557,7 +588,7 @@
         y: rand(150, H - 130),
         vx: -rand(90, 135),
         vy: rand(-10, 10),
-        r: 58,
+        r: 48,
         hp: 78 + state.wave * 13,
         maxHp: 78 + state.wave * 13,
         t: 0,
@@ -574,7 +605,7 @@
       y: H * 0.5,
       vx: -120,
       vy: 0,
-      r: 104,
+      r: 82,
       hp: 650 + state.wave * 145,
       maxHp: 650 + state.wave * 145,
       t: 0,
@@ -587,6 +618,10 @@
     for (let i = enemies.length - 1; i >= 0; i -= 1) {
       const e = enemies[i];
       e.t = (e.t || 0) + dt;
+      if (e.hp <= 0) {
+        killEnemy(e, i);
+        continue;
+      }
       e.x += e.vx * dt;
       e.y += e.vy * dt;
       if (e.kind === "skimmer") {
@@ -721,6 +756,56 @@
     }
   }
 
+  function spawnImpact(x, y, kind = "impactTeal", size = 58) {
+    particles.push({
+      x,
+      y,
+      vx: rand(-18, 18),
+      vy: rand(-18, 18),
+      life: 0.24,
+      maxLife: 0.24,
+      size,
+      alpha: 0.95,
+      boom: kind,
+      rot: rand(0, TAU),
+    });
+  }
+
+  function spawnExplosion(x, y, size = 96, kind = "medium") {
+    const life = kind === "large" ? 0.72 : 0.48;
+    particles.push({
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      life,
+      maxLife: life,
+      size,
+      alpha: 0.98,
+      boom: kind,
+      rot: rand(-0.28, 0.28),
+    });
+  }
+
+  function triggerRiftBloom() {
+    setBanner("RIFT BLOOM", 1.05);
+    addScore(480);
+    enemyBullets.length = 0;
+    state.flash = Math.max(state.flash, 0.78);
+    state.shake = state.reducedMotion ? 0.12 : Math.max(state.shake, 0.58);
+    spawnExplosion(player.x + 116, player.y, 190, "large");
+    burst(player.x + 110, player.y, "#54f3ff", 34, 1.9);
+    for (const e of enemies) {
+      if (e.x < player.x - 80) continue;
+      const d = Math.hypot(e.x - player.x, e.y - player.y);
+      const falloff = clamp(1.15 - d / 920, 0.35, 1);
+      e.hp -= (e.kind === "boss" ? 96 : 142) * falloff;
+      spawnImpact(e.x, e.y, e.kind === "blackHole" ? "plasmaBurst" : "impactAmber", e.kind === "boss" ? 92 : 58);
+    }
+    state.chain = 0;
+    state.chainTimer = 0;
+  }
+
   function checkCollisions() {
     for (let i = bullets.length - 1; i >= 0; i -= 1) {
       const b = bullets[i];
@@ -729,7 +814,7 @@
         const hitRadius = b.radius + e.r * (e.kind === "boss" ? 1.05 : 0.85);
         if (dist2(b, e) < hitRadius * hitRadius) {
           e.hp -= b.damage;
-          particles.push({ x: b.x, y: b.y, vx: 0, vy: 0, life: 0.18, radius: 20, color: b.color, alpha: 0.9, art: "impact", rot: rand(0, TAU) });
+          spawnImpact(b.x, b.y, e.kind === "blackHole" ? "plasmaBurst" : b.kind === "lance" ? "impactAmber" : "impactTeal", b.kind === "lance" ? 74 : 52);
           burst(b.x, b.y, b.color, b.kind === "lance" ? 10 : 4, b.kind === "lance" ? 1.2 : 0.6);
           if (b.kind !== "lance" || --b.pierce <= 0) bullets.splice(i, 1);
           if (e.hp <= 0) killEnemy(e, j);
@@ -742,13 +827,14 @@
       const b = enemyBullets[i];
       if (dist2(b, drone) < (b.radius + drone.r) ** 2 && player.droneMode === "orbit") {
         enemyBullets.splice(i, 1);
-        particles.push({ x: b.x, y: b.y, vx: 0, vy: 0, life: 0.2, radius: 26, color: "#54f3ff", alpha: 0.9, art: "deflect", rot: rand(0, TAU) });
+        spawnImpact(b.x, b.y, "shieldCrack", 70);
         burst(b.x, b.y, "#54f3ff", 8, 0.7);
         addScore(12);
         continue;
       }
-        if (dist2(b, player) < (b.radius + player.r * 0.82) ** 2) {
+      if (dist2(b, player) < (b.radius + player.r * 0.82) ** 2) {
         enemyBullets.splice(i, 1);
+        spawnImpact(b.x, b.y, "plasmaBurst", 66);
         damagePlayer(b.damage);
       }
     }
@@ -760,6 +846,7 @@
         damagePlayer(e.kind === "boss" ? 20 : 12);
       } else if (dist2(e, drone) < (e.r + drone.r) ** 2 && player.droneMode === "orbit") {
         e.hp -= 16;
+        spawnImpact(drone.x, drone.y, "shieldCrack", 62);
         burst(drone.x, drone.y, "#ffbc55", 6, 0.8);
         if (e.hp <= 0) killEnemy(e, i);
       }
@@ -798,20 +885,19 @@
     enemies.splice(index, 1);
     const count = enemy.kind === "boss" ? 46 : enemy.kind === "asteroid" ? 16 : 22;
     burst(enemy.x, enemy.y, enemy.kind === "boss" ? "#ffbc55" : "#ff4d76", count, enemy.kind === "boss" ? 2.6 : 1.3);
-    particles.push({
-      x: enemy.x,
-      y: enemy.y,
-      vx: 0,
-      vy: 0,
-      life: enemy.kind === "boss" ? 0.5 : 0.3,
-      radius: enemy.kind === "boss" ? 82 : 48,
-      color: "#ffbc55",
-      alpha: 0.95,
-      art: "explosion",
-      rot: rand(0, TAU),
-    });
+    spawnExplosion(enemy.x, enemy.y, enemy.kind === "boss" ? 178 : enemy.kind === "asteroid" ? 78 : 104, enemy.kind === "boss" ? "large" : "medium");
     state.shake = state.reducedMotion ? 0.08 : Math.max(state.shake, enemy.kind === "boss" ? 0.7 : 0.22);
-    if (score) addScore(enemy.value);
+    if (score) {
+      addScore(enemy.value);
+      if (enemy.kind !== "asteroid") {
+        state.chain += 1;
+        state.chainTimer = 4.2;
+        if (state.chain >= 8) triggerRiftBloom();
+      }
+    } else {
+      state.chain = 0;
+      state.chainTimer = 0;
+    }
     const dropChance = enemy.kind === "boss" ? 1 : enemy.kind === "relay" || enemy.kind === "carrier" ? 0.42 : player.hull < PLAYER_MAX_HULL * 0.45 ? 0.24 : 0.16;
     if (Math.random() < dropChance) {
       const kind = enemy.kind === "relay" ? "crate" : player.heat > 55 ? "battery" : "core";
@@ -828,6 +914,7 @@
     player.invuln = 0.86;
     state.flash = 0.8;
     state.shake = state.reducedMotion ? 0.1 : 0.48;
+    spawnExplosion(player.x + 12, player.y, 86, "medium");
     burst(player.x, player.y, "#ff4d76", 18, 1.1);
     if (player.hull <= 0) endRun();
   }
@@ -930,14 +1017,14 @@
   function drawPlayer() {
     const flicker = player.invuln > 0 && Math.floor(state.time * 24) % 2 === 0;
     if (flicker) ctx.globalAlpha = 0.42;
-    drawClip("player", player.x - 58, player.y - 33, 130, 58, true);
+    drawClip("player", player.x - 44, player.y - 24, 98, 44, true);
     if (player.charge > 2) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.strokeStyle = player.charge > 76 ? "#ffbc55" : "#54f3ff";
       ctx.lineWidth = 3 + player.charge * 0.04;
       ctx.beginPath();
-      ctx.arc(player.x + 36, player.y, 22 + player.charge * 0.28, 0, TAU);
+      ctx.arc(player.x + 28, player.y, 16 + player.charge * 0.22, 0, TAU);
       ctx.stroke();
       ctx.restore();
     }
@@ -949,14 +1036,14 @@
     ctx.save();
     ctx.translate(drone.x, drone.y);
     ctx.rotate(drone.angle);
-    drawClipAt("shield", -24, -24, 48, 48);
+    drawClipAt("shield", -18, -18, 36, 36);
     ctx.restore();
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.strokeStyle = player.droneMode === "orbit" ? "rgba(84,243,255,0.56)" : "rgba(255,188,85,0.62)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(drone.x, drone.y, 26 + Math.sin(state.time * 8) * 3, 0, TAU);
+    ctx.arc(drone.x, drone.y, 20 + Math.sin(state.time * 8) * 2.5, 0, TAU);
     ctx.stroke();
     ctx.restore();
   }
@@ -968,16 +1055,16 @@
       } else if (e.kind === "mine" || e.kind === "relay" || e.kind === "blackHole") {
         drawHazardObject(e);
       } else if (e.kind === "boss") {
-        drawClip("boss", e.x - 164, e.y - 48, 245, 74);
-        drawHealthBar(e, 170);
+        drawClip("boss", e.x - 134, e.y - 38, 200, 60);
+        drawHealthBar(e, 140);
       } else if (e.kind === "needle" || e.kind === "frigate" || e.kind === "carrier") {
-        const size = e.kind === "needle" ? [108, 72] : e.kind === "frigate" ? [134, 90] : [152, 96];
+        const size = e.kind === "needle" ? [84, 56] : e.kind === "frigate" ? [108, 72] : [122, 78];
         drawPropAt(e.art, e.x - size[0] * 0.5, e.y - size[1] * 0.5, size[0], size[1]);
-        drawHealthBar(e, e.kind === "needle" ? 50 : 76);
+        drawHealthBar(e, e.kind === "needle" ? 42 : 66);
       } else {
         const clip = e.kind === "skimmer" || e.kind === "escort" ? "droneA" : e.kind === "blade" ? "droneB" : "droneC";
-        drawClip(clip, e.x - 44, e.y - 30, 88, 54);
-        drawHealthBar(e, 46);
+        drawClip(clip, e.x - 34, e.y - 22, 68, 42);
+        drawHealthBar(e, 38);
       }
     }
   }
@@ -986,7 +1073,7 @@
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.rotate(e.rot);
-    drawPropAt(e.art, -e.r * 1.35, -e.r * 1.35, e.r * 2.7, e.r * 2.7);
+    drawPropAt(e.art, -e.r * 1.08, -e.r * 1.08, e.r * 2.16, e.r * 2.16);
     ctx.restore();
     drawHealthBar(e, e.r * 1.6);
   }
@@ -997,17 +1084,17 @@
     ctx.rotate(e.rot || 0);
     if (e.kind === "blackHole") {
       const pulse = 1 + Math.sin(e.t * 7) * 0.08;
-      drawPropAt(e.art, -e.r * 1.35 * pulse, -e.r * 1.35 * pulse, e.r * 2.7 * pulse, e.r * 2.7 * pulse);
-      drawFxAt("gravityRipple", -e.r * 1.75 * pulse, -e.r * 1.75 * pulse, e.r * 3.5 * pulse, e.r * 3.5 * pulse, e.t * 0.8);
+      drawPropAt(e.art, -e.r * 1.18 * pulse, -e.r * 1.18 * pulse, e.r * 2.36 * pulse, e.r * 2.36 * pulse);
+      drawFxAt("gravityRipple", -e.r * 1.55 * pulse, -e.r * 1.55 * pulse, e.r * 3.1 * pulse, e.r * 3.1 * pulse, e.t * 0.8);
       ctx.globalCompositeOperation = "lighter";
       ctx.strokeStyle = "rgba(84,243,255,0.38)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(0, 0, e.r * 1.62 + Math.sin(e.t * 5) * 8, 0, TAU);
+      ctx.arc(0, 0, e.r * 1.42 + Math.sin(e.t * 5) * 7, 0, TAU);
       ctx.stroke();
     } else {
       const pulse = e.kind === "mine" ? 1 + Math.sin((e.t || 0) * 8) * 0.05 : 1;
-      const scale = e.kind === "relay" ? 1.85 : 1.35;
+      const scale = e.kind === "relay" ? 1.45 : 1.15;
       drawPropAt(e.art, -e.r * scale * pulse, -e.r * scale * pulse, e.r * scale * 2 * pulse, e.r * scale * 2 * pulse);
     }
     ctx.restore();
@@ -1068,6 +1155,14 @@
     ctx.globalCompositeOperation = "lighter";
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2.4)) * (p.alpha || 1);
+      if (p.boom) {
+        const progress = clamp(1 - p.life / (p.maxLife || p.life || 1), 0, 0.999);
+        const frames = Array.isArray(boomClips[p.boom]?.[0]) ? boomClips[p.boom] : null;
+        const clip = frames ? frames[Math.floor(progress * frames.length)] : boomClips[p.boom] || boomClips.impactTeal;
+        const size = p.size || 80;
+        drawBoomAt(clip, p.x - size * 0.5, p.y - size * 0.5, size, size, p.rot || 0);
+        continue;
+      }
       if (p.art) {
         const size = p.art === "muzzle" ? 70 : p.art === "explosion" ? 92 : p.art === "deflect" ? 70 : 58;
         drawFxAt(p.art, p.x - size * 0.5, p.y - size * 0.5, size, size, p.rot || 0);
@@ -1146,6 +1241,26 @@
     ctx.fillStyle = name && name.startsWith("enemy") ? "#ff4d76" : "#54f3ff";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.45, h * 0.28, rotation, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawBoomAt(clip, x, y, w, h, rotation = 0) {
+    const sheet = assets.boom;
+    if (sheet.complete && sheet.naturalWidth && clip) {
+      ctx.save();
+      ctx.translate(x + w * 0.5, y + h * 0.5);
+      ctx.rotate(rotation);
+      ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], -w * 0.5, -h * 0.5, w, h);
+      ctx.restore();
+      return;
+    }
+    const g = ctx.createRadialGradient(x + w * 0.5, y + h * 0.5, 0, x + w * 0.5, y + h * 0.5, w * 0.5);
+    g.addColorStop(0, "rgba(255,255,255,0.9)");
+    g.addColorStop(0.35, "rgba(255,188,85,0.75)");
+    g.addColorStop(1, "rgba(255,77,118,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x + w * 0.5, y + h * 0.5, w * 0.5, 0, TAU);
     ctx.fill();
   }
 

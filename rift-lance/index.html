@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#05070d" />
   <title>Rift Lance</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="style.css?v=polish3" />
+  <link rel="stylesheet" href="style.css?v=polish5" />
 </head>
 <body>
   <main class="shell">
@@ -15,30 +15,44 @@
     <section class="hud" aria-label="Status">
       <div class="hud__brand">RIFT LANCE</div>
       <div><span>Score</span><strong id="score">0</strong></div>
-      <div><span>Hull</span><strong id="hull">100</strong></div>
+      <div><span>Hull</span><strong id="hull">120</strong></div>
       <div><span>Heat</span><strong id="heat">0%</strong></div>
       <div><span>Wave</span><strong id="wave">01</strong></div>
+      <div><span>Chain</span><strong id="chain">0</strong></div>
       <div><span>Best</span><strong id="best">0</strong></div>
     </section>
 
     <div id="banner" class="banner" aria-live="polite">RIFT LANCE</div>
 
     <section id="menu" class="menu" aria-label="Start menu">
-      <div class="menu__crest"></div>
-      <h1>Rift Lance</h1>
-      <button id="startButton" type="button" class="primary">Start</button>
-      <div class="menu__actions">
-        <button id="muteButton" type="button" aria-pressed="false">Audio</button>
-        <button id="motionButton" type="button" aria-pressed="false">Motion</button>
+      <div class="menu__frame menu__frame--left" aria-hidden="true"></div>
+      <div class="menu__frame menu__frame--right" aria-hidden="true"></div>
+      <div class="menu__radar" aria-hidden="true"></div>
+      <div class="menu__panel">
+        <div class="menu__emblem" aria-hidden="true"></div>
+        <div class="menu__plaque">
+          <h1>Rift Lance</h1>
+        </div>
+        <div class="menu__divider" aria-hidden="true"></div>
+        <div class="menu__status" aria-label="Mission status">
+          <span>Route Emberwake</span>
+          <span>Lance Armed</span>
+          <span>Wing Synced</span>
+        </div>
+        <button id="startButton" type="button" class="primary">Launch</button>
+        <div class="menu__actions">
+          <button id="muteButton" type="button" aria-pressed="false">Audio</button>
+          <button id="motionButton" type="button" aria-pressed="false">Motion</button>
+        </div>
       </div>
     </section>
 
     <nav class="touch" aria-label="Touch controls">
       <div class="touch__stick">
-        <button type="button" data-touch="up" aria-label="Up">▲</button>
-        <button type="button" data-touch="left" aria-label="Left">◀</button>
-        <button type="button" data-touch="right" aria-label="Right">▶</button>
-        <button type="button" data-touch="down" aria-label="Down">▼</button>
+        <button type="button" data-touch="up" aria-label="Up">UP</button>
+        <button type="button" data-touch="left" aria-label="Left">LT</button>
+        <button type="button" data-touch="right" aria-label="Right">RT</button>
+        <button type="button" data-touch="down" aria-label="Down">DN</button>
       </div>
       <div class="touch__actions">
         <button type="button" data-touch="fire" aria-label="Fire">FIRE</button>
@@ -49,6 +63,6 @@
   </main>
 
   <audio id="bgm" src="assets/audio/steel-punch-parade.mp3" preload="auto" loop></audio>
-  <script src="game.js?v=polish3"></script>
+  <script src="game.js?v=polish5"></script>
 </body>
 </html>
