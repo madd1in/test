@@ -101,6 +101,11 @@
     deflect: [FX_W * 2, FX_H * 3, FX_W, FX_H],
     gravityRipple: [FX_W * 3, FX_H * 3, FX_W, FX_H],
   };
+  const directionalFx = new Set(["pulse", "spear", "lance", "droneBolt", "enemyOrb", "enemyShard", "enemyMissile"]);
+  function projectileRotation(art, vx, vy) {
+    const angle = Math.atan2(vy, vx);
+    return directionalFx.has(art) ? angle - Math.PI : angle;
+  }
   const BOOM_W = 384;
   const BOOM_H = 1024 / 3;
   const boomClips = {
@@ -1425,23 +1430,24 @@
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (const b of bullets) {
-      const angle = Math.atan2(b.vy, b.vx);
+      const art = b.art || "pulse";
+      const angle = projectileRotation(art, b.vx, b.vy);
       const w = b.kind === "lance" ? 250 + b.radius * 3 : b.art === "spear" ? 88 : b.art === "droneBolt" ? 46 : 62;
       const h = b.kind === "lance" ? 54 + b.radius * 0.45 : b.art === "spear" ? 38 : 30;
       ctx.globalAlpha = b.kind === "lance" ? 0.62 + Math.sin(state.time * 40) * 0.16 : 0.9;
-      drawFxAt(b.art || "pulse", b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
+      drawFxAt(art, b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
       if (b.kind === "lance") {
         ctx.globalAlpha = 0.34;
         drawShardAt("glint", b.x + w * 0.1, b.y - 30, 78, 78, state.time * 4);
       }
     }
     for (const b of enemyBullets) {
-      const base = b.art === "enemyMissile" || b.art === "enemyShard" ? Math.PI : 0;
-      const angle = Math.atan2(b.vy, b.vx) - base;
+      const art = b.art || "enemyOrb";
+      const angle = projectileRotation(art, b.vx, b.vy);
       const w = b.art === "enemyMissile" ? 82 : b.art === "enemyShard" ? 58 : 42;
       const h = b.art === "enemyMissile" ? 36 : 42;
       ctx.globalAlpha = 0.82 + Math.sin(state.time * 22 + b.x * 0.03) * 0.12;
-      drawFxAt(b.art || "enemyOrb", b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
+      drawFxAt(art, b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
     }
     ctx.globalAlpha = 1;
     ctx.restore();

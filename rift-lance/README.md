@@ -38,6 +38,7 @@ Open `http://localhost:4179`.
 - The current start screen/HUD uses raster chrome overlays so the frames and buttons feel less sterile.
 - Performance pass removes per-sprite blur/filter work, moves the nebula background out of the canvas redraw loop, lowers render scale, delays heavy audio preload, and keeps the font atlas as a subtle texture behind readable live text.
 - Color and variety pass boosts cyan/amber/rose/lime accents, hides HUD clutter on the launch screen, adds stronger HUD edge strips, and introduces director events such as Prism Trail, Flank Raid, Mine Veil, Relay Cache, Supply Thread, and Needle Storm.
+- Directional projectile art is rotated from its native left-facing sheet orientation, so player lasers, drone bolts, and enemy shots all travel nose-first.
 
 ## Controls
 
