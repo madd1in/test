@@ -10,6 +10,7 @@
     heat: document.getElementById("heat"),
     wave: document.getElementById("wave"),
     chain: document.getElementById("chain"),
+    arsenal: document.getElementById("arsenal"),
     best: document.getElementById("best"),
   };
   const menu = document.getElementById("menu");
@@ -102,9 +103,14 @@
     gravityRipple: [FX_W * 3, FX_H * 3, FX_W, FX_H],
   };
   const directionalFx = new Set(["pulse", "spear", "lance", "droneBolt", "enemyOrb", "enemyShard", "enemyMissile"]);
+  const arsenalPickupKinds = new Set(["triple", "spread", "homing", "orb", "overdrive"]);
+  const MAX_COMPANIONS = 3;
   function projectileRotation(art, vx, vy) {
     const angle = Math.atan2(vy, vx);
     return directionalFx.has(art) ? angle - Math.PI : angle;
+  }
+  function signedAngleDelta(target, current) {
+    return Math.atan2(Math.sin(target - current), Math.cos(target - current));
   }
   const BOOM_W = 384;
   const BOOM_H = 1024 / 3;
@@ -209,6 +215,7 @@
     bossTimer: 60,
     eventTimer: 5.5,
     eventCount: 0,
+    arsenalTimer: 7.5,
     fieldTint: 0,
     fieldTintColor: "52, 251, 255",
     nextWaveScore: 2200,
@@ -225,10 +232,15 @@
     hull: PLAYER_MAX_HULL,
     heat: 0,
     fireTimer: 0,
+    missileTimer: 0,
     charge: 0,
     invuln: 0,
     droneMode: "orbit",
     droneCooldown: 0,
+    weaponLevel: 2,
+    spreadLevel: 0,
+    missileLevel: 1,
+    companionLevel: 1,
   };
 
   const drone = {
@@ -247,6 +259,7 @@
   const enemies = [];
   const particles = [];
   const pickups = [];
+  const companions = [];
   let backgroundGradient = null;
   let vignetteGradient = null;
   const stars = Array.from({ length: 72 }, () => ({
@@ -315,6 +328,7 @@
     setGuiText(document.querySelector(".hud__brand"), "Rift Lance", "brand");
     for (const label of document.querySelectorAll(".hud span")) setGuiText(label, label.textContent, "label");
     for (const label of document.querySelectorAll(".menu__status span")) setGuiText(label, label.textContent, "status");
+    for (const label of document.querySelectorAll(".menu__loadout span")) setGuiText(label, label.textContent, "status");
     for (const button of document.querySelectorAll(".touch button")) setGuiText(button, button.textContent, "touch");
     setGuiText(startButton, "Launch", "button");
     setGuiText(muteButton, state.muted ? "Muted" : "Audio", "button");
@@ -345,6 +359,7 @@
     enemies.length = 0;
     particles.length = 0;
     pickups.length = 0;
+    companions.length = 0;
     Object.assign(player, {
       x: 160,
       y: H * 0.5,
@@ -353,10 +368,15 @@
       hull: PLAYER_MAX_HULL,
       heat: 0,
       fireTimer: 0,
+      missileTimer: 0,
       charge: 0,
       invuln: 1.4,
       droneMode: "orbit",
       droneCooldown: 0,
+      weaponLevel: 2,
+      spreadLevel: 0,
+      missileLevel: 1,
+      companionLevel: 1,
     });
     Object.assign(drone, { x: 215, y: H * 0.5, vx: 0, vy: 0, angle: 0, fireTimer: 0, recall: 0 });
     Object.assign(state, {
@@ -373,10 +393,12 @@
       bossTimer: 58,
       eventTimer: 5.5,
       eventCount: 0,
+      arsenalTimer: 7.5,
       fieldTint: 0,
       fieldTintColor: "52, 251, 255",
       nextWaveScore: 2200,
     });
+    syncCompanions();
     updateHud();
   }
 
@@ -412,6 +434,7 @@
       setBanner(`WAVE ${String(state.wave).padStart(2, "0")}`, 1.1);
       pulseField("216, 255, 79", 0.72);
       burst(player.x + 80, player.y, "#d8ff4f", 20, 1.8);
+      if (state.wave % 2 === 0) spawnPickup(nextArsenalKind(), W + 120, clamp(player.y + rand(-115, 115), 105, H - 90), 18);
     }
   }
 
@@ -421,6 +444,7 @@
     setGuiText(hud.heat, `${Math.round(player.heat)}%`, "value");
     setGuiText(hud.wave, String(state.wave).padStart(2, "0"), "value");
     setGuiText(hud.chain, String(state.chain), "value");
+    setGuiText(hud.arsenal, `L${player.weaponLevel}-M${player.missileLevel}-O${player.companionLevel}`, "value");
     setGuiText(hud.best, String(Math.floor(state.best)), "value");
   }
 
@@ -441,6 +465,7 @@
 
     updatePlayer(dt);
     updateDrone(dt);
+    updateCompanions(dt);
     updateBullets(dt);
     updateEnemies(dt);
     updatePickups(dt);
@@ -464,6 +489,7 @@
     player.x = clamp(player.x + player.vx * dt, 56, W * 0.48);
     player.y = clamp(player.y + player.vy * dt, 88, H - 72);
     player.fireTimer -= dt;
+    player.missileTimer = Math.max(0, player.missileTimer - dt);
     player.droneCooldown = Math.max(0, player.droneCooldown - dt);
     player.invuln = Math.max(0, player.invuln - dt);
 
@@ -477,12 +503,9 @@
     }
 
     if (input.fire && player.fireTimer <= 0 && player.heat < 96) {
-      fireBolt(player.x + 54, player.y - 3, 910, 0, 18, "#34fbff", 12, "player", "pulse");
-      fireBolt(player.x + 34, player.y + 16, 830, 18, 11, "#d8ff4f", 8, "player", "spear");
-      particles.push({ x: player.x + 60, y: player.y, vx: -90, vy: 0, life: 0.12, radius: 22, color: "#34fbff", alpha: 0.65, art: "muzzle" });
-      player.fireTimer = 0.082;
-      player.heat = clamp(player.heat + 2.6, 0, 100);
+      firePlayerVolley();
     }
+    if (input.fire && player.missileLevel > 0 && player.missileTimer <= 0 && player.heat < 94) fireMissiles();
 
     if (input.drone && player.droneCooldown <= 0) {
       player.droneMode = player.droneMode === "orbit" ? "strike" : "orbit";
@@ -524,6 +547,109 @@
     }
   }
 
+  function syncCompanions() {
+    const target = clamp(player.companionLevel, 0, MAX_COMPANIONS);
+    while (companions.length < target) {
+      companions.push({
+        x: player.x - 18,
+        y: player.y,
+        vx: 0,
+        vy: 0,
+        r: 13,
+        angle: rand(0, TAU),
+        fireTimer: rand(0.12, 0.42),
+        shieldPulse: 0,
+      });
+    }
+    while (companions.length > target) companions.pop();
+  }
+
+  function updateCompanions(dt) {
+    syncCompanions();
+    const count = Math.max(1, companions.length);
+    for (let i = 0; i < companions.length; i += 1) {
+      const orb = companions[i];
+      orb.angle += dt * (player.droneMode === "orbit" ? 2.6 : 1.7);
+      orb.fireTimer -= dt;
+      orb.shieldPulse = Math.max(0, orb.shieldPulse - dt * 3);
+      const slotAngle = orb.angle + (i / count) * TAU;
+      let targetX = player.x + 34 + Math.cos(slotAngle) * (74 + i * 8);
+      let targetY = player.y + Math.sin(slotAngle) * (46 + i * 5);
+      const target = nearestEnemyAhead(orb, 680);
+      if (player.droneMode === "strike" && target) {
+        targetX = target.x - 62 - i * 16;
+        targetY = target.y + Math.sin(state.time * 6 + i) * 28;
+      }
+      orb.vx += (targetX - orb.x) * dt * 14;
+      orb.vy += (targetY - orb.y) * dt * 14;
+      orb.vx *= 0.82;
+      orb.vy *= 0.82;
+      orb.x = clamp(orb.x + orb.vx * dt, 52, W - 60);
+      orb.y = clamp(orb.y + orb.vy * dt, 72, H - 62);
+      if ((input.fire || player.droneMode === "strike") && orb.fireTimer <= 0) {
+        const aim = target ? (target.y - orb.y) * 0.72 : rand(-45, 45);
+        fireBolt(orb.x + 18, orb.y, 790, aim, 8 + player.companionLevel * 1.5, "#8b7cff", 7, "player", "droneBolt");
+        orb.fireTimer = player.droneMode === "strike" ? 0.2 + i * 0.035 : 0.36 + i * 0.04;
+      }
+    }
+  }
+
+  function nearestEnemyAhead(body, maxDistance = 760) {
+    let best = null;
+    let bestD = maxDistance * maxDistance;
+    for (const enemy of enemies) {
+      if (enemy.x < body.x - 24 || enemy.hp <= 0) continue;
+      const d = dist2(body, enemy);
+      if (d < bestD) {
+        best = enemy;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  function firePlayerVolley() {
+    const rows = player.weaponLevel >= 3 ? [-16, 0, 16] : [-9, 9];
+    for (let i = 0; i < rows.length; i += 1) {
+      const y = rows[i];
+      const art = i % 2 === 0 ? "pulse" : "spear";
+      fireBolt(player.x + 56, player.y + y, 920, y * 3.2, 16, i === 1 ? "#d8ff4f" : "#34fbff", art === "spear" ? 9 : 11, "player", art);
+    }
+    if (player.spreadLevel > 0) {
+      const spread = player.spreadLevel === 1 ? [-170, 170] : [-235, -122, 122, 235];
+      for (const vy of spread) fireBolt(player.x + 44, player.y, 830, vy, 10, "#ffcf3f", 8, "player", "spear");
+    }
+    particles.push({ x: player.x + 60, y: player.y, vx: -90, vy: 0, life: 0.12, radius: 24 + player.weaponLevel * 2, color: "#34fbff", alpha: 0.7, art: "muzzle" });
+    player.fireTimer = player.weaponLevel >= 3 || player.spreadLevel > 0 ? 0.108 : 0.092;
+    player.heat = clamp(player.heat + 2.15 + player.weaponLevel * 0.45 + player.spreadLevel * 0.7, 0, 100);
+  }
+
+  function fireMissiles() {
+    const count = clamp(player.missileLevel, 1, 3);
+    for (let i = 0; i < count; i += 1) {
+      const offset = (i - (count - 1) * 0.5) * 18;
+      bullets.push({
+        x: player.x + 38,
+        y: player.y + offset,
+        vx: 610,
+        vy: offset * 4 + rand(-22, 22),
+        damage: 26 + player.missileLevel * 5,
+        color: "#ffcf3f",
+        radius: 13,
+        owner: "player",
+        life: 2.25,
+        kind: "missile",
+        art: "enemyMissile",
+        homing: true,
+        speed: 650 + player.missileLevel * 28,
+        turn: 5.8,
+      });
+    }
+    player.missileTimer = clamp(0.96 - player.missileLevel * 0.1, 0.62, 0.96);
+    player.heat = clamp(player.heat + 3.6 + player.missileLevel, 0, 100);
+    spawnShardSpray(player.x + 44, player.y, 3 + player.missileLevel, "hot");
+  }
+
   function fireBolt(x, y, vx, vy, damage, color, radius, owner, art = "pulse") {
     bullets.push({ x, y, vx, vy, damage, color, radius, owner, life: 1.4, kind: "bolt", art });
   }
@@ -555,6 +681,18 @@
     for (const list of [bullets, enemyBullets]) {
       for (let i = list.length - 1; i >= 0; i -= 1) {
         const b = list[i];
+        if (b.homing) {
+          const target = nearestEnemyAhead(b, 820);
+          const speed = b.speed || Math.hypot(b.vx, b.vy) || 620;
+          if (target) {
+            const desired = Math.atan2(target.y - b.y, target.x - b.x);
+            const current = Math.atan2(b.vy, b.vx);
+            const next = current + clamp(signedAngleDelta(desired, current), -(b.turn || 5) * dt, (b.turn || 5) * dt);
+            b.vx = Math.cos(next) * speed;
+            b.vy = Math.sin(next) * speed;
+          }
+          if (!state.reducedMotion && Math.random() < dt * 18) addTrail(b.x - 16, b.y, "#ffcf3f", 0.26);
+        }
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         b.life -= dt;
@@ -571,6 +709,7 @@
     state.assistTimer -= dt;
     state.bossTimer -= dt;
     state.eventTimer -= dt;
+    state.arsenalTimer -= dt;
     if (state.spawnTimer <= 0) {
       const count = state.wave > 4 && Math.random() < 0.72 ? 2 : 1;
       for (let i = 0; i < count; i += 1) spawnEnemy();
@@ -579,6 +718,12 @@
     if (state.eventTimer <= 0) {
       spawnWaveEvent();
       state.eventTimer = rand(8.5, 13.5) - clamp(state.wave * 0.25, 0, 2.2);
+    }
+    if (state.arsenalTimer <= 0) {
+      spawnPickup(nextArsenalKind(), W + 90, clamp(player.y + rand(-150, 150), 105, H - 88), 18);
+      setBanner("ARSENAL CACHE", 0.75);
+      pulseField("139, 124, 255", 0.46);
+      state.arsenalTimer = rand(15, 22);
     }
     if (state.hazardTimer <= 0) {
       spawnHazard();
@@ -607,6 +752,16 @@
 
   function spawnPickup(kind, x, y, radius = 16) {
     pickups.push({ kind, x, y: clamp(y, 82, H - 74), r: radius, t: 0 });
+  }
+
+  function nextArsenalKind() {
+    const options = [];
+    if (player.weaponLevel < 3) options.push("triple");
+    if (player.spreadLevel < 2) options.push("spread");
+    if (player.missileLevel < 3) options.push("homing");
+    if (player.companionLevel < MAX_COMPANIONS) options.push("orb");
+    if (!options.length) return "overdrive";
+    return options[Math.floor(Math.random() * options.length)];
   }
 
   function spawnWaveEvent() {
@@ -647,6 +802,7 @@
       spawnHazard("relay", 120, y);
       spawnPickup("crate", W + 210, y - 58, 22);
       spawnPickup("score", W + 270, y + 58, 13);
+      spawnPickup(nextArsenalKind(), W + 345, y, 18);
       spawnEnemy(state.wave > 3 ? "frigate" : "turret", clamp(y + rand(-100, 100), 100, H - 92), 360);
     } else if (type === "needleStorm") {
       setBanner("NEEDLE STORM", 1);
@@ -661,6 +817,7 @@
       spawnPickup("core", W + 120, y, 16);
       spawnPickup("battery", W + 220, y + 58, 16);
       spawnPickup("score", W + 320, y - 54, 13);
+      if (state.wave > 1) spawnPickup(nextArsenalKind(), W + 430, y + 8, 18);
       spawnEnemy("escort", clamp(y - 92, 100, H - 92), 410);
       spawnEnemy("escort", clamp(y + 92, 100, H - 92), 460);
     }
@@ -1084,6 +1241,18 @@
           e.hp -= b.damage;
           spawnImpact(b.x, b.y, e.kind === "blackHole" ? "plasmaBurst" : b.kind === "lance" ? "impactAmber" : "impactTeal", b.kind === "lance" ? 74 : 52);
           burst(b.x, b.y, b.color, b.kind === "lance" ? 10 : 4, b.kind === "lance" ? 1.2 : 0.6);
+          if (b.kind === "missile") {
+            spawnExplosion(b.x, b.y, 76, "medium");
+            state.shake = state.reducedMotion ? 0.06 : Math.max(state.shake, 0.2);
+            for (const other of enemies) {
+              if (other === e) continue;
+              const splash = 112 + other.r;
+              if (dist2(b, other) < splash * splash) {
+                other.hp -= b.damage * 0.42;
+                spawnImpact(other.x, other.y, "impactAmber", 46);
+              }
+            }
+          }
           if (b.kind !== "lance" || --b.pierce <= 0) bullets.splice(i, 1);
           if (e.hp <= 0) killEnemy(e, j);
           break;
@@ -1093,6 +1262,15 @@
 
     for (let i = enemyBullets.length - 1; i >= 0; i -= 1) {
       const b = enemyBullets[i];
+      const guardOrb = player.droneMode === "orbit" ? companions.find((orb) => dist2(b, orb) < (b.radius + orb.r + 9) ** 2) : null;
+      if (guardOrb) {
+        enemyBullets.splice(i, 1);
+        guardOrb.shieldPulse = 1;
+        spawnImpact(b.x, b.y, "shieldCrack", 58);
+        burst(b.x, b.y, "#8b7cff", 7, 0.65);
+        addScore(10);
+        continue;
+      }
       if (dist2(b, drone) < (b.radius + drone.r) ** 2 && player.droneMode === "orbit") {
         enemyBullets.splice(i, 1);
         spawnImpact(b.x, b.y, "shieldCrack", 70);
@@ -1117,6 +1295,15 @@
         spawnImpact(drone.x, drone.y, "shieldCrack", 62);
         burst(drone.x, drone.y, "#ffcf3f", 6, 0.8);
         if (e.hp <= 0) killEnemy(e, i);
+      } else if (player.droneMode === "orbit") {
+        const guardOrb = companions.find((orb) => dist2(e, orb) < (e.r + orb.r + 4) ** 2);
+        if (guardOrb) {
+          guardOrb.shieldPulse = 1;
+          e.hp -= 14;
+          spawnImpact(guardOrb.x, guardOrb.y, "shieldCrack", 52);
+          burst(guardOrb.x, guardOrb.y, "#8b7cff", 5, 0.72);
+          if (e.hp <= 0) killEnemy(e, i);
+        }
       }
     }
 
@@ -1138,6 +1325,8 @@
           addScore(320);
           burst(player.x + 50, player.y, "#ffcf3f", 12, 1);
           setBanner("RIFT SHARD", 0.6);
+        } else if (arsenalPickupKinds.has(p.kind)) {
+          applyArsenalPickup(p.kind);
         } else {
           player.hull = clamp(player.hull + 18, 0, PLAYER_MAX_HULL);
           player.heat = Math.max(0, player.heat - 28);
@@ -1175,6 +1364,40 @@
     if (score && enemy.kind !== "asteroid" && Math.random() < 0.28) {
       pickups.push({ kind: "score", x: enemy.x + rand(-18, 18), y: enemy.y + rand(-18, 18), r: 13, t: 0 });
     }
+    if (score && enemy.kind !== "asteroid" && Math.random() < (state.chain > 5 ? 0.16 : 0.08)) {
+      spawnPickup(nextArsenalKind(), enemy.x + rand(-24, 24), enemy.y + rand(-24, 24), 18);
+    }
+  }
+
+  function applyArsenalPickup(kind) {
+    if (kind === "triple") {
+      player.weaponLevel = clamp(player.weaponLevel + 1, 2, 3);
+      setBanner(player.weaponLevel >= 3 ? "TRIPLE LASER" : "DOUBLE LASER", 0.85);
+      burst(player.x + 52, player.y, "#34fbff", 18, 1.2);
+    } else if (kind === "spread") {
+      player.spreadLevel = clamp(player.spreadLevel + 1, 0, 2);
+      setBanner(player.spreadLevel >= 2 ? "WIDE SPREAD" : "STREU LASER", 0.85);
+      burst(player.x + 52, player.y, "#ffcf3f", 18, 1.2);
+    } else if (kind === "homing") {
+      player.missileLevel = clamp(player.missileLevel + 1, 1, 3);
+      player.missileTimer = 0;
+      setBanner(`HOMING X${player.missileLevel}`, 0.85);
+      burst(player.x + 52, player.y, "#ffcf3f", 18, 1.2);
+    } else if (kind === "orb") {
+      player.companionLevel = clamp(player.companionLevel + 1, 1, MAX_COMPANIONS);
+      syncCompanions();
+      setBanner(`ORB WING X${player.companionLevel}`, 0.85);
+      burst(player.x + 52, player.y, "#8b7cff", 20, 1.25);
+    } else {
+      player.heat = Math.max(0, player.heat - 46);
+      player.charge = clamp(player.charge + 35, 0, 100);
+      addScore(420);
+      setBanner("OVERDRIVE", 0.85);
+      burst(player.x + 52, player.y, "#d8ff4f", 24, 1.5);
+    }
+    pulseField(kind === "orb" ? "139, 124, 255" : kind === "homing" || kind === "spread" ? "255, 207, 63" : "52, 251, 255", 0.62);
+    player.hull = clamp(player.hull + 4, 0, PLAYER_MAX_HULL);
+    addScore(160);
   }
 
   function damagePlayer(amount) {
@@ -1329,6 +1552,7 @@
     }
     ctx.globalAlpha = 1;
     drawDrone();
+    drawCompanions();
   }
 
   function drawDrone() {
@@ -1344,6 +1568,23 @@
     const orbitSize = 36 + Math.sin(state.time * 8) * 3.2;
     drawRingAt(player.droneMode === "orbit" ? "drone" : "chargeAmber", drone.x - orbitSize * 0.5, drone.y - orbitSize * 0.5, orbitSize, orbitSize, -state.time * 2.8, 0.32);
     ctx.restore();
+  }
+
+  function drawCompanions() {
+    for (let i = 0; i < companions.length; i += 1) {
+      const orb = companions[i];
+      const pulse = 1 + Math.sin(state.time * 8 + i) * 0.08 + orb.shieldPulse * 0.22;
+      const size = (28 + i * 2) * pulse;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      drawRingAt(player.droneMode === "orbit" ? "drone" : "chargeAmber", orb.x - size * 0.82, orb.y - size * 0.82, size * 1.64, size * 1.64, state.time * (2.3 + i * 0.2), 0.18 + orb.shieldPulse * 0.22);
+      drawOrbAt(i === 0 ? "blueMed" : i === 1 ? "twin" : "blueCrack", orb.x - size * 0.5, orb.y - size * 0.5, size, size, orb.angle);
+      if (orb.shieldPulse > 0) {
+        ctx.globalAlpha = 0.38 * orb.shieldPulse;
+        drawShardAt("bloomWave", orb.x - size, orb.y - size, size * 2, size * 2, -orb.angle);
+      }
+      ctx.restore();
+    }
   }
 
   function drawEnemies() {
@@ -1432,13 +1673,16 @@
     for (const b of bullets) {
       const art = b.art || "pulse";
       const angle = projectileRotation(art, b.vx, b.vy);
-      const w = b.kind === "lance" ? 250 + b.radius * 3 : b.art === "spear" ? 88 : b.art === "droneBolt" ? 46 : 62;
-      const h = b.kind === "lance" ? 54 + b.radius * 0.45 : b.art === "spear" ? 38 : 30;
+      const w = b.kind === "lance" ? 250 + b.radius * 3 : b.kind === "missile" ? 86 : b.art === "spear" ? 88 : b.art === "droneBolt" ? 46 : 62;
+      const h = b.kind === "lance" ? 54 + b.radius * 0.45 : b.kind === "missile" ? 34 : b.art === "spear" ? 38 : 30;
       ctx.globalAlpha = b.kind === "lance" ? 0.62 + Math.sin(state.time * 40) * 0.16 : 0.9;
       drawFxAt(art, b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
       if (b.kind === "lance") {
         ctx.globalAlpha = 0.34;
         drawShardAt("glint", b.x + w * 0.1, b.y - 30, 78, 78, state.time * 4);
+      } else if (b.kind === "missile") {
+        ctx.globalAlpha = 0.32;
+        drawShardAt("emberCore", b.x - 44, b.y - 24, 48, 48, state.time * -4);
       }
     }
     for (const b of enemyBullets) {
@@ -1460,18 +1704,25 @@
       ctx.rotate(p.t * (p.kind === "score" ? 4.5 : 3));
       const art = p.kind === "battery" ? "battery" : p.kind === "crate" ? "crate" : "core";
       const bob = Math.sin(p.t * 8) * 3;
-      const size = p.kind === "crate" ? 44 : p.kind === "score" ? 44 : 39;
+      const size = p.kind === "crate" ? 44 : p.kind === "score" || arsenalPickupKinds.has(p.kind) ? 44 : 39;
       if (p.kind === "score") {
         drawShardAt("scoreCore", -size * 0.5, -size * 0.5 + bob, size, size, 0);
         ctx.globalAlpha = 0.72;
         drawShardAt("glint", -size * 0.68, -size * 0.68 + bob, size * 1.36, size * 1.36, -p.t * 1.8);
+        ctx.globalAlpha = 1;
+      } else if (arsenalPickupKinds.has(p.kind)) {
+        const shard = p.kind === "homing" || p.kind === "spread" ? "emberCore" : p.kind === "orb" ? "orbit" : "glint";
+        const orb = p.kind === "orb" ? "twin" : p.kind === "overdrive" ? "cluster" : "blueCrack";
+        drawOrbAt(orb, -size * 0.48, -size * 0.48 + bob, size * 0.96, size * 0.96, -p.t * 1.2);
+        ctx.globalAlpha = 0.84;
+        drawShardAt(shard, -size * 0.72, -size * 0.72 + bob, size * 1.44, size * 1.44, p.t * 1.6);
         ctx.globalAlpha = 1;
       } else {
         drawPropAt(art, -size * 0.5, -size * 0.5 + bob, size, size);
       }
       ctx.globalCompositeOperation = "lighter";
       const ringSize = size * 1.14 + Math.sin(p.t * 6) * 5;
-      drawRingAt(p.kind === "battery" ? "pickupCyan" : "pickupAmber", -ringSize * 0.5, -ringSize * 0.5 + bob, ringSize, ringSize, p.t * (p.kind === "score" ? -1.7 : 1.4), 0.34);
+      drawRingAt(p.kind === "battery" || p.kind === "orb" || p.kind === "triple" ? "pickupCyan" : "pickupAmber", -ringSize * 0.5, -ringSize * 0.5 + bob, ringSize, ringSize, p.t * (p.kind === "score" ? -1.7 : 1.4), arsenalPickupKinds.has(p.kind) ? 0.46 : 0.34);
       ctx.restore();
     }
   }
@@ -1778,8 +2029,21 @@
   updateHud();
   const params = new URLSearchParams(window.location.search);
   if (params.get("muted") === "1") toggleMute();
+  if (params.get("autofire") === "1") input.fire = true;
   if (params.get("autostart") === "1") {
     window.setTimeout(startGame, 120);
+  }
+  if (params.get("demoarsenal") === "1") {
+    window.setTimeout(() => {
+      player.weaponLevel = 3;
+      player.spreadLevel = 2;
+      player.missileLevel = 3;
+      player.companionLevel = MAX_COMPANIONS;
+      player.missileTimer = 0;
+      syncCompanions();
+      updateHud();
+      setBanner("FULL ARSENAL", 1);
+    }, 260);
   }
   waitForAssets().then(() => {
     requestAnimationFrame((now) => {

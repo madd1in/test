@@ -39,6 +39,7 @@ Open `http://localhost:4179`.
 - Performance pass removes per-sprite blur/filter work, moves the nebula background out of the canvas redraw loop, lowers render scale, delays heavy audio preload, and keeps the font atlas as a subtle texture behind readable live text.
 - Color and variety pass boosts cyan/amber/rose/lime accents, hides HUD clutter on the launch screen, adds stronger HUD edge strips, and introduces director events such as Prism Trail, Flank Raid, Mine Veil, Relay Cache, Supply Thread, and Needle Storm.
 - Directional projectile art is rotated from its native left-facing sheet orientation, so player lasers, drone bolts, and enemy shots all travel nose-first.
+- Arsenal pass adds double/triple laser lanes, spread laser pickups, homing missile pods up to X3, companion orbs that fire in strike mode and shield in guard mode, plus a richer start-screen loadout rail and HUD arsenal readout.
 
 ## Controls
 
