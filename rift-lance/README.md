@@ -13,7 +13,7 @@ Open `http://localhost:4179`.
 
 ## Assets
 
-- HD background, ship sheet, object/enemy sheet, projectile/FX sheet, explosion sheet, UI/startscreen sheet, Rift shard sheet, red/blue orb residue sheet, ring sheet, and bitmap font atlas are shipped as raster assets.
+- HD background, ship sheet, object/enemy sheet, projectile/FX sheet, explosion sheet, UI/startscreen sheet, Rift shard sheet, red/blue orb residue sheet, ring sheet, UI chrome sheet, and bitmap font atlas are shipped as raster assets.
 - The new background was exported as `assets/generated/rift-loop-bg-tile.png` for horizontal repeat.
 - The ship and props sheets were chroma-key cleaned into alpha PNGs.
 - The projectile sheet adds player pulse/spear/lance bolts, enemy shots, missiles, mine pellets, impact sparks, shield deflects, and gravity ripples.
@@ -22,6 +22,7 @@ Open `http://localhost:4179`.
 - The Rift shard sheet adds score pickups, shard sprays, trail glints, and Rift Bloom wave visuals.
 - The red/blue orb sheet adds post-explosion plasma balls and cracked orb residue particles.
 - The ring sheet replaces procedural ship/object halo strokes with asset-backed player, enemy, boss, hazard, pickup, charge, drone, and black-hole rings.
+- The UI chrome sheet adds raster panel scratches, bracketed buttons, HUD cells, menu rails, divider marks, and radar overlays.
 - The title logo is a raster font asset rendered from local fonts with hand-styled glow, distress cuts, and chromatic scanlines.
 - The GUI and in-game banner text now render from `rift-font-atlas.png` instead of clean browser text.
 - BGM uses `Steel Punch Parade.mp3` copied from `C:\Users\User\Downloads`.
@@ -33,6 +34,8 @@ Open `http://localhost:4179`.
 - Start screen and HUD were restyled so the game reads less like a sterile overlay.
 - The start screen was stabilized into a cleaner combat launch panel, and ships/enemies now tilt, pulse, and throw animated thruster/shard effects.
 - Player and enemies were scaled down again and now use asset-backed dark ring/backplate sprites so they separate from the moving background.
+- Aura rings were softened and ships now get a brighter gamma plus sprite-glow pass over a darker playfield.
+- The current start screen/HUD uses raster chrome overlays so the frames and buttons feel less sterile.
 
 ## Controls
 

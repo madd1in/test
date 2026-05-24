@@ -11,6 +11,7 @@
   --ui-sheet: url("assets/generated/rift-ui-sheet-alpha.png");
   --shard-sheet: url("assets/generated/rift-shards-sheet-alpha.png");
   --font-atlas: url("assets/generated/rift-font-atlas.png");
+  --chrome-sheet: url("assets/generated/rift-ui-chrome-sheet-alpha.png");
   --font-cols: 8;
   --font-rows: 5;
   font-family: Impact, "Arial Narrow", system-ui, sans-serif;
@@ -31,10 +32,13 @@ body {
 }
 
 button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   border: 1px solid rgba(84, 243, 255, 0.36);
   border-radius: 8px;
   color: var(--ink);
-  background: linear-gradient(180deg, rgba(20, 44, 52, 0.92), rgba(5, 11, 18, 0.96));
+  background: linear-gradient(180deg, rgba(16, 37, 45, 0.88), rgba(4, 9, 15, 0.96));
   font: inherit;
   font-weight: 800;
   letter-spacing: 0;
@@ -49,7 +53,23 @@ button:focus-visible {
   outline: none;
 }
 
+button::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  border-radius: inherit;
+  background-image: var(--chrome-sheet);
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+  background-position: 66.666% 0%;
+  opacity: 0.62;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
 .bitmap-text {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -59,7 +79,24 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.bitmap-text::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  color: currentColor;
+  font: inherit;
+  letter-spacing: 0.34em;
+  opacity: 0.055;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .bitmap-text > .bitmap-glyph {
+  position: relative;
+  z-index: 2;
   width: 0.74em;
   height: 1em;
   min-width: 0;
@@ -78,6 +115,8 @@ button:focus-visible {
 }
 
 .bitmap-text > .bitmap-space {
+  position: relative;
+  z-index: 2;
   width: 0.36em;
   height: 1em;
   min-width: 0;
@@ -106,6 +145,20 @@ button.bitmap-text,
   filter: brightness(0) drop-shadow(0.04em 0.05em 0 rgba(6, 16, 23, 0.16));
 }
 
+.primary.bitmap-text::after {
+  color: #061017;
+  opacity: 0.055;
+}
+
+button > *,
+.hud > div > *,
+.banner > *,
+.menu__plaque > *,
+.menu__status span > * {
+  position: relative;
+  z-index: 1;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -124,8 +177,8 @@ button.bitmap-text,
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 15% 10%, rgba(255, 188, 85, 0.18), transparent 24%),
-    radial-gradient(circle at 88% 52%, rgba(255, 77, 118, 0.16), transparent 24%),
+    radial-gradient(circle at 15% 10%, rgba(255, 188, 85, 0.1), transparent 24%),
+    radial-gradient(circle at 88% 52%, rgba(255, 77, 118, 0.08), transparent 24%),
     #05070d;
 }
 
@@ -134,6 +187,15 @@ button.bitmap-text,
   height: 100vh;
   display: block;
   background: #05070d;
+}
+
+.preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .hud {
@@ -154,9 +216,15 @@ button.bitmap-text,
   backdrop-filter: blur(12px);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32), inset 0 0 24px rgba(84, 243, 255, 0.08);
   pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .hud > div {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  isolation: isolate;
   min-width: 0;
   height: 38px;
   display: grid;
@@ -167,6 +235,35 @@ button.bitmap-text,
   background: linear-gradient(180deg, rgba(4, 15, 23, 0.6), rgba(3, 8, 13, 0.62));
 }
 
+.hud::before,
+.hud > div::before,
+.banner::before,
+.menu__panel::before,
+.menu__plaque::before,
+.menu__status span::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  border-radius: inherit;
+  background-image: var(--chrome-sheet);
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+  pointer-events: none;
+}
+
+.hud::before {
+  background-position: 33.333% 0%;
+  opacity: 0.36;
+  mix-blend-mode: screen;
+}
+
+.hud > div::before {
+  background-position: 0% 50%;
+  opacity: 0.32;
+  mix-blend-mode: screen;
+}
+
 .hud > div:first-child {
   border-left: 0;
 }
@@ -174,6 +271,11 @@ button.bitmap-text,
 .hud > div:nth-child(6) {
   border-color: rgba(255, 188, 85, 0.28);
   background: linear-gradient(180deg, rgba(45, 30, 10, 0.48), rgba(8, 13, 18, 0.7));
+}
+
+.hud > div:nth-child(6)::before {
+  background-position: 33.333% 50%;
+  opacity: 0.38;
 }
 
 .hud span {
@@ -206,13 +308,21 @@ button.bitmap-text,
   padding: 8px 14px;
   border: 1px solid rgba(84, 243, 255, 0.34);
   border-radius: 8px;
-  background: rgba(3, 10, 17, 0.64);
+  background: linear-gradient(180deg, rgba(2, 12, 18, 0.78), rgba(1, 5, 10, 0.74));
   color: var(--cyan);
   font-size: 15px;
   font-weight: 900;
   opacity: 0;
   transition: opacity 180ms ease, transform 180ms ease;
   pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.banner::before {
+  background-position: 100% 50%;
+  opacity: 0.5;
+  mix-blend-mode: screen;
 }
 
 .banner.is-live {
@@ -227,10 +337,10 @@ button.bitmap-text,
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 48% 50%, rgba(84, 243, 255, 0.12), transparent 30%),
-    radial-gradient(circle at 70% 70%, rgba(255, 188, 85, 0.1), transparent 24%),
-    linear-gradient(90deg, rgba(5, 7, 13, 0.84), rgba(5, 7, 13, 0.26)),
-    linear-gradient(180deg, rgba(5, 7, 13, 0.12), rgba(5, 7, 13, 0.86));
+    radial-gradient(circle at 48% 50%, rgba(84, 243, 255, 0.08), transparent 30%),
+    radial-gradient(circle at 70% 70%, rgba(255, 188, 85, 0.06), transparent 24%),
+    linear-gradient(90deg, rgba(5, 7, 13, 0.9), rgba(5, 7, 13, 0.38)),
+    linear-gradient(180deg, rgba(5, 7, 13, 0.2), rgba(5, 7, 13, 0.92));
   overflow: hidden;
 }
 
@@ -279,9 +389,25 @@ button.bitmap-text,
     linear-gradient(180deg, rgba(5, 13, 22, 0.78), rgba(3, 7, 13, 0.84)),
     linear-gradient(135deg, rgba(84, 243, 255, 0.08), rgba(255, 188, 85, 0.05) 48%, rgba(255, 77, 118, 0.08));
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5), inset 0 0 38px rgba(84, 243, 255, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.menu__panel::before {
+  background-position: 0% 0%;
+  opacity: 0.58;
+  mix-blend-mode: screen;
+}
+
+.menu__panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .menu__plaque {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   width: min(680px, 82vw);
   min-height: 174px;
   display: grid;
@@ -291,6 +417,12 @@ button.bitmap-text,
   border-bottom: 1px solid rgba(255, 188, 85, 0.28);
   background: linear-gradient(90deg, transparent, rgba(84, 243, 255, 0.08) 18%, rgba(255, 188, 85, 0.08) 82%, transparent);
   filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.4));
+}
+
+.menu__plaque::before {
+  background-position: 25% 100%;
+  opacity: 0.34;
+  mix-blend-mode: screen;
 }
 
 .menu__logo {
@@ -316,10 +448,15 @@ button.bitmap-text,
 
 .menu__divider {
   width: min(460px, 66vw);
-  height: 2px;
+  height: 12px;
   margin-top: -8px;
-  margin-bottom: -4px;
-  background: linear-gradient(90deg, transparent, var(--cyan), var(--amber), var(--rose), transparent);
+  margin-bottom: -8px;
+  background:
+    var(--chrome-sheet),
+    linear-gradient(90deg, transparent, var(--cyan), var(--amber), var(--rose), transparent);
+  background-repeat: no-repeat, no-repeat;
+  background-size: 400% 300%, 100% 2px;
+  background-position: 33.333% 100%, center;
   box-shadow: 0 0 22px rgba(84, 243, 255, 0.34);
   pointer-events: none;
 }
@@ -329,9 +466,13 @@ button.bitmap-text,
   top: 24%;
   width: min(360px, 28vw);
   height: min(360px, 44vh);
-  border: 1px solid rgba(84, 243, 255, 0.16);
+  border: 0;
   border-radius: 8px;
-  opacity: 0.42;
+  opacity: 0.34;
+  background-image: var(--chrome-sheet);
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+  background-position: 0% 100%;
   pointer-events: none;
   transform: skewY(-6deg);
 }
@@ -351,7 +492,7 @@ button.bitmap-text,
   bottom: max(72px, 11vh);
   width: 148px;
   height: 148px;
-  border: 1px solid rgba(84, 243, 255, 0.2);
+  border: 0;
   border-radius: 50%;
   opacity: 0.58;
   background:
@@ -360,6 +501,20 @@ button.bitmap-text,
   filter: drop-shadow(0 0 32px rgba(84, 243, 255, 0.18));
   pointer-events: none;
   animation: radar-spin 8s linear infinite;
+}
+
+.menu__radar::before {
+  content: "";
+  position: absolute;
+  inset: -38px;
+  border-radius: 50%;
+  background-image: var(--chrome-sheet);
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+  background-position: 66.666% 100%;
+  opacity: 0.62;
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 
 .menu h1 {
@@ -380,6 +535,9 @@ button.bitmap-text,
 }
 
 .menu__status span {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   min-height: 38px;
   display: grid;
   place-items: center;
@@ -393,14 +551,28 @@ button.bitmap-text,
   text-transform: uppercase;
 }
 
+.menu__status span::before {
+  background-position: 0% 50%;
+  opacity: 0.42;
+  mix-blend-mode: screen;
+}
+
 .menu__status span:nth-child(2) {
   border-color: rgba(255, 188, 85, 0.3);
   color: var(--amber);
 }
 
+.menu__status span:nth-child(2)::before {
+  background-position: 33.333% 50%;
+}
+
 .menu__status span:nth-child(3) {
   border-color: rgba(191, 255, 117, 0.26);
   color: var(--lime);
+}
+
+.menu__status span:nth-child(3)::before {
+  background-position: 66.666% 50%;
 }
 
 .primary {
@@ -411,6 +583,12 @@ button.bitmap-text,
   background: linear-gradient(135deg, rgba(84, 243, 255, 0.92), rgba(191, 255, 117, 0.9) 58%, rgba(255, 188, 85, 0.92));
   border: 0;
   box-shadow: 0 18px 42px rgba(84, 243, 255, 0.25);
+}
+
+.primary::before {
+  background-position: 100% 0%;
+  opacity: 0.7;
+  mix-blend-mode: multiply;
 }
 
 .menu__actions {
