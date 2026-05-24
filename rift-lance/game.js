@@ -38,6 +38,7 @@
     boom: loadImage("assets/generated/rift-explosions-sheet-alpha.png"),
     shards: loadImage("assets/generated/rift-shards-sheet-alpha.png"),
     orbs: loadImage("assets/generated/rift-orbs-sheet-alpha.png"),
+    rings: loadImage("assets/generated/rift-ring-sheet-alpha.png"),
   };
 
   const clips = {
@@ -146,6 +147,26 @@
     twin: [ORB_W * 2, ORB_H * 2, ORB_W, ORB_H],
     cluster: [ORB_W * 3, ORB_H * 2, ORB_W, ORB_H],
   };
+  const RING_W = 384;
+  const RING_H = 384;
+  const ringClips = {
+    player: [0, 0, RING_W, RING_H],
+    drone: [RING_W, 0, RING_W, RING_H],
+    chargeCyan: [RING_W * 2, 0, RING_W, RING_H],
+    chargeAmber: [RING_W * 3, 0, RING_W, RING_H],
+    enemy: [0, RING_H, RING_W, RING_H],
+    boss: [RING_W, RING_H, RING_W, RING_H],
+    asteroid: [RING_W * 2, RING_H, RING_W, RING_H],
+    mine: [RING_W * 3, RING_H, RING_W, RING_H],
+    relay: [0, RING_H * 2, RING_W, RING_H],
+    blackHole: [RING_W, RING_H * 2, RING_W, RING_H],
+    pickupAmber: [RING_W * 2, RING_H * 2, RING_W, RING_H],
+    pickupCyan: [RING_W * 3, RING_H * 2, RING_W, RING_H],
+  };
+  const bitmapChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%-:";
+  const bitmapLookup = new Map([...bitmapChars].map((char, index) => [char, index]));
+  const BITMAP_FONT_COLS = 8;
+  const BITMAP_GLYPH_W = 0.74;
 
   const input = {
     left: false,
@@ -224,10 +245,51 @@
     return img;
   }
 
+  function setGuiText(el, text, variant = "") {
+    if (!el) return;
+    const raw = String(text);
+    const value = raw.toUpperCase();
+    if (el.dataset.bitmapValue === value) return;
+    el.dataset.bitmapValue = value;
+    el.setAttribute("aria-label", raw);
+    el.classList.add("bitmap-text");
+    if (variant) el.classList.add(`bitmap-text--${variant}`);
+    const fragment = document.createDocumentFragment();
+    for (const char of value) {
+      if (char === " ") {
+        const space = document.createElement("span");
+        space.className = "bitmap-space";
+        space.setAttribute("aria-hidden", "true");
+        fragment.appendChild(space);
+        continue;
+      }
+      const index = bitmapLookup.get(char);
+      if (index === undefined) continue;
+      const glyph = document.createElement("span");
+      glyph.className = "bitmap-glyph";
+      glyph.style.setProperty("--mask-x", `${-(index % BITMAP_FONT_COLS) * BITMAP_GLYPH_W}em`);
+      glyph.style.setProperty("--mask-y", `-${Math.floor(index / BITMAP_FONT_COLS)}em`);
+      glyph.setAttribute("aria-hidden", "true");
+      fragment.appendChild(glyph);
+    }
+    el.replaceChildren(fragment);
+  }
+
+  function hydrateGuiText() {
+    setGuiText(document.querySelector(".hud__brand"), "Rift Lance", "brand");
+    for (const label of document.querySelectorAll(".hud span")) setGuiText(label, label.textContent, "label");
+    for (const label of document.querySelectorAll(".menu__status span")) setGuiText(label, label.textContent, "status");
+    for (const button of document.querySelectorAll(".touch button")) setGuiText(button, button.textContent, "touch");
+    setGuiText(startButton, "Launch", "button");
+    setGuiText(muteButton, state.muted ? "Muted" : "Audio", "button");
+    setGuiText(motionButton, state.reducedMotion ? "Calm" : "Motion", "button");
+    setGuiText(banner, state.bannerText, "banner");
+  }
+
   function setBanner(text, seconds = 1.4) {
     state.bannerText = text;
     state.bannerTimer = seconds;
-    banner.textContent = text;
+    setGuiText(banner, text, "banner");
     banner.classList.add("is-live");
   }
 
@@ -286,7 +348,7 @@
   function toggleMute() {
     state.muted = !state.muted;
     muteButton.setAttribute("aria-pressed", String(state.muted));
-    muteButton.textContent = state.muted ? "Muted" : "Audio";
+    setGuiText(muteButton, state.muted ? "Muted" : "Audio", "button");
     bgm.muted = state.muted;
     if (!state.muted && state.running) playMusic();
   }
@@ -294,7 +356,7 @@
   function toggleMotion() {
     state.reducedMotion = !state.reducedMotion;
     motionButton.setAttribute("aria-pressed", String(state.reducedMotion));
-    motionButton.textContent = state.reducedMotion ? "Calm" : "Motion";
+    setGuiText(motionButton, state.reducedMotion ? "Calm" : "Motion", "button");
   }
 
   function addScore(amount) {
@@ -312,12 +374,12 @@
   }
 
   function updateHud() {
-    hud.score.textContent = String(Math.floor(state.score));
-    hud.hull.textContent = String(Math.max(0, Math.ceil(player.hull)));
-    hud.heat.textContent = `${Math.round(player.heat)}%`;
-    hud.wave.textContent = String(state.wave).padStart(2, "0");
-    hud.chain.textContent = String(state.chain);
-    hud.best.textContent = String(Math.floor(state.best));
+    setGuiText(hud.score, String(Math.floor(state.score)), "value");
+    setGuiText(hud.hull, String(Math.max(0, Math.ceil(player.hull))), "value");
+    setGuiText(hud.heat, `${Math.round(player.heat)}%`, "value");
+    setGuiText(hud.wave, String(state.wave).padStart(2, "0"), "value");
+    setGuiText(hud.chain, String(state.chain), "value");
+    setGuiText(hud.best, String(Math.floor(state.best)), "value");
   }
 
   function update(dt) {
@@ -1015,7 +1077,7 @@
     state.running = false;
     state.over = true;
     menu.classList.remove("is-hidden");
-    startButton.textContent = "Retry";
+    setGuiText(startButton, "Retry", "button");
     setBanner("RUN ENDED", 2);
   }
 
@@ -1140,7 +1202,7 @@
     ctx.translate(player.x, player.y);
     ctx.rotate(tilt);
     ctx.scale(pulse, 1 / pulse);
-    drawSpriteBackdrop(-39, -22, 82, 43, "rgba(84,243,255,0.56)");
+    drawSpriteBackdrop(-43, -26, 90, 52, "player", 0, 0.96);
     drawClip("player", -32, -15, 70, 31, true);
     ctx.restore();
     ctx.save();
@@ -1153,11 +1215,9 @@
     if (player.charge > 2) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = player.charge > 76 ? "#ffbc55" : "#54f3ff";
-      ctx.lineWidth = 3 + player.charge * 0.04;
-      ctx.beginPath();
-      ctx.arc(player.x + 24, player.y, 14 + player.charge * 0.2, 0, TAU);
-      ctx.stroke();
+      const size = 34 + player.charge * 0.46;
+      const ring = player.charge > 76 ? "chargeAmber" : "chargeCyan";
+      drawRingAt(ring, player.x + 24 - size * 0.5, player.y - size * 0.5, size, size, state.time * 2.6, 0.55 + player.charge * 0.003);
       ctx.restore();
     }
     ctx.globalAlpha = 1;
@@ -1169,16 +1229,13 @@
     ctx.translate(drone.x, drone.y);
     ctx.rotate(drone.angle);
     const scale = 1 + Math.sin(state.time * 10) * 0.05;
-    drawSpriteBackdrop(-14 * scale, -14 * scale, 28 * scale, 28 * scale, "rgba(84,243,255,0.44)");
+    drawSpriteBackdrop(-17 * scale, -17 * scale, 34 * scale, 34 * scale, "drone", 0, 0.86);
     drawClipAt("shield", -12 * scale, -12 * scale, 24 * scale, 24 * scale);
     ctx.restore();
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = player.droneMode === "orbit" ? "rgba(84,243,255,0.56)" : "rgba(255,188,85,0.62)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(drone.x, drone.y, 17 + Math.sin(state.time * 8) * 2.2, 0, TAU);
-    ctx.stroke();
+    const orbitSize = 42 + Math.sin(state.time * 8) * 4;
+    drawRingAt(player.droneMode === "orbit" ? "drone" : "chargeAmber", drone.x - orbitSize * 0.5, drone.y - orbitSize * 0.5, orbitSize, orbitSize, -state.time * 2.8, 0.58);
     ctx.restore();
   }
 
@@ -1193,7 +1250,7 @@
         ctx.translate(e.x, e.y);
         ctx.rotate(Math.sin(e.t * 2.5) * 0.035);
         ctx.scale(1 + Math.sin(e.t * 5) * 0.015, 1);
-        drawSpriteBackdrop(-120, -36, 172, 58, "rgba(255,188,85,0.45)");
+        drawSpriteBackdrop(-122, -42, 178, 72, "boss", 0, 0.92);
         drawClip("boss", -98, -27, 146, 44);
         ctx.restore();
         drawHealthBar(e, 104);
@@ -1203,7 +1260,7 @@
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0014, -0.22, 0.22) + Math.sin(e.t * 8) * 0.025);
         ctx.scale(1 + Math.sin(e.t * 7) * 0.025, 1 - Math.sin(e.t * 6) * 0.012);
-        drawSpriteBackdrop(-size[0] * 0.58, -size[1] * 0.6, size[0] * 1.16, size[1] * 1.2, "rgba(255,77,118,0.5)");
+        drawSpriteBackdrop(-size[0] * 0.62, -size[1] * 0.7, size[0] * 1.24, size[1] * 1.4, "enemy", 0, 0.9);
         drawPropAt(e.art, -size[0] * 0.5, -size[1] * 0.5, size[0], size[1]);
         ctx.restore();
         drawHealthBar(e, e.kind === "needle" ? 30 : 48);
@@ -1213,7 +1270,7 @@
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0015, -0.25, 0.25) + Math.sin(e.t * 10) * 0.035);
         ctx.scale(1 + Math.sin(e.t * 9) * 0.035, 1 - Math.sin(e.t * 8) * 0.018);
-        drawSpriteBackdrop(-28, -18, 56, 34, "rgba(255,77,118,0.48)");
+        drawSpriteBackdrop(-30, -20, 60, 40, "enemy", 0, 0.88);
         drawClip(clip, -24, -15, 48, 30);
         ctx.restore();
         drawHealthBar(e, 28);
@@ -1226,7 +1283,7 @@
     ctx.translate(e.x, e.y);
     ctx.rotate(e.rot);
     const pulse = 1 + Math.sin(e.t * 5) * 0.025;
-    drawSpriteBackdrop(-e.r * 0.88, -e.r * 0.88, e.r * 1.76, e.r * 1.76, "rgba(255,188,85,0.34)");
+    drawSpriteBackdrop(-e.r * 1.05, -e.r * 1.05, e.r * 2.1, e.r * 2.1, "asteroid", 0, 0.74);
     drawPropAt(e.art, -e.r * 0.78 * pulse, -e.r * 0.78 * pulse, e.r * 1.56 * pulse, e.r * 1.56 * pulse);
     ctx.restore();
     drawHealthBar(e, e.r * 1.6);
@@ -1238,19 +1295,16 @@
     ctx.rotate(e.rot || 0);
     if (e.kind === "blackHole") {
       const pulse = 1 + Math.sin(e.t * 7) * 0.08;
-      drawSpriteBackdrop(-e.r * 1.04, -e.r * 1.04, e.r * 2.08, e.r * 2.08, "rgba(84,243,255,0.38)");
+      drawSpriteBackdrop(-e.r * 1.26, -e.r * 1.26, e.r * 2.52, e.r * 2.52, "blackHole", e.t * 0.42, 0.82);
       drawPropAt(e.art, -e.r * 0.88 * pulse, -e.r * 0.88 * pulse, e.r * 1.76 * pulse, e.r * 1.76 * pulse);
       drawFxAt("gravityRipple", -e.r * 1.2 * pulse, -e.r * 1.2 * pulse, e.r * 2.4 * pulse, e.r * 2.4 * pulse, e.t * 0.8);
       ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = "rgba(84,243,255,0.38)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.r * 1.08 + Math.sin(e.t * 5) * 5, 0, TAU);
-      ctx.stroke();
+      const ringSize = e.r * 2.28 + Math.sin(e.t * 5) * 10;
+      drawRingAt("blackHole", -ringSize * 0.5, -ringSize * 0.5, ringSize, ringSize, -e.t * 0.9, 0.54);
     } else {
       const pulse = e.kind === "mine" ? 1 + Math.sin((e.t || 0) * 8) * 0.05 : 1;
       const scale = e.kind === "relay" ? 1.06 : 0.86;
-      drawSpriteBackdrop(-e.r * scale * 0.92, -e.r * scale * 0.92, e.r * scale * 1.84, e.r * scale * 1.84, e.kind === "relay" ? "rgba(84,243,255,0.36)" : "rgba(255,77,118,0.38)");
+      drawSpriteBackdrop(-e.r * scale * 1.1, -e.r * scale * 1.1, e.r * scale * 2.2, e.r * scale * 2.2, e.kind === "relay" ? "relay" : "mine", 0, 0.78);
       drawPropAt(e.art, -e.r * scale * pulse, -e.r * scale * pulse, e.r * scale * 2 * pulse, e.r * scale * 2 * pulse);
     }
     ctx.restore();
@@ -1308,11 +1362,8 @@
         drawPropAt(art, -size * 0.5, -size * 0.5 + bob, size, size);
       }
       ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = p.kind === "battery" ? "rgba(84,243,255,0.55)" : "rgba(255,188,85,0.55)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, size * 0.45 + Math.sin(p.t * 6) * 4, 0, TAU);
-      ctx.stroke();
+      const ringSize = size * 1.28 + Math.sin(p.t * 6) * 8;
+      drawRingAt(p.kind === "battery" ? "pickupCyan" : "pickupAmber", -ringSize * 0.5, -ringSize * 0.5 + bob, ringSize, ringSize, p.t * (p.kind === "score" ? -1.7 : 1.4), 0.72);
       ctx.restore();
     }
   }
@@ -1368,7 +1419,19 @@
     }
   }
 
-  function drawSpriteBackdrop(x, y, w, h, color) {
+  function drawRingAt(name, x, y, w, h, rotation = 0, alpha = 1) {
+    const sheet = assets.rings;
+    const clip = ringClips[name] || ringClips.player;
+    if (sheet.complete && sheet.naturalWidth && clip) {
+      ctx.save();
+      ctx.globalAlpha *= alpha;
+      ctx.translate(x + w * 0.5, y + h * 0.5);
+      ctx.rotate(rotation);
+      ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], -w * 0.5, -h * 0.5, w, h);
+      ctx.restore();
+      return;
+    }
+    const fallback = name === "boss" || name === "asteroid" || name === "pickupAmber" || name === "chargeAmber" ? "#ffbc55" : name === "enemy" || name === "mine" ? "#ff4d76" : "#54f3ff";
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "rgba(1, 4, 9, 0.72)";
@@ -1376,12 +1439,16 @@
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.56, h * 0.55, 0, 0, TAU);
     ctx.fill();
     ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = fallback;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.58, h * 0.58, 0, 0, TAU);
     ctx.stroke();
     ctx.restore();
+  }
+
+  function drawSpriteBackdrop(x, y, w, h, ringName, rotation = 0, alpha = 1) {
+    drawRingAt(ringName, x, y, w, h, rotation, alpha);
   }
 
   function drawClip(name, x, y, w, h, flipX = false) {
@@ -1570,6 +1637,7 @@
   window.addEventListener("resize", resize);
   bindInput();
   resize();
+  hydrateGuiText();
   updateHud();
   const params = new URLSearchParams(window.location.search);
   if (params.get("muted") === "1") toggleMute();
