@@ -20,6 +20,7 @@
   const W = 1280;
   const H = 720;
   const TAU = Math.PI * 2;
+  const PLAYER_MAX_HULL = 120;
   const rand = (min, max) => min + Math.random() * (max - min);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const dist2 = (a, b) => {
@@ -32,6 +33,7 @@
     bg: loadImage("assets/generated/rift-loop-bg-tile.png"),
     sheet: loadImage("assets/generated/rift-asset-sheet-alpha.png"),
     props: loadImage("assets/generated/rift-props-sheet-alpha.png"),
+    fx: loadImage("assets/generated/rift-projectiles-sheet-alpha.png"),
   };
 
   const clips = {
@@ -68,6 +70,26 @@
     blackHole: [PROP * 2, PROP * 2, PROP, PROP],
     crate: [PROP * 3, PROP * 2, PROP, PROP],
   };
+  const FX_W = 384;
+  const FX_H = 256;
+  const fxClips = {
+    pulse: [0, 0, FX_W, FX_H],
+    spear: [FX_W, 0, FX_W, FX_H],
+    lance: [FX_W * 2, 0, FX_W, FX_H],
+    muzzle: [FX_W * 3, 0, FX_W, FX_H],
+    enemyOrb: [0, FX_H, FX_W, FX_H],
+    enemyShard: [FX_W, FX_H, FX_W, FX_H],
+    enemyMissile: [FX_W * 2, FX_H, FX_W, FX_H],
+    minePellet: [FX_W * 3, FX_H, FX_W, FX_H],
+    droneBolt: [0, FX_H * 2, FX_W, FX_H],
+    repairSpark: [FX_W, FX_H * 2, FX_W, FX_H],
+    scoreShard: [FX_W * 2, FX_H * 2, FX_W, FX_H],
+    heatVent: [FX_W * 3, FX_H * 2, FX_W, FX_H],
+    impact: [0, FX_H * 3, FX_W, FX_H],
+    explosion: [FX_W, FX_H * 3, FX_W, FX_H],
+    deflect: [FX_W * 2, FX_H * 3, FX_W, FX_H],
+    gravityRipple: [FX_W * 3, FX_H * 3, FX_W, FX_H],
+  };
 
   const input = {
     left: false,
@@ -93,8 +115,9 @@
     wave: 1,
     spawnTimer: 0,
     hazardTimer: 0,
-    bossTimer: 42,
-    nextWaveScore: 1800,
+    assistTimer: 8,
+    bossTimer: 60,
+    nextWaveScore: 2200,
     bannerTimer: 0,
     bannerText: "RIFT LANCE",
   };
@@ -104,8 +127,8 @@
     y: H * 0.5,
     vx: 0,
     vy: 0,
-    r: 25,
-    hull: 100,
+    r: 22,
+    hull: PLAYER_MAX_HULL,
     heat: 0,
     fireTimer: 0,
     charge: 0,
@@ -170,7 +193,7 @@
       y: H * 0.5,
       vx: 0,
       vy: 0,
-      hull: 100,
+      hull: PLAYER_MAX_HULL,
       heat: 0,
       fireTimer: 0,
       charge: 0,
@@ -185,10 +208,11 @@
       flash: 0,
       score: 0,
       wave: 1,
-      spawnTimer: 0.3,
-      hazardTimer: 1.5,
-      bossTimer: 38,
-      nextWaveScore: 1800,
+      spawnTimer: 0.85,
+      hazardTimer: 2.4,
+      assistTimer: 8,
+      bossTimer: 58,
+      nextWaveScore: 2200,
     });
     updateHud();
   }
@@ -259,7 +283,7 @@
   function updatePlayer(dt) {
     const ax = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     const ay = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-    const speed = input.charge ? 360 : 520;
+    const speed = input.charge ? 390 : 540;
     player.vx += (ax * speed - player.vx) * Math.min(1, dt * 12);
     player.vy += (ay * speed - player.vy) * Math.min(1, dt * 12);
     player.x = clamp(player.x + player.vx * dt, 56, W * 0.48);
@@ -269,19 +293,20 @@
     player.invuln = Math.max(0, player.invuln - dt);
 
     if (input.charge) {
-      player.charge = clamp(player.charge + dt * 58, 0, 100);
-      player.heat = clamp(player.heat + dt * 22, 0, 100);
+      player.charge = clamp(player.charge + dt * 64, 0, 100);
+      player.heat = clamp(player.heat + dt * 15, 0, 100);
     } else {
       if (player.charge > 34) fireLance();
       player.charge = Math.max(0, player.charge - dt * 120);
-      player.heat = Math.max(0, player.heat - dt * 26);
+      player.heat = Math.max(0, player.heat - dt * 32);
     }
 
     if (input.fire && player.fireTimer <= 0 && player.heat < 96) {
-      fireBolt(player.x + 54, player.y - 3, 860, 0, 16, "#54f3ff", 11, "player");
-      fireBolt(player.x + 34, player.y + 16, 780, 18, 10, "#bfff75", 7, "player");
-      player.fireTimer = 0.075;
-      player.heat = clamp(player.heat + 3.8, 0, 100);
+      fireBolt(player.x + 54, player.y - 3, 910, 0, 18, "#54f3ff", 12, "player", "pulse");
+      fireBolt(player.x + 34, player.y + 16, 830, 18, 11, "#bfff75", 8, "player", "spear");
+      particles.push({ x: player.x + 60, y: player.y, vx: -90, vy: 0, life: 0.12, radius: 22, color: "#54f3ff", alpha: 0.65, art: "muzzle" });
+      player.fireTimer = 0.082;
+      player.heat = clamp(player.heat + 2.6, 0, 100);
     }
 
     if (input.drone && player.droneCooldown <= 0) {
@@ -291,7 +316,7 @@
     }
 
     if (!input.charge && !input.fire) {
-      player.heat = Math.max(0, player.heat - dt * 18);
+      player.heat = Math.max(0, player.heat - dt * 24);
     }
 
     addTrail(player.x - 20, player.y, "#54f3ff", 0.42);
@@ -319,13 +344,13 @@
     drone.x = clamp(drone.x + drone.vx * dt, 70, W - 96);
     drone.y = clamp(drone.y + drone.vy * dt, 76, H - 70);
     if ((input.fire || player.droneMode === "strike") && drone.fireTimer <= 0) {
-      fireBolt(drone.x + 20, drone.y, 760, rand(-20, 20), 9, "#ffbc55", 6, "player");
-      drone.fireTimer = player.droneMode === "strike" ? 0.18 : 0.28;
+      fireBolt(drone.x + 20, drone.y, 800, rand(-20, 20), 10, "#ffbc55", 7, "player", "droneBolt");
+      drone.fireTimer = player.droneMode === "strike" ? 0.16 : 0.25;
     }
   }
 
-  function fireBolt(x, y, vx, vy, damage, color, radius, owner) {
-    bullets.push({ x, y, vx, vy, damage, color, radius, owner, life: 1.4, kind: "bolt" });
+  function fireBolt(x, y, vx, vy, damage, color, radius, owner, art = "pulse") {
+    bullets.push({ x, y, vx, vy, damage, color, radius, owner, life: 1.4, kind: "bolt", art });
   }
 
   function fireLance() {
@@ -339,12 +364,13 @@
       color: power > 0.78 ? "#ffbc55" : "#54f3ff",
       radius: 20 + power * 20,
       owner: "player",
-      life: 0.42,
+      life: 0.52,
       kind: "lance",
+      art: "lance",
       pierce: 5 + Math.floor(power * 5),
     });
     player.charge = 0;
-    player.heat = clamp(player.heat + 24, 0, 100);
+    player.heat = clamp(player.heat + 18, 0, 100);
     state.flash = 0.8;
     state.shake = state.reducedMotion ? 0.1 : 0.45;
   }
@@ -366,27 +392,43 @@
   function spawnDirector(dt) {
     state.spawnTimer -= dt;
     state.hazardTimer -= dt;
+    state.assistTimer -= dt;
     state.bossTimer -= dt;
     if (state.spawnTimer <= 0) {
-      const count = state.wave > 3 ? 2 : 1;
+      const count = state.wave > 4 && Math.random() < 0.72 ? 2 : 1;
       for (let i = 0; i < count; i += 1) spawnEnemy();
-      state.spawnTimer = clamp(0.95 - state.wave * 0.055, 0.32, 0.95);
+      state.spawnTimer = clamp(1.18 - state.wave * 0.045, 0.48, 1.18);
     }
     if (state.hazardTimer <= 0) {
       spawnHazard();
-      state.hazardTimer = rand(1.1, 2.4);
+      state.hazardTimer = rand(1.7, 3.25);
+    }
+    if (state.assistTimer <= 0) {
+      if (player.hull < PLAYER_MAX_HULL * 0.55 || player.heat > 72) {
+        pickups.push({
+          kind: player.heat > 72 ? "battery" : "core",
+          x: W + 80,
+          y: clamp(player.y + rand(-120, 120), 110, H - 90),
+          r: 18,
+          t: 0,
+        });
+        setBanner("SUPPLY DRIFT", 0.7);
+      }
+      state.assistTimer = rand(10, 15);
     }
     if (state.bossTimer <= 0 && !enemies.some((e) => e.kind === "boss")) {
       spawnBoss();
-      state.bossTimer = 52 + state.wave * 6;
+      state.bossTimer = 68 + state.wave * 7;
       setBanner("RIFT CRUISER", 1.4);
     }
   }
 
   function spawnEnemy() {
     const kinds = state.wave < 2
-      ? ["skimmer", "blade", "turret", "needle"]
-      : ["skimmer", "blade", "turret", "needle", "frigate", "carrier"];
+      ? ["skimmer", "skimmer", "blade", "turret"]
+      : state.wave < 4
+        ? ["skimmer", "blade", "turret", "needle", "frigate"]
+        : ["skimmer", "blade", "turret", "needle", "frigate", "carrier"];
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     const y = rand(100, H - 92);
     const waveBoost = Math.min(5, state.wave);
@@ -398,7 +440,7 @@
       vx: -rand(210, 330) - waveBoost * 24,
       vy: rand(-55, 55),
       r: kind === "blade" ? 32 : 27,
-      hp: kind === "turret" ? 48 + state.wave * 8 : 30 + state.wave * 6,
+      hp: kind === "turret" ? 42 + state.wave * 6 : 26 + state.wave * 5,
       maxHp: 1,
       t: rand(0, TAU),
       shot: rand(0.45, 1.4),
@@ -409,7 +451,7 @@
         vx: -rand(420, 560) - waveBoost * 34,
         vy: rand(-120, 120),
         r: 25,
-        hp: 24 + state.wave * 5,
+        hp: 20 + state.wave * 4,
         value: 220,
         art: "needle",
       });
@@ -418,7 +460,7 @@
         vx: -rand(120, 180) - waveBoost * 10,
         vy: rand(-25, 25),
         r: 46,
-        hp: 120 + state.wave * 28,
+        hp: 98 + state.wave * 22,
         shot: rand(0.35, 0.9),
         value: 520,
         art: "frigate",
@@ -428,7 +470,7 @@
         vx: -rand(95, 145) - waveBoost * 8,
         vy: rand(-35, 35),
         r: 55,
-        hp: 155 + state.wave * 34,
+        hp: 126 + state.wave * 28,
         shot: rand(0.7, 1.2),
         value: 680,
         art: "carrier",
@@ -462,7 +504,7 @@
     let hazard;
     if (roll < 0.48) {
       const r = rand(30, 58);
-      const hp = 26 + r * 0.8 + state.wave * 7;
+      const hp = 20 + r * 0.62 + state.wave * 5;
       hazard = {
         kind: "asteroid",
         art: asteroidArts[Math.floor(Math.random() * asteroidArts.length)],
@@ -486,8 +528,8 @@
         vx: -rand(120, 190) - state.wave * 8,
         vy: rand(-20, 20),
         r: 39,
-        hp: 46 + state.wave * 8,
-        maxHp: 46 + state.wave * 8,
+        hp: 38 + state.wave * 6,
+        maxHp: 38 + state.wave * 6,
         t: rand(0, TAU),
         shot: 0.9,
         value: 260,
@@ -501,8 +543,8 @@
         vx: -rand(150, 230),
         vy: rand(-18, 18),
         r: 48,
-        hp: 66 + state.wave * 12,
-        maxHp: 66 + state.wave * 12,
+        hp: 54 + state.wave * 9,
+        maxHp: 54 + state.wave * 9,
         rot: rand(-0.35, 0.35),
         spin: rand(-0.45, 0.45),
         value: 360,
@@ -516,8 +558,8 @@
         vx: -rand(90, 135),
         vy: rand(-10, 10),
         r: 58,
-        hp: 96 + state.wave * 18,
-        maxHp: 96 + state.wave * 18,
+        hp: 78 + state.wave * 13,
+        maxHp: 78 + state.wave * 13,
         t: 0,
         value: 620,
       };
@@ -533,8 +575,8 @@
       vx: -120,
       vy: 0,
       r: 104,
-      hp: 760 + state.wave * 180,
-      maxHp: 760 + state.wave * 180,
+      hp: 650 + state.wave * 145,
+      maxHp: 650 + state.wave * 145,
       t: 0,
       shot: 0.8,
       value: 2400,
@@ -555,15 +597,15 @@
         e.vy += (player.y - e.y) * dt * 0.7;
         e.shot -= dt;
         if (e.shot <= 0) {
-          enemyShot(e.x - 35, e.y, -420, (player.y - e.y) * 1.2);
-          e.shot = clamp(1.15 - state.wave * 0.055, 0.46, 1.15);
+          enemyShot(e.x - 35, e.y, -420, (player.y - e.y) * 1.2, "enemyOrb");
+          e.shot = clamp(1.28 - state.wave * 0.045, 0.58, 1.28);
         }
       } else if (e.kind === "escort") {
         e.y = e.baseY + Math.sin(e.t * 7.6) * 32;
         e.shot -= dt;
         if (e.shot <= 0) {
-          enemyShot(e.x - 28, e.y, -500, (player.y - e.y) * 1.4);
-          e.shot = clamp(1.1 - state.wave * 0.04, 0.48, 1.1);
+          enemyShot(e.x - 28, e.y, -500, (player.y - e.y) * 1.4, "enemyShard");
+          e.shot = clamp(1.22 - state.wave * 0.032, 0.58, 1.22);
         }
       } else if (e.kind === "needle") {
         e.vy += Math.sin(e.t * 9.2) * dt * 180;
@@ -572,8 +614,8 @@
         e.vy += (player.y - e.y) * dt * 0.36;
         e.shot -= dt;
         if (e.shot <= 0) {
-          [-0.42, 0, 0.42].forEach((spread) => enemyShot(e.x - 58, e.y + spread * 52, -520, (player.y - e.y) * 0.9 + spread * 220));
-          e.shot = clamp(0.95 - state.wave * 0.035, 0.42, 0.95);
+          [-0.34, 0.34].forEach((spread) => enemyShot(e.x - 58, e.y + spread * 52, -520, (player.y - e.y) * 0.82 + spread * 190, "enemyShard"));
+          e.shot = clamp(1.15 - state.wave * 0.026, 0.6, 1.15);
         }
       } else if (e.kind === "carrier") {
         e.y = e.baseY + Math.sin(e.t * 2.1) * 56;
@@ -581,8 +623,8 @@
         if (e.shot <= 0) {
           spawnEscort(e.x - 70, e.y - 42);
           spawnEscort(e.x - 74, e.y + 42);
-          enemyShot(e.x - 70, e.y, -480, (player.y - e.y) * 1.05);
-          e.shot = clamp(2.25 - state.wave * 0.08, 1.2, 2.25);
+          enemyShot(e.x - 70, e.y, -480, (player.y - e.y) * 1.05, "enemyMissile");
+          e.shot = clamp(2.7 - state.wave * 0.065, 1.55, 2.7);
         }
       } else if (e.kind === "boss") {
         e.vx += ((W - 210) - e.x) * dt * 0.26;
@@ -590,9 +632,9 @@
         e.y = H * 0.5 + Math.sin(e.t * 1.8) * 155;
         e.shot -= dt;
         if (e.shot <= 0) {
-          const lanes = [-92, -46, 0, 46, 92];
-          lanes.forEach((lane) => enemyShot(e.x - 170, e.y + lane, -500, (player.y - e.y - lane) * 0.9));
-          e.shot = clamp(0.92 - state.wave * 0.03, 0.48, 0.92);
+          const lanes = [-86, 0, 86];
+          lanes.forEach((lane) => enemyShot(e.x - 170, e.y + lane, -500, (player.y - e.y - lane) * 0.85, "enemyMissile"));
+          e.shot = clamp(1.12 - state.wave * 0.024, 0.64, 1.12);
         }
       } else if (e.kind === "asteroid") {
         e.rot += e.spin * dt;
@@ -606,13 +648,14 @@
               y: e.y,
               vx: Math.cos(a) * 330 - 140,
               vy: Math.sin(a) * 330,
-              damage: 10,
+              damage: 7,
               radius: 8,
               color: "#ff4d76",
+              art: "minePellet",
               life: 1.5,
             });
           }
-          e.shot = 1.6;
+          e.shot = 2.0;
           burst(e.x, e.y, "#ff4d76", 12, 1);
         }
       } else if (e.kind === "relay") {
@@ -641,16 +684,17 @@
     for (const b of enemyBullets) pull(b, 160);
   }
 
-  function enemyShot(x, y, vx, vy) {
+  function enemyShot(x, y, vx, vy, art = "enemyOrb") {
     const mag = Math.hypot(vx, vy) || 1;
     enemyBullets.push({
       x,
       y,
-      vx: (vx / mag) * 455,
-      vy: (vy / mag) * 455,
-      damage: 12,
+      vx: (vx / mag) * 365,
+      vy: (vy / mag) * 365,
+      damage: art === "enemyMissile" ? 10 : 8,
       radius: 10,
       color: "#ff4d76",
+      art,
       life: 2.3,
     });
   }
@@ -685,6 +729,7 @@
         const hitRadius = b.radius + e.r * (e.kind === "boss" ? 1.05 : 0.85);
         if (dist2(b, e) < hitRadius * hitRadius) {
           e.hp -= b.damage;
+          particles.push({ x: b.x, y: b.y, vx: 0, vy: 0, life: 0.18, radius: 20, color: b.color, alpha: 0.9, art: "impact", rot: rand(0, TAU) });
           burst(b.x, b.y, b.color, b.kind === "lance" ? 10 : 4, b.kind === "lance" ? 1.2 : 0.6);
           if (b.kind !== "lance" || --b.pierce <= 0) bullets.splice(i, 1);
           if (e.hp <= 0) killEnemy(e, j);
@@ -697,11 +742,12 @@
       const b = enemyBullets[i];
       if (dist2(b, drone) < (b.radius + drone.r) ** 2 && player.droneMode === "orbit") {
         enemyBullets.splice(i, 1);
+        particles.push({ x: b.x, y: b.y, vx: 0, vy: 0, life: 0.2, radius: 26, color: "#54f3ff", alpha: 0.9, art: "deflect", rot: rand(0, TAU) });
         burst(b.x, b.y, "#54f3ff", 8, 0.7);
         addScore(12);
         continue;
       }
-      if (dist2(b, player) < (b.radius + player.r) ** 2) {
+        if (dist2(b, player) < (b.radius + player.r * 0.82) ** 2) {
         enemyBullets.splice(i, 1);
         damagePlayer(b.damage);
       }
@@ -709,9 +755,9 @@
 
     for (let i = enemies.length - 1; i >= 0; i -= 1) {
       const e = enemies[i];
-      if (dist2(e, player) < (e.r + player.r) ** 2) {
+      if (dist2(e, player) < (e.r * 0.78 + player.r * 0.88) ** 2) {
         killEnemy(e, i, false);
-        damagePlayer(e.kind === "boss" ? 28 : 18);
+        damagePlayer(e.kind === "boss" ? 20 : 12);
       } else if (dist2(e, drone) < (e.r + drone.r) ** 2 && player.droneMode === "orbit") {
         e.hp -= 16;
         burst(drone.x, drone.y, "#ffbc55", 6, 0.8);
@@ -726,15 +772,21 @@
         if (p.kind === "battery") {
           player.heat = Math.max(0, player.heat - 54);
           player.charge = clamp(player.charge + 24, 0, 100);
+          burst(player.x + 34, player.y, "#54f3ff", 14, 1);
           setBanner("HEAT VENT", 0.7);
         } else if (p.kind === "crate") {
-          player.hull = clamp(player.hull + 8, 0, 100);
+          player.hull = clamp(player.hull + 10, 0, PLAYER_MAX_HULL);
           addScore(260);
           burst(player.x + 50, player.y, "#ffbc55", 18, 1.2);
           setBanner("SALVAGE", 0.7);
+        } else if (p.kind === "score") {
+          addScore(320);
+          burst(player.x + 50, player.y, "#ffbc55", 12, 1);
+          setBanner("RIFT SHARD", 0.6);
         } else {
-          player.hull = clamp(player.hull + 16, 0, 100);
+          player.hull = clamp(player.hull + 18, 0, PLAYER_MAX_HULL);
           player.heat = Math.max(0, player.heat - 28);
+          burst(player.x + 34, player.y, "#bfff75", 14, 1);
           setBanner("CORE SYNC", 0.7);
         }
         addScore(120);
@@ -746,19 +798,34 @@
     enemies.splice(index, 1);
     const count = enemy.kind === "boss" ? 46 : enemy.kind === "asteroid" ? 16 : 22;
     burst(enemy.x, enemy.y, enemy.kind === "boss" ? "#ffbc55" : "#ff4d76", count, enemy.kind === "boss" ? 2.6 : 1.3);
+    particles.push({
+      x: enemy.x,
+      y: enemy.y,
+      vx: 0,
+      vy: 0,
+      life: enemy.kind === "boss" ? 0.5 : 0.3,
+      radius: enemy.kind === "boss" ? 82 : 48,
+      color: "#ffbc55",
+      alpha: 0.95,
+      art: "explosion",
+      rot: rand(0, TAU),
+    });
     state.shake = state.reducedMotion ? 0.08 : Math.max(state.shake, enemy.kind === "boss" ? 0.7 : 0.22);
     if (score) addScore(enemy.value);
-    const dropChance = enemy.kind === "boss" ? 1 : enemy.kind === "relay" || enemy.kind === "carrier" ? 0.34 : 0.12;
+    const dropChance = enemy.kind === "boss" ? 1 : enemy.kind === "relay" || enemy.kind === "carrier" ? 0.42 : player.hull < PLAYER_MAX_HULL * 0.45 ? 0.24 : 0.16;
     if (Math.random() < dropChance) {
       const kind = enemy.kind === "relay" ? "crate" : player.heat > 55 ? "battery" : "core";
       pickups.push({ kind, x: enemy.x, y: enemy.y, r: kind === "crate" ? 24 : 18, t: 0 });
+    }
+    if (score && enemy.kind !== "asteroid" && Math.random() < 0.28) {
+      pickups.push({ kind: "score", x: enemy.x + rand(-18, 18), y: enemy.y + rand(-18, 18), r: 14, t: 0 });
     }
   }
 
   function damagePlayer(amount) {
     if (player.invuln > 0) return;
-    player.hull -= amount;
-    player.invuln = 0.64;
+    player.hull -= Math.ceil(amount * 0.72);
+    player.invuln = 0.86;
     state.flash = 0.8;
     state.shake = state.reducedMotion ? 0.1 : 0.48;
     burst(player.x, player.y, "#ff4d76", 18, 1.1);
@@ -931,6 +998,7 @@
     if (e.kind === "blackHole") {
       const pulse = 1 + Math.sin(e.t * 7) * 0.08;
       drawPropAt(e.art, -e.r * 1.35 * pulse, -e.r * 1.35 * pulse, e.r * 2.7 * pulse, e.r * 2.7 * pulse);
+      drawFxAt("gravityRipple", -e.r * 1.75 * pulse, -e.r * 1.75 * pulse, e.r * 3.5 * pulse, e.r * 3.5 * pulse, e.t * 0.8);
       ctx.globalCompositeOperation = "lighter";
       ctx.strokeStyle = "rgba(84,243,255,0.38)";
       ctx.lineWidth = 2;
@@ -958,23 +1026,17 @@
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (const b of bullets) {
-      const length = b.kind === "lance" ? 180 : 38;
-      const grad = ctx.createLinearGradient(b.x - length, b.y, b.x + length, b.y);
-      grad.addColorStop(0, "rgba(255,255,255,0)");
-      grad.addColorStop(0.45, b.color);
-      grad.addColorStop(1, "#ffffff");
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = b.radius;
-      ctx.beginPath();
-      ctx.moveTo(b.x - length, b.y);
-      ctx.lineTo(b.x + length * 0.45, b.y);
-      ctx.stroke();
+      const angle = Math.atan2(b.vy, b.vx);
+      const w = b.kind === "lance" ? 250 + b.radius * 3 : b.art === "spear" ? 88 : b.art === "droneBolt" ? 46 : 62;
+      const h = b.kind === "lance" ? 54 + b.radius * 0.45 : b.art === "spear" ? 38 : 30;
+      drawFxAt(b.art || "pulse", b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
     }
     for (const b of enemyBullets) {
-      ctx.fillStyle = b.color;
-      ctx.beginPath();
-      ctx.ellipse(b.x, b.y, b.radius * 1.4, b.radius, 0, 0, TAU);
-      ctx.fill();
+      const base = b.art === "enemyMissile" || b.art === "enemyShard" ? Math.PI : 0;
+      const angle = Math.atan2(b.vy, b.vx) - base;
+      const w = b.art === "enemyMissile" ? 82 : b.art === "enemyShard" ? 58 : 42;
+      const h = b.art === "enemyMissile" ? 36 : 42;
+      drawFxAt(b.art || "enemyOrb", b.x - w * 0.5, b.y - h * 0.5, w, h, angle);
     }
     ctx.restore();
   }
@@ -985,8 +1047,12 @@
       ctx.translate(p.x, p.y);
       ctx.rotate(p.t * 3);
       const art = p.kind === "battery" ? "battery" : p.kind === "crate" ? "crate" : "core";
-      const size = p.kind === "crate" ? 58 : 50;
-      drawPropAt(art, -size * 0.5, -size * 0.5, size, size);
+      const size = p.kind === "crate" ? 58 : p.kind === "score" ? 46 : 50;
+      if (p.kind === "score") {
+        drawFxAt("scoreShard", -size * 0.5, -size * 0.5, size, size, 0);
+      } else {
+        drawPropAt(art, -size * 0.5, -size * 0.5, size, size);
+      }
       ctx.globalCompositeOperation = "lighter";
       ctx.strokeStyle = p.kind === "battery" ? "rgba(84,243,255,0.55)" : "rgba(255,188,85,0.55)";
       ctx.lineWidth = 2;
@@ -1002,6 +1068,11 @@
     ctx.globalCompositeOperation = "lighter";
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2.4)) * (p.alpha || 1);
+      if (p.art) {
+        const size = p.art === "muzzle" ? 70 : p.art === "explosion" ? 92 : p.art === "deflect" ? 70 : 58;
+        drawFxAt(p.art, p.x - size * 0.5, p.y - size * 0.5, size, size, p.rot || 0);
+        continue;
+      }
       ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.radius, 0, TAU);
@@ -1058,6 +1129,23 @@
     ctx.fillStyle = name === "blackHole" ? "#1d0f3d" : name && name.includes("asteroid") ? "#353942" : "#ffbc55";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.36, h * 0.34, 0, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawFxAt(name, x, y, w, h, rotation = 0) {
+    const sheet = assets.fx;
+    const clip = fxClips[name];
+    if (sheet.complete && sheet.naturalWidth && clip) {
+      ctx.save();
+      ctx.translate(x + w * 0.5, y + h * 0.5);
+      ctx.rotate(rotation);
+      ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], -w * 0.5, -h * 0.5, w, h);
+      ctx.restore();
+      return;
+    }
+    ctx.fillStyle = name && name.startsWith("enemy") ? "#ff4d76" : "#54f3ff";
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.45, h * 0.28, rotation, 0, TAU);
     ctx.fill();
   }
 
