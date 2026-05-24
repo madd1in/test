@@ -3,6 +3,7 @@
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: true });
+  const shell = document.querySelector(".shell");
   const hud = {
     score: document.getElementById("score"),
     hull: document.getElementById("hull"),
@@ -201,6 +202,10 @@
     hazardTimer: 0,
     assistTimer: 8,
     bossTimer: 60,
+    eventTimer: 5.5,
+    eventCount: 0,
+    fieldTint: 0,
+    fieldTintColor: "52, 251, 255",
     nextWaveScore: 2200,
     bannerTimer: 0,
     bannerText: "RIFT LANCE",
@@ -243,7 +248,7 @@
     x: rand(0, W),
     y: rand(0, H),
     z: rand(0.15, 1),
-    c: Math.random() > 0.78 ? "#ffbc55" : Math.random() > 0.5 ? "#54f3ff" : "#ffffff",
+    c: Math.random() > 0.78 ? "#ffcf3f" : Math.random() > 0.5 ? "#34fbff" : "#ffffff",
   }));
 
   function loadImage(src) {
@@ -324,6 +329,7 @@
     state.running = true;
     state.over = false;
     menu.classList.add("is-hidden");
+    shell.classList.remove("is-menu-open");
     setBanner("WAVE 01", 1.2);
     playMusic();
   }
@@ -360,6 +366,10 @@
       hazardTimer: 2.4,
       assistTimer: 8,
       bossTimer: 58,
+      eventTimer: 5.5,
+      eventCount: 0,
+      fieldTint: 0,
+      fieldTintColor: "52, 251, 255",
       nextWaveScore: 2200,
     });
     updateHud();
@@ -395,7 +405,8 @@
       state.wave += 1;
       state.nextWaveScore += 1800 + state.wave * 620;
       setBanner(`WAVE ${String(state.wave).padStart(2, "0")}`, 1.1);
-      burst(player.x + 80, player.y, "#bfff75", 20, 1.8);
+      pulseField("216, 255, 79", 0.72);
+      burst(player.x + 80, player.y, "#d8ff4f", 20, 1.8);
     }
   }
 
@@ -412,6 +423,7 @@
     state.time += dt;
     state.shake = Math.max(0, state.shake - dt * 8);
     state.flash = Math.max(0, state.flash - dt * 3.4);
+    state.fieldTint = Math.max(0, state.fieldTint - dt * 0.9);
     if (state.chainTimer > 0) {
       state.chainTimer -= dt;
       if (state.chainTimer <= 0) state.chain = 0;
@@ -431,6 +443,11 @@
     spawnDirector(dt);
     checkCollisions();
     updateHud();
+  }
+
+  function pulseField(rgb, amount = 0.55) {
+    state.fieldTintColor = rgb;
+    state.fieldTint = Math.max(state.fieldTint, amount);
   }
 
   function updatePlayer(dt) {
@@ -455,9 +472,9 @@
     }
 
     if (input.fire && player.fireTimer <= 0 && player.heat < 96) {
-      fireBolt(player.x + 54, player.y - 3, 910, 0, 18, "#54f3ff", 12, "player", "pulse");
-      fireBolt(player.x + 34, player.y + 16, 830, 18, 11, "#bfff75", 8, "player", "spear");
-      particles.push({ x: player.x + 60, y: player.y, vx: -90, vy: 0, life: 0.12, radius: 22, color: "#54f3ff", alpha: 0.65, art: "muzzle" });
+      fireBolt(player.x + 54, player.y - 3, 910, 0, 18, "#34fbff", 12, "player", "pulse");
+      fireBolt(player.x + 34, player.y + 16, 830, 18, 11, "#d8ff4f", 8, "player", "spear");
+      particles.push({ x: player.x + 60, y: player.y, vx: -90, vy: 0, life: 0.12, radius: 22, color: "#34fbff", alpha: 0.65, art: "muzzle" });
       player.fireTimer = 0.082;
       player.heat = clamp(player.heat + 2.6, 0, 100);
     }
@@ -472,7 +489,7 @@
       player.heat = Math.max(0, player.heat - dt * 24);
     }
 
-    addTrail(player.x - 20, player.y, "#54f3ff", 0.42);
+    addTrail(player.x - 20, player.y, "#34fbff", 0.42);
   }
 
   function updateDrone(dt) {
@@ -497,7 +514,7 @@
     drone.x = clamp(drone.x + drone.vx * dt, 70, W - 96);
     drone.y = clamp(drone.y + drone.vy * dt, 76, H - 70);
     if ((input.fire || player.droneMode === "strike") && drone.fireTimer <= 0) {
-      fireBolt(drone.x + 20, drone.y, 800, rand(-20, 20), 10, "#ffbc55", 7, "player", "droneBolt");
+      fireBolt(drone.x + 20, drone.y, 800, rand(-20, 20), 10, "#ffcf3f", 7, "player", "droneBolt");
       drone.fireTimer = player.droneMode === "strike" ? 0.16 : 0.25;
     }
   }
@@ -514,7 +531,7 @@
       vx: 1180,
       vy: 0,
       damage: 62 + power * 120,
-      color: power > 0.78 ? "#ffbc55" : "#54f3ff",
+      color: power > 0.78 ? "#ffcf3f" : "#34fbff",
       radius: 20 + power * 20,
       owner: "player",
       life: 0.52,
@@ -548,10 +565,15 @@
     state.hazardTimer -= dt;
     state.assistTimer -= dt;
     state.bossTimer -= dt;
+    state.eventTimer -= dt;
     if (state.spawnTimer <= 0) {
       const count = state.wave > 4 && Math.random() < 0.72 ? 2 : 1;
       for (let i = 0; i < count; i += 1) spawnEnemy();
       state.spawnTimer = clamp(1.18 - state.wave * 0.045, 0.48, 1.18);
+    }
+    if (state.eventTimer <= 0) {
+      spawnWaveEvent();
+      state.eventTimer = rand(8.5, 13.5) - clamp(state.wave * 0.25, 0, 2.2);
     }
     if (state.hazardTimer <= 0) {
       spawnHazard();
@@ -566,6 +588,7 @@
           r: 16,
           t: 0,
         });
+        pulseField(player.heat > 72 ? "52, 251, 255" : "216, 255, 79", 0.38);
         setBanner("SUPPLY DRIFT", 0.7);
       }
       state.assistTimer = rand(10, 15);
@@ -577,18 +600,79 @@
     }
   }
 
-  function spawnEnemy() {
+  function spawnPickup(kind, x, y, radius = 16) {
+    pickups.push({ kind, x, y: clamp(y, 82, H - 74), r: radius, t: 0 });
+  }
+
+  function spawnWaveEvent() {
+    const pool = state.wave < 2
+      ? ["prismTrail", "flankRaid", "supplyThread"]
+      : ["prismTrail", "flankRaid", "mineVeil", "relayCache", "needleStorm", "supplyThread"];
+    const type = pool[Math.floor(Math.random() * pool.length)];
+    state.eventCount += 1;
+    if (type === "prismTrail") {
+      setBanner("PRISM TRAIL", 1);
+      pulseField("52, 251, 255", 0.78);
+      const baseY = rand(150, H - 150);
+      for (let i = 0; i < 6; i += 1) {
+        const y = baseY + Math.sin(i * 0.9 + state.eventCount) * 72;
+        spawnPickup(i === 3 ? "battery" : "score", W + 110 + i * 72, y, i === 3 ? 16 : 13);
+      }
+      spawnEnemy("skimmer", clamp(baseY - 95, 100, H - 92), 520);
+      spawnShardSpray(W - 40, baseY, 8, "cyan");
+    } else if (type === "flankRaid") {
+      setBanner("FLANK RAID", 1);
+      pulseField("255, 46, 120", 0.72);
+      const lanes = [118, 232, 346, 460, 574].sort(() => Math.random() - 0.5);
+      lanes.slice(0, 4).forEach((y, i) => spawnEnemy(i % 2 ? "blade" : "skimmer", y, 90 + i * 58));
+      spawnShardSpray(W - 20, lanes[0], 7, "hot");
+    } else if (type === "mineVeil") {
+      setBanner("MINE VEIL", 1);
+      pulseField("255, 207, 63", 0.62);
+      const gap = Math.floor(rand(1, 4));
+      [120, 220, 320, 420, 520, 620].forEach((y, i) => {
+        if (Math.abs(i - gap) <= 0) return;
+        spawnHazard(i % 2 ? "asteroid" : "mine", 80 + i * 48, y);
+      });
+      spawnPickup("core", W + 460, [120, 220, 320, 420, 520, 620][gap], 16);
+    } else if (type === "relayCache") {
+      setBanner("RELAY CACHE", 1);
+      pulseField("216, 255, 79", 0.7);
+      const y = rand(180, H - 180);
+      spawnHazard("relay", 120, y);
+      spawnPickup("crate", W + 210, y - 58, 22);
+      spawnPickup("score", W + 270, y + 58, 13);
+      spawnEnemy(state.wave > 3 ? "frigate" : "turret", clamp(y + rand(-100, 100), 100, H - 92), 360);
+    } else if (type === "needleStorm") {
+      setBanner("NEEDLE STORM", 1);
+      pulseField("139, 124, 255", 0.78);
+      for (let i = 0; i < 5; i += 1) {
+        spawnEnemy("needle", rand(110, H - 100), 70 + i * 70);
+      }
+    } else {
+      setBanner("SUPPLY THREAD", 1);
+      pulseField("255, 207, 63", 0.58);
+      const y = clamp(player.y + rand(-150, 150), 120, H - 110);
+      spawnPickup("core", W + 120, y, 16);
+      spawnPickup("battery", W + 220, y + 58, 16);
+      spawnPickup("score", W + 320, y - 54, 13);
+      spawnEnemy("escort", clamp(y - 92, 100, H - 92), 410);
+      spawnEnemy("escort", clamp(y + 92, 100, H - 92), 460);
+    }
+  }
+
+  function spawnEnemy(kindOverride = "", yOverride = null, xOffset = null) {
     const kinds = state.wave < 2
       ? ["skimmer", "skimmer", "blade", "turret"]
       : state.wave < 4
         ? ["skimmer", "blade", "turret", "needle", "frigate"]
         : ["skimmer", "blade", "turret", "needle", "frigate", "carrier"];
-    const kind = kinds[Math.floor(Math.random() * kinds.length)];
-    const y = rand(100, H - 92);
+    const kind = kindOverride || kinds[Math.floor(Math.random() * kinds.length)];
+    const y = yOverride ?? rand(100, H - 92);
     const waveBoost = Math.min(5, state.wave);
     const enemy = {
       kind,
-      x: W + rand(40, 240),
+      x: W + (xOffset ?? rand(40, 240)),
       y,
       baseY: y,
       vx: -rand(210, 330) - waveBoost * 24,
@@ -652,8 +736,14 @@
     enemies.push(escort);
   }
 
-  function spawnHazard() {
-    const roll = Math.random();
+  function spawnHazard(kindOverride = "", xOffset = null, yOverride = null) {
+    const forcedRoll = {
+      asteroid: 0.24,
+      mine: 0.6,
+      relay: 0.8,
+      blackHole: 0.95,
+    }[kindOverride];
+    const roll = forcedRoll ?? Math.random();
     const asteroidArts = ["asteroidDark", "asteroidOre", "asteroidIce"];
     let hazard;
     if (roll < 0.48) {
@@ -662,8 +752,8 @@
       hazard = {
         kind: "asteroid",
         art: asteroidArts[Math.floor(Math.random() * asteroidArts.length)],
-        x: W + 100,
-        y: rand(120, H - 80),
+        x: W + (xOffset ?? 100),
+        y: yOverride ?? rand(120, H - 80),
         vx: -rand(250, 430) - state.wave * 10,
         vy: rand(-40, 40),
         r,
@@ -677,8 +767,8 @@
       hazard = {
         kind: "mine",
         art: "mine",
-        x: W + 110,
-        y: rand(110, H - 86),
+        x: W + (xOffset ?? 110),
+        y: yOverride ?? rand(110, H - 86),
         vx: -rand(120, 190) - state.wave * 8,
         vy: rand(-20, 20),
         r: 22,
@@ -692,8 +782,8 @@
       hazard = {
         kind: "relay",
         art: "relay",
-        x: W + 140,
-        y: rand(125, H - 100),
+        x: W + (xOffset ?? 140),
+        y: yOverride ?? rand(125, H - 100),
         vx: -rand(150, 230),
         vy: rand(-18, 18),
         r: 28,
@@ -707,8 +797,8 @@
       hazard = {
         kind: "blackHole",
         art: "blackHole",
-        x: W + 120,
-        y: rand(150, H - 130),
+        x: W + (xOffset ?? 120),
+        y: yOverride ?? rand(150, H - 130),
         vx: -rand(90, 135),
         vy: rand(-10, 10),
         r: 33,
@@ -808,13 +898,13 @@
               vy: Math.sin(a) * 330,
               damage: 7,
               radius: 8,
-              color: "#ff4d76",
+              color: "#ff2e78",
               art: "minePellet",
               life: 1.5,
             });
           }
           e.shot = 2.0;
-          burst(e.x, e.y, "#ff4d76", 12, 1);
+          burst(e.x, e.y, "#ff2e78", 12, 1);
         }
       } else if (e.kind === "relay") {
         e.rot += e.spin * dt;
@@ -831,7 +921,7 @@
           vy: rand(-18, 18),
           life: rand(0.14, 0.3),
           radius: rand(2, 6),
-          color: hot ? "#ffbc55" : "#ff4d76",
+          color: hot ? "#ffcf3f" : "#ff2e78",
           alpha: 0.34,
         });
       }
@@ -864,7 +954,7 @@
       vy: (vy / mag) * 365,
       damage: art === "enemyMissile" ? 10 : 8,
       radius: 10,
-      color: "#ff4d76",
+      color: "#ff2e78",
       art,
       life: 2.3,
     });
@@ -967,7 +1057,7 @@
       spin: 0.8,
     });
     spawnShardSpray(player.x + 120, player.y, 14, "cyan");
-    burst(player.x + 110, player.y, "#54f3ff", 34, 1.9);
+    burst(player.x + 110, player.y, "#34fbff", 34, 1.9);
     for (const e of enemies) {
       if (e.x < player.x - 80) continue;
       const d = Math.hypot(e.x - player.x, e.y - player.y);
@@ -1001,7 +1091,7 @@
       if (dist2(b, drone) < (b.radius + drone.r) ** 2 && player.droneMode === "orbit") {
         enemyBullets.splice(i, 1);
         spawnImpact(b.x, b.y, "shieldCrack", 70);
-        burst(b.x, b.y, "#54f3ff", 8, 0.7);
+        burst(b.x, b.y, "#34fbff", 8, 0.7);
         addScore(12);
         continue;
       }
@@ -1020,7 +1110,7 @@
       } else if (dist2(e, drone) < (e.r + drone.r) ** 2 && player.droneMode === "orbit") {
         e.hp -= 16;
         spawnImpact(drone.x, drone.y, "shieldCrack", 62);
-        burst(drone.x, drone.y, "#ffbc55", 6, 0.8);
+        burst(drone.x, drone.y, "#ffcf3f", 6, 0.8);
         if (e.hp <= 0) killEnemy(e, i);
       }
     }
@@ -1032,21 +1122,21 @@
         if (p.kind === "battery") {
           player.heat = Math.max(0, player.heat - 54);
           player.charge = clamp(player.charge + 24, 0, 100);
-          burst(player.x + 34, player.y, "#54f3ff", 14, 1);
+          burst(player.x + 34, player.y, "#34fbff", 14, 1);
           setBanner("HEAT VENT", 0.7);
         } else if (p.kind === "crate") {
           player.hull = clamp(player.hull + 10, 0, PLAYER_MAX_HULL);
           addScore(260);
-          burst(player.x + 50, player.y, "#ffbc55", 18, 1.2);
+          burst(player.x + 50, player.y, "#ffcf3f", 18, 1.2);
           setBanner("SALVAGE", 0.7);
         } else if (p.kind === "score") {
           addScore(320);
-          burst(player.x + 50, player.y, "#ffbc55", 12, 1);
+          burst(player.x + 50, player.y, "#ffcf3f", 12, 1);
           setBanner("RIFT SHARD", 0.6);
         } else {
           player.hull = clamp(player.hull + 18, 0, PLAYER_MAX_HULL);
           player.heat = Math.max(0, player.heat - 28);
-          burst(player.x + 34, player.y, "#bfff75", 14, 1);
+          burst(player.x + 34, player.y, "#d8ff4f", 14, 1);
           setBanner("CORE SYNC", 0.7);
         }
         addScore(120);
@@ -1057,7 +1147,7 @@
   function killEnemy(enemy, index, score = true) {
     enemies.splice(index, 1);
     const count = enemy.kind === "boss" ? 46 : enemy.kind === "asteroid" ? 16 : 22;
-    burst(enemy.x, enemy.y, enemy.kind === "boss" ? "#ffbc55" : "#ff4d76", count, enemy.kind === "boss" ? 2.6 : 1.3);
+    burst(enemy.x, enemy.y, enemy.kind === "boss" ? "#ffcf3f" : "#ff2e78", count, enemy.kind === "boss" ? 2.6 : 1.3);
     spawnExplosion(enemy.x, enemy.y, enemy.kind === "boss" ? 178 : enemy.kind === "asteroid" ? 78 : 104, enemy.kind === "boss" ? "large" : "medium");
     spawnShardSpray(enemy.x, enemy.y, enemy.kind === "boss" ? 18 : enemy.kind === "asteroid" ? 3 : 7, enemy.kind === "boss" || enemy.kind === "mine" ? "hot" : "cyan");
     state.shake = state.reducedMotion ? 0.08 : Math.max(state.shake, enemy.kind === "boss" ? 0.7 : 0.22);
@@ -1089,13 +1179,13 @@
     state.flash = 0.8;
     state.shake = state.reducedMotion ? 0.1 : 0.48;
     spawnExplosion(player.x + 12, player.y, 86, "medium");
-    burst(player.x, player.y, "#ff4d76", 18, 1.1);
+    burst(player.x, player.y, "#ff2e78", 18, 1.1);
     if (player.hull <= 0) endRun();
   }
 
   function orbFamilyForColor(color) {
     const value = String(color).toLowerCase();
-    if (value.includes("54f3ff") || value.includes("bfff75") || value.includes("cyan") || value.includes("blue")) return "blue";
+    if (value.includes("34fbff") || value.includes("54f3ff") || value.includes("d8ff4f") || value.includes("bfff75") || value.includes("cyan") || value.includes("blue")) return "blue";
     return "red";
   }
 
@@ -1103,6 +1193,7 @@
     state.running = false;
     state.over = true;
     menu.classList.remove("is-hidden");
+    shell.classList.add("is-menu-open");
     setGuiText(startButton, "Retry", "button");
     setBanner("RUN ENDED", 2);
   }
@@ -1184,6 +1275,10 @@
     drawStars();
     ctx.fillStyle = backgroundGradient;
     ctx.fillRect(0, 0, W, H);
+    if (state.fieldTint > 0) {
+      ctx.fillStyle = `rgba(${state.fieldTintColor}, ${state.fieldTint * 0.16})`;
+      ctx.fillRect(0, 0, W, H);
+    }
   }
 
   function drawStars() {
@@ -1322,7 +1417,7 @@
     const pct = clamp(e.hp / e.maxHp, 0, 1);
     ctx.fillStyle = "rgba(0,0,0,0.42)";
     ctx.fillRect(e.x - width * 0.5, e.y - e.r - 16, width, 5);
-    ctx.fillStyle = e.kind === "boss" ? "#ffbc55" : "#ff4d76";
+    ctx.fillStyle = e.kind === "boss" ? "#ffcf3f" : "#ff2e78";
     ctx.fillRect(e.x - width * 0.5, e.y - e.r - 16, width * pct, 5);
   }
 
@@ -1418,7 +1513,7 @@
     ctx.fillStyle = vignetteGradient;
     ctx.fillRect(0, 0, W, H);
     if (state.flash > 0) {
-      ctx.fillStyle = `rgba(255, 77, 118, ${state.flash * 0.18})`;
+      ctx.fillStyle = `rgba(255, 46, 120, ${state.flash * 0.2})`;
       ctx.fillRect(0, 0, W, H);
     }
   }
@@ -1435,7 +1530,7 @@
       ctx.restore();
       return;
     }
-    const fallback = name === "boss" || name === "asteroid" || name === "pickupAmber" || name === "chargeAmber" ? "#ffbc55" : name === "enemy" || name === "mine" ? "#ff4d76" : "#54f3ff";
+    const fallback = name === "boss" || name === "asteroid" || name === "pickupAmber" || name === "chargeAmber" ? "#ffcf3f" : name === "enemy" || name === "mine" ? "#ff2e78" : "#34fbff";
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "rgba(1, 4, 9, 0.72)";
@@ -1499,7 +1594,7 @@
       }
       return;
     }
-    ctx.fillStyle = name === "player" ? "#54f3ff" : "#ff4d76";
+    ctx.fillStyle = name === "player" ? "#34fbff" : "#ff2e78";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.45, h * 0.35, 0, 0, TAU);
     ctx.fill();
@@ -1512,7 +1607,7 @@
       ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], x, y, w, h);
       return;
     }
-    ctx.fillStyle = name === "blackHole" ? "#1d0f3d" : name && name.includes("asteroid") ? "#353942" : "#ffbc55";
+    ctx.fillStyle = name === "blackHole" ? "#24165b" : name && name.includes("asteroid") ? "#3a4050" : "#ffcf3f";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.36, h * 0.34, 0, 0, TAU);
     ctx.fill();
@@ -1529,7 +1624,7 @@
       ctx.restore();
       return;
     }
-    ctx.fillStyle = name && name.startsWith("enemy") ? "#ff4d76" : "#54f3ff";
+    ctx.fillStyle = name && name.startsWith("enemy") ? "#ff2e78" : "#34fbff";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.45, h * 0.28, rotation, 0, TAU);
     ctx.fill();
@@ -1547,7 +1642,7 @@
       return;
     }
     const blue = name && name.startsWith("blue");
-    ctx.fillStyle = blue ? "#54f3ff" : "#ff4d76";
+    ctx.fillStyle = blue ? "#34fbff" : "#ff2e78";
     ctx.beginPath();
     ctx.arc(x + w * 0.5, y + h * 0.5, Math.min(w, h) * 0.45, 0, TAU);
     ctx.fill();
@@ -1564,7 +1659,7 @@
       ctx.restore();
       return;
     }
-    ctx.fillStyle = name === "amber" ? "#ffbc55" : name === "rose" ? "#ff4d76" : "#54f3ff";
+    ctx.fillStyle = name === "amber" ? "#ffcf3f" : name === "rose" ? "#ff2e78" : "#34fbff";
     ctx.beginPath();
     ctx.moveTo(x + w * 0.5, y);
     ctx.lineTo(x + w, y + h * 0.55);
@@ -1606,7 +1701,7 @@
     backgroundGradient = ctx.createLinearGradient(0, 0, W, 0);
     backgroundGradient.addColorStop(0, "rgba(5, 7, 13, 0.28)");
     backgroundGradient.addColorStop(0.55, "rgba(5, 7, 13, 0.06)");
-    backgroundGradient.addColorStop(1, "rgba(255, 77, 118, 0.08)");
+    backgroundGradient.addColorStop(1, "rgba(255, 46, 120, 0.1)");
     vignetteGradient = ctx.createRadialGradient(W * 0.55, H * 0.5, H * 0.18, W * 0.55, H * 0.5, H * 0.82);
     vignetteGradient.addColorStop(0, "rgba(0,0,0,0)");
     vignetteGradient.addColorStop(1, "rgba(0,0,0,0.48)");

@@ -37,6 +37,7 @@ Open `http://localhost:4179`.
 - Aura rings were softened and ships now get a brighter gamma plus sprite-glow pass over a darker playfield.
 - The current start screen/HUD uses raster chrome overlays so the frames and buttons feel less sterile.
 - Performance pass removes per-sprite blur/filter work, moves the nebula background out of the canvas redraw loop, lowers render scale, delays heavy audio preload, and keeps the font atlas as a subtle texture behind readable live text.
+- Color and variety pass boosts cyan/amber/rose/lime accents, hides HUD clutter on the launch screen, adds stronger HUD edge strips, and introduces director events such as Prism Trail, Flank Raid, Mine Veil, Relay Cache, Supply Thread, and Needle Storm.
 
 ## Controls
 
