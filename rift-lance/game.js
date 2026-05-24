@@ -37,6 +37,7 @@
     fx: loadImage("assets/generated/rift-projectiles-sheet-alpha.png"),
     boom: loadImage("assets/generated/rift-explosions-sheet-alpha.png"),
     shards: loadImage("assets/generated/rift-shards-sheet-alpha.png"),
+    orbs: loadImage("assets/generated/rift-orbs-sheet-alpha.png"),
   };
 
   const clips = {
@@ -129,6 +130,22 @@
     glint: [SHARD_W * 2, SHARD_H * 2, SHARD_W, SHARD_H],
     bloomWave: [SHARD_W * 3, SHARD_H * 2, SHARD_W, SHARD_H],
   };
+  const ORB_W = 384;
+  const ORB_H = 1024 / 3;
+  const orbClips = {
+    blueSmall: [0, 0, ORB_W, ORB_H],
+    blueMed: [ORB_W, 0, ORB_W, ORB_H],
+    blueLarge: [ORB_W * 2, 0, ORB_W, ORB_H],
+    blueHuge: [ORB_W * 3, 0, ORB_W, ORB_H],
+    redSmall: [0, ORB_H, ORB_W, ORB_H],
+    redMed: [ORB_W, ORB_H, ORB_W, ORB_H],
+    redLarge: [ORB_W * 2, ORB_H, ORB_W, ORB_H],
+    redHuge: [ORB_W * 3, ORB_H, ORB_W, ORB_H],
+    blueCrack: [0, ORB_H * 2, ORB_W, ORB_H],
+    redCrack: [ORB_W, ORB_H * 2, ORB_W, ORB_H],
+    twin: [ORB_W * 2, ORB_H * 2, ORB_W, ORB_H],
+    cluster: [ORB_W * 3, ORB_H * 2, ORB_W, ORB_H],
+  };
 
   const input = {
     left: false,
@@ -168,7 +185,7 @@
     y: H * 0.5,
     vx: 0,
     vy: 0,
-    r: 15,
+    r: 13,
     hull: PLAYER_MAX_HULL,
     heat: 0,
     fireTimer: 0,
@@ -183,7 +200,7 @@
     y: H * 0.5,
     vx: 0,
     vy: 0,
-    r: 12,
+    r: 10,
     angle: 0,
     fireTimer: 0,
     recall: 0,
@@ -488,7 +505,7 @@
       baseY: y,
       vx: -rand(210, 330) - waveBoost * 24,
       vy: rand(-55, 55),
-      r: kind === "blade" ? 21 : 18,
+      r: kind === "blade" ? 18 : 16,
       hp: kind === "turret" ? 42 + state.wave * 6 : 26 + state.wave * 5,
       maxHp: 1,
       t: rand(0, TAU),
@@ -499,7 +516,7 @@
       Object.assign(enemy, {
         vx: -rand(420, 560) - waveBoost * 34,
         vy: rand(-120, 120),
-        r: 16,
+        r: 14,
         hp: 20 + state.wave * 4,
         value: 220,
         art: "needle",
@@ -508,7 +525,7 @@
       Object.assign(enemy, {
         vx: -rand(120, 180) - waveBoost * 10,
         vy: rand(-25, 25),
-        r: 31,
+        r: 27,
         hp: 98 + state.wave * 22,
         shot: rand(0.35, 0.9),
         value: 520,
@@ -518,7 +535,7 @@
       Object.assign(enemy, {
         vx: -rand(95, 145) - waveBoost * 8,
         vy: rand(-35, 35),
-        r: 36,
+        r: 31,
         hp: 126 + state.wave * 28,
         shot: rand(0.7, 1.2),
         value: 680,
@@ -537,7 +554,7 @@
       baseY: y,
       vx: -rand(300, 400) - state.wave * 12,
       vy: rand(-90, 90),
-      r: 15,
+      r: 13,
       hp: 24 + state.wave * 4,
       maxHp: 24 + state.wave * 4,
       t: rand(0, TAU),
@@ -552,7 +569,7 @@
     const asteroidArts = ["asteroidDark", "asteroidOre", "asteroidIce"];
     let hazard;
     if (roll < 0.48) {
-      const r = rand(20, 38);
+      const r = rand(18, 34);
       const hp = 20 + r * 0.62 + state.wave * 5;
       hazard = {
         kind: "asteroid",
@@ -576,7 +593,7 @@
         y: rand(110, H - 86),
         vx: -rand(120, 190) - state.wave * 8,
         vy: rand(-20, 20),
-        r: 27,
+        r: 24,
         hp: 38 + state.wave * 6,
         maxHp: 38 + state.wave * 6,
         t: rand(0, TAU),
@@ -591,7 +608,7 @@
         y: rand(125, H - 100),
         vx: -rand(150, 230),
         vy: rand(-18, 18),
-        r: 34,
+        r: 30,
         hp: 54 + state.wave * 9,
         maxHp: 54 + state.wave * 9,
         rot: rand(-0.35, 0.35),
@@ -606,7 +623,7 @@
         y: rand(150, H - 130),
         vx: -rand(90, 135),
         vy: rand(-10, 10),
-        r: 41,
+        r: 36,
         hp: 78 + state.wave * 13,
         maxHp: 78 + state.wave * 13,
         t: 0,
@@ -623,7 +640,7 @@
       y: H * 0.5,
       vx: -120,
       vy: 0,
-      r: 70,
+      r: 62,
       hp: 650 + state.wave * 145,
       maxHp: 650 + state.wave * 145,
       t: 0,
@@ -988,6 +1005,12 @@
     if (player.hull <= 0) endRun();
   }
 
+  function orbFamilyForColor(color) {
+    const value = String(color).toLowerCase();
+    if (value.includes("54f3ff") || value.includes("bfff75") || value.includes("cyan") || value.includes("blue")) return "blue";
+    return "red";
+  }
+
   function endRun() {
     state.running = false;
     state.over = true;
@@ -997,17 +1020,27 @@
   }
 
   function burst(x, y, color, count, power = 1) {
+    const family = orbFamilyForColor(color);
+    const orbNames = family === "blue" ? ["blueSmall", "blueMed", "blueCrack", "cluster"] : ["redSmall", "redMed", "redCrack", "cluster"];
     for (let i = 0; i < count; i += 1) {
       const angle = rand(0, TAU);
       const speed = rand(80, 360) * power;
+      const orb = Math.random() < 0.58 || count > 10;
+      const radius = rand(2, 8) * power;
       particles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: rand(0.25, 0.72) * power,
-        radius: rand(2, 8) * power,
+        maxLife: 0.72 * power,
+        radius,
         color,
+        alpha: orb ? 0.78 : 1,
+        orb: orb ? orbNames[Math.floor(Math.random() * orbNames.length)] : null,
+        size: orb ? clamp(radius * rand(4.2, 6.4), 15, 68) : null,
+        rot: rand(0, TAU),
+        spin: orb ? rand(-5, 5) : 0,
       });
     }
   }
@@ -1107,14 +1140,15 @@
     ctx.translate(player.x, player.y);
     ctx.rotate(tilt);
     ctx.scale(pulse, 1 / pulse);
-    drawClip("player", -37, -18, 82, 36, true);
+    drawSpriteBackdrop(-39, -22, 82, 43, "rgba(84,243,255,0.56)");
+    drawClip("player", -32, -15, 70, 31, true);
     ctx.restore();
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = flicker ? 0.28 : 0.72;
     const flare = 1 + Math.sin(state.time * 34) * 0.16;
-    drawFxAt("heatVent", player.x - 74, player.y - 18, 62 * flare, 28, Math.PI);
-    drawFxAt("heatVent", player.x - 72, player.y + 4, 54 * flare, 24, Math.PI);
+    drawFxAt("heatVent", player.x - 66, player.y - 16, 54 * flare, 24, Math.PI);
+    drawFxAt("heatVent", player.x - 64, player.y + 4, 46 * flare, 20, Math.PI);
     ctx.restore();
     if (player.charge > 2) {
       ctx.save();
@@ -1135,7 +1169,8 @@
     ctx.translate(drone.x, drone.y);
     ctx.rotate(drone.angle);
     const scale = 1 + Math.sin(state.time * 10) * 0.05;
-    drawClipAt("shield", -15 * scale, -15 * scale, 30 * scale, 30 * scale);
+    drawSpriteBackdrop(-14 * scale, -14 * scale, 28 * scale, 28 * scale, "rgba(84,243,255,0.44)");
+    drawClipAt("shield", -12 * scale, -12 * scale, 24 * scale, 24 * scale);
     ctx.restore();
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
@@ -1158,27 +1193,30 @@
         ctx.translate(e.x, e.y);
         ctx.rotate(Math.sin(e.t * 2.5) * 0.035);
         ctx.scale(1 + Math.sin(e.t * 5) * 0.015, 1);
-        drawClip("boss", -112, -31, 170, 51);
+        drawSpriteBackdrop(-120, -36, 172, 58, "rgba(255,188,85,0.45)");
+        drawClip("boss", -98, -27, 146, 44);
         ctx.restore();
-        drawHealthBar(e, 120);
+        drawHealthBar(e, 104);
       } else if (e.kind === "needle" || e.kind === "frigate" || e.kind === "carrier") {
-        const size = e.kind === "needle" ? [70, 46] : e.kind === "frigate" ? [92, 62] : [106, 68];
+        const size = e.kind === "needle" ? [60, 40] : e.kind === "frigate" ? [78, 52] : [92, 58];
         ctx.save();
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0014, -0.22, 0.22) + Math.sin(e.t * 8) * 0.025);
         ctx.scale(1 + Math.sin(e.t * 7) * 0.025, 1 - Math.sin(e.t * 6) * 0.012);
+        drawSpriteBackdrop(-size[0] * 0.58, -size[1] * 0.6, size[0] * 1.16, size[1] * 1.2, "rgba(255,77,118,0.5)");
         drawPropAt(e.art, -size[0] * 0.5, -size[1] * 0.5, size[0], size[1]);
         ctx.restore();
-        drawHealthBar(e, e.kind === "needle" ? 34 : 54);
+        drawHealthBar(e, e.kind === "needle" ? 30 : 48);
       } else {
         const clip = e.kind === "skimmer" || e.kind === "escort" ? "droneA" : e.kind === "blade" ? "droneB" : "droneC";
         ctx.save();
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0015, -0.25, 0.25) + Math.sin(e.t * 10) * 0.035);
         ctx.scale(1 + Math.sin(e.t * 9) * 0.035, 1 - Math.sin(e.t * 8) * 0.018);
-        drawClip(clip, -28, -18, 56, 35);
+        drawSpriteBackdrop(-28, -18, 56, 34, "rgba(255,77,118,0.48)");
+        drawClip(clip, -24, -15, 48, 30);
         ctx.restore();
-        drawHealthBar(e, 32);
+        drawHealthBar(e, 28);
       }
     }
   }
@@ -1188,7 +1226,8 @@
     ctx.translate(e.x, e.y);
     ctx.rotate(e.rot);
     const pulse = 1 + Math.sin(e.t * 5) * 0.025;
-    drawPropAt(e.art, -e.r * 0.92 * pulse, -e.r * 0.92 * pulse, e.r * 1.84 * pulse, e.r * 1.84 * pulse);
+    drawSpriteBackdrop(-e.r * 0.88, -e.r * 0.88, e.r * 1.76, e.r * 1.76, "rgba(255,188,85,0.34)");
+    drawPropAt(e.art, -e.r * 0.78 * pulse, -e.r * 0.78 * pulse, e.r * 1.56 * pulse, e.r * 1.56 * pulse);
     ctx.restore();
     drawHealthBar(e, e.r * 1.6);
   }
@@ -1199,17 +1238,19 @@
     ctx.rotate(e.rot || 0);
     if (e.kind === "blackHole") {
       const pulse = 1 + Math.sin(e.t * 7) * 0.08;
-      drawPropAt(e.art, -e.r * 1.02 * pulse, -e.r * 1.02 * pulse, e.r * 2.04 * pulse, e.r * 2.04 * pulse);
-      drawFxAt("gravityRipple", -e.r * 1.38 * pulse, -e.r * 1.38 * pulse, e.r * 2.76 * pulse, e.r * 2.76 * pulse, e.t * 0.8);
+      drawSpriteBackdrop(-e.r * 1.04, -e.r * 1.04, e.r * 2.08, e.r * 2.08, "rgba(84,243,255,0.38)");
+      drawPropAt(e.art, -e.r * 0.88 * pulse, -e.r * 0.88 * pulse, e.r * 1.76 * pulse, e.r * 1.76 * pulse);
+      drawFxAt("gravityRipple", -e.r * 1.2 * pulse, -e.r * 1.2 * pulse, e.r * 2.4 * pulse, e.r * 2.4 * pulse, e.t * 0.8);
       ctx.globalCompositeOperation = "lighter";
       ctx.strokeStyle = "rgba(84,243,255,0.38)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(0, 0, e.r * 1.24 + Math.sin(e.t * 5) * 6, 0, TAU);
+      ctx.arc(0, 0, e.r * 1.08 + Math.sin(e.t * 5) * 5, 0, TAU);
       ctx.stroke();
     } else {
       const pulse = e.kind === "mine" ? 1 + Math.sin((e.t || 0) * 8) * 0.05 : 1;
-      const scale = e.kind === "relay" ? 1.22 : 0.98;
+      const scale = e.kind === "relay" ? 1.06 : 0.86;
+      drawSpriteBackdrop(-e.r * scale * 0.92, -e.r * scale * 0.92, e.r * scale * 1.84, e.r * scale * 1.84, e.kind === "relay" ? "rgba(84,243,255,0.36)" : "rgba(255,77,118,0.38)");
       drawPropAt(e.art, -e.r * scale * pulse, -e.r * scale * pulse, e.r * scale * 2 * pulse, e.r * scale * 2 * pulse);
     }
     ctx.restore();
@@ -1281,6 +1322,12 @@
     ctx.globalCompositeOperation = "lighter";
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2.4)) * (p.alpha || 1);
+      if (p.orb) {
+        const progress = clamp(1 - p.life / (p.maxLife || p.life || 1), 0, 1);
+        const size = (p.size || p.radius * 5 || 24) * (1 - progress * 0.2);
+        drawOrbAt(p.orb, p.x - size * 0.5, p.y - size * 0.5, size, size, p.rot || 0);
+        continue;
+      }
       if (p.shard) {
         const progress = clamp(1 - p.life / (p.maxLife || p.life || 1), 0, 1);
         const size = (p.size || 32) * (p.shard === "bloomWave" ? 0.78 + progress * 0.38 : 1 - progress * 0.16);
@@ -1319,6 +1366,22 @@
       ctx.fillStyle = `rgba(255, 77, 118, ${state.flash * 0.18})`;
       ctx.fillRect(0, 0, W, H);
     }
+  }
+
+  function drawSpriteBackdrop(x, y, w, h, color) {
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(1, 4, 9, 0.72)";
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.56, h * 0.55, 0, 0, TAU);
+    ctx.fill();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.58, h * 0.58, 0, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawClip(name, x, y, w, h, flipX = false) {
@@ -1373,6 +1436,24 @@
     ctx.fillStyle = name && name.startsWith("enemy") ? "#ff4d76" : "#54f3ff";
     ctx.beginPath();
     ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.45, h * 0.28, rotation, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawOrbAt(name, x, y, w, h, rotation = 0) {
+    const sheet = assets.orbs;
+    const clip = orbClips[name] || orbClips.blueSmall;
+    if (sheet.complete && sheet.naturalWidth && clip) {
+      ctx.save();
+      ctx.translate(x + w * 0.5, y + h * 0.5);
+      ctx.rotate(rotation);
+      ctx.drawImage(sheet, clip[0], clip[1], clip[2], clip[3], -w * 0.5, -h * 0.5, w, h);
+      ctx.restore();
+      return;
+    }
+    const blue = name && name.startsWith("blue");
+    ctx.fillStyle = blue ? "#54f3ff" : "#ff4d76";
+    ctx.beginPath();
+    ctx.arc(x + w * 0.5, y + h * 0.5, Math.min(w, h) * 0.45, 0, TAU);
     ctx.fill();
   }
 
