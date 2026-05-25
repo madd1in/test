@@ -1,8 +1,8 @@
 :root {
   color-scheme: dark;
   --bg: #0b1524;
-  --panel: rgba(13, 24, 39, 0.86);
-  --panel-strong: rgba(18, 31, 50, 0.95);
+  --panel: rgba(8, 16, 28, 0.91);
+  --panel-strong: rgba(10, 18, 31, 0.97);
   --line: rgba(190, 226, 255, 0.18);
   --text: #eef8ff;
   --muted: #95afc2;
@@ -27,7 +27,7 @@ body {
   color: var(--text);
   background:
     linear-gradient(rgba(8, 15, 27, 0.3), rgba(8, 15, 27, 0.82)),
-    url("assets/hd/background-lab-hd.png") center / cover fixed,
+    url("assets/hd/background-lab-imagen-hd.jpg") center / cover fixed,
     var(--bg);
   overflow: hidden;
 }
@@ -179,6 +179,10 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#assay {
+  color: var(--accent-2);
 }
 
 .next-panel canvas {

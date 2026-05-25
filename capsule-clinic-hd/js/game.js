@@ -14,7 +14,8 @@
     { key: "violet", main: "#a98cff", dark: "#4d3a92", glow: "#ddd1ff" }
   ];
   var ASSETS = {
-    background: "assets/hd/background-lab-hd.png",
+    background: "assets/hd/background-lab-imagen-hd.jpg",
+    bgProps: "assets/hd/background-prop-atlas-hd.png",
     frame: "assets/hd/bottle-frame-hd.png",
     pills: "assets/hd/capsule-atlas-hd.png",
     viruses: "assets/hd/virus-atlas-hd.png",
@@ -54,7 +55,7 @@
   var comboEl = document.getElementById("combo");
   var speedEl = document.getElementById("speed");
   var doseEl = document.getElementById("dose");
-  var threatEl = document.getElementById("threat");
+  var assayEl = document.getElementById("assay");
   var pauseButton = document.getElementById("pauseButton");
   var soundButton = document.getElementById("soundButton");
   var doseButton = document.getElementById("doseButton");
@@ -85,6 +86,8 @@
     viruses: 0,
     combo: 0,
     dose: 0,
+    assayColor: 0,
+    assayStreak: 0,
     dropMs: BASE_DROP_MS,
     dropTimer: 0,
     settleTimer: 0,
@@ -263,6 +266,8 @@
     state.current = null;
     state.next = newPiece();
     state.combo = 0;
+    state.assayColor = (level + 3) % COLORS.length;
+    state.assayStreak = 0;
     state.dropMs = clamp(BASE_DROP_MS - (level - 1) * 48, 250, BASE_DROP_MS);
     state.settleTimer = 340;
     state.mode = "spawning";
@@ -325,28 +330,12 @@
     comboEl.textContent = String(state.combo);
     speedEl.textContent = (BASE_DROP_MS / state.dropMs).toFixed(1) + "x";
     doseEl.textContent = Math.floor(state.dose) + "%";
-    threatEl.textContent = getThreatLabel();
+    assayEl.textContent = COLORS[state.assayColor].key;
+    assayEl.style.color = COLORS[state.assayColor].glow;
+    assayEl.title = "Bonus for clearing " + COLORS[state.assayColor].key + " microbes";
     doseButton.disabled = state.dose < 100 || state.viruses <= 0;
     doseButton.classList.toggle("icon-button--ready", state.dose >= 100 && state.viruses > 0);
     soundButton.textContent = muted ? "M" : "\u266b";
-  }
-
-  function getThreatLabel() {
-    var top = ROWS;
-    for (var y = 0; y < ROWS; y += 1) {
-      for (var x = 0; x < COLS; x += 1) {
-        if (state.board[y][x]) {
-          top = Math.min(top, y);
-        }
-      }
-    }
-    if (top <= 2) {
-      return "High";
-    }
-    if (top <= 5) {
-      return "Med";
-    }
-    return "Low";
   }
 
   function actionMove(dx) {
@@ -516,6 +505,7 @@
     }
     state.combo += 1;
     var virusHits = 0;
+    var assayHits = 0;
     for (var i = 0; i < matches.length; i += 1) {
       var c = matches[i];
       var cell = state.board[c.y][c.x];
@@ -524,6 +514,9 @@
       }
       if (cell.type === "virus") {
         virusHits += 1;
+        if (cell.color === state.assayColor) {
+          assayHits += 1;
+        }
       }
       var px = boardRect.x + c.x * boardRect.cell + boardRect.cell / 2;
       var py = boardRect.y + c.y * boardRect.cell + boardRect.cell / 2;
@@ -532,8 +525,9 @@
       state.board[c.y][c.x] = null;
     }
     state.viruses = Math.max(0, state.viruses - virusHits);
-    state.score += matches.length * 90 * state.combo + virusHits * 360;
-    state.dose = clamp(state.dose + matches.length * 4 + virusHits * 12 + state.combo * 2, 0, 100);
+    state.assayStreak = assayHits ? state.assayStreak + assayHits : 0;
+    state.score += matches.length * 90 * state.combo + virusHits * 360 + assayHits * (480 + state.assayStreak * 80);
+    state.dose = clamp(state.dose + matches.length * 4 + virusHits * 12 + assayHits * 10 + state.combo * 2, 0, 100);
     state.flash = 1;
     state.shake = Math.min(14, 4 + virusHits * 2 + state.combo);
     playLocalSound("clear", 0.58) || playChord(virusHits ? [520, 780, 1040] : [450, 675], 0.08, 0.055);
@@ -712,7 +706,7 @@
 
   function drawBackground() {
     if (images.background) {
-      ctx.drawImage(images.background, 0, 0, canvas.width, canvas.height);
+      drawCoverImage(ctx, images.background, 0, 0, canvas.width, canvas.height);
     } else {
       var bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
       bg.addColorStop(0, "#10233d");
@@ -720,10 +714,64 @@
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    drawBackgroundPropLayer();
+    drawScannerSweep();
     if (state.flash > 0) {
       ctx.fillStyle = "rgba(255, 255, 255, " + (state.flash * 0.1).toFixed(3) + ")";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+  }
+
+  function drawCoverImage(context, image, x, y, w, h) {
+    var sourceRatio = image.width / image.height;
+    var destRatio = w / h;
+    var sx = 0;
+    var sy = 0;
+    var sw = image.width;
+    var sh = image.height;
+    if (sourceRatio > destRatio) {
+      sw = image.height * destRatio;
+      sx = (image.width - sw) / 2;
+    } else {
+      sh = image.width / destRatio;
+      sy = (image.height - sh) * 0.35;
+    }
+    context.drawImage(image, sx, sy, sw, sh, x, y, w, h);
+  }
+
+  function drawBackgroundPropLayer() {
+    if (!images.bgProps) {
+      return;
+    }
+    var drift = Math.sin(lastTime * 0.0014) * 7;
+    ctx.save();
+    ctx.globalAlpha = 0.42;
+    ctx.drawImage(images.bgProps, 0, 0, 256, 256, 18, 186 + drift, 132, 186);
+    ctx.drawImage(images.bgProps, 256, 0, 256, 256, 750, 186 - drift, 132, 186);
+    ctx.globalAlpha = 0.36;
+    ctx.drawImage(images.bgProps, 512, 0, 256, 256, 90, 690 - drift, 118, 118);
+    ctx.drawImage(images.bgProps, 768, 0, 256, 256, 692, 690 + drift, 118, 118);
+    ctx.globalAlpha = 0.28;
+    ctx.drawImage(images.bgProps, 512, 256, 256, 256, 34, 880, 180, 116);
+    ctx.drawImage(images.bgProps, 768, 256, 256, 256, 686, 880, 180, 116);
+    ctx.restore();
+  }
+
+  function drawScannerSweep() {
+    var r = boardRect;
+    var sweep = (lastTime * 0.055) % (r.h + 160);
+    ctx.save();
+    roundRect(ctx, r.x + 6, r.y + 6, r.w - 12, r.h - 12, 28);
+    ctx.clip();
+    var y = r.y - 80 + sweep;
+    var grad = ctx.createLinearGradient(0, y - 34, 0, y + 54);
+    grad.addColorStop(0, "rgba(83, 225, 209, 0)");
+    grad.addColorStop(0.48, "rgba(83, 225, 209, 0.2)");
+    grad.addColorStop(0.52, "rgba(255, 255, 255, 0.34)");
+    grad.addColorStop(1, "rgba(83, 225, 209, 0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(r.x, y - 34, r.w, 88);
+    ctx.restore();
   }
 
   function drawBottle() {
@@ -757,6 +805,33 @@
       roundRect(ctx, r.x - 18, r.y - 18, r.w + 36, r.h + 36, 42);
       ctx.stroke();
     }
+    drawAssayBeacon();
+    ctx.restore();
+  }
+
+  function drawAssayBeacon() {
+    var r = boardRect;
+    var color = COLORS[state.assayColor];
+    var pulse = 0.65 + Math.sin(lastTime * 0.006) * 0.2;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(5, 12, 22, 0.68)";
+    roundRect(ctx, r.x + r.w - 128, r.y - 72, 116, 40, 8);
+    ctx.fill();
+    ctx.strokeStyle = color.glow;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = color.main;
+    ctx.globalAlpha = pulse;
+    ctx.beginPath();
+    ctx.arc(r.x + r.w - 102, r.y - 52, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = "#eef8ff";
+    ctx.font = "800 14px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ASSAY", r.x + r.w - 82, r.y - 52);
     ctx.restore();
   }
 
@@ -886,6 +961,13 @@
       ctx.drawImage(images.viruses, colorIndex * 256, 0, 256, 256, px + 2, py + 2, r.cell - 4, r.cell - 4);
     } else {
       fallbackGem(colorIndex, px + 5, py + 5, r.cell - 10);
+    }
+    if (colorIndex === state.assayColor) {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(px + 6, py + 6, r.cell - 12, r.cell - 12);
+      ctx.setLineDash([]);
     }
     ctx.restore();
   }

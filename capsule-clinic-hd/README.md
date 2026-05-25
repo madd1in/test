@@ -26,7 +26,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\generate-assets.
 
 The generated files live in `assets/hd/`.
 
-The saved Imagen source atlas lives in `assets/imagen-hd/`. Local audio is copied into `assets/audio/`.
+The saved Imagen source assets live in `assets/imagen-hd/`. The current Imagen lab background is converted into the shipped background and prop atlas with:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-imagen-background-assets.ps1
+```
+
+Local audio is copied into `assets/audio/`.
 
 ## Verify
 

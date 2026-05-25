@@ -14,6 +14,7 @@ const requiredHtml = [
   'id="primaryButton"',
   'id="pauseButton"',
   'id="doseButton"',
+  'id="assay"',
   'data-action="left"',
   'data-action="dose"',
   'data-action="rotate"',
@@ -31,7 +32,7 @@ const requiredCss = [
   ".play-area",
   ".hud__stats",
   ".touch-controls",
-  "assets/hd/background-lab-hd.png",
+  "assets/hd/background-lab-imagen-hd.jpg",
   "@media (max-width: 860px)"
 ];
 
@@ -51,6 +52,9 @@ const requiredJs = [
   "function rotatePiece",
   "function drawBottle",
   "function drawClearBursts",
+  "function drawBackgroundPropLayer",
+  "function drawScannerSweep",
+  "function drawAssayBeacon",
   "function setupAudioAssets",
   "function loadAssets",
   "localStorage",
@@ -79,6 +83,10 @@ function readPngSize(file) {
 
 const assets = [
   ["assets/hd/background-lab-hd.png", 1920, 1080],
+  ["assets/hd/background-lab-imagen-hd.png", 1920, 1080],
+  ["assets/hd/background-lab-imagen-hd.jpg", 0, 0],
+  ["assets/hd/background-prop-atlas-hd.png", 1024, 512],
+  ["assets/imagen-hd/imagen-lab-background-source.png", 1536, 1024],
   ["assets/hd/capsule-atlas-hd.png", 1024, 256],
   ["assets/hd/virus-atlas-hd.png", 1024, 256],
   ["assets/hd/virus-anim-atlas-hd.png", 4096, 256],
