@@ -26,7 +26,7 @@
   const PLAYER_MAX_HULL = 120;
   const MAX_RENDER_DPR = 0.75;
   const PLAYER_HIGHLIGHT_ALPHA = 0.26;
-  const ENEMY_HIGHLIGHT_ALPHA = 0.12;
+  const ENEMY_HIGHLIGHT_ALPHA = 0.28;
   const rand = (min, max) => min + Math.random() * (max - min);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const dist2 = (a, b) => {
@@ -216,6 +216,7 @@
     eventTimer: 5.5,
     eventCount: 0,
     arsenalTimer: 7.5,
+    contractTimer: 6.4,
     surgeTimer: 0,
     fieldTint: 0,
     fieldTintColor: "52, 251, 255",
@@ -398,6 +399,7 @@
       eventTimer: 2.6,
       eventCount: 0,
       arsenalTimer: 5.8,
+      contractTimer: 7.2,
       surgeTimer: 0,
       fieldTint: 0,
       fieldTintColor: "52, 251, 255",
@@ -717,6 +719,7 @@
     state.bossTimer -= dt;
     state.eventTimer -= dt;
     state.arsenalTimer -= dt;
+    state.contractTimer -= dt;
     if (state.spawnTimer <= 0) {
       const count = state.wave > 4 && Math.random() < 0.72 ? 2 : 1;
       for (let i = 0; i < count; i += 1) spawnEnemy();
@@ -725,6 +728,10 @@
     if (state.eventTimer <= 0) {
       spawnWaveEvent();
       state.eventTimer = rand(6.4, 10.8) - clamp(state.wave * 0.25, 0, 2.2);
+    }
+    if (state.contractTimer <= 0) {
+      spawnContractEvent();
+      state.contractTimer = rand(12.5, 17) - clamp(state.wave * 0.32, 0, 2.6);
     }
     if (state.arsenalTimer <= 0) {
       spawnPickup(nextArsenalKind(), W + 90, clamp(player.y + rand(-150, 150), 105, H - 88), 18);
@@ -850,6 +857,20 @@
     }
   }
 
+  function spawnContractEvent() {
+    const kinds = state.wave < 3 ? ["wraith", "skimmer", "blade"] : ["wraith", "splitter", "carrier"];
+    const enemy = spawnEnemy(kinds[Math.floor(Math.random() * kinds.length)], clamp(player.y + rand(-150, 150), 104, H - 92), 390);
+    if (!enemy) return;
+    enemy.marked = true;
+    enemy.hp = Math.ceil(enemy.hp * (state.wave < 3 ? 1.16 : 1.3));
+    enemy.maxHp = enemy.hp;
+    enemy.value += 520;
+    enemy.shot = Math.max(0.28, enemy.shot * 0.72);
+    setBanner("BOUNTY LOCK", 1);
+    pulseField("255, 207, 63", 0.62);
+    spawnPickup("score", W + 250, enemy.y + rand(-70, 70), 13);
+  }
+
   function spawnEnemy(kindOverride = "", yOverride = null, xOffset = null) {
     const kinds = state.wave < 2
       ? ["skimmer", "skimmer", "blade", "turret"]
@@ -924,6 +945,7 @@
     }
     enemy.maxHp = enemy.hp;
     enemies.push(enemy);
+    return enemy;
   }
 
   function spawnEscort(x, y) {
@@ -1435,6 +1457,16 @@
     if (score && enemy.kind !== "asteroid" && Math.random() < (state.chain > 5 ? 0.16 : 0.08)) {
       spawnPickup(nextArsenalKind(), enemy.x + rand(-24, 24), enemy.y + rand(-24, 24), 18);
     }
+    if (score && enemy.marked) {
+      addScore(420);
+      state.surgeTimer = Math.max(state.surgeTimer, 4.8);
+      state.flash = Math.max(state.flash, 0.48);
+      setBanner("BOUNTY CLEAR", 0.95);
+      pulseField("255, 207, 63", 0.78);
+      spawnPickup(nextArsenalKind(), enemy.x + rand(-18, 18), enemy.y + rand(-18, 18), 18);
+      spawnPickup("overdrive", enemy.x + rand(-42, 42), enemy.y + rand(-42, 42), 18);
+      spawnShardSpray(enemy.x, enemy.y, 12, "hot");
+    }
     if (score && enemy.kind === "splitter") {
       spawnEscort(enemy.x + 18, clamp(enemy.y - 52, 100, H - 92));
       spawnEscort(enemy.x + 22, clamp(enemy.y + 52, 100, H - 92));
@@ -1664,6 +1696,40 @@
     }
   }
 
+  function drawThreatPlate(width, height, color = "#ff2e78", intensity = 1, ring = "enemy") {
+    const pulse = 1 + Math.sin(state.time * 6 + width * 0.013) * 0.06;
+    const w = width * pulse;
+    const h = height * (1 + (pulse - 1) * 0.55);
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 0.58 * intensity;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.56, h * 0.54, 0, 0, TAU);
+    ctx.fill();
+    ctx.globalCompositeOperation = "lighter";
+    drawRingAt(ring, -w * 0.54, -h * 0.56, w * 1.08, h * 1.12, state.time * 1.15, 0.28 * intensity);
+    ctx.globalAlpha = 0.3 * intensity;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.58, h * 0.48, 0, 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha = 0.22 * intensity;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.66, -h * 0.16);
+    ctx.lineTo(-w * 0.5, 0);
+    ctx.lineTo(-w * 0.66, h * 0.16);
+    ctx.closePath();
+    ctx.moveTo(w * 0.66, -h * 0.16);
+    ctx.lineTo(w * 0.5, 0);
+    ctx.lineTo(w * 0.66, h * 0.16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawEnemies() {
     for (const e of enemies) {
       if (e.kind === "asteroid") {
@@ -1675,28 +1741,33 @@
         ctx.translate(e.x, e.y);
         ctx.rotate(Math.sin(e.t * 2.5) * 0.035);
         ctx.scale(1 + Math.sin(e.t * 5) * 0.015, 1);
-        drawSpriteBackdrop(-116, -38, 168, 66, "boss", 0, 0.48);
+        drawThreatPlate(208, 92, e.marked ? "#ffcf3f" : "#ff2e78", e.marked ? 1.24 : 0.98, e.marked ? "pickupAmber" : "boss");
+        drawSpriteBackdrop(-116, -38, 168, 66, "boss", 0, 0.64);
         drawShipClip("boss", -92, -25, 136, 41);
         ctx.restore();
         drawHealthBar(e, 104);
       } else if (e.kind === "needle" || e.kind === "frigate" || e.kind === "carrier") {
         const size = e.kind === "needle" ? [55, 36] : e.kind === "frigate" ? [72, 48] : [84, 54];
+        const color = e.marked ? "#ffcf3f" : "#ff2e78";
         ctx.save();
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0014, -0.22, 0.22) + Math.sin(e.t * 8) * 0.025);
         ctx.scale(1 + Math.sin(e.t * 7) * 0.025, 1 - Math.sin(e.t * 6) * 0.012);
-        drawSpriteBackdrop(-size[0] * 0.6, -size[1] * 0.66, size[0] * 1.2, size[1] * 1.32, "enemy", 0, 0.44);
+        drawThreatPlate(size[0] * 1.52, size[1] * 1.66, color, e.marked ? 1.24 : 0.92, e.marked ? "pickupAmber" : "enemy");
+        drawSpriteBackdrop(-size[0] * 0.6, -size[1] * 0.66, size[0] * 1.2, size[1] * 1.32, "enemy", 0, 0.62);
         drawShipPropAt(e.art, -size[0] * 0.5, -size[1] * 0.5, size[0], size[1]);
         ctx.restore();
         drawHealthBar(e, e.kind === "needle" ? 30 : 48);
       } else {
         const clip = e.kind === "skimmer" || e.kind === "escort" ? "droneA" : e.kind === "blade" || e.kind === "splitter" ? "droneB" : "droneC";
         const scale = e.kind === "splitter" ? 1.24 : e.kind === "wraith" ? 1.12 : 1;
+        const color = e.marked ? "#ffcf3f" : e.kind === "wraith" ? "#8b7cff" : "#ff2e78";
         ctx.save();
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0015, -0.25, 0.25) + Math.sin(e.t * 10) * 0.035);
         ctx.scale((1 + Math.sin(e.t * 9) * 0.035) * scale, (1 - Math.sin(e.t * 8) * 0.018) * scale);
-        drawSpriteBackdrop(-27, -18, 54, 36, e.kind === "wraith" ? "boss" : "enemy", 0, e.kind === "wraith" ? 0.3 : 0.42);
+        drawThreatPlate(76, 52, color, e.marked ? 1.26 : 0.95, e.marked ? "pickupAmber" : e.kind === "wraith" ? "boss" : "enemy");
+        drawSpriteBackdrop(-27, -18, 54, 36, e.kind === "wraith" ? "boss" : "enemy", 0, e.kind === "wraith" ? 0.54 : 0.66);
         drawShipClip(clip, -22, -14, 44, 28);
         ctx.restore();
         drawHealthBar(e, e.kind === "splitter" ? 42 : 28);
@@ -1709,7 +1780,8 @@
     ctx.translate(e.x, e.y);
     ctx.rotate(e.rot);
     const pulse = 1 + Math.sin(e.t * 5) * 0.025;
-    drawSpriteBackdrop(-e.r * 0.98, -e.r * 0.98, e.r * 1.96, e.r * 1.96, "asteroid", 0, 0.34);
+    drawThreatPlate(e.r * 2.18, e.r * 2.18, "#ffcf3f", 0.56, "asteroid");
+    drawSpriteBackdrop(-e.r * 0.98, -e.r * 0.98, e.r * 1.96, e.r * 1.96, "asteroid", 0, 0.44);
     drawPropAt(e.art, -e.r * 0.72 * pulse, -e.r * 0.72 * pulse, e.r * 1.44 * pulse, e.r * 1.44 * pulse);
     ctx.restore();
     drawHealthBar(e, e.r * 1.6);
@@ -1721,7 +1793,8 @@
     ctx.rotate(e.rot || 0);
     if (e.kind === "blackHole") {
       const pulse = 1 + Math.sin(e.t * 7) * 0.08;
-      drawSpriteBackdrop(-e.r * 1.18, -e.r * 1.18, e.r * 2.36, e.r * 2.36, "blackHole", e.t * 0.42, 0.36);
+      drawThreatPlate(e.r * 2.68, e.r * 2.68, "#8b7cff", 0.62, "blackHole");
+      drawSpriteBackdrop(-e.r * 1.18, -e.r * 1.18, e.r * 2.36, e.r * 2.36, "blackHole", e.t * 0.42, 0.46);
       drawPropAt(e.art, -e.r * 0.8 * pulse, -e.r * 0.8 * pulse, e.r * 1.6 * pulse, e.r * 1.6 * pulse);
       drawFxAt("gravityRipple", -e.r * 1.2 * pulse, -e.r * 1.2 * pulse, e.r * 2.4 * pulse, e.r * 2.4 * pulse, e.t * 0.8);
       ctx.globalCompositeOperation = "lighter";
@@ -1730,7 +1803,8 @@
     } else {
       const pulse = e.kind === "mine" ? 1 + Math.sin((e.t || 0) * 8) * 0.05 : 1;
       const scale = e.kind === "relay" ? 0.98 : 0.78;
-      drawSpriteBackdrop(-e.r * scale * 1.04, -e.r * scale * 1.04, e.r * scale * 2.08, e.r * scale * 2.08, e.kind === "relay" ? "relay" : "mine", 0, 0.34);
+      drawThreatPlate(e.r * scale * 2.35, e.r * scale * 2.35, e.kind === "relay" ? "#34fbff" : "#ff2e78", e.kind === "relay" ? 0.62 : 0.7, e.kind === "relay" ? "relay" : "mine");
+      drawSpriteBackdrop(-e.r * scale * 1.04, -e.r * scale * 1.04, e.r * scale * 2.08, e.r * scale * 2.08, e.kind === "relay" ? "relay" : "mine", 0, 0.46);
       drawPropAt(e.art, -e.r * scale * pulse, -e.r * scale * pulse, e.r * scale * 2 * pulse, e.r * scale * 2 * pulse);
     }
     ctx.restore();
@@ -1739,10 +1813,19 @@
 
   function drawHealthBar(e, width) {
     const pct = clamp(e.hp / e.maxHp, 0, 1);
-    ctx.fillStyle = "rgba(0,0,0,0.42)";
-    ctx.fillRect(e.x - width * 0.5, e.y - e.r - 16, width, 5);
-    ctx.fillStyle = e.kind === "boss" ? "#ffcf3f" : "#ff2e78";
-    ctx.fillRect(e.x - width * 0.5, e.y - e.r - 16, width * pct, 5);
+    const x = e.x - width * 0.5;
+    const y = e.y - e.r - 19;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+    ctx.fillRect(x - 3, y - 2, width + 6, 9);
+    ctx.strokeStyle = e.marked ? "rgba(255, 207, 63, 0.68)" : "rgba(255, 255, 255, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 3, y - 2, width + 6, 9);
+    ctx.fillStyle = e.marked ? "#ffcf3f" : e.kind === "boss" ? "#ffcf3f" : "#ff2e78";
+    ctx.fillRect(x, y, width * pct, 5);
+    if (e.marked) {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+      ctx.fillRect(x, y, Math.max(2, width * pct * 0.18), 1);
+    }
   }
 
   function drawBullets() {
@@ -1896,7 +1979,7 @@
   function drawShipClip(name, x, y, w, h, flipX = false) {
     drawClip(name, x, y, w, h, flipX);
     if (name === "player") withShipHighlight(() => drawClip(name, x, y, w, h, flipX), PLAYER_HIGHLIGHT_ALPHA);
-    else if (name === "boss") withShipHighlight(() => drawClip(name, x, y, w, h, flipX), 0.16);
+    else if (name === "boss") withShipHighlight(() => drawClip(name, x, y, w, h, flipX), 0.26);
   }
 
   function drawShipClipAt(name, x, y, w, h, flipX = false) {

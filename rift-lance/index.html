@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#05070d" />
   <title>Rift Lance</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="style.css?v=focus1" />
+  <link rel="stylesheet" href="style.css?v=contrast1" />
 </head>
 <body>
   <main class="shell is-menu-open">
@@ -38,6 +38,7 @@
     <div id="banner" class="banner" aria-live="polite">RIFT LANCE</div>
 
     <section id="menu" class="menu" aria-label="Start menu">
+      <div class="menu__flare" aria-hidden="true"></div>
       <div class="menu__panel">
         <h1 class="sr-only">Rift Lance</h1>
         <img class="menu__logo" src="assets/generated/rift-title-logo.png" alt="Rift Lance" />
@@ -53,6 +54,7 @@
           <button id="motionButton" type="button" aria-pressed="false">Motion</button>
         </div>
       </div>
+      <div class="menu__dock" aria-hidden="true"></div>
     </section>
 
     <nav class="touch" aria-label="Touch controls">
@@ -71,6 +73,6 @@
   </main>
 
   <audio id="bgm" src="assets/audio/steel-punch-parade.mp3" preload="metadata" loop></audio>
-  <script src="game.js?v=focus1"></script>
+  <script src="game.js?v=contrast1"></script>
 </body>
 </html>
