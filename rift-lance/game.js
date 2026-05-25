@@ -216,6 +216,7 @@
     eventTimer: 5.5,
     eventCount: 0,
     arsenalTimer: 7.5,
+    surgeTimer: 0,
     fieldTint: 0,
     fieldTintColor: "52, 251, 255",
     nextWaveScore: 2200,
@@ -349,6 +350,9 @@
     state.over = false;
     menu.classList.add("is-hidden");
     shell.classList.remove("is-menu-open");
+    spawnEnemy("skimmer", clamp(player.y - 88, 100, H - 92), 300);
+    spawnEnemy("blade", clamp(player.y + 88, 100, H - 92), 430);
+    spawnPickup("score", W + 360, player.y, 13);
     setBanner("WAVE 01", 1.2);
     playMusic();
   }
@@ -387,13 +391,14 @@
       chain: 0,
       chainTimer: 0,
       wave: 1,
-      spawnTimer: 0.85,
-      hazardTimer: 2.4,
+      spawnTimer: 0.24,
+      hazardTimer: 1.25,
       assistTimer: 8,
       bossTimer: 58,
-      eventTimer: 5.5,
+      eventTimer: 2.6,
       eventCount: 0,
-      arsenalTimer: 7.5,
+      arsenalTimer: 5.8,
+      surgeTimer: 0,
       fieldTint: 0,
       fieldTintColor: "52, 251, 255",
       nextWaveScore: 2200,
@@ -453,6 +458,7 @@
     state.shake = Math.max(0, state.shake - dt * 8);
     state.flash = Math.max(0, state.flash - dt * 3.4);
     state.fieldTint = Math.max(0, state.fieldTint - dt * 0.9);
+    state.surgeTimer = Math.max(0, state.surgeTimer - dt);
     if (state.chainTimer > 0) {
       state.chainTimer -= dt;
       if (state.chainTimer <= 0) state.chain = 0;
@@ -483,7 +489,8 @@
   function updatePlayer(dt) {
     const ax = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     const ay = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-    const speed = input.charge ? 390 : 540;
+    const speedBoost = state.surgeTimer > 0 ? 1.14 : 1;
+    const speed = (input.charge ? 390 : 540) * speedBoost;
     player.vx += (ax * speed - player.vx) * Math.min(1, dt * 12);
     player.vy += (ay * speed - player.vy) * Math.min(1, dt * 12);
     player.x = clamp(player.x + player.vx * dt, 56, W * 0.48);
@@ -499,7 +506,7 @@
     } else {
       if (player.charge > 34) fireLance();
       player.charge = Math.max(0, player.charge - dt * 120);
-      player.heat = Math.max(0, player.heat - dt * 32);
+      player.heat = Math.max(0, player.heat - dt * (state.surgeTimer > 0 ? 46 : 32));
     }
 
     if (input.fire && player.fireTimer <= 0 && player.heat < 96) {
@@ -620,8 +627,8 @@
       for (const vy of spread) fireBolt(player.x + 44, player.y, 830, vy, 10, "#ffcf3f", 8, "player", "spear");
     }
     particles.push({ x: player.x + 60, y: player.y, vx: -90, vy: 0, life: 0.12, radius: 24 + player.weaponLevel * 2, color: "#34fbff", alpha: 0.7, art: "muzzle" });
-    player.fireTimer = player.weaponLevel >= 3 || player.spreadLevel > 0 ? 0.108 : 0.092;
-    player.heat = clamp(player.heat + 2.15 + player.weaponLevel * 0.45 + player.spreadLevel * 0.7, 0, 100);
+    player.fireTimer = (player.weaponLevel >= 3 || player.spreadLevel > 0 ? 0.108 : 0.092) * (state.surgeTimer > 0 ? 0.72 : 1);
+    player.heat = clamp(player.heat + (2.15 + player.weaponLevel * 0.45 + player.spreadLevel * 0.7) * (state.surgeTimer > 0 ? 0.68 : 1), 0, 100);
   }
 
   function fireMissiles() {
@@ -645,8 +652,8 @@
         turn: 5.8,
       });
     }
-    player.missileTimer = clamp(0.96 - player.missileLevel * 0.1, 0.62, 0.96);
-    player.heat = clamp(player.heat + 3.6 + player.missileLevel, 0, 100);
+    player.missileTimer = clamp(0.96 - player.missileLevel * 0.1, 0.62, 0.96) * (state.surgeTimer > 0 ? 0.75 : 1);
+    player.heat = clamp(player.heat + (3.6 + player.missileLevel) * (state.surgeTimer > 0 ? 0.72 : 1), 0, 100);
     spawnShardSpray(player.x + 44, player.y, 3 + player.missileLevel, "hot");
   }
 
@@ -717,7 +724,7 @@
     }
     if (state.eventTimer <= 0) {
       spawnWaveEvent();
-      state.eventTimer = rand(8.5, 13.5) - clamp(state.wave * 0.25, 0, 2.2);
+      state.eventTimer = rand(6.4, 10.8) - clamp(state.wave * 0.25, 0, 2.2);
     }
     if (state.arsenalTimer <= 0) {
       spawnPickup(nextArsenalKind(), W + 90, clamp(player.y + rand(-150, 150), 105, H - 88), 18);
@@ -766,8 +773,8 @@
 
   function spawnWaveEvent() {
     const pool = state.wave < 2
-      ? ["prismTrail", "flankRaid", "supplyThread"]
-      : ["prismTrail", "flankRaid", "mineVeil", "relayCache", "needleStorm", "supplyThread"];
+      ? ["prismTrail", "flankRaid", "gateRun", "supplyThread"]
+      : ["prismTrail", "flankRaid", "mineVeil", "relayCache", "needleStorm", "supplyThread", "gateRun", "hunterPair", "splitCore"];
     const type = pool[Math.floor(Math.random() * pool.length)];
     state.eventCount += 1;
     if (type === "prismTrail") {
@@ -810,6 +817,26 @@
       for (let i = 0; i < 5; i += 1) {
         spawnEnemy("needle", rand(110, H - 100), 70 + i * 70);
       }
+    } else if (type === "gateRun") {
+      setBanner("GATE RUN", 1);
+      pulseField("52, 251, 255", 0.66);
+      const lane = clamp(player.y + rand(-120, 120), 132, H - 132);
+      for (let i = 0; i < 4; i += 1) spawnPickup(i === 2 ? "overdrive" : "score", W + 120 + i * 118, lane + Math.sin(i * 1.7) * 58, i === 2 ? 18 : 13);
+      [lane - 94, lane + 94].forEach((y, i) => spawnHazard(i ? "mine" : "asteroid", 210 + i * 90, clamp(y, 104, H - 82)));
+    } else if (type === "hunterPair") {
+      setBanner("WRAITH PAIR", 1);
+      pulseField("139, 124, 255", 0.74);
+      spawnEnemy("wraith", clamp(player.y - 128, 104, H - 92), 240);
+      spawnEnemy("wraith", clamp(player.y + 128, 104, H - 92), 330);
+      spawnPickup(nextArsenalKind(), W + 520, player.y, 18);
+    } else if (type === "splitCore") {
+      setBanner("SPLIT CORE", 1);
+      pulseField("255, 46, 120", 0.7);
+      const y = rand(170, H - 170);
+      spawnEnemy("splitter", y, 260);
+      spawnEnemy("skimmer", clamp(y - 96, 100, H - 92), 410);
+      spawnEnemy("skimmer", clamp(y + 96, 100, H - 92), 450);
+      spawnPickup("overdrive", W + 540, y, 18);
     } else {
       setBanner("SUPPLY THREAD", 1);
       pulseField("255, 207, 63", 0.58);
@@ -827,8 +854,8 @@
     const kinds = state.wave < 2
       ? ["skimmer", "skimmer", "blade", "turret"]
       : state.wave < 4
-        ? ["skimmer", "blade", "turret", "needle", "frigate"]
-        : ["skimmer", "blade", "turret", "needle", "frigate", "carrier"];
+        ? ["skimmer", "blade", "turret", "needle", "frigate", "wraith"]
+        : ["skimmer", "blade", "turret", "needle", "frigate", "carrier", "wraith", "splitter"];
     const kind = kindOverride || kinds[Math.floor(Math.random() * kinds.length)];
     const y = yOverride ?? rand(100, H - 92);
     const waveBoost = Math.min(5, state.wave);
@@ -874,6 +901,25 @@
         shot: rand(0.7, 1.2),
         value: 680,
         art: "carrier",
+      });
+    } else if (kind === "wraith") {
+      Object.assign(enemy, {
+        vx: -rand(250, 340) - waveBoost * 18,
+        vy: rand(-70, 70),
+        r: 17,
+        hp: 44 + state.wave * 8,
+        shot: rand(0.5, 0.95),
+        blink: rand(0.75, 1.35),
+        value: 360,
+      });
+    } else if (kind === "splitter") {
+      Object.assign(enemy, {
+        vx: -rand(165, 220) - waveBoost * 10,
+        vy: rand(-38, 38),
+        r: 23,
+        hp: 82 + state.wave * 15,
+        shot: rand(0.7, 1.2),
+        value: 520,
       });
     }
     enemy.maxHp = enemy.hp;
@@ -1035,6 +1081,28 @@
           spawnEscort(e.x - 74, e.y + 42);
           enemyShot(e.x - 70, e.y, -480, (player.y - e.y) * 1.05, "enemyMissile");
           e.shot = clamp(2.7 - state.wave * 0.065, 1.55, 2.7);
+        }
+      } else if (e.kind === "wraith") {
+        e.y = e.baseY + Math.sin(e.t * 6.4) * 72 + Math.sin(e.t * 13) * 14;
+        e.blink -= dt;
+        e.shot -= dt;
+        if (e.blink <= 0) {
+          e.baseY = clamp(player.y + rand(-150, 150), 100, H - 92);
+          e.x += rand(-34, 26);
+          e.blink = rand(0.78, 1.28);
+          spawnShardSpray(e.x, e.y, 4, "cyan");
+        }
+        if (e.shot <= 0) {
+          [-0.42, 0, 0.42].forEach((spread) => enemyShot(e.x - 34, e.y + spread * 34, -470, (player.y - e.y) * 0.92 + spread * 210, "enemyShard"));
+          e.shot = clamp(1.4 - state.wave * 0.035, 0.72, 1.4);
+        }
+      } else if (e.kind === "splitter") {
+        e.y = e.baseY + Math.sin(e.t * 3.4) * 46;
+        e.shot -= dt;
+        if (e.shot <= 0) {
+          enemyShot(e.x - 42, e.y - 34, -450, (player.y - e.y) * 0.8 - 130, "enemyOrb");
+          enemyShot(e.x - 42, e.y + 34, -450, (player.y - e.y) * 0.8 + 130, "enemyOrb");
+          e.shot = clamp(1.55 - state.wave * 0.04, 0.78, 1.55);
         }
       } else if (e.kind === "boss") {
         e.vx += ((W - 210) - e.x) * dt * 0.26;
@@ -1367,6 +1435,12 @@
     if (score && enemy.kind !== "asteroid" && Math.random() < (state.chain > 5 ? 0.16 : 0.08)) {
       spawnPickup(nextArsenalKind(), enemy.x + rand(-24, 24), enemy.y + rand(-24, 24), 18);
     }
+    if (score && enemy.kind === "splitter") {
+      spawnEscort(enemy.x + 18, clamp(enemy.y - 52, 100, H - 92));
+      spawnEscort(enemy.x + 22, clamp(enemy.y + 52, 100, H - 92));
+      spawnEnemy("needle", clamp(enemy.y, 100, H - 92), -20);
+      setBanner("SPLIT!", 0.55);
+    }
   }
 
   function applyArsenalPickup(kind) {
@@ -1391,6 +1465,7 @@
     } else {
       player.heat = Math.max(0, player.heat - 46);
       player.charge = clamp(player.charge + 35, 0, 100);
+      state.surgeTimer = Math.max(state.surgeTimer, 5.2);
       addScore(420);
       setBanner("OVERDRIVE", 0.85);
       burst(player.x + 52, player.y, "#d8ff4f", 24, 1.5);
@@ -1503,8 +1578,10 @@
     drawStars();
     ctx.fillStyle = backgroundGradient;
     ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = state.surgeTimer > 0 ? "rgba(2, 8, 12, 0.18)" : "rgba(0, 3, 10, 0.32)";
+    ctx.fillRect(0, 0, W, H);
     if (state.fieldTint > 0) {
-      ctx.fillStyle = `rgba(${state.fieldTintColor}, ${state.fieldTint * 0.16})`;
+      ctx.fillStyle = `rgba(${state.fieldTintColor}, ${state.fieldTint * 0.12})`;
       ctx.fillRect(0, 0, W, H);
     }
   }
@@ -1613,15 +1690,16 @@
         ctx.restore();
         drawHealthBar(e, e.kind === "needle" ? 30 : 48);
       } else {
-        const clip = e.kind === "skimmer" || e.kind === "escort" ? "droneA" : e.kind === "blade" ? "droneB" : "droneC";
+        const clip = e.kind === "skimmer" || e.kind === "escort" ? "droneA" : e.kind === "blade" || e.kind === "splitter" ? "droneB" : "droneC";
+        const scale = e.kind === "splitter" ? 1.24 : e.kind === "wraith" ? 1.12 : 1;
         ctx.save();
         ctx.translate(e.x, e.y);
         ctx.rotate(clamp(e.vy * 0.0015, -0.25, 0.25) + Math.sin(e.t * 10) * 0.035);
-        ctx.scale(1 + Math.sin(e.t * 9) * 0.035, 1 - Math.sin(e.t * 8) * 0.018);
-        drawSpriteBackdrop(-27, -18, 54, 36, "enemy", 0, 0.42);
+        ctx.scale((1 + Math.sin(e.t * 9) * 0.035) * scale, (1 - Math.sin(e.t * 8) * 0.018) * scale);
+        drawSpriteBackdrop(-27, -18, 54, 36, e.kind === "wraith" ? "boss" : "enemy", 0, e.kind === "wraith" ? 0.3 : 0.42);
         drawShipClip(clip, -22, -14, 44, 28);
         ctx.restore();
-        drawHealthBar(e, 28);
+        drawHealthBar(e, e.kind === "splitter" ? 42 : 28);
       }
     }
   }

@@ -40,6 +40,7 @@ Open `http://localhost:4179`.
 - Color and variety pass boosts cyan/amber/rose/lime accents, hides HUD clutter on the launch screen, adds stronger HUD edge strips, and introduces director events such as Prism Trail, Flank Raid, Mine Veil, Relay Cache, Supply Thread, and Needle Storm.
 - Directional projectile art is rotated from its native left-facing sheet orientation, so player lasers, drone bolts, and enemy shots all travel nose-first.
 - Arsenal pass adds double/triple laser lanes, spread laser pickups, homing missile pods up to X3, companion orbs that fire in strike mode and shield in guard mode, plus a richer start-screen loadout rail and HUD arsenal readout.
+- Focus pass simplifies the launch screen into a flatter console, darkens the nebula with a canvas tint layer, and adds Gate Run, Wraith Pair, Split Core, splitter enemies, wraith hunters, and timed Overdrive surges for more varied runs.
 
 ## Controls
 
