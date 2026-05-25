@@ -1,0 +1,290 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1524;
+  --panel: rgba(13, 24, 39, 0.86);
+  --panel-strong: rgba(18, 31, 50, 0.95);
+  --line: rgba(190, 226, 255, 0.18);
+  --text: #eef8ff;
+  --muted: #95afc2;
+  --accent: #53e1d1;
+  --accent-2: #ffd166;
+  --danger: #ff6f91;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background:
+    linear-gradient(rgba(8, 15, 27, 0.3), rgba(8, 15, 27, 0.82)),
+    url("assets/hd/background-lab-hd.png") center / cover fixed,
+    var(--bg);
+  overflow-x: hidden;
+}
+
+button {
+  color: inherit;
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(230px, 310px);
+  gap: clamp(12px, 2vw, 22px);
+  align-items: center;
+  padding: clamp(10px, 2.4vw, 28px);
+}
+
+.play-area {
+  position: relative;
+  width: min(100%, 760px);
+  justify-self: end;
+  aspect-ratio: 3 / 4;
+  min-height: 480px;
+}
+
+#game {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: rgba(6, 13, 25, 0.86);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  text-align: center;
+  padding: 32px;
+  border-radius: 8px;
+  background: rgba(6, 12, 23, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.overlay--visible {
+  display: grid;
+}
+
+.overlay__mark {
+  font-size: clamp(24px, 5vw, 52px);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 0.98;
+  text-shadow: 0 5px 20px rgba(0, 0, 0, 0.45);
+}
+
+.overlay__mark span {
+  color: var(--accent-2);
+}
+
+.overlay__title {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: clamp(18px, 2.3vw, 26px);
+  font-weight: 750;
+}
+
+.primary-button {
+  margin-top: 24px;
+  min-width: 150px;
+  border: 0;
+  border-radius: 8px;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #48dbc8, #f7c64f);
+  color: #07111e;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(30, 215, 196, 0.18);
+}
+
+.hud {
+  width: min(100%, 310px);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.hud__brand {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26);
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+.hud__brand b {
+  color: var(--accent-2);
+}
+
+.hud__stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.hud__stats--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hud__stats div,
+.next-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+  min-width: 0;
+}
+
+.hud__stats span,
+.next-panel span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hud__stats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.next-panel canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 8px;
+}
+
+.hud__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.icon-button,
+.touch-controls button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(14, 27, 45, 0.88);
+  min-height: 52px;
+  font-size: 24px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  touch-action: manipulation;
+}
+
+.icon-button:hover,
+.touch-controls button:hover,
+.icon-button:focus-visible,
+.touch-controls button:focus-visible {
+  outline: 2px solid rgba(83, 225, 209, 0.7);
+  background: rgba(23, 45, 70, 0.95);
+}
+
+.touch-controls {
+  position: fixed;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: none;
+  grid-template-columns: repeat(5, minmax(48px, 68px));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(5, 12, 22, 0.72);
+  backdrop-filter: blur(12px);
+  z-index: 5;
+}
+
+@media (max-width: 860px) {
+  body {
+    padding-bottom: 90px;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .play-area {
+    justify-self: center;
+    width: min(100%, 560px);
+    min-height: 430px;
+  }
+
+  .hud {
+    width: min(100%, 560px);
+    justify-self: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .hud__brand,
+  .next-panel,
+  .hud__actions {
+    grid-column: 1 / -1;
+  }
+
+  .hud__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .touch-controls {
+    display: grid;
+  }
+}
+
+@media (max-width: 460px) {
+  .app-shell {
+    padding: 8px;
+  }
+
+  .play-area {
+    min-height: 360px;
+  }
+
+  .hud {
+    gap: 8px;
+  }
+
+  .hud__stats strong {
+    font-size: 23px;
+  }
+
+  .touch-controls {
+    grid-template-columns: repeat(5, minmax(42px, 1fr));
+    width: calc(100vw - 14px);
+  }
+}

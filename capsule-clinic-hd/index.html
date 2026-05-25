@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b1524">
+    <title>Capsule Clinic HD</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <main class="play-area" aria-label="Capsule Clinic HD game">
+        <canvas id="game" width="900" height="1200"></canvas>
+        <div id="overlay" class="overlay overlay--visible">
+          <div class="overlay__mark">Capsule Clinic <span>HD</span></div>
+          <div id="overlayTitle" class="overlay__title">Ready</div>
+          <button id="primaryButton" class="primary-button" type="button">Start</button>
+        </div>
+      </main>
+
+      <aside class="hud" aria-label="Game status">
+        <div class="hud__brand">
+          <span>Capsule Clinic</span>
+          <b>HD</b>
+        </div>
+
+        <section class="hud__stats" aria-label="Score">
+          <div>
+            <span>Score</span>
+            <strong id="score">0</strong>
+          </div>
+          <div>
+            <span>Best</span>
+            <strong id="best">0</strong>
+          </div>
+        </section>
+
+        <section class="hud__stats hud__stats--compact" aria-label="Run">
+          <div>
+            <span>Level</span>
+            <strong id="level">1</strong>
+          </div>
+          <div>
+            <span>Viruses</span>
+            <strong id="viruses">0</strong>
+          </div>
+        </section>
+
+        <section class="next-panel" aria-label="Next capsule">
+          <span>Next</span>
+          <canvas id="next" width="220" height="150"></canvas>
+        </section>
+
+        <section class="hud__stats hud__stats--compact" aria-label="Rhythm">
+          <div>
+            <span>Combo</span>
+            <strong id="combo">0</strong>
+          </div>
+          <div>
+            <span>Drop</span>
+            <strong id="speed">1.0x</strong>
+          </div>
+        </section>
+
+        <div class="hud__actions" aria-label="Actions">
+          <button id="pauseButton" class="icon-button" title="Pause" aria-label="Pause" type="button">&#9208;</button>
+          <button id="soundButton" class="icon-button" title="Sound" aria-label="Sound" type="button">&#9835;</button>
+          <button id="restartButton" class="icon-button" title="Restart" aria-label="Restart" type="button">&#8635;</button>
+        </div>
+      </aside>
+
+      <nav class="touch-controls" aria-label="Touch controls">
+        <button data-action="left" title="Left" aria-label="Left" type="button">&larr;</button>
+        <button data-action="rotate" title="Rotate" aria-label="Rotate" type="button">&#8635;</button>
+        <button data-action="right" title="Right" aria-label="Right" type="button">&rarr;</button>
+        <button data-action="down" title="Down" aria-label="Down" type="button">&darr;</button>
+        <button data-action="drop" title="Drop" aria-label="Drop" type="button">&#10515;</button>
+      </nav>
+    </div>
+
+    <script src="js/game.js"></script>
+  </body>
+</html>
