@@ -42,6 +42,7 @@ Open `http://localhost:4179`.
 - Arsenal pass adds double/triple laser lanes, spread laser pickups, homing missile pods up to X3, companion orbs that fire in strike mode and shield in guard mode, plus a richer start-screen loadout rail and HUD arsenal readout.
 - Focus pass simplifies the launch screen into a flatter console, darkens the nebula with a canvas tint layer, and adds Gate Run, Wraith Pair, Split Core, splitter enemies, wraith hunters, and timed Overdrive surges for more varied runs.
 - Contrast/goal pass rebuilds the launch screen as a cleaner cockpit title scene, adds stronger enemy threat plates and marked health bars, and introduces Bounty Lock targets with Overdrive/arsenal rewards.
+- Polish pass adds Graze near-miss rewards, pickup magnetism during Graze/Overdrive, Rift Harvest risk routes, Crossfire formations, and a little extra chrome motion on existing UI surfaces.
 
 ## Controls
 

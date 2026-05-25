@@ -217,6 +217,8 @@
     eventCount: 0,
     arsenalTimer: 7.5,
     contractTimer: 6.4,
+    grazeCount: 0,
+    grazeTimer: 0,
     surgeTimer: 0,
     fieldTint: 0,
     fieldTintColor: "52, 251, 255",
@@ -400,6 +402,8 @@
       eventCount: 0,
       arsenalTimer: 5.8,
       contractTimer: 7.2,
+      grazeCount: 0,
+      grazeTimer: 0,
       surgeTimer: 0,
       fieldTint: 0,
       fieldTintColor: "52, 251, 255",
@@ -461,6 +465,10 @@
     state.flash = Math.max(0, state.flash - dt * 3.4);
     state.fieldTint = Math.max(0, state.fieldTint - dt * 0.9);
     state.surgeTimer = Math.max(0, state.surgeTimer - dt);
+    if (state.grazeTimer > 0) {
+      state.grazeTimer -= dt;
+      if (state.grazeTimer <= 0) state.grazeCount = 0;
+    }
     if (state.chainTimer > 0) {
       state.chainTimer -= dt;
       if (state.chainTimer <= 0) state.chain = 0;
@@ -712,6 +720,36 @@
     }
   }
 
+  function triggerGraze(body) {
+    if (body.grazed || player.invuln > 0) return;
+    body.grazed = true;
+    state.grazeCount += 1;
+    state.grazeTimer = 3.2;
+    player.heat = Math.max(0, player.heat - 2.8);
+    player.charge = clamp(player.charge + 1.8, 0, 100);
+    addScore(34 + Math.min(state.grazeCount, 12) * 6);
+    addTrail(player.x - 10, player.y, state.grazeCount % 2 ? "#34fbff" : "#ffcf3f", 0.54);
+    particles.push({
+      x: player.x + 8,
+      y: player.y + rand(-14, 14),
+      vx: rand(-140, -40),
+      vy: rand(-60, 60),
+      life: 0.22,
+      radius: rand(4, 9),
+      color: state.grazeCount % 2 ? "#34fbff" : "#ffcf3f",
+      alpha: 0.62,
+      shard: "glint",
+      rot: rand(0, TAU),
+      spin: rand(-5, 5),
+    });
+    if (state.grazeCount % 4 === 0) {
+      setBanner(`GRAZE X${state.grazeCount}`, 0.62);
+      pulseField("52, 251, 255", 0.32);
+      spawnShardSpray(player.x + 34, player.y, 5, "cyan");
+      if (state.grazeCount % 8 === 0) spawnPickup("score", player.x + 118, player.y + rand(-38, 38), 13);
+    }
+  }
+
   function spawnDirector(dt) {
     state.spawnTimer -= dt;
     state.hazardTimer -= dt;
@@ -780,8 +818,8 @@
 
   function spawnWaveEvent() {
     const pool = state.wave < 2
-      ? ["prismTrail", "flankRaid", "gateRun", "supplyThread"]
-      : ["prismTrail", "flankRaid", "mineVeil", "relayCache", "needleStorm", "supplyThread", "gateRun", "hunterPair", "splitCore"];
+      ? ["prismTrail", "flankRaid", "gateRun", "riftHarvest", "supplyThread"]
+      : ["prismTrail", "flankRaid", "mineVeil", "relayCache", "needleStorm", "supplyThread", "gateRun", "hunterPair", "splitCore", "riftHarvest", "crossfire"];
     const type = pool[Math.floor(Math.random() * pool.length)];
     state.eventCount += 1;
     if (type === "prismTrail") {
@@ -824,6 +862,27 @@
       for (let i = 0; i < 5; i += 1) {
         spawnEnemy("needle", rand(110, H - 100), 70 + i * 70);
       }
+    } else if (type === "riftHarvest") {
+      setBanner("RIFT HARVEST", 1);
+      pulseField("52, 251, 255", 0.72);
+      const lane = clamp(player.y + rand(-132, 132), 148, H - 148);
+      for (let i = 0; i < 7; i += 1) {
+        const y = lane + Math.sin(i * 0.88 + state.eventCount) * 70;
+        const kind = i === 4 ? "overdrive" : i % 3 === 1 ? "battery" : "score";
+        spawnPickup(kind, W + 110 + i * 78, y, kind === "score" ? 13 : 18);
+      }
+      [lane - 118, lane + 118].forEach((y, i) => spawnHazard(i ? "mine" : "asteroid", 155 + i * 92, clamp(y, 104, H - 82)));
+      spawnEnemy("wraith", clamp(lane + rand(-74, 74), 104, H - 92), 520);
+      spawnShardSpray(W - 24, lane, 10, "cyan");
+    } else if (type === "crossfire") {
+      setBanner("CROSSFIRE", 1);
+      pulseField("255, 46, 120", 0.64);
+      const upper = rand(116, 190);
+      const lower = rand(H - 190, H - 116);
+      spawnEnemy(state.wave > 3 ? "frigate" : "turret", upper, 310);
+      spawnEnemy(state.wave > 3 ? "frigate" : "turret", lower, 350);
+      spawnEnemy("needle", clamp((upper + lower) * 0.5 + rand(-42, 42), 104, H - 92), 460);
+      for (let i = 0; i < 5; i += 1) spawnPickup(i === 2 ? nextArsenalKind() : "score", W + 130 + i * 84, H * 0.5 + Math.sin(i * 1.25) * 54, i === 2 ? 18 : 13);
     } else if (type === "gateRun") {
       setBanner("GATE RUN", 1);
       pulseField("52, 251, 255", 0.66);
@@ -1217,6 +1276,17 @@
       const p = pickups[i];
       p.x -= (210 + state.wave * 8) * dt;
       p.y += Math.sin(state.time * 6 + p.x * 0.01) * dt * 36;
+      const magnetRange = state.surgeTimer > 0 ? 320 : state.grazeTimer > 0 ? 230 : 0;
+      if (magnetRange > 0) {
+        const dx = player.x - p.x;
+        const dy = player.y - p.y;
+        const d = Math.max(1, Math.hypot(dx, dy));
+        if (d < magnetRange) {
+          const pull = (state.surgeTimer > 0 ? 420 : 240) * (1 - d / magnetRange);
+          p.x += (dx / d) * pull * dt;
+          p.y += (dy / d) * pull * dt;
+        }
+      }
       p.t += dt;
       if (p.x < -50) pickups.splice(i, 1);
     }
@@ -1368,10 +1438,13 @@
         addScore(12);
         continue;
       }
-      if (dist2(b, player) < (b.radius + player.r * 0.82) ** 2) {
+      const playerDistance = dist2(b, player);
+      if (playerDistance < (b.radius + player.r * 0.82) ** 2) {
         enemyBullets.splice(i, 1);
         spawnImpact(b.x, b.y, "plasmaBurst", 66);
         damagePlayer(b.damage);
+      } else if (playerDistance < (b.radius + player.r + 34) ** 2) {
+        triggerGraze(b);
       }
     }
 
