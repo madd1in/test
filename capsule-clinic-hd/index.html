@@ -62,9 +62,21 @@
           </div>
         </section>
 
+        <section class="hud__stats hud__stats--compact" aria-label="Clinic tools">
+          <div>
+            <span>Dose</span>
+            <strong id="dose">0%</strong>
+          </div>
+          <div>
+            <span>Threat</span>
+            <strong id="threat">Low</strong>
+          </div>
+        </section>
+
         <div class="hud__actions" aria-label="Actions">
           <button id="pauseButton" class="icon-button" title="Pause" aria-label="Pause" type="button">&#9208;</button>
           <button id="soundButton" class="icon-button" title="Sound" aria-label="Sound" type="button">&#9835;</button>
+          <button id="doseButton" class="icon-button" title="Dose" aria-label="Dose" type="button">&#10010;</button>
           <button id="restartButton" class="icon-button" title="Restart" aria-label="Restart" type="button">&#8635;</button>
         </div>
       </aside>
@@ -74,6 +86,7 @@
         <button data-action="rotate" title="Rotate" aria-label="Rotate" type="button">&#8635;</button>
         <button data-action="right" title="Right" aria-label="Right" type="button">&rarr;</button>
         <button data-action="down" title="Down" aria-label="Down" type="button">&darr;</button>
+        <button data-action="dose" title="Dose" aria-label="Dose" type="button">&#10010;</button>
         <button data-action="drop" title="Drop" aria-label="Drop" type="button">&#10515;</button>
       </nav>
     </div>

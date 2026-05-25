@@ -242,14 +242,138 @@ Save-Png $bmp (Join-Path $outDir "fx-atlas-hd.png")
 $g.Dispose()
 $bmp.Dispose()
 
+function Draw-VirusFrame($g, [int] $baseX, [int] $baseY, $entry, [int] $frame) {
+  $cx = $baseX + 128
+  $cy = $baseY + 128 + [Math]::Sin($frame * [Math]::PI / 2) * 4
+  $squash = 1 + [Math]::Sin($frame * [Math]::PI / 2) * 0.08
+  for ($s = 0; $s -lt 12; $s++) {
+    $angle = ($s / 12.0) * [Math]::PI * 2 + $frame * 0.12
+    $sx = $cx + [Math]::Cos($angle) * 76
+    $sy = $cy + [Math]::Sin($angle) * (62 / $squash)
+    $spikeBrush = New-Object System.Drawing.SolidBrush((Color-Hex $entry.Dark 235))
+    $g.FillEllipse($spikeBrush, [float]($sx - 16), [float]($sy - 16), 32, 32)
+    $spikeBrush.Dispose()
+  }
+  $bodyPath = New-RoundedPath ($baseX + 44) ($baseY + 48 + ($cy - $baseY - 128)) 168 (164 / $squash) 58
+  $bodyBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+    (New-Object System.Drawing.RectangleF(($baseX + 44), ($baseY + 48), 168, 164)),
+    (Color-Hex $entry.Light),
+    (Color-Hex $entry.Dark),
+    55
+  )
+  $g.FillPath($bodyBrush, $bodyPath)
+  $g.DrawPath((New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(185, 255, 255, 255), 4)), $bodyPath)
+  $eyeBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(230, 5, 16, 26))
+  $shineBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(245, 255, 255, 255))
+  $blink = if ($frame -eq 2) { 12 } else { 40 }
+  $g.FillEllipse($eyeBrush, $baseX + 86, [float]($baseY + 101 + (40 - $blink) / 2), 30, $blink)
+  $g.FillEllipse($eyeBrush, $baseX + 142, [float]($baseY + 101 + (40 - $blink) / 2), 30, $blink)
+  if ($blink -gt 20) {
+    $g.FillEllipse($shineBrush, $baseX + 96 + $frame, $baseY + 110, 8, 10)
+    $g.FillEllipse($shineBrush, $baseX + 152 + $frame, $baseY + 110, 8, 10)
+  }
+  $mouthPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(220, 5, 16, 26), 7)
+  $g.DrawArc($mouthPen, $baseX + 96, $baseY + 144 + ($frame % 2) * 3, 64, 34, 10, 160)
+  $eyeBrush.Dispose()
+  $shineBrush.Dispose()
+  $mouthPen.Dispose()
+  $bodyBrush.Dispose()
+  $bodyPath.Dispose()
+}
+
+# Animated virus atlas, 4 colors x 4 frames
+$canvasObj = New-Canvas 4096 256
+$bmp = $canvasObj.Bitmap
+$g = $canvasObj.Graphics
+$g.Clear([System.Drawing.Color]::Transparent)
+for ($i = 0; $i -lt 4; $i++) {
+  for ($frame = 0; $frame -lt 4; $frame++) {
+    Draw-VirusFrame $g (($i * 4 + $frame) * 256) 0 $palette[$i] $frame
+  }
+}
+Save-Png $bmp (Join-Path $outDir "virus-anim-atlas-hd.png")
+$g.Dispose()
+$bmp.Dispose()
+
+# Animated clear burst atlas, 8 frames
+$canvasObj = New-Canvas 2048 256
+$bmp = $canvasObj.Bitmap
+$g = $canvasObj.Graphics
+$g.Clear([System.Drawing.Color]::Transparent)
+for ($frame = 0; $frame -lt 8; $frame++) {
+  $x = $frame * 256
+  $progress = ($frame + 1) / 8.0
+  $cx = $x + 128
+  $cy = 128
+  for ($i = 0; $i -lt 16; $i++) {
+    $angle = ($i / 16.0) * [Math]::PI * 2 + $progress
+    $dist = 18 + 92 * $progress
+    $len = 16 + 24 * (1 - $progress)
+    $entry = $palette[$i % 4]
+    $pen = New-Object System.Drawing.Pen((Color-Hex $entry.Light ([int](230 * (1 - $progress * 0.55)))), [float](9 - $progress * 4))
+    $g.DrawLine($pen, [float]($cx + [Math]::Cos($angle) * ($dist - $len)), [float]($cy + [Math]::Sin($angle) * ($dist - $len)), [float]($cx + [Math]::Cos($angle) * $dist), [float]($cy + [Math]::Sin($angle) * $dist))
+    $pen.Dispose()
+  }
+  $ringPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb([int](210 * (1 - $progress * 0.5)), 238, 248, 255), [float](10 - $progress * 5))
+  $r = 12 + 90 * $progress
+  $g.DrawEllipse($ringPen, [float]($cx - $r), [float]($cy - $r), [float]($r * 2), [float]($r * 2))
+  $ringPen.Dispose()
+}
+Save-Png $bmp (Join-Path $outDir "clear-fx-anim-atlas-hd.png")
+$g.Dispose()
+$bmp.Dispose()
+
+# Lab tile atlas, 4x4
+$canvasObj = New-Canvas 1024 1024
+$bmp = $canvasObj.Bitmap
+$g = $canvasObj.Graphics
+$g.Clear([System.Drawing.Color]::Transparent)
+for ($ty = 0; $ty -lt 4; $ty++) {
+  for ($tx = 0; $tx -lt 4; $tx++) {
+    $x = $tx * 256
+    $y = $ty * 256
+    $tileBase = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+      (New-Object System.Drawing.RectangleF($x, $y, 256, 256)),
+      [System.Drawing.Color]::FromArgb(215, 21, 49, 70),
+      [System.Drawing.Color]::FromArgb(230, 5, 16, 31),
+      90 + $tx * 12
+    )
+    $g.FillRectangle($tileBase, $x, $y, 256, 256)
+    $tileBase.Dispose()
+    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(76, 165, 239, 255), 4)
+    $g.DrawRectangle($pen, $x + 10, $y + 10, 236, 236)
+    $pen.Dispose()
+    $accent = $palette[($tx + $ty) % 4]
+    $glow = New-Object System.Drawing.SolidBrush((Color-Hex $accent.Main 62))
+    if (($tx + $ty) % 3 -eq 0) {
+      $g.FillEllipse($glow, $x + 48, $y + 46, 160, 160)
+    } elseif (($tx + $ty) % 3 -eq 1) {
+      for ($line = 0; $line -lt 5; $line++) {
+        $g.FillRectangle($glow, $x + 30, $y + 42 + $line * 34, 196, 10)
+      }
+    } else {
+      $path = New-RoundedPath ($x + 48) ($y + 62) 160 126 34
+      $g.FillPath($glow, $path)
+      $path.Dispose()
+    }
+    $glow.Dispose()
+  }
+}
+Save-Png $bmp (Join-Path $outDir "lab-tile-atlas-hd.png")
+$g.Dispose()
+$bmp.Dispose()
+
 $manifest = [ordered]@{
   generated = (Get-Date).ToString("s")
   assets = @(
     "background-lab-hd.png",
     "capsule-atlas-hd.png",
     "virus-atlas-hd.png",
+    "virus-anim-atlas-hd.png",
     "bottle-frame-hd.png",
-    "fx-atlas-hd.png"
+    "fx-atlas-hd.png",
+    "clear-fx-anim-atlas-hd.png",
+    "lab-tile-atlas-hd.png"
   )
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -Encoding ASCII -Path (Join-Path $outDir "asset-manifest.json")

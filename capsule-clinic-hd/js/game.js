@@ -18,7 +18,20 @@
     frame: "assets/hd/bottle-frame-hd.png",
     pills: "assets/hd/capsule-atlas-hd.png",
     viruses: "assets/hd/virus-atlas-hd.png",
-    fx: "assets/hd/fx-atlas-hd.png"
+    virusAnim: "assets/hd/virus-anim-atlas-hd.png",
+    fx: "assets/hd/fx-atlas-hd.png",
+    clearFx: "assets/hd/clear-fx-anim-atlas-hd.png",
+    tiles: "assets/hd/lab-tile-atlas-hd.png",
+    imagenSource: "assets/imagen-hd/imagen-clinic-animation-atlas-source.png"
+  };
+  var AUDIO = {
+    bgm: "assets/audio/bgm/local-lab-loop.mp3",
+    confirm: "assets/audio/sfx/local-confirm.wav",
+    move: "assets/audio/sfx/local-pickup.wav",
+    rotate: "assets/audio/sfx/local-impact.wav",
+    clear: "assets/audio/sfx/local-clear.wav",
+    level: "assets/audio/sfx/local-level.wav",
+    gameover: "assets/audio/sfx/local-gameover.wav"
   };
   var OFFSETS = [
     { x: 1, y: 0 },
@@ -40,11 +53,16 @@
   var virusesEl = document.getElementById("viruses");
   var comboEl = document.getElementById("combo");
   var speedEl = document.getElementById("speed");
+  var doseEl = document.getElementById("dose");
+  var threatEl = document.getElementById("threat");
   var pauseButton = document.getElementById("pauseButton");
   var soundButton = document.getElementById("soundButton");
+  var doseButton = document.getElementById("doseButton");
   var restartButton = document.getElementById("restartButton");
 
   var images = {};
+  var audioElements = {};
+  var bgm = null;
   var lastTime = 0;
   var assetsReady = false;
   var audioContext = null;
@@ -54,6 +72,7 @@
   var rngSeed = 0x5f3759df;
   var boardRect = { x: 218, y: 176, w: 464, h: 928, cell: 58 };
   var particles = [];
+  var clearBursts = [];
   var heldDown = false;
 
   var state = {
@@ -65,10 +84,12 @@
     score: 0,
     viruses: 0,
     combo: 0,
+    dose: 0,
     dropMs: BASE_DROP_MS,
     dropTimer: 0,
     settleTimer: 0,
     flash: 0,
+    shake: 0,
     message: "Ready"
   };
 
@@ -123,6 +144,21 @@
     });
     return Promise.all(pending).then(function () {
       assetsReady = true;
+    });
+  }
+
+  function setupAudioAssets() {
+    Object.keys(AUDIO).forEach(function (key) {
+      var audio = new Audio(AUDIO[key]);
+      audio.preload = key === "bgm" ? "auto" : "metadata";
+      if (key === "bgm") {
+        audio.loop = true;
+        audio.volume = 0.32;
+        bgm = audio;
+      } else {
+        audio.volume = 0.62;
+      }
+      audioElements[key] = audio;
     });
   }
 
@@ -237,13 +273,16 @@
     unlockAudio();
     state.level = START_LEVEL;
     state.score = 0;
+    state.dose = 0;
     state.flash = 0;
     state.message = "Level 1";
     particles = [];
+    clearBursts = [];
     pieceSerial = 1;
     buildLevel(state.level);
     overlay.classList.remove("overlay--visible");
-    playTone(520, 0.06, "triangle", 0.06);
+    startBgm();
+    playLocalSound("confirm", 0.48) || playTone(520, 0.06, "triangle", 0.06);
     updateHud();
   }
 
@@ -257,7 +296,8 @@
     overlayTitle.textContent = "Game Over";
     primaryButton.textContent = "Restart";
     overlay.classList.add("overlay--visible");
-    playTone(110, 0.24, "sawtooth", 0.045);
+    stopBgm();
+    playLocalSound("gameover", 0.5) || playTone(110, 0.24, "sawtooth", 0.045);
   }
 
   function completeLevel() {
@@ -267,7 +307,7 @@
     state.message = "Level " + state.level;
     state.settleTimer = 980;
     burstAt(boardRect.x + boardRect.w / 2, boardRect.y + boardRect.h * 0.28, COLORS[1], 36);
-    playTone(740, 0.1, "triangle", 0.08);
+    playLocalSound("level", 0.64) || playTone(740, 0.1, "triangle", 0.08);
     setTimeout(function () {
       if (state.mode === "levelclear") {
         buildLevel(state.level);
@@ -284,7 +324,29 @@
     virusesEl.textContent = String(state.viruses);
     comboEl.textContent = String(state.combo);
     speedEl.textContent = (BASE_DROP_MS / state.dropMs).toFixed(1) + "x";
+    doseEl.textContent = Math.floor(state.dose) + "%";
+    threatEl.textContent = getThreatLabel();
+    doseButton.disabled = state.dose < 100 || state.viruses <= 0;
+    doseButton.classList.toggle("icon-button--ready", state.dose >= 100 && state.viruses > 0);
     soundButton.textContent = muted ? "M" : "\u266b";
+  }
+
+  function getThreatLabel() {
+    var top = ROWS;
+    for (var y = 0; y < ROWS; y += 1) {
+      for (var x = 0; x < COLS; x += 1) {
+        if (state.board[y][x]) {
+          top = Math.min(top, y);
+        }
+      }
+    }
+    if (top <= 2) {
+      return "High";
+    }
+    if (top <= 5) {
+      return "Med";
+    }
+    return "Low";
   }
 
   function actionMove(dx) {
@@ -294,7 +356,7 @@
     if (canPlacePiece(state.current, state.current.x + dx, state.current.y, state.current.dir)) {
       state.current.x += dx;
       state.current.lockPulse = 90;
-      playTone(260 + dx * 30, 0.025, "square", 0.025);
+      playLocalSound("move", 0.22) || playTone(260 + dx * 30, 0.025, "square", 0.025);
     }
   }
 
@@ -324,6 +386,48 @@
     lockPiece();
   }
 
+  function useDose() {
+    if (state.dose < 100 || state.viruses <= 0 || (state.mode !== "falling" && state.mode !== "settling" && state.mode !== "spawning")) {
+      return;
+    }
+    var target = null;
+    for (var y = 0; y < ROWS; y += 1) {
+      for (var x = 0; x < COLS; x += 1) {
+        var cell = state.board[y][x];
+        if (cell && cell.type === "virus") {
+          target = { x: x, y: y, cell: cell };
+          break;
+        }
+      }
+      if (target) {
+        break;
+      }
+    }
+    if (!target) {
+      return;
+    }
+    var px = boardRect.x + target.x * boardRect.cell + boardRect.cell / 2;
+    var py = boardRect.y + target.y * boardRect.cell + boardRect.cell / 2;
+    burstAt(px, py, COLORS[target.cell.color], 28);
+    clearBursts.push({ x: px, y: py, life: 420, age: 0, color: target.cell.color });
+    state.board[target.y][target.x] = null;
+    state.viruses = Math.max(0, state.viruses - 1);
+    state.score += 750 + state.level * 100;
+    state.dose = 0;
+    state.flash = 1;
+    state.shake = 10;
+    if (state.mode !== "falling") {
+      state.mode = "settling";
+      state.settleTimer = GRAVITY_DELAY_MS;
+    }
+    playLocalSound("level", 0.55) || playChord([620, 930, 1240], 0.08, 0.055);
+    updateHud();
+    if (state.viruses <= 0) {
+      state.current = null;
+      completeLevel();
+    }
+  }
+
   function rotatePiece(clockwise) {
     if (state.mode !== "falling" || !state.current) {
       return;
@@ -336,7 +440,7 @@
         state.current.x = nx;
         state.current.dir = dir;
         state.current.lockPulse = 130;
-        playTone(390, 0.045, "triangle", 0.04);
+        playLocalSound("rotate", 0.34) || playTone(390, 0.045, "triangle", 0.04);
         return;
       }
     }
@@ -361,7 +465,7 @@
     state.current = null;
     state.mode = "settling";
     state.settleTimer = CLEAR_DELAY_MS;
-    playTone(160, 0.05, "square", 0.04);
+    playLocalSound("rotate", 0.2) || playTone(160, 0.05, "square", 0.04);
   }
 
   function findMatches() {
@@ -424,12 +528,15 @@
       var px = boardRect.x + c.x * boardRect.cell + boardRect.cell / 2;
       var py = boardRect.y + c.y * boardRect.cell + boardRect.cell / 2;
       burstAt(px, py, COLORS[cell.color], 10 + state.combo * 2);
+      clearBursts.push({ x: px, y: py, life: 360, age: 0, color: cell.color });
       state.board[c.y][c.x] = null;
     }
     state.viruses = Math.max(0, state.viruses - virusHits);
     state.score += matches.length * 90 * state.combo + virusHits * 360;
+    state.dose = clamp(state.dose + matches.length * 4 + virusHits * 12 + state.combo * 2, 0, 100);
     state.flash = 1;
-    playChord(virusHits ? [520, 780, 1040] : [450, 675], 0.08, 0.055);
+    state.shake = Math.min(14, 4 + virusHits * 2 + state.combo);
+    playLocalSound("clear", 0.58) || playChord(virusHits ? [520, 780, 1040] : [450, 675], 0.08, 0.055);
     updateHud();
   }
 
@@ -545,6 +652,7 @@
   }
 
   function updateParticles(dt) {
+    state.shake = Math.max(0, state.shake - dt * 0.035);
     for (var i = particles.length - 1; i >= 0; i -= 1) {
       var p = particles[i];
       p.life -= dt;
@@ -554,6 +662,13 @@
       p.spin += p.spinV * dt;
       if (p.life <= 0) {
         particles.splice(i, 1);
+      }
+    }
+    for (var b = clearBursts.length - 1; b >= 0; b -= 1) {
+      clearBursts[b].age += dt;
+      clearBursts[b].life -= dt;
+      if (clearBursts[b].life <= 0) {
+        clearBursts.splice(b, 1);
       }
     }
   }
@@ -579,13 +694,19 @@
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    if (state.shake > 0) {
+      ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+    }
     drawBackground();
     drawBottle();
     drawGhost();
     drawBoard();
     drawCurrentPiece();
+    drawClearBursts();
     drawParticles();
     drawStatusRibbon();
+    ctx.restore();
     drawNext();
   }
 
@@ -611,6 +732,7 @@
     ctx.fillStyle = "rgba(2, 9, 18, 0.58)";
     roundRect(ctx, r.x - 10, r.y - 12, r.w + 20, r.h + 22, 34);
     ctx.fill();
+    drawLabTileBackdrop();
 
     ctx.strokeStyle = "rgba(141, 226, 255, 0.18)";
     ctx.lineWidth = 2;
@@ -634,6 +756,28 @@
       ctx.lineWidth = 10;
       roundRect(ctx, r.x - 18, r.y - 18, r.w + 36, r.h + 36, 42);
       ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLabTileBackdrop() {
+    if (!images.tiles) {
+      return;
+    }
+    var r = boardRect;
+    ctx.save();
+    roundRect(ctx, r.x + 4, r.y + 4, r.w - 8, r.h - 8, 24);
+    ctx.clip();
+    ctx.globalAlpha = 0.22;
+    var tile = r.cell * 2;
+    var drift = ((lastTime * 0.006) % tile);
+    for (var y = -tile; y < r.h + tile; y += tile) {
+      for (var x = -tile; x < r.w + tile; x += tile) {
+        var frame = Math.abs(Math.floor((x + y + drift) / tile)) % 16;
+        var sx = (frame % 4) * 256;
+        var sy = Math.floor(frame / 4) * 256;
+        ctx.drawImage(images.tiles, sx, sy, 256, 256, r.x + x, r.y + y + drift * 0.12, tile, tile);
+      }
     }
     ctx.restore();
   }
@@ -735,7 +879,10 @@
     var py = r.y + y * r.cell;
     ctx.save();
     ctx.globalAlpha *= alpha;
-    if (images.viruses) {
+    if (images.virusAnim) {
+      var frame = (Math.floor(lastTime * 0.006 + x + y) % 4 + 4) % 4;
+      ctx.drawImage(images.virusAnim, (colorIndex * 4 + frame) * 256, 0, 256, 256, px + 2, py + 2, r.cell - 4, r.cell - 4);
+    } else if (images.viruses) {
       ctx.drawImage(images.viruses, colorIndex * 256, 0, 256, 256, px + 2, py + 2, r.cell - 4, r.cell - 4);
     } else {
       fallbackGem(colorIndex, px + 5, py + 5, r.cell - 10);
@@ -766,6 +913,22 @@
       roundRect(ctx, -p.size / 2, -p.size / 2, p.size, p.size, 2);
       ctx.fill();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    ctx.restore();
+  }
+
+  function drawClearBursts() {
+    if (!images.clearFx) {
+      return;
+    }
+    ctx.save();
+    for (var i = 0; i < clearBursts.length; i += 1) {
+      var burst = clearBursts[i];
+      var frame = clamp(Math.floor((burst.age / 360) * 8), 0, 7);
+      var alpha = clamp(burst.life / 360, 0, 1);
+      var size = boardRect.cell * (1.25 + frame * 0.08);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(images.clearFx, frame * 256, 0, 256, 256, burst.x - size / 2, burst.y - size / 2, size, size);
     }
     ctx.restore();
   }
@@ -840,9 +1003,15 @@
       overlayTitle.textContent = "Paused";
       primaryButton.textContent = "Resume";
       overlay.classList.add("overlay--visible");
+      if (bgm) {
+        bgm.volume = 0.16;
+      }
     } else if (!paused && state.mode === "paused") {
       state.mode = "falling";
       overlay.classList.remove("overlay--visible");
+      if (bgm) {
+        bgm.volume = 0.3;
+      }
     }
   }
 
@@ -865,6 +1034,8 @@
       rotatePiece(true);
     } else if (action === "drop") {
       hardDrop();
+    } else if (action === "dose") {
+      useDose();
     }
   }
 
@@ -895,6 +1066,9 @@
       } else if (event.code === "KeyP" || event.code === "Escape") {
         event.preventDefault();
         setPaused(state.mode === "falling");
+      } else if (event.code === "KeyF" || event.code === "ShiftLeft" || event.code === "ShiftRight") {
+        event.preventDefault();
+        useDose();
       }
     });
     document.addEventListener("keyup", function (event) {
@@ -934,12 +1108,18 @@
     pauseButton.addEventListener("click", function () {
       setPaused(state.mode === "falling");
     });
+    doseButton.addEventListener("click", useDose);
     restartButton.addEventListener("click", restartGame);
     soundButton.addEventListener("click", function () {
       muted = !muted;
       localStorage.setItem("capsuleClinicMuted", muted ? "1" : "0");
       unlockAudio();
-      playTone(440, 0.04, "triangle", 0.06);
+      if (muted) {
+        stopBgm();
+      } else {
+        startBgm();
+        playLocalSound("confirm", 0.4) || playTone(440, 0.04, "triangle", 0.06);
+      }
       updateHud();
     });
   }
@@ -953,6 +1133,41 @@
     }
     if (audioContext && audioContext.state === "suspended") {
       audioContext.resume();
+    }
+  }
+
+  function startBgm() {
+    if (muted || !bgm) {
+      return;
+    }
+    bgm.volume = 0.3;
+    var playPromise = bgm.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(function () {});
+    }
+  }
+
+  function stopBgm() {
+    if (!bgm) {
+      return;
+    }
+    bgm.pause();
+  }
+
+  function playLocalSound(key, volume) {
+    if (muted || !audioElements[key]) {
+      return false;
+    }
+    try {
+      var sound = audioElements[key].cloneNode();
+      sound.volume = volume;
+      var promise = sound.play();
+      if (promise && typeof promise.catch === "function") {
+        promise.catch(function () {});
+      }
+      return true;
+    } catch (error) {
+      return false;
     }
   }
 
@@ -1019,6 +1234,7 @@
   }
 
   bestEl.textContent = formatNumber(bestScore);
+  setupAudioAssets();
   updateHud();
   bindInput();
   loadAssets().catch(bootFallbackIfNeeded).finally(function () {

@@ -1,6 +1,6 @@
 # Capsule Clinic HD
 
-An original HD falling-capsule puzzle game for the browser. It uses new project-local PNG assets, a canvas playfield, DOM HUD, keyboard controls, touch controls, local high score storage, simple WebAudio effects, and GitHub Pages-friendly static files.
+An original HD falling-capsule puzzle game for the browser. It uses project-local PNG assets, an Imagen HD source atlas, local BGM/SFX, a canvas playfield, DOM HUD, keyboard controls, touch controls, local high score storage, and GitHub Pages-friendly static files.
 
 This project is an original homage to color-matching capsule puzzle games. It does not use Nintendo characters, names, art, sounds, or other copyrighted game assets.
 
@@ -12,6 +12,7 @@ Open `index.html` directly in a browser, or serve the folder with any static fil
 
 - Arrow keys or WASD: move, rotate, soft drop
 - Space or Enter: hard drop or start
+- F, Shift, or the plus button: spend a full Dose charge
 - P or Escape: pause
 - Touch buttons are shown on smaller screens
 
@@ -24,6 +25,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\generate-assets.
 ```
 
 The generated files live in `assets/hd/`.
+
+The saved Imagen source atlas lives in `assets/imagen-hd/`. Local audio is copied into `assets/audio/`.
 
 ## Verify
 

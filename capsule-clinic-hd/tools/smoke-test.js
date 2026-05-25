@@ -13,7 +13,9 @@ const requiredHtml = [
   'id="overlay"',
   'id="primaryButton"',
   'id="pauseButton"',
+  'id="doseButton"',
   'data-action="left"',
+  'data-action="dose"',
   'data-action="rotate"',
   'src="js/game.js"'
 ];
@@ -44,9 +46,12 @@ const requiredJs = [
   "function findMatches",
   "function applyGravityStep",
   "function clearMatches",
+  "function useDose",
   "function hardDrop",
   "function rotatePiece",
   "function drawBottle",
+  "function drawClearBursts",
+  "function setupAudioAssets",
   "function loadAssets",
   "localStorage",
   "AudioContext"
@@ -76,8 +81,19 @@ const assets = [
   ["assets/hd/background-lab-hd.png", 1920, 1080],
   ["assets/hd/capsule-atlas-hd.png", 1024, 256],
   ["assets/hd/virus-atlas-hd.png", 1024, 256],
+  ["assets/hd/virus-anim-atlas-hd.png", 4096, 256],
   ["assets/hd/bottle-frame-hd.png", 1200, 1700],
   ["assets/hd/fx-atlas-hd.png", 1024, 256],
+  ["assets/hd/clear-fx-anim-atlas-hd.png", 2048, 256],
+  ["assets/hd/lab-tile-atlas-hd.png", 1024, 1024],
+  ["assets/imagen-hd/imagen-clinic-animation-atlas-source.png", 1254, 1254],
+  ["assets/audio/bgm/local-lab-loop.mp3", 0, 0],
+  ["assets/audio/sfx/local-confirm.wav", 0, 0],
+  ["assets/audio/sfx/local-pickup.wav", 0, 0],
+  ["assets/audio/sfx/local-impact.wav", 0, 0],
+  ["assets/audio/sfx/local-clear.wav", 0, 0],
+  ["assets/audio/sfx/local-gameover.wav", 0, 0],
+  ["assets/audio/sfx/local-level.wav", 0, 0],
   ["assets/hd/asset-manifest.json", 0, 0]
 ];
 

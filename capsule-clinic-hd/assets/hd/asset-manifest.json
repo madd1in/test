@@ -1,10 +1,13 @@
 {
-    "generated":  "2026-05-25T19:50:35",
+    "generated":  "2026-05-25T21:37:50",
     "assets":  [
                    "background-lab-hd.png",
                    "capsule-atlas-hd.png",
                    "virus-atlas-hd.png",
+                   "virus-anim-atlas-hd.png",
                    "bottle-frame-hd.png",
-                   "fx-atlas-hd.png"
+                   "fx-atlas-hd.png",
+                   "clear-fx-anim-atlas-hd.png",
+                   "lab-tile-atlas-hd.png"
                ]
 }
