@@ -32,6 +32,7 @@ const mime = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml; charset=utf-8",
   ".png": "image/png",
+  ".wav": "audio/wav",
 };
 
 function serveFile(request, response) {
@@ -102,6 +103,9 @@ async function runViewport(browser, name, viewport, mobile = false) {
   await page.waitForTimeout(750);
   await page.keyboard.up("ShiftLeft");
   await page.waitForFunction(() => window.__novaWingDebug?.getState?.().progress > 185, null, { timeout: 8000 });
+  await page.evaluate(() => window.__novaWingDebug?.chargeNova?.(1));
+  await page.keyboard.press("KeyX");
+  await page.waitForTimeout(220);
   await page.keyboard.press("Space");
   await page.waitForTimeout(260);
   await page.keyboard.up("KeyW");
@@ -141,6 +145,7 @@ async function runViewport(browser, name, viewport, mobile = false) {
   if (!metrics.debug || metrics.debug.mode !== "playing") throw new Error(`${name} debug state did not enter play`);
   if (metrics.debug.progress < 185) throw new Error(`${name} did not advance far enough for the first wave`);
   if (metrics.debug.enemies < 1 && metrics.debug.score < 1) throw new Error(`${name} first enemy wave did not spawn or score`);
+  if (metrics.debug.nova > 0.2) throw new Error(`${name} Nova Burst did not discharge`);
   if (!metrics.pixels.some((pixel) => pixel[3] > 0 && pixel[0] + pixel[1] + pixel[2] > 14)) {
     throw new Error(`${name} canvas pixel check looks blank`);
   }
@@ -154,6 +159,12 @@ async function runViewport(browser, name, viewport, mobile = false) {
   }
   await page.close({ runBeforeUnload: false });
   return { name, screenshotPath, metrics };
+}
+
+async function settleCleanup(promise, timeoutMs) {
+  try {
+    await Promise.race([promise, new Promise((resolve) => setTimeout(resolve, timeoutMs))]);
+  } catch {}
 }
 
 (async () => {
@@ -186,10 +197,10 @@ async function runViewport(browser, name, viewport, mobile = false) {
     console.log("Browser smoke test passed");
     console.log(JSON.stringify({ desktop, mobile }, null, 2));
   } finally {
-    await browser.close();
+    await settleCleanup(browser.close(), 6000);
     if (server) {
       server.closeAllConnections?.();
-      await new Promise((resolve) => server.close(resolve));
+      await settleCleanup(new Promise((resolve) => server.close(resolve)), 2000);
     }
   }
 })();

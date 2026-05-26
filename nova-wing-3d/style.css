@@ -113,7 +113,7 @@ button:focus-visible {
 
 .status-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(96px, 128px)) repeat(3, minmax(70px, 94px));
+  grid-template-columns: repeat(4, minmax(86px, 118px)) repeat(3, minmax(66px, 90px));
   gap: 10px;
   padding: 10px;
   border-radius: 8px;
@@ -152,6 +152,11 @@ button:focus-visible {
 
 .meter.energy i {
   background: linear-gradient(90deg, var(--lime), var(--amber));
+}
+
+.meter.nova i {
+  background: linear-gradient(90deg, var(--violet), var(--cyan), var(--lime));
+  box-shadow: 0 0 16px rgba(183, 255, 104, 0.3);
 }
 
 .progress-track {
@@ -364,7 +369,7 @@ button:focus-visible {
 }
 
 .touch-actions {
-  grid-template-columns: repeat(3, minmax(58px, 72px));
+  grid-template-columns: repeat(2, minmax(58px, 72px));
 }
 
 .touch-controls button {
@@ -440,7 +445,7 @@ button:focus-visible {
   }
 
   .touch-actions {
-    grid-template-columns: repeat(3, 54px);
+    grid-template-columns: repeat(2, 54px);
   }
 }
 

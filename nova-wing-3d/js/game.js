@@ -35,6 +35,7 @@ const ui = {
   hpFill: document.getElementById("hpFill"),
   shieldFill: document.getElementById("shieldFill"),
   energyFill: document.getElementById("energyFill"),
+  novaFill: document.getElementById("novaFill"),
   progressFill: document.getElementById("progressFill"),
   comboText: document.getElementById("comboText"),
   coreText: document.getElementById("coreText"),
@@ -132,6 +133,14 @@ const materials = {
   }),
   engine: new THREE.MeshBasicMaterial({ color: 0xffca62, transparent: true, opacity: 0.82 }),
   laser: new THREE.MeshBasicMaterial({ color: 0x8ffcff }),
+  novaShot: new THREE.MeshBasicMaterial({ color: 0xb7ff68 }),
+  novaPulse: new THREE.MeshBasicMaterial({
+    color: 0xb7ff68,
+    transparent: true,
+    opacity: 0.68,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }),
   enemyLaser: new THREE.MeshBasicMaterial({ color: 0xff5f9a }),
   enemy: new THREE.MeshStandardMaterial({
     color: 0xff5f9a,
@@ -219,6 +228,7 @@ const input = {
   pointerActive: false,
   pointerTarget: { x: 0, y: 0 },
   rollQueued: 0,
+  novaQueued: false,
 };
 
 const clock = new THREE.Clock();
@@ -268,10 +278,20 @@ function init() {
       mode: state.mode,
       progress: state.progress,
       score: state.player.score,
+      nova: state.player.nova,
+      graze: state.player.graze,
       enemies: state.enemies.length,
       shots: state.playerShots.length,
       boss: state.boss ? state.boss.hp : 0,
     }),
+    chargeNova: (amount = 1) => {
+      chargeNova(amount);
+      return state.player.nova;
+    },
+    useNovaBurst: () => {
+      useNovaBurst();
+      return state.player.nova;
+    },
   };
   requestAnimationFrame(animate);
 }
@@ -299,6 +319,7 @@ function createState(mode = "playing") {
     waveSpawned: new Set(),
     ringCollected: new Set(),
     obstacleHit: new Set(),
+    obstacleGrazed: new Set(),
     pickupCollected: new Set(),
     dataCoreCollected: new Set(),
     enemies: [],
@@ -319,6 +340,8 @@ function createState(mode = "playing") {
       combo: 1,
       comboTimer: 0,
       bestCombo: 1,
+      nova: 0.28,
+      graze: 0,
       droneCooldown: 0,
       invuln: 0,
       fireCooldown: 0,
@@ -603,6 +626,7 @@ function bindInput() {
     input.keys.clear();
     input.touch.clear();
     input.pointerDown = false;
+    input.novaQueued = false;
   });
   window.addEventListener("keydown", (event) => {
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) event.preventDefault();
@@ -611,6 +635,7 @@ function bindInput() {
     if (event.code === "KeyP" || event.code === "Escape") togglePause();
     if (event.code === "KeyQ") input.rollQueued = -1;
     if (event.code === "KeyE") input.rollQueued = 1;
+    if (event.code === "KeyX") input.novaQueued = true;
   });
   window.addEventListener("keyup", (event) => {
     input.keys.delete(event.code);
@@ -636,6 +661,7 @@ function bindInput() {
       button.setPointerCapture?.(event.pointerId);
       input.touch.add(action);
       if (action === "roll") input.rollQueued = input.rollQueued === 1 ? -1 : 1;
+      if (action === "nova") input.novaQueued = true;
       ensureAudio();
     });
     const release = () => input.touch.delete(action);
@@ -658,6 +684,7 @@ function resetGame(mode = "playing") {
   state = createState(mode);
   if (mode === "menu") stopBgm();
   input.rollQueued = 0;
+  input.novaQueued = false;
   input.pointerActive = false;
   for (const entry of staticObjects.rings) {
     entry.mesh.visible = true;
@@ -917,6 +944,11 @@ function updatePlayerControls(dt) {
   if (isFiring() && player.fireCooldown <= 0 && player.heat < 0.98) {
     firePlayerShot();
   }
+
+  if (input.novaQueued || input.touch.has("nova")) {
+    useNovaBurst();
+    input.novaQueued = false;
+  }
 }
 
 function getTargetSpeed(boosting) {
@@ -950,19 +982,96 @@ function firePlayerShot() {
   if (!playSfx("laser", 0.24, 1 + Math.random() * 0.08)) playTone(860, 0.035, "square", 0.012);
 }
 
-function spawnPlayerShot(x, y, damage = 1) {
-  const mesh = new THREE.Mesh(geometries.shot, materials.laser);
+function spawnPlayerShot(x, y, damage = 1, variant = "laser") {
+  const mesh = new THREE.Mesh(geometries.shot, variant === "nova" ? materials.novaShot : materials.laser);
+  if (variant === "nova") mesh.scale.set(1.85, 1.85, 1.18);
   projectileGroup.add(mesh);
   const shot = {
     x,
     y,
     progress: state.progress + 4,
-    speed: 285,
+    speed: variant === "nova" ? 340 : 285,
     age: 0,
     damage,
+    variant,
     mesh,
   };
   state.playerShots.push(shot);
+}
+
+function canNovaBurst() {
+  return state.mode === "playing" && state.player.nova >= 1;
+}
+
+function useNovaBurst() {
+  if (!canNovaBurst()) {
+    if (state.mode === "playing" && state.player.nova > 0.72) showToast("Nova laedt", 0.55);
+    return;
+  }
+
+  const player = state.player;
+  player.nova = 0;
+  player.heat = 0;
+  player.energy = 1;
+  player.invuln = Math.max(player.invuln, 0.92);
+
+  let destroyed = 0;
+  for (const enemy of state.enemies) {
+    if (enemy.dead) continue;
+    const dz = enemy.progress - state.progress;
+    if (dz > -18 && dz < 255) {
+      killEnemy(enemy, true, false);
+      destroyed += 1;
+    }
+  }
+  removeDead(state.enemies, dynamicGroup);
+
+  const clearedShots = state.enemyShots.length;
+  for (const shot of state.enemyShots) {
+    createExplosion(shot.x, shot.y, shot.progress, 0xb7ff68, 5);
+    shot.dead = true;
+  }
+  removeDead(state.enemyShots, projectileGroup);
+
+  if (state.boss && !state.bossDefeated) damageBoss(16);
+  if (destroyed || clearedShots) addScore(90 * destroyed + 12 * clearedShots, false);
+
+  for (let i = -3; i <= 3; i += 1) {
+    spawnPlayerShot(player.x + i * 0.46, player.y + Math.sin(i) * 0.18, 1.55, "nova");
+  }
+  createNovaPulse(player.x, player.y, state.progress + 7);
+  showToast(destroyed ? `Nova Burst: ${destroyed} Ziele` : "Nova Burst", 1.2);
+  if (!playSfx("boost", 0.55, 0.68)) playTone(150, 0.22, "sawtooth", 0.04);
+  playTone(680, 0.16, "triangle", 0.032, 0.04);
+}
+
+function chargeNova(amount) {
+  const player = state.player;
+  const wasReady = player.nova >= 1;
+  player.nova = Math.min(1, player.nova + amount);
+  if (!wasReady && player.nova >= 1 && state.mode === "playing") {
+    showToast("Nova Burst bereit", 1.25);
+    if (!playSfx("pickup", 0.24, 1.65)) playTone(1180, 0.08, "sine", 0.02);
+  }
+}
+
+function registerGraze(label, x, y, progress) {
+  const player = state.player;
+  player.graze += 1;
+  addScore(32, true);
+  chargeNova(0.028);
+  player.energy = Math.min(1, player.energy + 0.012);
+  createExplosion(x, y, progress, 0xb7ff68, 7);
+  if (player.graze <= 3 || player.graze % 5 === 0) showToast(`${label} knapp +${player.graze}`, 0.72);
+  if (!playSfx("boost", 0.08, 1.9)) playTone(980, 0.025, "triangle", 0.01);
+}
+
+function createNovaPulse(x, y, progress) {
+  const mesh = new THREE.Mesh(geometries.ring, materials.novaPulse.clone());
+  mesh.rotation.x = Math.PI * 0.5;
+  placeRailObject(mesh, progress, x, y);
+  fxGroup.add(mesh);
+  state.explosions.push({ mesh, age: 0, life: 0.72, growth: 7.5 });
 }
 
 function updateWingDrones(dt) {
@@ -1055,6 +1164,7 @@ function formationOffset(wave, index) {
 
 function updateEnemies(dt) {
   for (const enemy of state.enemies) {
+    if (enemy.dead) continue;
     enemy.age += dt;
     enemy.progress -= enemy.speed * dt;
     const dz = enemy.progress - state.progress;
@@ -1171,15 +1281,20 @@ function updatePlayerShots(dt) {
 
 function updateEnemyShots(dt) {
   for (const shot of state.enemyShots) {
+    if (shot.dead) continue;
     shot.age += dt;
     shot.x += shot.vx * dt;
     shot.y += shot.vy * dt;
     shot.progress += shot.vp * dt;
     placeRailObject(shot.mesh, shot.progress, shot.x, shot.y);
     const dz = shot.progress - state.progress;
-    if (Math.abs(dz) < 3.2 && localDistanceToPlayer(shot) < 0.72) {
+    const distance = localDistanceToPlayer(shot);
+    if (Math.abs(dz) < 3.2 && distance < 0.72) {
       shot.dead = true;
       damagePlayer(14);
+    } else if (!shot.grazed && Math.abs(dz) < 4.2 && distance < 1.48) {
+      shot.grazed = true;
+      registerGraze("Laser", shot.x, shot.y, shot.progress);
     }
     if (dz < -15 || shot.age > 3) shot.dead = true;
   }
@@ -1209,12 +1324,13 @@ function bumpCombo() {
   player.bestCombo = Math.max(player.bestCombo, player.combo);
 }
 
-function killEnemy(enemy, awardScore) {
+function killEnemy(enemy, awardScore, novaReward = true) {
   if (enemy.dead) return;
   enemy.dead = true;
   if (awardScore) {
     addScore(enemy.score, true);
     state.player.energy = Math.min(1, state.player.energy + 0.04);
+    if (novaReward) chargeNova(enemy.type === "prism" ? 0.11 : 0.075);
   }
   createExplosion(enemy.x, enemy.y, enemy.progress, 0xff5f9a, 26);
 }
@@ -1223,6 +1339,7 @@ function damageBoss(damage) {
   const boss = state.boss;
   if (!boss || state.bossDefeated) return;
   boss.hp = Math.max(0, boss.hp - damage);
+  if (damage < 10) chargeNova(0.012);
   createExplosion(boss.x + (seededRandom() - 0.5) * 4.5, boss.y + (seededRandom() - 0.5) * 2.8, boss.progress, 0xffca62, 12);
   if (boss.hp <= 0) {
     state.bossDefeated = true;
@@ -1256,6 +1373,7 @@ function updateStaticInteractions(dt) {
         entry.mesh.visible = false;
         addScore(ring.score, true);
         state.player.energy = Math.min(1, state.player.energy + ring.energy);
+        chargeNova(0.045);
         createExplosion(ring.x, ring.y, ring.progress, 0x44e6ff, 14);
         if (!playSfx("boost", 0.22, 1.35)) playTone(740, 0.05, "sine", 0.024);
       }
@@ -1274,6 +1392,9 @@ function updateStaticInteractions(dt) {
         entry.mesh.visible = false;
         damagePlayer(obstacle.damage);
         createExplosion(obstacle.x, obstacle.y, obstacle.progress, obstacle.crystal ? 0x44e6ff : 0xffca62, 34);
+      } else if (!state.obstacleGrazed.has(obstacle.id) && distance < obstacle.radius + 1.38) {
+        state.obstacleGrazed.add(obstacle.id);
+        registerGraze(obstacle.crystal ? "Kristall" : "Asteroid", obstacle.x, obstacle.y, obstacle.progress);
       }
     }
   }
@@ -1319,6 +1440,7 @@ function collectPickup(pickup) {
     if (!playSfx("pickup", 0.36, 1.1)) playTone(560, 0.14, "sine", 0.03);
   }
   addScore(150, false);
+  chargeNova(0.035);
   createExplosion(pickup.x, pickup.y, pickup.progress, 0xb7ff68, 22);
 }
 
@@ -1326,6 +1448,7 @@ function collectDataCore(core) {
   addScore(core.score, true);
   state.player.energy = Math.min(1, state.player.energy + 0.22);
   state.player.shield = Math.min(100, state.player.shield + 8);
+  chargeNova(0.13);
   createExplosion(core.x, core.y, core.progress, 0xf6fbff, 28);
   showToast(`Datenkern ${state.dataCoreCollected.size}/${DATA_CORES.length}`, 1.25);
   if (!playSfx("pickup", 0.42, 1.42)) playTone(900, 0.08, "triangle", 0.024);
@@ -1357,13 +1480,28 @@ function finishMission(success) {
   ui.resultTitle.textContent = success ? "Prismenguertel frei" : "Nova Wing down";
   const rings = state.ringCollected.size;
   const cores = state.dataCoreCollected.size;
-  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}`;
+  const medals = missionMedals(success);
+  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
   ui.pauseButton.textContent = "II";
   if (success) playSfx("win", 0.58, 1);
   playTone(success ? 640 : 120, success ? 0.24 : 0.42, success ? "triangle" : "sawtooth", 0.052);
+}
+
+function missionMedals(success) {
+  const rings = state.ringCollected.size;
+  const cores = state.dataCoreCollected.size;
+  const medals = [];
+  if (success) medals.push("Prismensieg");
+  if (cores === DATA_CORES.length) medals.push("Kernsammler");
+  if (rings >= Math.ceil(RINGS.length * 0.75)) medals.push("Ringpilot");
+  if (state.player.graze >= 8) medals.push("Risk Runner");
+  if (state.player.bestCombo >= 8) medals.push("Combo-Ass");
+  if (success && state.player.hp >= 72) medals.push("Saubere Huelle");
+  if (!medals.length) medals.push("Trainingsflug");
+  return medals;
 }
 
 function updateExplosions(dt) {
@@ -1420,6 +1558,7 @@ function updateHud(force = false) {
   ui.hpFill.style.width = `${THREE.MathUtils.clamp(state.player.hp, 0, 100)}%`;
   ui.shieldFill.style.width = `${THREE.MathUtils.clamp(state.player.shield, 0, 100)}%`;
   ui.energyFill.style.width = `${Math.round(THREE.MathUtils.clamp(state.player.energy, 0, 1) * 100)}%`;
+  ui.novaFill.style.width = `${Math.round(THREE.MathUtils.clamp(state.player.nova, 0, 1) * 100)}%`;
   ui.progressFill.style.width = `${Math.round(THREE.MathUtils.clamp(state.progress / COURSE_LENGTH, 0, 1) * 100)}%`;
   ui.comboText.textContent = `x${Math.max(1, Math.floor(state.player.combo))}`;
   ui.coreText.textContent = `${state.dataCoreCollected.size}/${DATA_CORES.length}`;
