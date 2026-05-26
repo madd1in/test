@@ -16,14 +16,17 @@
   var ASSETS = {
     background: "assets/hd/background-lab-imagen-hd.jpg",
     bgProps: "assets/hd/background-prop-atlas-hd.png",
-    frame: "assets/hd/bottle-frame-hd.png",
+    frame: "assets/hd/imagen-vial-frame-hd.png",
+    pillAnim: "assets/hd/imagen-pill-anim-atlas-hd.png",
     pills: "assets/hd/capsule-atlas-hd.png",
     viruses: "assets/hd/virus-atlas-hd.png",
-    virusAnim: "assets/hd/virus-anim-atlas-hd.png",
+    virusAnim: "assets/hd/imagen-virus-anim-atlas-hd.png",
     fx: "assets/hd/fx-atlas-hd.png",
     clearFx: "assets/hd/clear-fx-anim-atlas-hd.png",
     tiles: "assets/hd/lab-tile-atlas-hd.png",
-    imagenSource: "assets/imagen-hd/imagen-clinic-animation-atlas-source.png"
+    assayBadge: "assets/hd/imagen-assay-badge-hd.png",
+    statusRibbon: "assets/hd/imagen-status-ribbon-hd.png",
+    imagenSource: "assets/imagen-hd/imagen-gameplay-ui-source.png"
   };
   var AUDIO = {
     bgm: "assets/audio/bgm/local-lab-loop.mp3",
@@ -47,6 +50,7 @@
   var nextCtx = nextCanvas.getContext("2d");
   var overlay = document.getElementById("overlay");
   var overlayTitle = document.getElementById("overlayTitle");
+  var overlayStateImage = document.getElementById("overlayStateImage");
   var primaryButton = document.getElementById("primaryButton");
   var scoreEl = document.getElementById("score");
   var bestEl = document.getElementById("best");
@@ -75,6 +79,11 @@
   var particles = [];
   var clearBursts = [];
   var heldDown = false;
+  var overlayStates = {
+    ready: { text: "Ready", image: "assets/hd/imagen-overlay-ready-hd.png" },
+    paused: { text: "Paused", image: "assets/hd/imagen-overlay-paused-hd.png" },
+    gameover: { text: "Game Over", image: "assets/hd/imagen-overlay-gameover-hd.png" }
+  };
 
   var state = {
     mode: "menu",
@@ -148,6 +157,18 @@
     return Promise.all(pending).then(function () {
       assetsReady = true;
     });
+  }
+
+  function setOverlayVisual(stateName, buttonSkin, buttonText) {
+    var visual = overlayStates[stateName] || overlayStates.ready;
+    overlayTitle.textContent = visual.text;
+    if (overlayStateImage) {
+      overlayStateImage.src = visual.image;
+      overlayStateImage.alt = visual.text;
+    }
+    primaryButton.dataset.skin = buttonSkin || "start";
+    primaryButton.textContent = buttonText || "Start";
+    primaryButton.setAttribute("aria-label", buttonText || "Start");
   }
 
   function setupAudioAssets() {
@@ -298,8 +319,7 @@
   function endGame() {
     state.mode = "gameover";
     state.message = "Game Over";
-    overlayTitle.textContent = "Game Over";
-    primaryButton.textContent = "Restart";
+    setOverlayVisual("gameover", "restart", "Restart");
     overlay.classList.add("overlay--visible");
     stopBgm();
     playLocalSound("gameover", 0.5) || playTone(110, 0.24, "sawtooth", 0.045);
@@ -814,24 +834,23 @@
     var color = COLORS[state.assayColor];
     var pulse = 0.65 + Math.sin(lastTime * 0.006) * 0.2;
     ctx.save();
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "rgba(5, 12, 22, 0.68)";
-    roundRect(ctx, r.x + r.w - 128, r.y - 72, 116, 40, 8);
-    ctx.fill();
-    ctx.strokeStyle = color.glow;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    if (images.assayBadge) {
+      ctx.globalAlpha = 0.96;
+      ctx.drawImage(images.assayBadge, r.x + r.w - 148, r.y - 82, 140, 50);
+    } else {
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(5, 12, 22, 0.68)";
+      roundRect(ctx, r.x + r.w - 128, r.y - 72, 116, 40, 8);
+      ctx.fill();
+      ctx.strokeStyle = color.glow;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     ctx.fillStyle = color.main;
     ctx.globalAlpha = pulse;
     ctx.beginPath();
     ctx.arc(r.x + r.w - 102, r.y - 52, 11, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = 0.95;
-    ctx.fillStyle = "#eef8ff";
-    ctx.font = "800 14px system-ui, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("ASSAY", r.x + r.w - 82, r.y - 52);
     ctx.restore();
   }
 
@@ -940,7 +959,10 @@
     var py = r.y + y * r.cell;
     ctx.save();
     ctx.globalAlpha *= alpha;
-    if (images.pills) {
+    if (images.pillAnim) {
+      var frame = (Math.floor(lastTime * 0.008 + x * 0.4 + y * 0.25) % 4 + 4) % 4;
+      ctx.drawImage(images.pillAnim, (colorIndex * 4 + frame) * 256, 0, 256, 256, px - 2, py - 2, r.cell + 4, r.cell + 4);
+    } else if (images.pills) {
       ctx.drawImage(images.pills, colorIndex * 256, 0, 256, 256, px + 4, py + 4, r.cell - 8, r.cell - 8);
     } else {
       fallbackGem(colorIndex, px + 5, py + 5, r.cell - 10);
@@ -956,7 +978,7 @@
     ctx.globalAlpha *= alpha;
     if (images.virusAnim) {
       var frame = (Math.floor(lastTime * 0.006 + x + y) % 4 + 4) % 4;
-      ctx.drawImage(images.virusAnim, (colorIndex * 4 + frame) * 256, 0, 256, 256, px + 2, py + 2, r.cell - 4, r.cell - 4);
+      ctx.drawImage(images.virusAnim, (colorIndex * 4 + frame) * 256, 0, 256, 256, px - 5, py - 5, r.cell + 10, r.cell + 10);
     } else if (images.viruses) {
       ctx.drawImage(images.viruses, colorIndex * 256, 0, 256, 256, px + 2, py + 2, r.cell - 4, r.cell - 4);
     } else {
@@ -1020,11 +1042,15 @@
       return;
     }
     ctx.save();
-    ctx.fillStyle = "rgba(5, 12, 22, 0.56)";
-    roundRect(ctx, 260, 60, 380, 72, 8);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
-    ctx.stroke();
+    if (images.statusRibbon) {
+      ctx.drawImage(images.statusRibbon, 220, 48, 460, 120);
+    } else {
+      ctx.fillStyle = "rgba(5, 12, 22, 0.56)";
+      roundRect(ctx, 260, 60, 380, 72, 8);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+      ctx.stroke();
+    }
     ctx.fillStyle = "#eef8ff";
     ctx.font = "900 32px system-ui, sans-serif";
     ctx.textAlign = "center";
@@ -1058,7 +1084,10 @@
   }
 
   function drawNextPillHalf(colorIndex, x, y, size) {
-    if (images.pills) {
+    if (images.pillAnim) {
+      var frame = (Math.floor(lastTime * 0.008 + colorIndex) % 4 + 4) % 4;
+      nextCtx.drawImage(images.pillAnim, (colorIndex * 4 + frame) * 256, 0, 256, 256, x, y, size, size);
+    } else if (images.pills) {
       nextCtx.drawImage(images.pills, colorIndex * 256, 0, 256, 256, x, y, size, size);
     } else {
       var old = ctx;
@@ -1082,8 +1111,7 @@
   function setPaused(paused) {
     if (paused && state.mode === "falling") {
       state.mode = "paused";
-      overlayTitle.textContent = "Paused";
-      primaryButton.textContent = "Resume";
+      setOverlayVisual("paused", "resume", "Resume");
       overlay.classList.add("overlay--visible");
       if (bgm) {
         bgm.volume = 0.16;
@@ -1316,6 +1344,7 @@
   }
 
   bestEl.textContent = formatNumber(bestScore);
+  setOverlayVisual("ready", "start", "Start");
   setupAudioAssets();
   updateHud();
   bindInput();

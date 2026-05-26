@@ -12,16 +12,16 @@
       <main class="play-area" aria-label="Capsule Clinic HD game">
         <canvas id="game" width="900" height="1200"></canvas>
         <div id="overlay" class="overlay overlay--visible">
-          <div class="overlay__mark">Capsule Clinic <span>HD</span></div>
+          <img class="overlay__logo" src="assets/hd/imagen-title-logo-hd.png" alt="Capsule Clinic HD">
+          <img id="overlayStateImage" class="overlay__state-image" src="assets/hd/imagen-overlay-ready-hd.png" alt="Ready">
           <div id="overlayTitle" class="overlay__title">Ready</div>
-          <button id="primaryButton" class="primary-button" type="button">Start</button>
+          <button id="primaryButton" class="primary-button" data-skin="start" type="button">Start</button>
         </div>
       </main>
 
       <aside class="hud" aria-label="Game status">
         <div class="hud__brand">
-          <span>Capsule Clinic</span>
-          <b>HD</b>
+          <img class="hud__logo" src="assets/hd/imagen-hud-logo-hd.png" alt="Capsule Clinic HD">
         </div>
 
         <section class="hud__stats" aria-label="Score">

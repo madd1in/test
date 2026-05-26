@@ -1,5 +1,5 @@
 {
-    "generated":  "2026-05-25T21:37:50",
+    "generated":  "2026-05-26T07:15:14",
     "assets":  [
                    "background-lab-hd.png",
                    "background-lab-imagen-hd.png",
@@ -11,6 +11,20 @@
                    "bottle-frame-hd.png",
                    "fx-atlas-hd.png",
                    "clear-fx-anim-atlas-hd.png",
-                   "lab-tile-atlas-hd.png"
-               ]
+                   "lab-tile-atlas-hd.png",
+                   "imagen-vial-frame-hd.png",
+                   "imagen-pill-anim-atlas-hd.png",
+                   "imagen-virus-anim-atlas-hd.png",
+                   "imagen-title-logo-hd.png",
+                   "imagen-hud-logo-hd.png",
+                   "imagen-button-start-hd.png",
+                   "imagen-button-restart-hd.png",
+                   "imagen-button-resume-hd.png",
+                   "imagen-overlay-ready-hd.png",
+                   "imagen-overlay-paused-hd.png",
+                   "imagen-overlay-gameover-hd.png",
+                   "imagen-assay-badge-hd.png",
+                   "imagen-status-ribbon-hd.png"
+               ],
+    "imagenSource":  "assets/imagen-hd/imagen-gameplay-ui-source.png"
 }

@@ -32,6 +32,12 @@ The saved Imagen source assets live in `assets/imagen-hd/`. The current Imagen l
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-imagen-background-assets.ps1
 ```
 
+The current Imagen gameplay/UI source atlas is converted into the reagent tube frame, animated pill atlas, animated virus atlas, bitmap logo, overlay states, and bitmap buttons with:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-imagen-gameplay-assets.ps1
+```
+
 Local audio is copied into `assets/audio/`.
 
 ## Verify
