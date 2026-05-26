@@ -222,6 +222,64 @@ function eliteSvg() {
   </svg>`;
 }
 
+function cockpitSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#44e6ff" stop-opacity=".24"/>
+      <stop offset=".55" stop-color="#44e6ff" stop-opacity=".03"/>
+      <stop offset="1" stop-color="#ffca62" stop-opacity=".16"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <rect width="1920" height="1080" fill="transparent"/>
+  <path d="M0 0h1920v150c-376-72-705-92-960-92S376 78 0 150z" fill="url(#edge)" opacity=".55"/>
+  <path d="M0 1080h1920V890c-386 90-705 118-960 118S386 980 0 890z" fill="#020814" opacity=".36"/>
+  <path d="M86 1060C210 760 352 562 520 418M1834 1060C1710 760 1568 562 1400 418" fill="none" stroke="#44e6ff" stroke-width="8" opacity=".16" filter="url(#soft)"/>
+  <path d="M290 1020C412 704 548 484 720 322M1630 1020C1508 704 1372 484 1200 322" fill="none" stroke="#f6fbff" stroke-width="3" opacity=".13"/>
+  <path d="M870 1018h180l52 62H818z" fill="#061221" opacity=".45"/>
+  <circle cx="960" cy="540" r="112" fill="none" stroke="#44e6ff" stroke-width="3" opacity=".18"/>
+  </svg>`;
+}
+
+function supplyPodSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="pod" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6fbff"/>
+      <stop offset=".34" stop-color="#44e6ff"/>
+      <stop offset=".72" stop-color="#b7ff68"/>
+      <stop offset="1" stop-color="#0b1f2a"/>
+    </linearGradient>
+    ${svgNoiseFilter("grain", 0.02, 4, 91)}
+  </defs>
+  <rect width="1024" height="1024" fill="#020814"/>
+  <rect width="1024" height="1024" filter="url(#grain)" opacity=".18"/>
+  <path d="M256 214h512l116 298-116 298H256L140 512z" fill="url(#pod)" opacity=".78"/>
+  <path d="M256 214l256 298 256-298M256 810l256-298 256 298" fill="none" stroke="#f6fbff" stroke-width="18" opacity=".3"/>
+  <circle cx="512" cy="512" r="134" fill="#061221" opacity=".58"/>
+  <path d="M512 390v244M390 512h244" stroke="#b7ff68" stroke-width="54" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="214" fill="none" stroke="#44e6ff" stroke-width="18" opacity=".32"/>
+  </svg>`;
+}
+
+function waypointSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="w" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f6fbff" stop-opacity=".9"/>
+      <stop offset=".25" stop-color="#b7ff68" stop-opacity=".72"/>
+      <stop offset=".55" stop-color="#44e6ff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#44e6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="transparent"/>
+  <circle cx="512" cy="512" r="420" fill="url(#w)"/>
+  <path d="M512 112l92 258 270 10-212 166 74 266-224-150-224 150 74-266-212-166 270-10z" fill="#f6fbff" opacity=".24"/>
+  <circle cx="512" cy="512" r="170" fill="none" stroke="#44e6ff" stroke-width="20" opacity=".42"/>
+  </svg>`;
+}
+
 function stars(count, width, height) {
   let out = "";
   let n = 912931;
@@ -318,6 +376,9 @@ function synthSfx(kind, seconds, sampleRate = 44100) {
   await writePng("nova-power-shard.png", shardSvg(), 1024, 1024);
   await writePng("nova-engine-flare.png", flareSvg(), 512, 512);
   await writePng("nova-elite-mask.png", eliteSvg(), 1024, 1024);
+  await writePng("nova-cockpit-overlay.png", cockpitSvg(), 1920, 1080);
+  await writePng("nova-supply-pod.png", supplyPodSvg(), 1024, 1024);
+  await writePng("nova-waypoint-bloom.png", waypointSvg(), 1024, 1024);
 
   writeWav("nova-bgm-loop.wav", synthBgm());
   writeWav("laser.wav", synthSfx("laser", 0.18));

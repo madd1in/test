@@ -10,6 +10,7 @@ import {
   PICKUPS,
   PLAYER_LIMITS,
   RINGS,
+  SUPPLY_PODS,
   TUNNEL_GATES,
   WAVE_BLUEPRINTS,
   getSection,
@@ -110,6 +111,9 @@ const textures = {
   shard: loadTexture("assets/generated/nova-power-shard.png", false),
   flare: loadTexture("assets/generated/nova-engine-flare.png", false),
   elite: loadTexture("assets/generated/nova-elite-mask.png"),
+  cockpit: loadTexture("assets/generated/nova-cockpit-overlay.png", false),
+  supplyPod: loadTexture("assets/generated/nova-supply-pod.png"),
+  waypoint: loadTexture("assets/generated/nova-waypoint-bloom.png", false),
 };
 scene.background = textures.nebula;
 
@@ -197,6 +201,21 @@ const materials = {
   pickupShield: new THREE.MeshStandardMaterial({ color: 0x44e6ff, emissive: 0x18b9d6, emissiveIntensity: 0.55 }),
   pickupRepair: new THREE.MeshStandardMaterial({ color: 0xb7ff68, emissive: 0x74c642, emissiveIntensity: 0.5 }),
   pickupCharge: new THREE.MeshStandardMaterial({ color: 0xffca62, emissive: 0xc88422, emissiveIntensity: 0.55 }),
+  supplyPod: new THREE.MeshStandardMaterial({
+    color: 0xf6fbff,
+    roughness: 0.18,
+    metalness: 0.35,
+    map: textures.supplyPod,
+    emissive: 0x1a7f68,
+    emissiveIntensity: 0.45,
+  }),
+  waypoint: new THREE.SpriteMaterial({
+    map: textures.waypoint,
+    color: 0xb7ff68,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+  }),
   dataCore: new THREE.MeshStandardMaterial({
     color: 0xf6fbff,
     emissive: 0x44e6ff,
@@ -250,6 +269,7 @@ const geometries = {
   dataCore: new THREE.IcosahedronGeometry(0.46, 1),
   shard: new THREE.IcosahedronGeometry(0.28, 1),
   shieldShell: new THREE.SphereGeometry(1.45, 28, 16),
+  supplyPod: new THREE.CapsuleGeometry(0.42, 0.86, 8, 16),
 };
 
 const staticObjects = {
@@ -258,6 +278,7 @@ const staticObjects = {
   obstacles: [],
   pickups: [],
   dataCores: [],
+  supplyPods: [],
 };
 
 const input = {
@@ -289,7 +310,8 @@ let lastHudUpdate = 0;
 let seed = 1447;
 
 const audioFiles = {
-  bgm: "assets/audio/nova-bgm-loop.wav",
+  bgm: "assets/audio/nova-bgm-loop.mp3",
+  bgmFallback: "assets/audio/nova-bgm-loop.wav",
   laser: "assets/audio/laser.wav",
   explosion: "assets/audio/explosion.wav",
   pickup: "assets/audio/pickup.wav",
@@ -305,6 +327,7 @@ function init() {
   createStarfield();
   speedLines = createSpeedLines();
   createNebulaPanels();
+  createCockpitOverlay();
   createStaticWorld();
   playerShip = createPlayerShip();
   dynamicGroup.add(playerShip);
@@ -325,11 +348,13 @@ function init() {
       enemies: state.enemies.length,
       shots: state.playerShots.length,
       shards: state.powerShards.length,
+      pods: state.supplyPodCollected.size,
       boss: state.boss ? state.boss.hp : 0,
       audio: {
         enabled: audioEnabled,
         bgmStarted: bgmStarted || (bgmElement ? !bgmElement.paused : false),
         bgmPaused: bgmElement ? bgmElement.paused : true,
+        bgmSrc: audioFiles.bgm,
         context: audioContext?.state || "none",
       },
     }),
@@ -371,6 +396,7 @@ function createState(mode = "playing") {
     obstacleGrazed: new Set(),
     pickupCollected: new Set(),
     dataCoreCollected: new Set(),
+    supplyPodCollected: new Set(),
     enemies: [],
     playerShots: [],
     enemyShots: [],
@@ -379,13 +405,13 @@ function createState(mode = "playing") {
     boss: null,
     bossDefeated: false,
     toastTimer: 0,
-    nextDirectorAt: 430,
+    nextDirectorAt: 720,
     directorWave: 0,
     player: {
       x: 0,
       y: 0,
       hp: 100,
-      shield: 45,
+      shield: 72,
       energy: 1,
       heat: 0,
       score: 0,
@@ -396,6 +422,7 @@ function createState(mode = "playing") {
       graze: 0,
       overdrive: 0,
       shardChain: 0,
+      lastHit: -99,
       droneCooldown: 0,
       invuln: 0,
       fireCooldown: 0,
@@ -505,6 +532,22 @@ function createNebulaPanels() {
   }
 }
 
+function createCockpitOverlay() {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(17.8, 10),
+    new THREE.MeshBasicMaterial({
+      map: textures.cockpit,
+      transparent: true,
+      opacity: reducedGpu ? 0.18 : 0.24,
+      depthWrite: false,
+      depthTest: false,
+    }),
+  );
+  mesh.name = "camera-cockpit-overlay";
+  mesh.position.set(0, 0, -8);
+  camera.add(mesh);
+}
+
 function createStaticWorld() {
   for (const gate of TUNNEL_GATES) {
     const mesh = new THREE.Mesh(geometries.gate, materials.gate.clone());
@@ -553,6 +596,27 @@ function createStaticWorld() {
     worldGroup.add(mesh);
     staticObjects.dataCores.push({ data: core, mesh });
   }
+
+  for (const pod of SUPPLY_PODS) {
+    const mesh = createSupplyPodMesh();
+    placeRailObject(mesh, pod.progress, pod.x, pod.y);
+    worldGroup.add(mesh);
+    staticObjects.supplyPods.push({ data: pod, mesh });
+  }
+}
+
+function createSupplyPodMesh() {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(geometries.supplyPod, materials.supplyPod.clone());
+  body.rotation.z = Math.PI / 2;
+  group.add(body);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.035, 8, 36), materials.ring.clone());
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+  const glow = new THREE.Sprite(materials.waypoint.clone());
+  glow.scale.set(2.4, 2.4, 2.4);
+  group.add(glow);
+  return group;
 }
 
 function createPlayerShip() {
@@ -770,6 +834,9 @@ function resetGame(mode = "playing") {
     entry.mesh.visible = true;
   }
   for (const entry of staticObjects.dataCores) {
+    entry.mesh.visible = true;
+  }
+  for (const entry of staticObjects.supplyPods) {
     entry.mesh.visible = true;
   }
   ui.menu.classList.toggle("hidden", mode !== "menu");
@@ -1009,6 +1076,9 @@ function updateGame(dt) {
   }
   if (boosting) player.energy = Math.max(0, player.energy - dt * 0.32);
   else player.energy = Math.min(1, player.energy + dt * 0.16);
+  if (state.elapsed - player.lastHit > 2.8 && player.shield < 88) {
+    player.shield = Math.min(88, player.shield + dt * 6.5);
+  }
 
   spawnScheduledWaves();
   updateMissionDirector();
@@ -1036,7 +1106,7 @@ function updatePlayerControls(dt) {
   const up = input.keys.has("KeyW") || input.keys.has("ArrowUp") || input.touch.has("up");
   const down = input.keys.has("KeyS") || input.keys.has("ArrowDown") || input.touch.has("down");
   const keyboardActive = left || right || up || down;
-  const moveSpeed = 12.5 + (isBoosting() ? 2.0 : 0);
+  const moveSpeed = 14.0 + (isBoosting() ? 2.4 : 0);
 
   if (keyboardActive) {
     player.x += ((right ? 1 : 0) - (left ? 1 : 0)) * moveSpeed * dt;
@@ -1062,7 +1132,7 @@ function updatePlayerControls(dt) {
   player.x = THREE.MathUtils.clamp(player.x, -PLAYER_LIMITS.x, PLAYER_LIMITS.x);
   player.y = THREE.MathUtils.clamp(player.y, PLAYER_LIMITS.yMin, PLAYER_LIMITS.yMax);
 
-  if (isFiring() && player.fireCooldown <= 0 && player.heat < 0.98) {
+  if (isFiring() && player.fireCooldown <= 0 && player.heat < 0.99) {
     firePlayerShot();
   }
 
@@ -1096,8 +1166,8 @@ function setPointerTarget(event) {
 function firePlayerShot() {
   const player = state.player;
   const overdrive = player.overdrive > 0;
-  player.fireCooldown = overdrive ? 0.075 : 0.13;
-  player.heat = Math.min(1, player.heat + (overdrive ? 0.035 : 0.065));
+  player.fireCooldown = overdrive ? 0.065 : 0.105;
+  player.heat = Math.min(1, player.heat + (overdrive ? 0.028 : 0.045));
   for (const offset of [-0.34, 0.34]) {
     spawnPlayerShot(player.x + offset, player.y - 0.03, overdrive ? 1.15 : 1, overdrive ? "nova" : "laser");
   }
@@ -1248,8 +1318,8 @@ function spawnScheduledWaves() {
 function updateMissionDirector() {
   if (state.boss || state.progress < state.nextDirectorAt || state.progress > BOSS.at - 120) return;
   const nearbyEnemies = state.enemies.filter((enemy) => !enemy.dead && enemy.progress - state.progress < 220).length;
-  if (nearbyEnemies > 8) {
-    state.nextDirectorAt += 150;
+  if (nearbyEnemies > 6) {
+    state.nextDirectorAt += 220;
     return;
   }
   state.directorWave += 1;
@@ -1261,15 +1331,15 @@ function updateMissionDirector() {
   spawnWave({
     id: `director-${state.directorWave}`,
     type,
-    count: Math.min(10, 4 + tier + (state.directorWave % 3)),
+    count: Math.min(7, 3 + tier + (state.directorWave % 2)),
     formation,
     x: Math.sin(state.directorWave * 1.7) * 2.8,
     y: 0.5 + Math.cos(state.directorWave * 1.1) * 1.1,
     spread: 1.25 + tier * 0.18,
-    elite: state.directorWave % 2 === 0,
+    elite: state.directorWave % 4 === 0,
     director: true,
   });
-  state.nextDirectorAt += Math.max(210, 390 - tier * 40 - state.directorWave * 5);
+  state.nextDirectorAt += Math.max(310, 520 - tier * 35 - state.directorWave * 3);
 }
 
 function spawnWave(wave) {
@@ -1291,7 +1361,7 @@ function spawnWave(wave) {
       baseY: wave.y + offset.y,
       progress: state.progress + 176 + index * 5 + Math.abs(offset.y) * 4,
       speed: stats.speed,
-      fireTimer: 0.45 + index * 0.13 + seededRandom() * 0.6,
+      fireTimer: 0.85 + index * 0.18 + seededRandom() * 0.9,
       phase: seededRandom() * Math.PI * 2,
       age: 0,
       mesh: createEnemyMesh(wave.type, elite),
@@ -1339,14 +1409,14 @@ function updateEnemies(dt) {
     enemy.fireTimer -= dt;
     if (enemy.fireTimer <= 0 && dz > 24 && dz < 155) {
       const stats = ENEMY_STATS[enemy.type];
-      spawnEnemyShot(enemy.x, enemy.y, enemy.progress, enemy.type === "prism" ? 118 : 98);
-      if (enemy.elite) spawnEnemyShot(enemy.x + Math.sin(enemy.age) * 0.7, enemy.y - 0.25, enemy.progress, 108, Math.sin(enemy.phase) * 1.2);
-      enemy.fireTimer = (stats.fireRate + seededRandom() * 0.55) * (enemy.elite ? 0.72 : 1);
+      spawnEnemyShot(enemy.x, enemy.y, enemy.progress, enemy.type === "prism" ? 96 : 82);
+      if (enemy.elite) spawnEnemyShot(enemy.x + Math.sin(enemy.age) * 0.7, enemy.y - 0.25, enemy.progress, 88, Math.sin(enemy.phase) * 0.9);
+      enemy.fireTimer = (stats.fireRate + seededRandom() * 0.8) * (enemy.elite ? 0.92 : 1.12);
     }
 
     if (dz < -18) enemy.dead = true;
     if (Math.abs(dz) < enemy.radius + 0.8 && localDistanceToPlayer(enemy) < enemy.radius + 0.75) {
-      damagePlayer(22);
+      damagePlayer(14);
       killEnemy(enemy, false);
     }
   }
@@ -1385,15 +1455,15 @@ function updateBoss(dt) {
   boss.fireTimer -= dt;
   boss.volleyTimer -= dt;
   if (boss.fireTimer <= 0) {
-    spawnEnemyShot(boss.x - 2.8, boss.y - 0.3, boss.progress - 1, 118, -0.6);
-    spawnEnemyShot(boss.x + 2.8, boss.y - 0.3, boss.progress - 1, 118, 0.6);
-    boss.fireTimer = 0.52;
+    spawnEnemyShot(boss.x - 2.8, boss.y - 0.3, boss.progress - 1, 96, -0.45);
+    spawnEnemyShot(boss.x + 2.8, boss.y - 0.3, boss.progress - 1, 96, 0.45);
+    boss.fireTimer = 0.78;
   }
   if (boss.volleyTimer <= 0) {
     for (let i = -2; i <= 2; i += 1) {
-      spawnEnemyShot(boss.x + i * 0.85, boss.y + Math.abs(i) * 0.18, boss.progress - 2, 132, i * 1.3);
+      spawnEnemyShot(boss.x + i * 0.85, boss.y + Math.abs(i) * 0.18, boss.progress - 2, 108, i * 0.9);
     }
-    boss.volleyTimer = 3.2;
+    boss.volleyTimer = 4.3;
     showToast("Prismensalve", 0.95);
   }
 }
@@ -1401,13 +1471,14 @@ function updateBoss(dt) {
 function spawnEnemyShot(x, y, progress, speed = 100, spreadX = 0) {
   const mesh = new THREE.Mesh(geometries.enemyShot, materials.enemyLaser);
   projectileGroup.add(mesh);
-  const travelTime = Math.max(0.75, (progress - state.progress) / (speed + state.speed));
+  const travelTime = Math.max(0.95, (progress - state.progress) / (speed + state.speed) + 0.22);
+  const aimAssist = 0.76;
   state.enemyShots.push({
     x,
     y,
     progress,
-    vx: (state.player.x - x) / travelTime + spreadX,
-    vy: (state.player.y - y) / travelTime,
+    vx: ((state.player.x - x) / travelTime) * aimAssist + spreadX,
+    vy: ((state.player.y - y) / travelTime) * aimAssist,
     vp: -speed,
     age: 0,
     mesh,
@@ -1453,7 +1524,7 @@ function updateEnemyShots(dt) {
     const distance = localDistanceToPlayer(shot);
     if (Math.abs(dz) < 3.2 && distance < 0.72) {
       shot.dead = true;
-      damagePlayer(14);
+      damagePlayer(8);
     } else if (!shot.grazed && Math.abs(dz) < 4.2 && distance < 1.48) {
       shot.grazed = true;
       registerGraze("Laser", shot.x, shot.y, shot.progress);
@@ -1617,7 +1688,7 @@ function updateStaticInteractions(dt) {
       if (distance < obstacle.radius + 0.62) {
         state.obstacleHit.add(obstacle.id);
         entry.mesh.visible = false;
-        damagePlayer(obstacle.damage);
+        damagePlayer(Math.round(obstacle.damage * 0.72));
         createExplosion(obstacle.x, obstacle.y, obstacle.progress, obstacle.crystal ? 0x44e6ff : 0xffca62, 34);
       } else if (!state.obstacleGrazed.has(obstacle.id) && distance < obstacle.radius + 1.38) {
         state.obstacleGrazed.add(obstacle.id);
@@ -1648,6 +1719,20 @@ function updateStaticInteractions(dt) {
       state.dataCoreCollected.add(core.id);
       entry.mesh.visible = false;
       collectDataCore(core);
+    }
+  }
+  for (const entry of staticObjects.supplyPods) {
+    const pod = entry.data;
+    const dz = pod.progress - state.progress;
+    entry.mesh.visible = !state.supplyPodCollected.has(pod.id) && dz > -36 && dz < 230;
+    entry.mesh.rotation.y += dt * 0.9;
+    entry.mesh.rotation.z = Math.sin(state.elapsed * 1.7 + pod.progress) * 0.18;
+    const glow = entry.mesh.children.find((child) => child.isSprite);
+    if (glow) glow.material.opacity = 0.46 + Math.sin(state.elapsed * 4 + pod.progress) * 0.18;
+    if (!state.supplyPodCollected.has(pod.id) && Math.abs(dz) < 4.2 && localDistanceToPlayer(pod) < 1.45) {
+      state.supplyPodCollected.add(pod.id);
+      entry.mesh.visible = false;
+      collectSupplyPod(pod);
     }
   }
 }
@@ -1682,6 +1767,17 @@ function collectDataCore(core) {
   playTone(1350, 0.08, "sine", 0.02, 0.05);
 }
 
+function collectSupplyPod(pod) {
+  state.player.shield = Math.min(100, state.player.shield + pod.shield);
+  state.player.energy = Math.min(1, state.player.energy + 0.16);
+  state.player.hp = Math.min(100, state.player.hp + 8);
+  addScore(pod.score, true);
+  chargeNova(0.08);
+  createExplosion(pod.x, pod.y, pod.progress, 0xb7ff68, 30);
+  showToast(`Supply Pod gesichert ${state.supplyPodCollected.size}/${SUPPLY_PODS.length}`, 1.15);
+  if (!playSfx("pickup", 0.44, 1.18)) playTone(620, 0.12, "triangle", 0.03);
+}
+
 function damagePlayer(amount) {
   const player = state.player;
   if (player.invuln > 0) return;
@@ -1693,6 +1789,11 @@ function damagePlayer(amount) {
   }
   if (remaining > 0) player.hp -= remaining;
   player.invuln = 0.78;
+  player.lastHit = state.elapsed;
+  if (player.hp < 35) {
+    player.shield = Math.max(player.shield, 18);
+    player.invuln = Math.max(player.invuln, 1.2);
+  }
   ui.damageFlash.classList.add("active");
   window.setTimeout(() => ui.damageFlash.classList.remove("active"), 110);
   showToast("Treffer", 0.65);
@@ -1707,8 +1808,9 @@ function finishMission(success) {
   ui.resultTitle.textContent = success ? "Prismenguertel frei" : "Nova Wing down";
   const rings = state.ringCollected.size;
   const cores = state.dataCoreCollected.size;
+  const pods = state.supplyPodCollected.size;
   const medals = missionMedals(success);
-  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
+  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${pods}/${SUPPLY_PODS.length} Supply Pods, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
@@ -1723,6 +1825,7 @@ function missionMedals(success) {
   const medals = [];
   if (success) medals.push("Prismensieg");
   if (cores === DATA_CORES.length) medals.push("Kernsammler");
+  if (state.supplyPodCollected.size >= Math.ceil(SUPPLY_PODS.length * 0.75)) medals.push("Rettungsroute");
   if (rings >= Math.ceil(RINGS.length * 0.75)) medals.push("Ringpilot");
   if (state.player.shardChain >= 18) medals.push("Shard-Jaeger");
   if (state.player.graze >= 8) medals.push("Risk Runner");

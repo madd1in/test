@@ -15,16 +15,16 @@ export const SECTIONS = [
 ];
 
 export const ENEMY_STATS = {
-  scout: { hp: 1, score: 120, radius: 0.72, speed: 20, fireRate: 2.3 },
-  cutter: { hp: 2, score: 180, radius: 0.82, speed: 16, fireRate: 1.9 },
-  manta: { hp: 3, score: 260, radius: 1.05, speed: 12, fireRate: 1.55 },
-  prism: { hp: 4, score: 420, radius: 1.18, speed: 8, fireRate: 1.15 },
+  scout: { hp: 1, score: 120, radius: 0.72, speed: 16, fireRate: 3.2 },
+  cutter: { hp: 2, score: 180, radius: 0.82, speed: 13, fireRate: 2.75 },
+  manta: { hp: 3, score: 260, radius: 1.05, speed: 10, fireRate: 2.35 },
+  prism: { hp: 4, score: 420, radius: 1.18, speed: 7, fireRate: 1.85 },
 };
 
 export const BOSS = {
   at: 3380,
   holdAt: 3820,
-  hp: 96,
+  hp: 72,
   radius: 4.6,
   score: 4200,
 };
@@ -69,6 +69,7 @@ export const OBSTACLES = createObstacles();
 export const PICKUPS = createPickups();
 export const TUNNEL_GATES = createGates();
 export const DATA_CORES = createDataCores();
+export const SUPPLY_PODS = createSupplyPods();
 
 function createRings() {
   const rings = [];
@@ -101,7 +102,7 @@ function createObstacles() {
       y: -1.4 + ((index * 1.37) % 5.8),
       radius: 0.75 + (index % 4) * 0.18,
       spin: 0.6 + (index % 7) * 0.11,
-      damage: 18 + (index % 3) * 5,
+      damage: 12 + (index % 3) * 3,
     });
     if (index % 4 === 0) {
       obstacles.push({
@@ -111,7 +112,7 @@ function createObstacles() {
         y: 2.2 + Math.sin(progress * 0.01) * 2.3,
         radius: 0.96,
         spin: -0.9,
-        damage: 24,
+        damage: 16,
         crystal: true,
       });
     }
@@ -141,6 +142,17 @@ function createDataCores() {
     { id: "core-relay-b", progress: 2630, x: -4.9, y: -2.4, score: 620 },
     { id: "core-core-a", progress: 3050, x: 0.4, y: 4.8, score: 760 },
     { id: "core-core-b", progress: 3330, x: -5.7, y: 0.1, score: 760 },
+  ];
+}
+
+function createSupplyPods() {
+  return [
+    { id: "pod-orion", progress: 430, x: 5.8, y: 2.2, shield: 24, score: 260 },
+    { id: "pod-rift-a", progress: 1080, x: -5.9, y: -1.1, shield: 26, score: 280 },
+    { id: "pod-rift-b", progress: 1540, x: 5.6, y: 3.5, shield: 24, score: 300 },
+    { id: "pod-relay-a", progress: 2210, x: -6.1, y: 2.8, shield: 28, score: 340 },
+    { id: "pod-relay-b", progress: 2760, x: 5.2, y: -1.8, shield: 30, score: 360 },
+    { id: "pod-core", progress: 3215, x: -4.8, y: 3.8, shield: 34, score: 420 },
   ];
 }
 
