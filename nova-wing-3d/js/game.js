@@ -98,12 +98,15 @@ scene.add(chaseLight);
 
 const textureLoader = new THREE.TextureLoader();
 const textures = {
-  hull: loadTexture("assets/textures/hull.svg"),
-  enemy: loadTexture("assets/textures/enemy.svg"),
-  asteroid: loadTexture("assets/textures/asteroid.svg"),
-  ring: loadTexture("assets/textures/ring.svg"),
-  plasma: loadTexture("assets/textures/plasma.svg"),
+  hull: loadTexture("assets/generated/nova-hull-albedo.png"),
+  enemy: loadTexture("assets/generated/nova-enemy-albedo.png"),
+  asteroid: loadTexture("assets/generated/nova-asteroid-albedo.png"),
+  ring: loadTexture("assets/generated/nova-ring-emissive.png"),
+  plasma: loadTexture("assets/generated/nova-prism-core.png"),
+  nebula: loadTexture("assets/generated/nova-nebula-panorama.png", false),
+  decal: loadTexture("assets/generated/nova-decal-atlas.png"),
 };
+scene.background = textures.nebula;
 
 const materials = {
   hull: new THREE.MeshStandardMaterial({
@@ -227,8 +230,23 @@ let wingDrones = [];
 let speedLines = null;
 let audioContext = null;
 let audioEnabled = !mutedByUrl;
+let audioLoadingPromise = null;
+let bgmSource = null;
+let musicGain = null;
+let sfxGain = null;
 let lastHudUpdate = 0;
 let seed = 1447;
+
+const audioFiles = {
+  bgm: "assets/audio/nova-bgm-loop.wav",
+  laser: "assets/audio/laser.wav",
+  explosion: "assets/audio/explosion.wav",
+  pickup: "assets/audio/pickup.wav",
+  hit: "assets/audio/hit.wav",
+  boost: "assets/audio/boost.wav",
+  win: "assets/audio/win.wav",
+};
+const audioBuffers = {};
 
 init();
 
@@ -258,11 +276,11 @@ function init() {
   requestAnimationFrame(animate);
 }
 
-function loadTexture(url) {
+function loadTexture(url, repeat = true) {
   const texture = textureLoader.load(url);
   if ("colorSpace" in texture && THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
+  texture.wrapS = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+  texture.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
   return texture;
 }
 
@@ -498,6 +516,13 @@ function createPlayerShip() {
     engine.position.set(x, -0.03, 0.9);
     group.add(engine);
   }
+  const badge = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.52, 0.52),
+    new THREE.MeshBasicMaterial({ map: textures.decal, transparent: true, opacity: 0.86 }),
+  );
+  badge.position.set(0, 0.23, -0.82);
+  badge.rotation.x = -0.18;
+  group.add(badge);
   return group;
 }
 
@@ -631,6 +656,7 @@ function resize() {
 function resetGame(mode = "playing") {
   clearDynamic();
   state = createState(mode);
+  if (mode === "menu") stopBgm();
   input.rollQueued = 0;
   input.pointerActive = false;
   for (const entry of staticObjects.rings) {
@@ -660,6 +686,7 @@ function resetGame(mode = "playing") {
 function startGame() {
   resetGame("playing");
   ensureAudio();
+  startBgm();
   ui.menu.classList.add("hidden");
   ui.menu.classList.remove("active");
   ui.results.classList.add("hidden");
@@ -699,6 +726,8 @@ function togglePause() {
 function toggleAudio(forceOn = false) {
   audioEnabled = forceOn || !audioEnabled;
   ensureAudio();
+  if (audioEnabled) startBgm();
+  else stopBgm();
   updateAudioButtons();
   if (audioEnabled) playTone(520, 0.08, "sine", 0.035);
 }
@@ -714,8 +743,15 @@ function ensureAudio() {
     const AudioCtor = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtor) return;
     audioContext = new AudioCtor();
+    musicGain = audioContext.createGain();
+    sfxGain = audioContext.createGain();
+    musicGain.gain.value = 0.22;
+    sfxGain.gain.value = 0.62;
+    musicGain.connect(audioContext.destination);
+    sfxGain.connect(audioContext.destination);
   }
   if (audioContext.state === "suspended") audioContext.resume();
+  loadAudioAssets();
 }
 
 function playTone(frequency, duration, type = "sine", volume = 0.04, delay = 0) {
@@ -732,6 +768,56 @@ function playTone(frequency, duration, type = "sine", volume = 0.04, delay = 0) 
   gain.connect(audioContext.destination);
   oscillator.start(start);
   oscillator.stop(start + duration + 0.03);
+}
+
+function loadAudioAssets() {
+  if (!audioContext) return Promise.resolve();
+  if (audioLoadingPromise) return audioLoadingPromise;
+  audioLoadingPromise = Promise.all(
+    Object.entries(audioFiles).map(async ([name, url]) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Audio ${url} ${response.status}`);
+      const data = await response.arrayBuffer();
+      audioBuffers[name] = await audioContext.decodeAudioData(data);
+    }),
+  ).catch((error) => {
+    console.warn("Nova Wing audio asset load skipped:", error.message);
+  });
+  return audioLoadingPromise;
+}
+
+function startBgm() {
+  if (!audioEnabled || !audioContext) return;
+  loadAudioAssets().then(() => {
+    if (!audioBuffers.bgm || bgmSource) return;
+    bgmSource = audioContext.createBufferSource();
+    bgmSource.buffer = audioBuffers.bgm;
+    bgmSource.loop = true;
+    bgmSource.connect(musicGain || audioContext.destination);
+    bgmSource.start();
+  });
+}
+
+function stopBgm() {
+  if (!bgmSource) return;
+  try {
+    bgmSource.stop();
+  } catch {}
+  bgmSource.disconnect();
+  bgmSource = null;
+}
+
+function playSfx(name, volume = 0.55, rate = 1) {
+  if (!audioEnabled || !audioContext || !audioBuffers[name]) return false;
+  const source = audioContext.createBufferSource();
+  const gain = audioContext.createGain();
+  source.buffer = audioBuffers[name];
+  source.playbackRate.value = rate;
+  gain.gain.value = volume;
+  source.connect(gain);
+  gain.connect(sfxGain || audioContext.destination);
+  source.start();
+  return true;
 }
 
 function animate() {
@@ -861,7 +947,7 @@ function firePlayerShot() {
   for (const offset of [-0.34, 0.34]) {
     spawnPlayerShot(player.x + offset, player.y - 0.03, 1);
   }
-  playTone(860, 0.035, "square", 0.012);
+  if (!playSfx("laser", 0.24, 1 + Math.random() * 0.08)) playTone(860, 0.035, "square", 0.012);
 }
 
 function spawnPlayerShot(x, y, damage = 1) {
@@ -898,7 +984,7 @@ function updateWingDrones(dt) {
     const side = drone.userData.side || 1;
     spawnPlayerShot(player.x + side * 1.08, player.y - 0.32, 0.55);
   }
-  playTone(1020, 0.025, "square", 0.008);
+  if (!playSfx("laser", 0.12, 1.45)) playTone(1020, 0.025, "square", 0.008);
 }
 
 function findDroneTarget() {
@@ -1103,7 +1189,9 @@ function updateEnemyShots(dt) {
 function damageEnemy(enemy, damage) {
   enemy.hp -= damage;
   createExplosion(enemy.x, enemy.y, enemy.progress, enemy.hp <= 0 ? 0xffca62 : 0x44e6ff, enemy.hp <= 0 ? 22 : 8);
-  playTone(enemy.hp <= 0 ? 260 : 520, 0.04, "triangle", 0.018);
+  if (!playSfx(enemy.hp <= 0 ? "explosion" : "hit", enemy.hp <= 0 ? 0.32 : 0.18, enemy.hp <= 0 ? 1.35 : 1.8)) {
+    playTone(enemy.hp <= 0 ? 260 : 520, 0.04, "triangle", 0.018);
+  }
   if (enemy.hp <= 0) killEnemy(enemy, true);
 }
 
@@ -1143,6 +1231,7 @@ function damageBoss(damage) {
     dynamicGroup.remove(boss.mesh);
     ui.bossBar.classList.add("hidden");
     showToast("Aegis Prism zerbrochen", 2.0);
+    playSfx("explosion", 0.58, 0.78);
     playTone(180, 0.18, "sawtooth", 0.045);
     playTone(540, 0.3, "triangle", 0.04, 0.08);
   }
@@ -1168,7 +1257,7 @@ function updateStaticInteractions(dt) {
         addScore(ring.score, true);
         state.player.energy = Math.min(1, state.player.energy + ring.energy);
         createExplosion(ring.x, ring.y, ring.progress, 0x44e6ff, 14);
-        playTone(740, 0.05, "sine", 0.024);
+        if (!playSfx("boost", 0.22, 1.35)) playTone(740, 0.05, "sine", 0.024);
       }
     }
   }
@@ -1219,15 +1308,15 @@ function collectPickup(pickup) {
   if (pickup.type === "repair") {
     state.player.hp = Math.min(100, state.player.hp + 26);
     showToast("Hull repariert", 1.1);
-    playTone(420, 0.12, "sine", 0.03);
+    if (!playSfx("pickup", 0.38, 0.85)) playTone(420, 0.12, "sine", 0.03);
   } else if (pickup.type === "charge") {
     state.player.energy = 1;
     showToast("Boost geladen", 1.1);
-    playTone(700, 0.1, "triangle", 0.03);
+    if (!playSfx("boost", 0.4, 1)) playTone(700, 0.1, "triangle", 0.03);
   } else {
     state.player.shield = Math.min(100, state.player.shield + 38);
     showToast("Schildmatrix online", 1.1);
-    playTone(560, 0.14, "sine", 0.03);
+    if (!playSfx("pickup", 0.36, 1.1)) playTone(560, 0.14, "sine", 0.03);
   }
   addScore(150, false);
   createExplosion(pickup.x, pickup.y, pickup.progress, 0xb7ff68, 22);
@@ -1239,7 +1328,7 @@ function collectDataCore(core) {
   state.player.shield = Math.min(100, state.player.shield + 8);
   createExplosion(core.x, core.y, core.progress, 0xf6fbff, 28);
   showToast(`Datenkern ${state.dataCoreCollected.size}/${DATA_CORES.length}`, 1.25);
-  playTone(900, 0.08, "triangle", 0.024);
+  if (!playSfx("pickup", 0.42, 1.42)) playTone(900, 0.08, "triangle", 0.024);
   playTone(1350, 0.08, "sine", 0.02, 0.05);
 }
 
@@ -1257,7 +1346,7 @@ function damagePlayer(amount) {
   ui.damageFlash.classList.add("active");
   window.setTimeout(() => ui.damageFlash.classList.remove("active"), 110);
   showToast("Treffer", 0.65);
-  playTone(92, 0.12, "sawtooth", 0.045);
+  if (!playSfx("hit", 0.45, 0.85)) playTone(92, 0.12, "sawtooth", 0.045);
   if (player.hp <= 0) finishMission(false);
 }
 
@@ -1273,6 +1362,7 @@ function finishMission(success) {
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
   ui.pauseButton.textContent = "II";
+  if (success) playSfx("win", 0.58, 1);
   playTone(success ? 640 : 120, success ? 0.24 : 0.42, success ? "triangle" : "sawtooth", 0.052);
 }
 
