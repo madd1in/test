@@ -54,6 +54,7 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
   if (level.OBSTACLES.length < 35) throw new Error("Expected asteroid and crystal hazards");
   if (level.PICKUPS.length < 5) throw new Error("Expected repair, shield, and charge pickups");
   if (level.DATA_CORES.length < 8) throw new Error("Expected optional data core collectibles");
+  if (level.SUPPLY_PODS.length < 5) throw new Error("Expected supply pods for easier comeback routes");
   if (level.TUNNEL_GATES.length < 40) throw new Error("Expected tunnel gate depth markers");
   if (!level.WAVE_BLUEPRINTS.some((wave) => wave.type === "prism")) throw new Error("Expected prism elite waves");
 
@@ -81,6 +82,10 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "updatePowerShards",
     "overdrive",
     "bgmElement",
+    "nova-bgm-loop.mp3",
+    "SUPPLY_PODS",
+    "collectSupplyPod",
+    "camera-cockpit-overlay",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing gameplay token: ${token}`);
   }
@@ -112,6 +117,9 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "nova-power-shard.png",
     "nova-engine-flare.png",
     "nova-elite-mask.png",
+    "nova-cockpit-overlay.png",
+    "nova-supply-pod.png",
+    "nova-waypoint-bloom.png",
   ];
   for (const name of pngs) {
     const file = path.join(root, "assets", "generated", name);
@@ -126,6 +134,13 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     if (header !== "RIFF" || fs.statSync(file).size < 12000) throw new Error(`Generated WAV looks invalid: ${name}`);
   }
 
+  const mp3 = path.join(root, "assets", "audio", "nova-bgm-loop.mp3");
+  const mp3Header = fs.readFileSync(mp3).subarray(0, 3).toString("ascii");
+  if (mp3Header !== "ID3" && fs.readFileSync(mp3).subarray(0, 2).toString("hex") !== "fffb") {
+    throw new Error("Local MP3 BGM header looks invalid");
+  }
+  if (fs.statSync(mp3).size < 1000000) throw new Error("Local MP3 BGM looks too small");
+
   console.log("Nova Wing 3D smoke test passed");
-  console.log(`${level.WAVE_BLUEPRINTS.length} waves, ${level.RINGS.length} rings, ${level.OBSTACLES.length} hazards`);
+  console.log(`${level.WAVE_BLUEPRINTS.length} waves, ${level.RINGS.length} rings, ${level.OBSTACLES.length} hazards, ${level.SUPPLY_PODS.length} supply pods`);
 })();

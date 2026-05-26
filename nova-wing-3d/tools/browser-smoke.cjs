@@ -34,6 +34,7 @@ const mime = {
   ".svg": "image/svg+xml; charset=utf-8",
   ".png": "image/png",
   ".wav": "audio/wav",
+  ".mp3": "audio/mpeg",
 };
 
 function serveFile(request, response) {
@@ -149,6 +150,9 @@ async function runViewport(browser, name, viewport, mobile = false) {
   if (metrics.debug.nova > 0.2) throw new Error(`${name} Nova Burst did not discharge`);
   if (audioTest && (!metrics.debug.audio || !metrics.debug.audio.enabled || metrics.debug.audio.bgmPaused)) {
     throw new Error(`${name} BGM did not start after user gesture`);
+  }
+  if (audioTest && !/\.mp3$/i.test(metrics.debug.audio.bgmSrc || "")) {
+    throw new Error(`${name} BGM is not using the local MP3 asset`);
   }
   if (!metrics.pixels.some((pixel) => pixel[3] > 0 && pixel[0] + pixel[1] + pixel[2] > 14)) {
     throw new Error(`${name} canvas pixel check looks blank`);
