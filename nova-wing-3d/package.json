@@ -5,6 +5,7 @@
   "type": "module",
   "description": "An original 3D rail space shooter for the browser.",
   "scripts": {
+    "assets": "node tools/build-assets.cjs",
     "serve": "node tools/serve.cjs",
     "check": "node tools/smoke-test.cjs",
     "browser": "node tools/browser-smoke.cjs"

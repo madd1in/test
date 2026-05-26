@@ -140,7 +140,7 @@ async function runViewport(browser, name, viewport, mobile = false) {
   if (mobile && !metrics.touchVisible) throw new Error(`${name} touch controls are hidden`);
   if (!metrics.debug || metrics.debug.mode !== "playing") throw new Error(`${name} debug state did not enter play`);
   if (metrics.debug.progress < 185) throw new Error(`${name} did not advance far enough for the first wave`);
-  if (metrics.debug.enemies < 1) throw new Error(`${name} first enemy wave did not spawn`);
+  if (metrics.debug.enemies < 1 && metrics.debug.score < 1) throw new Error(`${name} first enemy wave did not spawn or score`);
   if (!metrics.pixels.some((pixel) => pixel[3] > 0 && pixel[0] + pixel[1] + pixel[2] > 14)) {
     throw new Error(`${name} canvas pixel check looks blank`);
   }

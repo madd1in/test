@@ -9,6 +9,8 @@ Original 3D rail space shooter for the browser. It uses local Three.js, procedur
 - Wing drones that escort the player and fire support shots
 - Mission progress bar, compact expanded HUD, and stronger speed-line feedback
 - Browser smoke tests that wait for the first enemy wave before passing
+- Generated local graphics: nebula panorama, albedo textures, logo, and decal atlas
+- Generated local audio: looping BGM plus laser, boost, pickup, hit, explosion, and win SFX
 
 ## Play
 
