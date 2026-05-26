@@ -106,6 +106,10 @@ const textures = {
   plasma: loadTexture("assets/generated/nova-prism-core.png"),
   nebula: loadTexture("assets/generated/nova-nebula-panorama.png", false),
   decal: loadTexture("assets/generated/nova-decal-atlas.png"),
+  shield: loadTexture("assets/generated/nova-shield-shell.png", false),
+  shard: loadTexture("assets/generated/nova-power-shard.png", false),
+  flare: loadTexture("assets/generated/nova-engine-flare.png", false),
+  elite: loadTexture("assets/generated/nova-elite-mask.png"),
 };
 scene.background = textures.nebula;
 
@@ -142,6 +146,13 @@ const materials = {
     side: THREE.DoubleSide,
   }),
   enemyLaser: new THREE.MeshBasicMaterial({ color: 0xff5f9a }),
+  engineFlare: new THREE.SpriteMaterial({
+    map: textures.flare,
+    color: 0xffca62,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+  }),
   enemy: new THREE.MeshStandardMaterial({
     color: 0xff5f9a,
     roughness: 0.32,
@@ -157,6 +168,14 @@ const materials = {
     map: textures.enemy,
     emissive: 0x160f3f,
     emissiveIntensity: 0.36,
+  }),
+  enemyElite: new THREE.MeshStandardMaterial({
+    color: 0xffca62,
+    roughness: 0.26,
+    metalness: 0.5,
+    map: textures.elite,
+    emissive: 0x461126,
+    emissiveIntensity: 0.64,
   }),
   asteroid: new THREE.MeshStandardMaterial({
     color: 0x8c735a,
@@ -185,6 +204,24 @@ const materials = {
     metalness: 0.2,
     roughness: 0.18,
   }),
+  powerShard: new THREE.MeshStandardMaterial({
+    color: 0xf6fbff,
+    roughness: 0.12,
+    metalness: 0.28,
+    map: textures.shard,
+    emissive: 0x44e6ff,
+    emissiveIntensity: 0.95,
+    transparent: true,
+    opacity: 0.96,
+  }),
+  shieldShell: new THREE.MeshBasicMaterial({
+    color: 0x44e6ff,
+    map: textures.shield,
+    transparent: true,
+    opacity: 0.26,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }),
   boss: new THREE.MeshStandardMaterial({
     color: 0x563c8d,
     roughness: 0.22,
@@ -211,6 +248,8 @@ const geometries = {
   ring: new THREE.TorusGeometry(1, 0.09, 12, 80),
   pickup: new THREE.OctahedronGeometry(0.52, 0),
   dataCore: new THREE.IcosahedronGeometry(0.46, 1),
+  shard: new THREE.IcosahedronGeometry(0.28, 1),
+  shieldShell: new THREE.SphereGeometry(1.45, 28, 16),
 };
 
 const staticObjects = {
@@ -242,6 +281,8 @@ let audioContext = null;
 let audioEnabled = !mutedByUrl;
 let audioLoadingPromise = null;
 let bgmSource = null;
+let bgmElement = null;
+let bgmStarted = false;
 let musicGain = null;
 let sfxGain = null;
 let lastHudUpdate = 0;
@@ -280,9 +321,17 @@ function init() {
       score: state.player.score,
       nova: state.player.nova,
       graze: state.player.graze,
+      overdrive: state.player.overdrive,
       enemies: state.enemies.length,
       shots: state.playerShots.length,
+      shards: state.powerShards.length,
       boss: state.boss ? state.boss.hp : 0,
+      audio: {
+        enabled: audioEnabled,
+        bgmStarted,
+        bgmPaused: bgmElement ? bgmElement.paused : true,
+        context: audioContext?.state || "none",
+      },
     }),
     chargeNova: (amount = 1) => {
       chargeNova(amount);
@@ -325,10 +374,13 @@ function createState(mode = "playing") {
     enemies: [],
     playerShots: [],
     enemyShots: [],
+    powerShards: [],
     explosions: [],
     boss: null,
     bossDefeated: false,
     toastTimer: 0,
+    nextDirectorAt: 430,
+    directorWave: 0,
     player: {
       x: 0,
       y: 0,
@@ -342,6 +394,8 @@ function createState(mode = "playing") {
       bestCombo: 1,
       nova: 0.28,
       graze: 0,
+      overdrive: 0,
+      shardChain: 0,
       droneCooldown: 0,
       invuln: 0,
       fireCooldown: 0,
@@ -537,7 +591,13 @@ function createPlayerShip() {
   for (const x of [-0.32, 0.32]) {
     const engine = new THREE.Mesh(engineGeo, materials.engine.clone());
     engine.position.set(x, -0.03, 0.9);
+    engine.userData.engineGlow = true;
     group.add(engine);
+    const flare = new THREE.Sprite(materials.engineFlare.clone());
+    flare.position.set(x, -0.03, 1.12);
+    flare.scale.set(0.72, 0.72, 0.72);
+    flare.userData.engineFlare = true;
+    group.add(flare);
   }
   const badge = new THREE.Mesh(
     new THREE.PlaneGeometry(0.52, 0.52),
@@ -546,12 +606,17 @@ function createPlayerShip() {
   badge.position.set(0, 0.23, -0.82);
   badge.rotation.x = -0.18;
   group.add(badge);
+
+  const shield = new THREE.Mesh(geometries.shieldShell, materials.shieldShell.clone());
+  shield.name = "player-shield-shell";
+  shield.visible = false;
+  group.add(shield);
   return group;
 }
 
-function createEnemyMesh(type) {
+function createEnemyMesh(type, elite = false) {
   const group = new THREE.Group();
-  const baseMaterial = type === "scout" || type === "manta" ? materials.enemy : materials.enemyAlt;
+  const baseMaterial = elite ? materials.enemyElite : type === "scout" || type === "manta" ? materials.enemy : materials.enemyAlt;
   if (type === "scout") {
     const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 0), baseMaterial);
     body.rotation.z = Math.PI / 4;
@@ -579,6 +644,13 @@ function createEnemyMesh(type) {
     const halo = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.045, 8, 36), materials.enemy);
     halo.rotation.x = Math.PI / 2;
     group.add(halo);
+  }
+  if (elite) {
+    const crown = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.04, 8, 48), materials.powerShard);
+    crown.rotation.x = Math.PI / 2;
+    crown.position.z = -0.18;
+    group.add(crown);
+    group.scale.setScalar(1.12);
   }
   group.traverse((child) => {
     if (child.isMesh) child.castShadow = renderer.shadowMap.enabled;
@@ -761,24 +833,40 @@ function toggleAudio(forceOn = false) {
 
 function updateAudioButtons() {
   ui.soundButton.textContent = audioEnabled ? "SND" : "MUTE";
-  ui.menuSoundButton.textContent = audioEnabled ? "Sound an" : "Sound aus";
+  ui.menuSoundButton.textContent = audioEnabled ? "Sound testen" : "Sound an";
 }
 
 function ensureAudio() {
   if (!audioEnabled) return;
+  primeBgmElement();
   if (!audioContext) {
     const AudioCtor = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtor) return;
     audioContext = new AudioCtor();
     musicGain = audioContext.createGain();
     sfxGain = audioContext.createGain();
-    musicGain.gain.value = 0.22;
-    sfxGain.gain.value = 0.62;
+    musicGain.gain.value = 0.38;
+    sfxGain.gain.value = 0.74;
     musicGain.connect(audioContext.destination);
     sfxGain.connect(audioContext.destination);
   }
-  if (audioContext.state === "suspended") audioContext.resume();
+  if (audioContext.state === "suspended") audioContext.resume().catch?.(() => {});
   loadAudioAssets();
+}
+
+function primeBgmElement() {
+  if (mutedByUrl || bgmElement) return bgmElement;
+  bgmElement = new Audio(audioFiles.bgm);
+  bgmElement.loop = true;
+  bgmElement.preload = "auto";
+  bgmElement.volume = 0.46;
+  bgmElement.addEventListener("playing", () => {
+    bgmStarted = true;
+  });
+  bgmElement.addEventListener("pause", () => {
+    bgmStarted = false;
+  });
+  return bgmElement;
 }
 
 function playTone(frequency, duration, type = "sine", volume = 0.04, delay = 0) {
@@ -792,7 +880,7 @@ function playTone(frequency, duration, type = "sine", volume = 0.04, delay = 0) 
   gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   oscillator.connect(gain);
-  gain.connect(audioContext.destination);
+  gain.connect(sfxGain || audioContext.destination);
   oscillator.start(start);
   oscillator.stop(start + duration + 0.03);
 }
@@ -814,7 +902,30 @@ function loadAudioAssets() {
 }
 
 function startBgm() {
-  if (!audioEnabled || !audioContext) return;
+  if (!audioEnabled) return;
+  const element = primeBgmElement();
+  if (element) {
+    element.volume = 0.46;
+    const playPromise = element.play();
+    if (playPromise?.then) {
+      playPromise
+        .then(() => {
+          bgmStarted = true;
+        })
+        .catch(() => {
+          bgmStarted = false;
+          startDecodedBgm(true);
+        });
+    } else {
+      bgmStarted = !element.paused;
+    }
+  }
+  if (!audioContext) return;
+  startDecodedBgm();
+}
+
+function startDecodedBgm(force = false) {
+  if (!audioEnabled || !audioContext || (bgmElement && !force)) return;
   loadAudioAssets().then(() => {
     if (!audioBuffers.bgm || bgmSource) return;
     bgmSource = audioContext.createBufferSource();
@@ -822,16 +933,23 @@ function startBgm() {
     bgmSource.loop = true;
     bgmSource.connect(musicGain || audioContext.destination);
     bgmSource.start();
+    bgmStarted = true;
   });
 }
 
 function stopBgm() {
+  if (bgmElement) {
+    bgmElement.pause();
+    bgmElement.currentTime = 0;
+  }
+  bgmStarted = false;
   if (!bgmSource) return;
   try {
     bgmSource.stop();
   } catch {}
   bgmSource.disconnect();
   bgmSource = null;
+  bgmStarted = false;
 }
 
 function playSfx(name, volume = 0.55, rate = 1) {
@@ -876,6 +994,7 @@ function updateGame(dt) {
   player.fireCooldown = Math.max(0, player.fireCooldown - dt);
   player.rollCooldown = Math.max(0, player.rollCooldown - dt);
   player.heat = Math.max(0, player.heat - dt * 0.42);
+  player.overdrive = Math.max(0, player.overdrive - dt);
   player.comboTimer = Math.max(0, player.comboTimer - dt);
   if (player.comboTimer <= 0 && player.combo > 1) player.combo = 1;
 
@@ -892,11 +1011,13 @@ function updateGame(dt) {
   else player.energy = Math.min(1, player.energy + dt * 0.16);
 
   spawnScheduledWaves();
+  updateMissionDirector();
   if (!state.boss && state.progress >= BOSS.at) spawnBoss();
   updateEnemies(dt);
   updateBoss(dt);
   updatePlayerShots(dt);
   updateEnemyShots(dt);
+  updatePowerShards(dt);
   updateStaticInteractions(dt);
   updateExplosions(dt);
 
@@ -974,10 +1095,14 @@ function setPointerTarget(event) {
 
 function firePlayerShot() {
   const player = state.player;
-  player.fireCooldown = 0.13;
-  player.heat = Math.min(1, player.heat + 0.065);
+  const overdrive = player.overdrive > 0;
+  player.fireCooldown = overdrive ? 0.075 : 0.13;
+  player.heat = Math.min(1, player.heat + (overdrive ? 0.035 : 0.065));
   for (const offset of [-0.34, 0.34]) {
-    spawnPlayerShot(player.x + offset, player.y - 0.03, 1);
+    spawnPlayerShot(player.x + offset, player.y - 0.03, overdrive ? 1.15 : 1, overdrive ? "nova" : "laser");
+  }
+  if (overdrive) {
+    spawnPlayerShot(player.x, player.y + 0.1, 0.72, "laser");
   }
   if (!playSfx("laser", 0.24, 1 + Math.random() * 0.08)) playTone(860, 0.035, "square", 0.012);
 }
@@ -1120,32 +1245,61 @@ function spawnScheduledWaves() {
   }
 }
 
+function updateMissionDirector() {
+  if (state.boss || state.progress < state.nextDirectorAt || state.progress > BOSS.at - 120) return;
+  const nearbyEnemies = state.enemies.filter((enemy) => !enemy.dead && enemy.progress - state.progress < 220).length;
+  if (nearbyEnemies > 8) {
+    state.nextDirectorAt += 150;
+    return;
+  }
+  state.directorWave += 1;
+  const tier = state.progress > 2500 ? 3 : state.progress > 1450 ? 2 : 1;
+  const typePool = tier === 3 ? ["cutter", "manta", "prism"] : tier === 2 ? ["scout", "cutter", "manta"] : ["scout", "cutter"];
+  const type = typePool[state.directorWave % typePool.length];
+  const formations = ["pincer", "spiral", "weave", "gate"];
+  const formation = formations[state.directorWave % formations.length];
+  spawnWave({
+    id: `director-${state.directorWave}`,
+    type,
+    count: Math.min(10, 4 + tier + (state.directorWave % 3)),
+    formation,
+    x: Math.sin(state.directorWave * 1.7) * 2.8,
+    y: 0.5 + Math.cos(state.directorWave * 1.1) * 1.1,
+    spread: 1.25 + tier * 0.18,
+    elite: state.directorWave % 2 === 0,
+    director: true,
+  });
+  state.nextDirectorAt += Math.max(210, 390 - tier * 40 - state.directorWave * 5);
+}
+
 function spawnWave(wave) {
   for (let index = 0; index < wave.count; index += 1) {
     const offset = formationOffset(wave, index);
     const stats = ENEMY_STATS[wave.type];
+    const elite = Boolean(wave.elite && (index === Math.floor(wave.count / 2) || (wave.director && index % 4 === 0)));
     const enemy = {
       id: `${wave.id}-${index}`,
       type: wave.type,
-      hp: stats.hp,
-      maxHp: stats.hp,
-      score: stats.score,
-      radius: stats.radius,
+      elite,
+      hp: stats.hp + (elite ? 1 : 0),
+      maxHp: stats.hp + (elite ? 1 : 0),
+      score: stats.score + (elite ? 140 : 0),
+      radius: stats.radius + (elite ? 0.12 : 0),
       x: wave.x + offset.x,
       y: wave.y + offset.y,
       baseX: wave.x + offset.x,
       baseY: wave.y + offset.y,
       progress: state.progress + 176 + index * 5 + Math.abs(offset.y) * 4,
       speed: stats.speed,
-      fireTimer: 0.6 + index * 0.16 + seededRandom() * 0.7,
+      fireTimer: 0.45 + index * 0.13 + seededRandom() * 0.6,
       phase: seededRandom() * Math.PI * 2,
       age: 0,
-      mesh: createEnemyMesh(wave.type),
+      mesh: createEnemyMesh(wave.type, elite),
     };
     dynamicGroup.add(enemy.mesh);
     state.enemies.push(enemy);
   }
-  showToast("Kontakt: " + wave.type.toUpperCase(), 1.1);
+  showToast(wave.director ? `Ambush: ${wave.type.toUpperCase()}` : "Kontakt: " + wave.type.toUpperCase(), 1.1);
 }
 
 function formationOffset(wave, index) {
@@ -1159,6 +1313,12 @@ function formationOffset(wave, index) {
   if (wave.formation === "stack") return { x: Math.sin(index * 1.8) * spread, y: n * spread * 0.72 };
   if (wave.formation === "ladder") return { x: n * spread, y: (index % 3) * 1.2 - 1.2 };
   if (wave.formation === "weave") return { x: n * spread * 0.9, y: Math.sin(index * 0.9) * 2.2 };
+  if (wave.formation === "pincer") return { x: (index % 2 === 0 ? -1 : 1) * (3.2 + Math.abs(n) * spread * 0.52), y: n * spread * 0.42 };
+  if (wave.formation === "spiral") {
+    const angle = index * 1.38;
+    return { x: Math.cos(angle) * spread * (1.2 + index * 0.12), y: Math.sin(angle) * spread * (0.9 + index * 0.08) };
+  }
+  if (wave.formation === "gate") return { x: n * spread, y: (index % 2 === 0 ? 1 : -1) * (1.2 + Math.abs(n) * 0.18) };
   return { x: n * spread, y: 0 };
 }
 
@@ -1169,9 +1329,10 @@ function updateEnemies(dt) {
     enemy.progress -= enemy.speed * dt;
     const dz = enemy.progress - state.progress;
     const weave = enemy.type === "cutter" ? 1.45 : enemy.type === "manta" ? 0.82 : enemy.type === "prism" ? 0.55 : 1.05;
-    enemy.x = enemy.baseX + Math.sin(enemy.age * (1.4 + weave) + enemy.phase) * weave;
-    enemy.y = enemy.baseY + Math.cos(enemy.age * 1.25 + enemy.phase) * weave * 0.55;
-    enemy.mesh.rotation.z += dt * (enemy.type === "prism" ? 1.8 : 0.7);
+    const pressure = enemy.elite ? 0.52 : 0;
+    enemy.x = enemy.baseX + Math.sin(enemy.age * (1.4 + weave + pressure) + enemy.phase) * (weave + pressure);
+    enemy.y = enemy.baseY + Math.cos(enemy.age * 1.25 + enemy.phase) * weave * 0.55 + (enemy.elite ? Math.sin(enemy.age * 3.2) * 0.34 : 0);
+    enemy.mesh.rotation.z += dt * (enemy.type === "prism" ? 1.8 : enemy.elite ? 1.35 : 0.7);
     enemy.mesh.rotation.x = Math.sin(enemy.age * 1.6) * 0.14;
     placeRailObject(enemy.mesh, enemy.progress, enemy.x, enemy.y);
 
@@ -1179,7 +1340,8 @@ function updateEnemies(dt) {
     if (enemy.fireTimer <= 0 && dz > 24 && dz < 155) {
       const stats = ENEMY_STATS[enemy.type];
       spawnEnemyShot(enemy.x, enemy.y, enemy.progress, enemy.type === "prism" ? 118 : 98);
-      enemy.fireTimer = stats.fireRate + seededRandom() * 0.55;
+      if (enemy.elite) spawnEnemyShot(enemy.x + Math.sin(enemy.age) * 0.7, enemy.y - 0.25, enemy.progress, 108, Math.sin(enemy.phase) * 1.2);
+      enemy.fireTimer = (stats.fireRate + seededRandom() * 0.55) * (enemy.elite ? 0.72 : 1);
     }
 
     if (dz < -18) enemy.dead = true;
@@ -1331,8 +1493,73 @@ function killEnemy(enemy, awardScore, novaReward = true) {
     addScore(enemy.score, true);
     state.player.energy = Math.min(1, state.player.energy + 0.04);
     if (novaReward) chargeNova(enemy.type === "prism" ? 0.11 : 0.075);
+    if (novaReward) dropPowerShards(enemy, enemy.elite ? 3 : enemy.type === "prism" ? 2 : 1);
   }
   createExplosion(enemy.x, enemy.y, enemy.progress, 0xff5f9a, 26);
+}
+
+function dropPowerShards(source, count) {
+  for (let i = 0; i < count; i += 1) {
+    createPowerShard(
+      source.x + (seededRandom() - 0.5) * 1.35,
+      source.y + (seededRandom() - 0.5) * 1.1,
+      source.progress + (seededRandom() - 0.5) * 4,
+      source.elite ? 90 : 55,
+    );
+  }
+}
+
+function createPowerShard(x, y, progress, value = 55) {
+  const mesh = new THREE.Mesh(geometries.shard, materials.powerShard.clone());
+  dynamicGroup.add(mesh);
+  state.powerShards.push({
+    x,
+    y,
+    progress,
+    value,
+    age: 0,
+    phase: seededRandom() * Math.PI * 2,
+    mesh,
+  });
+}
+
+function updatePowerShards(dt) {
+  for (const shard of state.powerShards) {
+    shard.age += dt;
+    const dz = shard.progress - state.progress;
+    if (dz < 88 && dz > -10) {
+      shard.x += (state.player.x - shard.x) * dt * 1.45;
+      shard.y += (state.player.y - shard.y) * dt * 1.45;
+    }
+    shard.progress -= dt * 8;
+    shard.mesh.rotation.x += dt * 2.3;
+    shard.mesh.rotation.y += dt * 3.1;
+    shard.mesh.scale.setScalar(1 + Math.sin(state.elapsed * 5 + shard.phase) * 0.14);
+    placeRailObject(shard.mesh, shard.progress, shard.x, shard.y);
+    if (dz < -18 || shard.age > 5.2) shard.dead = true;
+    if (!shard.dead && Math.abs(dz) < 4.2 && localDistanceToPlayer(shard) < 1.12) {
+      collectPowerShard(shard);
+    }
+  }
+  removeDead(state.powerShards, dynamicGroup);
+}
+
+function collectPowerShard(shard) {
+  shard.dead = true;
+  const player = state.player;
+  player.shardChain += 1;
+  player.energy = Math.min(1, player.energy + 0.035);
+  chargeNova(0.035);
+  addScore(shard.value, true);
+  createExplosion(shard.x, shard.y, shard.progress, 0xb7ff68, 10);
+  if (player.shardChain % 5 === 0) {
+    player.overdrive = Math.max(player.overdrive, 5.5);
+    player.heat = 0;
+    showToast("Overdrive: Feuer frei", 1.1);
+    if (!playSfx("boost", 0.34, 1.55)) playTone(1180, 0.09, "triangle", 0.024);
+  } else if (player.shardChain <= 3 || player.shardChain % 4 === 0) {
+    showToast(`Prism Shard x${player.shardChain}`, 0.7);
+  }
 }
 
 function damageBoss(damage) {
@@ -1481,7 +1708,7 @@ function finishMission(success) {
   const rings = state.ringCollected.size;
   const cores = state.dataCoreCollected.size;
   const medals = missionMedals(success);
-  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
+  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
@@ -1497,6 +1724,7 @@ function missionMedals(success) {
   if (success) medals.push("Prismensieg");
   if (cores === DATA_CORES.length) medals.push("Kernsammler");
   if (rings >= Math.ceil(RINGS.length * 0.75)) medals.push("Ringpilot");
+  if (state.player.shardChain >= 18) medals.push("Shard-Jaeger");
   if (state.player.graze >= 8) medals.push("Risk Runner");
   if (state.player.bestCombo >= 8) medals.push("Combo-Ass");
   if (success && state.player.hp >= 72) medals.push("Saubere Huelle");
@@ -1551,7 +1779,8 @@ function updateHud(force = false) {
   lastHudUpdate = state.elapsed;
   const section = getSection(state.progress);
   ui.sectorText.textContent = section.name;
-  if (state.boss && !state.bossDefeated) ui.objectiveText.textContent = "Aegis Prism zerlegen";
+  if (state.player.overdrive > 0) ui.objectiveText.textContent = `Overdrive ${Math.ceil(state.player.overdrive)}s`;
+  else if (state.boss && !state.bossDefeated) ui.objectiveText.textContent = "Aegis Prism zerlegen";
   else if (state.progress > BOSS.at - 260) ui.objectiveText.textContent = "Zum Prism Core";
   else ui.objectiveText.textContent = section.objective;
   ui.scoreText.textContent = String(Math.floor(state.player.score));
@@ -1591,16 +1820,30 @@ function renderScene(dt) {
   const playerWorld = worldFromRail(state.progress, state.player.x, state.player.y);
   const rollProgress = state.player.rollTime > 0 ? state.player.rollTime / 0.62 : 0;
   const rollAngle = state.player.rollDir * Math.sin(rollProgress * Math.PI) * Math.PI * 1.85;
-  const boostShake = isBoosting() && state.mode === "playing" ? Math.sin(state.elapsed * 38) * 0.05 : 0;
+  const energized = isBoosting() || state.player.overdrive > 0;
+  const boostShake = energized && state.mode === "playing" ? Math.sin(state.elapsed * 38) * 0.05 : 0;
 
   if (playerShip) {
     playerShip.position.copy(playerWorld);
     playerShip.rotation.x = -state.player.y * 0.035 + boostShake;
     playerShip.rotation.y = -state.player.x * 0.025;
     playerShip.rotation.z = -state.player.x * 0.075 + rollAngle;
-    const glowScale = isBoosting() ? 1.35 + Math.sin(state.elapsed * 30) * 0.16 : 1;
+    const glowScale = energized ? 1.5 + Math.sin(state.elapsed * 30) * 0.18 : 1;
     for (const child of playerShip.children) {
-      if (child.material === materials.engine || child.material?.color?.getHex?.() === 0xffca62) child.scale.setScalar(glowScale);
+      if (child.userData.engineGlow) child.scale.setScalar(glowScale);
+      if (child.userData.engineFlare) {
+        child.material.opacity = energized ? 0.88 : 0.52;
+        child.scale.setScalar((energized ? 1.2 : 0.72) + Math.sin(state.elapsed * 24) * 0.08);
+      }
+    }
+    const shield = playerShip.getObjectByName("player-shield-shell");
+    if (shield) {
+      const shieldPower = THREE.MathUtils.clamp(state.player.shield / 100, 0, 1);
+      shield.visible = shieldPower > 0.03 || state.player.invuln > 0;
+      shield.material.opacity = 0.12 + shieldPower * 0.22 + (state.player.invuln > 0 ? 0.08 : 0);
+      shield.scale.setScalar(1.03 + Math.sin(state.elapsed * 4.2) * 0.025);
+      shield.rotation.y += dt * 0.7;
+      shield.rotation.z -= dt * 0.35;
     }
   }
 
@@ -1617,7 +1860,7 @@ function renderScene(dt) {
   const stars = camera.getObjectByName("camera-starfield");
   if (stars) stars.rotation.z += dt * 0.006;
   if (speedLines) {
-    speedLines.material.opacity = state.mode === "playing" && isBoosting() ? 0.34 : 0.14;
+    speedLines.material.opacity = state.mode === "playing" && energized ? 0.38 : 0.14;
     speedLines.rotation.z = Math.sin(state.elapsed * 0.9) * 0.018;
   }
 

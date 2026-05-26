@@ -143,6 +143,85 @@ function decalCell(x, y, color, type) {
   return `<g><path d="M${cx} ${cy - 170}l154 300H${cx - 154}z" fill="${color}" opacity=".7"/><rect x="${cx - 16}" y="${cy - 72}" width="32" height="130" fill="#03040a"/><rect x="${cx - 16}" y="${cy + 86}" width="32" height="32" fill="#03040a"/></g>`;
 }
 
+function shieldSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%" r="52%">
+      <stop offset="0" stop-color="#44e6ff" stop-opacity=".04"/>
+      <stop offset=".58" stop-color="#44e6ff" stop-opacity=".10"/>
+      <stop offset=".82" stop-color="#b7ff68" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#f6fbff" stop-opacity=".02"/>
+    </radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="transparent"/>
+  <circle cx="512" cy="512" r="430" fill="url(#g)"/>
+  <circle cx="512" cy="512" r="396" fill="none" stroke="#44e6ff" stroke-width="18" opacity=".36" filter="url(#soft)"/>
+  <circle cx="512" cy="512" r="312" fill="none" stroke="#a98cff" stroke-width="9" opacity=".22"/>
+  ${Array.from({ length: 18 }, (_, i) => {
+    const a = (i / 18) * Math.PI * 2;
+    const x1 = 512 + Math.cos(a) * 330;
+    const y1 = 512 + Math.sin(a) * 330;
+    const x2 = 512 + Math.cos(a) * 430;
+    const y2 = 512 + Math.sin(a) * 430;
+    return `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="#f6fbff" stroke-width="7" opacity=".17"/>`;
+  }).join("")}
+  </svg>`;
+}
+
+function shardSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="facet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6fbff"/>
+      <stop offset=".32" stop-color="#44e6ff"/>
+      <stop offset=".66" stop-color="#b7ff68"/>
+      <stop offset="1" stop-color="#ffca62"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="16" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#02030a"/>
+  <path d="M512 76l256 206-94 522-162 144-168-144-88-522z" fill="url(#facet)" filter="url(#glow)"/>
+  <path d="M512 76v872M256 282l418 522M768 282L344 804" stroke="#03131a" stroke-width="22" opacity=".28"/>
+  <path d="M360 236l152-160 150 160-150 114z" fill="#f6fbff" opacity=".32"/>
+  <circle cx="512" cy="512" r="212" fill="none" stroke="#44e6ff" stroke-width="18" opacity=".24"/>
+  </svg>`;
+}
+
+function flareSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="f" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f6fbff" stop-opacity=".95"/>
+      <stop offset=".22" stop-color="#ffca62" stop-opacity=".82"/>
+      <stop offset=".55" stop-color="#ff5f9a" stop-opacity=".36"/>
+      <stop offset="1" stop-color="#44e6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="transparent"/>
+  <circle cx="256" cy="256" r="238" fill="url(#f)"/>
+  <path d="M256 20v472M20 256h472M92 92l328 328M420 92L92 420" stroke="#f6fbff" stroke-width="10" opacity=".22"/>
+  </svg>`;
+}
+
+function eliteSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="e" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffca62"/>
+      <stop offset=".5" stop-color="#ff5f9a"/>
+      <stop offset="1" stop-color="#44e6ff"/>
+    </linearGradient>
+    ${svgNoiseFilter("grain", 0.028, 5, 44)}
+  </defs>
+  <rect width="1024" height="1024" fill="#08020f"/>
+  <rect width="1024" height="1024" filter="url(#grain)" opacity=".25"/>
+  <path d="M512 82l332 178-126 576H306L180 260z" fill="url(#e)" opacity=".62"/>
+  <path d="M512 82v754M180 260l538 576M844 260L306 836" stroke="#f6fbff" stroke-width="18" opacity=".24"/>
+  <circle cx="512" cy="512" r="164" fill="none" stroke="#b7ff68" stroke-width="24" opacity=".38"/>
+  </svg>`;
+}
+
 function stars(count, width, height) {
   let out = "";
   let n = 912931;
@@ -160,7 +239,7 @@ function stars(count, width, height) {
 }
 
 async function writePng(file, svg, width, height) {
-  await sharp(Buffer.from(svg)).resize(width, height).png({ compressionLevel: 9, adaptiveFiltering: true }).toFile(path.join(generatedDir, file));
+  await sharp(Buffer.from(svg)).resize(width, height).png({ compressionLevel: 8, adaptiveFiltering: true }).toFile(path.join(generatedDir, file));
 }
 
 function writeWav(file, samples, sampleRate = 44100) {
@@ -200,8 +279,9 @@ function synthBgm(seconds = 38, sampleRate = 44100) {
     const b = Math.sin(2 * Math.PI * bass[step] * t) * 0.22;
     const arp = Math.sin(2 * Math.PI * lead[(Math.floor(t * 8) + step) % lead.length] * t) * 0.12 * env;
     const pad = (Math.sin(2 * Math.PI * 110 * t) + Math.sin(2 * Math.PI * 164.81 * t + 0.8)) * 0.045;
-    const noise = ((Math.sin(t * 1103.3) * 43758.5453) % 1) * 0.012 * (beat < 0.08 ? 1 : 0);
-    out[i] = (b + arp + pad + kick * 0.18 + noise) * 0.56;
+    const hat = (((Math.sin(i * 19.13) * 9317.21) % 1) * 2 - 1) * 0.04 * (beat > 0.48 && beat < 0.56 ? 1 : 0);
+    const noise = ((Math.sin(t * 1103.3) * 43758.5453) % 1) * 0.018 * (beat < 0.08 ? 1 : 0);
+    out[i] = (b + arp + pad + kick * 0.24 + hat + noise) * 0.86;
   }
   return out;
 }
@@ -226,7 +306,7 @@ function synthSfx(kind, seconds, sampleRate = 44100) {
 }
 
 (async () => {
-  await writePng("nova-nebula-panorama.png", nebulaSvg(), 2048, 1024);
+  await writePng("nova-nebula-panorama.png", nebulaSvg(), 2560, 1280);
   await writePng("nova-hull-albedo.png", materialSvg("hull"), 512, 512);
   await writePng("nova-enemy-albedo.png", materialSvg("enemy"), 512, 512);
   await writePng("nova-asteroid-albedo.png", materialSvg("asteroid"), 512, 512);
@@ -234,6 +314,10 @@ function synthSfx(kind, seconds, sampleRate = 44100) {
   await writePng("nova-prism-core.png", materialSvg("prism"), 512, 512);
   await writePng("nova-logo.png", logoSvg(), 1024, 512);
   await writePng("nova-decal-atlas.png", decalSvg(), 1024, 1024);
+  await writePng("nova-shield-shell.png", shieldSvg(), 1024, 1024);
+  await writePng("nova-power-shard.png", shardSvg(), 1024, 1024);
+  await writePng("nova-engine-flare.png", flareSvg(), 512, 512);
+  await writePng("nova-elite-mask.png", eliteSvg(), 1024, 1024);
 
   writeWav("nova-bgm-loop.wav", synthBgm());
   writeWav("laser.wav", synthSfx("laser", 0.18));

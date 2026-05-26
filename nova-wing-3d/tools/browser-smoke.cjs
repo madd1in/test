@@ -24,6 +24,7 @@ function resolvePlaywright() {
 const { chromium } = resolvePlaywright();
 const root = path.resolve(__dirname, "..");
 let smokeUrl = process.env.SMOKE_URL || "";
+const audioTest = process.env.AUDIO_TEST === "1";
 
 const mime = {
   ".html": "text/html; charset=utf-8",
@@ -88,7 +89,7 @@ async function runViewport(browser, name, viewport, mobile = false) {
     }
   });
 
-  const targetUrl = `${smokeUrl}${smokeUrl.includes("?") ? "&" : "?"}mute=1&capture=1`;
+  const targetUrl = `${smokeUrl}${smokeUrl.includes("?") ? "&" : "?"}mute=${audioTest ? "0" : "1"}&capture=1`;
   await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.waitForSelector("#game", { timeout: 15000 });
   await page.waitForSelector("#startButton", { timeout: 15000 });
@@ -146,6 +147,9 @@ async function runViewport(browser, name, viewport, mobile = false) {
   if (metrics.debug.progress < 185) throw new Error(`${name} did not advance far enough for the first wave`);
   if (metrics.debug.enemies < 1 && metrics.debug.score < 1) throw new Error(`${name} first enemy wave did not spawn or score`);
   if (metrics.debug.nova > 0.2) throw new Error(`${name} Nova Burst did not discharge`);
+  if (audioTest && (!metrics.debug.audio || !metrics.debug.audio.enabled || metrics.debug.audio.bgmPaused)) {
+    throw new Error(`${name} BGM did not start after user gesture`);
+  }
   if (!metrics.pixels.some((pixel) => pixel[3] > 0 && pixel[0] + pixel[1] + pixel[2] > 14)) {
     throw new Error(`${name} canvas pixel check looks blank`);
   }
@@ -203,4 +207,5 @@ async function settleCleanup(promise, timeoutMs) {
       await settleCleanup(new Promise((resolve) => server.close(resolve)), 2000);
     }
   }
+  process.exit(0);
 })();
