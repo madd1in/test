@@ -41,9 +41,9 @@ Die aktuellen Imagen-Assets liegen unter `assets/imagen/`.
 - `ui/`: Imagen-GUI-Atlas und zugeschnittene GUI-Panels/Buttons
 - `fonts/`: Bitmap-Font-Atlas und gerenderte feste GUI-Labels
 - `sources/`: unbearbeitete Chroma-Key-Quellen der freigestellten Layer
-- `calibrated/`: pixelkalibrierte Master-Composites und Sprite-Ausschnitte
+- `calibrated/`: pixelkalibrierte Master-Composites, Sprite-Ausschnitte und volle Overlay-Sheets
 
-Die Szene bleibt auf einer festen 16:9-Logikfläche. Die aktiven Spielräume verwenden `calibrated/masters/*-master-1920.png`; alle beweglichen Layer in `calibrated/frames/` sind direkte Ausschnitte aus demselben Masterbild. Der erste Frame jedes Sprite-Sheets ist pixelidentisch mit dem darunterliegenden Master-Ausschnitt. Es gibt kein `cover`-Cropping und keine 4:3-Sonderbühne auf Mobile.
+Die Szene bleibt auf einer festen 16:9-Logikfläche. Die aktiven Spielräume verwenden `calibrated/masters/*-master-1920.png`; alle beweglichen Layer laufen in `calibrated/fullframes/` als transparente 1920x1080-Overlay-Sheets im selben Koordinatenraum wie der Background. Der erste Frame jedes Overlay-Sheets komponiert pixelidentisch über den Master, und die Crop-Kanten bleiben in allen Frames unverändert. Es gibt kein `cover`-Cropping, keine 4:3-Sonderbühne auf Mobile und keine separaten Prozent-Crops für bewegliche Assets mehr.
 
 ## Rätselkette
 

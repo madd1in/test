@@ -41,7 +41,37 @@ def main() -> None:
             diff = ImageChops.difference(master_crop, first_frame).getbbox()
             if diff is not None:
                 raise RuntimeError(f"{scene}/{name} first frame does not match master crop: {diff}")
-            print(f"{scene}/{name}: pixel exact")
+
+            full_name = name.replace("-calibrated-sheet.png", "-full-sheet.png")
+            full_sheet = Image.open(CAL / "fullframes" / full_name).convert("RGBA")
+            if full_sheet.size != (width * frames, height):
+                raise RuntimeError(f"{scene}/{full_name} wrong full sheet size: {full_sheet.size}")
+
+            first_full = full_sheet.crop((0, 0, width, height))
+            composed = master.copy()
+            composed.alpha_composite(first_full)
+            full_diff = ImageChops.difference(master, composed).getbbox()
+            if full_diff is not None:
+                raise RuntimeError(f"{scene}/{full_name} first full frame does not composite exactly: {full_diff}")
+
+            for frame_index in range(frames):
+                full_frame = full_sheet.crop((frame_index * width, 0, (frame_index + 1) * width, height))
+                alpha = full_frame.getchannel("A")
+                bbox = alpha.getbbox()
+                if bbox != (left, top, right, bottom):
+                    raise RuntimeError(f"{scene}/{full_name} frame {frame_index + 1} alpha bbox drifted: {bbox}")
+
+                frame_crop = full_frame.crop((left, top, right, bottom))
+                master_edge = master_crop.copy()
+                frame_edge = frame_crop.copy()
+                inner = (2, 2, frame_crop.width - 2, frame_crop.height - 2)
+                if inner[2] > inner[0] and inner[3] > inner[1]:
+                    master_edge.paste((0, 0, 0, 0), inner)
+                    frame_edge.paste((0, 0, 0, 0), inner)
+                edge_diff = ImageChops.difference(master_edge, frame_edge).getbbox()
+                if edge_diff is not None:
+                    raise RuntimeError(f"{scene}/{full_name} frame {frame_index + 1} changed crop edge pixels: {edge_diff}")
+            print(f"{scene}/{name}: crop and full-canvas overlay pixel exact")
 
 
 if __name__ == "__main__":

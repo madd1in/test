@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CAL = ROOT / "assets" / "imagen" / "calibrated"
 MASTERS = CAL / "masters"
 FRAMES = CAL / "frames"
+FULLFRAMES = CAL / "fullframes"
 OUT_SIZE = (1920, 1080)
 
 
@@ -80,19 +81,26 @@ def build_crop(master: Image.Image, crop: Crop) -> dict[str, float | int | str]:
     bottom = round(crop.box[3] * height)
     base = master.crop((left, top, right, bottom)).convert("RGBA")
     sheet = Image.new("RGBA", (base.width * crop.frames, base.height), (0, 0, 0, 0))
+    full_sheet = Image.new("RGBA", (width * crop.frames, height), (0, 0, 0, 0))
 
     for index in range(crop.frames):
         frame = make_frame(base, index, crop.frames, crop.mode)
         sheet.alpha_composite(frame, (index * base.width, 0))
+        full_frame = Image.new("RGBA", master.size, (0, 0, 0, 0))
+        full_frame.alpha_composite(frame, (left, top))
+        full_sheet.alpha_composite(full_frame, (index * width, 0))
 
     FRAMES.mkdir(parents=True, exist_ok=True)
+    FULLFRAMES.mkdir(parents=True, exist_ok=True)
     sheet.save(FRAMES / crop.name, optimize=True)
+    full_name = crop.name.replace("-calibrated-sheet.png", "-full-sheet.png")
+    full_sheet.save(FULLFRAMES / full_name, optimize=True)
     return {
-        "src": f"assets/imagen/calibrated/frames/{crop.name}",
-        "x": round(crop.box[0] * 100, 4),
-        "y": round(crop.box[1] * 100, 4),
-        "w": round((crop.box[2] - crop.box[0]) * 100, 4),
-        "h": round((crop.box[3] - crop.box[1]) * 100, 4),
+        "src": f"assets/imagen/calibrated/fullframes/{full_name}",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 100,
         "frames": crop.frames,
     }
 
