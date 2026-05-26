@@ -76,6 +76,11 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "registerGraze",
     "missionMedals",
     "novaFill",
+    "updateMissionDirector",
+    "createPowerShard",
+    "updatePowerShards",
+    "overdrive",
+    "bgmElement",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing gameplay token: ${token}`);
   }
@@ -103,6 +108,10 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "nova-prism-core.png",
     "nova-logo.png",
     "nova-decal-atlas.png",
+    "nova-shield-shell.png",
+    "nova-power-shard.png",
+    "nova-engine-flare.png",
+    "nova-elite-mask.png",
   ];
   for (const name of pngs) {
     const file = path.join(root, "assets", "generated", name);
