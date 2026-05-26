@@ -328,7 +328,7 @@ function init() {
       boss: state.boss ? state.boss.hp : 0,
       audio: {
         enabled: audioEnabled,
-        bgmStarted,
+        bgmStarted: bgmStarted || (bgmElement ? !bgmElement.paused : false),
         bgmPaused: bgmElement ? bgmElement.paused : true,
         context: audioContext?.state || "none",
       },
