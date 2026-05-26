@@ -77,9 +77,15 @@ async function runViewport(browser, name, viewport, mobile = false) {
   });
   const errors = [];
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() === "error" && !/Failed to load resource/i.test(message.text())) errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("response", (response) => {
+    const url = response.url();
+    if (response.status() >= 400 && !/\/favicon\.ico$/i.test(new URL(url).pathname)) {
+      errors.push(`${response.status()} ${url}`);
+    }
+  });
 
   const targetUrl = `${smokeUrl}${smokeUrl.includes("?") ? "&" : "?"}mute=1&capture=1`;
   await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
