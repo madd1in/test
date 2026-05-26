@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Nova Wing 3D</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Nova Wing 3D">
+      <canvas id="game" aria-label="3D rail shooter"></canvas>
+
+      <section id="hud" class="hud" aria-live="polite">
+        <div class="objective-chip">
+          <span id="sectorText">Orion Gate</span>
+          <strong id="objectiveText">Startbereit</strong>
+          <b class="progress-track"><i id="progressFill"></i></b>
+        </div>
+        <div class="status-strip">
+          <div class="meter hp">
+            <span>Hull</span>
+            <b><i id="hpFill"></i></b>
+          </div>
+          <div class="meter shield">
+            <span>Schild</span>
+            <b><i id="shieldFill"></i></b>
+          </div>
+          <div class="meter energy">
+            <span>Boost</span>
+            <b><i id="energyFill"></i></b>
+          </div>
+          <div class="score-chip">
+            <span>Punkte</span>
+            <strong id="scoreText">0</strong>
+          </div>
+          <div class="score-chip">
+            <span>Serie</span>
+            <strong id="comboText">x1</strong>
+          </div>
+          <div class="score-chip">
+            <span>Kerne</span>
+            <strong id="coreText">0/0</strong>
+          </div>
+        </div>
+      </section>
+
+      <div id="bossBar" class="boss-bar hidden">
+        <span>Aegis Prism</span>
+        <b><i id="bossFill"></i></b>
+      </div>
+
+      <div class="top-actions">
+        <button id="pauseButton" type="button" aria-label="Pause" title="Pause">II</button>
+        <button id="soundButton" type="button" aria-label="Sound" title="Sound">SND</button>
+        <button id="resetButton" type="button" aria-label="Neu starten" title="Neu starten">RST</button>
+      </div>
+
+      <div id="reticle" class="reticle" aria-hidden="true"></div>
+      <div id="toast" class="toast hidden"></div>
+      <div id="damageFlash" class="damage-flash" aria-hidden="true"></div>
+
+      <section id="menu" class="overlay active" aria-label="Startmenue">
+        <div class="menu-panel">
+          <p class="eyebrow">Original 3D Rail Shooter</p>
+          <h1>Nova Wing 3D</h1>
+          <p class="blurb">Flieg durch den Prismenguertel, zerlege Drohnenwellen und brich den Aegis-Kern.</p>
+          <div class="menu-actions">
+            <button id="startButton" type="button">Start</button>
+            <button id="menuSoundButton" type="button">Sound an</button>
+          </div>
+          <p class="controls-line">WASD/Pfeile bewegen, Space/Click feuern, Shift boost, Q/E rollen.</p>
+        </div>
+      </section>
+
+      <section id="results" class="overlay hidden" aria-label="Ergebnis">
+        <div class="menu-panel">
+          <p id="resultEyebrow" class="eyebrow">Mission</p>
+          <h2 id="resultTitle">Geschafft</h2>
+          <p id="resultStats" class="blurb">0 Punkte</p>
+          <div class="menu-actions">
+            <button id="restartButton" type="button">Nochmal</button>
+            <button id="menuButton" type="button">Hangar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="touchControls" class="touch-controls" aria-label="Touch controls">
+        <div class="touch-dpad">
+          <button type="button" data-touch="up" aria-label="hoch">^</button>
+          <button type="button" data-touch="left" aria-label="links">&lt;</button>
+          <button type="button" data-touch="down" aria-label="runter">v</button>
+          <button type="button" data-touch="right" aria-label="rechts">&gt;</button>
+        </div>
+        <div class="touch-actions">
+          <button type="button" data-touch="roll" aria-label="rollen">ROLL</button>
+          <button type="button" data-touch="boost" aria-label="boost">BOOST</button>
+          <button type="button" data-touch="fire" aria-label="feuern">FIRE</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/game.js"></script>
+  </body>
+</html>
