@@ -391,6 +391,7 @@ let state = loadState();
 let dialogQueue = [];
 let dialogDone = null;
 let toastTimer = 0;
+let uiPulseTimer = 0;
 
 function loadState() {
   try {
@@ -448,6 +449,7 @@ function setVerb(id) {
   if (id !== "use") {
     state.selectedItem = null;
   }
+  pulseUi();
   saveState();
   render();
 }
@@ -456,6 +458,7 @@ function selectRoom(id) {
   state.room = id;
   state.selectedItem = null;
   state.verb = "look";
+  pulseUi();
   saveState();
   render();
   flash(ROOMS[id].title);
@@ -511,6 +514,7 @@ function renderTimeTabs() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `time-tab${id === state.room ? " active" : ""}`;
+    button.setAttribute("data-room", id);
     button.setAttribute("aria-label", room.era);
     if (room.tabImage) {
       button.innerHTML = `<img class="ui-label-img" src="${ASSET(room.tabImage)}" alt="${room.era}" />`;
@@ -518,7 +522,9 @@ function renderTimeTabs() {
       button.textContent = room.era;
     }
     button.style.borderColor = id === state.room ? room.accent : "";
+    button.style.setProperty("--button-accent", room.accent);
     button.addEventListener("click", () => selectRoom(id));
+    attachUiPress(button);
     els.timeTabs.append(button);
   });
 }
@@ -529,9 +535,11 @@ function renderVerbs() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `verb-button${state.verb === verb.id && !state.selectedItem ? " active" : ""}`;
+    button.setAttribute("data-verb", verb.id);
     button.setAttribute("aria-label", verb.label);
     button.innerHTML = `<span class="verb-icon" aria-hidden="true">${verb.icon}</span><img class="ui-label-img" src="${ASSET(verb.image)}" alt="${verb.label}" />`;
     button.addEventListener("click", () => setVerb(verb.id));
+    attachUiPress(button);
     els.verbs.append(button);
   });
 }
@@ -551,11 +559,26 @@ function renderInventory() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `item-button${state.selectedItem === id ? " active" : ""}`;
+    button.setAttribute("data-item", id);
     button.title = item.name;
     button.setAttribute("aria-label", item.name);
     button.innerHTML = `<img src="${ASSET(item.icon)}" alt="" />`;
     button.addEventListener("click", () => handleInventoryClick(id));
+    attachUiPress(button);
     els.inventory.append(button);
+  });
+}
+
+function attachUiPress(button) {
+  button.addEventListener("pointerdown", () => {
+    button.classList.remove("ui-pressed");
+    void button.offsetWidth;
+    button.classList.add("ui-pressed");
+  });
+  button.addEventListener("animationend", (event) => {
+    if (event.animationName === "uiPress") {
+      button.classList.remove("ui-pressed");
+    }
   });
 }
 
@@ -629,6 +652,7 @@ function setBitmapText(element, text, size = "body") {
 }
 
 function handleInventoryClick(id) {
+  pulseUi();
   if (state.selectedItem && state.selectedItem !== id) {
     combineItems(state.selectedItem, id);
     return;
@@ -646,6 +670,16 @@ function handleInventoryClick(id) {
   state.verb = "use";
   saveState();
   render();
+}
+
+function pulseUi() {
+  document.documentElement.classList.remove("ui-ripple");
+  void document.documentElement.offsetWidth;
+  document.documentElement.classList.add("ui-ripple");
+  window.clearTimeout(uiPulseTimer);
+  uiPulseTimer = window.setTimeout(() => {
+    document.documentElement.classList.remove("ui-ripple");
+  }, 420);
 }
 
 function combineItems(first, second) {
@@ -986,6 +1020,9 @@ function closeDialog() {
 els.dialogNext.addEventListener("click", advanceDialog);
 els.resetBtn.addEventListener("click", resetGame);
 els.endingRestart.addEventListener("click", resetGame);
+attachUiPress(els.dialogNext);
+attachUiPress(els.resetBtn);
+attachUiPress(els.endingRestart);
 
 window.addEventListener("keydown", (event) => {
   if (!els.dialog.classList.contains("hidden") && (event.key === " " || event.key === "Enter")) {
