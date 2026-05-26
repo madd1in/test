@@ -1,0 +1,12 @@
+{
+  "name": "nova-wing-3d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An original 3D rail space shooter for the browser.",
+  "scripts": {
+    "serve": "node tools/serve.cjs",
+    "check": "node tools/smoke-test.cjs",
+    "browser": "node tools/browser-smoke.cjs"
+  }
+}
