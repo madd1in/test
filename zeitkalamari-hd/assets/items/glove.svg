@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gummihandschuh">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M160 224 V111 C160 76 213 76 213 111 V217 M213 209 V83 C213 48 267 48 267 83 V214 M267 213 V103 C267 68 321 68 321 103 V229 M321 231 V151 C321 116 374 116 374 151 V281 C374 381 312 442 225 442 C146 442 97 395 97 319 V251 C97 211 160 211 160 251Z" fill="#f6b743" stroke="#151512" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M113 356 C160 385 279 392 354 337" stroke="#fff4d8" stroke-width="20" stroke-linecap="round" opacity="0.72"/>
+</svg>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zeitkalamari HD</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <main class="game-shell" aria-label="Zeitkalamari HD Adventure">
+        <header class="topbar">
+          <div class="room-copy">
+            <span id="eraLabel" class="era-label">Gegenwart</span>
+            <h1 id="roomTitle">Zeitkalamari HD</h1>
+          </div>
+          <nav id="timeTabs" class="time-tabs" aria-label="Zeiträume"></nav>
+        </header>
+
+        <section id="stage" class="stage" aria-label="Spielszene">
+          <img id="sceneImage" class="scene-image" alt="" draggable="false" />
+          <div id="sceneLayers" class="scene-layers" aria-hidden="true"></div>
+          <div id="hotspots" class="hotspots"></div>
+          <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="command-deck" aria-label="Kommandos">
+          <div id="verbs" class="verbs" aria-label="Aktionen"></div>
+          <div class="inventory-panel">
+            <div class="inventory-title">
+              <img class="ui-label-img" src="assets/imagen/fonts/labels/inventory.png" alt="Inventar" />
+            </div>
+            <div id="inventory" class="inventory" aria-label="Inventar"></div>
+          </div>
+          <div class="status-panel">
+            <div id="cursorText" class="cursor-text">Schau</div>
+            <button id="resetBtn" class="reset-button" type="button" aria-label="Neu">
+              <img class="ui-label-img" src="assets/imagen/fonts/labels/reset.png" alt="Neu" />
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <aside id="dialog" class="dialog hidden" aria-live="polite">
+        <img id="dialogPortrait" class="dialog-portrait" alt="" />
+        <div class="dialog-copy">
+        <div id="dialogName" class="dialog-name"></div>
+        <p id="dialogText"></p>
+      </div>
+      <button id="dialogNext" class="dialog-next" type="button" aria-label="Weiter">
+        <img class="ui-label-img" src="assets/imagen/fonts/labels/next.png" alt="Weiter" />
+      </button>
+      </aside>
+
+      <div id="ending" class="ending hidden" role="dialog" aria-modal="true">
+        <div class="ending-panel">
+          <span class="ending-kicker">Zeitlinie stabilisiert</span>
+          <h2>Der Kalamari gibt klein bei.</h2>
+          <p>
+            Die Gegenwart schmeckt wieder nach Kaffee, die Vergangenheit nach
+            Hefe und die Zukunft nur noch leicht nach Synthosnack.
+          </p>
+          <button id="endingRestart" type="button">Noch einmal spielen</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/game.js"></script>
+  </body>
+</html>

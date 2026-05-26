@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="Portrait Leni">
+  <rect width="640" height="640" fill="#2ab7a9"/>
+  <circle cx="320" cy="338" r="214" fill="#ffc68d" stroke="#151512" stroke-width="28"/>
+  <path d="M116 258 C143 67 484 74 526 260 C423 198 253 196 116 258Z" fill="#ec5d53" stroke="#151512" stroke-width="26"/>
+  <path d="M145 226 C76 308 95 429 185 497 C155 408 177 313 255 252Z" fill="#b54443"/>
+  <path d="M496 226 C568 311 545 437 450 500 C491 402 462 305 385 252Z" fill="#b54443"/>
+  <circle cx="255" cy="330" r="24" fill="#151512"/>
+  <circle cx="389" cy="330" r="24" fill="#151512"/>
+  <path d="M246 434 C290 476 354 476 398 434" fill="none" stroke="#151512" stroke-width="24" stroke-linecap="round"/>
+  <path d="M188 178 L118 99 M451 178 L522 99" stroke="#fff4d8" stroke-width="24" stroke-linecap="round"/>
+</svg>

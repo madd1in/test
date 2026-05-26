@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Geladene Stimmgabel">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M190 79 V257 C190 297 322 297 322 257 V79" fill="none" stroke="#f6b743" stroke-width="45" stroke-linecap="round"/>
+  <path d="M256 286 V432" stroke="#f6b743" stroke-width="45" stroke-linecap="round"/>
+  <path d="M256 286 V432 M190 79 V257 C190 297 322 297 322 257 V79" fill="none" stroke="#151512" stroke-width="17" stroke-linecap="round"/>
+  <path d="M104 149 L54 199 H103 L64 271 M408 149 L458 199 H409 L448 271" fill="none" stroke="#83ffe9" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

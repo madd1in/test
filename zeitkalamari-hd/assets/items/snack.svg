@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Synthosnack">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M133 135 H382 L421 325 L253 421 L91 323Z" fill="#ec5d53" stroke="#151512" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M167 182 H350 L372 298 L254 363 L137 297Z" fill="#f6b743" stroke="#151512" stroke-width="18"/>
+  <path d="M205 234 H306 M185 285 H326" stroke="#fff4d8" stroke-width="22" stroke-linecap="round"/>
+</svg>

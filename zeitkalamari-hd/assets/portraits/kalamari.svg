@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="Portrait Kalamari-KI">
+  <rect width="640" height="640" fill="#153f4c"/>
+  <circle cx="320" cy="318" r="226" fill="#77cfd1" stroke="#151512" stroke-width="24"/>
+  <path d="M198 303 C224 174 408 174 438 303 C474 456 165 456 198 303Z" fill="#6f56c9" stroke="#151512" stroke-width="24"/>
+  <circle cx="272" cy="300" r="24" fill="#fff4d8"/>
+  <circle cx="373" cy="300" r="24" fill="#fff4d8"/>
+  <path d="M260 376 C300 402 348 402 389 376" stroke="#fff4d8" stroke-width="20" stroke-linecap="round" fill="none"/>
+  <path d="M212 425 C130 493 218 543 274 462 M420 425 C510 491 421 545 367 462 M285 454 C246 551 341 560 320 466 M355 454 C394 551 299 560 320 466" fill="none" stroke="#6f56c9" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="198" cy="208" r="18" fill="#f6b743"/>
+  <circle cx="448" cy="216" r="13" fill="#f6b743"/>
+</svg>

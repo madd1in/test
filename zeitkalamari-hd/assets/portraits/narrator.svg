@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="Portrait Professor Mohn">
+  <rect width="640" height="640" fill="#f6b743"/>
+  <circle cx="320" cy="345" r="203" fill="#ffc68d" stroke="#151512" stroke-width="26"/>
+  <path d="M148 233 C170 103 468 103 492 233 C402 196 239 196 148 233Z" fill="#fff4d8" stroke="#151512" stroke-width="24"/>
+  <circle cx="250" cy="337" r="49" fill="none" stroke="#151512" stroke-width="18"/>
+  <circle cx="390" cy="337" r="49" fill="none" stroke="#151512" stroke-width="18"/>
+  <path d="M299 337 H342" stroke="#151512" stroke-width="16"/>
+  <path d="M248 434 C292 405 349 405 392 434" fill="none" stroke="#151512" stroke-width="22" stroke-linecap="round"/>
+  <path d="M186 524 C250 581 391 581 455 524" fill="#6f56c9" stroke="#151512" stroke-width="22"/>
+</svg>

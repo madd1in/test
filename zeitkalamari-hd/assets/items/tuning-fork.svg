@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Stimmgabel">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M190 79 V257 C190 297 322 297 322 257 V79" fill="none" stroke="#d7dedb" stroke-width="45" stroke-linecap="round"/>
+  <path d="M256 286 V432" stroke="#d7dedb" stroke-width="45" stroke-linecap="round"/>
+  <path d="M256 286 V432 M190 79 V257 C190 297 322 297 322 257 V79" fill="none" stroke="#151512" stroke-width="17" stroke-linecap="round"/>
+</svg>

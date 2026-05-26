@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hefegel">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M113 296 C94 182 175 90 277 110 C400 134 445 272 367 365 C298 447 133 413 113 296Z" fill="#80b95c" stroke="#151512" stroke-width="28"/>
+  <circle cx="206" cy="237" r="25" fill="#fff4d8"/>
+  <circle cx="301" cy="205" r="17" fill="#fff4d8"/>
+  <circle cx="309" cy="306" r="29" fill="#c7df7a"/>
+  <path d="M184 333 C235 365 290 363 337 325" stroke="#151512" stroke-width="21" stroke-linecap="round" fill="none"/>
+</svg>

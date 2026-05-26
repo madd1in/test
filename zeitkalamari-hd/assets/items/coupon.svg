@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Backstubencoupon">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M82 151 H430 V362 H82 V151Z" fill="#fff4d8" stroke="#151512" stroke-width="26" stroke-linejoin="round"/>
+  <path d="M82 217 C118 217 118 296 82 296 M430 217 C394 217 394 296 430 296" fill="none" stroke="#151512" stroke-width="24"/>
+  <path d="M157 211 H354 M157 260 H316 M157 309 H354" stroke="#ec5d53" stroke-width="22" stroke-linecap="round"/>
+</svg>

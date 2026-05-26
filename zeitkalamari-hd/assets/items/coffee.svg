@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kaffee">
+  <rect width="512" height="512" fill="none"/>
+  <path d="M118 154 H338 L314 392 H145Z" fill="#fff4d8" stroke="#151512" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M336 204 H400 C468 209 462 338 374 335 H326" fill="none" stroke="#151512" stroke-width="30" stroke-linecap="round"/>
+  <path d="M144 199 H320 L306 316 H156Z" fill="#5a3024"/>
+  <path d="M183 95 C153 61 199 42 171 17 M259 95 C229 61 275 42 247 17" stroke="#fff4d8" stroke-width="20" stroke-linecap="round" fill="none"/>
+</svg>

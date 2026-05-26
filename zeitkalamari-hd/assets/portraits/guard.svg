@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="Portrait Archivwächter">
+  <rect width="640" height="640" fill="#6f56c9"/>
+  <rect x="132" y="128" width="376" height="382" rx="74" fill="#d7dedb" stroke="#151512" stroke-width="28"/>
+  <rect x="184" y="206" width="272" height="126" rx="34" fill="#151512"/>
+  <circle cx="255" cy="269" r="30" fill="#83ffe9"/>
+  <circle cx="384" cy="269" r="30" fill="#83ffe9"/>
+  <path d="M238 402 H403" stroke="#151512" stroke-width="28" stroke-linecap="round"/>
+  <path d="M320 128 V61" stroke="#f6b743" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="320" cy="55" r="28" fill="#f6b743" stroke="#151512" stroke-width="18"/>
+</svg>
