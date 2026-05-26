@@ -72,6 +72,10 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "startBgm",
     "playSfx",
     "nova-nebula-panorama.png",
+    "useNovaBurst",
+    "registerGraze",
+    "missionMedals",
+    "novaFill",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing gameplay token: ${token}`);
   }
