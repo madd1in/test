@@ -19,6 +19,7 @@ const ui = {
   startButton: document.getElementById("startButton"),
   restartButton: document.getElementById("restartButton"),
   menuButton: document.getElementById("menuButton"),
+  audioButton: document.getElementById("audioButton"),
   stageSelect: document.getElementById("stageSelect"),
   stageMeta: document.getElementById("stageMeta"),
   stageName: document.getElementById("stageName"),
@@ -63,6 +64,14 @@ let obstacles = [];
 let gates = [];
 let dustParticles = [];
 let weatherSystem = null;
+let driftSfxBucket = 0;
+
+const audio = {
+  enabled: true,
+  music: null,
+  sfx: {},
+  master: 0.72,
+};
 
 const car = {
   group: null,
@@ -113,6 +122,7 @@ scene.add(sun);
 setupStagePicker();
 setupInput();
 setupButtons();
+setupAudio();
 car.group = createCar();
 carGroup.add(car.group);
 loadStage(0);
@@ -131,6 +141,7 @@ window.overcrestRally = {
     damage: car.damage,
     driftScore: car.driftScore,
     surface: activeSurface,
+    audioEnabled: audio.enabled,
   }),
   startDemo: () => startStage(true),
 };
@@ -151,6 +162,8 @@ function setupStagePicker() {
   ui.stageSelect.addEventListener("change", () => {
     const index = STAGES.findIndex((candidate) => candidate.id === ui.stageSelect.value);
     loadStage(index < 0 ? 0 : index);
+    playSfx("select");
+    playMusicForStage();
   });
 }
 
@@ -158,6 +171,27 @@ function setupButtons() {
   ui.startButton.addEventListener("click", () => startStage(false));
   ui.restartButton.addEventListener("click", () => startStage(false));
   ui.menuButton.addEventListener("click", openMenu);
+  ui.audioButton.addEventListener("click", () => {
+    audio.enabled = !audio.enabled;
+    ui.audioButton.textContent = audio.enabled ? "Audio On" : "Audio Off";
+    if (audio.enabled) {
+      playSfx("select");
+      playMusicForStage();
+    } else {
+      stopMusic();
+    }
+  });
+}
+
+function setupAudio() {
+  const names = ["start", "split", "hit", "finish", "select", "drift"];
+  for (const name of names) {
+    const clip = new Audio(audioUrl(`sfx-${name}.wav`));
+    clip.preload = "auto";
+    clip.volume = 0.5 * audio.master;
+    audio.sfx[name] = clip;
+  }
+  ui.audioButton.textContent = audio.enabled ? "Audio On" : "Audio Off";
 }
 
 function setupInput() {
@@ -242,6 +276,7 @@ function loadStage(index) {
   updateHud();
   drawMiniMap();
   updateCamera(1);
+  playMusicForStage();
 }
 
 function startStage(isDemo) {
@@ -257,7 +292,10 @@ function startStage(isDemo) {
   countdown = 1.35;
   elapsed = 0;
   currentSplit = 0;
+  driftSfxBucket = 0;
   showToast("Ready");
+  playMusicForStage();
+  playSfx("start");
 }
 
 function openMenu() {
@@ -270,6 +308,7 @@ function openMenu() {
   ui.menu.classList.remove("hidden");
   ui.menu.classList.add("active");
   resetCar();
+  stopMusic();
 }
 
 function resetCar() {
@@ -428,7 +467,7 @@ function readControls() {
   return {
     throttle: isDown("KeyW", "ArrowUp") || touch.has("accelerate") ? 1 : 0,
     brake: isDown("KeyS", "ArrowDown") || touch.has("brake") ? 1 : 0,
-    steer: (right ? 1 : 0) - (left ? 1 : 0),
+    steer: (left ? 1 : 0) - (right ? 1 : 0),
     handbrake: isDown("Space", "ShiftLeft", "ShiftRight") || touch.has("handbrake"),
   };
 }
@@ -461,6 +500,7 @@ function collideWithObstacles(dt) {
       addDamage(clamp(speed * 0.18, 1.2, 12), "Impact");
       obstacle.mesh.rotation.y += 0.35;
       showToast("Impact");
+      playSfx("hit");
     }
   }
 }
@@ -469,6 +509,11 @@ function updateDriftScore(dt, lateralSpeed, speed, handbrake) {
   if ((handbrake || Math.abs(lateralSpeed) > 9) && speed > 22 && activeSurface !== "offroad") {
     const gain = Math.abs(lateralSpeed) * speed * dt * 0.08;
     car.driftScore += gain;
+    const bucket = Math.floor(car.driftScore / 220);
+    if (bucket > driftSfxBucket) {
+      driftSfxBucket = bucket;
+      playSfx("drift");
+    }
   }
 }
 
@@ -477,6 +522,7 @@ function updateSplitsAndFinish() {
     const split = stage.splits[currentSplit];
     ui.splitText.textContent = `${split.label} ${formatTime(elapsed)}`;
     showToast(`${split.label} ${formatTime(elapsed)}`);
+    playSfx("split");
     gates[currentSplit]?.mesh.traverse((child) => {
       if (child.material?.emissive) child.material.emissive.setHex(stage.palette.accent);
     });
@@ -498,6 +544,7 @@ function finishStage() {
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   showToast("Stage complete");
+  playSfx("finish");
 }
 
 function addDamage(amount, label) {
@@ -572,6 +619,38 @@ function showToast(message) {
   ui.toast.textContent = message;
   ui.toast.classList.add("visible");
   toastTimer = 1.5;
+}
+
+function playMusicForStage() {
+  if (!audio.enabled || !stage.music) return;
+  const src = audioUrl(stage.music);
+  if (!audio.music) {
+    audio.music = new Audio(src);
+    audio.music.loop = true;
+    audio.music.volume = 0.24 * audio.master;
+  }
+  if (audio.music.src !== src) {
+    audio.music.pause();
+    audio.music.src = src;
+    audio.music.currentTime = 0;
+  }
+  audio.music.play().catch(() => {});
+}
+
+function stopMusic() {
+  if (!audio.music) return;
+  audio.music.pause();
+}
+
+function playSfx(name) {
+  if (!audio.enabled || !audio.sfx[name]) return;
+  const clip = audio.sfx[name].cloneNode();
+  clip.volume = audio.sfx[name].volume;
+  clip.play().catch(() => {});
+}
+
+function audioUrl(fileName) {
+  return new URL(`../assets/audio/${fileName}`, import.meta.url).href;
 }
 
 function createStageMaterials(activeStage) {
