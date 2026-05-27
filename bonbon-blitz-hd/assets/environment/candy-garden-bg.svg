@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#dff8ff"/>
+      <stop offset="0.42" stop-color="#fff4fb"/>
+      <stop offset="1" stop-color="#ffe4c7"/>
+    </linearGradient>
+    <linearGradient id="ribbonA" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ff4f9b" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#ffb21a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#25b9ed" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="ribbonB" x1="1" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#22c972" stop-opacity="0.34"/>
+      <stop offset="0.5" stop-color="#814bf4" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ff4f9b" stop-opacity="0.22"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <path d="M-104 179C174 38 352 298 585 170 790 58 925 19 1160 151c167 94 324 82 539-20v191c-229 104-384 120-566 23-214-114-364-75-548 42-242 154-456-69-689 74Z" fill="url(#ribbonA)" opacity="0.7"/>
+  <path d="M-64 641c190-145 404-165 641-48 196 97 366 72 536-50 205-148 350-126 555 46v439H-64Z" fill="url(#ribbonB)" opacity="0.86"/>
+  <path d="M0 812c153-85 292-95 436-34 169 71 322 58 463-36 218-145 422-132 701 58v200H0Z" fill="#fff5f8" opacity="0.62"/>
+  <g opacity="0.38" filter="url(#soft)">
+    <path d="M198 713c54-101 146-131 248-72 31 18 61 20 91 5-53 81-139 103-232 54-39-21-74-17-107 13Z" fill="#ff4f9b"/>
+    <path d="M1059 223c75-61 157-61 246 0 40 27 82 32 126 15-68 78-155 91-263 40-44-21-81-18-109-55Z" fill="#25b9ed"/>
+    <path d="M1125 752c72-68 159-82 261-42 45 18 87 15 125-9-63 82-154 112-272 90-49-9-86-4-114-39Z" fill="#22c972"/>
+  </g>
+  <g opacity="0.2" fill="none" stroke="#6d5a78" stroke-width="10" stroke-linecap="round">
+    <path d="M188 249c64 42 129 42 193 0"/>
+    <path d="M1217 514c73 48 147 48 220 0"/>
+    <path d="M682 832c80 52 161 52 241 0"/>
+  </g>
+  <g opacity="0.22">
+    <rect x="131" y="476" width="105" height="105" rx="29" fill="#ffffff" transform="rotate(-19 183 529)"/>
+    <rect x="1322" y="317" width="118" height="118" rx="35" fill="#ffffff" transform="rotate(23 1381 376)"/>
+    <path d="M812 88l36 85 92 8-70 60 22 89-80-48-80 48 22-89-70-60 92-8 36-85Z" fill="#ffffff"/>
+  </g>
+</svg>

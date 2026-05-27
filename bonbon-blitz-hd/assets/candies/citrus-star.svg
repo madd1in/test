@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Citrus star candy">
+  <defs>
+    <radialGradient id="starBody" cx="36%" cy="28%" r="78%">
+      <stop offset="0" stop-color="#fffce1"/>
+      <stop offset="0.2" stop-color="#ffe16a"/>
+      <stop offset="0.52" stop-color="#ffad1f"/>
+      <stop offset="0.82" stop-color="#ff6e23"/>
+      <stop offset="1" stop-color="#a73b1d"/>
+    </radialGradient>
+    <filter id="starShadow" x="-35%" y="-35%" width="170%" height="180%">
+      <feDropShadow dx="0" dy="25" stdDeviation="22" flood-color="#7a3719" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <path filter="url(#starShadow)" d="M256 34l58 137 147 12-112 96 35 143-128-76-128 76 35-143L51 183l147-12 58-137Z" fill="url(#starBody)"/>
+  <path d="M256 90l40 96 102 9-78 66 25 100-89-53-89 53 25-100-78-66 102-9 40-96Z" fill="#fff7b1" opacity="0.2"/>
+  <path d="M147 189c62-42 143-50 221-8" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" opacity="0.65"/>
+  <path d="M190 292c45 26 90 26 132 0" fill="none" stroke="#fff7b1" stroke-width="24" stroke-linecap="round" opacity="0.48"/>
+  <ellipse cx="220" cy="150" rx="45" ry="22" fill="#ffffff" opacity="0.72" transform="rotate(-20 220 150)"/>
+  <circle cx="335" cy="218" r="18" fill="#ffffff" opacity="0.42"/>
+</svg>

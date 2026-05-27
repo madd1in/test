@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ruby heart candy">
+  <defs>
+    <radialGradient id="rubyBody" cx="35%" cy="24%" r="80%">
+      <stop offset="0" stop-color="#fff4f0"/>
+      <stop offset="0.18" stop-color="#ff8f8a"/>
+      <stop offset="0.5" stop-color="#ef333b"/>
+      <stop offset="0.78" stop-color="#b71531"/>
+      <stop offset="1" stop-color="#641132"/>
+    </radialGradient>
+    <filter id="rubyShadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="26" stdDeviation="23" flood-color="#66142d" flood-opacity="0.36"/>
+    </filter>
+  </defs>
+  <path filter="url(#rubyShadow)" d="M256 438C148 349 82 279 82 190c0-69 50-122 118-122 38 0 73 18 96 49 23-31 58-49 96-49 68 0 118 53 118 122 0 89-66 159-254 248Z" fill="url(#rubyBody)"/>
+  <path d="M138 194c11-46 47-75 91-75 30 0 55 13 73 37 17-22 41-35 68-37-53 62-66 140-40 234l-74 63C166 342 121 275 138 194Z" fill="#ffffff" opacity="0.18"/>
+  <path d="M158 221c41-39 95-42 138-9" fill="none" stroke="#ffffff" stroke-width="29" stroke-linecap="round" opacity="0.6"/>
+  <path d="M178 307c55 39 108 39 159 0" fill="none" stroke="#ffc7c3" stroke-width="29" stroke-linecap="round" opacity="0.38"/>
+  <ellipse cx="211" cy="171" rx="45" ry="23" fill="#ffffff" opacity="0.66" transform="rotate(-26 211 171)"/>
+</svg>

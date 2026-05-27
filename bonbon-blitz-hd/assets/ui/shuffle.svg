@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Shuffle">
+  <defs>
+    <linearGradient id="shuffleGrad" x1="39" x2="210" y1="45" y2="211">
+      <stop offset="0" stop-color="#22c972"/>
+      <stop offset="0.45" stop-color="#25b9ed"/>
+      <stop offset="1" stop-color="#814bf4"/>
+    </linearGradient>
+  </defs>
+  <path d="M44 72h31c32 0 47 22 64 55 14 27 27 57 63 57h10" fill="none" stroke="url(#shuffleGrad)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M44 184h31c34 0 49-27 64-57 15-31 28-55 63-55h10" fill="none" stroke="url(#shuffleGrad)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M197 38l36 34-36 34" fill="none" stroke="#814bf4" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M197 150l36 34-36 34" fill="none" stroke="#814bf4" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="63" cy="72" r="14" fill="#ffffff" opacity="0.62"/>
+  <circle cx="63" cy="184" r="14" fill="#ffffff" opacity="0.62"/>
+</svg>

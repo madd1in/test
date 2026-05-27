@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bonbon Blitz HD logo">
+  <defs>
+    <linearGradient id="logoBg" x1="91" x2="419" y1="67" y2="443">
+      <stop offset="0" stop-color="#25b9ed"/>
+      <stop offset="0.35" stop-color="#ff4f9b"/>
+      <stop offset="0.68" stop-color="#ffb21a"/>
+      <stop offset="1" stop-color="#22c972"/>
+    </linearGradient>
+    <filter id="logoShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="22" stdDeviation="19" flood-color="#2a1439" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+  <rect x="61" y="61" width="390" height="390" rx="112" filter="url(#logoShadow)" fill="url(#logoBg)"/>
+  <path d="M103 270c89 51 180 51 273 0" fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round" opacity="0.5"/>
+  <path d="M161 160c59-56 134-62 226-18" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" opacity="0.72"/>
+  <path d="M256 118l32 75 81 7-62 52 19 79-70-42-70 42 19-79-62-52 81-7 32-75Z" fill="#fff7c9"/>
+  <circle cx="175" cy="187" r="34" fill="#ffffff" opacity="0.56"/>
+  <text x="256" y="401" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="68" fill="#ffffff">HD</text>
+</svg>

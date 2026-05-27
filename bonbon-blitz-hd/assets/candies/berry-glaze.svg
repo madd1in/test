@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Berry glaze candy">
+  <defs>
+    <radialGradient id="berryBody" cx="34%" cy="24%" r="76%">
+      <stop offset="0" stop-color="#fff7fb"/>
+      <stop offset="0.18" stop-color="#ff9ccc"/>
+      <stop offset="0.5" stop-color="#ec3f95"/>
+      <stop offset="0.78" stop-color="#a42073"/>
+      <stop offset="1" stop-color="#5d184f"/>
+    </radialGradient>
+    <linearGradient id="berryStripe" x1="82" x2="414" y1="102" y2="410">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.88"/>
+      <stop offset="0.34" stop-color="#ffd3e7" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="berryShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="26" stdDeviation="23" flood-color="#51113f" flood-opacity="0.36"/>
+    </filter>
+  </defs>
+  <path filter="url(#berryShadow)" d="M256 54c96 0 180 70 180 166 0 112-82 224-180 224S76 332 76 220C76 124 160 54 256 54Z" fill="url(#berryBody)"/>
+  <path d="M126 206c22-70 78-106 130-106 74 0 130 48 148 116-40-24-90-38-146-38-52 0-98 10-132 28Z" fill="#ffffff" opacity="0.2"/>
+  <path d="M145 317c74 42 148 40 222-6" fill="none" stroke="#ffbddb" stroke-width="34" stroke-linecap="round" opacity="0.42"/>
+  <path d="M176 168c48-48 114-54 174-12" fill="none" stroke="url(#berryStripe)" stroke-width="30" stroke-linecap="round"/>
+  <ellipse cx="199" cy="147" rx="48" ry="26" fill="#ffffff" opacity="0.68" transform="rotate(-24 199 147)"/>
+  <circle cx="337" cy="117" r="18" fill="#ffffff" opacity="0.55"/>
+  <path d="M249 78c-7-28 2-53 30-74 18 36 10 65-30 74Z" fill="#39c876"/>
+  <path d="M260 83c19-28 47-39 86-30-17 42-46 52-86 30Z" fill="#26a55f"/>
+</svg>

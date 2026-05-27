@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Sugar hammer">
+  <defs>
+    <linearGradient id="handle" x1="86" x2="183" y1="91" y2="230">
+      <stop offset="0" stop-color="#ffe0a3"/>
+      <stop offset="0.55" stop-color="#b96c32"/>
+      <stop offset="1" stop-color="#70402b"/>
+    </linearGradient>
+    <linearGradient id="head" x1="39" x2="200" y1="38" y2="115">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.5" stop-color="#9eeafd"/>
+      <stop offset="1" stop-color="#5d38d6"/>
+    </linearGradient>
+  </defs>
+  <path d="M94 98l28-28 100 100c9 9 9 24 0 33l-3 3c-9 9-24 9-33 0L86 106l8-8Z" fill="url(#handle)"/>
+  <path d="M48 54c29-30 79-31 110-4l14 13-73 73-13-14C58 92 48 54 48 54Z" fill="url(#head)"/>
+  <path d="M145 34l42 42-38 38-42-42 38-38Z" fill="#ffffff" opacity="0.44"/>
+  <path d="M70 68c24-10 48-8 72 7" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" opacity="0.82"/>
+</svg>

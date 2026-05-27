@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cocoa cube candy">
+  <defs>
+    <linearGradient id="cocoaBody" x1="112" x2="418" y1="76" y2="438">
+      <stop offset="0" stop-color="#ffe1a7"/>
+      <stop offset="0.16" stop-color="#d9823f"/>
+      <stop offset="0.48" stop-color="#8b431d"/>
+      <stop offset="0.78" stop-color="#4a251b"/>
+      <stop offset="1" stop-color="#261316"/>
+    </linearGradient>
+    <radialGradient id="cocoaLight" cx="35%" cy="20%" r="70%">
+      <stop offset="0" stop-color="#fff1c9" stop-opacity="0.82"/>
+      <stop offset="0.42" stop-color="#fff1c9" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#fff1c9" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="cocoaShadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="26" stdDeviation="23" flood-color="#2d1515" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+  <rect x="91" y="84" width="330" height="330" rx="86" filter="url(#cocoaShadow)" fill="url(#cocoaBody)" transform="rotate(8 256 249)"/>
+  <rect x="125" y="119" width="260" height="260" rx="66" fill="url(#cocoaLight)" transform="rotate(8 256 249)"/>
+  <path d="M151 205c63-36 140-34 210 4" fill="none" stroke="#fff0c7" stroke-width="28" stroke-linecap="round" opacity="0.4"/>
+  <path d="M160 309c58 33 125 35 195 8" fill="none" stroke="#3a1b18" stroke-width="28" stroke-linecap="round" opacity="0.22"/>
+  <path d="M215 126l-16 250" stroke="#fff0c7" stroke-width="20" stroke-linecap="round" opacity="0.18"/>
+  <path d="M318 135l-16 235" stroke="#fff0c7" stroke-width="20" stroke-linecap="round" opacity="0.15"/>
+  <ellipse cx="206" cy="154" rx="48" ry="22" fill="#ffffff" opacity="0.46" transform="rotate(-18 206 154)"/>
+</svg>

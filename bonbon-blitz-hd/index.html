@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bonbon Blitz HD</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar" aria-label="Spielstatus">
+        <div class="brand-cluster">
+          <img class="brand-mark" src="assets/ui/logo.svg" alt="" />
+          <div>
+            <h1>Bonbon Blitz HD</h1>
+            <span>Match-3 Arcade</span>
+          </div>
+        </div>
+        <button class="icon-button" id="pauseButton" type="button" aria-label="Pause">
+          <span aria-hidden="true">II</span>
+        </button>
+      </header>
+
+      <main class="game-layout">
+        <section class="stage-panel" aria-label="Spielfeld">
+          <canvas id="gameCanvas" width="960" height="960" tabindex="0" aria-label="Bonbon Blitz Spielfeld"></canvas>
+          <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        </section>
+
+        <aside class="hud" aria-label="Punktestand und Booster">
+          <section class="hud-panel score-panel" aria-label="Level">
+            <div class="metric-row">
+              <span>Level</span>
+              <strong id="levelValue">1</strong>
+            </div>
+            <div class="metric-row">
+              <span>Zuege</span>
+              <strong id="movesValue">25</strong>
+            </div>
+            <div class="progress-shell" aria-label="Fortschritt">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </section>
+
+          <section class="hud-panel" aria-label="Punkte">
+            <div class="score-large" id="scoreValue">0</div>
+            <div class="metric-row soft">
+              <span>Ziel</span>
+              <strong id="targetValue">12000</strong>
+            </div>
+            <div class="metric-row soft">
+              <span>Best</span>
+              <strong id="bestValue">0</strong>
+            </div>
+          </section>
+
+          <section class="hud-panel booster-panel" aria-label="Booster">
+            <button class="booster-button" id="hammerButton" type="button" aria-label="Zuckerhammer">
+              <img src="assets/ui/hammer.svg" alt="" />
+              <strong id="hammerCount">3</strong>
+            </button>
+            <button class="booster-button" id="shuffleButton" type="button" aria-label="Neu mischen">
+              <img src="assets/ui/shuffle.svg" alt="" />
+              <strong id="shuffleCount">2</strong>
+            </button>
+          </section>
+
+          <section class="hud-panel combo-panel" aria-label="Combo">
+            <span>Combo</span>
+            <strong id="comboValue">x1</strong>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div class="modal-layer" id="modalLayer" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <img src="assets/ui/logo.svg" alt="" />
+        <h2 id="modalTitle">Bonbon Blitz HD</h2>
+        <p id="modalCopy">Bereit.</p>
+        <div class="modal-actions">
+          <button id="primaryAction" type="button">Weiter</button>
+          <button id="secondaryAction" type="button">Neu</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>

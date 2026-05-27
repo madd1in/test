@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Prism swirl candy">
+  <defs>
+    <conicGradient id="prismBody" x="50%" y="50%">
+      <stop offset="0" stop-color="#ff4f9b"/>
+      <stop offset="0.18" stop-color="#ffb21a"/>
+      <stop offset="0.34" stop-color="#f4f45a"/>
+      <stop offset="0.5" stop-color="#22c972"/>
+      <stop offset="0.66" stop-color="#25b9ed"/>
+      <stop offset="0.82" stop-color="#814bf4"/>
+      <stop offset="1" stop-color="#ff4f9b"/>
+    </conicGradient>
+    <radialGradient id="prismGloss" cx="35%" cy="24%" r="80%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.96"/>
+      <stop offset="0.28" stop-color="#ffffff" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="prismShadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="26" stdDeviation="23" flood-color="#23104d" flood-opacity="0.36"/>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="184" filter="url(#prismShadow)" fill="url(#prismBody)"/>
+  <circle cx="256" cy="256" r="184" fill="url(#prismGloss)"/>
+  <path d="M136 256c44-80 122-104 206-82-88 15-122 57-111 126 11 66 69 77 137 47-70 72-180 76-232-2-20-29-21-60 0-89Z" fill="#ffffff" opacity="0.3"/>
+  <path d="M168 176c54-52 126-61 215-28" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" opacity="0.66"/>
+  <path d="M159 332c70 47 143 47 218 0" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" opacity="0.32"/>
+  <circle cx="200" cy="157" r="31" fill="#ffffff" opacity="0.58"/>
+  <circle cx="336" cy="210" r="16" fill="#ffffff" opacity="0.5"/>
+</svg>
