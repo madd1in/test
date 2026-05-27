@@ -10,6 +10,7 @@ const required = [
   "README.md",
   "package.json",
   "assets/vendor/three.module.js",
+  "assets/imagen/overcrest-rally-imagen-atlas.png",
   "assets/audio/bgm-frostpine.wav",
   "assets/audio/bgm-cinderwash.wav",
   "assets/audio/bgm-rainline.wav",
@@ -50,6 +51,12 @@ for (const file of ["js/tracks.js", "js/game.js"]) {
     if (stage.splits.length < 3) throw new Error(`${stage.name} needs more splits`);
     if (stage.notes.length < 8) throw new Error(`${stage.name} needs more pace notes`);
     if (stage.obstacles.length < 6) throw new Error(`${stage.name} needs more hazards`);
+    if (!Array.isArray(stage.surfaceZones) || stage.surfaceZones.length < 3) {
+      throw new Error(`${stage.name} needs surface zones`);
+    }
+    if (!Array.isArray(stage.jumps) || stage.jumps.length < 2) {
+      throw new Error(`${stage.name} needs jump crests`);
+    }
     if (!stage.music || !fs.existsSync(path.join(root, "assets/audio", stage.music))) {
       throw new Error(`${stage.name} is missing local BGM`);
     }
@@ -69,6 +76,9 @@ for (const file of ["js/tracks.js", "js/game.js"]) {
   if (!html.includes('id="audioButton"')) {
     throw new Error("Audio toggle button is missing");
   }
+  if (!html.includes('id="gripText"') || !html.includes('id="styleText"')) {
+    throw new Error("Expanded rally HUD is missing");
+  }
 
   const gameSource = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
   if (!gameSource.includes("steer: (left ? 1 : 0) - (right ? 1 : 0)")) {
@@ -77,10 +87,20 @@ for (const file of ["js/tracks.js", "js/game.js"]) {
   if (!gameSource.includes("playMusicForStage") || !gameSource.includes("playSfx")) {
     throw new Error("Audio hooks are missing");
   }
+  if (!gameSource.includes("triggerJumpIfNeeded") || !gameSource.includes("findSurfaceZone")) {
+    throw new Error("Expanded physics hooks are missing");
+  }
+  if (!gameSource.includes("overcrest-rally-imagen-atlas.png")) {
+    throw new Error("Imagen atlas hook is missing");
+  }
 
   const vendorSize = fs.statSync(path.join(root, "assets/vendor/three.module.js")).size;
   if (vendorSize < 1000000) {
     throw new Error("Three.js vendor file looks truncated");
+  }
+  const imagenSize = fs.statSync(path.join(root, "assets/imagen/overcrest-rally-imagen-atlas.png")).size;
+  if (imagenSize < 500000) {
+    throw new Error("Imagen atlas looks truncated");
   }
 
   console.log("Overcrest Rally 3D smoke test passed");

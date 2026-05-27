@@ -27,6 +27,8 @@ const ui = {
   splitText: document.getElementById("splitText"),
   speedText: document.getElementById("speedText"),
   damageText: document.getElementById("damageText"),
+  gripText: document.getElementById("gripText"),
+  styleText: document.getElementById("styleText"),
   noteText: document.getElementById("noteText"),
   surfaceText: document.getElementById("surfaceText"),
   toast: document.getElementById("toast"),
@@ -40,6 +42,8 @@ const REVERSE_FORCE = 22;
 const TURN_RATE = 2.25;
 const CAR_HALF_WIDTH = 1.45;
 const MAX_DAMAGE = 100;
+const GRAVITY = 24;
+const JUMP_TRIGGER_LENGTH = 16;
 const keys = new Set();
 const touch = new Set();
 const clock = new THREE.Clock();
@@ -62,9 +66,12 @@ let currentSplit = 0;
 let lastNoteText = "";
 let obstacles = [];
 let gates = [];
+let jumpMarkers = [];
 let dustParticles = [];
 let weatherSystem = null;
 let driftSfxBucket = 0;
+let currentGrip = 1;
+let activeZone = null;
 
 const audio = {
   enabled: true,
@@ -81,6 +88,12 @@ const car = {
   position: new THREE.Vector3(),
   velocity: { x: 0, z: 0 },
   heading: 0,
+  yVelocity: 0,
+  airborne: false,
+  airTime: 0,
+  suspension: 0,
+  slip: 0,
+  lastJumpId: "",
   progress: 0,
   bestProgress: 0,
   lateral: 0,
@@ -93,6 +106,16 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const textureLoader = new THREE.TextureLoader();
+const imagenAtlasTexture = textureLoader.load("assets/imagen/overcrest-rally-imagen-atlas.png");
+imagenAtlasTexture.colorSpace = THREE.SRGBColorSpace;
+imagenAtlasTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+const carDecalMaterial = new THREE.MeshStandardMaterial({
+  map: atlasRegion(0.52, 0.72, 0.44, 0.2),
+  roughness: 0.46,
+  metalness: 0.12,
+});
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 700);
@@ -141,6 +164,10 @@ window.overcrestRally = {
     damage: car.damage,
     driftScore: car.driftScore,
     surface: activeSurface,
+    grip: currentGrip,
+    airborne: car.airborne,
+    airTime: car.airTime,
+    slip: car.slip,
     audioEnabled: audio.enabled,
   }),
   startDemo: () => startStage(true),
@@ -257,6 +284,9 @@ function loadStage(index) {
   dustParticles = [];
   obstacles = [];
   gates = [];
+  jumpMarkers = [];
+  activeZone = null;
+  currentGrip = 1;
   materials = createStageMaterials(stage);
 
   scene.background = new THREE.Color(stage.palette.sky);
@@ -266,8 +296,11 @@ function loadStage(index) {
   worldGroup.add(createRibbonMesh(stage, stage.width + 18, materials.shoulder, -0.06, 4));
   worldGroup.add(createRibbonMesh(stage, stage.width, materials.road, 0.02, 3));
   worldGroup.add(createRoadPaint(stage));
+  buildSurfaceZones(stage);
+  buildJumpMarkers(stage);
   buildGates(stage);
   buildObstacles(stage);
+  buildImagenTrackside(stage);
   buildScenery(stage);
   weatherSystem = createWeatherSystem(stage);
   if (weatherSystem) worldGroup.add(weatherSystem.points);
@@ -317,6 +350,12 @@ function resetCar() {
   car.velocity.x = 0;
   car.velocity.z = 0;
   car.heading = start.angle;
+  car.yVelocity = 0;
+  car.airborne = false;
+  car.airTime = 0;
+  car.suspension = 0;
+  car.slip = 0;
+  car.lastJumpId = "";
   car.progress = 0;
   car.bestProgress = 0;
   car.lateral = 0;
@@ -367,10 +406,13 @@ function updateCar(dt) {
   activeSurface = "road";
   if (absLateral > roadEdge) activeSurface = "shoulder";
   if (absLateral > roadEdge + 8) activeSurface = "offroad";
+  activeZone = findSurfaceZone(stage, before.progress, before.lateral);
+  if (activeZone) activeSurface = activeZone.type;
 
   const surface = SURFACES[activeSurface];
   const wetFactor = stage.weather === "rain" ? 0.82 : 1;
   const snowFactor = stage.weather === "snow" ? 0.9 : 1;
+  const airborneFactor = car.airborne ? 0.22 : 1;
   const forwardX = Math.sin(car.heading);
   const forwardZ = Math.cos(car.heading);
   const rightX = Math.cos(car.heading);
@@ -378,6 +420,8 @@ function updateCar(dt) {
   const forwardSpeed = car.velocity.x * forwardX + car.velocity.z * forwardZ;
   const lateralSpeed = car.velocity.x * rightX + car.velocity.z * rightZ;
   const speed = Math.hypot(car.velocity.x, car.velocity.z);
+  car.slip = speed > 0.1 ? Math.abs(lateralSpeed) / Math.max(speed, 1) : 0;
+  currentGrip = clamp((surface.grip / SURFACES.road.grip) * wetFactor * airborneFactor, 0.08, 1.15);
   const throttle = controls.throttle;
   const brake = controls.brake;
 
@@ -393,13 +437,14 @@ function updateCar(dt) {
 
   const steerSpeed = clamp(Math.abs(forwardSpeed) / 34, 0.18, 1.18);
   const handbrakeBoost = controls.handbrake ? 1.48 : 1;
-  car.heading += controls.steer * TURN_RATE * handbrakeBoost * steerSpeed * dt * Math.sign(forwardSpeed || 1);
+  const damageSteer = 1 - car.damage * 0.003;
+  car.heading += controls.steer * TURN_RATE * handbrakeBoost * steerSpeed * damageSteer * airborneFactor * dt * Math.sign(forwardSpeed || 1);
 
-  const lateralGrip = (controls.handbrake ? surface.handbrakeGrip : surface.grip) * wetFactor;
+  const lateralGrip = (controls.handbrake ? surface.handbrakeGrip : surface.grip) * wetFactor * airborneFactor;
   car.velocity.x -= rightX * lateralSpeed * lateralGrip * dt;
   car.velocity.z -= rightZ * lateralSpeed * lateralGrip * dt;
 
-  const drag = surface.drag + (car.damage / MAX_DAMAGE) * 0.35;
+  const drag = surface.drag + (car.damage / MAX_DAMAGE) * 0.35 + Math.min(car.slip, 1.8) * 0.08;
   const dragFactor = Math.max(0, 1 - drag * dt);
   car.velocity.x *= dragFactor;
   car.velocity.z *= dragFactor;
@@ -424,7 +469,8 @@ function updateCar(dt) {
   }
 
   const roadY = roadElevation(stage, after.progress);
-  car.position.y += (roadY + 0.7 - car.position.y) * clamp(dt * 12, 0, 1);
+  triggerJumpIfNeeded(after, speed);
+  updateVerticalPhysics(dt, roadY, speed);
 
   if (Math.abs(after.lateral) > roadEdge + 16) {
     const side = Math.sign(after.lateral);
@@ -445,6 +491,71 @@ function updateCar(dt) {
 
   if (speed > 13 && (activeSurface !== "road" || Math.abs(lateralSpeed) > 7 || throttle > 0.5)) {
     spawnDust(activeSurface, speed);
+  }
+}
+
+function findSurfaceZone(activeStage, progress, lateral) {
+  for (const zone of activeStage.surfaceZones) {
+    const distance = Math.abs(progress - zone.progress);
+    if (distance <= zone.length / 2 && Math.abs(lateral - zone.lateral) <= zone.width / 2) {
+      return zone;
+    }
+  }
+  return null;
+}
+
+function triggerJumpIfNeeded(trackInfo, speed) {
+  if (car.airborne || speed < 23) return;
+
+  const jump = stage.jumps.find((candidate) => {
+    const distance = Math.abs(trackInfo.progress - candidate.progress);
+    return distance < JUMP_TRIGGER_LENGTH / 2 && Math.abs(trackInfo.lateral) < candidate.width / 2;
+  });
+
+  if (!jump || car.lastJumpId === jump.id) return;
+
+  car.lastJumpId = jump.id;
+  car.airborne = true;
+  car.airTime = 0;
+  car.yVelocity = jump.force + speed * 0.055;
+  car.driftScore += Math.round(speed * 0.9);
+  showToast(jump.label);
+  playSfx("drift");
+}
+
+function updateVerticalPhysics(dt, roadY, speed) {
+  const targetY = roadY + 0.7;
+  if (car.airborne) {
+    car.airTime += dt;
+    car.yVelocity -= GRAVITY * dt;
+    car.position.y += car.yVelocity * dt;
+
+    if (car.position.y <= targetY && car.yVelocity < 0) {
+      const landingForce = Math.abs(car.yVelocity);
+      car.position.y = targetY;
+      car.airborne = false;
+      car.suspension = clamp(landingForce / 18, 0, 1.8);
+      if (landingForce > 13.5 || Math.abs(car.lateral) > stage.width * 0.58) {
+        addDamage((landingForce - 10) * 0.65, "Landing");
+        playSfx("hit");
+      } else {
+        car.driftScore += Math.round(car.airTime * speed * 7);
+        showToast("Clean landing");
+        playSfx("split");
+      }
+    }
+    return;
+  }
+
+  const bump = Math.sin(car.progress * 0.16 + stage.scenerySeed) * 0.025 + Math.sin(car.progress * 0.047) * 0.035;
+  car.position.y += (targetY + bump - car.position.y) * clamp(dt * 12, 0, 1);
+  car.suspension += ((Math.abs(bump) * 12 + car.slip * 0.15) - car.suspension) * clamp(dt * 8, 0, 1);
+
+  if (car.lastJumpId) {
+    const oldJump = stage.jumps.find((jump) => jump.id === car.lastJumpId);
+    if (!oldJump || Math.abs(car.progress - oldJump.progress) > JUMP_TRIGGER_LENGTH * 1.8) {
+      car.lastJumpId = "";
+    }
   }
 }
 
@@ -540,7 +651,7 @@ function finishStage() {
   const delta = elapsed - stage.goalTime;
   const rank = delta <= -5 && car.damage < 20 ? "Gold" : delta <= 8 && car.damage < 45 ? "Silver" : "Bronze";
   ui.resultTitle.textContent = `${rank} Finish`;
-  ui.resultStats.textContent = `${formatTime(elapsed)} | Damage ${Math.round(car.damage)}% | Drift ${Math.round(car.driftScore)}`;
+  ui.resultStats.textContent = `${formatTime(elapsed)} | Damage ${Math.round(car.damage)}% | Style ${Math.round(car.driftScore)}`;
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   showToast("Stage complete");
@@ -565,8 +676,10 @@ function updateCarVisual(dt) {
 
   const lateralTilt = clamp(car.lateral / (stage.width * 3), -0.16, 0.16);
   const speedTilt = clamp(speed / 80, 0, 1) * 0.06;
+  const jumpPitch = car.airborne ? clamp(car.yVelocity * 0.025, -0.28, 0.22) : 0;
+  const suspensionDip = clamp(car.suspension * 0.08, 0, 0.18);
   car.body.rotation.z += (-lateralTilt - car.body.rotation.z) * clamp(dt * 8, 0, 1);
-  car.body.rotation.x += ((speedTilt - 0.04) - car.body.rotation.x) * clamp(dt * 7, 0, 1);
+  car.body.rotation.x += ((speedTilt - 0.04 - suspensionDip + jumpPitch) - car.body.rotation.x) * clamp(dt * 7, 0, 1);
 
   for (const wheel of car.wheels) {
     wheel.rotation.x -= speed * dt * 2.5;
@@ -612,7 +725,9 @@ function updateHud() {
   ui.timeText.textContent = formatTime(elapsed);
   ui.speedText.textContent = String(speed);
   ui.damageText.textContent = `${Math.round(car.damage)}%`;
-  ui.surfaceText.textContent = SURFACES[activeSurface].label;
+  ui.gripText.textContent = `${Math.round(currentGrip * 100)}`;
+  ui.styleText.textContent = `${Math.round(car.driftScore)}`;
+  ui.surfaceText.textContent = activeZone?.label || SURFACES[activeSurface].label;
 }
 
 function showToast(message) {
@@ -691,6 +806,22 @@ function createStageMaterials(activeStage) {
       emissiveIntensity: 0.2,
       roughness: 0.5,
     }),
+    imagenPoster: new THREE.MeshStandardMaterial({
+      map: atlasRegion(0, 0.5, 0.5, 0.5),
+      roughness: 0.5,
+      metalness: 0.05,
+    }),
+    imagenChevron: new THREE.MeshStandardMaterial({
+      map: atlasRegion(0.52, 0.42, 0.44, 0.22),
+      roughness: 0.62,
+      metalness: 0.04,
+    }),
+    imagenSplash: new THREE.MeshBasicMaterial({
+      map: atlasRegion(0.43, 0.08, 0.5, 0.18),
+      transparent: true,
+      opacity: 0.68,
+      depthWrite: false,
+    }),
     dust: new THREE.MeshBasicMaterial({
       color: activeStage.weather === "snow" ? 0xf1f6f2 : activeStage.weather === "rain" ? 0xbad2d5 : 0xd9b17c,
       transparent: true,
@@ -698,6 +829,16 @@ function createStageMaterials(activeStage) {
       depthWrite: false,
     }),
   };
+}
+
+function atlasRegion(x, y, width, height) {
+  const texture = imagenAtlasTexture.clone();
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.offset.set(x, y);
+  texture.repeat.set(width, height);
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function createTextures(activeStage) {
@@ -838,6 +979,67 @@ function createRoadPaint(activeStage) {
   }
 
   return group;
+}
+
+function buildSurfaceZones(activeStage) {
+  for (const zone of activeStage.surfaceZones) {
+    const sample = sampleStage(activeStage, zone.progress, zone.lateral);
+    const geometry = new THREE.PlaneGeometry(zone.width, zone.length);
+    geometry.rotateX(-Math.PI / 2);
+    const material = materials.imagenSplash.clone();
+    material.opacity = zone.type === "ice" || zone.type === "water" ? 0.5 : 0.62;
+    const decal = new THREE.Mesh(geometry, material);
+    decal.position.set(sample.x, sample.y + 0.12, sample.z);
+    decal.rotation.y = sample.angle;
+    decal.renderOrder = 2;
+    worldGroup.add(decal);
+  }
+}
+
+function buildJumpMarkers(activeStage) {
+  const rampGeometry = new THREE.BoxGeometry(1, 0.24, 4.8);
+  for (const jump of activeStage.jumps) {
+    const sample = sampleStage(activeStage, jump.progress, 0);
+    const ramp = new THREE.Mesh(rampGeometry, materials.imagenChevron);
+    ramp.scale.set(jump.width, 1, 1);
+    ramp.position.set(sample.x, sample.y + 0.2, sample.z);
+    ramp.rotation.y = sample.angle;
+    ramp.castShadow = true;
+    ramp.receiveShadow = true;
+    jumpMarkers.push(ramp);
+    worldGroup.add(ramp);
+  }
+}
+
+function buildImagenTrackside(activeStage) {
+  const boardGeometry = new THREE.BoxGeometry(10, 6, 0.42);
+  const chevronGeometry = new THREE.BoxGeometry(8, 2.4, 0.38);
+  const postGeometry = new THREE.CylinderGeometry(0.14, 0.18, 4.2, 10);
+  const placements = [0.08, 0.22, 0.39, 0.57, 0.72, 0.91];
+
+  placements.forEach((ratio, index) => {
+    const side = index % 2 === 0 ? -1 : 1;
+    const progress = activeStage.totalLength * ratio;
+    const lateral = side * (activeStage.width / 2 + 7.5);
+    const sample = sampleStage(activeStage, progress, lateral);
+    const group = new THREE.Group();
+    group.position.set(sample.x, sample.y, sample.z);
+    group.rotation.y = sample.angle + (side > 0 ? Math.PI : 0);
+
+    const board = new THREE.Mesh(index % 3 === 0 ? boardGeometry : chevronGeometry, index % 3 === 0 ? materials.imagenPoster : materials.imagenChevron);
+    board.position.set(0, index % 3 === 0 ? 4.2 : 2.8, 0);
+    board.castShadow = true;
+    group.add(board);
+
+    for (const postX of [-3.8, 3.8]) {
+      const post = new THREE.Mesh(postGeometry, materials.dark);
+      post.position.set(postX, 2, 0.18);
+      post.castShadow = true;
+      group.add(post);
+    }
+
+    worldGroup.add(group);
+  });
 }
 
 function buildGates(activeStage) {
@@ -1088,6 +1290,11 @@ function createCar() {
   hood.castShadow = true;
   body.add(hood);
 
+  const hoodDecal = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.05, 0.72), carDecalMaterial);
+  hoodDecal.position.set(0, 1.23, 1.16);
+  hoodDecal.castShadow = true;
+  body.add(hoodDecal);
+
   const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.92, 1.62), glass);
   cabin.position.set(0, 1.35, -0.45);
   cabin.castShadow = true;
@@ -1097,6 +1304,14 @@ function createCar() {
   wing.position.set(0, 1.45, -2.25);
   wing.castShadow = true;
   body.add(wing);
+
+  for (const side of [-1, 1]) {
+    const sideDecal = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.58, 2.2), carDecalMaterial);
+    sideDecal.position.set(side * 1.56, 0.96, -0.18);
+    sideDecal.rotation.z = side * 0.03;
+    sideDecal.castShadow = true;
+    body.add(sideDecal);
+  }
 
   for (const x of [-0.72, 0.72]) {
     const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.22, 0.12), light);
@@ -1140,6 +1355,15 @@ function spawnDust(surfaceName, speed) {
   const rightZ = -Math.sin(car.heading);
   const geometry = new THREE.SphereGeometry(0.32 + Math.random() * 0.32, 8, 6);
   const material = materials.dust.clone();
+  const color = {
+    ice: 0xe7f7ff,
+    snowpack: 0xf3f7ef,
+    dustwash: 0xd8a162,
+    mud: 0x7a5136,
+    water: 0x73c7d9,
+    slick: 0x2d3537,
+  }[surfaceName];
+  if (color) material.color.setHex(color);
   material.opacity = surfaceName === "road" ? 0.18 : 0.42;
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(
