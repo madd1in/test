@@ -47,6 +47,8 @@ const ui = {
   resultEyebrow: document.getElementById("resultEyebrow"),
   resultTitle: document.getElementById("resultTitle"),
   resultStats: document.getElementById("resultStats"),
+  reticle: document.getElementById("reticle"),
+  topActions: document.querySelector(".top-actions"),
   toast: document.getElementById("toast"),
   damageFlash: document.getElementById("damageFlash"),
   touchControls: document.getElementById("touchControls"),
@@ -119,6 +121,8 @@ const textures = {
   signalBeacon: loadTexture("assets/generated/nova-signal-beacon.png", false),
   auroraRibbon: loadTexture("assets/generated/nova-aurora-ribbon.png", false),
   slipstream: loadTexture("assets/generated/nova-slipstream-wake.png", false),
+  imagenPrismGate: loadTexture("assets/generated/imagen/nova-prism-gate-imagen-hd.png", false),
+  imagenAegisCore: loadTexture("assets/generated/imagen/nova-aegis-core-imagen-hd.png", false),
 };
 scene.background = textures.nebula;
 
@@ -249,6 +253,15 @@ const materials = {
     side: THREE.DoubleSide,
     blending: THREE.AdditiveBlending,
   }),
+  imagenSetpiece: new THREE.MeshBasicMaterial({
+    map: textures.imagenPrismGate,
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+  }),
   dataCore: new THREE.MeshStandardMaterial({
     color: 0xf6fbff,
     emissive: 0x44e6ff,
@@ -286,8 +299,17 @@ const materials = {
     color: 0xffca62,
     roughness: 0.1,
     metalness: 0.2,
+    map: textures.imagenAegisCore,
     emissive: 0xff5f9a,
     emissiveIntensity: 1.1,
+  }),
+  bossHalo: new THREE.SpriteMaterial({
+    map: textures.imagenAegisCore,
+    color: 0x8ffcff,
+    transparent: true,
+    opacity: 0.32,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
   }),
 };
 
@@ -306,6 +328,7 @@ const geometries = {
   signalBeacon: new THREE.OctahedronGeometry(0.54, 1),
   slipstreamRing: new THREE.TorusGeometry(1, 0.035, 8, 72),
   slipstreamWake: new THREE.PlaneGeometry(1, 1),
+  imagenSetpiece: new THREE.PlaneGeometry(170, 96),
 };
 
 const staticObjects = {
@@ -317,6 +340,7 @@ const staticObjects = {
   supplyPods: [],
   signalBeacons: [],
   slipstreams: [],
+  imagenSetpieces: [],
 };
 
 const input = {
@@ -667,6 +691,8 @@ function createCockpitOverlay() {
 }
 
 function createStaticWorld() {
+  createImagenSetpieces();
+
   for (const gate of TUNNEL_GATES) {
     const mesh = new THREE.Mesh(geometries.gate, materials.gate.clone());
     const center = railCenter(gate.progress);
@@ -734,6 +760,26 @@ function createStaticWorld() {
     placeRailObject(mesh, stream.progress, stream.x, stream.y);
     worldGroup.add(mesh);
     staticObjects.slipstreams.push({ data: stream, mesh });
+  }
+}
+
+function createImagenSetpieces() {
+  const configs = [
+    { id: "imagen-gate-orion", progress: 1040, x: 24, y: 20, scale: 0.62, rot: -0.08, opacity: 0.2 },
+    { id: "imagen-gate-relay", progress: 2180, x: -34, y: -6, scale: 0.74, rot: 0.12, opacity: 0.24 },
+    { id: "imagen-gate-core", progress: 3260, x: 12, y: 28, scale: 0.92, rot: -0.04, opacity: 0.3 },
+  ];
+  for (const config of configs) {
+    const mesh = new THREE.Mesh(geometries.imagenSetpiece, materials.imagenSetpiece.clone());
+    const center = railCenter(config.progress);
+    mesh.name = config.id;
+    mesh.position.set(center.x + config.x, center.y + config.y, -config.progress - 180);
+    mesh.scale.set(config.scale, config.scale, 1);
+    mesh.rotation.z = config.rot;
+    mesh.material.opacity = config.opacity;
+    mesh.userData = { ...config, baseOpacity: config.opacity, baseRot: config.rot };
+    worldGroup.add(mesh);
+    staticObjects.imagenSetpieces.push(mesh);
   }
 }
 
@@ -902,6 +948,11 @@ function createEnemyMesh(type, elite = false) {
 
 function createBossMesh() {
   const group = new THREE.Group();
+  const halo = new THREE.Sprite(materials.bossHalo.clone());
+  halo.name = "boss-imagen-halo";
+  halo.position.z = 0.62;
+  halo.scale.set(9.2, 9.2, 1);
+  group.add(halo);
   const core = new THREE.Mesh(new THREE.OctahedronGeometry(2.2, 1), materials.bossCore);
   group.add(core);
   const shell = new THREE.Mesh(new THREE.DodecahedronGeometry(3.15, 1), materials.boss);
@@ -1035,9 +1086,17 @@ function resetGame(mode = "playing") {
   ui.results.classList.add("hidden");
   ui.results.classList.remove("active");
   ui.bossBar.classList.add("hidden");
+  setGameplayChrome(mode === "playing");
   ui.pauseButton.textContent = "II";
   showToast(mode === "menu" ? "" : "Signal gruen", 1.2);
   updateHud(true);
+}
+
+function setGameplayChrome(visible) {
+  ui.hud.classList.toggle("hidden", !visible);
+  ui.reticle.classList.toggle("hidden", !visible);
+  ui.topActions.classList.toggle("hidden", !visible);
+  ui.touchControls.classList.toggle("hidden", !visible);
 }
 
 function startGame() {
@@ -1681,6 +1740,12 @@ function updateBoss(dt) {
   placeRailObject(boss.mesh, boss.progress, boss.x, boss.y);
   boss.mesh.rotation.y += dt * 0.28;
   boss.mesh.rotation.z = Math.sin(boss.age * 0.8) * 0.22;
+  const halo = boss.mesh.getObjectByName("boss-imagen-halo");
+  if (halo) {
+    halo.material.opacity = 0.24 + Math.sin(boss.age * 2.4) * 0.08;
+    halo.material.rotation += dt * 0.08;
+    halo.scale.setScalar(8.8 + Math.sin(boss.age * 1.7) * 0.45);
+  }
 
   boss.fireTimer -= dt;
   boss.volleyTimer -= dt;
@@ -1883,6 +1948,12 @@ function damageBoss(damage) {
 }
 
 function updateStaticInteractions(dt) {
+  for (const mesh of staticObjects.imagenSetpieces) {
+    const dz = mesh.userData.progress - state.progress;
+    mesh.visible = dz > -360 && dz < 980;
+    mesh.rotation.z = mesh.userData.baseRot + Math.sin(state.elapsed * 0.18 + mesh.userData.progress) * 0.025;
+    mesh.material.opacity = mesh.userData.baseOpacity + Math.sin(state.elapsed * 0.9 + mesh.userData.progress) * 0.035;
+  }
   for (const entry of staticObjects.gates) {
     const dz = entry.data.progress - state.progress;
     entry.mesh.visible = dz > -60 && dz < 480;
@@ -2117,6 +2188,7 @@ function finishMission(success) {
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
+  setGameplayChrome(false);
   ui.pauseButton.textContent = "II";
   if (success) playSfx("win", 0.58, 1);
   playTone(success ? 640 : 120, success ? 0.24 : 0.42, success ? "triangle" : "sawtooth", 0.052);
