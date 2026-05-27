@@ -2,7 +2,9 @@
   "use strict";
 
   const BOARD_SIZE = 8;
-  const PIECE_TYPES = ["berry", "citrus", "mint", "plum", "ruby", "cocoa"];
+  const MAX_RENDER_DPR = 1.5;
+  const FX_LIMIT = 96;
+  const PIECE_TYPES = ["berry", "citrus", "mint", "plum", "ruby", "cocoa", "vanilla", "sky"];
   const ASSET_PATHS = {
     berry: "assets/candies/berry-glaze.svg",
     citrus: "assets/candies/citrus-star.svg",
@@ -10,7 +12,20 @@
     plum: "assets/candies/plum-moon.svg",
     ruby: "assets/candies/ruby-heart.svg",
     cocoa: "assets/candies/cocoa-cube.svg",
+    vanilla: "assets/candies/vanilla-spiral.svg",
+    sky: "assets/candies/sky-jelly.svg",
     prism: "assets/candies/prism-swirl.svg"
+  };
+
+  const AUDIO_PATHS = {
+    bgm: "assets/audio/bgm/marzipan-compass.mp3",
+    sfx: {
+      confirm: "assets/audio/sfx/ui-confirm.mp3",
+      match: "assets/audio/sfx/pickup-gem.mp3",
+      cascade: "assets/audio/sfx/treasure-clink.mp3",
+      booster: "assets/audio/sfx/upgrade-card.mp3",
+      soft: "assets/audio/sfx/soft-chime.mp3"
+    }
   };
 
   const PIECE_COLORS = {
@@ -20,6 +35,8 @@
     plum: "#8b4cf4",
     ruby: "#ef333b",
     cocoa: "#8b431d",
+    vanilla: "#ffd96a",
+    sky: "#25b9ed",
     prism: "#2bb9f0"
   };
 
@@ -33,7 +50,10 @@
     best: document.getElementById("bestValue"),
     combo: document.getElementById("comboValue"),
     progress: document.getElementById("progressFill"),
+    rush: document.getElementById("rushValue"),
+    rushFill: document.getElementById("rushFill"),
     toast: document.getElementById("toast"),
+    audio: document.getElementById("audioButton"),
     pause: document.getElementById("pauseButton"),
     hammer: document.getElementById("hammerButton"),
     hammerCount: document.getElementById("hammerCount"),
@@ -50,6 +70,8 @@
   let lastId = 1;
   let toastTimer = 0;
   let audioContext = null;
+  let renderScheduled = false;
+  let assetsReady = false;
 
   const metrics = {
     width: 960,
@@ -61,6 +83,19 @@
   };
 
   const images = {};
+  const audio = {
+    enabled: localStorage.getItem("bonbon-blitz-audio") !== "off",
+    bgm: null,
+    sfx: {}
+  };
+  const boardCache = {
+    canvas: null,
+    key: ""
+  };
+  const spriteCache = {
+    key: "",
+    items: {}
+  };
   const state = {
     board: [],
     phase: "boot",
@@ -74,6 +109,7 @@
     target: 12000,
     best: Number(localStorage.getItem("bonbon-blitz-best") || 0),
     combo: 0,
+    rush: 0,
     hammer: 3,
     shuffle: 2,
     particles: [],
@@ -121,9 +157,65 @@
     );
   }
 
+  function preloadAudio() {
+    audio.bgm = new Audio(AUDIO_PATHS.bgm);
+    audio.bgm.loop = true;
+    audio.bgm.preload = "metadata";
+    audio.bgm.volume = 0.24;
+
+    for (const [key, src] of Object.entries(AUDIO_PATHS.sfx)) {
+      const clip = new Audio(src);
+      clip.preload = "auto";
+      audio.sfx[key] = clip;
+    }
+    updateAudioUI();
+  }
+
+  function updateAudioUI() {
+    ui.audio.classList.toggle("is-muted", !audio.enabled);
+    ui.audio.setAttribute("aria-pressed", String(audio.enabled));
+  }
+
+  function unlockAudio() {
+    if (audioContext?.state === "suspended") {
+      audioContext.resume();
+    }
+    if (audio.enabled && audio.bgm?.paused) {
+      audio.bgm.play().catch(() => {});
+    }
+  }
+
+  function toggleAudio() {
+    if (audio.enabled && audio.bgm?.paused) {
+      unlockAudio();
+      playSfx("soft", 0.35);
+      return;
+    }
+    audio.enabled = !audio.enabled;
+    localStorage.setItem("bonbon-blitz-audio", audio.enabled ? "on" : "off");
+    updateAudioUI();
+    if (audio.enabled) {
+      unlockAudio();
+      playSfx("soft", 0.35);
+    } else if (audio.bgm) {
+      audio.bgm.pause();
+    }
+  }
+
+  function playSfx(name, volume = 0.45) {
+    const source = audio.sfx[name];
+    if (!audio.enabled || !source) {
+      return false;
+    }
+    const clip = source.cloneNode();
+    clip.volume = volume;
+    clip.play().catch(() => {});
+    return true;
+  }
+
   function computeMetrics() {
     const rect = canvas.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.min(window.devicePixelRatio || 1, MAX_RENDER_DPR);
     metrics.width = Math.max(320, rect.width);
     metrics.height = Math.max(320, rect.height);
     canvas.width = Math.floor(metrics.width * dpr);
@@ -135,6 +227,15 @@
     metrics.originX = (metrics.width - metrics.boardPx) / 2;
     metrics.originY = (metrics.height - metrics.boardPx) / 2;
     syncTileTargets(true);
+    invalidateRenderCaches();
+    requestRender();
+  }
+
+  function invalidateRenderCaches() {
+    boardCache.canvas = null;
+    boardCache.key = "";
+    spriteCache.key = "";
+    spriteCache.items = {};
   }
 
   function tileCenter(row, col) {
@@ -310,6 +411,7 @@
   function startNewGame() {
     state.level = 1;
     state.score = 0;
+    state.rush = 0;
     state.hammer = 3;
     state.shuffle = 2;
     startLevel();
@@ -340,12 +442,15 @@
     ui.target.textContent = formatNumber(state.target);
     ui.best.textContent = formatNumber(state.best);
     ui.combo.textContent = `x${Math.max(1, state.combo || 1)}`;
+    ui.rush.textContent = `${Math.floor(state.rush)}%`;
+    ui.rushFill.style.width = `${clamp(state.rush, 0, 100)}%`;
     ui.hammerCount.textContent = state.hammer;
     ui.shuffleCount.textContent = state.shuffle;
     ui.hammer.classList.toggle("is-active", state.boosterMode === "hammer");
     ui.shuffle.classList.toggle("is-active", state.boosterMode === "shuffle");
     const percent = clamp((state.score / state.target) * 100, 0, 100);
     ui.progress.style.width = `${percent}%`;
+    requestRender();
   }
 
   function showToast(message) {
@@ -431,7 +536,7 @@
     state.boosterMode = null;
     tile.scale = 1.08;
     updateUI();
-    playTone(540, 0.035, "sine", 0.025);
+    playSfx("confirm", 0.24) || playTone(540, 0.035, "sine", 0.025);
   }
 
   async function attemptSwap(a, b) {
@@ -444,7 +549,7 @@
     state.boosterMode = null;
     updateUI();
     swapTiles(a, b);
-    playTone(420, 0.045, "triangle", 0.035);
+    playSfx("confirm", 0.28) || playTone(420, 0.045, "triangle", 0.035);
     await wait(150);
 
     const specialSwap = Boolean(a.special || b.special);
@@ -453,7 +558,7 @@
     if (!specialSwap && matches.length === 0) {
       swapTiles(a, b);
       state.shake = 1;
-      playTone(150, 0.08, "sawtooth", 0.02);
+      playSfx("soft", 0.22) || playTone(150, 0.08, "sawtooth", 0.02);
       showToast("Knapp daneben");
       await wait(190);
       state.phase = "ready";
@@ -564,7 +669,7 @@
         });
       }
       showToast("Prisma-Kette");
-      playTone(780, 0.11, "sine", 0.045);
+      playSfx("cascade", 0.5) || playTone(780, 0.11, "sine", 0.045);
     } else {
       if (a.special) {
         clearSet.add(a);
@@ -631,6 +736,18 @@
     return clearSet;
   }
 
+  function chargeRush(clearCount, center) {
+    const gain = Math.min(48, clearCount * 5 + Math.max(0, state.combo - 1) * 9);
+    state.rush += gain;
+    if (state.rush >= 100) {
+      state.rush -= 100;
+      state.hammer += 1;
+      state.floaters.push({ text: "Hammer +1", x: center.x, y: center.y - metrics.tile * 0.22, life: 1 });
+      showToast("Sugar Rush");
+      playSfx("booster", 0.55) || playTone(920, 0.13, "sine", 0.04);
+    }
+  }
+
   async function clearTilesAndCascade(clearSet) {
     if (!clearSet.size) {
       state.phase = "ready";
@@ -642,7 +759,8 @@
     state.best = Math.max(state.best, state.score);
     const center = averageTilePosition(clearSet);
     state.floaters.push({ text: `+${formatNumber(gained)}`, x: center.x, y: center.y, life: 1 });
-    playTone(500 + Math.min(5, state.combo) * 70, 0.08, "sine", 0.04);
+    playSfx(clearSet.size > 5 || state.combo > 1 ? "cascade" : "match", 0.44) || playTone(500 + Math.min(5, state.combo) * 70, 0.08, "sine", 0.04);
+    chargeRush(clearSet.size, center);
 
     for (const tile of clearSet) {
       if (state.board[tile.row]?.[tile.col] === tile) {
@@ -707,7 +825,7 @@
     updateUI();
 
     if (state.score >= state.target) {
-      playTone(880, 0.18, "sine", 0.04);
+      playSfx("booster", 0.5) || playTone(880, 0.18, "sine", 0.04);
       showModal("win");
       return;
     }
@@ -735,7 +853,7 @@
     state.boosterMode = null;
     state.selected = null;
     updateUI();
-    playTone(210, 0.06, "square", 0.04);
+    playSfx("booster", 0.48) || playTone(210, 0.06, "square", 0.04);
     await clearTilesAndCascade(expandSpecialClears(new Set([tile])));
   }
 
@@ -758,7 +876,7 @@
       tile.scale = 0.82;
     });
     updateUI();
-    playTone(330, 0.08, "triangle", 0.035);
+    playSfx("soft", 0.32) || playTone(330, 0.08, "triangle", 0.035);
     await wait(180);
     buildBoard();
     await wait(120);
@@ -786,6 +904,8 @@
   }
 
   function spawnBurst(tile, count, color) {
+    const remaining = Math.max(0, FX_LIMIT - state.particles.length);
+    count = Math.min(count, remaining);
     for (let i = 0; i < count; i += 1) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 1.5 + Math.random() * 5.4;
@@ -803,6 +923,9 @@
   }
 
   function playTone(freq, duration, type = "sine", gain = 0.03) {
+    if (!audio.enabled) {
+      return;
+    }
     try {
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -827,9 +950,7 @@
     if (state.phase !== "ready") {
       return;
     }
-    if (audioContext?.state === "suspended") {
-      audioContext.resume();
-    }
+    unlockAudio();
     const tile = getTileFromEvent(event);
     if (!tile) {
       state.selected = null;
@@ -909,15 +1030,92 @@
     }
   }
 
-  function roundRectPath(x, y, width, height, radius) {
+  function roundRectPathOn(target, x, y, width, height, radius) {
     const r = Math.min(radius, width / 2, height / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + width, y, x + width, y + height, r);
-    ctx.arcTo(x + width, y + height, x, y + height, r);
-    ctx.arcTo(x, y + height, x, y, r);
-    ctx.arcTo(x, y, x + width, y, r);
-    ctx.closePath();
+    target.beginPath();
+    target.moveTo(x + r, y);
+    target.arcTo(x + width, y, x + width, y + height, r);
+    target.arcTo(x + width, y + height, x, y + height, r);
+    target.arcTo(x, y + height, x, y, r);
+    target.arcTo(x, y, x + width, y, r);
+    target.closePath();
+  }
+
+  function roundRectPath(x, y, width, height, radius) {
+    roundRectPathOn(ctx, x, y, width, height, radius);
+  }
+
+  function getBoardBaseCanvas() {
+    const key = `${Math.round(metrics.width * dpr)}:${Math.round(metrics.height * dpr)}:${Math.round(metrics.tile * 100)}`;
+    if (boardCache.canvas && boardCache.key === key) {
+      return boardCache.canvas;
+    }
+
+    const cache = document.createElement("canvas");
+    cache.width = Math.floor(metrics.width * dpr);
+    cache.height = Math.floor(metrics.height * dpr);
+    const cacheCtx = cache.getContext("2d");
+    cacheCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const pad = metrics.tile * 0.08;
+    const x = metrics.originX - pad;
+    const y = metrics.originY - pad;
+    const size = metrics.boardPx + pad * 2;
+    roundRectPathOn(cacheCtx, x, y, size, size, metrics.tile * 0.18);
+    const bg = cacheCtx.createLinearGradient(x, y, x + size, y + size);
+    bg.addColorStop(0, "rgba(255,255,255,0.76)");
+    bg.addColorStop(0.45, "rgba(255,222,241,0.62)");
+    bg.addColorStop(1, "rgba(222,247,255,0.7)");
+    cacheCtx.fillStyle = bg;
+    cacheCtx.fill();
+    cacheCtx.lineWidth = 2;
+    cacheCtx.strokeStyle = "rgba(255,255,255,0.74)";
+    cacheCtx.stroke();
+
+    for (let row = 0; row < BOARD_SIZE; row += 1) {
+      for (let col = 0; col < BOARD_SIZE; col += 1) {
+        const cellX = metrics.originX + col * metrics.tile + metrics.tile * 0.055;
+        const cellY = metrics.originY + row * metrics.tile + metrics.tile * 0.055;
+        const cellSize = metrics.tile * 0.89;
+        roundRectPathOn(cacheCtx, cellX, cellY, cellSize, cellSize, metrics.tile * 0.14);
+        cacheCtx.fillStyle = (row + col) % 2 === 0 ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.24)";
+        cacheCtx.fill();
+      }
+    }
+
+    boardCache.canvas = cache;
+    boardCache.key = key;
+    return cache;
+  }
+
+  function getSprite(type) {
+    const key = `${Math.round(metrics.tile * dpr)}:${assetsReady}`;
+    if (spriteCache.key !== key) {
+      spriteCache.key = key;
+      spriteCache.items = {};
+    }
+    if (spriteCache.items[type]) {
+      return spriteCache.items[type];
+    }
+
+    const image = images[type];
+    const basePx = Math.max(48, Math.ceil(metrics.tile * 0.84 * dpr));
+    const padPx = Math.ceil(metrics.tile * 0.18 * dpr);
+    const cache = document.createElement("canvas");
+    cache.width = basePx + padPx * 2;
+    cache.height = basePx + padPx * 2;
+    const cacheCtx = cache.getContext("2d");
+    cacheCtx.shadowColor = "rgba(43, 17, 62, 0.28)";
+    cacheCtx.shadowBlur = metrics.tile * 0.12 * dpr;
+    cacheCtx.shadowOffsetY = metrics.tile * 0.08 * dpr;
+    cacheCtx.drawImage(image, padPx, padPx, basePx, basePx);
+
+    const sprite = {
+      canvas: cache,
+      logicalSize: cache.width / dpr
+    };
+    spriteCache.items[type] = sprite;
+    return sprite;
   }
 
   function drawBoardBase() {
@@ -931,31 +1129,7 @@
 
     ctx.save();
     ctx.translate(shakeX, 0);
-    const pad = metrics.tile * 0.08;
-    const x = metrics.originX - pad;
-    const y = metrics.originY - pad;
-    const size = metrics.boardPx + pad * 2;
-    roundRectPath(x, y, size, size, metrics.tile * 0.18);
-    const bg = ctx.createLinearGradient(x, y, x + size, y + size);
-    bg.addColorStop(0, "rgba(255,255,255,0.76)");
-    bg.addColorStop(0.45, "rgba(255,222,241,0.62)");
-    bg.addColorStop(1, "rgba(222,247,255,0.7)");
-    ctx.fillStyle = bg;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255,255,255,0.74)";
-    ctx.stroke();
-
-    for (let row = 0; row < BOARD_SIZE; row += 1) {
-      for (let col = 0; col < BOARD_SIZE; col += 1) {
-        const cellX = metrics.originX + col * metrics.tile + metrics.tile * 0.055;
-        const cellY = metrics.originY + row * metrics.tile + metrics.tile * 0.055;
-        const cellSize = metrics.tile * 0.89;
-        roundRectPath(cellX, cellY, cellSize, cellSize, metrics.tile * 0.14);
-        ctx.fillStyle = (row + col) % 2 === 0 ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.24)";
-        ctx.fill();
-      }
-    }
+    ctx.drawImage(getBoardBaseCanvas(), 0, 0, metrics.width, metrics.height);
 
     for (const flash of state.flashes) {
       flash.life -= 0.035;
@@ -970,17 +1144,19 @@
       ctx.restore();
     }
     state.flashes = state.flashes.filter((flash) => flash.life > 0);
+    ctx.restore();
   }
 
   function drawTile(tile) {
     const targetScale = tile === state.selected ? 1.09 : 1;
+    const wasMoving = Math.abs(tile.targetX - tile.x) > 0.22 || Math.abs(tile.targetY - tile.y) > 0.22 || Math.abs(targetScale - tile.scale) > 0.006 || Math.abs(tile.rot) > 0.006;
     tile.x += (tile.targetX - tile.x) * 0.22;
     tile.y += (tile.targetY - tile.y) * 0.22;
     tile.scale += (targetScale - tile.scale) * 0.16;
     tile.rot *= 0.92;
 
-    const size = metrics.tile * 0.82 * tile.scale;
-    const image = tile.special === "prism" ? images.prism : images[tile.type];
+    const sprite = getSprite(tile.special === "prism" ? "prism" : tile.type);
+    const size = sprite.logicalSize * tile.scale;
 
     ctx.save();
     ctx.translate(tile.x, tile.y);
@@ -997,18 +1173,14 @@
       ctx.stroke();
     }
 
-    ctx.shadowColor = "rgba(43, 17, 62, 0.28)";
-    ctx.shadowBlur = metrics.tile * 0.12;
-    ctx.shadowOffsetY = metrics.tile * 0.08;
-    ctx.drawImage(image, -size / 2, -size / 2, size, size);
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
+    ctx.drawImage(sprite.canvas, -size / 2, -size / 2, size, size);
 
     if (tile.special && tile.special !== "prism") {
-      drawSpecialOverlay(tile.special, size);
+      drawSpecialOverlay(tile.special, size * 0.78);
     }
 
     ctx.restore();
+    return wasMoving;
   }
 
   function drawSpecialOverlay(special, size) {
@@ -1054,6 +1226,7 @@
   }
 
   function drawParticles() {
+    let active = false;
     for (const particle of state.particles) {
       particle.x += particle.vx;
       particle.y += particle.vy;
@@ -1066,11 +1239,14 @@
       ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+      active = true;
     }
     state.particles = state.particles.filter((particle) => particle.life > 0);
+    return active;
   }
 
   function drawFloaters() {
+    let active = false;
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1084,21 +1260,48 @@
       ctx.strokeText(floater.text, floater.x, floater.y);
       ctx.fillStyle = "#ffffff";
       ctx.fillText(floater.text, floater.x, floater.y);
+      active = true;
     }
     ctx.restore();
     state.floaters = state.floaters.filter((floater) => floater.life > 0);
+    return active;
   }
 
   function render() {
+    renderScheduled = false;
+    window.__bonbonRenderCount = (window.__bonbonRenderCount || 0) + 1;
     ctx.clearRect(0, 0, metrics.width, metrics.height);
     drawBoardBase();
-    allTiles()
-      .sort((a, b) => a.row - b.row || a.col - b.col)
-      .forEach(drawTile);
-    drawParticles();
-    drawFloaters();
-    ctx.restore();
-    requestAnimationFrame(render);
+    let active = state.shake > 0 || state.flashes.length > 0;
+    let selectedTile = null;
+    for (let row = 0; row < BOARD_SIZE; row += 1) {
+      for (let col = 0; col < BOARD_SIZE; col += 1) {
+        const tile = state.board[row]?.[col];
+        if (!tile) {
+          continue;
+        }
+        if (tile === state.selected) {
+          selectedTile = tile;
+          continue;
+        }
+        active = drawTile(tile) || active;
+      }
+    }
+    if (selectedTile) {
+      active = drawTile(selectedTile) || active;
+    }
+    active = drawParticles() || active;
+    active = drawFloaters() || active;
+    if (active) {
+      requestRender();
+    }
+  }
+
+  function requestRender() {
+    if (!renderScheduled) {
+      renderScheduled = true;
+      requestAnimationFrame(render);
+    }
   }
 
   function bindEvents() {
@@ -1108,6 +1311,7 @@
     canvas.addEventListener("pointerup", handlePointerUp);
     canvas.addEventListener("pointercancel", handlePointerUp);
     canvas.addEventListener("keydown", handleKeyDown);
+    ui.audio.addEventListener("click", toggleAudio);
     ui.hammer.addEventListener("click", () => toggleBooster("hammer"));
     ui.shuffle.addEventListener("click", () => toggleBooster("shuffle"));
     ui.pause.addEventListener("click", () => {
@@ -1122,8 +1326,10 @@
     bindEvents();
     computeMetrics();
     await preloadAssets();
+    assetsReady = true;
+    preloadAudio();
     startNewGame();
-    requestAnimationFrame(render);
+    requestRender();
   }
 
   init().catch((error) => {

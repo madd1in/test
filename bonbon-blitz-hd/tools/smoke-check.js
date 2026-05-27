@@ -12,12 +12,21 @@ const required = [
   "assets/candies/plum-moon.svg",
   "assets/candies/ruby-heart.svg",
   "assets/candies/cocoa-cube.svg",
+  "assets/candies/vanilla-spiral.svg",
+  "assets/candies/sky-jelly.svg",
   "assets/candies/prism-swirl.svg",
   "assets/generated/candy-asset-sheet-imagen-hd.png",
+  "assets/generated/candy-festival-backdrop-imagen-hd.png",
   "assets/environment/candy-garden-bg.svg",
   "assets/ui/logo.svg",
   "assets/ui/hammer.svg",
   "assets/ui/shuffle.svg",
+  "assets/audio/bgm/marzipan-compass.mp3",
+  "assets/audio/sfx/soft-chime.mp3",
+  "assets/audio/sfx/pickup-gem.mp3",
+  "assets/audio/sfx/treasure-clink.mp3",
+  "assets/audio/sfx/ui-confirm.mp3",
+  "assets/audio/sfx/upgrade-card.mp3",
   "tools/static-server.js"
 ];
 

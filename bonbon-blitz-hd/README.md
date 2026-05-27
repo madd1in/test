@@ -8,6 +8,9 @@ Ein eigenstaendiges Match-3-Browsergame mit neu erstellten HD-SVG-Assets.
 - Levelziele, begrenzte Zuege, Highscore im Browser
 - Spezial-Bonbons fuer Reihen, Spalten, Bomben und Prisma-Ketten
 - Zuckerhammer- und Shuffle-Booster
+- Sugar-Rush-Meter mit Bonus-Hammer
+- Lokale MP3-BGM und SFX aus vorhandenen Festplatten-Assets
+- Performance-optimierter Canvas mit gecachten Board- und Sprite-Layern
 - Responsive Canvas-Spielfeld mit DOM-HUD
 - Offline lauffaehig: `index.html` direkt im Browser oeffnen
 
@@ -32,5 +35,5 @@ Dann im Browser `http://127.0.0.1:4173` oeffnen.
 - `index.html` - Spieloberflaeche
 - `style.css` - responsive UI und Candy-Garden-Theme
 - `game.js` - Simulation, Rendering, Input und Levelsystem
-- `assets/` - neu gezeichnete HD-Vektorassets und generierte PNG-Asset-Sheet
+- `assets/` - neu gezeichnete HD-Vektorassets, Imagen-Backdrops und lokale Audio-Assets
 - `tools/static-server.js` - kleiner lokaler Server ohne externe Pakete

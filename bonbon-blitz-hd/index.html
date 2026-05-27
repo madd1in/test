@@ -16,9 +16,14 @@
             <span>Match-3 Arcade</span>
           </div>
         </div>
-        <button class="icon-button" id="pauseButton" type="button" aria-label="Pause">
-          <span aria-hidden="true">II</span>
-        </button>
+        <div class="topbar-actions">
+          <button class="icon-button" id="audioButton" type="button" aria-label="Musik und Effekte">
+            <span aria-hidden="true">♪</span>
+          </button>
+          <button class="icon-button" id="pauseButton" type="button" aria-label="Pause">
+            <span aria-hidden="true">II</span>
+          </button>
+        </div>
       </header>
 
       <main class="game-layout">
@@ -68,6 +73,16 @@
           <section class="hud-panel combo-panel" aria-label="Combo">
             <span>Combo</span>
             <strong id="comboValue">x1</strong>
+          </section>
+
+          <section class="hud-panel rush-panel" aria-label="Sugar Rush">
+            <div class="metric-row soft">
+              <span>Rush</span>
+              <strong id="rushValue">0%</strong>
+            </div>
+            <div class="progress-shell rush-shell" aria-label="Sugar Rush Fortschritt">
+              <div class="progress-fill rush-fill" id="rushFill"></div>
+            </div>
           </section>
         </aside>
       </main>

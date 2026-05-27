@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sky jelly candy">
+  <defs>
+    <radialGradient id="skyBody" cx="35%" cy="25%" r="80%">
+      <stop offset="0" stop-color="#f2ffff"/>
+      <stop offset="0.2" stop-color="#91efff"/>
+      <stop offset="0.5" stop-color="#25b9ed"/>
+      <stop offset="0.78" stop-color="#216bd4"/>
+      <stop offset="1" stop-color="#18316e"/>
+    </radialGradient>
+    <filter id="skyShadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="26" stdDeviation="23" flood-color="#16356b" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+  <path filter="url(#skyShadow)" d="M255 57c91 0 162 38 183 118 20 76-21 180-93 240-42 35-128 35-180 4C91 374 58 271 83 185 106 104 166 57 255 57Z" fill="url(#skyBody)"/>
+  <path d="M118 213c48 23 95 22 142-5 56-32 104-29 145 8" fill="none" stroke="#dffbff" stroke-width="34" stroke-linecap="round" opacity="0.62"/>
+  <path d="M151 310c69 44 141 44 214 0" fill="none" stroke="#ffffff" stroke-width="29" stroke-linecap="round" opacity="0.34"/>
+  <path d="M165 157c59-48 134-53 222-16" fill="none" stroke="#ffffff" stroke-width="29" stroke-linecap="round" opacity="0.64"/>
+  <ellipse cx="209" cy="136" rx="47" ry="23" fill="#ffffff" opacity="0.72" transform="rotate(-24 209 136)"/>
+  <circle cx="346" cy="187" r="17" fill="#ffffff" opacity="0.46"/>
+</svg>

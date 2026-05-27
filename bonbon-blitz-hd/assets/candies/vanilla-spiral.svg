@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vanilla spiral candy">
+  <defs>
+    <radialGradient id="vanillaBody" cx="35%" cy="24%" r="78%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.22" stop-color="#fff1b9"/>
+      <stop offset="0.52" stop-color="#ffd96a"/>
+      <stop offset="0.8" stop-color="#d99d2e"/>
+      <stop offset="1" stop-color="#7c551f"/>
+    </radialGradient>
+    <filter id="vanillaShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="25" stdDeviation="22" flood-color="#73501e" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="184" filter="url(#vanillaShadow)" fill="url(#vanillaBody)"/>
+  <path d="M351 177c-46-53-143-46-177 13-33 58 10 128 82 120 55-6 79-57 54-88-26-32-88-13-83 29" fill="none" stroke="#fff9d6" stroke-width="35" stroke-linecap="round" opacity="0.88"/>
+  <path d="M370 314c-77 63-187 66-249 2" fill="none" stroke="#b76c24" stroke-width="28" stroke-linecap="round" opacity="0.26"/>
+  <path d="M152 174c63-58 144-69 242-27" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" opacity="0.58"/>
+  <ellipse cx="206" cy="149" rx="48" ry="23" fill="#ffffff" opacity="0.68" transform="rotate(-23 206 149)"/>
+</svg>
