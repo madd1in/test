@@ -10,6 +10,7 @@ import {
   PICKUPS,
   PLAYER_LIMITS,
   RINGS,
+  SIGNAL_BEACONS,
   SUPPLY_PODS,
   TUNNEL_GATES,
   WAVE_BLUEPRINTS,
@@ -114,6 +115,7 @@ const textures = {
   cockpit: loadTexture("assets/generated/nova-cockpit-overlay.png", false),
   supplyPod: loadTexture("assets/generated/nova-supply-pod.png"),
   waypoint: loadTexture("assets/generated/nova-waypoint-bloom.png", false),
+  signalBeacon: loadTexture("assets/generated/nova-signal-beacon.png", false),
 };
 scene.background = textures.nebula;
 
@@ -216,6 +218,16 @@ const materials = {
     opacity: 0.72,
     depthWrite: false,
   }),
+  signalBeacon: new THREE.MeshStandardMaterial({
+    color: 0xf6fbff,
+    roughness: 0.14,
+    metalness: 0.36,
+    map: textures.signalBeacon,
+    emissive: 0x1ccce8,
+    emissiveIntensity: 0.78,
+    transparent: true,
+    opacity: 0.96,
+  }),
   dataCore: new THREE.MeshStandardMaterial({
     color: 0xf6fbff,
     emissive: 0x44e6ff,
@@ -270,6 +282,7 @@ const geometries = {
   shard: new THREE.IcosahedronGeometry(0.28, 1),
   shieldShell: new THREE.SphereGeometry(1.45, 28, 16),
   supplyPod: new THREE.CapsuleGeometry(0.42, 0.86, 8, 16),
+  signalBeacon: new THREE.OctahedronGeometry(0.54, 1),
 };
 
 const staticObjects = {
@@ -279,6 +292,7 @@ const staticObjects = {
   pickups: [],
   dataCores: [],
   supplyPods: [],
+  signalBeacons: [],
 };
 
 const input = {
@@ -349,6 +363,7 @@ function init() {
       shots: state.playerShots.length,
       shards: state.powerShards.length,
       pods: state.supplyPodCollected.size,
+      beacons: state.signalBeaconCollected.size,
       boss: state.boss ? state.boss.hp : 0,
       audio: {
         enabled: audioEnabled,
@@ -397,6 +412,8 @@ function createState(mode = "playing") {
     pickupCollected: new Set(),
     dataCoreCollected: new Set(),
     supplyPodCollected: new Set(),
+    signalBeaconCollected: new Set(),
+    sectionAnnounced: new Set(),
     enemies: [],
     playerShots: [],
     enemyShots: [],
@@ -422,6 +439,7 @@ function createState(mode = "playing") {
       graze: 0,
       overdrive: 0,
       shardChain: 0,
+      signalChain: 0,
       lastHit: -99,
       droneCooldown: 0,
       invuln: 0,
@@ -603,6 +621,13 @@ function createStaticWorld() {
     worldGroup.add(mesh);
     staticObjects.supplyPods.push({ data: pod, mesh });
   }
+
+  for (const beacon of SIGNAL_BEACONS) {
+    const mesh = createSignalBeaconMesh();
+    placeRailObject(mesh, beacon.progress, beacon.x, beacon.y);
+    worldGroup.add(mesh);
+    staticObjects.signalBeacons.push({ data: beacon, mesh });
+  }
 }
 
 function createSupplyPodMesh() {
@@ -615,6 +640,22 @@ function createSupplyPodMesh() {
   group.add(ring);
   const glow = new THREE.Sprite(materials.waypoint.clone());
   glow.scale.set(2.4, 2.4, 2.4);
+  group.add(glow);
+  return group;
+}
+
+function createSignalBeaconMesh() {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(geometries.signalBeacon, materials.signalBeacon.clone());
+  group.add(body);
+  const ringA = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.035, 8, 48), materials.ring.clone());
+  ringA.rotation.x = Math.PI / 2;
+  group.add(ringA);
+  const ringB = new THREE.Mesh(new THREE.TorusGeometry(0.64, 0.025, 8, 40), materials.novaPulse.clone());
+  ringB.rotation.y = Math.PI / 2;
+  group.add(ringB);
+  const glow = new THREE.Sprite(materials.waypoint.clone());
+  glow.scale.set(2.7, 2.7, 2.7);
   group.add(glow);
   return group;
 }
@@ -837,6 +878,9 @@ function resetGame(mode = "playing") {
     entry.mesh.visible = true;
   }
   for (const entry of staticObjects.supplyPods) {
+    entry.mesh.visible = true;
+  }
+  for (const entry of staticObjects.signalBeacons) {
     entry.mesh.visible = true;
   }
   ui.menu.classList.toggle("hidden", mode !== "menu");
@@ -1082,6 +1126,7 @@ function updateGame(dt) {
 
   spawnScheduledWaves();
   updateMissionDirector();
+  updateMissionCues();
   if (!state.boss && state.progress >= BOSS.at) spawnBoss();
   updateEnemies(dt);
   updateBoss(dt);
@@ -1340,6 +1385,20 @@ function updateMissionDirector() {
     director: true,
   });
   state.nextDirectorAt += Math.max(310, 520 - tier * 35 - state.directorWave * 3);
+}
+
+function updateMissionCues() {
+  const cues = [
+    { id: "rift", at: 980, text: "Amber Rift: links-rechts lesen, nicht erzwingen" },
+    { id: "relay", at: 1960, text: "Verdant Relay: Signal Beacons laden Overdrive" },
+    { id: "core", at: 3060, text: "Prism Core: Nova Burst fuer Salven sparen" },
+  ];
+  for (const cue of cues) {
+    if (state.progress >= cue.at && !state.sectionAnnounced.has(cue.id)) {
+      state.sectionAnnounced.add(cue.id);
+      showToast(cue.text, 1.7);
+    }
+  }
 }
 
 function spawnWave(wave) {
@@ -1735,6 +1794,24 @@ function updateStaticInteractions(dt) {
       collectSupplyPod(pod);
     }
   }
+  for (const entry of staticObjects.signalBeacons) {
+    const beacon = entry.data;
+    const dz = beacon.progress - state.progress;
+    entry.mesh.visible = !state.signalBeaconCollected.has(beacon.id) && dz > -40 && dz < 250;
+    entry.mesh.rotation.x += dt * 1.35;
+    entry.mesh.rotation.y += dt * 1.9;
+    entry.mesh.scale.setScalar(1 + Math.sin(state.elapsed * 3.5 + beacon.progress) * 0.08);
+    const glow = entry.mesh.children.find((child) => child.isSprite);
+    if (glow) {
+      glow.material.opacity = 0.42 + Math.sin(state.elapsed * 5.2 + beacon.progress) * 0.18;
+      glow.scale.setScalar(2.5 + Math.sin(state.elapsed * 4.5 + beacon.progress) * 0.2);
+    }
+    if (!state.signalBeaconCollected.has(beacon.id) && Math.abs(dz) < 4.5 && localDistanceToPlayer(beacon) < 1.42) {
+      state.signalBeaconCollected.add(beacon.id);
+      entry.mesh.visible = false;
+      collectSignalBeacon(beacon);
+    }
+  }
 }
 
 function collectPickup(pickup) {
@@ -1778,6 +1855,24 @@ function collectSupplyPod(pod) {
   if (!playSfx("pickup", 0.44, 1.18)) playTone(620, 0.12, "triangle", 0.03);
 }
 
+function collectSignalBeacon(beacon) {
+  const player = state.player;
+  player.signalChain += 1;
+  addScore(beacon.score, true);
+  chargeNova(0.09);
+  player.energy = Math.min(1, player.energy + 0.11);
+  player.shield = Math.min(100, player.shield + 10);
+  createExplosion(beacon.x, beacon.y, beacon.progress, 0x44e6ff, 24);
+  if (player.signalChain % 4 === 0) {
+    player.overdrive = Math.max(player.overdrive, 6.5);
+    showToast(`Relay x${player.signalChain}: Overdrive online`, 1.2);
+    if (!playSfx("boost", 0.42, 1.4)) playTone(1240, 0.1, "triangle", 0.025);
+  } else {
+    showToast(`${beacon.line} ${state.signalBeaconCollected.size}/${SIGNAL_BEACONS.length}`, 1.05);
+    if (!playSfx("pickup", 0.32, 1.55)) playTone(980, 0.08, "sine", 0.02);
+  }
+}
+
 function damagePlayer(amount) {
   const player = state.player;
   if (player.invuln > 0) return;
@@ -1809,8 +1904,9 @@ function finishMission(success) {
   const rings = state.ringCollected.size;
   const cores = state.dataCoreCollected.size;
   const pods = state.supplyPodCollected.size;
+  const beacons = state.signalBeaconCollected.size;
   const medals = missionMedals(success);
-  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${pods}/${SUPPLY_PODS.length} Supply Pods, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
+  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${pods}/${SUPPLY_PODS.length} Supply Pods, ${beacons}/${SIGNAL_BEACONS.length} Relays, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
@@ -1826,6 +1922,7 @@ function missionMedals(success) {
   if (success) medals.push("Prismensieg");
   if (cores === DATA_CORES.length) medals.push("Kernsammler");
   if (state.supplyPodCollected.size >= Math.ceil(SUPPLY_PODS.length * 0.75)) medals.push("Rettungsroute");
+  if (state.signalBeaconCollected.size >= Math.ceil(SIGNAL_BEACONS.length * 0.7)) medals.push("Signalnetz");
   if (rings >= Math.ceil(RINGS.length * 0.75)) medals.push("Ringpilot");
   if (state.player.shardChain >= 18) medals.push("Shard-Jaeger");
   if (state.player.graze >= 8) medals.push("Risk Runner");
@@ -1881,9 +1978,11 @@ function removeDead(list, group) {
 function updateHud(force = false) {
   lastHudUpdate = state.elapsed;
   const section = getSection(state.progress);
+  const nextBeacon = SIGNAL_BEACONS.find((beacon) => !state.signalBeaconCollected.has(beacon.id) && beacon.progress > state.progress);
   ui.sectorText.textContent = section.name;
   if (state.player.overdrive > 0) ui.objectiveText.textContent = `Overdrive ${Math.ceil(state.player.overdrive)}s`;
   else if (state.boss && !state.bossDefeated) ui.objectiveText.textContent = "Aegis Prism zerlegen";
+  else if (nextBeacon && nextBeacon.progress - state.progress < 220) ui.objectiveText.textContent = "Signal Relay sichern";
   else if (state.progress > BOSS.at - 260) ui.objectiveText.textContent = "Zum Prism Core";
   else ui.objectiveText.textContent = section.objective;
   ui.scoreText.textContent = String(Math.floor(state.player.score));
