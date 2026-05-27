@@ -300,6 +300,25 @@ button:focus-visible {
   box-shadow: 0 0 28px rgba(68, 230, 255, 0.16);
 }
 
+.briefing-card {
+  display: block;
+  width: min(100%, 340px);
+  max-height: 88px;
+  object-fit: cover;
+  margin: -2px auto 12px;
+  border: 1px solid rgba(68, 230, 255, 0.24);
+  border-radius: 8px;
+  opacity: 0.86;
+}
+
+.result-badge {
+  display: block;
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  margin: 0 auto 10px;
+}
+
 .menu-panel h1,
 .menu-panel h2 {
   margin: 6px 0 10px;

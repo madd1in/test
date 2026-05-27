@@ -70,6 +70,7 @@ export const PICKUPS = createPickups();
 export const TUNNEL_GATES = createGates();
 export const DATA_CORES = createDataCores();
 export const SUPPLY_PODS = createSupplyPods();
+export const SIGNAL_BEACONS = createSignalBeacons();
 
 function createRings() {
   const rings = [];
@@ -153,6 +154,21 @@ function createSupplyPods() {
     { id: "pod-relay-a", progress: 2210, x: -6.1, y: 2.8, shield: 28, score: 340 },
     { id: "pod-relay-b", progress: 2760, x: 5.2, y: -1.8, shield: 30, score: 360 },
     { id: "pod-core", progress: 3215, x: -4.8, y: 3.8, shield: 34, score: 420 },
+  ];
+}
+
+function createSignalBeacons() {
+  return [
+    { id: "sig-orion-1", progress: 290, x: -4.8, y: 2.9, score: 300, line: "Orion-Route kalibriert" },
+    { id: "sig-orion-2", progress: 690, x: 5.2, y: -0.8, score: 320, line: "Scout-Signatur markiert" },
+    { id: "sig-rift-1", progress: 1125, x: -5.7, y: 3.7, score: 360, line: "Amber-Rift kartiert" },
+    { id: "sig-rift-2", progress: 1515, x: 4.9, y: 1.0, score: 380, line: "Kristallfeld entschluesselt" },
+    { id: "sig-rift-3", progress: 1855, x: -3.8, y: -2.8, score: 420, line: "Relay-Fenster offen" },
+    { id: "sig-relay-1", progress: 2190, x: 5.6, y: 3.2, score: 460, line: "Verdant-Kanal stabil" },
+    { id: "sig-relay-2", progress: 2475, x: -6.0, y: 0.7, score: 500, line: "Wing-Drone Link plus" },
+    { id: "sig-relay-3", progress: 2835, x: 3.6, y: -2.6, score: 540, line: "Prismenspur fixiert" },
+    { id: "sig-core-1", progress: 3145, x: -4.5, y: 3.3, score: 620, line: "Aegis-Puls gelesen" },
+    { id: "sig-core-2", progress: 3355, x: 4.2, y: 0.2, score: 700, line: "Finaler Lock bereit" },
   ];
 }
 

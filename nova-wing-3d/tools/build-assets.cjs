@@ -280,6 +280,73 @@ function waypointSvg() {
   </svg>`;
 }
 
+function signalBeaconSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f6fbff" stop-opacity=".95"/>
+      <stop offset=".26" stop-color="#44e6ff" stop-opacity=".68"/>
+      <stop offset=".58" stop-color="#b7ff68" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#44e6ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6fbff"/>
+      <stop offset=".42" stop-color="#44e6ff"/>
+      <stop offset="1" stop-color="#a98cff"/>
+    </linearGradient>
+    ${svgNoiseFilter("grain", 0.024, 4, 117)}
+  </defs>
+  <rect width="1024" height="1024" fill="#020814"/>
+  <circle cx="512" cy="512" r="470" fill="url(#halo)"/>
+  <rect width="1024" height="1024" filter="url(#grain)" opacity=".16"/>
+  <path d="M512 98l252 184v300L512 926 260 582V282z" fill="url(#core)" opacity=".74"/>
+  <path d="M512 98v828M260 282l504 300M764 282L260 582" stroke="#03131a" stroke-width="22" opacity=".24"/>
+  <circle cx="512" cy="512" r="176" fill="#061221" opacity=".55"/>
+  <path d="M512 326v372M326 512h372" stroke="#b7ff68" stroke-width="36" stroke-linecap="round" opacity=".88"/>
+  <circle cx="512" cy="512" r="292" fill="none" stroke="#f6fbff" stroke-width="18" opacity=".22"/>
+  </svg>`;
+}
+
+function briefingCardSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#061b2d"/>
+      <stop offset=".54" stop-color="#10091f"/>
+      <stop offset="1" stop-color="#06291e"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1400" height="420" rx="36" fill="url(#bg)"/>
+  <path d="M64 320C260 142 478 292 704 184s424-86 632 70" fill="none" stroke="#44e6ff" stroke-width="10" opacity=".28"/>
+  <path d="M106 102h1188M106 318h1188" stroke="#f6fbff" stroke-width="4" opacity=".14"/>
+  <circle cx="242" cy="210" r="82" fill="none" stroke="#44e6ff" stroke-width="10" opacity=".48"/>
+  <path d="M242 116v188M148 210h188" stroke="#b7ff68" stroke-width="18" opacity=".7" stroke-linecap="round"/>
+  <path d="M460 120h520M460 184h730M460 248h640" stroke="#f6fbff" stroke-width="18" opacity=".2"/>
+  <text x="460" y="330" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="900" fill="#ffca62" letter-spacing="8" filter="url(#glow)">SIGNAL RELAY ROUTE</text>
+  </svg>`;
+}
+
+function medalBadgeSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="medal" cx="50%" cy="40%" r="58%">
+      <stop offset="0" stop-color="#f6fbff"/>
+      <stop offset=".35" stop-color="#ffca62"/>
+      <stop offset=".72" stop-color="#44e6ff"/>
+      <stop offset="1" stop-color="#0b1524"/>
+    </radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="transparent"/>
+  <path d="M328 48h368l-62 286H390z" fill="#ff5f9a" opacity=".8"/>
+  <circle cx="512" cy="572" r="344" fill="url(#medal)" filter="url(#glow)"/>
+  <circle cx="512" cy="572" r="258" fill="none" stroke="#061221" stroke-width="26" opacity=".42"/>
+  <path d="M512 342l68 146 160 20-118 110 30 158-140-78-140 78 30-158-118-110 160-20z" fill="#f6fbff" opacity=".82"/>
+  <circle cx="512" cy="572" r="392" fill="none" stroke="#44e6ff" stroke-width="18" opacity=".3"/>
+  </svg>`;
+}
+
 function stars(count, width, height) {
   let out = "";
   let n = 912931;
@@ -379,6 +446,9 @@ function synthSfx(kind, seconds, sampleRate = 44100) {
   await writePng("nova-cockpit-overlay.png", cockpitSvg(), 1920, 1080);
   await writePng("nova-supply-pod.png", supplyPodSvg(), 1024, 1024);
   await writePng("nova-waypoint-bloom.png", waypointSvg(), 1024, 1024);
+  await writePng("nova-signal-beacon.png", signalBeaconSvg(), 1024, 1024);
+  await writePng("nova-briefing-card.png", briefingCardSvg(), 1400, 420);
+  await writePng("nova-medal-badge.png", medalBadgeSvg(), 1024, 1024);
 
   writeWav("nova-bgm-loop.wav", synthBgm());
   writeWav("laser.wav", synthSfx("laser", 0.18));
