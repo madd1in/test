@@ -2,6 +2,7 @@ const RAW_STAGES = [
   {
     id: "frostpine-pass",
     name: "Frostpine Pass",
+    music: "bgm-frostpine.wav",
     surface: "Snow gravel",
     weather: "snow",
     goalTime: 96,
@@ -60,6 +61,7 @@ const RAW_STAGES = [
   {
     id: "cinderwash-canyon",
     name: "Cinderwash Canyon",
+    music: "bgm-cinderwash.wav",
     surface: "Hardpack",
     weather: "dust",
     goalTime: 88,
@@ -119,6 +121,7 @@ const RAW_STAGES = [
   {
     id: "rainline-harbor",
     name: "Rainline Harbor",
+    music: "bgm-rainline.wav",
     surface: "Wet tarmac",
     weather: "rain",
     goalTime: 91,

@@ -1,6 +1,6 @@
 # Overcrest Rally 3D
 
-Ein neues 3D-Rally-Time-Trial fuer den Browser: drei offene Stages, Chase-Camera, Drift/Handbrake-Physik, Pace Notes, Split-Gates, Schaden, Wettereffekte, Minimap und Touch-Steuerung.
+Ein neues 3D-Rally-Time-Trial fuer den Browser: drei offene Stages, Chase-Camera, Drift/Handbrake-Physik, Pace Notes, Split-Gates, Schaden, Wettereffekte, Minimap, Touch-Steuerung und lokale BGM/SFX.
 
 ## Start
 
@@ -20,6 +20,10 @@ Dann `http://127.0.0.1:4193` oeffnen.
 - Restart: `R`
 
 Touch-Controls erscheinen auf kleinen Viewports.
+
+## Audio
+
+Die BGM- und SFX-Dateien liegen lokal unter `assets/audio` und werden ohne Netzwerk-CDN geladen.
 
 ## Checks
 

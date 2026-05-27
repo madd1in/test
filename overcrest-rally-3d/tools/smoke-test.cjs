@@ -10,6 +10,15 @@ const required = [
   "README.md",
   "package.json",
   "assets/vendor/three.module.js",
+  "assets/audio/bgm-frostpine.wav",
+  "assets/audio/bgm-cinderwash.wav",
+  "assets/audio/bgm-rainline.wav",
+  "assets/audio/sfx-start.wav",
+  "assets/audio/sfx-split.wav",
+  "assets/audio/sfx-hit.wav",
+  "assets/audio/sfx-finish.wav",
+  "assets/audio/sfx-select.wav",
+  "assets/audio/sfx-drift.wav",
   "js/tracks.js",
   "js/game.js",
   "tools/serve.cjs",
@@ -41,6 +50,9 @@ for (const file of ["js/tracks.js", "js/game.js"]) {
     if (stage.splits.length < 3) throw new Error(`${stage.name} needs more splits`);
     if (stage.notes.length < 8) throw new Error(`${stage.name} needs more pace notes`);
     if (stage.obstacles.length < 6) throw new Error(`${stage.name} needs more hazards`);
+    if (!stage.music || !fs.existsSync(path.join(root, "assets/audio", stage.music))) {
+      throw new Error(`${stage.name} is missing local BGM`);
+    }
 
     const sample = sampleStage(stage, stage.totalLength * 0.42, 2);
     const nearest = nearestStageInfo(stage, sample.x, sample.z);
@@ -53,6 +65,17 @@ for (const file of ["js/tracks.js", "js/game.js"]) {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   if (!html.includes('type="module" src="js/game.js"')) {
     throw new Error("Game module script tag is missing");
+  }
+  if (!html.includes('id="audioButton"')) {
+    throw new Error("Audio toggle button is missing");
+  }
+
+  const gameSource = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
+  if (!gameSource.includes("steer: (left ? 1 : 0) - (right ? 1 : 0)")) {
+    throw new Error("Left/right steering fix is missing");
+  }
+  if (!gameSource.includes("playMusicForStage") || !gameSource.includes("playSfx")) {
+    throw new Error("Audio hooks are missing");
   }
 
   const vendorSize = fs.statSync(path.join(root, "assets/vendor/three.module.js")).size;
