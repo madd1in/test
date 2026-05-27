@@ -100,6 +100,10 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "nova-slipstream-wake.png",
     "loadSfxAssets",
     "loadBgmFallback",
+    "createImagenSetpieces",
+    "boss-imagen-halo",
+    "nova-prism-gate-imagen-hd.png",
+    "nova-aegis-core-imagen-hd.png",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing gameplay token: ${token}`);
   }
@@ -109,11 +113,13 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
   if (!html.includes('type="module" src="js/game.js"')) throw new Error("Module script missing");
   if (!html.includes("touchControls")) throw new Error("Touch controls missing");
   if (!html.includes("Nova Wing 3D")) throw new Error("Original title missing");
+  if (!html.includes("nova-hangar-imagen-hd.png")) throw new Error("Imagen hangar menu art missing");
 
   const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
   for (const color of ["#44e6ff", "#ffca62", "#ff5f9a", "#b7ff68"]) {
     if (!css.includes(color)) throw new Error(`Theme color missing: ${color}`);
   }
+  if (!css.includes("menu-bg-imagen")) throw new Error("Imagen menu art style missing");
 
   const vendorSize = fs.statSync(path.join(root, "assets", "vendor", "three.module.js")).size;
   if (vendorSize < 1000000) throw new Error("Three.js vendor file looks truncated");
@@ -139,6 +145,9 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "nova-slipstream-wake.png",
     "nova-briefing-card.png",
     "nova-medal-badge.png",
+    "imagen/nova-hangar-imagen-hd.png",
+    "imagen/nova-prism-gate-imagen-hd.png",
+    "imagen/nova-aegis-core-imagen-hd.png",
   ];
   for (const name of pngs) {
     const file = path.join(root, "assets", "generated", name);
