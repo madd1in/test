@@ -40,10 +40,28 @@
     prism: "#2bb9f0"
   };
 
+  const CANDY_LABELS = {
+    berry: "Berry Glaze",
+    citrus: "Citrus Star",
+    mint: "Mint Drop",
+    plum: "Plum Moon",
+    ruby: "Ruby Heart",
+    cocoa: "Cocoa Cube",
+    vanilla: "Vanilla Spiral",
+    sky: "Sky Jelly"
+  };
+
+  const WORLD_THEMES = [
+    { className: "", label: "Candy Festival" },
+    { className: "theme-lagoon", label: "Moon Jelly Lagoon" },
+    { className: "theme-workshop", label: "Caramel Workshop" }
+  ];
+
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
   const ui = {
     level: document.getElementById("levelValue"),
+    world: document.getElementById("worldLabel"),
     moves: document.getElementById("movesValue"),
     score: document.getElementById("scoreValue"),
     target: document.getElementById("targetValue"),
@@ -54,6 +72,10 @@
     rushFill: document.getElementById("rushFill"),
     toast: document.getElementById("toast"),
     audio: document.getElementById("audioButton"),
+    orderIcon: document.getElementById("orderIcon"),
+    orderName: document.getElementById("orderName"),
+    orderCount: document.getElementById("orderCount"),
+    orderFill: document.getElementById("orderFill"),
     pause: document.getElementById("pauseButton"),
     hammer: document.getElementById("hammerButton"),
     hammerCount: document.getElementById("hammerCount"),
@@ -110,6 +132,7 @@
     best: Number(localStorage.getItem("bonbon-blitz-best") || 0),
     combo: 0,
     rush: 0,
+    order: null,
     hammer: 3,
     shuffle: 2,
     particles: [],
@@ -132,6 +155,35 @@
 
   function randomOf(list) {
     return list[Math.floor(Math.random() * list.length)];
+  }
+
+  function currentTheme() {
+    return WORLD_THEMES[(state.level - 1) % WORLD_THEMES.length];
+  }
+
+  function applyWorldTheme() {
+    const theme = currentTheme();
+    for (const item of WORLD_THEMES) {
+      if (item.className) {
+        document.body.classList.remove(item.className);
+      }
+    }
+    if (theme.className) {
+      document.body.classList.add(theme.className);
+    }
+    ui.world.textContent = theme.label;
+  }
+
+  function createOrder() {
+    const type = PIECE_TYPES[(state.level * 3 + Math.floor(state.level / 2)) % PIECE_TYPES.length];
+    const target = Math.min(18, 8 + Math.floor(state.level * 1.15));
+    return {
+      type,
+      count: 0,
+      target,
+      completed: false,
+      label: CANDY_LABELS[type]
+    };
   }
 
   function shuffleArray(list) {
@@ -418,9 +470,11 @@
   }
 
   function startLevel() {
+    applyWorldTheme();
     state.moves = Math.max(16, 25 - Math.floor((state.level - 1) * 0.65));
     state.target = Math.round(12000 * Math.pow(1.42, state.level - 1));
     state.combo = 0;
+    state.order = createOrder();
     state.selected = null;
     state.boosterMode = null;
     state.phase = "ready";
@@ -430,7 +484,7 @@
     buildBoard();
     updateUI();
     hideModal();
-    showToast(`Level ${state.level}`);
+    showToast(`${currentTheme().label} - Level ${state.level}`);
   }
 
   function updateUI() {
@@ -444,6 +498,12 @@
     ui.combo.textContent = `x${Math.max(1, state.combo || 1)}`;
     ui.rush.textContent = `${Math.floor(state.rush)}%`;
     ui.rushFill.style.width = `${clamp(state.rush, 0, 100)}%`;
+    if (state.order) {
+      ui.orderIcon.src = ASSET_PATHS[state.order.type];
+      ui.orderName.textContent = state.order.label;
+      ui.orderCount.textContent = `${state.order.count}/${state.order.target}`;
+      ui.orderFill.style.width = `${clamp((state.order.count / state.order.target) * 100, 0, 100)}%`;
+    }
     ui.hammerCount.textContent = state.hammer;
     ui.shuffleCount.textContent = state.shuffle;
     ui.hammer.classList.toggle("is-active", state.boosterMode === "hammer");
@@ -465,7 +525,7 @@
     ui.modal.hidden = false;
     if (kind === "win") {
       ui.modalTitle.textContent = `Level ${state.level} geschafft`;
-      ui.modalCopy.textContent = `${formatNumber(state.score)} Punkte`;
+      ui.modalCopy.textContent = `${currentTheme().label} - ${formatNumber(state.score)} Punkte`;
       ui.primary.textContent = "Weiter";
       ui.secondary.textContent = "Neu";
       ui.primary.onclick = () => {
@@ -481,14 +541,14 @@
       ui.secondary.onclick = startNewGame;
     } else if (kind === "lose") {
       ui.modalTitle.textContent = "Keine Zuege";
-      ui.modalCopy.textContent = `${formatNumber(state.score)} Punkte`;
+      ui.modalCopy.textContent = `${currentTheme().label} - ${formatNumber(state.score)} Punkte`;
       ui.primary.textContent = "Nochmal";
       ui.secondary.textContent = "Neu";
       ui.primary.onclick = startLevel;
       ui.secondary.onclick = startNewGame;
     } else {
       ui.modalTitle.textContent = "Pause";
-      ui.modalCopy.textContent = `${formatNumber(state.score)} Punkte`;
+      ui.modalCopy.textContent = `${currentTheme().label} - ${formatNumber(state.score)} Punkte`;
       ui.primary.textContent = "Weiter";
       ui.secondary.textContent = "Neu";
       ui.primary.onclick = () => {
@@ -736,15 +796,54 @@
     return clearSet;
   }
 
+  function grantRushReward(center, label = "Sugar Rush") {
+    while (state.rush >= 100) {
+      state.rush -= 100;
+      state.hammer += 1;
+      state.floaters.push({ text: "Hammer +1", x: center.x, y: center.y - metrics.tile * 0.22, life: 1 });
+      showToast(label);
+    }
+    playSfx("booster", 0.55) || playTone(920, 0.13, "sine", 0.04);
+  }
+
   function chargeRush(clearCount, center) {
     const gain = Math.min(48, clearCount * 5 + Math.max(0, state.combo - 1) * 9);
     state.rush += gain;
     if (state.rush >= 100) {
-      state.rush -= 100;
-      state.hammer += 1;
-      state.floaters.push({ text: "Hammer +1", x: center.x, y: center.y - metrics.tile * 0.22, life: 1 });
-      showToast("Sugar Rush");
-      playSfx("booster", 0.55) || playTone(920, 0.13, "sine", 0.04);
+      grantRushReward(center);
+    }
+  }
+
+  function collectOrder(clearSet, center) {
+    const order = state.order;
+    if (!order || order.completed) {
+      return;
+    }
+
+    let collected = 0;
+    for (const tile of clearSet) {
+      if (tile.type === order.type) {
+        collected += 1;
+      }
+    }
+
+    if (!collected) {
+      return;
+    }
+
+    order.count = Math.min(order.target, order.count + collected);
+    if (order.count >= order.target) {
+      order.completed = true;
+      const bonus = Math.round(state.target * 0.08 + state.level * 360);
+      state.score += bonus;
+      state.rush += 32;
+      state.floaters.push({ text: `Auftrag +${formatNumber(bonus)}`, x: center.x, y: center.y - metrics.tile * 0.38, life: 1 });
+      showToast("Auftrag erledigt");
+      if (state.rush >= 100) {
+        grantRushReward(center, "Mega Sugar Rush");
+      } else {
+        playSfx("booster", 0.5) || playTone(760, 0.12, "triangle", 0.04);
+      }
     }
   }
 
@@ -760,6 +859,7 @@
     const center = averageTilePosition(clearSet);
     state.floaters.push({ text: `+${formatNumber(gained)}`, x: center.x, y: center.y, life: 1 });
     playSfx(clearSet.size > 5 || state.combo > 1 ? "cascade" : "match", 0.44) || playTone(500 + Math.min(5, state.combo) * 70, 0.08, "sine", 0.04);
+    collectOrder(clearSet, center);
     chargeRush(clearSet.size, center);
 
     for (const tile of clearSet) {

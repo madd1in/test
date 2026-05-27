@@ -9,6 +9,8 @@ Ein eigenstaendiges Match-3-Browsergame mit neu erstellten HD-SVG-Assets.
 - Spezial-Bonbons fuer Reihen, Spalten, Bomben und Prisma-Ketten
 - Zuckerhammer- und Shuffle-Booster
 - Sugar-Rush-Meter mit Bonus-Hammer
+- World-Tour-Levelthemen mit drei Imagen-HD-Backdrops
+- Auftragsziel pro Level mit Extra-Punkten und Rush-Bonus
 - Lokale MP3-BGM und SFX aus vorhandenen Festplatten-Assets
 - Performance-optimierter Canvas mit gecachten Board- und Sprite-Layern
 - Responsive Canvas-Spielfeld mit DOM-HUD

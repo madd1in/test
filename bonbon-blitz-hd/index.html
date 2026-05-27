@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bonbon Blitz HD</title>
-    <link rel="stylesheet" href="style.css?v=20260527-polish2" />
+    <link rel="stylesheet" href="style.css?v=20260527-worldtour" />
   </head>
   <body>
     <div class="app-shell">
@@ -13,7 +13,7 @@
           <img class="brand-mark" src="assets/ui/logo.svg" alt="" />
           <div>
             <h1>Bonbon Blitz HD</h1>
-            <span>Match-3 Arcade</span>
+            <span id="worldLabel">Candy Festival</span>
           </div>
         </div>
         <div class="topbar-actions">
@@ -59,6 +59,20 @@
             </div>
           </section>
 
+          <section class="hud-panel order-panel" aria-label="Auftrag">
+            <div class="order-head">
+              <img id="orderIcon" src="assets/candies/berry-glaze.svg" alt="" />
+              <div>
+                <span>Auftrag</span>
+                <strong id="orderName">Berry Rush</strong>
+              </div>
+              <b id="orderCount">0/9</b>
+            </div>
+            <div class="progress-shell order-shell" aria-label="Auftrag Fortschritt">
+              <div class="progress-fill order-fill" id="orderFill"></div>
+            </div>
+          </section>
+
           <section class="hud-panel booster-panel" aria-label="Booster">
             <button class="booster-button" id="hammerButton" type="button" aria-label="Zuckerhammer">
               <img src="assets/ui/hammer.svg" alt="" />
@@ -100,6 +114,6 @@
       </div>
     </div>
 
-    <script src="game.js?v=20260527-polish2"></script>
+    <script src="game.js?v=20260527-worldtour"></script>
   </body>
 </html>

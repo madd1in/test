@@ -17,6 +17,8 @@ const required = [
   "assets/candies/prism-swirl.svg",
   "assets/generated/candy-asset-sheet-imagen-hd.png",
   "assets/generated/candy-festival-backdrop-imagen-hd.png",
+  "assets/generated/candy-lagoon-backdrop-imagen-hd.png",
+  "assets/generated/caramel-workshop-backdrop-imagen-hd.png",
   "assets/environment/candy-garden-bg.svg",
   "assets/ui/logo.svg",
   "assets/ui/hammer.svg",
@@ -38,7 +40,7 @@ for (const file of required) {
 }
 
 const gameJs = fs.readFileSync(path.join(root, "game.js"), "utf8");
-for (const token of ["findMatches", "attemptSwap", "resolveSpecialSwap", "collapseColumns"]) {
+for (const token of ["findMatches", "attemptSwap", "resolveSpecialSwap", "collapseColumns", "WORLD_THEMES", "collectOrder"]) {
   if (!gameJs.includes(token)) {
     throw new Error(`Missing gameplay token ${token}`);
   }

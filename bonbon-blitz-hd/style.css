@@ -35,6 +35,34 @@ body {
     url("assets/environment/candy-garden-bg.svg") center / cover;
 }
 
+body.theme-lagoon {
+  --ink: #201349;
+  --muted: #5a6086;
+  --rose: #ff62b7;
+  --citrus: #ffd46a;
+  --mint: #33dbba;
+  --violet: #7a63f4;
+  --aqua: #27c7f2;
+  background:
+    linear-gradient(180deg, rgba(240, 253, 255, 0.1), rgba(235, 246, 255, 0.82)),
+    url("assets/generated/candy-lagoon-backdrop-imagen-hd.png") center top / cover,
+    url("assets/environment/candy-garden-bg.svg") center / cover;
+}
+
+body.theme-workshop {
+  --ink: #311b19;
+  --muted: #72594f;
+  --rose: #f14c82;
+  --citrus: #ffad1f;
+  --mint: #43c978;
+  --violet: #7f5ad8;
+  --aqua: #20b7d8;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 232, 0.1), rgba(255, 244, 226, 0.8)),
+    url("assets/generated/caramel-workshop-backdrop-imagen-hd.png") center top / cover,
+    url("assets/environment/candy-garden-bg.svg") center / cover;
+}
+
 button {
   font: inherit;
 }
@@ -70,6 +98,10 @@ button {
   gap: 12px;
 }
 
+.brand-cluster > div {
+  min-width: 0;
+}
+
 .brand-mark {
   width: 58px;
   height: 58px;
@@ -85,6 +117,10 @@ button {
 
 .brand-cluster span {
   display: block;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.88rem;
@@ -239,6 +275,58 @@ button {
   line-height: 1;
   font-weight: 950;
   color: #46205c;
+}
+
+.order-panel {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(235, 250, 255, 0.86)),
+    white;
+}
+
+.order-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-head img {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 8px 14px rgba(61, 25, 78, 0.2));
+}
+
+.order-head span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.order-head strong {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.98rem;
+}
+
+.order-head b {
+  min-width: 48px;
+  text-align: right;
+  font-size: 1rem;
+  color: var(--violet);
+}
+
+.order-shell {
+  height: 12px;
+  margin-top: 12px;
+}
+
+.order-fill {
+  background: linear-gradient(90deg, var(--aqua), var(--mint), var(--citrus));
 }
 
 .booster-panel {
@@ -422,6 +510,10 @@ button {
     grid-column: 1 / -1;
   }
 
+  .order-panel {
+    grid-column: 1 / -1;
+  }
+
   .score-large {
     font-size: 1.65rem;
   }
@@ -431,6 +523,47 @@ button {
   .game-layout {
     grid-template-columns: clamp(520px, calc(100vh - 134px), 820px) 284px;
     justify-content: center;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 760px) {
+  .hud {
+    gap: 9px;
+  }
+
+  .hud-panel {
+    padding: 11px 12px;
+  }
+
+  .metric-row + .metric-row {
+    margin-top: 6px;
+  }
+
+  .progress-shell {
+    height: 13px;
+    margin-top: 9px;
+  }
+
+  .score-large {
+    min-height: 36px;
+    font-size: 1.85rem;
+  }
+
+  .order-head {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .order-head img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .booster-button {
+    min-height: 66px;
+  }
+
+  .combo-panel strong {
+    font-size: 1.45rem;
   }
 }
 
@@ -449,6 +582,15 @@ button {
 
   .booster-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-head {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+  }
+
+  .order-head img {
+    width: 42px;
+    height: 42px;
   }
 }
 
