@@ -189,6 +189,18 @@ select {
   backdrop-filter: blur(14px);
 }
 
+.imagen-poster {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 16px;
+  border: 1px solid rgba(244, 247, 239, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(7, 12, 13, 0.02), rgba(7, 12, 13, 0.26)),
+    url("assets/imagen/overcrest-rally-imagen-atlas.png") left top / 200% 200% no-repeat;
+  box-shadow: inset 0 -40px 60px rgba(0, 0, 0, 0.28);
+}
+
 .menu-panel h1,
 .menu-panel h2 {
   margin: 6px 0 18px;

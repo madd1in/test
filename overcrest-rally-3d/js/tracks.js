@@ -57,6 +57,15 @@ const RAW_STAGES = [
       { ratio: 0.73, lateral: 12, radius: 3.1, type: "snow-boulder" },
       { ratio: 0.9, lateral: -10, radius: 3.4, type: "snow-boulder" },
     ],
+    surfaceZones: [
+      { ratio: 0.12, length: 38, lateral: 0, width: 13, type: "ice", label: "Ice shelf" },
+      { ratio: 0.41, length: 32, lateral: -2, width: 10, type: "snowpack", label: "Powder rut" },
+      { ratio: 0.68, length: 42, lateral: 3, width: 12, type: "ice", label: "Frozen bridge" },
+    ],
+    jumps: [
+      { ratio: 0.34, width: 10, force: 8.4, label: "Overcrest jump" },
+      { ratio: 0.84, width: 11, force: 7.4, label: "Village crest" },
+    ],
   },
   {
     id: "cinderwash-canyon",
@@ -116,6 +125,15 @@ const RAW_STAGES = [
       { ratio: 0.58, lateral: 11, radius: 2.9, type: "barrel" },
       { ratio: 0.7, lateral: -12, radius: 3.3, type: "canyon-rock" },
       { ratio: 0.88, lateral: 12, radius: 3.5, type: "canyon-rock" },
+    ],
+    surfaceZones: [
+      { ratio: 0.18, length: 44, lateral: 2, width: 14, type: "dustwash", label: "Loose wash" },
+      { ratio: 0.47, length: 34, lateral: -3, width: 11, type: "mud", label: "Mine runoff" },
+      { ratio: 0.77, length: 48, lateral: 0, width: 13, type: "dustwash", label: "Deep dust" },
+    ],
+    jumps: [
+      { ratio: 0.31, width: 12, force: 6.8, label: "Broken bridge" },
+      { ratio: 0.63, width: 11, force: 7.8, label: "Wash jump" },
     ],
   },
   {
@@ -177,6 +195,15 @@ const RAW_STAGES = [
       { ratio: 0.74, lateral: 10, radius: 3.4, type: "dock-crate" },
       { ratio: 0.88, lateral: -10, radius: 3.1, type: "dock-crate" },
     ],
+    surfaceZones: [
+      { ratio: 0.2, length: 36, lateral: 0, width: 12, type: "water", label: "Standing water" },
+      { ratio: 0.54, length: 46, lateral: -2, width: 10, type: "slick", label: "Oil slick" },
+      { ratio: 0.82, length: 32, lateral: 3, width: 11, type: "water", label: "Harbor splash" },
+    ],
+    jumps: [
+      { ratio: 0.38, width: 10, force: 5.8, label: "Bridge lip" },
+      { ratio: 0.69, width: 9, force: 6.2, label: "Quay crest" },
+    ],
   },
 ];
 
@@ -184,6 +211,12 @@ export const SURFACES = {
   road: { label: "Road", grip: 7.6, handbrakeGrip: 2.2, drag: 0.35, maxSpeed: 73 },
   shoulder: { label: "Shoulder", grip: 5.1, handbrakeGrip: 1.55, drag: 0.72, maxSpeed: 55 },
   offroad: { label: "Offroad", grip: 3.5, handbrakeGrip: 1.15, drag: 1.2, maxSpeed: 35 },
+  ice: { label: "Ice", grip: 2.15, handbrakeGrip: 0.7, drag: 0.18, maxSpeed: 78 },
+  snowpack: { label: "Snowpack", grip: 4.1, handbrakeGrip: 1.05, drag: 1.05, maxSpeed: 48 },
+  dustwash: { label: "Dust wash", grip: 4.4, handbrakeGrip: 1.3, drag: 0.95, maxSpeed: 52 },
+  mud: { label: "Mud", grip: 3.1, handbrakeGrip: 0.95, drag: 1.45, maxSpeed: 38 },
+  water: { label: "Water", grip: 3.8, handbrakeGrip: 1.0, drag: 1.65, maxSpeed: 36 },
+  slick: { label: "Slick", grip: 2.6, handbrakeGrip: 0.8, drag: 0.42, maxSpeed: 65 },
 };
 
 export const STAGES = RAW_STAGES.map(prepareStage);
@@ -226,6 +259,16 @@ export function prepareStage(rawStage) {
   stage.obstacles = rawStage.obstacles.map((obstacle) => ({
     ...obstacle,
     progress: obstacle.ratio * totalLength,
+  }));
+  stage.surfaceZones = rawStage.surfaceZones.map((zone, index) => ({
+    ...zone,
+    id: `${rawStage.id}-surface-${index}`,
+    progress: zone.ratio * totalLength,
+  }));
+  stage.jumps = rawStage.jumps.map((jump, index) => ({
+    ...jump,
+    id: `${rawStage.id}-jump-${index}`,
+    progress: jump.ratio * totalLength,
   }));
   stage.bounds = getBounds(stage.points);
 
