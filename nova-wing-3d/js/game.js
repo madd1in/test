@@ -121,8 +121,8 @@ const textures = {
   signalBeacon: loadTexture("assets/generated/nova-signal-beacon.png", false),
   auroraRibbon: loadTexture("assets/generated/nova-aurora-ribbon.png", false),
   slipstream: loadTexture("assets/generated/nova-slipstream-wake.png", false),
-  imagenPrismGate: loadTexture("assets/generated/imagen/nova-prism-gate-imagen-hd.png", false),
-  imagenAegisCore: loadTexture("assets/generated/imagen/nova-aegis-core-imagen-hd.png", false),
+  imagenPrismGate: loadTexture("assets/generated/imagen/nova-prism-gate-imagen-hd.jpg", false),
+  imagenAegisCore: loadTexture("assets/generated/imagen/nova-aegis-core-imagen-hd.jpg", false),
 };
 scene.background = textures.nebula;
 

@@ -102,8 +102,8 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "loadBgmFallback",
     "createImagenSetpieces",
     "boss-imagen-halo",
-    "nova-prism-gate-imagen-hd.png",
-    "nova-aegis-core-imagen-hd.png",
+    "nova-prism-gate-imagen-hd.jpg",
+    "nova-aegis-core-imagen-hd.jpg",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing gameplay token: ${token}`);
   }
@@ -113,7 +113,7 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
   if (!html.includes('type="module" src="js/game.js"')) throw new Error("Module script missing");
   if (!html.includes("touchControls")) throw new Error("Touch controls missing");
   if (!html.includes("Nova Wing 3D")) throw new Error("Original title missing");
-  if (!html.includes("nova-hangar-imagen-hd.png")) throw new Error("Imagen hangar menu art missing");
+  if (!html.includes("nova-hangar-imagen-hd.jpg")) throw new Error("Imagen hangar menu art missing");
 
   const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
   for (const color of ["#44e6ff", "#ffca62", "#ff5f9a", "#b7ff68"]) {
@@ -145,14 +145,22 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "nova-slipstream-wake.png",
     "nova-briefing-card.png",
     "nova-medal-badge.png",
-    "imagen/nova-hangar-imagen-hd.png",
-    "imagen/nova-prism-gate-imagen-hd.png",
-    "imagen/nova-aegis-core-imagen-hd.png",
   ];
   for (const name of pngs) {
     const file = path.join(root, "assets", "generated", name);
     const header = fs.readFileSync(file).subarray(1, 4).toString("ascii");
     if (header !== "PNG" || fs.statSync(file).size < 20000) throw new Error(`Generated PNG looks invalid: ${name}`);
+  }
+
+  const jpgs = [
+    "imagen/nova-hangar-imagen-hd.jpg",
+    "imagen/nova-prism-gate-imagen-hd.jpg",
+    "imagen/nova-aegis-core-imagen-hd.jpg",
+  ];
+  for (const name of jpgs) {
+    const file = path.join(root, "assets", "generated", name);
+    const header = fs.readFileSync(file).subarray(0, 2).toString("hex");
+    if (header !== "ffd8" || fs.statSync(file).size < 120000) throw new Error(`Imagen JPG looks invalid: ${name}`);
   }
 
   const wavs = ["nova-bgm-loop.wav", "laser.wav", "explosion.wav", "pickup.wav", "hit.wav", "boost.wav", "win.wav"];
