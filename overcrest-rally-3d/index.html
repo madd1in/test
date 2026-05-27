@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Overcrest Rally 3D</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="stage" aria-label="Overcrest Rally 3D">
+        <canvas id="game" width="1280" height="720"></canvas>
+
+        <div class="hud hud-top" aria-live="polite">
+          <div class="hud-cell">
+            <span>Stage</span>
+            <strong id="stageName">Frostpine Pass</strong>
+          </div>
+          <div class="hud-cell">
+            <span>Time</span>
+            <strong id="timeText">00:00.00</strong>
+          </div>
+          <div class="hud-cell">
+            <span>Split</span>
+            <strong id="splitText">--</strong>
+          </div>
+          <div class="hud-cell compact">
+            <span>KM/H</span>
+            <strong id="speedText">0</strong>
+          </div>
+          <div class="hud-cell compact">
+            <span>Damage</span>
+            <strong id="damageText">0%</strong>
+          </div>
+        </div>
+
+        <div class="note-chip" id="noteText">Overcrest</div>
+        <div class="surface-chip" id="surfaceText">Gravel</div>
+        <canvas id="miniMap" width="180" height="128" aria-label="Minimap"></canvas>
+        <div class="toast" id="toast"></div>
+
+        <div class="overlay active" id="menu">
+          <div class="menu-panel">
+            <p class="eyebrow">Rally Time Trial</p>
+            <h1>Overcrest Rally 3D</h1>
+            <label class="stage-picker">
+              <span>Stage</span>
+              <select id="stageSelect"></select>
+            </label>
+            <div class="stage-meta" id="stageMeta"></div>
+            <div class="menu-actions">
+              <button id="startButton" type="button">Start Stage</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="overlay hidden" id="results">
+          <div class="menu-panel">
+            <p class="eyebrow">Finish</p>
+            <h2 id="resultTitle">Stage Complete</h2>
+            <p id="resultStats"></p>
+            <div class="menu-actions">
+              <button id="restartButton" type="button">Restart</button>
+              <button id="menuButton" type="button">Stages</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="touch-controls" aria-label="Touch controls">
+          <button type="button" data-control="left" aria-label="Links">&#9664;</button>
+          <button type="button" data-control="accelerate" aria-label="Gas">&#9650;</button>
+          <button type="button" data-control="brake" aria-label="Bremse">&#9660;</button>
+          <button type="button" data-control="right" aria-label="Rechts">&#9654;</button>
+          <button type="button" data-control="handbrake" aria-label="Handbremse">HB</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/game.js"></script>
+  </body>
+</html>

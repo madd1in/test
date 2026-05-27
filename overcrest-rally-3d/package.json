@@ -1,0 +1,11 @@
+{
+  "name": "overcrest-rally-3d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A new Three.js mountain rally time-trial game for the browser.",
+  "scripts": {
+    "serve": "node tools/serve.cjs",
+    "check": "node tools/smoke-test.cjs"
+  }
+}

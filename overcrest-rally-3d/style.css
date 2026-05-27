@@ -1,0 +1,338 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #0b1113;
+  color: #f4f7ef;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+.game-shell,
+.stage,
+#game {
+  width: 100%;
+  height: 100%;
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  background: #0b1113;
+}
+
+#game {
+  display: block;
+  touch-action: none;
+}
+
+.hud {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.hud-top {
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  align-items: stretch;
+}
+
+.hud-cell {
+  min-width: 118px;
+  padding: 8px 10px;
+  border: 1px solid rgba(244, 247, 239, 0.2);
+  border-radius: 8px;
+  background: rgba(10, 17, 19, 0.72);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.hud-cell.compact {
+  min-width: 78px;
+}
+
+.hud-cell span,
+.eyebrow,
+.stage-picker span {
+  display: block;
+  color: rgba(244, 247, 239, 0.68);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.hud-cell strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.note-chip,
+.surface-chip,
+.toast {
+  position: absolute;
+  z-index: 6;
+  border: 1px solid rgba(244, 247, 239, 0.18);
+  border-radius: 8px;
+  background: rgba(10, 17, 19, 0.7);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.note-chip {
+  left: 50%;
+  top: max(86px, calc(env(safe-area-inset-top) + 86px));
+  min-width: min(440px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  padding: 11px 16px;
+  transform: translateX(-50%);
+  color: #fff4c7;
+  font-size: clamp(20px, 3vw, 36px);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.surface-chip {
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  padding: 8px 11px;
+  color: #c9f9da;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.toast {
+  left: 50%;
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 28px));
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 10px 14px;
+  transform: translateX(-50%) translateY(20px);
+  color: #f4f7ef;
+  font-size: 15px;
+  font-weight: 800;
+  opacity: 0;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#miniMap {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 5;
+  width: 180px;
+  height: 128px;
+  border: 1px solid rgba(244, 247, 239, 0.18);
+  border-radius: 8px;
+  background: rgba(8, 14, 16, 0.7);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(6, 12, 13, 0.22), rgba(6, 12, 13, 0.7)),
+    radial-gradient(circle at 50% 28%, rgba(255, 232, 158, 0.16), transparent 46%);
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.menu-panel {
+  width: min(440px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid rgba(244, 247, 239, 0.22);
+  border-radius: 8px;
+  background: rgba(9, 17, 19, 0.82);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(14px);
+}
+
+.menu-panel h1,
+.menu-panel h2 {
+  margin: 6px 0 18px;
+  font-size: clamp(36px, 8vw, 60px);
+  line-height: 0.95;
+}
+
+.menu-panel h2 {
+  font-size: clamp(30px, 6vw, 46px);
+}
+
+.stage-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.stage-picker select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(244, 247, 239, 0.24);
+  border-radius: 8px;
+  background: #162124;
+  color: #f4f7ef;
+  font-weight: 800;
+}
+
+.stage-meta,
+#resultStats {
+  min-height: 44px;
+  margin: 12px 0 18px;
+  color: rgba(244, 247, 239, 0.76);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.menu-actions button,
+.touch-controls button {
+  min-height: 44px;
+  border: 1px solid rgba(244, 247, 239, 0.18);
+  border-radius: 8px;
+  background: #ffe06c;
+  color: #1d1806;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+.menu-actions button {
+  flex: 1 1 150px;
+  padding: 0 18px;
+}
+
+.menu-actions button:hover,
+.touch-controls button:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.menu-actions button:active,
+.touch-controls button:active,
+.touch-controls button.active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(0.92);
+}
+
+.touch-controls {
+  position: absolute;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 7;
+  display: none;
+  grid-template-columns: repeat(5, 52px);
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.touch-controls button {
+  width: 52px;
+  padding: 0;
+  background: rgba(255, 224, 108, 0.9);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .hud-top {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hud-cell {
+    min-width: 0;
+    padding: 7px 8px;
+  }
+
+  .hud-cell strong {
+    font-size: 16px;
+  }
+
+  .note-chip {
+    top: max(132px, calc(env(safe-area-inset-top) + 132px));
+    font-size: 22px;
+  }
+
+  #miniMap {
+    width: 142px;
+    height: 102px;
+  }
+
+  .surface-chip {
+    bottom: max(84px, calc(env(safe-area-inset-bottom) + 84px));
+  }
+
+  .toast {
+    bottom: max(88px, calc(env(safe-area-inset-bottom) + 88px));
+  }
+
+  .touch-controls {
+    display: grid;
+  }
+}
+
+@media (max-width: 460px) {
+  .hud-top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-cell strong {
+    font-size: 14px;
+  }
+
+  .touch-controls {
+    grid-template-columns: repeat(5, 46px);
+  }
+
+  .touch-controls button {
+    width: 46px;
+  }
+}
