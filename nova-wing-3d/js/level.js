@@ -71,6 +71,7 @@ export const TUNNEL_GATES = createGates();
 export const DATA_CORES = createDataCores();
 export const SUPPLY_PODS = createSupplyPods();
 export const SIGNAL_BEACONS = createSignalBeacons();
+export const SLIPSTREAMS = createSlipstreams();
 
 function createRings() {
   const rings = [];
@@ -169,6 +170,18 @@ function createSignalBeacons() {
     { id: "sig-relay-3", progress: 2835, x: 3.6, y: -2.6, score: 540, line: "Prismenspur fixiert" },
     { id: "sig-core-1", progress: 3145, x: -4.5, y: 3.3, score: 620, line: "Aegis-Puls gelesen" },
     { id: "sig-core-2", progress: 3355, x: 4.2, y: 0.2, score: 700, line: "Finaler Lock bereit" },
+  ];
+}
+
+function createSlipstreams() {
+  return [
+    { id: "stream-orion-a", progress: 245, x: -1.4, y: 1.8, width: 3.1, score: 260, line: "Slipstream sauber" },
+    { id: "stream-orion-b", progress: 875, x: 3.9, y: 2.4, width: 2.8, score: 300, line: "Orion Drift gehalten" },
+    { id: "stream-rift-a", progress: 1235, x: -4.1, y: -0.2, width: 3.0, score: 340, line: "Rift-Korridor erwischt" },
+    { id: "stream-rift-b", progress: 1760, x: 3.4, y: 3.4, width: 2.7, score: 380, line: "Amber Jet aktiv" },
+    { id: "stream-relay-a", progress: 2265, x: -2.6, y: 2.1, width: 3.2, score: 440, line: "Relay-Lift stabil" },
+    { id: "stream-relay-b", progress: 2715, x: 4.8, y: -1.3, width: 2.9, score: 500, line: "Verdant Drift online" },
+    { id: "stream-core", progress: 3175, x: -0.8, y: 3.7, width: 3.4, score: 620, line: "Core-Anflug beschleunigt" },
   ];
 }
 

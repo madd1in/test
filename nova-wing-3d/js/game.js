@@ -11,6 +11,7 @@ import {
   PLAYER_LIMITS,
   RINGS,
   SIGNAL_BEACONS,
+  SLIPSTREAMS,
   SUPPLY_PODS,
   TUNNEL_GATES,
   WAVE_BLUEPRINTS,
@@ -116,6 +117,8 @@ const textures = {
   supplyPod: loadTexture("assets/generated/nova-supply-pod.png"),
   waypoint: loadTexture("assets/generated/nova-waypoint-bloom.png", false),
   signalBeacon: loadTexture("assets/generated/nova-signal-beacon.png", false),
+  auroraRibbon: loadTexture("assets/generated/nova-aurora-ribbon.png", false),
+  slipstream: loadTexture("assets/generated/nova-slipstream-wake.png", false),
 };
 scene.background = textures.nebula;
 
@@ -228,6 +231,24 @@ const materials = {
     transparent: true,
     opacity: 0.96,
   }),
+  auroraRibbon: new THREE.MeshBasicMaterial({
+    map: textures.auroraRibbon,
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.36,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+  }),
+  slipstream: new THREE.MeshBasicMaterial({
+    map: textures.slipstream,
+    color: 0x8ffcff,
+    transparent: true,
+    opacity: 0.58,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+  }),
   dataCore: new THREE.MeshStandardMaterial({
     color: 0xf6fbff,
     emissive: 0x44e6ff,
@@ -283,6 +304,8 @@ const geometries = {
   shieldShell: new THREE.SphereGeometry(1.45, 28, 16),
   supplyPod: new THREE.CapsuleGeometry(0.42, 0.86, 8, 16),
   signalBeacon: new THREE.OctahedronGeometry(0.54, 1),
+  slipstreamRing: new THREE.TorusGeometry(1, 0.035, 8, 72),
+  slipstreamWake: new THREE.PlaneGeometry(1, 1),
 };
 
 const staticObjects = {
@@ -293,6 +316,7 @@ const staticObjects = {
   dataCores: [],
   supplyPods: [],
   signalBeacons: [],
+  slipstreams: [],
 };
 
 const input = {
@@ -312,9 +336,13 @@ let state = createState("menu");
 let playerShip = null;
 let wingDrones = [];
 let speedLines = null;
+let driftDust = null;
+const nebulaPanels = [];
+const auroraRibbons = [];
 let audioContext = null;
 let audioEnabled = !mutedByUrl;
 let audioLoadingPromise = null;
+let bgmFallbackPromise = null;
 let bgmSource = null;
 let bgmElement = null;
 let bgmStarted = false;
@@ -333,14 +361,18 @@ const audioFiles = {
   boost: "assets/audio/boost.wav",
   win: "assets/audio/win.wav",
 };
+const sfxFileKeys = ["laser", "explosion", "pickup", "hit", "boost", "win"];
 const audioBuffers = {};
 
 init();
 
 function init() {
+  primeBgmElement();
   createStarfield();
   speedLines = createSpeedLines();
+  driftDust = createDriftDust();
   createNebulaPanels();
+  createAuroraRibbons();
   createCockpitOverlay();
   createStaticWorld();
   playerShip = createPlayerShip();
@@ -364,12 +396,15 @@ function init() {
       shards: state.powerShards.length,
       pods: state.supplyPodCollected.size,
       beacons: state.signalBeaconCollected.size,
+      streams: state.slipstreamCollected.size,
       boss: state.boss ? state.boss.hp : 0,
       audio: {
         enabled: audioEnabled,
         bgmStarted: bgmStarted || (bgmElement ? !bgmElement.paused : false),
         bgmPaused: bgmElement ? bgmElement.paused : true,
         bgmSrc: audioFiles.bgm,
+        bgmReadyState: bgmElement?.readyState || 0,
+        sfxLoaded: sfxFileKeys.every((key) => Boolean(audioBuffers[key])),
         context: audioContext?.state || "none",
       },
     }),
@@ -413,6 +448,7 @@ function createState(mode = "playing") {
     dataCoreCollected: new Set(),
     supplyPodCollected: new Set(),
     signalBeaconCollected: new Set(),
+    slipstreamCollected: new Set(),
     sectionAnnounced: new Set(),
     enemies: [],
     playerShots: [],
@@ -440,6 +476,7 @@ function createState(mode = "playing") {
       overdrive: 0,
       shardChain: 0,
       signalChain: 0,
+      slipstreamChain: 0,
       lastHit: -99,
       droneCooldown: 0,
       invuln: 0,
@@ -516,6 +553,45 @@ function createSpeedLines() {
   return lines;
 }
 
+function createDriftDust() {
+  const count = reducedGpu ? 120 : 220;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const palette = [new THREE.Color(0x44e6ff), new THREE.Color(0xffca62), new THREE.Color(0xff8dbc), new THREE.Color(0xb7ff68)];
+  for (let i = 0; i < count; i += 1) {
+    resetDustPoint(positions, colors, i, true, palette);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const material = new THREE.PointsMaterial({
+    size: reducedGpu ? 0.95 : 1.35,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.48,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const points = new THREE.Points(geometry, material);
+  points.name = "camera-drift-dust";
+  points.userData.palette = palette;
+  camera.add(points);
+  return points;
+}
+
+function resetDustPoint(positions, colors, index, spread = false, palette = null) {
+  const radius = 4 + seededRandom() * 26;
+  const angle = seededRandom() * Math.PI * 2;
+  positions[index * 3] = Math.cos(angle) * radius;
+  positions[index * 3 + 1] = (seededRandom() - 0.5) * 18;
+  positions[index * 3 + 2] = spread ? -16 - seededRandom() * 260 : -250 - seededRandom() * 80;
+  const dustPalette = palette || driftDust?.userData.palette || [new THREE.Color(0x44e6ff)];
+  const color = dustPalette[Math.floor(seededRandom() * dustPalette.length)];
+  colors[index * 3] = color.r;
+  colors[index * 3 + 1] = color.g;
+  colors[index * 3 + 2] = color.b;
+}
+
 function createWingDrone(side) {
   const group = new THREE.Group();
   const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), materials.glass.clone());
@@ -529,24 +605,48 @@ function createWingDrone(side) {
 function createNebulaPanels() {
   const plane = new THREE.PlaneGeometry(200, 92);
   const configs = [
-    { x: -84, y: 30, z: -360, color: 0xff5f9a, opacity: 0.08, rot: 0.12 },
-    { x: 95, y: -18, z: -520, color: 0x44e6ff, opacity: 0.075, rot: -0.22 },
-    { x: 6, y: 48, z: -720, color: 0xb7ff68, opacity: 0.045, rot: 0.5 },
+    { x: -84, y: 30, z: -360, color: 0xff5f9a, opacity: 0.08, rot: 0.12, drift: 0.7 },
+    { x: 95, y: -18, z: -520, color: 0x44e6ff, opacity: 0.075, rot: -0.22, drift: 0.55 },
+    { x: 6, y: 48, z: -720, color: 0xb7ff68, opacity: 0.045, rot: 0.5, drift: 0.38 },
+    { x: -22, y: -44, z: -610, color: 0xffca62, opacity: 0.036, rot: -0.52, drift: 0.44 },
   ];
   for (const config of configs) {
     const mesh = new THREE.Mesh(
       plane,
       new THREE.MeshBasicMaterial({
+        map: textures.auroraRibbon,
         color: config.color,
         transparent: true,
         opacity: config.opacity,
         depthWrite: false,
         side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
       }),
     );
     mesh.position.set(config.x, config.y, config.z);
     mesh.rotation.z = config.rot;
+    mesh.userData = { ...config, baseX: config.x, baseY: config.y, baseRot: config.rot, baseOpacity: config.opacity };
     camera.add(mesh);
+    nebulaPanels.push(mesh);
+  }
+}
+
+function createAuroraRibbons() {
+  const geometry = new THREE.PlaneGeometry(145, 34);
+  const configs = [
+    { x: -38, y: 19, z: -150, rot: 0.18, opacity: 0.2, scale: 1.0, sway: 0.8 },
+    { x: 44, y: -9, z: -238, rot: -0.34, opacity: 0.18, scale: 1.22, sway: 0.62 },
+    { x: 2, y: 32, z: -322, rot: 0.54, opacity: 0.16, scale: 1.45, sway: 0.5 },
+  ];
+  for (const config of configs) {
+    const mesh = new THREE.Mesh(geometry, materials.auroraRibbon.clone());
+    mesh.position.set(config.x, config.y, config.z);
+    mesh.rotation.z = config.rot;
+    mesh.scale.set(config.scale, config.scale, 1);
+    mesh.material.opacity = config.opacity;
+    mesh.userData = { ...config, baseX: config.x, baseY: config.y, baseRot: config.rot, baseOpacity: config.opacity };
+    camera.add(mesh);
+    auroraRibbons.push(mesh);
   }
 }
 
@@ -628,6 +728,13 @@ function createStaticWorld() {
     worldGroup.add(mesh);
     staticObjects.signalBeacons.push({ data: beacon, mesh });
   }
+
+  for (const stream of SLIPSTREAMS) {
+    const mesh = createSlipstreamMesh(stream);
+    placeRailObject(mesh, stream.progress, stream.x, stream.y);
+    worldGroup.add(mesh);
+    staticObjects.slipstreams.push({ data: stream, mesh });
+  }
 }
 
 function createSupplyPodMesh() {
@@ -657,6 +764,36 @@ function createSignalBeaconMesh() {
   const glow = new THREE.Sprite(materials.waypoint.clone());
   glow.scale.set(2.7, 2.7, 2.7);
   group.add(glow);
+  return group;
+}
+
+function createSlipstreamMesh(stream) {
+  const group = new THREE.Group();
+  const ringMaterial = materials.ring.clone();
+  ringMaterial.opacity = 0.72;
+  const wakeMaterial = materials.slipstream.clone();
+  for (let i = 0; i < 4; i += 1) {
+    const z = -i * 10.5;
+    const ring = new THREE.Mesh(geometries.slipstreamRing, ringMaterial.clone());
+    ring.scale.setScalar(stream.width * (0.42 + i * 0.045));
+    ring.position.z = z;
+    ring.userData.slipstreamRing = true;
+    ring.userData.phase = i * 0.7;
+    group.add(ring);
+
+    const wake = new THREE.Mesh(geometries.slipstreamWake, wakeMaterial.clone());
+    wake.scale.set(stream.width * (1.05 + i * 0.12), stream.width * (0.72 + i * 0.05), 1);
+    wake.position.z = z - 1.8;
+    wake.material.opacity = 0.34 - i * 0.045;
+    wake.userData.slipstreamWake = true;
+    wake.userData.phase = i * 0.9;
+    group.add(wake);
+  }
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 38, 8, 1, true), materials.novaPulse.clone());
+  core.rotation.x = Math.PI / 2;
+  core.position.z = -16;
+  core.material.opacity = 0.36;
+  group.add(core);
   return group;
 }
 
@@ -787,6 +924,13 @@ function createBossMesh() {
 }
 
 function bindUi() {
+  const armAudioStart = () => {
+    if (!audioEnabled) return;
+    ensureAudio();
+    startBgm();
+  };
+  ui.startButton.addEventListener("pointerdown", armAudioStart);
+  ui.restartButton.addEventListener("pointerdown", armAudioStart);
   ui.startButton.addEventListener("click", () => startGame());
   ui.restartButton.addEventListener("click", () => startGame());
   ui.menuButton.addEventListener("click", () => resetGame("menu"));
@@ -883,6 +1027,9 @@ function resetGame(mode = "playing") {
   for (const entry of staticObjects.signalBeacons) {
     entry.mesh.visible = true;
   }
+  for (const entry of staticObjects.slipstreams) {
+    entry.mesh.visible = true;
+  }
   ui.menu.classList.toggle("hidden", mode !== "menu");
   ui.menu.classList.toggle("active", mode === "menu");
   ui.results.classList.add("hidden");
@@ -894,9 +1041,9 @@ function resetGame(mode = "playing") {
 }
 
 function startGame() {
-  resetGame("playing");
   ensureAudio();
   startBgm();
+  resetGame("playing");
   ui.menu.classList.add("hidden");
   ui.menu.classList.remove("active");
   ui.results.classList.add("hidden");
@@ -962,7 +1109,7 @@ function ensureAudio() {
     sfxGain.connect(audioContext.destination);
   }
   if (audioContext.state === "suspended") audioContext.resume().catch?.(() => {});
-  loadAudioAssets();
+  loadSfxAssets();
 }
 
 function primeBgmElement() {
@@ -971,6 +1118,7 @@ function primeBgmElement() {
   bgmElement.loop = true;
   bgmElement.preload = "auto";
   bgmElement.volume = 0.46;
+  bgmElement.load();
   bgmElement.addEventListener("playing", () => {
     bgmStarted = true;
   });
@@ -996,11 +1144,12 @@ function playTone(frequency, duration, type = "sine", volume = 0.04, delay = 0) 
   oscillator.stop(start + duration + 0.03);
 }
 
-function loadAudioAssets() {
+function loadSfxAssets() {
   if (!audioContext) return Promise.resolve();
   if (audioLoadingPromise) return audioLoadingPromise;
   audioLoadingPromise = Promise.all(
-    Object.entries(audioFiles).map(async ([name, url]) => {
+    sfxFileKeys.map(async (name) => {
+      const url = audioFiles[name];
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Audio ${url} ${response.status}`);
       const data = await response.arrayBuffer();
@@ -1012,11 +1161,32 @@ function loadAudioAssets() {
   return audioLoadingPromise;
 }
 
+function loadBgmFallback() {
+  if (!audioContext) return Promise.resolve();
+  if (bgmFallbackPromise) return bgmFallbackPromise;
+  bgmFallbackPromise = fetch(audioFiles.bgmFallback)
+    .then((response) => {
+      if (!response.ok) throw new Error(`Audio ${audioFiles.bgmFallback} ${response.status}`);
+      return response.arrayBuffer();
+    })
+    .then((data) => audioContext.decodeAudioData(data))
+    .then((buffer) => {
+      audioBuffers.bgmFallback = buffer;
+      return buffer;
+    })
+    .catch((error) => {
+      console.warn("Nova Wing BGM fallback load skipped:", error.message);
+      return null;
+    });
+  return bgmFallbackPromise;
+}
+
 function startBgm() {
   if (!audioEnabled) return;
   const element = primeBgmElement();
   if (element) {
     element.volume = 0.46;
+    if (element.readyState < 2) element.load();
     const playPromise = element.play();
     if (playPromise?.then) {
       playPromise
@@ -1037,10 +1207,10 @@ function startBgm() {
 
 function startDecodedBgm(force = false) {
   if (!audioEnabled || !audioContext || (bgmElement && !force)) return;
-  loadAudioAssets().then(() => {
-    if (!audioBuffers.bgm || bgmSource) return;
+  loadBgmFallback().then(() => {
+    if (!audioBuffers.bgmFallback || bgmSource) return;
     bgmSource = audioContext.createBufferSource();
-    bgmSource.buffer = audioBuffers.bgm;
+    bgmSource.buffer = audioBuffers.bgmFallback;
     bgmSource.loop = true;
     bgmSource.connect(musicGain || audioContext.destination);
     bgmSource.start();
@@ -1389,6 +1559,7 @@ function updateMissionDirector() {
 
 function updateMissionCues() {
   const cues = [
+    { id: "orion-slip", at: 210, text: "Slipstreams geben Boost ohne Schildrisiko" },
     { id: "rift", at: 980, text: "Amber Rift: links-rechts lesen, nicht erzwingen" },
     { id: "relay", at: 1960, text: "Verdant Relay: Signal Beacons laden Overdrive" },
     { id: "core", at: 3060, text: "Prism Core: Nova Burst fuer Salven sparen" },
@@ -1812,6 +1983,28 @@ function updateStaticInteractions(dt) {
       collectSignalBeacon(beacon);
     }
   }
+  for (const entry of staticObjects.slipstreams) {
+    const stream = entry.data;
+    const dz = stream.progress - state.progress;
+    entry.mesh.visible = !state.slipstreamCollected.has(stream.id) && dz > -55 && dz < 285;
+    entry.mesh.rotation.z = Math.sin(state.elapsed * 1.4 + stream.progress) * 0.12;
+    entry.mesh.children.forEach((child, index) => {
+      if (child.userData.slipstreamRing) {
+        child.rotation.z += dt * (1.5 + index * 0.1);
+        child.scale.setScalar(stream.width * (0.42 + (index % 8) * 0.022) * (1 + Math.sin(state.elapsed * 4 + child.userData.phase) * 0.035));
+        child.material.opacity = 0.5 + Math.sin(state.elapsed * 5.4 + child.userData.phase) * 0.16;
+      }
+      if (child.userData.slipstreamWake) {
+        child.material.opacity = 0.22 + Math.sin(state.elapsed * 3.3 + child.userData.phase) * 0.08;
+        child.rotation.z = Math.sin(state.elapsed * 1.9 + child.userData.phase) * 0.08;
+      }
+    });
+    if (!state.slipstreamCollected.has(stream.id) && Math.abs(dz) < 9 && localDistanceToPlayer(stream) < stream.width * 0.52 + 0.64) {
+      state.slipstreamCollected.add(stream.id);
+      entry.mesh.visible = false;
+      collectSlipstream(stream);
+    }
+  }
 }
 
 function collectPickup(pickup) {
@@ -1873,6 +2066,19 @@ function collectSignalBeacon(beacon) {
   }
 }
 
+function collectSlipstream(stream) {
+  const player = state.player;
+  player.slipstreamChain += 1;
+  player.energy = Math.min(1, player.energy + 0.24);
+  player.overdrive = Math.max(player.overdrive, 2.8 + Math.min(1.8, player.slipstreamChain * 0.25));
+  state.speed = Math.max(state.speed, BASE_SPEED + 24);
+  chargeNova(0.07);
+  addScore(stream.score, true);
+  createExplosion(stream.x, stream.y, stream.progress, 0x8ffcff, 18);
+  showToast(`${stream.line} x${player.slipstreamChain}`, 0.95);
+  if (!playSfx("boost", 0.36, 1.7)) playTone(920, 0.08, "triangle", 0.026);
+}
+
 function damagePlayer(amount) {
   const player = state.player;
   if (player.invuln > 0) return;
@@ -1905,8 +2111,9 @@ function finishMission(success) {
   const cores = state.dataCoreCollected.size;
   const pods = state.supplyPodCollected.size;
   const beacons = state.signalBeaconCollected.size;
+  const streams = state.slipstreamCollected.size;
   const medals = missionMedals(success);
-  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${pods}/${SUPPLY_PODS.length} Supply Pods, ${beacons}/${SIGNAL_BEACONS.length} Relays, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
+  ui.resultStats.textContent = `${state.player.score} Punkte, ${rings}/${RINGS.length} Ringe, ${cores}/${DATA_CORES.length} Kerne, ${pods}/${SUPPLY_PODS.length} Supply Pods, ${beacons}/${SIGNAL_BEACONS.length} Relays, ${streams}/${SLIPSTREAMS.length} Slipstreams, ${state.player.shardChain} Shards, ${state.player.graze} Near Misses, beste Serie x${state.player.bestCombo}, ${formatTime(state.elapsed)}. Medaillen: ${medals.join(", ")}`;
   ui.results.classList.remove("hidden");
   ui.results.classList.add("active");
   ui.bossBar.classList.add("hidden");
@@ -1923,6 +2130,7 @@ function missionMedals(success) {
   if (cores === DATA_CORES.length) medals.push("Kernsammler");
   if (state.supplyPodCollected.size >= Math.ceil(SUPPLY_PODS.length * 0.75)) medals.push("Rettungsroute");
   if (state.signalBeaconCollected.size >= Math.ceil(SIGNAL_BEACONS.length * 0.7)) medals.push("Signalnetz");
+  if (state.slipstreamCollected.size >= Math.ceil(SLIPSTREAMS.length * 0.7)) medals.push("Driftmeister");
   if (rings >= Math.ceil(RINGS.length * 0.75)) medals.push("Ringpilot");
   if (state.player.shardChain >= 18) medals.push("Shard-Jaeger");
   if (state.player.graze >= 8) medals.push("Risk Runner");
@@ -1979,9 +2187,11 @@ function updateHud(force = false) {
   lastHudUpdate = state.elapsed;
   const section = getSection(state.progress);
   const nextBeacon = SIGNAL_BEACONS.find((beacon) => !state.signalBeaconCollected.has(beacon.id) && beacon.progress > state.progress);
+  const nextStream = SLIPSTREAMS.find((stream) => !state.slipstreamCollected.has(stream.id) && stream.progress > state.progress);
   ui.sectorText.textContent = section.name;
   if (state.player.overdrive > 0) ui.objectiveText.textContent = `Overdrive ${Math.ceil(state.player.overdrive)}s`;
   else if (state.boss && !state.bossDefeated) ui.objectiveText.textContent = "Aegis Prism zerlegen";
+  else if (nextStream && nextStream.progress - state.progress < 180) ui.objectiveText.textContent = "Slipstream nehmen";
   else if (nextBeacon && nextBeacon.progress - state.progress < 220) ui.objectiveText.textContent = "Signal Relay sichern";
   else if (state.progress > BOSS.at - 260) ui.objectiveText.textContent = "Zum Prism Core";
   else ui.objectiveText.textContent = section.objective;
@@ -2059,14 +2269,63 @@ function renderScene(dt) {
   camera.lookAt(lookTarget);
   chaseLight.position.copy(playerWorld).add(new THREE.Vector3(0, 2.8, 5.2));
 
-  const stars = camera.getObjectByName("camera-starfield");
-  if (stars) stars.rotation.z += dt * 0.006;
-  if (speedLines) {
-    speedLines.material.opacity = state.mode === "playing" && energized ? 0.38 : 0.14;
-    speedLines.rotation.z = Math.sin(state.elapsed * 0.9) * 0.018;
-  }
+  updateCameraBackdrop(dt, energized);
 
   renderer.render(scene, camera);
+}
+
+function updateCameraBackdrop(dt, energized) {
+  const section = getSection(state.progress);
+  const pulse = Math.sin(state.elapsed * 1.4) * 0.5 + 0.5;
+  scene.fog.color.setHex(section.color);
+  scene.fog.density = 0.0048 + pulse * 0.0016 + (energized ? 0.0011 : 0);
+  hemi.intensity = 1.05 + pulse * 0.16;
+  sun.intensity = 1.82 + pulse * 0.28 + (energized ? 0.18 : 0);
+
+  const stars = camera.getObjectByName("camera-starfield");
+  if (stars) {
+    stars.rotation.z += dt * (0.008 + state.speed * 0.000025);
+    stars.rotation.x = Math.sin(state.elapsed * 0.16) * 0.018;
+    stars.material.opacity = 0.72 + pulse * 0.16;
+  }
+
+  if (driftDust) {
+    const positions = driftDust.geometry.getAttribute("position");
+    const colors = driftDust.geometry.getAttribute("color");
+    const scroll = dt * (state.mode === "playing" ? 16 + state.speed * 0.36 : 7);
+    for (let i = 0; i < positions.count; i += 1) {
+      const z = positions.getZ(i) + scroll;
+      if (z > -7) {
+        resetDustPoint(positions.array, colors.array, i, false, driftDust.userData.palette);
+      } else {
+        positions.setZ(i, z);
+      }
+    }
+    positions.needsUpdate = true;
+    driftDust.material.opacity = energized ? 0.66 : 0.44 + pulse * 0.08;
+  }
+
+  for (const panel of nebulaPanels) {
+    const data = panel.userData;
+    panel.position.x = data.baseX + Math.sin(state.elapsed * 0.16 * data.drift + data.z) * 7;
+    panel.position.y = data.baseY + Math.cos(state.elapsed * 0.12 * data.drift + data.z) * 3.5;
+    panel.rotation.z = data.baseRot + Math.sin(state.elapsed * 0.1 + data.z) * 0.08;
+    panel.material.opacity = data.baseOpacity + pulse * 0.018;
+  }
+
+  for (const ribbon of auroraRibbons) {
+    const data = ribbon.userData;
+    ribbon.position.x = data.baseX + Math.sin(state.elapsed * data.sway + data.z) * 4.8;
+    ribbon.position.y = data.baseY + Math.cos(state.elapsed * data.sway * 0.7 + data.z) * 2.8;
+    ribbon.rotation.z = data.baseRot + Math.sin(state.elapsed * 0.3 + data.z) * 0.06;
+    ribbon.material.opacity = data.baseOpacity + pulse * 0.08 + (energized ? 0.08 : 0);
+  }
+
+  if (speedLines) {
+    speedLines.material.opacity = state.mode === "playing" && energized ? 0.42 : 0.16 + pulse * 0.04;
+    speedLines.rotation.z = Math.sin(state.elapsed * 0.9) * 0.022;
+    speedLines.scale.setScalar(energized ? 1.08 : 1);
+  }
 }
 
 function placeRailObject(mesh, progress, localX, localY) {

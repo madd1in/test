@@ -56,6 +56,7 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
   if (level.DATA_CORES.length < 8) throw new Error("Expected optional data core collectibles");
   if (level.SUPPLY_PODS.length < 5) throw new Error("Expected supply pods for easier comeback routes");
   if (level.SIGNAL_BEACONS.length < 8) throw new Error("Expected signal beacon side route");
+  if (level.SLIPSTREAMS.length < 6) throw new Error("Expected optional slipstream boost route");
   if (level.TUNNEL_GATES.length < 40) throw new Error("Expected tunnel gate depth markers");
   if (!level.WAVE_BLUEPRINTS.some((wave) => wave.type === "prism")) throw new Error("Expected prism elite waves");
 
@@ -91,6 +92,14 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "collectSignalBeacon",
     "updateMissionCues",
     "nova-signal-beacon.png",
+    "SLIPSTREAMS",
+    "collectSlipstream",
+    "createDriftDust",
+    "createAuroraRibbons",
+    "nova-aurora-ribbon.png",
+    "nova-slipstream-wake.png",
+    "loadSfxAssets",
+    "loadBgmFallback",
   ]) {
     if (!gameSource.includes(token)) throw new Error(`Missing gameplay token: ${token}`);
   }
@@ -126,6 +135,8 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
     "nova-supply-pod.png",
     "nova-waypoint-bloom.png",
     "nova-signal-beacon.png",
+    "nova-aurora-ribbon.png",
+    "nova-slipstream-wake.png",
     "nova-briefing-card.png",
     "nova-medal-badge.png",
   ];
@@ -150,5 +161,5 @@ for (const rel of ["js/level.js", "js/game.js", "tools/build-assets.cjs", "tools
   if (fs.statSync(mp3).size < 1000000) throw new Error("Local MP3 BGM looks too small");
 
   console.log("Nova Wing 3D smoke test passed");
-  console.log(`${level.WAVE_BLUEPRINTS.length} waves, ${level.RINGS.length} rings, ${level.OBSTACLES.length} hazards, ${level.SUPPLY_PODS.length} supply pods, ${level.SIGNAL_BEACONS.length} signal beacons`);
+  console.log(`${level.WAVE_BLUEPRINTS.length} waves, ${level.RINGS.length} rings, ${level.OBSTACLES.length} hazards, ${level.SUPPLY_PODS.length} supply pods, ${level.SIGNAL_BEACONS.length} signal beacons, ${level.SLIPSTREAMS.length} slipstreams`);
 })();

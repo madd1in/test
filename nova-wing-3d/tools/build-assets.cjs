@@ -280,6 +280,44 @@ function waypointSvg() {
   </svg>`;
 }
 
+function auroraRibbonSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="512" viewBox="0 0 1600 512">
+  <defs>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#44e6ff" stop-opacity="0"/>
+      <stop offset=".22" stop-color="#44e6ff" stop-opacity=".48"/>
+      <stop offset=".55" stop-color="#b7ff68" stop-opacity=".42"/>
+      <stop offset=".82" stop-color="#ff5f9a" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#44e6ff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+  </defs>
+  <rect width="1600" height="512" fill="transparent"/>
+  <path d="M-40 282C216 116 398 356 624 230s408-70 582 38 266 48 438-92" fill="none" stroke="url(#cyan)" stroke-width="84" opacity=".62" filter="url(#soft)"/>
+  <path d="M-20 316C226 188 438 390 658 278s420-54 604 64 242 22 366-62" fill="none" stroke="#f6fbff" stroke-width="9" opacity=".26"/>
+  <path d="M10 220C280 70 484 278 712 170s408-52 566 30 226 76 332-10" fill="none" stroke="#44e6ff" stroke-width="14" opacity=".28"/>
+  </svg>`;
+}
+
+function slipstreamWakeSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="wake" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f6fbff" stop-opacity=".86"/>
+      <stop offset=".18" stop-color="#44e6ff" stop-opacity=".56"/>
+      <stop offset=".48" stop-color="#b7ff68" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#44e6ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="transparent"/>
+  <circle cx="512" cy="512" r="420" fill="url(#wake)" filter="url(#soft)"/>
+  <circle cx="512" cy="512" r="306" fill="none" stroke="#f6fbff" stroke-width="18" opacity=".24"/>
+  <path d="M512 166l74 186 198 24-148 132 40 196-164-104-164 104 40-196-148-132 198-24z" fill="#44e6ff" opacity=".16"/>
+  <path d="M244 512h536M512 244v536" stroke="#b7ff68" stroke-width="34" stroke-linecap="round" opacity=".34"/>
+  </svg>`;
+}
+
 function signalBeaconSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
@@ -447,6 +485,8 @@ function synthSfx(kind, seconds, sampleRate = 44100) {
   await writePng("nova-supply-pod.png", supplyPodSvg(), 1024, 1024);
   await writePng("nova-waypoint-bloom.png", waypointSvg(), 1024, 1024);
   await writePng("nova-signal-beacon.png", signalBeaconSvg(), 1024, 1024);
+  await writePng("nova-aurora-ribbon.png", auroraRibbonSvg(), 1600, 512);
+  await writePng("nova-slipstream-wake.png", slipstreamWakeSvg(), 1024, 1024);
   await writePng("nova-briefing-card.png", briefingCardSvg(), 1400, 420);
   await writePng("nova-medal-badge.png", medalBadgeSvg(), 1024, 1024);
 
