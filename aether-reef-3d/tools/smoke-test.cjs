@@ -8,6 +8,13 @@ const required = [
   "style.css",
   "README.md",
   "package.json",
+  "assets/audio/aether-bgm-loop.mp3",
+  "assets/audio/boost.wav",
+  "assets/audio/explosion.wav",
+  "assets/audio/hit.wav",
+  "assets/audio/laser.wav",
+  "assets/audio/pickup.wav",
+  "assets/audio/win.wav",
   "assets/vendor/three.module.js",
   "js/game.js",
   "tools/serve.cjs",
@@ -42,6 +49,9 @@ for (const token of [
   "class Simulation",
   "class GameView",
   "class InputController",
+  "const steer = actions.left - actions.right",
+  "aether-bgm-loop.mp3",
+  "new Audio(this.audioUrl",
   "collectCore",
   "triggerDamage",
   "createPlayerSkiff",
@@ -55,6 +65,10 @@ for (const token of [
 const vendorSize = fs.statSync(path.join(root, "assets/vendor/three.module.js")).size;
 if (vendorSize < 1000000) {
   throw new Error("Three.js vendor file looks truncated");
+}
+const bgmSize = fs.statSync(path.join(root, "assets/audio/aether-bgm-loop.mp3")).size;
+if (bgmSize < 1000000) {
+  throw new Error("BGM file looks truncated");
 }
 
 console.log("Aether Reef 3D smoke test passed");

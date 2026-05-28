@@ -172,7 +172,7 @@ class Simulation {
     p.damageCooldown = Math.max(0, p.damageCooldown - dt);
     p.wallCooldown = Math.max(0, p.wallCooldown - dt);
 
-    const steer = actions.right - actions.left;
+    const steer = actions.left - actions.right;
     const throttle = actions.up - actions.down * 0.52;
     const boostActive = actions.boost && p.boost > 2 && throttle > 0.05;
     const speedFactor = clamp(p.speed / 38, 0, 1);
@@ -593,16 +593,28 @@ class GameUI {
 class AudioSystem {
   constructor() {
     this.enabled = readBoolean("aether-reef-sound", false);
-    this.context = null;
-    this.master = null;
+    this.bgm = new Audio(this.audioUrl("aether-bgm-loop.mp3"));
+    this.bgm.loop = true;
+    this.bgm.preload = "auto";
+    this.bgm.volume = 0.34;
+    this.sounds = {
+      core: { file: "pickup.wav", volume: 0.62 },
+      gate: { file: "boost.wav", volume: 0.48 },
+      damage: { file: "hit.wav", volume: 0.58 },
+      crash: { file: "explosion.wav", volume: 0.54 },
+      win: { file: "win.wav", volume: 0.62 },
+      ui: { file: "laser.wav", volume: 0.36 },
+    };
   }
 
   async setEnabled(enabled) {
     this.enabled = enabled;
     writeBoolean("aether-reef-sound", enabled);
     if (enabled) {
-      await this.ensureContext();
-      this.play("gate");
+      await this.startBgm();
+      this.play("ui");
+    } else {
+      this.stopBgm();
     }
   }
 
@@ -610,52 +622,29 @@ class AudioSystem {
     await this.setEnabled(!this.enabled);
   }
 
-  async ensureContext() {
-    if (!this.context) {
-      this.context = new AudioContext();
-      this.master = this.context.createGain();
-      this.master.gain.value = 0.12;
-      this.master.connect(this.context.destination);
-    }
-    if (this.context.state === "suspended") {
-      await this.context.resume();
-    }
+  audioUrl(fileName) {
+    return new URL(`../assets/audio/${fileName}`, import.meta.url).href;
   }
 
-  async play(kind) {
+  async startBgm() {
     if (!this.enabled) {
       return;
     }
-    await this.ensureContext();
-    const now = this.context.currentTime;
-    if (kind === "core") {
-      this.tone(660, 0.08, "triangle", 0.5, now);
-      this.tone(990, 0.12, "sine", 0.34, now + 0.04);
-    } else if (kind === "damage") {
-      this.tone(120, 0.18, "sawtooth", 0.45, now);
-      this.tone(84, 0.22, "square", 0.28, now + 0.03);
-    } else if (kind === "win") {
-      this.tone(440, 0.12, "triangle", 0.4, now);
-      this.tone(660, 0.12, "triangle", 0.4, now + 0.12);
-      this.tone(880, 0.18, "triangle", 0.4, now + 0.24);
-    } else {
-      this.tone(360, 0.08, "sine", 0.35, now);
-      this.tone(540, 0.1, "triangle", 0.22, now + 0.03);
-    }
+    this.bgm.play().catch(() => {});
   }
 
-  tone(frequency, duration, type, volume, start) {
-    const osc = this.context.createOscillator();
-    const gain = this.context.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(frequency, start);
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    osc.connect(gain);
-    gain.connect(this.master);
-    osc.start(start);
-    osc.stop(start + duration + 0.03);
+  stopBgm() {
+    this.bgm.pause();
+  }
+
+  play(kind) {
+    if (!this.enabled) {
+      return;
+    }
+    const sound = this.sounds[kind] || this.sounds.ui;
+    const sample = new Audio(this.audioUrl(sound.file));
+    sample.volume = sound.volume;
+    sample.play().catch(() => {});
   }
 
   handleEvent(event) {
@@ -666,7 +655,7 @@ class AudioSystem {
     } else if (event.type === "damage") {
       this.play("damage");
     } else if (event.type === "result") {
-      this.play(event.detail.won ? "win" : "damage");
+      this.play(event.detail.won ? "win" : "crash");
     }
   }
 }
@@ -1222,6 +1211,7 @@ const app = {
   startRun() {
     simulation.resetRun();
     simulation.begin();
+    audio.startBgm();
     ui.showGame();
   },
   restart() {
