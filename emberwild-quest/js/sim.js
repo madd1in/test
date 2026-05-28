@@ -9,6 +9,7 @@ export function createInitialState() {
     ember: 0,
     shards: [],
     key: false,
+    ward: true,
     chests: [],
     beacons: [],
     enemiesDefeated: 0,
@@ -53,6 +54,7 @@ export function saveState(state) {
     ember: state.ember,
     shards: state.shards,
     key: state.key,
+    ward: state.ward,
     chests: state.chests,
     beacons: state.beacons,
     enemiesDefeated: state.enemiesDefeated,
@@ -62,11 +64,19 @@ export function saveState(state) {
     objective: state.objective,
     lastCheckpoint: state.lastCheckpoint,
   };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+  } catch (error) {
+    console.warn("Save skipped", error);
+  }
 }
 
 export function clearSave() {
-  localStorage.removeItem(SAVE_KEY);
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch (error) {
+    console.warn("Clear save skipped", error);
+  }
 }
 
 export function addShard(state, id) {
@@ -100,10 +110,11 @@ export function touchBeacon(state, id, x, y) {
   if (!state.beacons.includes(id)) state.beacons.push(id);
   state.lastCheckpoint = { x, y };
   state.health = MAX_HEALTH;
+  state.ward = true;
   state.objective =
     state.shards.length >= REQUIRED_SHARDS
       ? "Carry the full ember to the north ruin."
-      : "A beacon remembers you. Keep exploring.";
+      : "A beacon remembers you. Ember ward renewed.";
   saveState(state);
 }
 

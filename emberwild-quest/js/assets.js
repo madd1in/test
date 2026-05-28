@@ -1,6 +1,7 @@
 export const ASSETS = {
   keyArt: "assets/generated/emberwild-key-art.png",
   shrineArt: "assets/generated/emberwild-shrine-hd.png",
+  wardArt: "assets/generated/emberwild-ward-hd.png",
   bossArt: "assets/generated/ashwarden-boss-hd.png",
   tiles: "assets/environment/tiles-imagen-hd.png",
   objects: "assets/environment/objects.png",

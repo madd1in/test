@@ -167,6 +167,11 @@ button {
   text-transform: uppercase;
 }
 
+#key-status.is-ward-ready {
+  color: var(--accent-2);
+  text-shadow: 0 0 12px rgba(100, 198, 178, 0.46);
+}
+
 .icon-button {
   width: 34px;
   height: 34px;
@@ -222,6 +227,11 @@ button {
   object-fit: cover;
   border: 1px solid rgba(255, 184, 78, 0.25);
   border-radius: 8px;
+}
+
+.journal__art--ward {
+  aspect-ratio: 16 / 6;
+  margin: 12px 0 8px;
 }
 
 .journal h2 {

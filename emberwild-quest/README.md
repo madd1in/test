@@ -29,6 +29,7 @@ HD illustration assets were generated with the built-in Image Gen tool and saved
 
 - `assets/generated/emberwild-key-art.png`
 - `assets/generated/emberwild-shrine-hd.png`
+- `assets/generated/emberwild-ward-hd.png`
 - `assets/generated/ashwarden-boss-hd.png`
 - `assets/generated/tile-atlas-imagen-hd-source.png`
 
@@ -67,3 +68,4 @@ Audio was copied from local disk into `assets/audio`:
 - Browser smoke now checks frame pacing on desktop and mobile
 - Friendlier balance: eight health, four-shard gate, fewer enemies, slower enemy pursuit, softer boss damage, and extra salve chests
 - Softer terrain processing for less harsh tile edges while keeping the fast pixel renderer
+- Enemy contact is guarded by an Ember Ward, knockback, safer audio/save handling, and a browser regression test

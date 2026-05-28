@@ -119,8 +119,47 @@ async function main() {
   await page.keyboard.press("e");
   await page.keyboard.press("q");
   await page.waitForTimeout(500);
+  await page.click("#journal-toggle");
+  await page.waitForTimeout(180);
+  const journal = await page.evaluate(() => {
+    const panel = document.querySelector("#journal");
+    const art = document.querySelector(".journal__art--ward");
+    return {
+      hidden: panel?.hidden ?? true,
+      wardArtLoaded: Boolean(art?.complete && art.naturalWidth > 0 && art.naturalHeight > 0),
+      height: panel?.getBoundingClientRect().height ?? 0,
+    };
+  });
+  await page.screenshot({ path: path.join(outDir, "journal-desktop.png"), fullPage: true });
+  await page.click("#journal-toggle");
+  await page.waitForTimeout(120);
+  const enemyContact = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    const enemy = scene?.enemies?.getChildren?.().find((sprite) => sprite?.active);
+    if (!scene?.player || !enemy) return { ran: false };
+    scene.state.health = 8;
+    scene.state.ward = true;
+    scene.invulnerableUntil = 0;
+    enemy.setData("touchAt", 0);
+    const beforeHealth = scene.state.health;
+    scene.touchEnemy(enemy);
+    const afterWardHealth = scene.state.health;
+    const afterWard = scene.state.ward;
+    scene.invulnerableUntil = 0;
+    enemy.setData("touchAt", 0);
+    scene.touchEnemy(enemy);
+    return {
+      ran: true,
+      beforeHealth,
+      afterWardHealth,
+      afterDamageHealth: scene.state.health,
+      afterWard,
+      activePlay: scene.activePlay,
+      endHidden: document.querySelector("#end-screen")?.hidden ?? false,
+    };
+  });
   const desktopPerf = await sampleFramePace(page);
-  const desktop = await page.evaluate(() => {
+  const desktop = await page.evaluate((journalState) => {
     const canvas = document.querySelector("canvas");
     const scene = window.__emberScene;
     const box = canvas.getBoundingClientRect();
@@ -131,9 +170,11 @@ async function main() {
       activePlay: scene?.activePlay ?? false,
       player: scene?.player ? { x: Math.round(scene.player.x), y: Math.round(scene.player.y) } : null,
       pulseReady: Boolean(scene?.nextPulseAt > 0),
+      journal: journalState,
       objective: document.querySelector("#objective")?.textContent,
     };
-  });
+  }, journal);
+  desktop.enemyContact = enemyContact;
   desktop.perf = desktopPerf;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
   await page.close();
@@ -171,6 +212,17 @@ async function main() {
     failed.push("Player did not move during keyboard smoke.");
   }
   if (!desktop.pulseReady) failed.push("Ember pulse did not trigger from keyboard input.");
+  if (desktop.journal.hidden || !desktop.journal.wardArtLoaded) failed.push("Journal or Ward art did not render.");
+  if (!desktop.enemyContact?.ran) failed.push("Enemy contact regression did not run.");
+  else {
+    if (!desktop.enemyContact.activePlay || !desktop.enemyContact.endHidden) failed.push("Enemy contact stopped active play.");
+    if (desktop.enemyContact.afterWardHealth !== desktop.enemyContact.beforeHealth || desktop.enemyContact.afterWard) {
+      failed.push("Ember Ward did not absorb first enemy contact.");
+    }
+    if (desktop.enemyContact.afterDamageHealth !== desktop.enemyContact.beforeHealth - 1) {
+      failed.push("Enemy contact did not apply exactly one damage after Ward was spent.");
+    }
+  }
   if (desktop.perf.avgFps < 35) failed.push(`Desktop frame pace is too low: ${desktop.perf.avgFps}fps avg.`);
   if (mobileState.canvas.width < 300 || mobileState.canvas.height < 500) failed.push("Mobile canvas is too small.");
   if (mobileState.hudHidden || !mobileState.mobileControlsVisible) failed.push("Mobile HUD or touch controls are not visible.");
@@ -191,6 +243,7 @@ async function main() {
         screenshots: {
           menu: path.join(outDir, "menu-desktop.png"),
           gameplay: path.join(outDir, "gameplay-desktop.png"),
+          journal: path.join(outDir, "journal-desktop.png"),
           mobile: path.join(outDir, "gameplay-mobile.png"),
         },
       },

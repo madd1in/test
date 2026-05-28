@@ -457,7 +457,11 @@ class EmberScene extends Phaser.Scene {
   }
 
   createAudio() {
-    this.audioEnabled = localStorage.getItem(AUDIO_STORAGE_KEY) !== "off";
+    try {
+      this.audioEnabled = localStorage.getItem(AUDIO_STORAGE_KEY) !== "off";
+    } catch {
+      this.audioEnabled = true;
+    }
     this.music = {
       explore: this.sound.add("bgm-explore", { loop: true, volume: 0.26 }),
       boss: this.sound.add("bgm-boss", { loop: true, volume: 0.32 }),
@@ -914,28 +918,72 @@ class EmberScene extends Phaser.Scene {
     this.time.delayedCall(1500, () => ember.destroy());
   }
 
+  resolveOverlapTarget(target) {
+    return target?.gameObject ?? target;
+  }
+
+  canTakeContactDamage(target) {
+    return Boolean(this.activePlay && !this.pausedByOverlay && this.player?.active && target?.active && target.getData && target.setData);
+  }
+
+  knockbackFrom(source, playerForce = 230, sourceForce = 95) {
+    if (!source || !this.player?.body) return;
+    const angle = Phaser.Math.Angle.Between(source.x, source.y, this.player.x, this.player.y);
+    this.player.setVelocity(Math.cos(angle) * playerForce, Math.sin(angle) * playerForce);
+    if (source.body && source.setVelocity) {
+      source.setVelocity(Math.cos(angle + Math.PI) * sourceForce, Math.sin(angle + Math.PI) * sourceForce);
+    }
+  }
+
   touchEnemy(enemy) {
-    const now = this.time.now;
-    if (now < enemy.getData("touchAt")) return;
-    enemy.setData("touchAt", now + 1250);
+    enemy = this.resolveOverlapTarget(enemy);
+    if (!this.canTakeContactDamage(enemy)) return;
+    const now = this.time?.now ?? 0;
+    if (now < (enemy.getData("touchAt") ?? 0)) return;
+    enemy.setData("touchAt", now + 1450);
+    this.knockbackFrom(enemy);
     this.damagePlayer(1);
   }
 
   touchBoss(boss) {
-    const now = this.time.now;
-    if (now < boss.getData("touchAt")) return;
-    boss.setData("touchAt", now + 1350);
+    boss = this.resolveOverlapTarget(boss);
+    if (!this.canTakeContactDamage(boss)) return;
+    const now = this.time?.now ?? 0;
+    if (now < (boss.getData("touchAt") ?? 0)) return;
+    boss.setData("touchAt", now + 1500);
+    this.knockbackFrom(boss, 270, 70);
     this.damagePlayer(1);
   }
 
   damagePlayer(amount) {
-    const now = this.time.now;
+    if (!this.state || !this.player?.active || amount <= 0) return;
+    const now = this.time?.now ?? 0;
     if (now < this.invulnerableUntil) return;
+
+    if (this.state.ward) {
+      this.state.ward = false;
+      saveState(this.state);
+      this.invulnerableUntil = now + Math.round(INVULN_TIME * 1.12);
+      this.playSfx("beacon");
+      this.burst(this.player.x, this.player.y, 0xffd479, 14, 62);
+      this.floatText(this.player.x, this.player.y - 30, "Ward absorbed");
+      this.cameras?.main?.flash?.(90, 255, 214, 132, 0.14);
+      this.updateHud();
+      return;
+    }
+
     this.invulnerableUntil = now + INVULN_TIME;
-    const defeated = takeDamage(this.state, amount);
+    let defeated = false;
+    try {
+      defeated = takeDamage(this.state, amount);
+    } catch (error) {
+      console.warn("Damage save skipped", error);
+      this.state.health = Math.max(0, this.state.health - amount);
+      defeated = this.state.health === 0;
+    }
     this.playSfx("playerHit");
     this.burst(this.player.x, this.player.y, 0xe95e5d, 11, 52);
-    this.cameras.main.shake(130, 0.008);
+    this.cameras?.main?.shake?.(130, 0.008);
     this.updateHud();
     if (defeated) this.showGameOver();
   }
@@ -1018,7 +1066,7 @@ class EmberScene extends Phaser.Scene {
     touchBeacon(this.state, beacon.getData("id"), beacon.x, beacon.y + 16);
     this.playSfx("beacon");
     this.burst(beacon.x, beacon.y, 0x64c6b2, 16, 64);
-    this.floatText(beacon.x, beacon.y - 20, "Checkpoint lit");
+    this.floatText(beacon.x, beacon.y - 20, "Ward renewed");
     this.updateHud();
   }
 
@@ -1062,7 +1110,7 @@ class EmberScene extends Phaser.Scene {
     ui.endTitle.textContent = "Paused";
     ui.endMessage.textContent = "The forest waits.";
     ui.againButton.textContent = "Resume";
-    ui.endScreen.style.setProperty("--end-art", `url("./${ASSETS.shrineArt}")`);
+    ui.endScreen.style.setProperty("--end-art", `url("./${ASSETS.wardArt}")`);
     ui.endScreen.hidden = false;
   }
 
@@ -1167,23 +1215,36 @@ class EmberScene extends Phaser.Scene {
   playMusic(key) {
     if (!this.music || !this.audioEnabled) return;
     if (this.currentMusic === key && this.music[key]?.isPlaying) return;
-    for (const [musicKey, track] of Object.entries(this.music)) {
-      if (musicKey !== key && track.isPlaying) track.stop();
+    try {
+      for (const [musicKey, track] of Object.entries(this.music)) {
+        if (musicKey !== key && track.isPlaying) track.stop();
+      }
+      const track = this.music[key];
+      if (track && !track.isPlaying) track.play();
+      this.currentMusic = key;
+    } catch (error) {
+      console.warn("Music skipped", error);
     }
-    const track = this.music[key];
-    if (track && !track.isPlaying) track.play();
-    this.currentMusic = key;
   }
 
   playSfx(key) {
     if (!this.sfx || !this.audioEnabled) return;
     const sound = this.sfx[key];
-    if (sound) sound.play();
+    if (!sound) return;
+    try {
+      sound.play();
+    } catch (error) {
+      console.warn("SFX skipped", key, error);
+    }
   }
 
   toggleAudio() {
     this.audioEnabled = !this.audioEnabled;
-    localStorage.setItem(AUDIO_STORAGE_KEY, this.audioEnabled ? "on" : "off");
+    try {
+      localStorage.setItem(AUDIO_STORAGE_KEY, this.audioEnabled ? "on" : "off");
+    } catch (error) {
+      console.warn("Audio preference skipped", error);
+    }
     if (!this.audioEnabled) {
       this.sound.stopAll();
     } else {
@@ -1215,7 +1276,8 @@ class EmberScene extends Phaser.Scene {
     ui.healthFill.style.transform = `scaleX(${Math.max(0, this.state.health / MAX_HEALTH)})`;
     ui.emberFill.style.transform = `scaleX(${Math.max(0, this.state.ember / 99)})`;
     ui.shardCount.textContent = `Shards ${this.state.shards.length}/${REQUIRED_SHARDS}`;
-    ui.keyStatus.textContent = this.state.key ? "Key ready" : "Key -";
+    ui.keyStatus.textContent = this.state.key ? "Key ready" : this.state.ward ? "Ward ready" : "Key -";
+    ui.keyStatus.classList.toggle("is-ward-ready", !this.state.key && Boolean(this.state.ward));
     ui.areaName.textContent = this.state.areaName;
     ui.objective.textContent = this.state.objective;
     document.body.classList.toggle("is-low-health", this.state.health > 0 && this.state.health <= 2);
@@ -1256,6 +1318,7 @@ function bindUi(game) {
       return;
     }
     scene.state.health = MAX_HEALTH;
+    scene.state.ward = true;
     saveState(scene.state);
     scene.restartFromSave();
   });

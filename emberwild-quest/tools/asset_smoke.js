@@ -8,6 +8,7 @@ const required = [
   "vendor/phaser.min.js",
   "assets/generated/emberwild-key-art.png",
   "assets/generated/emberwild-shrine-hd.png",
+  "assets/generated/emberwild-ward-hd.png",
   "assets/generated/ashwarden-boss-hd.png",
   "assets/generated/tile-atlas-imagen-hd-source.png",
   "assets/environment/tiles-imagen-hd.png",
