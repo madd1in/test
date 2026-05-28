@@ -20,13 +20,15 @@ const WORLD_W = 64;
 const WORLD_H = 46;
 const WORLD_PX_W = WORLD_W * TILE;
 const WORLD_PX_H = WORLD_H * TILE;
-const PLAYER_SPEED = 172;
-const DASH_SPEED = 420;
-const DASH_TIME = 150;
-const DASH_COOLDOWN = 620;
-const ATTACK_COOLDOWN = 310;
+const PLAYER_SPEED = 184;
+const DASH_SPEED = 440;
+const DASH_TIME = 165;
+const DASH_COOLDOWN = 500;
+const ATTACK_COOLDOWN = 260;
 const PULSE_COOLDOWN = 1600;
-const INVULN_TIME = 760;
+const INVULN_TIME = 1120;
+const ENEMY_HP = 2;
+const BOSS_HP = 10;
 const AUDIO_STORAGE_KEY = "emberwild-audio-enabled";
 
 const ui = {
@@ -328,21 +330,20 @@ function listSpawns(state) {
 
   const enemies = [
     [18, 21],
-    [25, 33],
     [43, 22],
     [48, 35],
     [52, 12],
-    [10, 34],
     [36, 25],
     [57, 33],
     [14, 14],
-    [46, 18],
   ];
 
   const chests = [
     { id: "sunken-key", x: 55, y: 38, content: "key" },
     { id: "root-cache", x: 9, y: 12, content: "heart" },
     { id: "north-cache", x: 36, y: 12, content: "potion" },
+    { id: "trail-salve", x: 14, y: 36, content: "heart" },
+    { id: "stream-salve", x: 47, y: 33, content: "heart" },
   ];
 
   const beacons = [
@@ -570,7 +571,7 @@ class EmberScene extends Phaser.Scene {
     for (const [tx, ty] of spawns.enemies) {
       const pos = tileCenter(tx, ty);
       const enemy = this.enemies.create(pos.x, pos.y, "thornling", 0);
-      enemy.setData("hp", 3);
+      enemy.setData("hp", ENEMY_HP);
       enemy.setData("home", { x: pos.x, y: pos.y });
       enemy.setData("nextThink", 0);
       enemy.setData("touchAt", 0);
@@ -581,8 +582,8 @@ class EmberScene extends Phaser.Scene {
     if (!this.state.bossDefeated) {
       const bossPos = tileCenter(32, 8);
       const boss = this.bossGroup.create(bossPos.x, bossPos.y, "ashwarden", 0);
-      boss.setData("hp", 14);
-      boss.setData("maxHp", 14);
+      boss.setData("hp", BOSS_HP);
+      boss.setData("maxHp", BOSS_HP);
       boss.setData("touchAt", 0);
       boss.setData("awake", false);
       boss.setSize(40, 44).setOffset(16, 25).setDepth(19);
@@ -859,7 +860,8 @@ class EmberScene extends Phaser.Scene {
   }
 
   dropMaybe(x, y) {
-    if ((this.state.enemiesDefeated + Math.round(x + y)) % 3 !== 0) return;
+    const wounded = this.state.health <= Math.ceil(MAX_HEALTH * 0.55);
+    if (!wounded && (this.state.enemiesDefeated + Math.round(x + y)) % 2 !== 0) return;
     const item = this.collectibles.create(x, y, "objects", OBJECT_FRAME.heart);
     item.setData("type", "heart");
     item.setCircle(10, 6, 6);
@@ -870,13 +872,13 @@ class EmberScene extends Phaser.Scene {
     this.enemies.children.iterate((enemy) => {
       if (!enemy?.active) return;
       const distToPlayer = distance(enemy, this.player);
-      if (distToPlayer < 270) {
-        this.physics.moveToObject(enemy, this.player, distToPlayer < 52 ? 40 : 92);
+      if (distToPlayer < 235) {
+        this.physics.moveToObject(enemy, this.player, distToPlayer < 56 ? 24 : 68);
       } else if (time > enemy.getData("nextThink")) {
-        enemy.setData("nextThink", time + Phaser.Math.Between(700, 1600));
+        enemy.setData("nextThink", time + Phaser.Math.Between(900, 1900));
         const home = enemy.getData("home");
         const roam = new Phaser.Math.Vector2(home.x + Phaser.Math.Between(-80, 80), home.y + Phaser.Math.Between(-60, 60));
-        this.physics.moveTo(enemy, roam.x, roam.y, 42);
+        this.physics.moveTo(enemy, roam.x, roam.y, 30);
       }
       enemy.setDepth(enemy.y);
     });
@@ -886,15 +888,15 @@ class EmberScene extends Phaser.Scene {
     this.bossGroup.children.iterate((boss) => {
       if (!boss?.active) return;
       const distToPlayer = distance(boss, this.player);
-      const awake = boss.getData("awake") || distToPlayer < 360 || this.state.gateOpen;
+      const awake = boss.getData("awake") || distToPlayer < 320 || this.state.gateOpen;
       boss.setData("awake", awake);
       if (!awake) return;
       if (!this.state.gateOpen) return;
       this.beginBossFight(boss);
       this.updateBossHud(boss);
-      this.physics.moveToObject(boss, this.player, distToPlayer < 70 ? 35 : 76);
+      this.physics.moveToObject(boss, this.player, distToPlayer < 82 ? 20 : 54);
       boss.setDepth(boss.y);
-      if (time % 900 < 18 && distToPlayer < 260) this.spawnBossEmber(boss);
+      if (time % 1350 < 18 && distToPlayer < 250) this.spawnBossEmber(boss);
     });
   }
 
@@ -904,7 +906,7 @@ class EmberScene extends Phaser.Scene {
     ember.setDepth(24);
     this.physics.add.existing(ember);
     ember.body.setCircle(5);
-    ember.body.setVelocity(Math.cos(angle) * 170, Math.sin(angle) * 170);
+    ember.body.setVelocity(Math.cos(angle) * 120, Math.sin(angle) * 120);
     this.physics.add.overlap(this.player, ember, () => {
       ember.destroy();
       this.damagePlayer(1);
@@ -915,15 +917,15 @@ class EmberScene extends Phaser.Scene {
   touchEnemy(enemy) {
     const now = this.time.now;
     if (now < enemy.getData("touchAt")) return;
-    enemy.setData("touchAt", now + 850);
+    enemy.setData("touchAt", now + 1250);
     this.damagePlayer(1);
   }
 
   touchBoss(boss) {
     const now = this.time.now;
     if (now < boss.getData("touchAt")) return;
-    boss.setData("touchAt", now + 1000);
-    this.damagePlayer(2);
+    boss.setData("touchAt", now + 1350);
+    this.damagePlayer(1);
   }
 
   damagePlayer(amount) {

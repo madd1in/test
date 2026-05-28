@@ -21,7 +21,7 @@ Then open `http://localhost:4179`.
 
 ## Goal
 
-Collect five ember shards, find the sunken key, open the north gate, and defeat the Ash Warden.
+Collect four ember shards, find the sunken key, open the north gate, and defeat the Ash Warden.
 
 ## Assets
 
@@ -65,3 +65,5 @@ Audio was copied from local disk into `assets/audio`:
 - Lighter FX path for mobile/reduced-motion, fewer additive particles, and no expensive backdrop blur
 - Upgraded player, thornling, boss, object, and slash sprite sheets with stronger outlines and highlights
 - Browser smoke now checks frame pacing on desktop and mobile
+- Friendlier balance: eight health, four-shard gate, fewer enemies, slower enemy pursuit, softer boss damage, and extra salve chests
+- Softer terrain processing for less harsh tile edges while keeping the fast pixel renderer

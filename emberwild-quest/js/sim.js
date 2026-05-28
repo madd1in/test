@@ -1,5 +1,5 @@
-export const MAX_HEALTH = 6;
-export const REQUIRED_SHARDS = 5;
+export const MAX_HEALTH = 8;
+export const REQUIRED_SHARDS = 4;
 
 const SAVE_KEY = "emberwild-quest-save-v1";
 
@@ -15,7 +15,7 @@ export function createInitialState() {
     bossDefeated: false,
     gateOpen: false,
     areaName: "Southwatch Grove",
-    objective: "Find the ember shards in the old forest.",
+    objective: "Find four ember shards in the old forest.",
     lastCheckpoint: { x: 208, y: 1200 },
   };
 }
@@ -24,9 +24,26 @@ export function loadState() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return createInitialState();
-    return { ...createInitialState(), ...JSON.parse(raw) };
+    const state = { ...createInitialState(), ...JSON.parse(raw) };
+    state.health = Math.min(MAX_HEALTH, Math.max(0, state.health));
+    normalizeObjective(state);
+    return state;
   } catch {
     return createInitialState();
+  }
+}
+
+function normalizeObjective(state) {
+  if (state.bossDefeated) {
+    state.objective = "The Emberwild is free.";
+  } else if (state.gateOpen) {
+    state.objective = "The gate is open. Face the Ash Warden.";
+  } else if (state.key && state.shards.length >= REQUIRED_SHARDS) {
+    state.objective = "Use the sunken key at the sealed north gate.";
+  } else if (state.shards.length > 0) {
+    state.objective = `Find ember shards (${state.shards.length}/${REQUIRED_SHARDS}).`;
+  } else {
+    state.objective = "Find four ember shards in the old forest.";
   }
 }
 

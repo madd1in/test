@@ -94,14 +94,17 @@ def line(draw: ImageDraw.ImageDraw, points: tuple[int, int, int, int], color: st
 def polish_tile(tile: Image.Image, out_index: int) -> Image.Image:
     tile = tile.copy()
     soft_ground = {0, 1, 2, 3, 6, 16, 17, 23, 28, 31}
-    add_soft_vignette(tile, 12 if out_index in soft_ground else 30)
+    if out_index in soft_ground:
+        tile = tile.filter(ImageFilter.GaussianBlur(0.55))
+        tile = ImageEnhance.Contrast(tile).enhance(0.78)
+    add_soft_vignette(tile, 0 if out_index in soft_ground else 26)
     draw = ImageDraw.Draw(tile, "RGBA")
 
     if out_index in {0, 1, 3}:
-        haze = Image.new("RGBA", (TILE, TILE), rgba("#5f8f36", 18 if out_index == 0 else 12))
+        haze = Image.new("RGBA", (TILE, TILE), rgba("#668f34", 48 if out_index == 0 else 36))
         tile.alpha_composite(haze)
         draw = ImageDraw.Draw(tile, "RGBA")
-        for x, y, color in ((6, 7, "#9adf72"), (18, 12, "#6fbb5b"), (26, 22, "#d7a85a"), (11, 25, "#456e35")):
+        for x, y, color in ((6, 7, "#9adf72"), (18, 12, "#6fbb5b"), (26, 22, "#d7a85a"), (11, 25, "#456e35"), (23, 5, "#b7d879"), (4, 21, "#486b2f"), (28, 13, "#accb58")):
             draw.point((x, y), fill=rgba(color, 155))
             draw.point((x + 1, y), fill=rgba(color, 120))
     elif out_index == 4:
