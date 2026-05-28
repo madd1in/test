@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101817" />
+    <title>Emberwild Quest</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" href="./assets/ui/icons.png" />
+  </head>
+  <body>
+    <main id="app" class="app">
+      <section id="game-shell" class="game-shell" aria-label="Emberwild Quest Spielfeld">
+        <div id="hud" class="hud" hidden>
+          <div class="hud__cluster hud__cluster--status">
+            <div class="brand">Emberwild Quest</div>
+            <div class="meters">
+              <div class="meter meter--health" aria-label="Lebenspunkte">
+                <span id="health-fill"></span>
+              </div>
+              <div class="meter meter--ember" aria-label="Ember Energie">
+                <span id="ember-fill"></span>
+              </div>
+            </div>
+            <div class="status-line">
+              <span id="shard-count">Shards 0/5</span>
+              <span id="key-status">Key -</span>
+            </div>
+          </div>
+          <div class="hud__cluster hud__cluster--quest">
+            <button id="journal-toggle" class="icon-button" type="button" aria-label="Journal anzeigen">J</button>
+            <div>
+              <div id="area-name" class="area-name">Mosswake Hollow</div>
+              <div id="objective" class="objective">Find the ember shards.</div>
+            </div>
+          </div>
+        </div>
+
+        <aside id="journal" class="journal" hidden>
+          <h2>Journal</h2>
+          <p>Recover five ember shards, open the sealed northern gate, and defeat the Ash Warden before the forest burns cold.</p>
+          <ul>
+            <li>Move: WASD or arrow keys</li>
+            <li>Attack: Space or left mouse</li>
+            <li>Dash: Shift</li>
+            <li>Interact: E</li>
+            <li>Pause: Esc</li>
+          </ul>
+        </aside>
+
+        <div id="prompt" class="prompt" hidden></div>
+
+        <nav id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
+          <div class="dpad">
+            <button data-hold="up" aria-label="Nach oben">&uarr;</button>
+            <button data-hold="left" aria-label="Nach links">&larr;</button>
+            <button data-hold="down" aria-label="Nach unten">&darr;</button>
+            <button data-hold="right" aria-label="Nach rechts">&rarr;</button>
+          </div>
+          <div class="actions">
+            <button data-tap="dash" aria-label="Dash">D</button>
+            <button data-tap="attack" aria-label="Angriff">A</button>
+            <button data-tap="interact" aria-label="Interaktion">E</button>
+          </div>
+        </nav>
+
+        <div id="menu" class="menu">
+          <div class="menu__panel">
+            <img class="menu__art" src="./assets/generated/emberwild-key-art.png" alt="" />
+            <div class="menu__content">
+              <h1>Emberwild Quest</h1>
+              <p>Fight through mossy ruins, claim ember shards, and break the curse at the old north gate.</p>
+              <div class="menu__actions">
+                <button id="start-button" type="button">Start Adventure</button>
+                <button id="reset-button" class="button--ghost" type="button">New Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="end-screen" class="end-screen" hidden>
+          <div class="end-screen__panel">
+            <h2 id="end-title">Victory</h2>
+            <p id="end-message">The forest breathes again.</p>
+            <button id="again-button" type="button">Play Again</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./vendor/phaser.min.js"></script>
+    <script type="module" src="./js/game.js"></script>
+  </body>
+</html>

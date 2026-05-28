@@ -1,0 +1,58 @@
+export const ASSETS = {
+  keyArt: "assets/generated/emberwild-key-art.png",
+  tiles: "assets/environment/tiles.png",
+  objects: "assets/environment/objects.png",
+  player: "assets/characters/player.png",
+  thornling: "assets/characters/thornling.png",
+  ashwarden: "assets/characters/ashwarden.png",
+  slash: "assets/fx/slash.png",
+  icons: "assets/ui/icons.png",
+};
+
+export const TILE = 32;
+
+export const TILE_INDEX = {
+  grass: 0,
+  grassFlowers: 1,
+  stone: 2,
+  moss: 3,
+  water: 4,
+  bridge: 5,
+  dirt: 6,
+  pit: 7,
+  wall: 8,
+  tree: 9,
+  bramble: 10,
+  gateClosed: 11,
+  gateOpen: 12,
+  pillar: 13,
+  emberVine: 14,
+  stairs: 15,
+  flowers: 16,
+  roots: 17,
+  crackedStone: 18,
+  altar: 19,
+  dark: 20,
+  ruinCap: 21,
+  fireVine: 22,
+  stepStone: 23,
+  fern: 24,
+  glowMoss: 25,
+  log: 26,
+  runeFloor: 27,
+  leafPile: 28,
+  mistStone: 29,
+  emberRock: 30,
+  thornGrass: 31,
+};
+
+export const OBJECT_FRAME = {
+  shard: 0,
+  heart: 1,
+  key: 2,
+  chestClosed: 3,
+  chestOpen: 4,
+  beacon: 5,
+  potion: 6,
+  relic: 7,
+};
