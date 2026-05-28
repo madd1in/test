@@ -1,5 +1,6 @@
 export const MAX_HEALTH = 8;
 export const REQUIRED_SHARDS = 4;
+export const REQUIRED_SIGILS = 4;
 
 const SAVE_KEY = "emberwild-quest-save-v1";
 
@@ -8,10 +9,12 @@ export function createInitialState() {
     health: MAX_HEALTH,
     ember: 0,
     shards: [],
+    sigils: [],
     key: false,
     ward: true,
     chests: [],
     beacons: [],
+    obelisks: [],
     enemiesDefeated: 0,
     bossDefeated: false,
     gateOpen: false,
@@ -27,6 +30,8 @@ export function loadState() {
     if (!raw) return createInitialState();
     const state = { ...createInitialState(), ...JSON.parse(raw) };
     state.health = Math.min(MAX_HEALTH, Math.max(0, state.health));
+    state.sigils = Array.isArray(state.sigils) ? state.sigils : [];
+    state.obelisks = Array.isArray(state.obelisks) ? state.obelisks : [];
     normalizeObjective(state);
     return state;
   } catch {
@@ -53,10 +58,12 @@ export function saveState(state) {
     health: state.health,
     ember: state.ember,
     shards: state.shards,
+    sigils: state.sigils,
     key: state.key,
     ward: state.ward,
     chests: state.chests,
     beacons: state.beacons,
+    obelisks: state.obelisks,
     enemiesDefeated: state.enemiesDefeated,
     bossDefeated: state.bossDefeated,
     gateOpen: state.gateOpen,
@@ -91,6 +98,17 @@ export function addShard(state, id) {
   return true;
 }
 
+export function addSigil(state, id) {
+  if (state.sigils.includes(id)) return false;
+  state.sigils.push(id);
+  state.ember = Math.min(99, state.ember + 8);
+  if (state.sigils.length >= REQUIRED_SIGILS && state.shards.length < REQUIRED_SHARDS) {
+    state.objective = "The echo sigils hum. Pulse points farther through the forest.";
+  }
+  saveState(state);
+  return true;
+}
+
 export function addKey(state) {
   if (state.key) return false;
   state.key = true;
@@ -116,6 +134,16 @@ export function touchBeacon(state, id, x, y) {
       ? "Carry the full ember to the north ruin."
       : "A beacon remembers you. Ember ward renewed.";
   saveState(state);
+}
+
+export function touchObelisk(state, id) {
+  if (state.obelisks.includes(id)) return false;
+  state.obelisks.push(id);
+  state.ember = Math.min(99, state.ember + 18);
+  state.ward = true;
+  state.objective = "A rune echo fills your ward with ember.";
+  saveState(state);
+  return true;
 }
 
 export function takeDamage(state, amount) {

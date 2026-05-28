@@ -264,6 +264,31 @@ def draw_thornling() -> None:
     save(img, ASSETS / "characters" / "thornling.png")
 
 
+def draw_wisp_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, frame: int) -> None:
+    cx = ox + 17
+    bob = [0, -2, 0, 2][frame]
+    draw_shadow(draw, cx, oy + 28, 21, 7)
+    for radius, alpha in ((15, 58), (11, 92), (7, 150)):
+        draw.ellipse((cx - radius, oy + 11 + bob - radius, cx + radius, oy + 11 + bob + radius), fill=rgba("#6bd5c7", alpha))
+    draw.ellipse((cx - 8, oy + 6 + bob, cx + 8, oy + 21 + bob), fill=rgba("#c8fff1", 210), outline=rgba("#145056", 190), width=2)
+    draw.ellipse((cx - 4, oy + 10 + bob, cx - 1, oy + 13 + bob), fill=rgba("#1e3235", 230))
+    draw.ellipse((cx + 3, oy + 10 + bob, cx + 6, oy + 13 + bob), fill=rgba("#1e3235", 230))
+    draw.arc((cx - 5, oy + 12 + bob, cx + 5, oy + 20 + bob), 20, 160, fill=rgba("#2a4950", 180), width=1)
+    for k in range(3):
+        tail_x = cx - 8 + k * 8
+        draw.line((tail_x, oy + 21 + bob, tail_x - 3 + frame % 2, oy + 31), fill=rgba("#6bd5c7", 170 - k * 25), width=2)
+        draw.line((tail_x + 2, oy + 20 + bob, tail_x + 5 - frame % 2, oy + 29), fill=rgba("#ffca68", 115), width=1)
+
+
+def draw_wisp() -> None:
+    fw, fh = 34, 34
+    img = Image.new("RGBA", (fw * 4, fh), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    for frame in range(4):
+        draw_wisp_frame(draw, frame * fw, 0, frame)
+    save(img, ASSETS / "characters" / "wisp.png")
+
+
 def draw_boss_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, frame: int) -> None:
     cx = ox + 36
     pulse = [0, 2, 1, -1][frame]
@@ -307,7 +332,7 @@ def draw_boss() -> None:
 
 
 def draw_objects() -> None:
-    cols, fw, fh = 8, 32, 32
+    cols, fw, fh = 12, 32, 32
     img = Image.new("RGBA", (cols * fw, fh), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
@@ -361,6 +386,31 @@ def draw_objects() -> None:
     draw.line((x + 16, y + 4, x + 16, y + 28), fill=rgba("#ffad4d"), width=2)
     draw.line((x + 5, y + 16, x + 27, y + 16), fill=rgba("#ffad4d"), width=2)
 
+    x, y = at(8)
+    draw.ellipse((x + 6, y + 6, x + 26, y + 26), outline=rgba("#123f45", 230), width=4)
+    draw.ellipse((x + 8, y + 8, x + 24, y + 24), outline=rgba("#74ead5", 220), width=2)
+    draw.line((x + 16, y + 4, x + 16, y + 28), fill=rgba("#ffcf68", 215), width=2)
+    draw.line((x + 4, y + 16, x + 28, y + 16), fill=rgba("#ffcf68", 155), width=1)
+
+    x, y = at(9)
+    draw.rectangle((x + 12, y + 8, x + 20, y + 28), fill=rgba("#273c38"))
+    draw.rectangle((x + 10, y + 6, x + 22, y + 12), fill=rgba("#728a7d"))
+    draw.polygon([(x + 16, y + 2), (x + 25, y + 10), (x + 20, y + 18), (x + 12, y + 18), (x + 7, y + 10)], fill=rgba("#365e55"), outline=rgba("#141c1b"))
+    draw.line((x + 16, y + 4, x + 16, y + 18), fill=rgba("#ffb84e"), width=2)
+
+    x, y = at(10)
+    draw.rectangle((x + 8, y + 7, x + 24, y + 28), fill=rgba("#465653"), outline=rgba("#151d1c"), width=2)
+    draw.rectangle((x + 10, y + 9, x + 22, y + 26), fill=rgba("#87918a"))
+    draw.line((x + 12, y + 13, x + 20, y + 13), fill=rgba("#24433d"), width=2)
+    draw.line((x + 12, y + 18, x + 20, y + 18), fill=rgba("#24433d"), width=2)
+    draw.ellipse((x + 14, y + 21, x + 18, y + 25), fill=rgba("#ffc35d"))
+
+    x, y = at(11)
+    draw.rectangle((x + 6, y + 18, x + 26, y + 28), fill=rgba("#2a1710"))
+    draw.ellipse((x + 7, y + 4, x + 25, y + 22), fill=rgba("#24433d"), outline=rgba("#111817"), width=2)
+    draw.ellipse((x + 10, y + 7, x + 22, y + 19), outline=rgba("#ffb84e"), width=3)
+    draw.ellipse((x + 14, y + 11, x + 18, y + 15), fill=rgba("#fff0a0"))
+
     save(img, ASSETS / "environment" / "objects.png")
 
 
@@ -405,6 +455,7 @@ def main() -> None:
     draw_tiles()
     draw_player()
     draw_thornling()
+    draw_wisp()
     draw_boss()
     draw_objects()
     draw_slash()

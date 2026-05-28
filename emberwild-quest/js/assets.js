@@ -7,6 +7,7 @@ export const ASSETS = {
   objects: "assets/environment/objects.png",
   player: "assets/characters/player.png",
   thornling: "assets/characters/thornling.png",
+  wisp: "assets/characters/wisp.png",
   ashwarden: "assets/characters/ashwarden.png",
   slash: "assets/fx/slash.png",
   icons: "assets/ui/icons.png",
@@ -70,4 +71,8 @@ export const OBJECT_FRAME = {
   beacon: 5,
   potion: 6,
   relic: 7,
+  sigil: 8,
+  obelisk: 9,
+  loreStone: 10,
+  emberWell: 11,
 };

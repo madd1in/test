@@ -184,6 +184,40 @@ async function main() {
       endHidden: document.querySelector("#end-screen")?.hidden ?? false,
     };
   });
+  const complexity = await page.evaluate(async () => {
+    const scene = window.__emberScene;
+    if (!scene?.player) return { ran: false };
+    const sigil = scene.collectibles.getChildren().find((sprite) => sprite?.active && sprite.getData?.("type") === "sigil");
+    const beforeSigils = scene.state.sigils.length;
+    if (sigil) scene.collectItem(sigil);
+
+    const wisp = scene.enemies.getChildren().find((sprite) => sprite?.active && sprite.getData?.("kind") === "wisp");
+    const activeBolts = () => scene.children.list.filter((item) => item?.getData?.("wispBolt") && item.active).length;
+    const beforeBolts = activeBolts();
+    if (wisp) scene.spawnWispBolt(wisp);
+    await new Promise((resolve) => setTimeout(resolve, 90));
+
+    const obelisk = scene.obelisks.getChildren().find((sprite) => sprite?.active && !sprite.getData?.("used"));
+    const beforeEmber = scene.state.ember;
+    if (obelisk) scene.useObelisk(obelisk);
+    return {
+      ran: true,
+      sigilRan: Boolean(sigil),
+      beforeSigils,
+      afterSigils: scene.state.sigils.length,
+      sigilHud: document.querySelector("#sigil-count")?.textContent ?? "",
+      wispRan: Boolean(wisp),
+      beforeBolts,
+      afterBolts: activeBolts(),
+      obeliskRan: Boolean(obelisk),
+      obeliskUsed: obelisk?.getData?.("used") ?? false,
+      beforeEmber,
+      afterEmber: scene.state.ember,
+      ward: scene.state.ward,
+      activePlay: scene.activePlay,
+      endHidden: document.querySelector("#end-screen")?.hidden ?? false,
+    };
+  });
   const desktopPerf = await sampleFramePace(page);
   const desktop = await page.evaluate((journalState) => {
     const canvas = document.querySelector("canvas");
@@ -202,6 +236,7 @@ async function main() {
   }, journal);
   desktop.enemyContact = enemyContact;
   desktop.enemyKill = enemyKill;
+  desktop.complexity = complexity;
   desktop.perf = desktopPerf;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
   await page.close();
@@ -258,6 +293,25 @@ async function main() {
     }
     if (desktop.enemyKill.enemyActive || desktop.enemyKill.afterActive >= desktop.enemyKill.beforeActive) {
       failed.push("Enemy kill did not retire the defeated enemy cleanly.");
+    }
+  }
+  if (!desktop.complexity?.ran) failed.push("Complexity regression did not run.");
+  else {
+    if (!desktop.complexity.activePlay || !desktop.complexity.endHidden) failed.push("Complexity interactions stopped active play.");
+    if (!desktop.complexity.sigilRan || desktop.complexity.afterSigils !== desktop.complexity.beforeSigils + 1) {
+      failed.push("Echo Sigil collection did not register.");
+    }
+    if (!desktop.complexity.sigilHud.includes(`${desktop.complexity.afterSigils}/4`)) {
+      failed.push("Sigil HUD did not update.");
+    }
+    if (!desktop.complexity.wispRan || desktop.complexity.afterBolts <= desktop.complexity.beforeBolts) {
+      failed.push("Wisp projectile did not spawn.");
+    }
+    if (!desktop.complexity.obeliskRan || !desktop.complexity.obeliskUsed || !desktop.complexity.ward) {
+      failed.push("Rune obelisk interaction did not renew the ward.");
+    }
+    if (desktop.complexity.afterEmber < desktop.complexity.beforeEmber) {
+      failed.push("Rune obelisk reduced ember unexpectedly.");
     }
   }
   if (desktop.perf.avgFps < 35) failed.push(`Desktop frame pace is too low: ${desktop.perf.avgFps}fps avg.`);

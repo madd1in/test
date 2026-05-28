@@ -6,47 +6,14 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "assets" / "generated" / "tile-atlas-imagen-hd-source.png"
+SOURCE = ROOT / "assets" / "generated" / "tile-atlas-imagen-hd-v2-source.png"
 OUT = ROOT / "assets" / "environment" / "tiles-imagen-hd.png"
 TILE = 32
 COLS = 8
 ROWS = 4
 
 
-SOURCE_TO_GAME_INDEX = {
-    0: 0,   # grass
-    1: 11,  # flower grass
-    2: 4,   # stone
-    3: 1,   # moss grass
-    4: 6,   # water
-    5: 8,   # bridge
-    6: 2,   # dirt
-    7: 9,   # pit
-    8: 16,  # ruined wall
-    9: 17,  # tree wall
-    10: 14, # bramble
-    11: 18, # gate threshold
-    12: 18, # gate open
-    13: 24, # pillar base
-    14: 12, # ember vine
-    15: 19, # stairs
-    16: 11, # flower grass
-    17: 10, # roots
-    18: 5,  # cracked stone
-    19: 13, # shrine floor
-    20: 9,  # dark canopy / void
-    21: 24, # ruin cap
-    22: 12, # fire vine
-    23: 7,  # stepping stone
-    24: 25, # fern / reeds
-    25: 20, # glow moss / mist
-    26: 8,  # log / plank texture
-    27: 20, # rune floor
-    28: 23, # leaves
-    29: 24, # mist stone
-    30: 30, # ember rock
-    31: 14, # thorn grass
-}
+SOURCE_TO_GAME_INDEX = {index: index for index in range(COLS * ROWS)}
 
 
 def rgba(hex_color: str, alpha: int = 255) -> tuple[int, int, int, int]:

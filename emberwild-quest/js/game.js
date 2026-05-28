@@ -2,8 +2,10 @@ import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js";
 import {
   MAX_HEALTH,
   REQUIRED_SHARDS,
+  REQUIRED_SIGILS,
   addKey,
   addShard,
+  addSigil,
   clearSave,
   heal,
   loadState,
@@ -14,6 +16,7 @@ import {
   saveState,
   takeDamage,
   touchBeacon,
+  touchObelisk,
 } from "./sim.js";
 
 const WORLD_W = 64;
@@ -28,6 +31,7 @@ const ATTACK_COOLDOWN = 260;
 const PULSE_COOLDOWN = 1600;
 const INVULN_TIME = 1120;
 const ENEMY_HP = 2;
+const WISP_HP = 1;
 const BOSS_HP = 10;
 const AUDIO_STORAGE_KEY = "emberwild-audio-enabled";
 
@@ -37,6 +41,7 @@ const ui = {
   healthFill: document.querySelector("#health-fill"),
   emberFill: document.querySelector("#ember-fill"),
   shardCount: document.querySelector("#shard-count"),
+  sigilCount: document.querySelector("#sigil-count"),
   keyStatus: document.querySelector("#key-status"),
   areaName: document.querySelector("#area-name"),
   objective: document.querySelector("#objective"),
@@ -274,6 +279,21 @@ function makeWorld(state) {
   for (let x = 28; x <= 36; x += 1) {
     putGround(x, 9, T.altar);
   }
+  for (const [cx, cy] of [
+    [18, 17],
+    [47, 29],
+    [10, 8],
+    [55, 20],
+  ]) {
+    for (let y = cy - 1; y <= cy + 1; y += 1) {
+      for (let x = cx - 1; x <= cx + 1; x += 1) {
+        putGround(x, y, x === cx && y === cy ? T.runeFloor : T.crackedStone);
+      }
+    }
+    putDecor(cx, cy - 1, T.glowMoss);
+    putDecor(cx - 1, cy + 1, T.mistStone);
+    putDecor(cx + 1, cy + 1, T.emberRock);
+  }
 
   for (const [x0, y0, x1, y1] of [
     [3, 4, 13, 13],
@@ -329,13 +349,29 @@ function listSpawns(state) {
   ].filter((item) => !state.shards.includes(item.id));
 
   const enemies = [
-    [18, 21],
-    [43, 22],
-    [48, 35],
-    [52, 12],
-    [36, 25],
-    [57, 33],
-    [14, 14],
+    { kind: "thornling", x: 18, y: 21 },
+    { kind: "thornling", x: 43, y: 22 },
+    { kind: "thornling", x: 48, y: 35 },
+    { kind: "thornling", x: 52, y: 12 },
+    { kind: "thornling", x: 36, y: 25 },
+    { kind: "thornling", x: 57, y: 33 },
+    { kind: "thornling", x: 14, y: 14 },
+    { kind: "wisp", x: 20, y: 18 },
+    { kind: "wisp", x: 45, y: 29 },
+    { kind: "wisp", x: 55, y: 20 },
+  ];
+
+  const sigils = [
+    { id: "root-sigil", x: 19, y: 18 },
+    { id: "stream-sigil", x: 46, y: 29 },
+    { id: "tower-sigil", x: 10, y: 8 },
+    { id: "thorn-sigil", x: 55, y: 21 },
+  ].filter((item) => !state.sigils.includes(item.id));
+
+  const obelisks = [
+    { id: "south-well", kind: "well", x: 8, y: 35 },
+    { id: "mist-obelisk", kind: "obelisk", x: 49, y: 28 },
+    { id: "root-obelisk", kind: "obelisk", x: 18, y: 18 },
   ];
 
   const chests = [
@@ -352,7 +388,7 @@ function listSpawns(state) {
     { id: "tower", x: 50, y: 12 },
   ];
 
-  return { shards, enemies, chests, beacons };
+  return { shards, enemies, sigils, obelisks, chests, beacons };
 }
 
 class EmberScene extends Phaser.Scene {
@@ -382,6 +418,7 @@ class EmberScene extends Phaser.Scene {
     this.load.spritesheet("objects", ASSETS.objects, { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("player", ASSETS.player, { frameWidth: 40, frameHeight: 48 });
     this.load.spritesheet("thornling", ASSETS.thornling, { frameWidth: 32, frameHeight: 34 });
+    this.load.spritesheet("wisp", ASSETS.wisp, { frameWidth: 34, frameHeight: 34 });
     this.load.spritesheet("ashwarden", ASSETS.ashwarden, { frameWidth: 72, frameHeight: 72 });
     this.load.spritesheet("slash", ASSETS.slash, { frameWidth: 64, frameHeight: 64 });
     this.load.audio("bgm-explore", ASSETS.bgmExplore);
@@ -440,6 +477,12 @@ class EmberScene extends Phaser.Scene {
       key: "thornling-walk",
       frames: this.anims.generateFrameNumbers("thornling", { start: 0, end: 3 }),
       frameRate: 7,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "wisp-float",
+      frames: this.anims.generateFrameNumbers("wisp", { start: 0, end: 3 }),
+      frameRate: 8,
       repeat: -1,
     });
     this.anims.create({
@@ -531,6 +574,7 @@ class EmberScene extends Phaser.Scene {
     this.collectibles = this.physics.add.group({ allowGravity: false, immovable: true });
     this.chests = this.physics.add.staticGroup();
     this.beacons = this.physics.add.staticGroup();
+    this.obelisks = this.physics.add.staticGroup();
     this.enemies = this.physics.add.group({ allowGravity: false });
     this.bossGroup = this.physics.add.group({ allowGravity: false });
 
@@ -548,6 +592,24 @@ class EmberScene extends Phaser.Scene {
         yoyo: true,
         repeat: -1,
         duration: 900 + shard.x * 11,
+        ease: "sine.inOut",
+      });
+    }
+
+    for (const sigil of spawns.sigils) {
+      const pos = tileCenter(sigil.x, sigil.y);
+      const sprite = this.collectibles.create(pos.x, pos.y, "objects", OBJECT_FRAME.sigil);
+      sprite.setData("type", "sigil");
+      sprite.setData("id", sigil.id);
+      sprite.setCircle(11, 5, 5);
+      sprite.setDepth(12);
+      this.tweens.add({
+        targets: sprite,
+        angle: 360,
+        y: pos.y - 4,
+        yoyo: true,
+        repeat: -1,
+        duration: 1200 + sigil.x * 9,
         ease: "sine.inOut",
       });
     }
@@ -572,15 +634,36 @@ class EmberScene extends Phaser.Scene {
       this.tweens.add({ targets: sprite, scale: 1.1, yoyo: true, repeat: -1, duration: 1000, ease: "sine.inOut" });
     }
 
-    for (const [tx, ty] of spawns.enemies) {
-      const pos = tileCenter(tx, ty);
-      const enemy = this.enemies.create(pos.x, pos.y, "thornling", 0);
-      enemy.setData("hp", ENEMY_HP);
+    for (const site of spawns.obelisks) {
+      const pos = tileCenter(site.x, site.y);
+      const used = this.state.obelisks.includes(site.id);
+      const frame = site.kind === "well" ? OBJECT_FRAME.emberWell : OBJECT_FRAME.obelisk;
+      const sprite = this.obelisks.create(pos.x, pos.y, "objects", frame);
+      sprite.setData("id", site.id);
+      sprite.setData("kind", site.kind);
+      sprite.setData("used", used);
+      sprite.setDepth(12);
+      if (used) sprite.setAlpha(0.68).setTint(0x8daaa2);
+      sprite.refreshBody();
+    }
+
+    for (const spawn of spawns.enemies) {
+      const pos = tileCenter(spawn.x, spawn.y);
+      const isWisp = spawn.kind === "wisp";
+      const enemy = this.enemies.create(pos.x, pos.y, isWisp ? "wisp" : "thornling", 0);
+      enemy.setData("kind", spawn.kind);
+      enemy.setData("hp", isWisp ? WISP_HP : ENEMY_HP);
       enemy.setData("home", { x: pos.x, y: pos.y });
       enemy.setData("nextThink", 0);
+      enemy.setData("nextBolt", 0);
       enemy.setData("touchAt", 0);
-      enemy.setSize(22, 22).setOffset(5, 10).setDepth(18);
-      enemy.play("thornling-walk");
+      if (isWisp) {
+        enemy.setCircle(12, 5, 5).setDepth(18);
+        enemy.play("wisp-float");
+      } else {
+        enemy.setSize(22, 22).setOffset(5, 10).setDepth(18);
+        enemy.play("thornling-walk");
+      }
     }
 
     if (!this.state.bossDefeated) {
@@ -765,16 +848,18 @@ class EmberScene extends Phaser.Scene {
 
   useEmberPulse(time) {
     if (time < this.nextPulseAt) return;
-    this.nextPulseAt = time + PULSE_COOLDOWN;
+    const sigilBoost = this.state.sigils.length;
+    const pulseCooldown = Math.max(850, PULSE_COOLDOWN - sigilBoost * 160);
+    this.nextPulseAt = time + pulseCooldown;
     this.playSfx("beacon");
-    this.burst(this.player.x, this.player.y, 0x64c6b2, 12, 76);
+    this.burst(this.player.x, this.player.y, 0x64c6b2, 12 + sigilBoost, 76 + sigilBoost * 6);
 
     const ring = this.add.circle(this.player.x, this.player.y, 18, 0x64c6b2, 0.04);
     ring.setStrokeStyle(2, 0x64c6b2, 0.92).setDepth(36);
     if (!this.lowFx) ring.setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({
       targets: ring,
-      scale: 7,
+      scale: 7 + sigilBoost * 0.35,
       alpha: 0,
       duration: 640,
       ease: "sine.out",
@@ -823,9 +908,19 @@ class EmberScene extends Phaser.Scene {
       addCandidate(item.x, item.y, "Shard echo", -80);
     });
 
+    this.collectibles.children.iterate((item) => {
+      if (!item?.active || item.getData("type") !== "sigil") return;
+      addCandidate(item.x, item.y, "Sigil echo", -90);
+    });
+
     this.chests.children.iterate((chest) => {
       if (!chest?.active || chest.getData("opened")) return;
       addCandidate(chest.x, chest.y, chest.getData("content") === "key" ? "Key cache" : "Cache echo", 20);
+    });
+
+    this.obelisks.children.iterate((site) => {
+      if (!site?.active || site.getData("used")) return;
+      addCandidate(site.x, site.y, site.getData("kind") === "well" ? "Ember well" : "Rune echo", -70);
     });
 
     if (!this.state.gateOpen && this.state.key && this.state.shards.length >= REQUIRED_SHARDS) {
@@ -901,6 +996,10 @@ class EmberScene extends Phaser.Scene {
   updateEnemies(time) {
     this.enemies.children.iterate((enemy) => {
       if (!enemy?.active || enemy.getData?.("dying")) return;
+      if (enemy.getData("kind") === "wisp") {
+        this.updateWisp(enemy, time);
+        return;
+      }
       const distToPlayer = distance(enemy, this.player);
       if (distToPlayer < 235) {
         this.physics.moveToObject(enemy, this.player, distToPlayer < 56 ? 24 : 68);
@@ -911,6 +1010,45 @@ class EmberScene extends Phaser.Scene {
         this.physics.moveTo(enemy, roam.x, roam.y, 30);
       }
       enemy.setDepth(enemy.y);
+    });
+  }
+
+  updateWisp(wisp, time) {
+    const distToPlayer = distance(wisp, this.player);
+    if (distToPlayer < 108) {
+      const away = Phaser.Math.Angle.Between(this.player.x, this.player.y, wisp.x, wisp.y);
+      wisp.setVelocity(Math.cos(away) * 58, Math.sin(away) * 58);
+    } else if (distToPlayer < 310) {
+      this.physics.moveToObject(wisp, this.player, 38);
+    } else if (time > wisp.getData("nextThink")) {
+      wisp.setData("nextThink", time + Phaser.Math.Between(950, 1700));
+      const home = wisp.getData("home");
+      this.physics.moveTo(wisp, home.x + Phaser.Math.Between(-95, 95), home.y + Phaser.Math.Between(-75, 75), 24);
+    }
+    if (distToPlayer < 330 && time > (wisp.getData("nextBolt") ?? 0)) {
+      wisp.setData("nextBolt", time + Phaser.Math.Between(1650, 2300));
+      this.spawnWispBolt(wisp);
+    }
+    wisp.setDepth(wisp.y);
+  }
+
+  spawnWispBolt(wisp) {
+    if (!wisp?.active || wisp.getData?.("dying") || !this.player?.active) return;
+    const angle = Phaser.Math.Angle.Between(wisp.x, wisp.y, this.player.x, this.player.y);
+    const bolt = this.add.circle(wisp.x, wisp.y, 4, 0x87f6db, 0.92);
+    bolt.setData("wispBolt", true);
+    bolt.setDepth(24);
+    if (!this.lowFx) bolt.setBlendMode(Phaser.BlendModes.ADD);
+    this.physics.add.existing(bolt);
+    bolt.body.setCircle(4);
+    bolt.body.setVelocity(Math.cos(angle) * 148, Math.sin(angle) * 148);
+    this.physics.add.overlap(this.player, bolt, () => {
+      if (!bolt.active) return;
+      bolt.destroy();
+      this.damagePlayer(1);
+    });
+    this.time.delayedCall(1350, () => {
+      if (bolt?.active) bolt.destroy();
     });
   }
 
@@ -1030,6 +1168,12 @@ class EmberScene extends Phaser.Scene {
       this.burst(item.x, item.y, 0xffd479, 14, 62);
       this.floatText(item.x, item.y - 18, "Shard claimed");
       item.destroy();
+    } else if (type === "sigil") {
+      addSigil(this.state, item.getData("id"));
+      this.playSfx("pickup");
+      this.burst(item.x, item.y, 0x64c6b2, 13, 56);
+      this.floatText(item.x, item.y - 18, `Sigil ${this.state.sigils.length}/${REQUIRED_SIGILS}`);
+      item.destroy();
     } else if (type === "heart") {
       heal(this.state, 1);
       this.playSfx("heal");
@@ -1059,6 +1203,19 @@ class EmberScene extends Phaser.Scene {
       if (distance(beacon, this.player) < 50) {
         prompt = "Press E to rest at the ember beacon";
         action = () => this.useBeacon(beacon);
+      }
+    });
+
+    this.obelisks.children.iterate((site) => {
+      if (action || !site?.active) return;
+      if (distance(site, this.player) < 52) {
+        const used = site.getData("used");
+        prompt = used
+          ? "This rune echo is quiet"
+          : site.getData("kind") === "well"
+            ? "Press E to drink from the ember well"
+            : "Press E to bind the rune echo";
+        action = () => this.useObelisk(site);
       }
     });
 
@@ -1093,6 +1250,22 @@ class EmberScene extends Phaser.Scene {
       this.playSfx("heal");
       this.floatText(chest.x, chest.y - 22, "Ember salve");
     }
+    this.updateHud();
+  }
+
+  useObelisk(site) {
+    if (site.getData("used")) {
+      this.floatText(site.x, site.y - 18, "Echo quiet");
+      return;
+    }
+    if (!touchObelisk(this.state, site.getData("id"))) return;
+    const isWell = site.getData("kind") === "well";
+    if (isWell) heal(this.state, 2);
+    site.setData("used", true);
+    site.setAlpha(0.68).setTint(0x8daaa2);
+    this.playSfx(isWell ? "heal" : "beacon");
+    this.burst(site.x, site.y, isWell ? 0xe9585a : 0x64c6b2, 16, 68);
+    this.floatText(site.x, site.y - 22, isWell ? "Ember well" : "Rune echo bound");
     this.updateHud();
   }
 
@@ -1310,6 +1483,7 @@ class EmberScene extends Phaser.Scene {
     ui.healthFill.style.transform = `scaleX(${Math.max(0, this.state.health / MAX_HEALTH)})`;
     ui.emberFill.style.transform = `scaleX(${Math.max(0, this.state.ember / 99)})`;
     ui.shardCount.textContent = `Shards ${this.state.shards.length}/${REQUIRED_SHARDS}`;
+    ui.sigilCount.textContent = `Sigils ${this.state.sigils.length}/${REQUIRED_SIGILS}`;
     ui.keyStatus.textContent = this.state.key ? "Key ready" : this.state.ward ? "Ward ready" : "Key -";
     ui.keyStatus.classList.toggle("is-ward-ready", !this.state.key && Boolean(this.state.ward));
     ui.areaName.textContent = this.state.areaName;
