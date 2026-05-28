@@ -127,6 +127,14 @@ function focusGameCanvas(game) {
   canvas.focus({ preventScroll: true });
 }
 
+function wantsReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+}
+
+function compactViewport() {
+  return window.innerWidth <= 760 || window.innerHeight <= 560;
+}
+
 document.addEventListener(
   "keydown",
   (event) => {
@@ -362,6 +370,9 @@ class EmberScene extends Phaser.Scene {
     this.bossFightActive = false;
     this.bossRevealShown = false;
     this.audioEnabled = true;
+    this.lowFx = false;
+    this.fxScale = 0.7;
+    this.maxBurstParticles = 16;
   }
 
   preload() {
@@ -388,6 +399,7 @@ class EmberScene extends Phaser.Scene {
 
   create() {
     this.state = loadState();
+    this.configurePerformance();
     this.worldData = makeWorld(this.state);
     this.createAnimations();
     this.createMap();
@@ -401,6 +413,12 @@ class EmberScene extends Phaser.Scene {
     ui.resetButton.disabled = false;
     this.setPlayActive(false);
     window.__emberScene = this;
+  }
+
+  configurePerformance() {
+    this.lowFx = wantsReducedMotion() || compactViewport();
+    this.fxScale = wantsReducedMotion() ? 0.34 : this.lowFx ? 0.48 : 0.72;
+    this.maxBurstParticles = wantsReducedMotion() ? 6 : this.lowFx ? 10 : 18;
   }
 
   createAnimations() {
@@ -459,18 +477,20 @@ class EmberScene extends Phaser.Scene {
   }
 
   createAtmosphere() {
-    for (let i = 0; i < 44; i += 1) {
+    const count = this.lowFx ? 14 : 24;
+    for (let i = 0; i < count; i += 1) {
       const x = 56 + ((i * 181) % (WORLD_PX_W - 112));
       const y = 72 + ((i * 307) % (WORLD_PX_H - 144));
-      const ember = this.add.circle(x, y, 1 + (i % 3), i % 4 === 0 ? 0xffb84e : 0x64c6b2, 0.16 + (i % 5) * 0.03);
-      ember.setDepth(10).setBlendMode(Phaser.BlendModes.ADD);
+      const ember = this.add.circle(x, y, 1 + (i % 2), i % 4 === 0 ? 0xffb84e : 0x64c6b2, 0.1 + (i % 4) * 0.025);
+      ember.setDepth(10);
+      if (!this.lowFx) ember.setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({
         targets: ember,
-        y: y - 16 - (i % 4) * 5,
-        alpha: 0.05,
+        y: y - 12 - (i % 3) * 4,
+        alpha: 0.035,
         yoyo: true,
         repeat: -1,
-        duration: 1800 + (i % 7) * 280,
+        duration: 2300 + (i % 7) * 320,
         delay: (i % 9) * 120,
         ease: "sine.inOut",
       });
@@ -745,7 +765,8 @@ class EmberScene extends Phaser.Scene {
     this.burst(this.player.x, this.player.y, 0x64c6b2, 12, 76);
 
     const ring = this.add.circle(this.player.x, this.player.y, 18, 0x64c6b2, 0.04);
-    ring.setStrokeStyle(2, 0x64c6b2, 0.92).setDepth(36).setBlendMode(Phaser.BlendModes.ADD);
+    ring.setStrokeStyle(2, 0x64c6b2, 0.92).setDepth(36);
+    if (!this.lowFx) ring.setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({
       targets: ring,
       scale: 7,
@@ -762,7 +783,8 @@ class EmberScene extends Phaser.Scene {
     }
 
     const beam = this.add.graphics();
-    beam.setDepth(35).setBlendMode(Phaser.BlendModes.ADD);
+    beam.setDepth(35);
+    if (!this.lowFx) beam.setBlendMode(Phaser.BlendModes.ADD);
     beam.lineStyle(3, 0x64c6b2, 0.62);
     beam.beginPath();
     beam.moveTo(this.player.x, this.player.y - 12);
@@ -770,7 +792,8 @@ class EmberScene extends Phaser.Scene {
     beam.strokePath();
 
     const marker = this.add.circle(target.x, target.y, 14, 0xffd479, 0.06);
-    marker.setStrokeStyle(2, 0xffd479, 0.95).setDepth(36).setBlendMode(Phaser.BlendModes.ADD);
+    marker.setStrokeStyle(2, 0xffd479, 0.95).setDepth(36);
+    if (!this.lowFx) marker.setBlendMode(Phaser.BlendModes.ADD);
     this.floatText(target.x, target.y - 26, target.label);
     this.tweens.add({
       targets: [beam, marker],
@@ -1098,11 +1121,14 @@ class EmberScene extends Phaser.Scene {
   }
 
   burst(x, y, color, count = 10, radius = 48) {
-    for (let i = 0; i < count; i += 1) {
-      const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.18, 0.18);
-      const distanceOut = Phaser.Math.Between(radius * 0.35, radius);
+    const actualCount = Math.max(2, Math.min(this.maxBurstParticles, Math.ceil(count * this.fxScale)));
+    const actualRadius = this.lowFx ? radius * 0.76 : radius;
+    for (let i = 0; i < actualCount; i += 1) {
+      const angle = (Math.PI * 2 * i) / actualCount + Phaser.Math.FloatBetween(-0.18, 0.18);
+      const distanceOut = Phaser.Math.Between(actualRadius * 0.35, actualRadius);
       const spark = this.add.circle(x, y, Phaser.Math.Between(2, 4), color, 0.92);
-      spark.setDepth(38).setBlendMode(Phaser.BlendModes.ADD);
+      spark.setDepth(38);
+      if (!this.lowFx) spark.setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({
         targets: spark,
         x: x + Math.cos(angle) * distanceOut,
@@ -1281,6 +1307,7 @@ const game = new Phaser.Game({
   render: {
     antialias: false,
     pixelArt: true,
+    roundPixels: true,
   },
   physics: {
     default: "arcade",

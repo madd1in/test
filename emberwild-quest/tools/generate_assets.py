@@ -159,46 +159,70 @@ def draw_shadow(draw: ImageDraw.ImageDraw, cx: int, cy: int, w: int, h: int) -> 
     draw.ellipse((cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2), fill=(0, 0, 0, 70))
 
 
+def poly(draw: ImageDraw.ImageDraw, points: list[tuple[int, int]], fill: str, outline: str = "#140f10", width: int = 2) -> None:
+    draw.line(points + [points[0]], fill=rgba(outline, 210), width=width, joint="curve")
+    draw.polygon(points, fill=rgba(fill))
+
+
+def ellipse(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], fill: str, outline: str = "#140f10", width: int = 2) -> None:
+    draw.ellipse(box, fill=rgba(outline, 205))
+    inset = width
+    draw.ellipse((box[0] + inset, box[1] + inset, box[2] - inset, box[3] - inset), fill=rgba(fill))
+
+
 def draw_player_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, direction: int, step: int) -> None:
     cx = ox + 20
     sway = [-2, 0, 2][step]
     foot = [-2, 1, -1][step]
-    draw_shadow(draw, cx, oy + 41, 25, 8)
-    cloak = "#5a2624"
-    cloak_hi = "#b84332"
-    tunic = "#263c36"
-    ember = "#ffb44c"
+    draw_shadow(draw, cx, oy + 42, 28, 9)
+    cloak = "#4b1f24"
+    cloak_hi = "#cc4d35"
+    cloak_lo = "#2b1518"
+    tunic = "#24433d"
+    trim = "#ffc35d"
     skin = "#d79a67"
     hood_y = oy + 9
 
     if direction == 1:
         face_dx = -3
-        blade = [(ox + 9, oy + 20), (ox + 0, oy + 13), (ox + 10, oy + 23)]
+        blade = [(ox + 8, oy + 21), (ox + 0, oy + 12), (ox + 11, oy + 22)]
+        scarf = [(cx - 8, oy + 19), (cx - 18, oy + 18), (cx - 10, oy + 24)]
     elif direction == 2:
         face_dx = 3
-        blade = [(ox + 31, oy + 20), (ox + 40, oy + 13), (ox + 30, oy + 23)]
+        blade = [(ox + 32, oy + 21), (ox + 40, oy + 12), (ox + 29, oy + 22)]
+        scarf = [(cx + 8, oy + 19), (cx + 18, oy + 18), (cx + 10, oy + 24)]
     elif direction == 3:
         face_dx = 0
-        blade = [(ox + 24, oy + 16), (ox + 28, oy + 5), (ox + 27, oy + 18)]
+        blade = [(ox + 24, oy + 16), (ox + 29, oy + 5), (ox + 27, oy + 19)]
+        scarf = [(cx - 7, oy + 18), (cx + 7, oy + 18), (cx, oy + 24)]
     else:
         face_dx = 0
-        blade = [(ox + 24, oy + 26), (ox + 34, oy + 32), (ox + 25, oy + 30)]
+        blade = [(ox + 24, oy + 27), (ox + 35, oy + 32), (ox + 25, oy + 31)]
+        scarf = [(cx - 7, oy + 19), (cx + 8, oy + 19), (cx + 1, oy + 25)]
 
-    draw.polygon([(cx - 10, oy + 16), (cx + 10, oy + 16), (cx + 13, oy + 37), (cx - 13, oy + 37)], fill=rgba(cloak))
-    draw.polygon([(cx - 7, oy + 17), (cx + 7, oy + 17), (cx + 5, oy + 35), (cx - 5, oy + 35)], fill=rgba(tunic))
-    draw.line((cx - 9, oy + 22, cx + 8, oy + 34), fill=rgba(cloak_hi), width=2)
-    draw.ellipse((cx - 10 + sway, hood_y, cx + 10 + sway, hood_y + 17), fill=rgba(cloak_hi))
+    poly(draw, [(cx - 11, oy + 16), (cx + 11, oy + 16), (cx + 14, oy + 38), (cx - 14, oy + 38)], cloak)
+    poly(draw, [(cx - 7, oy + 18), (cx + 7, oy + 18), (cx + 6, oy + 35), (cx - 6, oy + 35)], tunic, "#172724", 1)
+    draw.polygon(scarf, fill=rgba(trim, 220))
+    draw.line((cx - 10, oy + 24, cx + 8, oy + 35), fill=rgba(cloak_hi), width=2)
+    draw.line((cx + 11, oy + 18, cx + 7, oy + 37), fill=rgba(cloak_lo, 190), width=2)
+    ellipse(draw, (cx - 11 + sway, hood_y, cx + 11 + sway, hood_y + 18), cloak_hi)
+    draw.arc((cx - 9 + sway, hood_y + 2, cx + 9 + sway, hood_y + 18), 195, 345, fill=rgba(trim, 180), width=1)
     if direction != 3:
-        draw.ellipse((cx - 5 + face_dx + sway, hood_y + 5, cx + 5 + face_dx + sway, hood_y + 14), fill=rgba(skin))
+        draw.ellipse((cx - 5 + face_dx + sway, hood_y + 5, cx + 5 + face_dx + sway, hood_y + 15), fill=rgba(skin))
         draw.rectangle((cx - 3 + face_dx + sway, hood_y + 10, cx + 4 + face_dx + sway, hood_y + 12), fill=rgba("#4a2d20"))
+        draw.point((cx - 2 + face_dx + sway, hood_y + 9), fill=rgba("#201414"))
     else:
-        draw.arc((cx - 8 + sway, hood_y + 6, cx + 8 + sway, hood_y + 16), 190, 350, fill=rgba("#381c1a"), width=2)
+        draw.arc((cx - 8 + sway, hood_y + 6, cx + 8 + sway, hood_y + 16), 190, 350, fill=rgba("#281315"), width=2)
 
-    draw.polygon(blade, fill=rgba("#ffd479"))
+    poly(draw, blade, "#ffe59a", "#7d3f26", 1)
+    draw.line((blade[0][0], blade[0][1], blade[1][0], blade[1][1]), fill=rgba("#fff6c4", 180), width=1)
     draw.line((cx + 2, oy + 18, blade[0][0], blade[0][1]), fill=rgba("#7a4d2d"), width=2)
     draw.rectangle((cx - 8, oy + 36 + foot, cx - 3, oy + 43 + foot), fill=rgba("#1d2421"))
     draw.rectangle((cx + 4, oy + 36 - foot, cx + 9, oy + 43 - foot), fill=rgba("#1d2421"))
-    draw.ellipse((cx - 3, oy + 25, cx + 3, oy + 31), fill=rgba(ember))
+    draw.rectangle((cx - 9, oy + 41 + foot, cx - 2, oy + 44 + foot), fill=rgba("#0d1210"))
+    draw.rectangle((cx + 3, oy + 41 - foot, cx + 10, oy + 44 - foot), fill=rgba("#0d1210"))
+    draw.ellipse((cx - 3, oy + 25, cx + 3, oy + 31), fill=rgba("#ffb44c"))
+    draw.ellipse((cx - 1, oy + 27, cx + 1, oy + 29), fill=rgba("#fff0a0"))
 
 
 def draw_player() -> None:
@@ -215,16 +239,20 @@ def draw_thornling_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, frame: int
     cx = ox + 16
     wobble = [-2, 1, 2, -1][frame]
     draw_shadow(draw, cx, oy + 28, 24, 8)
-    draw.ellipse((cx - 11 + wobble, oy + 9, cx + 11 + wobble, oy + 29), fill=rgba("#34202a"))
-    draw.ellipse((cx - 7 + wobble, oy + 11, cx + 7 + wobble, oy + 26), fill=rgba("#75323d"))
+    ellipse(draw, (cx - 12 + wobble, oy + 8, cx + 12 + wobble, oy + 30), "#33202b")
+    ellipse(draw, (cx - 8 + wobble, oy + 11, cx + 8 + wobble, oy + 27), "#8b3542", "#241119", 1)
+    draw.arc((cx - 8 + wobble, oy + 9, cx + 8 + wobble, oy + 28), 25, 155, fill=rgba("#e36d53", 125), width=2)
     for k in range(5):
         angle = k * math.tau / 5 + frame * 0.25
         x = cx + wobble + math.cos(angle) * 12
         y = oy + 19 + math.sin(angle) * 10
-        draw.line((cx + wobble, oy + 19, x, y), fill=rgba("#1b1016"), width=3)
-        draw.line((cx + wobble, oy + 19, x, y), fill=rgba("#b04746"), width=1)
+        draw.line((cx + wobble, oy + 19, x, y), fill=rgba("#15090f"), width=4)
+        draw.line((cx + wobble, oy + 19, x, y), fill=rgba("#d05a51"), width=2)
+        tip = 3
+        draw.polygon([(x, y), (x - tip, y + 1), (x + 1, y + tip)], fill=rgba("#ffc35a"))
     draw.ellipse((cx - 4 + wobble, oy + 15, cx - 1 + wobble, oy + 19), fill=rgba("#ffc35a"))
     draw.ellipse((cx + 3 + wobble, oy + 15, cx + 6 + wobble, oy + 19), fill=rgba("#ffc35a"))
+    draw.rectangle((cx - 3 + wobble, oy + 23, cx + 3 + wobble, oy + 25), fill=rgba("#1b0c12"))
 
 
 def draw_thornling() -> None:
@@ -240,23 +268,33 @@ def draw_boss_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, frame: int) -> 
     cx = ox + 36
     pulse = [0, 2, 1, -1][frame]
     draw_shadow(draw, cx, oy + 63, 52, 14)
-    draw.polygon(
+    poly(
+        draw,
         [(cx - 24, oy + 20), (cx - 10, oy + 7), (cx + 8, oy + 7), (cx + 25, oy + 21), (cx + 18, oy + 58), (cx - 18, oy + 58)],
-        fill=rgba("#2a3434"),
+        "#263235",
     )
-    draw.polygon(
+    poly(
+        draw,
         [(cx - 18, oy + 22), (cx - 6, oy + 13), (cx + 7, oy + 13), (cx + 19, oy + 22), (cx + 11, oy + 51), (cx - 13, oy + 51)],
-        fill=rgba("#5d312b"),
+        "#67322d",
+        "#211614",
+        1,
     )
-    draw.ellipse((cx - 15, oy + 4 + pulse, cx + 15, oy + 30 + pulse), fill=rgba("#6b5248"))
-    draw.polygon([(cx - 17, oy + 11), (cx - 28, oy + 0), (cx - 19, oy + 22)], fill=rgba("#9ca59b"))
-    draw.polygon([(cx + 17, oy + 11), (cx + 28, oy + 0), (cx + 19, oy + 22)], fill=rgba("#9ca59b"))
+    ellipse(draw, (cx - 16, oy + 4 + pulse, cx + 16, oy + 31 + pulse), "#766054")
+    poly(draw, [(cx - 17, oy + 11), (cx - 30, oy + 0), (cx - 20, oy + 24)], "#c5c6aa", "#231a18", 2)
+    poly(draw, [(cx + 17, oy + 11), (cx + 30, oy + 0), (cx + 20, oy + 24)], "#c5c6aa", "#231a18", 2)
+    draw.line((cx - 22, oy + 15, cx - 32, oy + 9, cx - 34, oy + 18), fill=rgba("#d6d2b1", 190), width=2)
+    draw.line((cx + 22, oy + 15, cx + 32, oy + 9, cx + 34, oy + 18), fill=rgba("#d6d2b1", 190), width=2)
     draw.ellipse((cx - 7, oy + 14 + pulse, cx - 2, oy + 20 + pulse), fill=rgba("#ffb54a"))
     draw.ellipse((cx + 3, oy + 14 + pulse, cx + 8, oy + 20 + pulse), fill=rgba("#ffb54a"))
-    draw.line((cx - 23, oy + 29, cx - 34, oy + 39 + pulse), fill=rgba("#9b5133"), width=5)
-    draw.line((cx + 23, oy + 29, cx + 34, oy + 39 - pulse), fill=rgba("#9b5133"), width=5)
+    draw.line((cx - 23, oy + 29, cx - 35, oy + 40 + pulse), fill=rgba("#1b1110"), width=7)
+    draw.line((cx + 23, oy + 29, cx + 35, oy + 40 - pulse), fill=rgba("#1b1110"), width=7)
+    draw.line((cx - 23, oy + 29, cx - 35, oy + 40 + pulse), fill=rgba("#b6603a"), width=4)
+    draw.line((cx + 23, oy + 29, cx + 35, oy + 40 - pulse), fill=rgba("#b6603a"), width=4)
+    draw.ellipse((cx - 7, oy + 34, cx + 7, oy + 48), fill=rgba("#ff9b43", 160))
+    draw.ellipse((cx - 4, oy + 37, cx + 4, oy + 45), fill=rgba("#ffe49a", 190))
     for k in range(5):
-        draw.line((cx - 10 + k * 5, oy + 31, cx - 14 + k * 7, oy + 56), fill=rgba("#d86d35", 150), width=2)
+        draw.line((cx - 10 + k * 5, oy + 31, cx - 14 + k * 7, oy + 56), fill=rgba("#e47738", 165), width=2)
 
 
 def draw_boss() -> None:
@@ -277,34 +315,39 @@ def draw_objects() -> None:
         return i * fw, 0
 
     x, y = at(0)
-    draw.polygon([(x + 16, y + 2), (x + 24, y + 14), (x + 17, y + 30), (x + 8, y + 15)], fill=rgba("#ffb84e"))
-    draw.polygon([(x + 16, y + 5), (x + 20, y + 15), (x + 16, y + 26), (x + 12, y + 15)], fill=rgba("#fff0a0"))
+    poly(draw, [(x + 16, y + 2), (x + 25, y + 14), (x + 17, y + 30), (x + 7, y + 15)], "#ffb84e", "#6e2e22", 2)
+    draw.polygon([(x + 16, y + 5), (x + 21, y + 15), (x + 16, y + 26), (x + 11, y + 15)], fill=rgba("#fff0a0"))
     draw.line((x + 16, y + 2, x + 16, y + 30), fill=rgba("#d65b2d"), width=1)
 
     x, y = at(1)
-    draw.ellipse((x + 7, y + 7, x + 17, y + 18), fill=rgba("#ef5a63"))
-    draw.ellipse((x + 15, y + 7, x + 25, y + 18), fill=rgba("#ef5a63"))
-    draw.polygon([(x + 7, y + 13), (x + 25, y + 13), (x + 16, y + 27)], fill=rgba("#ef5a63"))
+    ellipse(draw, (x + 6, y + 7, x + 18, y + 19), "#ef5a63", "#5d2027", 1)
+    ellipse(draw, (x + 14, y + 7, x + 26, y + 19), "#ef5a63", "#5d2027", 1)
+    poly(draw, [(x + 7, y + 13), (x + 25, y + 13), (x + 16, y + 28)], "#ef5a63", "#5d2027", 1)
     draw.ellipse((x + 11, y + 9, x + 14, y + 12), fill=rgba("#ffd2c2"))
 
     x, y = at(2)
+    draw.ellipse((x + 7, y + 6, x + 22, y + 21), outline=rgba("#452614"), width=5)
     draw.ellipse((x + 8, y + 7, x + 21, y + 20), outline=rgba("#f6c75e"), width=3)
     draw.rectangle((x + 20, y + 15, x + 28, y + 19), fill=rgba("#f6c75e"))
     draw.rectangle((x + 24, y + 18, x + 28, y + 22), fill=rgba("#f6c75e"))
 
     x, y = at(3)
-    draw.rectangle((x + 4, y + 10, x + 28, y + 27), fill=rgba("#7a4a2d"))
-    draw.rectangle((x + 6, y + 7, x + 26, y + 15), fill=rgba("#a66a3d"))
+    draw.rounded_rectangle((x + 4, y + 10, x + 28, y + 28), radius=2, fill=rgba("#2a1710"))
+    draw.rounded_rectangle((x + 6, y + 11, x + 26, y + 27), radius=2, fill=rgba("#7a4a2d"))
+    draw.rectangle((x + 6, y + 7, x + 26, y + 15), fill=rgba("#b97543"))
     draw.rectangle((x + 14, y + 14, x + 18, y + 20), fill=rgba("#f6c75e"))
     draw.line((x + 4, y + 15, x + 28, y + 15), fill=rgba("#2a1710"), width=2)
 
     x, y = at(4)
-    draw.rectangle((x + 4, y + 16, x + 28, y + 27), fill=rgba("#6e432a"))
+    draw.rounded_rectangle((x + 4, y + 16, x + 28, y + 28), radius=2, fill=rgba("#2a1710"))
+    draw.rectangle((x + 5, y + 17, x + 27, y + 27), fill=rgba("#6e432a"))
     draw.arc((x + 6, y + 4, x + 26, y + 26), 180, 360, fill=rgba("#b47742"), width=4)
     draw.line((x + 4, y + 16, x + 28, y + 16), fill=rgba("#f1b45b"), width=2)
 
     x, y = at(5)
-    draw.rectangle((x + 12, y + 12, x + 20, y + 28), fill=rgba("#516057"))
+    draw.rectangle((x + 11, y + 12, x + 21, y + 29), fill=rgba("#24302d"))
+    draw.rectangle((x + 12, y + 12, x + 20, y + 28), fill=rgba("#6d7b72"))
+    draw.ellipse((x + 6, y + 2, x + 26, y + 22), outline=rgba("#6e2e22"), width=5)
     draw.ellipse((x + 7, y + 3, x + 25, y + 21), outline=rgba("#ffb84e"), width=3)
     draw.ellipse((x + 12, y + 8, x + 20, y + 16), fill=rgba("#ffc75d"))
 
@@ -331,8 +374,10 @@ def draw_slash() -> None:
         start = 210 - frame * 12
         end = 330 + frame * 8
         bbox = (8 - frame, 8 - frame, 56 + frame, 56 + frame)
-        draw.arc(bbox, start, end, fill=rgba("#ffe5a3", alpha), width=7)
-        draw.arc((bbox[0] + 5, bbox[1] + 5, bbox[2] - 5, bbox[3] - 5), start + 8, end - 8, fill=rgba("#e86732", max(80, alpha - 50)), width=4)
+        draw.arc((bbox[0] - 2, bbox[1] - 2, bbox[2] + 2, bbox[3] + 2), start, end, fill=rgba("#ff7b3d", max(60, alpha - 90)), width=10)
+        draw.arc(bbox, start, end, fill=rgba("#ffe5a3", alpha), width=6)
+        draw.arc((bbox[0] + 6, bbox[1] + 6, bbox[2] - 6, bbox[3] - 6), start + 8, end - 8, fill=rgba("#fff5c8", max(90, alpha - 35)), width=2)
+        draw.polygon([(34 + frame, 17 - frame), (47 + frame, 29), (37 + frame, 28)], fill=rgba("#fff5c8", max(70, alpha - 60)))
         img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(0.2)), (frame * fw, 0))
     save(img, ASSETS / "fx" / "slash.png")
 

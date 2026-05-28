@@ -62,3 +62,6 @@ Audio was copied from local disk into `assets/audio`:
 - More readable journal lore and field notes
 - Robust keyboard capture for WASD/arrow movement after overlays or button focus
 - Ember Pulse navigation ping for the next useful echo
+- Lighter FX path for mobile/reduced-motion, fewer additive particles, and no expensive backdrop blur
+- Upgraded player, thornling, boss, object, and slash sprite sheets with stronger outlines and highlights
+- Browser smoke now checks frame pacing on desktop and mobile

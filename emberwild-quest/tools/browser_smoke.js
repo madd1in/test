@@ -66,6 +66,33 @@ async function bootPage(page) {
   }
 }
 
+async function sampleFramePace(page, frames = 90) {
+  return page.evaluate(
+    async (frameCount) =>
+      new Promise((resolve) => {
+        const deltas = [];
+        let last = performance.now();
+        const tick = (now) => {
+          deltas.push(now - last);
+          last = now;
+          if (deltas.length >= frameCount) {
+            const sorted = [...deltas].sort((a, b) => a - b);
+            const avg = deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+            resolve({
+              avgFps: Math.round(1000 / avg),
+              avgFrameMs: Number(avg.toFixed(2)),
+              p95FrameMs: Number(sorted[Math.floor(sorted.length * 0.95)].toFixed(2)),
+            });
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }),
+    frames,
+  );
+}
+
 async function main() {
   const chromePath =
     process.env.PLAYWRIGHT_CHROME ||
@@ -92,6 +119,7 @@ async function main() {
   await page.keyboard.press("e");
   await page.keyboard.press("q");
   await page.waitForTimeout(500);
+  const desktopPerf = await sampleFramePace(page);
   const desktop = await page.evaluate(() => {
     const canvas = document.querySelector("canvas");
     const scene = window.__emberScene;
@@ -106,6 +134,7 @@ async function main() {
       objective: document.querySelector("#objective")?.textContent,
     };
   });
+  desktop.perf = desktopPerf;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
   await page.close();
 
@@ -118,6 +147,7 @@ async function main() {
   await bootPage(mobile);
   await mobile.tap("#start-button");
   await mobile.waitForTimeout(700);
+  const mobilePerf = await sampleFramePace(mobile, 70);
   const mobileState = await mobile.evaluate(() => {
     const canvas = document.querySelector("canvas");
     const box = canvas.getBoundingClientRect();
@@ -127,6 +157,7 @@ async function main() {
       hudHidden: document.querySelector("#hud").hidden,
     };
   });
+  mobileState.perf = mobilePerf;
   await mobile.screenshot({ path: path.join(outDir, "gameplay-mobile.png"), fullPage: true });
   await mobile.close();
   await browser.close();
@@ -140,8 +171,10 @@ async function main() {
     failed.push("Player did not move during keyboard smoke.");
   }
   if (!desktop.pulseReady) failed.push("Ember pulse did not trigger from keyboard input.");
+  if (desktop.perf.avgFps < 35) failed.push(`Desktop frame pace is too low: ${desktop.perf.avgFps}fps avg.`);
   if (mobileState.canvas.width < 300 || mobileState.canvas.height < 500) failed.push("Mobile canvas is too small.");
   if (mobileState.hudHidden || !mobileState.mobileControlsVisible) failed.push("Mobile HUD or touch controls are not visible.");
+  if (mobileState.perf.avgFps < 28) failed.push(`Mobile frame pace is too low: ${mobileState.perf.avgFps}fps avg.`);
 
   if (failed.length) {
     console.error(failed.join("\n"));
