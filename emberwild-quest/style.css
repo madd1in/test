@@ -11,6 +11,7 @@
   --danger: #e95e5d;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --end-art: url("./assets/generated/emberwild-shrine-hd.png");
 }
 
 * {
@@ -46,6 +47,36 @@ button {
   background:
     radial-gradient(circle at 30% 20%, rgba(255, 184, 78, 0.16), transparent 28%),
     linear-gradient(135deg, #101817 0%, #162520 48%, #0b1111 100%);
+}
+
+.game-shell::before,
+.game-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.game-shell::before {
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0 44%, rgba(3, 7, 7, 0.24) 70%, rgba(3, 7, 7, 0.48) 100%),
+    linear-gradient(180deg, rgba(100, 198, 178, 0.08), transparent 32%, rgba(255, 184, 78, 0.06));
+  mix-blend-mode: screen;
+}
+
+.game-shell::after {
+  opacity: 0.14;
+  background-image:
+    linear-gradient(0deg, transparent 0 96%, rgba(255, 255, 255, 0.24) 100%),
+    linear-gradient(90deg, transparent 0 96%, rgba(255, 255, 255, 0.18) 100%);
+  background-size: 6px 6px;
+}
+
+.is-low-health .game-shell::before {
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0 42%, rgba(67, 9, 14, 0.28) 70%, rgba(67, 9, 14, 0.56) 100%),
+    linear-gradient(180deg, rgba(255, 80, 80, 0.08), transparent 40%, rgba(255, 184, 78, 0.08));
 }
 
 .game-shell canvas {
@@ -148,6 +179,12 @@ button {
   cursor: pointer;
 }
 
+.icon-button.is-off {
+  color: var(--muted);
+  border-color: rgba(183, 192, 173, 0.24);
+  opacity: 0.7;
+}
+
 .area-name {
   color: var(--accent-2);
   font-size: 12px;
@@ -177,10 +214,28 @@ button {
   box-shadow: var(--shadow);
 }
 
+.journal__art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  margin-bottom: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 184, 78, 0.25);
+  border-radius: 8px;
+}
+
 .journal h2 {
   margin: 0 0 8px;
   color: var(--accent);
   font-size: 16px;
+}
+
+.journal h3 {
+  margin: 14px 0 6px;
+  color: var(--accent-2);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .journal p,
@@ -211,6 +266,120 @@ button {
   font-size: 14px;
   font-weight: 700;
   text-align: center;
+}
+
+.boss-hud {
+  position: absolute;
+  left: 50%;
+  top: max(18px, env(safe-area-inset-top));
+  z-index: 5;
+  width: min(420px, calc(100vw - 36px));
+  padding: 10px 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 184, 78, 0.36);
+  border-radius: 8px;
+  background: rgba(10, 15, 15, 0.84);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.boss-hud span:first-child {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.boss-meter {
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.boss-meter span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #d74d40, #ffb84e);
+  transition: transform 180ms ease;
+}
+
+.boss-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  align-items: center;
+  overflow: hidden;
+  padding: 26px;
+  pointer-events: none;
+  background: rgba(6, 10, 10, 0.36);
+}
+
+.boss-reveal img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.boss-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(4, 8, 8, 0.88), rgba(4, 8, 8, 0.42), rgba(4, 8, 8, 0.04));
+}
+
+.boss-reveal__copy {
+  position: relative;
+  z-index: 1;
+  width: min(460px, 86vw);
+  animation: reveal-in 1600ms ease both;
+}
+
+.boss-reveal__copy span {
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.boss-reveal__copy h2 {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: clamp(44px, 9vw, 92px);
+  line-height: 0.9;
+}
+
+.boss-reveal__copy p {
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+@keyframes reveal-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  16%,
+  84% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(14px);
+  }
 }
 
 .menu,
@@ -300,6 +469,13 @@ button {
   cursor: pointer;
 }
 
+.menu button:disabled,
+.end-screen button:disabled {
+  cursor: wait;
+  filter: saturate(0.35);
+  opacity: 0.7;
+}
+
 .menu .button--ghost {
   background: rgba(12, 18, 18, 0.72);
   color: var(--text);
@@ -310,7 +486,21 @@ button {
   backdrop-filter: blur(8px);
 }
 
+.end-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg, rgba(6, 10, 10, 0.88), rgba(6, 10, 10, 0.5)),
+    var(--end-art);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.92;
+}
+
 .end-screen__panel {
+  position: relative;
+  z-index: 1;
   width: min(480px, calc(100vw - 40px));
   padding: 28px;
   border: 1px solid var(--line);
@@ -385,8 +575,16 @@ button {
     align-items: stretch;
   }
 
+  .hud__cluster {
+    min-height: 0;
+  }
+
   .hud__cluster--quest {
     max-width: none;
+  }
+
+  .boss-hud {
+    top: 288px;
   }
 
   .mobile-controls {

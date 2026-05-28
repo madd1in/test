@@ -16,6 +16,9 @@ async function bootPage(page) {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForSelector("canvas", { timeout: 10000 });
+  await page.waitForFunction(() => window.__emberScene?.state && !document.querySelector("#start-button")?.disabled, null, {
+    timeout: 20000,
+  });
 }
 
 async function main() {

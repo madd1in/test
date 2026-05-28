@@ -1,5 +1,7 @@
 export const ASSETS = {
   keyArt: "assets/generated/emberwild-key-art.png",
+  shrineArt: "assets/generated/emberwild-shrine-hd.png",
+  bossArt: "assets/generated/ashwarden-boss-hd.png",
   tiles: "assets/environment/tiles.png",
   objects: "assets/environment/objects.png",
   player: "assets/characters/player.png",
@@ -7,6 +9,18 @@ export const ASSETS = {
   ashwarden: "assets/characters/ashwarden.png",
   slash: "assets/fx/slash.png",
   icons: "assets/ui/icons.png",
+  bgmExplore: "assets/audio/bgm/moonlit-castle-ruins.mp3",
+  bgmBoss: "assets/audio/bgm/ashwarden-boss.mp3",
+  sfxSlash: "assets/audio/sfx/slash.mp3",
+  sfxDash: "assets/audio/sfx/dash.wav",
+  sfxPickup: "assets/audio/sfx/pickup-gem.wav",
+  sfxGate: "assets/audio/sfx/gate-open.ogg",
+  sfxBeacon: "assets/audio/sfx/beacon.wav",
+  sfxEnemyHurt: "assets/audio/sfx/enemy-hurt.wav",
+  sfxPlayerHit: "assets/audio/sfx/player-hit.wav",
+  sfxHeal: "assets/audio/sfx/heal.wav",
+  sfxConfirm: "assets/audio/sfx/ui-confirm.wav",
+  sfxBossDie: "assets/audio/sfx/boss-die.wav",
 };
 
 export const TILE = 32;

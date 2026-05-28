@@ -29,6 +29,7 @@
           </div>
           <div class="hud__cluster hud__cluster--quest">
             <button id="journal-toggle" class="icon-button" type="button" aria-label="Journal anzeigen">J</button>
+            <button id="audio-toggle" class="icon-button" type="button" aria-label="Audio umschalten">♪</button>
             <div>
               <div id="area-name" class="area-name">Mosswake Hollow</div>
               <div id="objective" class="objective">Find the ember shards.</div>
@@ -36,9 +37,17 @@
           </div>
         </div>
 
+        <div id="boss-hud" class="boss-hud" hidden>
+          <span>Ash Warden</span>
+          <div class="boss-meter"><span id="boss-fill"></span></div>
+        </div>
+
         <aside id="journal" class="journal" hidden>
+          <img class="journal__art" src="./assets/generated/emberwild-shrine-hd.png" alt="" />
           <h2>Journal</h2>
           <p>Recover five ember shards, open the sealed northern gate, and defeat the Ash Warden before the forest burns cold.</p>
+          <h3>Field Notes</h3>
+          <p>The beacons store warmth, old ruins answer to amber light, and the fifth shard wakes the north gate.</p>
           <ul>
             <li>Move: WASD or arrow keys</li>
             <li>Attack: Space or left mouse</li>
@@ -49,6 +58,15 @@
         </aside>
 
         <div id="prompt" class="prompt" hidden></div>
+
+        <div id="boss-reveal" class="boss-reveal" hidden>
+          <img src="./assets/generated/ashwarden-boss-hd.png" alt="" />
+          <div class="boss-reveal__copy">
+            <span>North Gate Awakened</span>
+            <h2>Ash Warden</h2>
+            <p>The old guardian has heard the ember shards.</p>
+          </div>
+        </div>
 
         <nav id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
           <div class="dpad">
@@ -71,8 +89,8 @@
               <h1>Emberwild Quest</h1>
               <p>Fight through mossy ruins, claim ember shards, and break the curse at the old north gate.</p>
               <div class="menu__actions">
-                <button id="start-button" type="button">Start Adventure</button>
-                <button id="reset-button" class="button--ghost" type="button">New Save</button>
+                <button id="start-button" type="button" disabled>Start Adventure</button>
+                <button id="reset-button" class="button--ghost" type="button" disabled>New Save</button>
               </div>
             </div>
           </div>

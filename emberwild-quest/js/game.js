@@ -26,6 +26,7 @@ const DASH_TIME = 150;
 const DASH_COOLDOWN = 620;
 const ATTACK_COOLDOWN = 310;
 const INVULN_TIME = 760;
+const AUDIO_STORAGE_KEY = "emberwild-audio-enabled";
 
 const ui = {
   shell: document.querySelector("#game-shell"),
@@ -36,9 +37,13 @@ const ui = {
   keyStatus: document.querySelector("#key-status"),
   areaName: document.querySelector("#area-name"),
   objective: document.querySelector("#objective"),
+  audioToggle: document.querySelector("#audio-toggle"),
+  bossHud: document.querySelector("#boss-hud"),
+  bossFill: document.querySelector("#boss-fill"),
   prompt: document.querySelector("#prompt"),
   journal: document.querySelector("#journal"),
   journalToggle: document.querySelector("#journal-toggle"),
+  bossReveal: document.querySelector("#boss-reveal"),
   menu: document.querySelector("#menu"),
   startButton: document.querySelector("#start-button"),
   resetButton: document.querySelector("#reset-button"),
@@ -269,6 +274,10 @@ class EmberScene extends Phaser.Scene {
     this.dashUntil = 0;
     this.invulnerableUntil = 0;
     this.endMode = "restart";
+    this.currentMusic = null;
+    this.bossFightActive = false;
+    this.bossRevealShown = false;
+    this.audioEnabled = true;
   }
 
   preload() {
@@ -279,6 +288,18 @@ class EmberScene extends Phaser.Scene {
     this.load.spritesheet("thornling", ASSETS.thornling, { frameWidth: 32, frameHeight: 34 });
     this.load.spritesheet("ashwarden", ASSETS.ashwarden, { frameWidth: 72, frameHeight: 72 });
     this.load.spritesheet("slash", ASSETS.slash, { frameWidth: 64, frameHeight: 64 });
+    this.load.audio("bgm-explore", ASSETS.bgmExplore);
+    this.load.audio("bgm-boss", ASSETS.bgmBoss);
+    this.load.audio("sfx-slash", ASSETS.sfxSlash);
+    this.load.audio("sfx-dash", ASSETS.sfxDash);
+    this.load.audio("sfx-pickup", ASSETS.sfxPickup);
+    this.load.audio("sfx-gate", ASSETS.sfxGate);
+    this.load.audio("sfx-beacon", ASSETS.sfxBeacon);
+    this.load.audio("sfx-enemy-hurt", ASSETS.sfxEnemyHurt);
+    this.load.audio("sfx-player-hit", ASSETS.sfxPlayerHit);
+    this.load.audio("sfx-heal", ASSETS.sfxHeal);
+    this.load.audio("sfx-confirm", ASSETS.sfxConfirm);
+    this.load.audio("sfx-boss-die", ASSETS.sfxBossDie);
   }
 
   create() {
@@ -287,9 +308,13 @@ class EmberScene extends Phaser.Scene {
     this.createAnimations();
     this.createMap();
     this.createEntities();
+    this.createAtmosphere();
+    this.createAudio();
     this.createInput();
     this.createCamera();
     this.updateHud();
+    ui.startButton.disabled = false;
+    ui.resetButton.disabled = false;
     this.setPlayActive(false);
     window.__emberScene = this;
   }
@@ -326,6 +351,46 @@ class EmberScene extends Phaser.Scene {
       frameRate: 24,
       repeat: 0,
     });
+  }
+
+  createAudio() {
+    this.audioEnabled = localStorage.getItem(AUDIO_STORAGE_KEY) !== "off";
+    this.music = {
+      explore: this.sound.add("bgm-explore", { loop: true, volume: 0.26 }),
+      boss: this.sound.add("bgm-boss", { loop: true, volume: 0.32 }),
+    };
+    this.sfx = {
+      slash: this.sound.add("sfx-slash", { volume: 0.42 }),
+      dash: this.sound.add("sfx-dash", { volume: 0.32 }),
+      pickup: this.sound.add("sfx-pickup", { volume: 0.48 }),
+      gate: this.sound.add("sfx-gate", { volume: 0.54 }),
+      beacon: this.sound.add("sfx-beacon", { volume: 0.34 }),
+      enemyHurt: this.sound.add("sfx-enemy-hurt", { volume: 0.42 }),
+      playerHit: this.sound.add("sfx-player-hit", { volume: 0.35 }),
+      heal: this.sound.add("sfx-heal", { volume: 0.3 }),
+      confirm: this.sound.add("sfx-confirm", { volume: 0.28 }),
+      bossDie: this.sound.add("sfx-boss-die", { volume: 0.5 }),
+    };
+    this.updateAudioButton();
+  }
+
+  createAtmosphere() {
+    for (let i = 0; i < 44; i += 1) {
+      const x = 56 + ((i * 181) % (WORLD_PX_W - 112));
+      const y = 72 + ((i * 307) % (WORLD_PX_H - 144));
+      const ember = this.add.circle(x, y, 1 + (i % 3), i % 4 === 0 ? 0xffb84e : 0x64c6b2, 0.16 + (i % 5) * 0.03);
+      ember.setDepth(10).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: ember,
+        y: y - 16 - (i % 4) * 5,
+        alpha: 0.05,
+        yoyo: true,
+        repeat: -1,
+        duration: 1800 + (i % 7) * 280,
+        delay: (i % 9) * 120,
+        ease: "sine.inOut",
+      });
+    }
   }
 
   createMap() {
@@ -464,8 +529,11 @@ class EmberScene extends Phaser.Scene {
   }
 
   startAdventure() {
+    if (!this.state || !this.player) return;
     ui.menu.hidden = true;
     ui.endScreen.hidden = true;
+    this.playSfx("confirm");
+    this.playMusic(this.bossFightActive ? "boss" : "explore");
     this.pausedByOverlay = false;
     this.setPlayActive(true);
     this.updateHud();
@@ -497,6 +565,8 @@ class EmberScene extends Phaser.Scene {
       this.dashUntil = time + DASH_TIME;
       this.nextDashAt = time + DASH_COOLDOWN;
       this.cameras.main.shake(70, 0.004);
+      this.playSfx("dash");
+      this.burst(this.player.x, this.player.y + 10, 0x64c6b2, 8, 42);
     }
 
     const speed = time < this.dashUntil ? DASH_SPEED : PLAYER_SPEED;
@@ -545,6 +615,7 @@ class EmberScene extends Phaser.Scene {
 
   attack(time) {
     this.nextAttackAt = time + ATTACK_COOLDOWN;
+    this.playSfx("slash");
     const ox = this.facing.x * 34;
     const oy = this.facing.y * 34;
     const slash = this.add.sprite(this.player.x + ox, this.player.y + oy, "slash", 0);
@@ -573,6 +644,8 @@ class EmberScene extends Phaser.Scene {
     const hp = target.getData("hp") - amount;
     target.setData("hp", hp);
     target.setTintFill(0xffe0a0);
+    this.playSfx(target.texture.key === "ashwarden" ? "enemyHurt" : "enemyHurt");
+    this.burst(target.x, target.y, 0xffb84e, 9, 48);
     this.time.delayedCall(80, () => target.clearTint());
     const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
     target.setVelocity(Math.cos(angle) * 170, Math.sin(angle) * 170);
@@ -620,6 +693,8 @@ class EmberScene extends Phaser.Scene {
       boss.setData("awake", awake);
       if (!awake) return;
       if (!this.state.gateOpen) return;
+      this.beginBossFight(boss);
+      this.updateBossHud(boss);
       this.physics.moveToObject(boss, this.player, distToPlayer < 70 ? 35 : 76);
       boss.setDepth(boss.y);
       if (time % 900 < 18 && distToPlayer < 260) this.spawnBossEmber(boss);
@@ -659,6 +734,8 @@ class EmberScene extends Phaser.Scene {
     if (now < this.invulnerableUntil) return;
     this.invulnerableUntil = now + INVULN_TIME;
     const defeated = takeDamage(this.state, amount);
+    this.playSfx("playerHit");
+    this.burst(this.player.x, this.player.y, 0xe95e5d, 11, 52);
     this.cameras.main.shake(130, 0.008);
     this.updateHud();
     if (defeated) this.showGameOver();
@@ -668,10 +745,14 @@ class EmberScene extends Phaser.Scene {
     const type = item.getData("type");
     if (type === "shard") {
       addShard(this.state, item.getData("id"));
+      this.playSfx("pickup");
+      this.burst(item.x, item.y, 0xffd479, 14, 62);
       this.floatText(item.x, item.y - 18, "Shard claimed");
       item.destroy();
     } else if (type === "heart") {
       heal(this.state, 1);
+      this.playSfx("heal");
+      this.burst(item.x, item.y, 0xe9585a, 9, 42);
       this.floatText(item.x, item.y - 18, "Healed");
       item.destroy();
     }
@@ -722,9 +803,12 @@ class EmberScene extends Phaser.Scene {
     const content = chest.getData("content");
     if (content === "key") {
       addKey(this.state);
+      this.playSfx("pickup");
+      this.burst(chest.x, chest.y, 0xffd479, 12, 52);
       this.floatText(chest.x, chest.y - 22, "Sunken key found");
     } else {
       heal(this.state, content === "potion" ? 2 : 1);
+      this.playSfx("heal");
       this.floatText(chest.x, chest.y - 22, "Ember salve");
     }
     this.updateHud();
@@ -732,6 +816,8 @@ class EmberScene extends Phaser.Scene {
 
   useBeacon(beacon) {
     touchBeacon(this.state, beacon.getData("id"), beacon.x, beacon.y + 16);
+    this.playSfx("beacon");
+    this.burst(beacon.x, beacon.y, 0x64c6b2, 16, 64);
     this.floatText(beacon.x, beacon.y - 20, "Checkpoint lit");
     this.updateHud();
   }
@@ -739,6 +825,7 @@ class EmberScene extends Phaser.Scene {
   unlockGate() {
     if (!this.state.key || this.state.shards.length < REQUIRED_SHARDS) return;
     openGate(this.state);
+    this.playSfx("gate");
     for (const [x, y] of [
       [31, 15],
       [32, 15],
@@ -747,17 +834,22 @@ class EmberScene extends Phaser.Scene {
       this.decorLayer.putTileAt(T.gateOpen, x, y);
     }
     this.floatText(tileCenter(31, 15).x + 16, tileCenter(31, 15).y - 20, "Gate opened");
+    this.burst(tileCenter(31, 15).x + 16, tileCenter(31, 15).y, 0xffb84e, 26, 96);
     this.cameras.main.shake(260, 0.006);
     this.updateHud();
   }
 
   defeatBoss(boss) {
     markBossDefeated(this.state);
+    this.playSfx("bossDie");
+    this.playMusic("explore");
+    ui.bossHud.hidden = true;
     boss.destroy();
     const relic = this.collectibles.create(boss.x, boss.y, "objects", OBJECT_FRAME.relic);
     relic.setData("type", "heart");
     relic.setDepth(12);
     this.floatText(boss.x, boss.y - 32, "Ash Warden broken");
+    this.burst(boss.x, boss.y, 0xffb84e, 34, 130);
     this.updateHud();
     this.time.delayedCall(650, () => this.showVictory());
   }
@@ -769,6 +861,7 @@ class EmberScene extends Phaser.Scene {
     ui.endTitle.textContent = "Paused";
     ui.endMessage.textContent = "The forest waits.";
     ui.againButton.textContent = "Resume";
+    ui.endScreen.style.setProperty("--end-art", `url("./${ASSETS.shrineArt}")`);
     ui.endScreen.hidden = false;
   }
 
@@ -778,6 +871,7 @@ class EmberScene extends Phaser.Scene {
     ui.endTitle.textContent = "Defeated";
     ui.endMessage.textContent = "The ember fades at your last beacon.";
     ui.againButton.textContent = "Try Again";
+    ui.endScreen.style.setProperty("--end-art", `url("./${ASSETS.bossArt}")`);
     ui.endScreen.hidden = false;
   }
 
@@ -787,6 +881,7 @@ class EmberScene extends Phaser.Scene {
     ui.endTitle.textContent = "Victory";
     ui.endMessage.textContent = "The Ash Warden falls, and the Emberwild breathes again.";
     ui.againButton.textContent = "New Adventure";
+    ui.endScreen.style.setProperty("--end-art", `url("./${ASSETS.shrineArt}")`);
     ui.endScreen.hidden = false;
   }
 
@@ -798,6 +893,7 @@ class EmberScene extends Phaser.Scene {
 
   newAdventure() {
     clearSave();
+    document.body.classList.remove("is-low-health");
     this.scene.restart();
     ui.endScreen.hidden = true;
     ui.menu.hidden = false;
@@ -823,6 +919,80 @@ class EmberScene extends Phaser.Scene {
     });
   }
 
+  burst(x, y, color, count = 10, radius = 48) {
+    for (let i = 0; i < count; i += 1) {
+      const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.18, 0.18);
+      const distanceOut = Phaser.Math.Between(radius * 0.35, radius);
+      const spark = this.add.circle(x, y, Phaser.Math.Between(2, 4), color, 0.92);
+      spark.setDepth(38).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: spark,
+        x: x + Math.cos(angle) * distanceOut,
+        y: y + Math.sin(angle) * distanceOut,
+        alpha: 0,
+        scale: 0.2,
+        duration: Phaser.Math.Between(260, 520),
+        ease: "sine.out",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  beginBossFight(boss) {
+    this.bossFightActive = true;
+    this.playMusic("boss");
+    if (this.bossRevealShown) return;
+    this.bossRevealShown = true;
+    ui.bossReveal.hidden = false;
+    this.time.delayedCall(1650, () => {
+      ui.bossReveal.hidden = true;
+    });
+    this.cameras.main.shake(420, 0.006);
+    this.burst(boss.x, boss.y, 0xff6b32, 28, 120);
+  }
+
+  updateBossHud(boss) {
+    const maxHp = boss.getData("maxHp") || 1;
+    const hp = Math.max(0, boss.getData("hp") || 0);
+    ui.bossHud.hidden = false;
+    ui.bossFill.style.transform = `scaleX(${hp / maxHp})`;
+  }
+
+  playMusic(key) {
+    if (!this.music || !this.audioEnabled) return;
+    if (this.currentMusic === key && this.music[key]?.isPlaying) return;
+    for (const [musicKey, track] of Object.entries(this.music)) {
+      if (musicKey !== key && track.isPlaying) track.stop();
+    }
+    const track = this.music[key];
+    if (track && !track.isPlaying) track.play();
+    this.currentMusic = key;
+  }
+
+  playSfx(key) {
+    if (!this.sfx || !this.audioEnabled) return;
+    const sound = this.sfx[key];
+    if (sound) sound.play();
+  }
+
+  toggleAudio() {
+    this.audioEnabled = !this.audioEnabled;
+    localStorage.setItem(AUDIO_STORAGE_KEY, this.audioEnabled ? "on" : "off");
+    if (!this.audioEnabled) {
+      this.sound.stopAll();
+    } else {
+      this.playSfx("confirm");
+      if (this.activePlay) this.playMusic(this.bossFightActive ? "boss" : "explore");
+    }
+    this.updateAudioButton();
+  }
+
+  updateAudioButton() {
+    ui.audioToggle.textContent = this.audioEnabled ? "♪" : "×";
+    ui.audioToggle.classList.toggle("is-off", !this.audioEnabled);
+    ui.audioToggle.setAttribute("aria-label", this.audioEnabled ? "Audio ausschalten" : "Audio einschalten");
+  }
+
   updateAreaName() {
     let name = "Mosswake Hollow";
     if (this.player.y < 520) name = "North Ruin";
@@ -842,6 +1012,7 @@ class EmberScene extends Phaser.Scene {
     ui.keyStatus.textContent = this.state.key ? "Key ready" : "Key -";
     ui.areaName.textContent = this.state.areaName;
     ui.objective.textContent = this.state.objective;
+    document.body.classList.toggle("is-low-health", this.state.health > 0 && this.state.health <= 2);
   }
 }
 
@@ -854,7 +1025,10 @@ function bindUi(game) {
   ui.resetButton.addEventListener("click", () => {
     clearSave();
     const scene = game.scene.getScene("emberwild");
-    if (scene) scene.scene.restart();
+    if (scene) {
+      scene.playSfx("confirm");
+      scene.scene.restart();
+    }
   });
 
   ui.againButton.addEventListener("click", () => {
@@ -863,6 +1037,7 @@ function bindUi(game) {
     if (scene.endMode === "resume") {
       scene.pausedByOverlay = false;
       ui.endScreen.hidden = true;
+      scene.playMusic(scene.bossFightActive ? "boss" : "explore");
       return;
     }
     if (scene.endMode === "new") {
@@ -876,6 +1051,13 @@ function bindUi(game) {
 
   ui.journalToggle.addEventListener("click", () => {
     ui.journal.hidden = !ui.journal.hidden;
+    const scene = game.scene.getScene("emberwild");
+    if (scene) scene.playSfx("confirm");
+  });
+
+  ui.audioToggle.addEventListener("click", () => {
+    const scene = game.scene.getScene("emberwild");
+    if (scene) scene.toggleAudio();
   });
 
   for (const button of document.querySelectorAll("[data-hold]")) {
