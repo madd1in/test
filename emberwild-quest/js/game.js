@@ -749,7 +749,7 @@ class EmberScene extends Phaser.Scene {
 
     const struck = new Set();
     const hit = (target, amount) => {
-      if (!target.active || struck.has(target)) return;
+      if (!target?.active || target.getData?.("dying") || struck.has(target)) return;
       const dx = target.x - this.player.x;
       const dy = target.y - this.player.y;
       const dist = Math.hypot(dx, dy);
@@ -843,24 +843,50 @@ class EmberScene extends Phaser.Scene {
   }
 
   damageTarget(target, amount) {
-    const hp = target.getData("hp") - amount;
+    target = this.resolveOverlapTarget(target);
+    if (!target?.active || target.getData?.("dying") || !target.getData || !target.setData) return;
+    const textureKey = target.texture?.key ?? "";
+    const x = target.x;
+    const y = target.y;
+    const hp = Math.max(0, (target.getData("hp") ?? 1) - amount);
     target.setData("hp", hp);
     target.setTintFill(0xffe0a0);
-    this.playSfx(target.texture.key === "ashwarden" ? "enemyHurt" : "enemyHurt");
-    this.burst(target.x, target.y, 0xffb84e, 9, 48);
-    this.time.delayedCall(80, () => target.clearTint());
-    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-    target.setVelocity(Math.cos(angle) * 170, Math.sin(angle) * 170);
+    this.playSfx("enemyHurt");
+    this.burst(x, y, 0xffb84e, 9, 48);
+    this.time.delayedCall(80, () => {
+      if (target?.active && !target.getData?.("dying")) target.clearTint();
+    });
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, x, y);
+    if (target.body && target.setVelocity) target.setVelocity(Math.cos(angle) * 170, Math.sin(angle) * 170);
 
     if (hp > 0) return;
-    if (target.texture.key === "ashwarden") {
+    target.setData("dying", true);
+    if (target.body) {
+      target.body.enable = false;
+      target.setVelocity?.(0, 0);
+    }
+    if (textureKey === "ashwarden") {
       this.defeatBoss(target);
     } else {
-      markEnemyDefeated(this.state);
-      this.dropMaybe(target.x, target.y);
-      target.destroy();
-      this.updateHud();
+      this.defeatEnemy(target, x, y);
     }
+  }
+
+  defeatEnemy(enemy, x, y) {
+    markEnemyDefeated(this.state);
+    this.dropMaybe(x, y);
+    this.burst(x, y, 0x64c6b2, 11, 54);
+    this.floatText(x, y - 18, "Ember released");
+    enemy.clearTint?.();
+    this.tweens.add({
+      targets: enemy,
+      alpha: 0,
+      scale: 0.68,
+      duration: 140,
+      ease: "sine.in",
+      onComplete: () => enemy?.destroy?.(),
+    });
+    this.updateHud();
   }
 
   dropMaybe(x, y) {
@@ -874,7 +900,7 @@ class EmberScene extends Phaser.Scene {
 
   updateEnemies(time) {
     this.enemies.children.iterate((enemy) => {
-      if (!enemy?.active) return;
+      if (!enemy?.active || enemy.getData?.("dying")) return;
       const distToPlayer = distance(enemy, this.player);
       if (distToPlayer < 235) {
         this.physics.moveToObject(enemy, this.player, distToPlayer < 56 ? 24 : 68);
@@ -923,7 +949,15 @@ class EmberScene extends Phaser.Scene {
   }
 
   canTakeContactDamage(target) {
-    return Boolean(this.activePlay && !this.pausedByOverlay && this.player?.active && target?.active && target.getData && target.setData);
+    return Boolean(
+      this.activePlay &&
+        !this.pausedByOverlay &&
+        this.player?.active &&
+        target?.active &&
+        target.getData &&
+        target.setData &&
+        !target.getData("dying"),
+    );
   }
 
   knockbackFrom(source, playerForce = 230, sourceForce = 95) {

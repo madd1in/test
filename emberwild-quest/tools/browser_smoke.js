@@ -158,6 +158,32 @@ async function main() {
       endHidden: document.querySelector("#end-screen")?.hidden ?? false,
     };
   });
+  const enemyKill = await page.evaluate(async () => {
+    const scene = window.__emberScene;
+    const enemy = scene?.enemies?.getChildren?.().find((sprite) => sprite?.active && !sprite.getData?.("dying"));
+    if (!scene?.player || !enemy) return { ran: false };
+    const activeEnemies = () => scene.enemies.getChildren().filter((sprite) => sprite?.active && !sprite.getData?.("dying")).length;
+    const beforeDefeated = scene.state.enemiesDefeated;
+    const beforeActive = activeEnemies();
+    enemy.setData("hp", 2);
+    enemy.setData("dying", false);
+    enemy.clearTint?.();
+    enemy.setAlpha?.(1);
+    enemy.setScale?.(1);
+    scene.damageTarget(enemy, 1);
+    scene.damageTarget(enemy, 1);
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    return {
+      ran: true,
+      beforeDefeated,
+      afterDefeated: scene.state.enemiesDefeated,
+      beforeActive,
+      afterActive: activeEnemies(),
+      enemyActive: enemy.active,
+      activePlay: scene.activePlay,
+      endHidden: document.querySelector("#end-screen")?.hidden ?? false,
+    };
+  });
   const desktopPerf = await sampleFramePace(page);
   const desktop = await page.evaluate((journalState) => {
     const canvas = document.querySelector("canvas");
@@ -175,6 +201,7 @@ async function main() {
     };
   }, journal);
   desktop.enemyContact = enemyContact;
+  desktop.enemyKill = enemyKill;
   desktop.perf = desktopPerf;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
   await page.close();
@@ -221,6 +248,16 @@ async function main() {
     }
     if (desktop.enemyContact.afterDamageHealth !== desktop.enemyContact.beforeHealth - 1) {
       failed.push("Enemy contact did not apply exactly one damage after Ward was spent.");
+    }
+  }
+  if (!desktop.enemyKill?.ran) failed.push("Enemy kill regression did not run.");
+  else {
+    if (!desktop.enemyKill.activePlay || !desktop.enemyKill.endHidden) failed.push("Enemy kill stopped active play.");
+    if (desktop.enemyKill.afterDefeated !== desktop.enemyKill.beforeDefeated + 1) {
+      failed.push("Enemy kill did not increment defeat count exactly once.");
+    }
+    if (desktop.enemyKill.enemyActive || desktop.enemyKill.afterActive >= desktop.enemyKill.beforeActive) {
+      failed.push("Enemy kill did not retire the defeated enemy cleanly.");
     }
   }
   if (desktop.perf.avgFps < 35) failed.push(`Desktop frame pace is too low: ${desktop.perf.avgFps}fps avg.`);
