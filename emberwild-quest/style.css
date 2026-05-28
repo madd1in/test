@@ -212,6 +212,8 @@ button {
   right: 14px;
   z-index: 5;
   width: min(330px, calc(100vw - 28px));
+  max-height: calc(100vh - 112px);
+  overflow: auto;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -231,6 +233,11 @@ button {
 
 .journal__art--ward {
   aspect-ratio: 16 / 6;
+  margin: 12px 0 8px;
+}
+
+.journal__art--moonwell {
+  aspect-ratio: 16 / 8;
   margin: 12px 0 8px;
 }
 

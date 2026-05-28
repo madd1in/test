@@ -1,4 +1,4 @@
-import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=reset-v3";
+import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=moonwell-v4";
 import {
   MAX_HEALTH,
   REQUIRED_SHARDS,
@@ -13,15 +13,16 @@ import {
   markBossDefeated,
   markChest,
   markEnemyDefeated,
+  markMoonBloom,
   openGate,
   saveState,
   takeDamage,
   touchBeacon,
   touchObelisk,
-} from "./sim.js?v=reset-v3";
+} from "./sim.js?v=moonwell-v4";
 
-const WORLD_W = 64;
-const WORLD_H = 46;
+const WORLD_W = 76;
+const WORLD_H = 54;
 const WORLD_PX_W = WORLD_W * TILE;
 const WORLD_PX_H = WORLD_H * TILE;
 const PLAYER_SPEED = 184;
@@ -33,6 +34,7 @@ const PULSE_COOLDOWN = 1600;
 const INVULN_TIME = 1120;
 const ENEMY_HP = 2;
 const WISP_HP = 1;
+const MOONMOTH_HP = 1;
 const BOSS_HP = 10;
 const AUDIO_STORAGE_KEY = "emberwild-audio-enabled";
 
@@ -224,6 +226,10 @@ function makeWorld(state) {
     [33, 20, 55, 22],
     [10, 20, 33, 22],
     [48, 10, 54, 22],
+    [52, 31, 68, 33],
+    [66, 33, 68, 48],
+    [57, 37, 66, 39],
+    [59, 45, 73, 48],
   ];
   for (const [x0, y0, x1, y1] of road) {
     for (let y = y0; y <= y1; y += 1) {
@@ -240,7 +246,7 @@ function makeWorld(state) {
       putSolid(x, riverY + dy, T.water);
     }
   }
-  for (const bridgeX of [12, 32, 53]) {
+  for (const bridgeX of [12, 32, 53, 67]) {
     for (let bx = bridgeX - 1; bx <= bridgeX + 1; bx += 1) {
       for (let by = 24; by <= 31; by += 1) {
         if (solid[by]?.[bx] === T.water) {
@@ -311,6 +317,73 @@ function makeWorld(state) {
     }
   }
 
+  for (let y = 35; y <= 51; y += 1) {
+    for (let x = 56; x <= 73; x += 1) {
+      const shimmer = (x * 7 + y * 11) % 9;
+      solid[y][x] = -1;
+      putGround(x, y, shimmer < 2 ? T.starFlowers : shimmer < 5 ? T.moonGrass : T.moss);
+    }
+  }
+
+  for (let y = 35; y <= 51; y += 1) {
+    for (let x = 56; x <= 73; x += 1) {
+      const edge = x === 56 || x === 73 || y === 35 || y === 51;
+      const westOpening = x === 56 && y >= 37 && y <= 39;
+      const northOpening = y === 35 && x >= 66 && x <= 68;
+      const southOpening = y === 51 && x >= 64 && x <= 70;
+      if (edge && !westOpening && !northOpening && !southOpening) putSolid(x, y, T.moonVine);
+    }
+  }
+
+  const moonwell = { x: 66, y: 44 };
+  for (let y = 40; y <= 48; y += 1) {
+    for (let x = 62; x <= 70; x += 1) {
+      const dist = Math.hypot(x - moonwell.x, y - moonwell.y);
+      if (dist <= 1.55) {
+        putGround(x, y, T.moonWater);
+        putSolid(x, y, T.moonWater);
+      } else if (dist <= 4.25) {
+        solid[y][x] = -1;
+        putGround(x, y, (x + y) % 3 === 0 ? T.moonSteps : T.moonStone);
+      }
+    }
+  }
+  for (const [x, y] of [
+    [64, 45],
+    [68, 46],
+    [66, 42],
+    [66, 43],
+  ]) {
+    solid[y][x] = -1;
+    putGround(x, y, T.lilyPad);
+  }
+  for (const [x, y] of [
+    [60, 36],
+    [72, 41],
+    [59, 49],
+    [70, 50],
+  ]) {
+    putSolid(x, y, T.moonCrystal);
+  }
+  for (const [x, y] of [
+    [62, 37],
+    [69, 39],
+    [58, 44],
+    [72, 47],
+  ]) {
+    putDecor(x, y, T.glowMoss);
+  }
+
+  for (const [x0, y0, x1, y1] of road) {
+    for (let y = y0; y <= y1; y += 1) {
+      for (let x = x0; x <= x1; x += 1) {
+        if (ground[y]?.[x] === T.water) continue;
+        solid[y][x] = -1;
+        putGround(x, y, (x + y) % 5 === 0 ? T.roots : T.dirt);
+      }
+    }
+  }
+
   for (const [cx, cy] of [
     [18, 17],
     [47, 29],
@@ -362,6 +435,8 @@ function listSpawns(state) {
     { kind: "wisp", x: 20, y: 18 },
     { kind: "wisp", x: 45, y: 29 },
     { kind: "wisp", x: 54, y: 20 },
+    { kind: "moonmoth", x: 63, y: 39 },
+    { kind: "moonmoth", x: 70, y: 46 },
   ];
 
   const sigils = [
@@ -375,29 +450,39 @@ function listSpawns(state) {
     { id: "south-well", kind: "well", x: 8, y: 35 },
     { id: "mist-obelisk", kind: "obelisk", x: 49, y: 28 },
     { id: "root-obelisk", kind: "obelisk", x: 18, y: 18 },
+    { id: "moonwell", kind: "moonwell", x: 66, y: 43 },
   ];
 
   const loreStones = [
     { id: "pulse", x: 13, y: 36, text: "Sigils sharpen your Pulse." },
     { id: "wisp", x: 45, y: 30, text: "Wisps flee close blades." },
     { id: "north", x: 29, y: 18, text: "Four shards wake the gate." },
+    { id: "moonwell", x: 61, y: 46, text: "Moon blooms refill ward and pulse." },
   ];
+
+  const moonBlooms = [
+    { id: "moon-bloom-west", x: 62, y: 38 },
+    { id: "moon-bloom-ring", x: 71, y: 45 },
+    { id: "moon-bloom-south", x: 64, y: 50 },
+  ].filter((item) => !state.moonBlooms.includes(item.id));
 
   const chests = [
     { id: "sunken-key", x: 55, y: 38, content: "key" },
     { id: "root-cache", x: 9, y: 12, content: "heart" },
-    { id: "north-cache", x: 36, y: 12, content: "potion" },
-    { id: "trail-salve", x: 14, y: 36, content: "heart" },
+    { id: "north-cache", x: 36, y: 16, content: "potion" },
+    { id: "trail-salve", x: 15, y: 36, content: "heart" },
     { id: "stream-salve", x: 47, y: 33, content: "heart" },
+    { id: "moon-cache", x: 72, y: 46, content: "potion" },
   ];
 
   const beacons = [
     { id: "camp", x: 6, y: 37 },
     { id: "causeway", x: 32, y: 22 },
     { id: "tower", x: 50, y: 12 },
+    { id: "moonwell", x: 60, y: 46 },
   ];
 
-  return { shards, enemies, sigils, obelisks, loreStones, chests, beacons };
+  return { shards, enemies, sigils, obelisks, loreStones, moonBlooms, chests, beacons };
 }
 
 class EmberScene extends Phaser.Scene {
@@ -433,6 +518,7 @@ class EmberScene extends Phaser.Scene {
     this.load.spritesheet("player", ASSETS.player, { frameWidth: 40, frameHeight: 48 });
     this.load.spritesheet("thornling", ASSETS.thornling, { frameWidth: 32, frameHeight: 34 });
     this.load.spritesheet("wisp", ASSETS.wisp, { frameWidth: 34, frameHeight: 34 });
+    this.load.spritesheet("moonmoth", ASSETS.moonmoth, { frameWidth: 38, frameHeight: 34 });
     this.load.spritesheet("ashwarden", ASSETS.ashwarden, { frameWidth: 72, frameHeight: 72 });
     this.load.spritesheet("slash", ASSETS.slash, { frameWidth: 64, frameHeight: 64 });
     this.load.audio("bgm-explore", ASSETS.bgmExplore);
@@ -500,6 +586,12 @@ class EmberScene extends Phaser.Scene {
       key: "wisp-float",
       frames: this.anims.generateFrameNumbers("wisp", { start: 0, end: 3 }),
       frameRate: 8,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "moonmoth-flutter",
+      frames: this.anims.generateFrameNumbers("moonmoth", { start: 0, end: 3 }),
+      frameRate: 10,
       repeat: -1,
     });
     this.anims.create({
@@ -579,7 +671,19 @@ class EmberScene extends Phaser.Scene {
     this.groundLayer.setDepth(0);
     this.decorLayer.setDepth(2);
     this.solidLayer.setDepth(3);
-    this.solidLayer.setCollision([T.water, T.wall, T.tree, T.bramble, T.gateClosed, T.pillar, T.emberVine, T.pit]);
+    this.solidLayer.setCollision([
+      T.water,
+      T.wall,
+      T.tree,
+      T.bramble,
+      T.gateClosed,
+      T.pillar,
+      T.emberVine,
+      T.pit,
+      T.moonWater,
+      T.moonCrystal,
+      T.moonVine,
+    ]);
   }
 
   createEntities() {
@@ -632,6 +736,24 @@ class EmberScene extends Phaser.Scene {
       });
     }
 
+    for (const bloom of spawns.moonBlooms) {
+      const pos = tileCenter(bloom.x, bloom.y);
+      const sprite = this.collectibles.create(pos.x, pos.y, "objects", OBJECT_FRAME.moonBloom);
+      sprite.setData("type", "moonBloom");
+      sprite.setData("id", bloom.id);
+      sprite.setCircle(10, 6, 6);
+      sprite.setDepth(12);
+      this.tweens.add({
+        targets: sprite,
+        scale: 1.08,
+        y: pos.y - 6,
+        yoyo: true,
+        repeat: -1,
+        duration: 1050 + bloom.x * 5,
+        ease: "sine.inOut",
+      });
+    }
+
     for (const chest of spawns.chests) {
       const pos = tileCenter(chest.x, chest.y);
       const opened = this.state.chests.includes(chest.id);
@@ -655,7 +777,7 @@ class EmberScene extends Phaser.Scene {
     for (const site of spawns.obelisks) {
       const pos = tileCenter(site.x, site.y);
       const used = this.state.obelisks.includes(site.id);
-      const frame = site.kind === "well" ? OBJECT_FRAME.emberWell : OBJECT_FRAME.obelisk;
+      const frame = site.kind === "well" ? OBJECT_FRAME.emberWell : site.kind === "moonwell" ? OBJECT_FRAME.moonWell : OBJECT_FRAME.obelisk;
       const sprite = this.obelisks.create(pos.x, pos.y, "objects", frame);
       sprite.setData("id", site.id);
       sprite.setData("kind", site.kind);
@@ -677,14 +799,18 @@ class EmberScene extends Phaser.Scene {
     for (const spawn of spawns.enemies) {
       const pos = tileCenter(spawn.x, spawn.y);
       const isWisp = spawn.kind === "wisp";
-      const enemy = this.enemies.create(pos.x, pos.y, isWisp ? "wisp" : "thornling", 0);
+      const isMoonmoth = spawn.kind === "moonmoth";
+      const enemy = this.enemies.create(pos.x, pos.y, isMoonmoth ? "moonmoth" : isWisp ? "wisp" : "thornling", 0);
       enemy.setData("kind", spawn.kind);
-      enemy.setData("hp", isWisp ? WISP_HP : ENEMY_HP);
+      enemy.setData("hp", isMoonmoth ? MOONMOTH_HP : isWisp ? WISP_HP : ENEMY_HP);
       enemy.setData("home", { x: pos.x, y: pos.y });
       enemy.setData("nextThink", 0);
       enemy.setData("nextBolt", 0);
       enemy.setData("touchAt", 0);
-      if (isWisp) {
+      if (isMoonmoth) {
+        enemy.setCircle(12, 7, 6).setDepth(18);
+        enemy.play("moonmoth-flutter");
+      } else if (isWisp) {
         enemy.setCircle(12, 5, 5).setDepth(18);
         enemy.play("wisp-float");
       } else {
@@ -940,6 +1066,11 @@ class EmberScene extends Phaser.Scene {
       addCandidate(item.x, item.y, "Sigil echo", -90);
     });
 
+    this.collectibles.children.iterate((item) => {
+      if (!item?.active || item.getData("type") !== "moonBloom") return;
+      addCandidate(item.x, item.y, "Moon bloom", -60);
+    });
+
     this.chests.children.iterate((chest) => {
       if (!chest?.active || chest.getData("opened")) return;
       addCandidate(chest.x, chest.y, chest.getData("content") === "key" ? "Key cache" : "Cache echo", 20);
@@ -1023,6 +1154,10 @@ class EmberScene extends Phaser.Scene {
   updateEnemies(time) {
     this.enemies.children.iterate((enemy) => {
       if (!enemy?.active || enemy.getData?.("dying")) return;
+      if (enemy.getData("kind") === "moonmoth") {
+        this.updateMoonmoth(enemy, time);
+        return;
+      }
       if (enemy.getData("kind") === "wisp") {
         this.updateWisp(enemy, time);
         return;
@@ -1038,6 +1173,26 @@ class EmberScene extends Phaser.Scene {
       }
       enemy.setDepth(enemy.y);
     });
+  }
+
+  updateMoonmoth(moth, time) {
+    const distToPlayer = distance(moth, this.player);
+    const home = moth.getData("home");
+    if (distToPlayer < 118) {
+      const away = Phaser.Math.Angle.Between(this.player.x, this.player.y, moth.x, moth.y);
+      moth.setVelocity(Math.cos(away) * 86, Math.sin(away) * 86);
+    } else if (distToPlayer < 330) {
+      const angle = Phaser.Math.Angle.Between(moth.x, moth.y, this.player.x, this.player.y) + Math.sin(time / 280) * 0.55;
+      moth.setVelocity(Math.cos(angle) * 46, Math.sin(angle) * 46);
+    } else if (time > moth.getData("nextThink")) {
+      moth.setData("nextThink", time + Phaser.Math.Between(850, 1550));
+      this.physics.moveTo(moth, home.x + Phaser.Math.Between(-110, 110), home.y + Phaser.Math.Between(-80, 80), 34);
+    }
+    if (distToPlayer < 345 && time > (moth.getData("nextBolt") ?? 0)) {
+      moth.setData("nextBolt", time + Phaser.Math.Between(1900, 2750));
+      this.spawnMoonBolt(moth);
+    }
+    moth.setDepth(moth.y);
   }
 
   updateWisp(wisp, time) {
@@ -1075,6 +1230,35 @@ class EmberScene extends Phaser.Scene {
       this.damagePlayer(1);
     });
     this.time.delayedCall(1350, () => {
+      if (bolt?.active) bolt.destroy();
+    });
+  }
+
+  spawnMoonBolt(moth) {
+    if (!moth?.active || moth.getData?.("dying") || !this.player?.active) return;
+    const angle = Phaser.Math.Angle.Between(moth.x, moth.y, this.player.x, this.player.y);
+    const bolt = this.add.circle(moth.x, moth.y, 5, 0x9af6ff, 0.9);
+    bolt.setData("moonBolt", true);
+    bolt.setDepth(24);
+    if (!this.lowFx) bolt.setBlendMode(Phaser.BlendModes.ADD);
+    this.physics.add.existing(bolt);
+    bolt.body.setCircle(5);
+    bolt.body.setVelocity(Math.cos(angle) * 132, Math.sin(angle) * 132);
+    this.tweens.add({
+      targets: bolt,
+      scale: 1.35,
+      alpha: 0.48,
+      yoyo: true,
+      repeat: -1,
+      duration: 260,
+      ease: "sine.inOut",
+    });
+    this.physics.add.overlap(this.player, bolt, () => {
+      if (!bolt.active) return;
+      bolt.destroy();
+      this.damagePlayer(1);
+    });
+    this.time.delayedCall(1450, () => {
       if (bolt?.active) bolt.destroy();
     });
   }
@@ -1207,6 +1391,14 @@ class EmberScene extends Phaser.Scene {
       this.burst(item.x, item.y, 0xe9585a, 9, 42);
       this.floatText(item.x, item.y - 18, "Healed");
       item.destroy();
+    } else if (type === "moonBloom") {
+      if (!markMoonBloom(this.state, item.getData("id"))) return;
+      heal(this.state, 1);
+      this.nextPulseAt = 0;
+      this.playSfx("heal");
+      this.burst(item.x, item.y, 0x74ead5, 14, 62);
+      this.floatText(item.x, item.y - 18, "Ward bloom");
+      item.destroy();
     }
     this.updateHud();
   }
@@ -1239,7 +1431,9 @@ class EmberScene extends Phaser.Scene {
         const used = site.getData("used");
         prompt = used
           ? "This rune echo is quiet"
-          : site.getData("kind") === "well"
+          : site.getData("kind") === "moonwell"
+            ? "Press E to listen at the moonwell"
+            : site.getData("kind") === "well"
             ? "Press E to drink from the ember well"
             : "Press E to bind the rune echo";
         action = () => this.useObelisk(site);
@@ -1295,12 +1489,14 @@ class EmberScene extends Phaser.Scene {
     }
     if (!touchObelisk(this.state, site.getData("id"))) return;
     const isWell = site.getData("kind") === "well";
-    if (isWell) heal(this.state, 2);
+    const isMoonwell = site.getData("kind") === "moonwell";
+    if (isWell || isMoonwell) heal(this.state, 2);
+    if (isMoonwell) this.nextPulseAt = 0;
     site.setData("used", true);
     site.setAlpha(0.68).setTint(0x8daaa2);
-    this.playSfx(isWell ? "heal" : "beacon");
-    this.burst(site.x, site.y, isWell ? 0xe9585a : 0x64c6b2, 16, 68);
-    this.floatText(site.x, site.y - 22, isWell ? "Ember well" : "Rune echo bound");
+    this.playSfx(isWell || isMoonwell ? "heal" : "beacon");
+    this.burst(site.x, site.y, isWell ? 0xe9585a : isMoonwell ? 0x74ead5 : 0x64c6b2, 16, 68);
+    this.floatText(site.x, site.y - 22, isWell ? "Ember well" : isMoonwell ? "Moonwell awakened" : "Rune echo bound");
     this.updateHud();
   }
 
@@ -1511,7 +1707,8 @@ class EmberScene extends Phaser.Scene {
 
   updateAreaName() {
     let name = "Mosswake Hollow";
-    if (this.player.y < 520) name = "North Ruin";
+    if (this.player.x > 1780 && this.player.y > 1040) name = "Moonwell Glade";
+    else if (this.player.y < 520) name = "North Ruin";
     else if (this.player.x > 1470) name = "Mistglass Stream";
     else if (this.player.x < 520 && this.player.y < 760) name = "Rootfall Thicket";
     else if (this.player.y > 1020) name = "Southwatch Grove";

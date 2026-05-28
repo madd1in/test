@@ -10,10 +10,11 @@ SOURCE = ROOT / "assets" / "generated" / "tile-atlas-imagen-hd-v2-source.png"
 OUT = ROOT / "assets" / "environment" / "tiles-imagen-hd.png"
 TILE = 32
 COLS = 8
-ROWS = 4
+SOURCE_ROWS = 4
+ROWS = 5
 
 
-SOURCE_TO_GAME_INDEX = {index: index for index in range(COLS * ROWS)}
+SOURCE_TO_GAME_INDEX = {index: index for index in range(COLS * SOURCE_ROWS)}
 
 
 def rgba(hex_color: str, alpha: int = 255) -> tuple[int, int, int, int]:
@@ -29,7 +30,7 @@ def rgba(hex_color: str, alpha: int = 255) -> tuple[int, int, int, int]:
 def crop_source_cell(source: Image.Image, index: int) -> Image.Image:
     src_w, src_h = source.size
     cell_w = src_w / COLS
-    cell_h = src_h / ROWS
+    cell_h = src_h / SOURCE_ROWS
     x = index % COLS
     y = index // COLS
     margin_x = cell_w * 0.08
@@ -47,6 +48,57 @@ def crop_source_cell(source: Image.Image, index: int) -> Image.Image:
     return tile.filter(ImageFilter.UnsharpMask(radius=0.6, percent=70, threshold=2))
 
 
+def extra_moonwell_tile(out_index: int) -> Image.Image:
+    tile = Image.new("RGBA", (TILE, TILE), rgba("#152827"))
+    draw = ImageDraw.Draw(tile, "RGBA")
+    if out_index == 32:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#19352f"))
+        for x, y, color in ((4, 6, "#84ffe4"), (13, 12, "#5ecdbd"), (24, 8, "#ffc45d"), (18, 24, "#9df6d2"), (29, 22, "#52745e")):
+            draw.point((x, y), fill=rgba(color, 160))
+            draw.point((x + 1, y), fill=rgba(color, 120))
+    elif out_index == 33:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#2c3d42"))
+        for offset in (-8, 8, 23):
+            line(draw, (offset, 31, offset + 28, 1), "#111a1e", 130, 1)
+        draw.rectangle((3, 3, 28, 28), outline=rgba("#9fd1c7", 100), width=2)
+    elif out_index == 34:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#0d3e49"))
+        for y in (7, 15, 24):
+            draw.arc((2, y - 5, 30, y + 8), 12, 168, fill=rgba("#a5fff7", 150), width=1)
+        draw.ellipse((8, 8, 24, 24), fill=rgba("#58f2d4", 55))
+    elif out_index == 35:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#1c2a31"))
+        for points, color in (
+            (((16, 2), (25, 17), (16, 30), (8, 18)), "#83f3dc"),
+            (((7, 7), (13, 16), (8, 27), (3, 16)), "#ffd06d"),
+            (((25, 8), (30, 18), (25, 27), (20, 18)), "#9bf6ff"),
+        ):
+            draw.polygon(points, fill=rgba(color, 170), outline=rgba("#071114", 210))
+    elif out_index == 36:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#10231f"))
+        for k in range(7):
+            y = 3 + k * 4
+            line(draw, (1, y, 31, y + 7), "#10352f", 220, 3)
+            line(draw, (2, y, 31, y + 7), "#70e4bd", 105, 1)
+        for x, y in ((6, 8), (18, 13), (26, 22)):
+            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=rgba("#ffbf5c", 190))
+    elif out_index == 37:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#123b42"))
+        for x, y in ((8, 10), (22, 18), (14, 24)):
+            draw.ellipse((x - 5, y - 3, x + 5, y + 3), fill=rgba("#4fa65f", 205), outline=rgba("#16331e", 200))
+            line(draw, (x, y, x + 4, y - 2), "#d6ffe0", 80, 1)
+    elif out_index == 38:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#243337"))
+        for step in range(5):
+            y = 28 - step * 5
+            draw.rectangle((4 + step * 2, y, 28 - step * 2, y + 3), fill=rgba("#a8c9be", 155), outline=rgba("#111a1d", 120))
+    elif out_index == 39:
+        draw.rectangle((0, 0, 31, 31), fill=rgba("#17332c"))
+        for x, y, color in ((7, 8, "#a8fff0"), (20, 10, "#ffd56d"), (13, 20, "#7de2c8"), (26, 24, "#fff0a8"), (5, 25, "#74c37e")):
+            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=rgba(color, 210))
+    return tile.filter(ImageFilter.UnsharpMask(radius=0.5, percent=65, threshold=2))
+
+
 def add_soft_vignette(tile: Image.Image, alpha: int = 42) -> None:
     overlay = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -60,7 +112,7 @@ def line(draw: ImageDraw.ImageDraw, points: tuple[int, int, int, int], color: st
 
 def polish_tile(tile: Image.Image, out_index: int) -> Image.Image:
     tile = tile.copy()
-    soft_ground = {0, 1, 2, 3, 6, 16, 17, 23, 28, 31}
+    soft_ground = {0, 1, 2, 3, 6, 16, 17, 23, 28, 31, 32, 33, 37, 38, 39}
     if out_index in soft_ground:
         tile = tile.filter(ImageFilter.GaussianBlur(0.55))
         tile = ImageEnhance.Contrast(tile).enhance(0.78)
@@ -147,6 +199,23 @@ def polish_tile(tile: Image.Image, out_index: int) -> Image.Image:
         draw.polygon(((16, 4), (26, 15), (19, 28), (7, 20)), fill=rgba("#7d4130", 170))
         draw.line((16, 6, 18, 26), fill=rgba("#ffbd58", 205), width=2)
         draw.line((9, 19, 25, 15), fill=rgba("#ff713c", 130), width=1)
+    elif out_index == 32:
+        for x, y in ((6, 8), (14, 16), (25, 21)):
+            draw.ellipse((x - 1, y - 1, x + 2, y + 2), fill=rgba("#8ffff0", 160))
+    elif out_index == 33:
+        draw.ellipse((8, 8, 24, 24), outline=rgba("#89ffe6", 100), width=1)
+    elif out_index == 34:
+        draw.ellipse((4, 5, 28, 28), fill=rgba("#63ffe4", 45))
+    elif out_index == 35:
+        draw.line((16, 4, 16, 28), fill=rgba("#eaffff", 135), width=1)
+    elif out_index == 36:
+        for k in range(3):
+            draw.ellipse((7 + k * 7, 8 + k * 4, 10 + k * 7, 11 + k * 4), fill=rgba("#ffc96a", 180))
+    elif out_index == 37:
+        draw.arc((4, 4, 28, 28), 205, 335, fill=rgba("#9ffff0", 90), width=1)
+    elif out_index == 39:
+        for x, y in ((10, 11), (21, 17), (15, 25)):
+            draw.point((x, y), fill=rgba("#ffffff", 180))
 
     return tile
 
@@ -158,8 +227,11 @@ def main() -> None:
     source = Image.open(SOURCE)
     out = Image.new("RGBA", (COLS * TILE, ROWS * TILE), (0, 0, 0, 0))
     for out_index in range(COLS * ROWS):
-        source_index = SOURCE_TO_GAME_INDEX[out_index]
-        tile = crop_source_cell(source, source_index)
+        if out_index in SOURCE_TO_GAME_INDEX:
+            source_index = SOURCE_TO_GAME_INDEX[out_index]
+            tile = crop_source_cell(source, source_index)
+        else:
+            tile = extra_moonwell_tile(out_index)
         tile = polish_tile(tile, out_index)
         out.alpha_composite(tile, ((out_index % COLS) * TILE, (out_index // COLS) * TILE))
 

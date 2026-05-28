@@ -1,4 +1,4 @@
-const ASSET_VERSION = "reset-v3";
+const ASSET_VERSION = "moonwell-v4";
 const versioned = (path) => `${path}?v=${ASSET_VERSION}`;
 
 export const ASSETS = {
@@ -6,11 +6,13 @@ export const ASSETS = {
   shrineArt: versioned("assets/generated/emberwild-shrine-hd.png"),
   wardArt: versioned("assets/generated/emberwild-ward-hd.png"),
   bossArt: versioned("assets/generated/ashwarden-boss-hd.png"),
+  moonwellArt: versioned("assets/generated/moonwell-grove-hd.png"),
   tiles: versioned("assets/environment/tiles-imagen-hd.png"),
   objects: versioned("assets/environment/objects.png"),
   player: versioned("assets/characters/player.png"),
   thornling: versioned("assets/characters/thornling.png"),
   wisp: versioned("assets/characters/wisp.png"),
+  moonmoth: versioned("assets/characters/moonmoth.png"),
   ashwarden: versioned("assets/characters/ashwarden.png"),
   slash: versioned("assets/fx/slash.png"),
   icons: versioned("assets/ui/icons.png"),
@@ -63,6 +65,14 @@ export const TILE_INDEX = {
   mistStone: 29,
   emberRock: 30,
   thornGrass: 31,
+  moonGrass: 32,
+  moonStone: 33,
+  moonWater: 34,
+  moonCrystal: 35,
+  moonVine: 36,
+  lilyPad: 37,
+  moonSteps: 38,
+  starFlowers: 39,
 };
 
 export const OBJECT_FRAME = {
@@ -78,4 +88,8 @@ export const OBJECT_FRAME = {
   obelisk: 9,
   loreStone: 10,
   emberWell: 11,
+  moonBloom: 12,
+  moonWell: 13,
+  moonArch: 14,
+  moonCache: 15,
 };

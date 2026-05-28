@@ -119,14 +119,17 @@ async function main() {
   await page.keyboard.press("e");
   await page.keyboard.press("q");
   await page.waitForTimeout(500);
+  const pulseTriggered = await page.evaluate(() => Boolean(window.__emberScene?.nextPulseAt > 0));
   await page.click("#journal-toggle");
   await page.waitForTimeout(180);
   const journal = await page.evaluate(() => {
     const panel = document.querySelector("#journal");
     const art = document.querySelector(".journal__art--ward");
+    const moonwellArt = document.querySelector(".journal__art--moonwell");
     return {
       hidden: panel?.hidden ?? true,
       wardArtLoaded: Boolean(art?.complete && art.naturalWidth > 0 && art.naturalHeight > 0),
+      moonwellArtLoaded: Boolean(moonwellArt?.complete && moonwellArt.naturalWidth > 0 && moonwellArt.naturalHeight > 0),
       height: panel?.getBoundingClientRect().height ?? 0,
     };
   });
@@ -218,10 +221,25 @@ async function main() {
         x: Math.floor(sprite.x / 32),
         y: Math.floor(sprite.y / 32),
       }));
+    const targetFrom = (sprite, type) => ({
+      id: sprite.getData?.("id") ?? type,
+      type,
+      x: Math.floor(sprite.x / 32),
+      y: Math.floor(sprite.y / 32),
+    });
+    const targets = [
+      ...scene.collectibles.getChildren().filter((sprite) => sprite?.active).map((sprite) => targetFrom(sprite, sprite.getData("type"))),
+      ...scene.chests.getChildren().filter((sprite) => sprite?.active && !sprite.getData("opened")).map((sprite) => targetFrom(sprite, "chest")),
+      ...scene.obelisks.getChildren().filter((sprite) => sprite?.active && !sprite.getData("used")).map((sprite) => targetFrom(sprite, "obelisk")),
+      ...scene.beacons.getChildren().filter((sprite) => sprite?.active).map((sprite) => targetFrom(sprite, "beacon")),
+      ...scene.loreStones.getChildren().filter((sprite) => sprite?.active).map((sprite) => targetFrom(sprite, "lore")),
+    ];
     return {
       ran: true,
       total: sigils.length,
       unreachable: sigils.filter((sigil) => !seen.has(key(sigil.x, sigil.y))),
+      targetTotal: targets.length,
+      unreachableTargets: targets.filter((target) => !seen.has(key(target.x, target.y))),
     };
   });
   const complexity = await page.evaluate(async () => {
@@ -238,6 +256,16 @@ async function main() {
     if (wisp) scene.spawnWispBolt(wisp);
     await new Promise((resolve) => setTimeout(resolve, 90));
 
+    const moonBloom = scene.collectibles.getChildren().find((sprite) => sprite?.active && sprite.getData?.("type") === "moonBloom");
+    const beforeMoonBlooms = scene.state.moonBlooms?.length ?? 0;
+    if (moonBloom) scene.collectItem(moonBloom);
+
+    const moonmoth = scene.enemies.getChildren().find((sprite) => sprite?.active && sprite.getData?.("kind") === "moonmoth");
+    const activeMoonBolts = () => scene.children.list.filter((item) => item?.getData?.("moonBolt") && item.active).length;
+    const beforeMoonBolts = activeMoonBolts();
+    if (moonmoth) scene.spawnMoonBolt(moonmoth);
+    await new Promise((resolve) => setTimeout(resolve, 90));
+
     const obelisk = scene.obelisks.getChildren().find((sprite) => sprite?.active && !sprite.getData?.("used"));
     const beforeEmber = scene.state.ember;
     if (obelisk) scene.useObelisk(obelisk);
@@ -250,6 +278,12 @@ async function main() {
       wispRan: Boolean(wisp),
       beforeBolts,
       afterBolts: activeBolts(),
+      moonBloomRan: Boolean(moonBloom),
+      beforeMoonBlooms,
+      afterMoonBlooms: scene.state.moonBlooms?.length ?? 0,
+      moonmothRan: Boolean(moonmoth),
+      beforeMoonBolts,
+      afterMoonBolts: activeMoonBolts(),
       obeliskRan: Boolean(obelisk),
       obeliskUsed: obelisk?.getData?.("used") ?? false,
       beforeEmber,
@@ -259,8 +293,22 @@ async function main() {
       endHidden: document.querySelector("#end-screen")?.hidden ?? false,
     };
   });
+  const moonwellView = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    if (!scene?.player) return { ran: false };
+    scene.player.setPosition(66 * 32 + 16, 46 * 32 + 16);
+    scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+    scene.updateAreaName();
+    return {
+      ran: true,
+      areaName: document.querySelector("#area-name")?.textContent ?? "",
+      moonmothsActive: scene.enemies.getChildren().filter((sprite) => sprite?.active && sprite.getData?.("kind") === "moonmoth").length,
+      moonBloomsActive: scene.collectibles.getChildren().filter((sprite) => sprite?.active && sprite.getData?.("type") === "moonBloom").length,
+    };
+  });
+  await page.waitForTimeout(240);
   const desktopPerf = await sampleFramePace(page);
-  const desktop = await page.evaluate((journalState) => {
+  const desktop = await page.evaluate(({ journalState, pulseState }) => {
     const canvas = document.querySelector("canvas");
     const scene = window.__emberScene;
     const box = canvas.getBoundingClientRect();
@@ -270,17 +318,19 @@ async function main() {
       menuHidden: document.querySelector("#menu").hidden,
       activePlay: scene?.activePlay ?? false,
       player: scene?.player ? { x: Math.round(scene.player.x), y: Math.round(scene.player.y) } : null,
-      pulseReady: Boolean(scene?.nextPulseAt > 0),
+      pulseReady: pulseState,
       journal: journalState,
       objective: document.querySelector("#objective")?.textContent,
     };
-  }, journal);
+  }, { journalState: journal, pulseState: pulseTriggered });
   desktop.enemyContact = enemyContact;
   desktop.enemyKill = enemyKill;
   desktop.sigilReachability = sigilReachability;
   desktop.complexity = complexity;
+  desktop.moonwellView = moonwellView;
   desktop.perf = desktopPerf;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, "moonwell-desktop.png"), fullPage: true });
   desktop.resetFresh = await page.evaluate(() => {
     const scene = window.__emberScene;
     if (!scene?.newAdventure) return { requested: false };
@@ -289,6 +339,7 @@ async function main() {
     scene.state.key = true;
     scene.state.chests = ["old-chest"];
     scene.state.obelisks = ["old-obelisk"];
+    scene.state.moonBlooms = ["old-bloom"];
     scene.state.enemiesDefeated = 9;
     scene.state.ember = 77;
     scene.newAdventure(false);
@@ -302,6 +353,7 @@ async function main() {
       window.__emberScene.state.sigils.length === 0 &&
       window.__emberScene.state.chests.length === 0 &&
       window.__emberScene.state.obelisks.length === 0 &&
+      window.__emberScene.state.moonBlooms.length === 0 &&
       window.__emberScene.state.enemiesDefeated === 0 &&
       window.__emberScene.state.ember === 0 &&
       !window.__emberScene.state.key,
@@ -316,6 +368,7 @@ async function main() {
       sigils: scene.state.sigils.length,
       chests: scene.state.chests.length,
       obelisks: scene.state.obelisks.length,
+      moonBlooms: scene.state.moonBlooms.length,
       enemiesDefeated: scene.state.enemiesDefeated,
       ember: scene.state.ember,
       key: scene.state.key,
@@ -359,7 +412,9 @@ async function main() {
     failed.push("Player did not move during keyboard smoke.");
   }
   if (!desktop.pulseReady) failed.push("Ember pulse did not trigger from keyboard input.");
-  if (desktop.journal.hidden || !desktop.journal.wardArtLoaded) failed.push("Journal or Ward art did not render.");
+  if (desktop.journal.hidden || !desktop.journal.wardArtLoaded || !desktop.journal.moonwellArtLoaded) {
+    failed.push("Journal art did not render.");
+  }
   if (!desktop.enemyContact?.ran) failed.push("Enemy contact regression did not run.");
   else {
     if (!desktop.enemyContact.activePlay || !desktop.enemyContact.endHidden) failed.push("Enemy contact stopped active play.");
@@ -383,6 +438,12 @@ async function main() {
   if (!desktop.sigilReachability?.ran) failed.push("Sigil reachability regression did not run.");
   else if (desktop.sigilReachability.unreachable.length) {
     failed.push(`Unreachable sigils: ${desktop.sigilReachability.unreachable.map((sigil) => sigil.id).join(", ")}`);
+  } else if (desktop.sigilReachability.unreachableTargets.length) {
+    failed.push(
+      `Unreachable world targets: ${desktop.sigilReachability.unreachableTargets
+        .map((target) => `${target.type}:${target.id}`)
+        .join(", ")}`,
+    );
   }
   if (!desktop.complexity?.ran) failed.push("Complexity regression did not run.");
   else {
@@ -396,6 +457,12 @@ async function main() {
     if (!desktop.complexity.wispRan || desktop.complexity.afterBolts <= desktop.complexity.beforeBolts) {
       failed.push("Wisp projectile did not spawn.");
     }
+    if (!desktop.complexity.moonBloomRan || desktop.complexity.afterMoonBlooms !== desktop.complexity.beforeMoonBlooms + 1) {
+      failed.push("Moon bloom collection did not register.");
+    }
+    if (!desktop.complexity.moonmothRan || desktop.complexity.afterMoonBolts <= desktop.complexity.beforeMoonBolts) {
+      failed.push("Moonmoth projectile did not spawn.");
+    }
     if (!desktop.complexity.obeliskRan || !desktop.complexity.obeliskUsed || !desktop.complexity.ward) {
       failed.push("Rune obelisk interaction did not renew the ward.");
     }
@@ -403,12 +470,19 @@ async function main() {
       failed.push("Rune obelisk reduced ember unexpectedly.");
     }
   }
+  if (!desktop.moonwellView?.ran) failed.push("Moonwell view regression did not run.");
+  else {
+    if (desktop.moonwellView.areaName !== "Moonwell Glade") failed.push("Moonwell area name did not activate.");
+    if (desktop.moonwellView.moonmothsActive < 1) failed.push("Moonmoth sprites are missing from the expanded map.");
+    if (desktop.moonwellView.moonBloomsActive < 1) failed.push("Moon bloom sprites are missing from the expanded map.");
+  }
   if (!desktop.resetFresh?.requested) failed.push("Fresh reset regression did not run.");
   else if (
     desktop.resetFresh.shards !== 0 ||
     desktop.resetFresh.sigils !== 0 ||
     desktop.resetFresh.chests !== 0 ||
     desktop.resetFresh.obelisks !== 0 ||
+    desktop.resetFresh.moonBlooms !== 0 ||
     desktop.resetFresh.enemiesDefeated !== 0 ||
     desktop.resetFresh.ember !== 0 ||
     desktop.resetFresh.key ||
@@ -437,6 +511,7 @@ async function main() {
         screenshots: {
           menu: path.join(outDir, "menu-desktop.png"),
           gameplay: path.join(outDir, "gameplay-desktop.png"),
+          moonwell: path.join(outDir, "moonwell-desktop.png"),
           journal: path.join(outDir, "journal-desktop.png"),
           mobile: path.join(outDir, "gameplay-mobile.png"),
         },

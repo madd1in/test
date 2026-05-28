@@ -289,6 +289,33 @@ def draw_wisp() -> None:
     save(img, ASSETS / "characters" / "wisp.png")
 
 
+def draw_moonmoth_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, frame: int) -> None:
+    cx = ox + 19
+    flap = [0, -3, 0, 3][frame]
+    bob = [-1, 0, 1, 0][frame]
+    draw_shadow(draw, cx, oy + 28, 24, 7)
+    left_wing = [(cx - 2, oy + 16 + bob), (cx - 17, oy + 3 + flap), (cx - 18, oy + 22 - flap), (cx - 5, oy + 26 + bob)]
+    right_wing = [(cx + 2, oy + 16 + bob), (cx + 17, oy + 3 + flap), (cx + 18, oy + 22 - flap), (cx + 5, oy + 26 + bob)]
+    poly(draw, left_wing, "#68d7c7", "#09282d", 1)
+    poly(draw, right_wing, "#ffd37a", "#42210f", 1)
+    draw.line((cx - 12, oy + 10 + flap, cx - 6, oy + 20), fill=rgba("#dffff6", 160), width=1)
+    draw.line((cx + 12, oy + 10 + flap, cx + 6, oy + 20), fill=rgba("#fff0aa", 160), width=1)
+    ellipse(draw, (cx - 5, oy + 9 + bob, cx + 5, oy + 27 + bob), "#f4fff0", "#0c2830", 1)
+    draw.ellipse((cx - 3, oy + 12 + bob, cx - 1, oy + 15 + bob), fill=rgba("#11222a"))
+    draw.ellipse((cx + 1, oy + 12 + bob, cx + 3, oy + 15 + bob), fill=rgba("#11222a"))
+    draw.line((cx - 1, oy + 8 + bob, cx - 7, oy + 2 + flap), fill=rgba("#dffff6", 150), width=1)
+    draw.line((cx + 1, oy + 8 + bob, cx + 7, oy + 2 + flap), fill=rgba("#fff0aa", 150), width=1)
+
+
+def draw_moonmoth() -> None:
+    fw, fh = 38, 34
+    img = Image.new("RGBA", (fw * 4, fh), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    for frame in range(4):
+        draw_moonmoth_frame(draw, frame * fw, 0, frame)
+    save(img, ASSETS / "characters" / "moonmoth.png")
+
+
 def draw_boss_frame(draw: ImageDraw.ImageDraw, ox: int, oy: int, frame: int) -> None:
     cx = ox + 36
     pulse = [0, 2, 1, -1][frame]
@@ -332,7 +359,7 @@ def draw_boss() -> None:
 
 
 def draw_objects() -> None:
-    cols, fw, fh = 12, 32, 32
+    cols, fw, fh = 16, 32, 32
     img = Image.new("RGBA", (cols * fw, fh), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
@@ -411,6 +438,32 @@ def draw_objects() -> None:
     draw.ellipse((x + 10, y + 7, x + 22, y + 19), outline=rgba("#ffb84e"), width=3)
     draw.ellipse((x + 14, y + 11, x + 18, y + 15), fill=rgba("#fff0a0"))
 
+    x, y = at(12)
+    for radius, alpha in ((12, 45), (8, 86), (4, 180)):
+        draw.ellipse((x + 16 - radius, y + 16 - radius, x + 16 + radius, y + 16 + radius), fill=rgba("#75efd7", alpha))
+    draw.polygon([(x + 16, y + 4), (x + 22, y + 15), (x + 16, y + 29), (x + 10, y + 15)], fill=rgba("#dffff6"), outline=rgba("#124950"))
+    draw.line((x + 16, y + 5, x + 16, y + 28), fill=rgba("#ffd06f"), width=2)
+
+    x, y = at(13)
+    draw.rectangle((x + 5, y + 19, x + 27, y + 28), fill=rgba("#172928"))
+    draw.ellipse((x + 6, y + 4, x + 26, y + 24), fill=rgba("#123c43"), outline=rgba("#091416"), width=2)
+    draw.ellipse((x + 9, y + 7, x + 23, y + 21), outline=rgba("#82ffe5"), width=3)
+    draw.ellipse((x + 13, y + 11, x + 19, y + 17), fill=rgba("#fff5a8"))
+    draw.arc((x + 4, y + 1, x + 28, y + 28), 185, 355, fill=rgba("#d6fff5", 125), width=1)
+
+    x, y = at(14)
+    draw.arc((x + 4, y + 2, x + 28, y + 40), 180, 360, fill=rgba("#a8c9be"), width=4)
+    draw.arc((x + 7, y + 5, x + 25, y + 35), 180, 360, fill=rgba("#65e4cf"), width=2)
+    draw.rectangle((x + 5, y + 17, x + 10, y + 29), fill=rgba("#53645f"))
+    draw.rectangle((x + 22, y + 17, x + 27, y + 29), fill=rgba("#53645f"))
+    draw.ellipse((x + 13, y + 13, x + 19, y + 19), fill=rgba("#ffd06f"))
+
+    x, y = at(15)
+    draw.rounded_rectangle((x + 4, y + 14, x + 28, y + 28), radius=2, fill=rgba("#102120"), outline=rgba("#071011"), width=2)
+    draw.rectangle((x + 6, y + 10, x + 26, y + 17), fill=rgba("#577069"))
+    draw.line((x + 8, y + 12, x + 24, y + 12), fill=rgba("#84ffe4"), width=2)
+    draw.ellipse((x + 12, y + 18, x + 20, y + 25), fill=rgba("#ffd06f"))
+
     save(img, ASSETS / "environment" / "objects.png")
 
 
@@ -456,6 +509,7 @@ def main() -> None:
     draw_player()
     draw_thornling()
     draw_wisp()
+    draw_moonmoth()
     draw_boss()
     draw_objects()
     draw_slash()

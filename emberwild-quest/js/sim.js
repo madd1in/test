@@ -15,6 +15,7 @@ export function createInitialState() {
     chests: [],
     beacons: [],
     obelisks: [],
+    moonBlooms: [],
     enemiesDefeated: 0,
     bossDefeated: false,
     gateOpen: false,
@@ -32,6 +33,7 @@ export function loadState() {
     state.health = Math.min(MAX_HEALTH, Math.max(0, state.health));
     state.sigils = Array.isArray(state.sigils) ? state.sigils : [];
     state.obelisks = Array.isArray(state.obelisks) ? state.obelisks : [];
+    state.moonBlooms = Array.isArray(state.moonBlooms) ? state.moonBlooms : [];
     normalizeObjective(state);
     return state;
   } catch {
@@ -64,6 +66,7 @@ export function saveState(state) {
     chests: state.chests,
     beacons: state.beacons,
     obelisks: state.obelisks,
+    moonBlooms: state.moonBlooms,
     enemiesDefeated: state.enemiesDefeated,
     bossDefeated: state.bossDefeated,
     gateOpen: state.gateOpen,
@@ -141,7 +144,19 @@ export function touchObelisk(state, id) {
   state.obelisks.push(id);
   state.ember = Math.min(99, state.ember + 18);
   state.ward = true;
-  state.objective = "A rune echo fills your ward with ember.";
+  state.objective = id === "moonwell" ? "Moonwell light refreshes pulse and ward." : "A rune echo fills your ward with ember.";
+  saveState(state);
+  return true;
+}
+
+export function markMoonBloom(state, id) {
+  if (state.moonBlooms.includes(id)) return false;
+  state.moonBlooms.push(id);
+  state.ember = Math.min(99, state.ember + 10);
+  state.ward = true;
+  state.objective = state.moonBlooms.length >= 3
+    ? "Moonwell blooms hum. Your ward is bright."
+    : "A moonwell bloom refreshes your ward.";
   saveState(state);
   return true;
 }
