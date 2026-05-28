@@ -2,7 +2,7 @@ export const ASSETS = {
   keyArt: "assets/generated/emberwild-key-art.png",
   shrineArt: "assets/generated/emberwild-shrine-hd.png",
   bossArt: "assets/generated/ashwarden-boss-hd.png",
-  tiles: "assets/environment/tiles.png",
+  tiles: "assets/environment/tiles-imagen-hd.png",
   objects: "assets/environment/objects.png",
   player: "assets/characters/player.png",
   thornling: "assets/characters/thornling.png",

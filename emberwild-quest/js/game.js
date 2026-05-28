@@ -25,6 +25,7 @@ const DASH_SPEED = 420;
 const DASH_TIME = 150;
 const DASH_COOLDOWN = 620;
 const ATTACK_COOLDOWN = 310;
+const PULSE_COOLDOWN = 1600;
 const INVULN_TIME = 760;
 const AUDIO_STORAGE_KEY = "emberwild-audio-enabled";
 
@@ -61,11 +62,93 @@ const touchState = {
   taps: new Set(),
 };
 
+const keyboardState = {
+  down: new Set(),
+  pressed: new Set(),
+};
+
+const KEY_BINDINGS = new Map([
+  ["ArrowUp", "up"],
+  ["ArrowDown", "down"],
+  ["ArrowLeft", "left"],
+  ["ArrowRight", "right"],
+  ["KeyW", "up"],
+  ["KeyS", "down"],
+  ["KeyA", "left"],
+  ["KeyD", "right"],
+  ["Space", "attack"],
+  ["ShiftLeft", "dash"],
+  ["ShiftRight", "dash"],
+  ["KeyE", "interact"],
+  ["Escape", "pause"],
+  ["KeyQ", "pulse"],
+]);
+
+const CAPTURED_ACTIONS = new Set(KEY_BINDINGS.values());
+
+function keyAction(event) {
+  return KEY_BINDINGS.get(event.code) ?? KEY_BINDINGS.get(event.key);
+}
+
+function captureKeyboardEvent(event) {
+  const action = keyAction(event);
+  if (!action) return false;
+  const scene = window.__emberScene;
+  if (scene?.activePlay && !scene.pausedByOverlay) event.preventDefault();
+  return CAPTURED_ACTIONS.has(action);
+}
+
 function consumeTap(action) {
   if (!touchState.taps.has(action)) return false;
   touchState.taps.delete(action);
   return true;
 }
+
+function consumePress(action) {
+  if (!keyboardState.pressed.has(action)) return false;
+  keyboardState.pressed.delete(action);
+  return true;
+}
+
+function resetInputState() {
+  touchState.up = false;
+  touchState.down = false;
+  touchState.left = false;
+  touchState.right = false;
+  touchState.taps.clear();
+  keyboardState.down.clear();
+  keyboardState.pressed.clear();
+}
+
+function focusGameCanvas(game) {
+  const canvas = game?.canvas ?? document.querySelector("#game-shell canvas");
+  if (!canvas) return;
+  canvas.setAttribute("tabindex", "0");
+  canvas.focus({ preventScroll: true });
+}
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+    const action = keyAction(event);
+    if (!captureKeyboardEvent(event)) return;
+    keyboardState.down.add(action);
+    if (!event.repeat) keyboardState.pressed.add(action);
+  },
+  { passive: false },
+);
+
+document.addEventListener(
+  "keyup",
+  (event) => {
+    const action = keyAction(event);
+    if (!captureKeyboardEvent(event)) return;
+    keyboardState.down.delete(action);
+  },
+  { passive: false },
+);
+
+window.addEventListener("blur", resetInputState);
 
 function tileCenter(tx, ty) {
   return { x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2 };
@@ -271,6 +354,7 @@ class EmberScene extends Phaser.Scene {
     this.facing = { x: 0, y: 1, key: "down" };
     this.nextAttackAt = 0;
     this.nextDashAt = 0;
+    this.nextPulseAt = 0;
     this.dashUntil = 0;
     this.invulnerableUntil = 0;
     this.endMode = "restart";
@@ -506,8 +590,14 @@ class EmberScene extends Phaser.Scene {
       interact: "E",
       dash: "SHIFT",
       pause: "ESC",
+      pulse: "Q",
     });
     this.pointerAttack = false;
+    focusGameCanvas(this.game);
+    if (!this.game.canvas.dataset.emberFocusBound) {
+      this.game.canvas.dataset.emberFocusBound = "true";
+      this.game.canvas.addEventListener("pointerdown", () => focusGameCanvas(this.game));
+    }
     this.input.on("pointerdown", (pointer) => {
       if (pointer.event?.target?.tagName === "CANVAS") this.pointerAttack = true;
     });
@@ -525,11 +615,16 @@ class EmberScene extends Phaser.Scene {
   setPlayActive(active) {
     this.activePlay = active;
     ui.hud.hidden = !active;
-    if (!active && this.player) this.player.setVelocity(0, 0);
+    if (!active && this.player) {
+      this.player.setVelocity(0, 0);
+      resetInputState();
+    }
   }
 
   startAdventure() {
     if (!this.state || !this.player) return;
+    resetInputState();
+    focusGameCanvas(this.game);
     ui.menu.hidden = true;
     ui.endScreen.hidden = true;
     this.playSfx("confirm");
@@ -541,7 +636,7 @@ class EmberScene extends Phaser.Scene {
 
   update(time, delta) {
     if (!this.activePlay || this.pausedByOverlay) return;
-    if (Phaser.Input.Keyboard.JustDown(this.keys.pause)) {
+    if (Phaser.Input.Keyboard.JustDown(this.keys.pause) || consumePress("pause")) {
       this.showPause();
       return;
     }
@@ -560,7 +655,7 @@ class EmberScene extends Phaser.Scene {
       this.facing = this.vectorToFacing(move);
     }
 
-    const dashPressed = Phaser.Input.Keyboard.JustDown(this.keys.dash) || consumeTap("dash");
+    const dashPressed = Phaser.Input.Keyboard.JustDown(this.keys.dash) || consumeTap("dash") || consumePress("dash");
     if (dashPressed && moving && time >= this.nextDashAt) {
       this.dashUntil = time + DASH_TIME;
       this.nextDashAt = time + DASH_COOLDOWN;
@@ -580,11 +675,14 @@ class EmberScene extends Phaser.Scene {
     }
 
     const attackPressed =
-      Phaser.Input.Keyboard.JustDown(this.keys.attack) || consumeTap("attack") || this.pointerAttack;
+      Phaser.Input.Keyboard.JustDown(this.keys.attack) || consumeTap("attack") || consumePress("attack") || this.pointerAttack;
     this.pointerAttack = false;
     if (attackPressed && time >= this.nextAttackAt) {
       this.attack(time);
     }
+
+    const pulsePressed = Phaser.Input.Keyboard.JustDown(this.keys.pulse) || consumeTap("pulse") || consumePress("pulse");
+    if (pulsePressed) this.useEmberPulse(time);
 
     if (time < this.invulnerableUntil) {
       this.player.setAlpha(time % 120 < 60 ? 0.48 : 1);
@@ -596,10 +694,10 @@ class EmberScene extends Phaser.Scene {
   readMoveVector() {
     let x = 0;
     let y = 0;
-    if (this.cursors.left.isDown || this.keys.left.isDown || touchState.left) x -= 1;
-    if (this.cursors.right.isDown || this.keys.right.isDown || touchState.right) x += 1;
-    if (this.cursors.up.isDown || this.keys.up.isDown || touchState.up) y -= 1;
-    if (this.cursors.down.isDown || this.keys.down.isDown || touchState.down) y += 1;
+    if (this.cursors.left.isDown || this.keys.left.isDown || keyboardState.down.has("left") || touchState.left) x -= 1;
+    if (this.cursors.right.isDown || this.keys.right.isDown || keyboardState.down.has("right") || touchState.right) x += 1;
+    if (this.cursors.up.isDown || this.keys.up.isDown || keyboardState.down.has("up") || touchState.up) y -= 1;
+    if (this.cursors.down.isDown || this.keys.down.isDown || keyboardState.down.has("down") || touchState.down) y += 1;
     if (x !== 0 && y !== 0) {
       const inv = Math.SQRT1_2;
       x *= inv;
@@ -638,6 +736,82 @@ class EmberScene extends Phaser.Scene {
     };
     this.enemies.children.iterate((enemy) => hit(enemy, 1));
     this.bossGroup.children.iterate((boss) => hit(boss, 1));
+  }
+
+  useEmberPulse(time) {
+    if (time < this.nextPulseAt) return;
+    this.nextPulseAt = time + PULSE_COOLDOWN;
+    this.playSfx("beacon");
+    this.burst(this.player.x, this.player.y, 0x64c6b2, 12, 76);
+
+    const ring = this.add.circle(this.player.x, this.player.y, 18, 0x64c6b2, 0.04);
+    ring.setStrokeStyle(2, 0x64c6b2, 0.92).setDepth(36).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: ring,
+      scale: 7,
+      alpha: 0,
+      duration: 640,
+      ease: "sine.out",
+      onComplete: () => ring.destroy(),
+    });
+
+    const target = this.findPulseTarget();
+    if (!target) {
+      this.floatText(this.player.x, this.player.y - 28, "No echo nearby");
+      return;
+    }
+
+    const beam = this.add.graphics();
+    beam.setDepth(35).setBlendMode(Phaser.BlendModes.ADD);
+    beam.lineStyle(3, 0x64c6b2, 0.62);
+    beam.beginPath();
+    beam.moveTo(this.player.x, this.player.y - 12);
+    beam.lineTo(target.x, target.y - 8);
+    beam.strokePath();
+
+    const marker = this.add.circle(target.x, target.y, 14, 0xffd479, 0.06);
+    marker.setStrokeStyle(2, 0xffd479, 0.95).setDepth(36).setBlendMode(Phaser.BlendModes.ADD);
+    this.floatText(target.x, target.y - 26, target.label);
+    this.tweens.add({
+      targets: [beam, marker],
+      alpha: 0,
+      duration: 760,
+      ease: "sine.in",
+      onComplete: () => {
+        beam.destroy();
+        marker.destroy();
+      },
+    });
+  }
+
+  findPulseTarget() {
+    const candidates = [];
+    const addCandidate = (x, y, label, priority = 0) => {
+      candidates.push({ x, y, label, score: distance(this.player, { x, y }) + priority });
+    };
+
+    this.collectibles.children.iterate((item) => {
+      if (!item?.active || item.getData("type") !== "shard") return;
+      addCandidate(item.x, item.y, "Shard echo", -80);
+    });
+
+    this.chests.children.iterate((chest) => {
+      if (!chest?.active || chest.getData("opened")) return;
+      addCandidate(chest.x, chest.y, chest.getData("content") === "key" ? "Key cache" : "Cache echo", 20);
+    });
+
+    if (!this.state.gateOpen && this.state.key && this.state.shards.length >= REQUIRED_SHARDS) {
+      const gate = tileCenter(31.5, 15);
+      addCandidate(gate.x, gate.y, "Gate echo", -160);
+    }
+
+    this.bossGroup.children.iterate((boss) => {
+      if (!boss?.active || !this.state.gateOpen) return;
+      addCandidate(boss.x, boss.y, "Guardian echo", -220);
+    });
+
+    candidates.sort((a, b) => a.score - b.score);
+    return candidates[0] ?? null;
   }
 
   damageTarget(target, amount) {
@@ -762,7 +936,8 @@ class EmberScene extends Phaser.Scene {
   updateInteractions() {
     let prompt = "";
     let action = null;
-    const interactPressed = Phaser.Input.Keyboard.JustDown(this.keys.interact) || consumeTap("interact");
+    const interactPressed =
+      Phaser.Input.Keyboard.JustDown(this.keys.interact) || consumeTap("interact") || consumePress("interact");
 
     this.chests.children.iterate((chest) => {
       if (action || !chest?.active || chest.getData("opened")) return;
@@ -857,6 +1032,7 @@ class EmberScene extends Phaser.Scene {
   showPause() {
     this.pausedByOverlay = true;
     this.player.setVelocity(0, 0);
+    resetInputState();
     this.endMode = "resume";
     ui.endTitle.textContent = "Paused";
     ui.endMessage.textContent = "The forest waits.";
@@ -867,6 +1043,7 @@ class EmberScene extends Phaser.Scene {
 
   showGameOver() {
     this.pausedByOverlay = true;
+    resetInputState();
     this.endMode = "restart";
     ui.endTitle.textContent = "Defeated";
     ui.endMessage.textContent = "The ember fades at your last beacon.";
@@ -877,6 +1054,7 @@ class EmberScene extends Phaser.Scene {
 
   showVictory() {
     this.pausedByOverlay = true;
+    resetInputState();
     this.endMode = "new";
     ui.endTitle.textContent = "Victory";
     ui.endMessage.textContent = "The Ash Warden falls, and the Emberwild breathes again.";
@@ -988,7 +1166,7 @@ class EmberScene extends Phaser.Scene {
   }
 
   updateAudioButton() {
-    ui.audioToggle.textContent = this.audioEnabled ? "♪" : "×";
+    ui.audioToggle.textContent = this.audioEnabled ? "\u266b" : "x";
     ui.audioToggle.classList.toggle("is-off", !this.audioEnabled);
     ui.audioToggle.setAttribute("aria-label", this.audioEnabled ? "Audio ausschalten" : "Audio einschalten");
   }
@@ -1019,7 +1197,11 @@ class EmberScene extends Phaser.Scene {
 function bindUi(game) {
   ui.startButton.addEventListener("click", () => {
     const scene = game.scene.getScene("emberwild");
-    if (scene) scene.startAdventure();
+    if (scene) {
+      ui.startButton.blur();
+      scene.startAdventure();
+      focusGameCanvas(game);
+    }
   });
 
   ui.resetButton.addEventListener("click", () => {
@@ -1038,6 +1220,7 @@ function bindUi(game) {
       scene.pausedByOverlay = false;
       ui.endScreen.hidden = true;
       scene.playMusic(scene.bossFightActive ? "boss" : "explore");
+      focusGameCanvas(game);
       return;
     }
     if (scene.endMode === "new") {
@@ -1068,6 +1251,7 @@ function bindUi(game) {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       set(true);
+      focusGameCanvas(game);
       button.setPointerCapture(event.pointerId);
     });
     button.addEventListener("pointerup", () => set(false));
@@ -1078,6 +1262,7 @@ function bindUi(game) {
   for (const button of document.querySelectorAll("[data-tap]")) {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      focusGameCanvas(game);
       touchState.taps.add(button.dataset.tap);
     });
   }

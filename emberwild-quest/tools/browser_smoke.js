@@ -1,6 +1,41 @@
 const fs = require("fs");
 const path = require("path");
-const { chromium } = require("playwright");
+const Module = require("module");
+
+function loadPlaywright() {
+  try {
+    return require("playwright");
+  } catch (firstError) {
+    const runtimeModules = path.join(
+      process.env.USERPROFILE || process.env.HOME || "",
+      ".cache",
+      "codex-runtimes",
+      "codex-primary-runtime",
+      "dependencies",
+      "node",
+      "node_modules",
+    );
+    const extraPaths = [];
+    if (fs.existsSync(runtimeModules)) extraPaths.push(runtimeModules);
+    const pnpmDir = path.join(runtimeModules, ".pnpm");
+    if (fs.existsSync(pnpmDir)) {
+      for (const entry of fs.readdirSync(pnpmDir)) {
+        if (entry.startsWith("playwright@") || entry.startsWith("playwright-core@")) {
+          extraPaths.push(path.join(pnpmDir, entry, "node_modules"));
+        }
+      }
+    }
+    process.env.NODE_PATH = [process.env.NODE_PATH, ...extraPaths].filter(Boolean).join(path.delimiter);
+    Module._initPaths();
+    try {
+      return require("playwright");
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
+const { chromium } = loadPlaywright();
 
 const root = path.resolve(__dirname, "..");
 const outDir = path.join(root, ".qa");
@@ -14,11 +49,21 @@ async function bootPage(page) {
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(url, { waitUntil: "networkidle" });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
   await page.waitForSelector("canvas", { timeout: 10000 });
-  await page.waitForFunction(() => window.__emberScene?.state && !document.querySelector("#start-button")?.disabled, null, {
-    timeout: 20000,
-  });
+  try {
+    await page.waitForFunction(() => window.__emberScene?.state && !document.querySelector("#start-button")?.disabled, null, {
+      timeout: 20000,
+    });
+  } catch (error) {
+    const bootState = await page.evaluate(() => ({
+      hasScene: Boolean(window.__emberScene),
+      hasState: Boolean(window.__emberScene?.state),
+      startDisabled: document.querySelector("#start-button")?.disabled ?? null,
+      bodyText: document.body.innerText.slice(0, 200),
+    }));
+    throw new Error(`Boot timed out: ${JSON.stringify(bootState)} errors=${errors.join(" | ") || "none"}`);
+  }
 }
 
 async function main() {
@@ -34,6 +79,10 @@ async function main() {
   await page.screenshot({ path: path.join(outDir, "menu-desktop.png"), fullPage: true });
   await page.click("#start-button");
   await page.waitForTimeout(800);
+  const beforeMove = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    return scene?.player ? { x: scene.player.x, y: scene.player.y } : null;
+  });
   await page.keyboard.down("d");
   await page.keyboard.down("s");
   await page.waitForTimeout(420);
@@ -41,6 +90,7 @@ async function main() {
   await page.keyboard.up("s");
   await page.keyboard.press("Space");
   await page.keyboard.press("e");
+  await page.keyboard.press("q");
   await page.waitForTimeout(500);
   const desktop = await page.evaluate(() => {
     const canvas = document.querySelector("canvas");
@@ -52,6 +102,7 @@ async function main() {
       menuHidden: document.querySelector("#menu").hidden,
       activePlay: scene?.activePlay ?? false,
       player: scene?.player ? { x: Math.round(scene.player.x), y: Math.round(scene.player.y) } : null,
+      pulseReady: Boolean(scene?.nextPulseAt > 0),
       objective: document.querySelector("#objective")?.textContent,
     };
   });
@@ -84,7 +135,11 @@ async function main() {
   if (errors.length) failed.push(`Console/page errors: ${errors.join(" | ")}`);
   if (desktop.canvas.width < 300 || desktop.canvas.height < 240) failed.push("Desktop canvas is too small.");
   if (desktop.hudHidden || !desktop.menuHidden || !desktop.activePlay) failed.push("Desktop start state did not activate correctly.");
-  if (!desktop.player || desktop.player.x < 200) failed.push("Player did not move during keyboard smoke.");
+  if (!beforeMove || !desktop.player) failed.push("Player position was not readable.");
+  else if (Math.hypot(desktop.player.x - beforeMove.x, desktop.player.y - beforeMove.y) < 12) {
+    failed.push("Player did not move during keyboard smoke.");
+  }
+  if (!desktop.pulseReady) failed.push("Ember pulse did not trigger from keyboard input.");
   if (mobileState.canvas.width < 300 || mobileState.canvas.height < 500) failed.push("Mobile canvas is too small.");
   if (mobileState.hudHidden || !mobileState.mobileControlsVisible) failed.push("Mobile HUD or touch controls are not visible.");
 

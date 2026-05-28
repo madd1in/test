@@ -84,6 +84,7 @@ button {
   width: 100% !important;
   height: 100% !important;
   image-rendering: pixelated;
+  outline: none;
 }
 
 .hud {
@@ -550,7 +551,7 @@ button {
 }
 
 .actions {
-  grid-template-columns: repeat(3, 50px);
+  grid-template-columns: repeat(2, 50px);
   align-content: end;
 }
 
