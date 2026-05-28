@@ -1,0 +1,273 @@
+:root {
+  color-scheme: dark;
+  --ink: #eef7f5;
+  --muted: #9fb5b6;
+  --line: rgba(255, 255, 255, 0.18);
+  --panel: rgba(8, 18, 22, 0.68);
+  --accent: #ff6b35;
+  --accent-2: #33d6c2;
+  --danger: #ff4365;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #071013;
+  color: var(--ink);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+button {
+  font: inherit;
+}
+
+.game-shell {
+  position: fixed;
+  inset: 0;
+  min-width: 320px;
+  min-height: 100%;
+  background: #071013;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.hud {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto auto minmax(90px, 180px) 44px;
+  gap: 10px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.hud > * {
+  min-width: 0;
+}
+
+.hud-group,
+.hud-meter,
+.icon-button,
+.touch-controls button {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.hud-group {
+  min-width: 88px;
+  height: 44px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: grid;
+  align-content: center;
+  line-height: 1;
+}
+
+.hud-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.hud-group strong {
+  margin-top: 4px;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.hud-meter {
+  position: relative;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.hud-meter::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+#boostFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 75%;
+  background: linear-gradient(90deg, var(--accent-2), #f8e16c, var(--accent));
+  border-radius: inherit;
+  transition: width 120ms ease-out;
+}
+
+.icon-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  font-weight: 900;
+  pointer-events: auto;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 24px;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(4, 12, 16, 0.18), rgba(4, 12, 16, 0.72)),
+    radial-gradient(circle at 50% 30%, rgba(51, 214, 194, 0.18), transparent 34%);
+}
+
+.overlay.is-open {
+  display: flex;
+}
+
+.brand-mark {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  border-radius: 8px;
+  color: #071013;
+  background: linear-gradient(135deg, #f8e16c, var(--accent), var(--accent-2));
+  font-weight: 1000;
+  letter-spacing: 0;
+}
+
+.overlay h1 {
+  margin: 0;
+  font-size: clamp(44px, 9vw, 118px);
+  line-height: 0.9;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+}
+
+.overlay p {
+  max-width: 440px;
+  margin: 18px 0 24px;
+  color: rgba(238, 247, 245, 0.82);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.primary-button {
+  min-width: 172px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  color: #071013;
+  background: linear-gradient(135deg, #f8e16c, var(--accent));
+  font-weight: 900;
+  box-shadow: 0 18px 44px rgba(255, 107, 53, 0.28);
+}
+
+.touch-controls {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 6;
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  pointer-events: none;
+}
+
+.touch-controls button {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 6px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.touch-controls button:active,
+.icon-button:active,
+.primary-button:active {
+  transform: translateY(1px);
+}
+
+@media (hover: none), (max-width: 820px) {
+  .touch-controls {
+    display: grid;
+    right: auto;
+    width: min(366px, calc(100vw - 24px));
+  }
+
+  .hud {
+    right: auto;
+    width: min(374px, calc(100vw - 16px));
+    grid-template-columns: 1fr 1fr minmax(70px, 0.8fr) 42px;
+    gap: 8px;
+  }
+
+  .hud-group {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+
+  .hud-group strong {
+    font-size: 15px;
+  }
+
+  .overlay {
+    padding-bottom: 96px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hud {
+    left: 8px;
+    right: 8px;
+  }
+
+  .hud-label {
+    font-size: 9px;
+  }
+
+  .touch-controls {
+    gap: 7px;
+  }
+
+  .touch-controls button {
+    min-height: 48px;
+    font-size: 12px;
+  }
+}

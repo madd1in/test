@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Ridge Rider</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Ridge Rider game">
+      <canvas id="game" aria-label="Ridge Rider playfield"></canvas>
+
+      <section class="hud" aria-label="Ride status">
+        <div class="hud-group">
+          <span class="hud-label">DIST</span>
+          <strong id="distance">0 m</strong>
+        </div>
+        <div class="hud-group">
+          <span class="hud-label">FLOW</span>
+          <strong id="flow">100%</strong>
+        </div>
+        <div class="hud-meter" aria-label="Boost charge">
+          <span id="boostFill"></span>
+        </div>
+        <button id="pauseButton" class="icon-button" type="button" aria-label="Pause ride">II</button>
+      </section>
+
+      <section id="menu" class="overlay is-open" aria-live="polite">
+        <div class="brand-mark">RR</div>
+        <h1>Ridge Rider</h1>
+        <p id="menuCopy">Hold the line, land clean, keep your flow.</p>
+        <button id="startButton" class="primary-button" type="button">Start Ride</button>
+      </section>
+
+      <section class="touch-controls" aria-label="Touch controls">
+        <button data-action="leanBack" type="button" aria-label="Lean back">LT</button>
+        <button data-action="jump" type="button" aria-label="Jump">UP</button>
+        <button data-action="leanForward" type="button" aria-label="Lean forward">RT</button>
+        <button data-action="boost" type="button" aria-label="Boost">BOOST</button>
+      </section>
+    </main>
+
+    <script src="./js/game.js" defer></script>
+  </body>
+</html>
