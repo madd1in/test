@@ -54,9 +54,10 @@ button {
   right: max(14px, env(safe-area-inset-right));
   z-index: 5;
   display: grid;
-  grid-template-columns: auto auto minmax(90px, 180px) 44px;
+  grid-template-columns: 92px 92px minmax(130px, 180px) 44px 44px;
   gap: 10px;
   align-items: center;
+  justify-content: start;
   pointer-events: none;
 }
 
@@ -127,6 +128,7 @@ button {
   padding: 0;
   border-radius: 8px;
   color: var(--ink);
+  font-size: 12px;
   font-weight: 900;
   pointer-events: auto;
 }
@@ -234,7 +236,7 @@ button {
   .hud {
     right: auto;
     width: min(374px, calc(100vw - 16px));
-    grid-template-columns: 1fr 1fr minmax(70px, 0.8fr) 42px;
+    grid-template-columns: 1fr 1fr minmax(54px, 0.65fr) 42px 42px;
     gap: 8px;
   }
 
@@ -245,6 +247,12 @@ button {
 
   .hud-group strong {
     font-size: 15px;
+  }
+
+  .icon-button {
+    width: 42px;
+    height: 42px;
+    font-size: 11px;
   }
 
   .overlay {

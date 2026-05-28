@@ -10,16 +10,44 @@
   const menuCopy = document.getElementById("menuCopy");
   const startButton = document.getElementById("startButton");
   const pauseButton = document.getElementById("pauseButton");
+  const audioButton = document.getElementById("audioButton");
 
   const manifest = {
     backdrop: "./assets/generated/trail-backdrop-imagen.png",
     rider: "./assets/sprites/rider-imagen.png",
+    frontTiles: "./assets/foreground/front-tiles-imagen.png",
+    props: "./assets/foreground/trail-props-imagen.png",
     energy: "./assets/ui/energy-ring.svg",
     rock: "./assets/ui/rock.svg",
     flag: "./assets/ui/trail-flag.svg",
   };
 
+  const audioManifest = {
+    bgm: "./assets/audio/ridge-bgm.wav",
+    jump: "./assets/audio/jump.wav",
+    land: "./assets/audio/land.wav",
+    pickup: "./assets/audio/pickup.wav",
+    crash: "./assets/audio/crash.wav",
+  };
+
+  const propFrames = {
+    ramp: { sx: 0, sy: 250, sw: 450, sh: 330 },
+    bale: { sx: 430, sy: 300, sw: 270, sh: 220 },
+    sign: { sx: 735, sy: 260, sw: 205, sh: 300 },
+    stump: { sx: 950, sy: 280, sw: 250, sh: 295 },
+    dust: { sx: 1200, sy: 305, sw: 285, sh: 245 },
+    berm: { sx: 1460, sy: 280, sw: 250, sh: 310 },
+    ribbon: { sx: 1700, sy: 260, sw: 280, sh: 320 },
+  };
+
   const assets = {};
+  const audio = {
+    muted: localStorage.getItem("ridge-rider-muted") === "1",
+    unlocked: false,
+    bgm: null,
+    sfx: {},
+  };
+
   const input = {
     jump: false,
     jumpPressed: false,
@@ -38,7 +66,10 @@
     pickups: [],
     hazards: [],
     markers: [],
+    props: [],
+    particles: [],
     nextSpawn: 600,
+    nextProp: 340,
   };
 
   const rider = {
@@ -79,6 +110,55 @@
     });
   }
 
+  function setupAudio() {
+    audio.bgm = new Audio(audioManifest.bgm);
+    audio.bgm.loop = true;
+    audio.bgm.volume = 0.28;
+    audio.sfx.jump = makeAudio(audioManifest.jump, 0.36);
+    audio.sfx.land = makeAudio(audioManifest.land, 0.24);
+    audio.sfx.pickup = makeAudio(audioManifest.pickup, 0.36);
+    audio.sfx.crash = makeAudio(audioManifest.crash, 0.32);
+    updateAudioButton();
+  }
+
+  function makeAudio(src, volume) {
+    const clip = new Audio(src);
+    clip.preload = "auto";
+    clip.volume = volume;
+    return clip;
+  }
+
+  function updateAudioButton() {
+    audioButton.textContent = audio.muted ? "MUTE" : "SND";
+    audioButton.setAttribute("aria-pressed", String(!audio.muted));
+  }
+
+  function unlockAudio() {
+    audio.unlocked = true;
+    if (audio.muted) return;
+    playBgm();
+  }
+
+  function playBgm() {
+    if (!audio.bgm || audio.muted || !audio.unlocked || world.mode !== "playing") return;
+    audio.bgm.play().catch(() => {});
+  }
+
+  function stopBgm() {
+    if (audio.bgm) audio.bgm.pause();
+  }
+
+  function playSfx(name, volumeScale = 1) {
+    if (audio.muted || !audio.unlocked) return;
+    const clip = audio.sfx[name];
+    if (!clip) return;
+    clip.pause();
+    clip.currentTime = 0;
+    const baseVolume = name === "land" ? 0.24 : name === "jump" ? 0.36 : name === "crash" ? 0.32 : 0.36;
+    clip.volume = clamp(baseVolume * volumeScale, 0, 0.7);
+    clip.play().catch(() => {});
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -114,23 +194,26 @@
     world.pickups = [];
     world.hazards = [];
     world.markers = [];
-    world.nextSpawn = 560;
+    world.props = [];
+    world.particles = [];
+    world.nextSpawn = 700;
+    world.nextProp = 340;
     Object.assign(rider, {
       worldX: 0,
       y: terrainY(0),
       vy: 0,
-      speed: 370,
+      speed: 335,
       angle: Math.atan(terrainSlope(0)),
       spin: 0,
       airborne: false,
       airAngle: 0,
       flow: 100,
-      boost: 72,
+      boost: 86,
       score: 0,
       trick: 0,
       hitCooldown: 0,
     });
-    spawnAhead(3600);
+    spawnAhead(4200);
   }
 
   function setMode(mode) {
@@ -144,27 +227,35 @@
       startButton.textContent = "Loading";
       startButton.disabled = true;
     } else if (mode === "menu") {
+      stopBgm();
       menuCopy.textContent = "Hold the line, land clean, keep your flow.";
       startButton.textContent = "Start Ride";
       startButton.disabled = false;
     } else if (mode === "paused") {
+      stopBgm();
       menuCopy.textContent = `Best ${Math.round(world.best)} m`;
       startButton.textContent = "Resume";
       startButton.disabled = false;
     } else if (mode === "gameover") {
+      stopBgm();
       menuCopy.textContent = `Run ${Math.round(rider.score)} m | Best ${Math.round(world.best)} m`;
       startButton.textContent = "Restart";
       startButton.disabled = false;
+      playSfx("crash", 0.55);
     }
   }
 
   function startRide() {
+    unlockAudio();
     if (world.mode === "paused") {
       setMode("playing");
+      playBgm();
       return;
     }
     resetRide();
     setMode("playing");
+    playSfx("land", 0.32);
+    playBgm();
   }
 
   function spawnAhead(range) {
@@ -172,18 +263,18 @@
     while (world.nextSpawn < limit) {
       const lane = Math.floor(world.nextSpawn / 300);
       const roll = rand01(lane);
-      if (roll > 0.68) {
+      if (roll > 0.83) {
         world.hazards.push({
-          x: world.nextSpawn + rand01(lane + 8) * 130,
+          x: world.nextSpawn + rand01(lane + 8) * 155,
           hit: false,
-          scale: 0.82 + rand01(lane + 15) * 0.42,
+          scale: 0.66 + rand01(lane + 15) * 0.28,
         });
       } else {
-        const count = roll > 0.28 ? 3 : 2;
+        const count = roll > 0.24 ? 4 : 3;
         for (let i = 0; i < count; i += 1) {
           world.pickups.push({
             x: world.nextSpawn + i * 74,
-            offset: 84 + Math.sin(lane + i) * 34,
+            offset: 78 + Math.sin(lane + i) * 28,
             taken: false,
             wobble: rand01(lane + i + 27) * Math.PI * 2,
           });
@@ -197,10 +288,24 @@
       world.nextSpawn += 280 + rand01(lane + 3) * 290;
     }
 
+    while (world.nextProp < limit) {
+      const lane = Math.floor(world.nextProp / 240);
+      const names = ["sign", "stump", "ribbon", "bale", "berm"];
+      const name = names[Math.floor(rand01(lane + 41) * names.length)];
+      world.props.push({
+        x: world.nextProp + rand01(lane + 44) * 100,
+        name,
+        scale: 0.72 + rand01(lane + 45) * 0.24,
+        side: rand01(lane + 47) > 0.58 ? 1 : -1,
+      });
+      world.nextProp += 430 + rand01(lane + 49) * 380;
+    }
+
     const keepAfter = rider.worldX - 600;
     world.pickups = world.pickups.filter((item) => item.x > keepAfter && !item.taken);
     world.hazards = world.hazards.filter((item) => item.x > keepAfter);
     world.markers = world.markers.filter((item) => item.x > keepAfter);
+    world.props = world.props.filter((item) => item.x > keepAfter);
   }
 
   function resize() {
@@ -220,31 +325,34 @@
     const slope = terrainSlope(rider.worldX);
     const slopeAngle = Math.atan(slope);
     const boosting = input.boost && rider.boost > 2;
-    const targetSpeed = 370 + (boosting ? 190 : 0) - slope * 105;
-    rider.speed = lerp(rider.speed, targetSpeed, dt * 2.1);
-    rider.speed = clamp(rider.speed, 240, 680);
+    const targetSpeed = 335 + (boosting ? 145 : 0) - slope * 86;
+    rider.speed = lerp(rider.speed, targetSpeed, dt * 2.35);
+    rider.speed = clamp(rider.speed, 230, 590);
     rider.worldX += rider.speed * dt;
     rider.score = Math.max(rider.score, rider.worldX / 10);
 
     if (boosting) {
-      rider.boost = Math.max(0, rider.boost - dt * 31);
+      rider.boost = Math.max(0, rider.boost - dt * 24);
+      if (Math.random() < dt * 15) spawnDust(screenPlayerX() - 42, rider.y - 28, 1.1);
     } else {
-      rider.boost = Math.min(100, rider.boost + dt * (rider.airborne ? 8 : 17));
+      rider.boost = Math.min(100, rider.boost + dt * (rider.airborne ? 12 : 22));
     }
 
     const lean = (input.leanForward ? 1 : 0) - (input.leanBack ? 1 : 0);
     if (input.jumpPressed && !rider.airborne) {
       rider.airborne = true;
-      rider.vy = -720 - clamp(rider.speed - 360, 0, 220) * 0.32;
-      rider.spin = lean * 2.3 - slope * 0.7;
+      rider.vy = -650 - clamp(rider.speed - 320, 0, 180) * 0.24;
+      rider.spin = lean * 1.72 - slope * 0.48;
       rider.airAngle = 0;
+      spawnDust(screenPlayerX() - 28, rider.y - 12, 1.25);
+      playSfx("jump", 0.72);
     }
     input.jumpPressed = false;
 
     if (rider.airborne) {
-      rider.vy += 1650 * dt;
+      rider.vy += 1450 * dt;
       rider.y += rider.vy * dt;
-      rider.spin += lean * dt * 5.0;
+      rider.spin += lean * dt * 3.55;
       rider.spin *= 0.992;
       const prev = rider.angle;
       rider.angle += rider.spin * dt;
@@ -256,15 +364,17 @@
         rider.vy = 0;
         const landingError = Math.abs(wrapAngle(rider.angle - slopeAngle));
         const rotations = Math.abs(rider.airAngle) / (Math.PI * 2);
-        if (landingError > 0.92) {
-          damage(22 + landingError * 18);
+        spawnDust(screenPlayerX() - 38, rider.y - 8, 1.45);
+        playSfx("land", clamp(0.55 + landingError * 0.35, 0.45, 1.0));
+        if (landingError > 1.24) {
+          damage(11 + landingError * 9);
           rider.spin = 0;
           rider.angle = slopeAngle;
         } else {
-          if (rotations > 0.72) {
+          if (rotations > 0.62) {
             rider.trick = Math.round(rotations * 100);
-            rider.boost = Math.min(100, rider.boost + 18 + rotations * 12);
-            rider.flow = Math.min(100, rider.flow + rotations * 9);
+            rider.boost = Math.min(100, rider.boost + 20 + rotations * 15);
+            rider.flow = Math.min(100, rider.flow + rotations * 11);
           }
           rider.angle = lerp(rider.angle, slopeAngle, 0.54);
         }
@@ -272,12 +382,13 @@
     } else {
       rider.y = terrainY(rider.worldX);
       rider.angle = lerp(rider.angle, slopeAngle + lean * 0.12, dt * 8);
-      rider.flow = Math.min(100, rider.flow + dt * 3);
+      rider.flow = Math.min(100, rider.flow + dt * 6);
     }
 
     rider.hitCooldown = Math.max(0, rider.hitCooldown - dt);
+    updateParticles(dt);
     collectAndCollide();
-    spawnAhead(3800);
+    spawnAhead(4300);
     updateHud();
 
     if (rider.flow <= 0) {
@@ -291,14 +402,16 @@
   function damage(amount) {
     if (rider.hitCooldown > 0) return;
     rider.flow = Math.max(0, rider.flow - amount);
-    rider.hitCooldown = 0.75;
-    rider.speed *= 0.76;
+    rider.hitCooldown = 0.55;
+    rider.speed *= 0.86;
+    spawnDust(screenPlayerX() + 46, rider.y - 12, 2);
+    playSfx("crash", 0.8);
   }
 
   function collectAndCollide() {
     const sx = screenPlayerX();
     const scale = riderScale();
-    const playerRadius = 40 * scale;
+    const playerRadius = 34 * scale;
     const playerScreenY = rider.y;
 
     for (const item of world.pickups) {
@@ -306,10 +419,12 @@
       const dx = sx + (item.x - rider.worldX) - sx;
       const itemY = terrainY(item.x) - item.offset;
       const dy = itemY - playerScreenY + 42 * scale;
-      if (Math.hypot(dx, dy) < 56 * scale) {
+      if (Math.hypot(dx, dy) < 72 * scale) {
         item.taken = true;
-        rider.boost = Math.min(100, rider.boost + 14);
-        rider.flow = Math.min(100, rider.flow + 4);
+        rider.boost = Math.min(100, rider.boost + 18);
+        rider.flow = Math.min(100, rider.flow + 7);
+        spawnSpark(screenPlayerX() + dx, itemY, 7);
+        playSfx("pickup", 0.8);
       }
     }
 
@@ -318,11 +433,53 @@
       const dx = rock.x - rider.worldX;
       const rockY = terrainY(rock.x);
       const dy = rockY - playerScreenY;
-      if (Math.abs(dx) < 48 * rock.scale + playerRadius && Math.abs(dy) < 64 * rock.scale + playerRadius) {
+      if (Math.abs(dx) < 30 * rock.scale + playerRadius && Math.abs(dy) < 44 * rock.scale + playerRadius) {
         rock.hit = true;
-        damage(24);
+        damage(13);
       }
     }
+  }
+
+  function spawnDust(x, y, intensity) {
+    for (let i = 0; i < 7 * intensity; i += 1) {
+      world.particles.push({
+        x,
+        y,
+        vx: -55 - Math.random() * 120,
+        vy: -24 - Math.random() * 60,
+        r: 4 + Math.random() * 10,
+        life: 0.38 + Math.random() * 0.3,
+        age: 0,
+        color: "dust",
+      });
+    }
+  }
+
+  function spawnSpark(x, y, count) {
+    for (let i = 0; i < count; i += 1) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+      world.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * (60 + Math.random() * 110),
+        vy: Math.sin(angle) * (60 + Math.random() * 90),
+        r: 3 + Math.random() * 5,
+        life: 0.28 + Math.random() * 0.2,
+        age: 0,
+        color: i % 2 ? "cyan" : "gold",
+      });
+    }
+  }
+
+  function updateParticles(dt) {
+    for (const particle of world.particles) {
+      particle.age += dt;
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      particle.vy += 110 * dt;
+      particle.r *= 0.985;
+    }
+    world.particles = world.particles.filter((particle) => particle.age < particle.life);
   }
 
   function updateHud() {
@@ -342,10 +499,14 @@
   function draw() {
     drawBackdrop();
     drawTrail();
+    drawFlowGuide();
+    drawTrailTiles();
+    drawProps();
     drawPickups();
     drawMarkers();
     drawHazards();
     drawRider();
+    drawParticles();
     drawForeground();
     if (world.mode === "loading") drawLoading();
   }
@@ -419,6 +580,68 @@
     ctx.restore();
   }
 
+  function drawFlowGuide() {
+    const startWorld = rider.worldX - screenPlayerX();
+    ctx.save();
+    ctx.beginPath();
+    for (let sx = screenPlayerX() + 80; sx <= world.width + 260; sx += 34) {
+      const wx = startWorld + sx;
+      const y = terrainY(wx) - 32 - Math.sin(wx * 0.009) * 6;
+      if (sx === screenPlayerX() + 80) ctx.moveTo(sx, y);
+      else ctx.lineTo(sx, y);
+    }
+    ctx.setLineDash([18, 18]);
+    ctx.lineDashOffset = -performance.now() * 0.045;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(51, 214, 194, 0.58)";
+    ctx.shadowColor = "rgba(51, 214, 194, 0.65)";
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTrailTiles() {
+    const img = assets.frontTiles;
+    const scale = clamp(world.width / 1100, 0.62, 0.94);
+    const drawW = 720 * scale;
+    const drawH = (img.height / img.width) * drawW;
+    const first = Math.floor((rider.worldX - screenPlayerX() - 900) / 610) * 610;
+    ctx.save();
+    for (let wx = first; wx < rider.worldX + world.width + 1200; wx += 610) {
+      const x = screenPlayerX() + (wx - rider.worldX);
+      const y = terrainY(wx) + 18;
+      const slope = Math.atan(terrainSlope(wx)) * 0.42;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(slope);
+      ctx.drawImage(img, -drawW * 0.5, -drawH * 0.48, drawW, drawH);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawProps() {
+    const img = assets.props;
+    for (const prop of world.props) {
+      const frame = propFrames[prop.name];
+      if (!frame) continue;
+      const x = screenPlayerX() + (prop.x - rider.worldX);
+      if (x < -180 || x > world.width + 180) continue;
+      const y = terrainY(prop.x);
+      const slope = Math.atan(terrainSlope(prop.x)) * 0.28;
+      const sizeScale = prop.scale * clamp(world.width / 1080, 0.5, 0.78);
+      const drawW = frame.sw * sizeScale;
+      const drawH = frame.sh * sizeScale;
+      const lift = prop.name === "ribbon" ? 118 : prop.name === "sign" ? 86 : prop.name === "berm" ? 38 : 28;
+      ctx.save();
+      ctx.translate(x + prop.side * 18, y - lift * sizeScale);
+      ctx.rotate(slope);
+      ctx.globalAlpha = prop.name === "bale" || prop.name === "berm" ? 0.86 : 0.92;
+      ctx.drawImage(img, frame.sx, frame.sy, frame.sw, frame.sh, -drawW * 0.5, -drawH * 0.86, drawW, drawH);
+      ctx.restore();
+    }
+  }
+
   function drawPickups() {
     const img = assets.energy;
     for (const item of world.pickups) {
@@ -484,9 +707,35 @@
     }
   }
 
+  function drawParticles() {
+    ctx.save();
+    for (const particle of world.particles) {
+      const t = 1 - particle.age / particle.life;
+      ctx.globalAlpha = clamp(t, 0, 1);
+      if (particle.color === "cyan") ctx.fillStyle = "#33d6c2";
+      else if (particle.color === "gold") ctx.fillStyle = "#f8e16c";
+      else ctx.fillStyle = "rgba(218, 165, 96, 0.76)";
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.r * t, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawForeground() {
     ctx.save();
-    ctx.globalAlpha = 0.32;
+    const img = assets.frontTiles;
+    const drawW = clamp(world.width * 0.65, 340, 620);
+    const drawH = (img.height / img.width) * drawW;
+    let tileX = -(rider.worldX * 0.28) % drawW;
+    if (tileX > 0) tileX -= drawW;
+    ctx.globalAlpha = 0.42;
+    while (tileX < world.width + drawW) {
+      ctx.drawImage(img, tileX, world.height - drawH * 0.72, drawW, drawH);
+      tileX += drawW * 0.9;
+    }
+
+    ctx.globalAlpha = 0.26;
     ctx.fillStyle = "#071013";
     const baseY = world.height * 0.86;
     for (let i = -2; i < 20; i += 1) {
@@ -519,7 +768,10 @@
     window.addEventListener("keydown", (event) => {
       if (event.code === "KeyP" || event.code === "Escape") {
         if (world.mode === "playing") setMode("paused");
-        else if (world.mode === "paused") setMode("playing");
+        else if (world.mode === "paused") {
+          setMode("playing");
+          playBgm();
+        }
         return;
       }
       const action = keys.get(event.code);
@@ -557,9 +809,27 @@
     });
 
     startButton.addEventListener("click", startRide);
+    audioButton.addEventListener("click", () => {
+      audio.muted = !audio.muted;
+      localStorage.setItem("ridge-rider-muted", audio.muted ? "1" : "0");
+      updateAudioButton();
+      if (audio.muted) {
+        stopBgm();
+      } else {
+        unlockAudio();
+        playSfx("pickup", 0.42);
+      }
+    });
     pauseButton.addEventListener("click", () => {
       if (world.mode === "playing") setMode("paused");
-      else if (world.mode === "paused") setMode("playing");
+      else if (world.mode === "paused") {
+        setMode("playing");
+        playBgm();
+      }
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopBgm();
+      else playBgm();
     });
     window.addEventListener("resize", resize);
   }
@@ -567,6 +837,7 @@
   async function init() {
     setMode("loading");
     resize();
+    setupAudio();
     bindInput();
     const entries = await Promise.all(Object.entries(manifest).map(async ([key, src]) => [key, await loadImage(src)]));
     for (const [key, image] of entries) assets[key] = image;
