@@ -1,6 +1,7 @@
 export const MAX_HEALTH = 8;
 export const REQUIRED_SHARDS = 4;
 export const REQUIRED_SIGILS = 4;
+export const REQUIRED_LENSES = 3;
 
 const SAVE_KEY = "emberwild-quest-save-v1";
 
@@ -16,6 +17,8 @@ export function createInitialState() {
     beacons: [],
     obelisks: [],
     moonBlooms: [],
+    lenses: [],
+    focusCharged: false,
     enemiesDefeated: 0,
     bossDefeated: false,
     gateOpen: false,
@@ -34,6 +37,8 @@ export function loadState() {
     state.sigils = Array.isArray(state.sigils) ? state.sigils : [];
     state.obelisks = Array.isArray(state.obelisks) ? state.obelisks : [];
     state.moonBlooms = Array.isArray(state.moonBlooms) ? state.moonBlooms : [];
+    state.lenses = Array.isArray(state.lenses) ? state.lenses : [];
+    state.focusCharged = Boolean(state.focusCharged);
     normalizeObjective(state);
     return state;
   } catch {
@@ -50,6 +55,10 @@ function normalizeObjective(state) {
     state.objective = "Use the sunken key at the sealed north gate.";
   } else if (state.shards.length > 0) {
     state.objective = `Find ember shards (${state.shards.length}/${REQUIRED_SHARDS}).`;
+  } else if (state.focusCharged) {
+    state.objective = "Star lenses aligned. Pulse can crack nearby foes.";
+  } else if (state.lenses.length > 0) {
+    state.objective = `Find star lenses (${state.lenses.length}/${REQUIRED_LENSES}).`;
   } else {
     state.objective = "Find four ember shards in the old forest.";
   }
@@ -67,6 +76,8 @@ export function saveState(state) {
     beacons: state.beacons,
     obelisks: state.obelisks,
     moonBlooms: state.moonBlooms,
+    lenses: state.lenses,
+    focusCharged: state.focusCharged,
     enemiesDefeated: state.enemiesDefeated,
     bossDefeated: state.bossDefeated,
     gateOpen: state.gateOpen,
@@ -157,6 +168,20 @@ export function markMoonBloom(state, id) {
   state.objective = state.moonBlooms.length >= 3
     ? "Moonwell blooms hum. Your ward is bright."
     : "A moonwell bloom refreshes your ward.";
+  saveState(state);
+  return true;
+}
+
+export function addLens(state, id) {
+  if (state.lenses.includes(id)) return false;
+  state.lenses.push(id);
+  state.ember = Math.min(99, state.ember + 9);
+  if (state.lenses.length >= REQUIRED_LENSES) {
+    state.focusCharged = true;
+    state.objective = "Star lenses aligned. Pulse can crack nearby foes.";
+  } else {
+    state.objective = `Find star lenses (${state.lenses.length}/${REQUIRED_LENSES}).`;
+  }
   saveState(state);
   return true;
 }

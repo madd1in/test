@@ -1,4 +1,4 @@
-const ASSET_VERSION = "reload-reset-v5";
+const ASSET_VERSION = "starfall-v6";
 const versioned = (path) => `${path}?v=${ASSET_VERSION}`;
 
 export const ASSETS = {
@@ -7,6 +7,7 @@ export const ASSETS = {
   wardArt: versioned("assets/generated/emberwild-ward-hd.png"),
   bossArt: versioned("assets/generated/ashwarden-boss-hd.png"),
   moonwellArt: versioned("assets/generated/moonwell-grove-hd.png"),
+  starfallArt: versioned("assets/generated/starfall-orrery-hd.png"),
   tiles: versioned("assets/environment/tiles-imagen-hd.png"),
   objects: versioned("assets/environment/objects.png"),
   player: versioned("assets/characters/player.png"),
@@ -92,4 +93,8 @@ export const OBJECT_FRAME = {
   moonWell: 13,
   moonArch: 14,
   moonCache: 15,
+  starLens: 16,
+  orrery: 17,
+  starPylon: 18,
+  focusCache: 19,
 };

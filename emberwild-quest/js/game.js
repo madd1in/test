@@ -1,9 +1,11 @@
-import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=reload-reset-v5";
+import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=starfall-v6";
 import {
   MAX_HEALTH,
+  REQUIRED_LENSES,
   REQUIRED_SHARDS,
   REQUIRED_SIGILS,
   addKey,
+  addLens,
   addShard,
   addSigil,
   clearSave,
@@ -19,7 +21,7 @@ import {
   takeDamage,
   touchBeacon,
   touchObelisk,
-} from "./sim.js?v=reload-reset-v5";
+} from "./sim.js?v=starfall-v6";
 
 const WORLD_W = 76;
 const WORLD_H = 54;
@@ -47,6 +49,7 @@ const ui = {
   emberFill: document.querySelector("#ember-fill"),
   shardCount: document.querySelector("#shard-count"),
   sigilCount: document.querySelector("#sigil-count"),
+  lensCount: document.querySelector("#lens-count"),
   keyStatus: document.querySelector("#key-status"),
   areaName: document.querySelector("#area-name"),
   objective: document.querySelector("#objective"),
@@ -229,6 +232,8 @@ function makeWorld(state) {
     [33, 20, 55, 22],
     [10, 20, 33, 22],
     [48, 10, 54, 22],
+    [54, 10, 68, 12],
+    [66, 12, 68, 17],
     [52, 31, 68, 33],
     [66, 33, 68, 48],
     [57, 37, 66, 39],
@@ -387,6 +392,50 @@ function makeWorld(state) {
     }
   }
 
+  for (let y = 5; y <= 17; y += 1) {
+    for (let x = 60; x <= 73; x += 1) {
+      const shimmer = (x * 9 + y * 13) % 10;
+      solid[y][x] = -1;
+      putGround(x, y, shimmer < 3 ? T.moonStone : shimmer < 6 ? T.crackedStone : T.stone);
+    }
+  }
+
+  for (let y = 5; y <= 17; y += 1) {
+    for (let x = 60; x <= 73; x += 1) {
+      const edge = x === 60 || x === 73 || y === 5 || y === 17;
+      const westOpening = x === 60 && y >= 10 && y <= 12;
+      const southOpening = y === 17 && x >= 66 && x <= 68;
+      if (edge && !westOpening && !southOpening) putSolid(x, y, (x + y) % 3 === 0 ? T.moonCrystal : T.pillar);
+    }
+  }
+
+  const orrery = { x: 67, y: 10 };
+  for (let y = 6; y <= 14; y += 1) {
+    for (let x = 63; x <= 71; x += 1) {
+      const dist = Math.hypot(x - orrery.x, y - orrery.y);
+      if (dist <= 2.35) {
+        solid[y][x] = -1;
+        putGround(x, y, dist < 1.15 ? T.altar : (x + y) % 2 === 0 ? T.runeFloor : T.moonSteps);
+      } else if (dist <= 4.25 && (x + y) % 3 === 0) {
+        putDecor(x, y, T.glowMoss);
+      }
+    }
+  }
+  for (const [x, y] of [
+    [62, 6],
+    [71, 6],
+    [61, 15],
+    [72, 15],
+  ]) {
+    putDecor(x, y, T.mistStone);
+  }
+  for (const [x, y] of [
+    [64, 7],
+    [70, 13],
+  ]) {
+    putSolid(x, y, T.moonCrystal);
+  }
+
   for (const [cx, cy] of [
     [18, 17],
     [47, 29],
@@ -469,6 +518,12 @@ function listSpawns(state) {
     { id: "moon-bloom-south", x: 64, y: 50 },
   ].filter((item) => !state.moonBlooms.includes(item.id));
 
+  const lenses = [
+    { id: "star-lens-west", x: 63, y: 9 },
+    { id: "star-lens-ring", x: 68, y: 8 },
+    { id: "star-lens-east", x: 71, y: 14 },
+  ].filter((item) => !state.lenses.includes(item.id));
+
   const chests = [
     { id: "sunken-key", x: 55, y: 38, content: "key" },
     { id: "root-cache", x: 9, y: 12, content: "heart" },
@@ -476,16 +531,26 @@ function listSpawns(state) {
     { id: "trail-salve", x: 15, y: 36, content: "heart" },
     { id: "stream-salve", x: 47, y: 33, content: "heart" },
     { id: "moon-cache", x: 72, y: 46, content: "potion" },
+    { id: "focus-cache", x: 72, y: 12, content: "potion" },
   ];
 
   const beacons = [
     { id: "camp", x: 6, y: 37 },
     { id: "causeway", x: 32, y: 22 },
     { id: "tower", x: 50, y: 12 },
+    { id: "starfall", x: 62, y: 11 },
     { id: "moonwell", x: 60, y: 46 },
   ];
 
-  return { shards, enemies, sigils, obelisks, loreStones, moonBlooms, chests, beacons };
+  obelisks.push({ id: "starfall-orrery", kind: "orrery", x: 67, y: 10 });
+  loreStones.push({ id: "starfall", x: 61, y: 13, text: "Three lenses overcharge Pulse." });
+
+  const scenery = [
+    { kind: "starPylon", x: 62, y: 6 },
+    { kind: "starPylon", x: 72, y: 16 },
+  ];
+
+  return { shards, enemies, sigils, obelisks, loreStones, moonBlooms, lenses, chests, beacons, scenery };
 }
 
 class EmberScene extends Phaser.Scene {
@@ -700,6 +765,7 @@ class EmberScene extends Phaser.Scene {
     this.beacons = this.physics.add.staticGroup();
     this.obelisks = this.physics.add.staticGroup();
     this.loreStones = this.physics.add.staticGroup();
+    this.scenery = this.physics.add.staticGroup();
     this.enemies = this.physics.add.group({ allowGravity: false });
     this.bossGroup = this.physics.add.group({ allowGravity: false });
 
@@ -757,10 +823,30 @@ class EmberScene extends Phaser.Scene {
       });
     }
 
+    for (const lens of spawns.lenses) {
+      const pos = tileCenter(lens.x, lens.y);
+      const sprite = this.collectibles.create(pos.x, pos.y, "objects", OBJECT_FRAME.starLens);
+      sprite.setData("type", "lens");
+      sprite.setData("id", lens.id);
+      sprite.setCircle(10, 6, 6);
+      sprite.setDepth(13);
+      this.tweens.add({
+        targets: sprite,
+        angle: 360,
+        scale: 1.08,
+        y: pos.y - 5,
+        yoyo: true,
+        repeat: -1,
+        duration: 1150 + lens.x * 7,
+        ease: "sine.inOut",
+      });
+    }
+
     for (const chest of spawns.chests) {
       const pos = tileCenter(chest.x, chest.y);
       const opened = this.state.chests.includes(chest.id);
-      const sprite = this.chests.create(pos.x, pos.y, "objects", opened ? OBJECT_FRAME.chestOpen : OBJECT_FRAME.chestClosed);
+      const closedFrame = chest.id === "focus-cache" ? OBJECT_FRAME.focusCache : OBJECT_FRAME.chestClosed;
+      const sprite = this.chests.create(pos.x, pos.y, "objects", opened ? OBJECT_FRAME.chestOpen : closedFrame);
       sprite.setData("id", chest.id);
       sprite.setData("content", chest.content);
       sprite.setData("opened", opened);
@@ -780,13 +866,28 @@ class EmberScene extends Phaser.Scene {
     for (const site of spawns.obelisks) {
       const pos = tileCenter(site.x, site.y);
       const used = this.state.obelisks.includes(site.id);
-      const frame = site.kind === "well" ? OBJECT_FRAME.emberWell : site.kind === "moonwell" ? OBJECT_FRAME.moonWell : OBJECT_FRAME.obelisk;
+      const frame =
+        site.kind === "well"
+          ? OBJECT_FRAME.emberWell
+          : site.kind === "moonwell"
+            ? OBJECT_FRAME.moonWell
+            : site.kind === "orrery"
+              ? OBJECT_FRAME.orrery
+              : OBJECT_FRAME.obelisk;
       const sprite = this.obelisks.create(pos.x, pos.y, "objects", frame);
       sprite.setData("id", site.id);
       sprite.setData("kind", site.kind);
       sprite.setData("used", used);
       sprite.setDepth(12);
       if (used) sprite.setAlpha(0.68).setTint(0x8daaa2);
+      sprite.refreshBody();
+    }
+
+    for (const item of spawns.scenery) {
+      const pos = tileCenter(item.x, item.y);
+      const frame = item.kind === "starPylon" ? OBJECT_FRAME.starPylon : OBJECT_FRAME.moonArch;
+      const sprite = this.scenery.create(pos.x, pos.y, "objects", frame);
+      sprite.setDepth(10);
       sprite.refreshBody();
     }
 
@@ -1022,6 +1123,8 @@ class EmberScene extends Phaser.Scene {
       onComplete: () => ring.destroy(),
     });
 
+    if (this.state.focusCharged) this.overchargePulse();
+
     const target = this.findPulseTarget();
     if (!target) {
       this.floatText(this.player.x, this.player.y - 28, "No echo nearby");
@@ -1074,6 +1177,11 @@ class EmberScene extends Phaser.Scene {
       addCandidate(item.x, item.y, "Moon bloom", -60);
     });
 
+    this.collectibles.children.iterate((item) => {
+      if (!item?.active || item.getData("type") !== "lens") return;
+      addCandidate(item.x, item.y, "Star lens", -82);
+    });
+
     this.chests.children.iterate((chest) => {
       if (!chest?.active || chest.getData("opened")) return;
       addCandidate(chest.x, chest.y, chest.getData("content") === "key" ? "Key cache" : "Cache echo", 20);
@@ -1096,6 +1204,18 @@ class EmberScene extends Phaser.Scene {
 
     candidates.sort((a, b) => a.score - b.score);
     return candidates[0] ?? null;
+  }
+
+  overchargePulse() {
+    const radius = 118 + this.state.lenses.length * 16;
+    let cracked = 0;
+    this.enemies.children.iterate((enemy) => {
+      if (!enemy?.active || enemy.getData?.("dying")) return;
+      if (distance(this.player, enemy) > radius) return;
+      cracked += 1;
+      this.damageTarget(enemy, 1);
+    });
+    if (cracked > 0) this.floatText(this.player.x, this.player.y - 42, `Pulse cracked ${cracked}`);
   }
 
   damageTarget(target, amount) {
@@ -1402,6 +1522,13 @@ class EmberScene extends Phaser.Scene {
       this.burst(item.x, item.y, 0x74ead5, 14, 62);
       this.floatText(item.x, item.y - 18, "Ward bloom");
       item.destroy();
+    } else if (type === "lens") {
+      if (!addLens(this.state, item.getData("id"))) return;
+      this.nextPulseAt = 0;
+      this.playSfx("pickup");
+      this.burst(item.x, item.y, 0x9af6ff, 15, 66);
+      this.floatText(item.x, item.y - 18, `Lens ${this.state.lenses.length}/${REQUIRED_LENSES}`);
+      item.destroy();
     }
     this.updateHud();
   }
@@ -1436,6 +1563,8 @@ class EmberScene extends Phaser.Scene {
           ? "This rune echo is quiet"
           : site.getData("kind") === "moonwell"
             ? "Press E to listen at the moonwell"
+            : site.getData("kind") === "orrery"
+            ? "Press E to align the starfall orrery"
             : site.getData("kind") === "well"
             ? "Press E to drink from the ember well"
             : "Press E to bind the rune echo";
@@ -1490,16 +1619,32 @@ class EmberScene extends Phaser.Scene {
       this.floatText(site.x, site.y - 18, "Echo quiet");
       return;
     }
+    const isOrrery = site.getData("kind") === "orrery";
+    if (isOrrery && this.state.lenses.length < REQUIRED_LENSES) {
+      this.playSfx("confirm");
+      this.floatText(site.x, site.y - 22, `Need ${REQUIRED_LENSES} star lenses`);
+      return;
+    }
     if (!touchObelisk(this.state, site.getData("id"))) return;
     const isWell = site.getData("kind") === "well";
     const isMoonwell = site.getData("kind") === "moonwell";
     if (isWell || isMoonwell) heal(this.state, 2);
     if (isMoonwell) this.nextPulseAt = 0;
+    if (isOrrery) {
+      this.state.focusCharged = true;
+      this.state.objective = "Star lenses aligned. Pulse can crack nearby foes.";
+      this.nextPulseAt = 0;
+      saveState(this.state);
+    }
     site.setData("used", true);
     site.setAlpha(0.68).setTint(0x8daaa2);
     this.playSfx(isWell || isMoonwell ? "heal" : "beacon");
-    this.burst(site.x, site.y, isWell ? 0xe9585a : isMoonwell ? 0x74ead5 : 0x64c6b2, 16, 68);
-    this.floatText(site.x, site.y - 22, isWell ? "Ember well" : isMoonwell ? "Moonwell awakened" : "Rune echo bound");
+    this.burst(site.x, site.y, isWell ? 0xe9585a : isMoonwell ? 0x74ead5 : isOrrery ? 0x9af6ff : 0x64c6b2, 16, 68);
+    this.floatText(
+      site.x,
+      site.y - 22,
+      isWell ? "Ember well" : isMoonwell ? "Moonwell awakened" : isOrrery ? "Pulse overcharged" : "Rune echo bound",
+    );
     this.updateHud();
   }
 
@@ -1710,7 +1855,8 @@ class EmberScene extends Phaser.Scene {
 
   updateAreaName() {
     let name = "Mosswake Hollow";
-    if (this.player.x > 1780 && this.player.y > 1040) name = "Moonwell Glade";
+    if (this.player.x > 1880 && this.player.y < 620) name = "Starfall Orrery";
+    else if (this.player.x > 1780 && this.player.y > 1040) name = "Moonwell Glade";
     else if (this.player.y < 520) name = "North Ruin";
     else if (this.player.x > 1470) name = "Mistglass Stream";
     else if (this.player.x < 520 && this.player.y < 760) name = "Rootfall Thicket";
@@ -1726,6 +1872,8 @@ class EmberScene extends Phaser.Scene {
     ui.emberFill.style.transform = `scaleX(${Math.max(0, this.state.ember / 99)})`;
     ui.shardCount.textContent = `Shards ${this.state.shards.length}/${REQUIRED_SHARDS}`;
     ui.sigilCount.textContent = `Sigils ${this.state.sigils.length}/${REQUIRED_SIGILS}`;
+    ui.lensCount.textContent = `Lenses ${this.state.lenses.length}/${REQUIRED_LENSES}`;
+    ui.lensCount.classList.toggle("is-focus-ready", Boolean(this.state.focusCharged));
     ui.keyStatus.textContent = this.state.key ? "Key ready" : this.state.ward ? "Ward ready" : "Key -";
     ui.keyStatus.classList.toggle("is-ward-ready", !this.state.key && Boolean(this.state.ward));
     ui.areaName.textContent = this.state.areaName;

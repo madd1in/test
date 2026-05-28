@@ -11,6 +11,7 @@ const required = [
   "assets/generated/emberwild-ward-hd.png",
   "assets/generated/ashwarden-boss-hd.png",
   "assets/generated/moonwell-grove-hd.png",
+  "assets/generated/starfall-orrery-hd.png",
   "assets/generated/tile-atlas-imagen-hd-source.png",
   "assets/generated/tile-atlas-imagen-hd-v2-source.png",
   "assets/environment/tiles-imagen-hd.png",

@@ -359,7 +359,7 @@ def draw_boss() -> None:
 
 
 def draw_objects() -> None:
-    cols, fw, fh = 16, 32, 32
+    cols, fw, fh = 20, 32, 32
     img = Image.new("RGBA", (cols * fw, fh), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
@@ -463,6 +463,36 @@ def draw_objects() -> None:
     draw.rectangle((x + 6, y + 10, x + 26, y + 17), fill=rgba("#577069"))
     draw.line((x + 8, y + 12, x + 24, y + 12), fill=rgba("#84ffe4"), width=2)
     draw.ellipse((x + 12, y + 18, x + 20, y + 25), fill=rgba("#ffd06f"))
+
+    x, y = at(16)
+    for radius, alpha in ((12, 38), (8, 82), (4, 178)):
+        draw.ellipse((x + 16 - radius, y + 16 - radius, x + 16 + radius, y + 16 + radius), fill=rgba("#9af6ff", alpha))
+    poly(draw, [(x + 16, y + 3), (x + 25, y + 15), (x + 16, y + 29), (x + 7, y + 15)], "#e8fbff", "#0e4a55", 2)
+    draw.line((x + 16, y + 5, x + 16, y + 27), fill=rgba("#ffd783"), width=2)
+    draw.line((x + 8, y + 15, x + 24, y + 15), fill=rgba("#5be7ff"), width=1)
+
+    x, y = at(17)
+    draw.rectangle((x + 13, y + 16, x + 19, y + 29), fill=rgba("#33413e"))
+    draw.ellipse((x + 5, y + 18, x + 27, y + 27), fill=rgba("#142422"), outline=rgba("#071011"), width=1)
+    draw.ellipse((x + 5, y + 6, x + 27, y + 25), outline=rgba("#9af6ff"), width=2)
+    draw.arc((x + 2, y + 2, x + 30, y + 29), 205, 335, fill=rgba("#ffd783"), width=2)
+    draw.arc((x + 8, y + 5, x + 24, y + 26), 25, 170, fill=rgba("#5be7ff"), width=1)
+    draw.ellipse((x + 13, y + 12, x + 19, y + 18), fill=rgba("#fff0a8"), outline=rgba("#57401d"))
+    draw.line((x + 16, y + 4, x + 16, y + 27), fill=rgba("#dffff6", 150), width=1)
+
+    x, y = at(18)
+    draw.rectangle((x + 11, y + 12, x + 21, y + 29), fill=rgba("#243835"), outline=rgba("#071011"), width=1)
+    draw.polygon([(x + 16, y + 2), (x + 25, y + 12), (x + 21, y + 20), (x + 11, y + 20), (x + 7, y + 12)], fill=rgba("#244d54"), outline=rgba("#0a1819"))
+    draw.line((x + 16, y + 4, x + 16, y + 28), fill=rgba("#9af6ff"), width=2)
+    draw.line((x + 9, y + 12, x + 23, y + 12), fill=rgba("#ffd783"), width=1)
+    draw.ellipse((x + 13, y + 8, x + 19, y + 14), fill=rgba("#ecffff"))
+
+    x, y = at(19)
+    draw.rounded_rectangle((x + 4, y + 14, x + 28, y + 28), radius=2, fill=rgba("#102120"), outline=rgba("#071011"), width=2)
+    draw.rectangle((x + 6, y + 10, x + 26, y + 17), fill=rgba("#48646a"))
+    draw.line((x + 8, y + 12, x + 24, y + 12), fill=rgba("#9af6ff"), width=2)
+    draw.line((x + 6, y + 18, x + 26, y + 18), fill=rgba("#ffd783"), width=1)
+    draw.ellipse((x + 12, y + 20, x + 20, y + 26), fill=rgba("#ecffff"), outline=rgba("#0e4a55"))
 
     save(img, ASSETS / "environment" / "objects.png")
 

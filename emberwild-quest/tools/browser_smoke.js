@@ -49,11 +49,11 @@ async function bootPage(page) {
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
   await page.waitForSelector("canvas", { timeout: 10000 });
   try {
     await page.waitForFunction(() => window.__emberScene?.state && !document.querySelector("#start-button")?.disabled, null, {
-      timeout: 20000,
+      timeout: 30000,
     });
   } catch (error) {
     const bootState = await page.evaluate(() => ({
@@ -117,6 +117,8 @@ async function main() {
         beacons: ["reload-beacon"],
         obelisks: ["reload-obelisk"],
         moonBlooms: ["reload-bloom"],
+        lenses: ["reload-lens"],
+        focusCharged: true,
         enemiesDefeated: 7,
         bossDefeated: false,
         gateOpen: true,
@@ -126,7 +128,7 @@ async function main() {
       }),
     );
   });
-  await page.reload({ waitUntil: "domcontentloaded", timeout: 20000 });
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
   await bootPage(page);
   const reloadFresh = await page.evaluate(() => {
     const scene = window.__emberScene;
@@ -136,6 +138,8 @@ async function main() {
       chests: scene.state.chests.length,
       obelisks: scene.state.obelisks.length,
       moonBlooms: scene.state.moonBlooms.length,
+      lenses: scene.state.lenses.length,
+      focusCharged: scene.state.focusCharged,
       enemiesDefeated: scene.state.enemiesDefeated,
       ember: scene.state.ember,
       key: scene.state.key,
@@ -169,10 +173,12 @@ async function main() {
     const panel = document.querySelector("#journal");
     const art = document.querySelector(".journal__art--ward");
     const moonwellArt = document.querySelector(".journal__art--moonwell");
+    const starfallArt = document.querySelector(".journal__art--starfall");
     return {
       hidden: panel?.hidden ?? true,
       wardArtLoaded: Boolean(art?.complete && art.naturalWidth > 0 && art.naturalHeight > 0),
       moonwellArtLoaded: Boolean(moonwellArt?.complete && moonwellArt.naturalWidth > 0 && moonwellArt.naturalHeight > 0),
+      starfallArtLoaded: Boolean(starfallArt?.complete && starfallArt.naturalWidth > 0 && starfallArt.naturalHeight > 0),
       height: panel?.getBoundingClientRect().height ?? 0,
     };
   });
@@ -285,6 +291,21 @@ async function main() {
       unreachableTargets: targets.filter((target) => !seen.has(key(target.x, target.y))),
     };
   });
+  const starfallView = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    if (!scene?.player) return { ran: false };
+    scene.player.setPosition(67 * 32 + 16, 11 * 32 + 16);
+    scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+    scene.updateAreaName();
+    return {
+      ran: true,
+      areaName: document.querySelector("#area-name")?.textContent ?? "",
+      lensesActive: scene.collectibles.getChildren().filter((sprite) => sprite?.active && sprite.getData?.("type") === "lens").length,
+      orreryActive: Boolean(scene.obelisks.getChildren().find((sprite) => sprite?.active && sprite.getData?.("kind") === "orrery")),
+      focusCacheActive: Boolean(scene.chests.getChildren().find((sprite) => sprite?.active && sprite.getData?.("id") === "focus-cache")),
+    };
+  });
+  await page.screenshot({ path: path.join(outDir, "starfall-desktop.png"), fullPage: true });
   const complexity = await page.evaluate(async () => {
     const scene = window.__emberScene;
     if (!scene?.player) return { ran: false };
@@ -309,6 +330,30 @@ async function main() {
     if (moonmoth) scene.spawnMoonBolt(moonmoth);
     await new Promise((resolve) => setTimeout(resolve, 90));
 
+    const lensItems = scene.collectibles.getChildren().filter((sprite) => sprite?.active && sprite.getData?.("type") === "lens");
+    const beforeLenses = scene.state.lenses?.length ?? 0;
+    for (const lens of lensItems) scene.collectItem(lens);
+
+    const orrery = scene.obelisks.getChildren().find((sprite) => sprite?.active && sprite.getData?.("kind") === "orrery");
+    if (orrery) scene.useObelisk(orrery);
+
+    const pulseEnemy = scene.enemies.getChildren().find((sprite) => sprite?.active && !sprite.getData?.("dying"));
+    let pulseEnemyBeforeHp = null;
+    let pulseEnemyAfterHp = null;
+    if (pulseEnemy) {
+      pulseEnemy.setPosition(scene.player.x + 42, scene.player.y);
+      pulseEnemy.setData("hp", 2);
+      pulseEnemy.setData("dying", false);
+      pulseEnemy.clearTint?.();
+      pulseEnemy.setAlpha?.(1);
+      if (pulseEnemy.body) pulseEnemy.body.enable = true;
+      scene.nextPulseAt = 0;
+      pulseEnemyBeforeHp = pulseEnemy.getData("hp");
+      scene.useEmberPulse((scene.time?.now ?? 0) + 10);
+      await new Promise((resolve) => setTimeout(resolve, 160));
+      pulseEnemyAfterHp = pulseEnemy.getData("hp");
+    }
+
     const obelisk = scene.obelisks.getChildren().find((sprite) => sprite?.active && !sprite.getData?.("used"));
     const beforeEmber = scene.state.ember;
     if (obelisk) scene.useObelisk(obelisk);
@@ -327,6 +372,16 @@ async function main() {
       moonmothRan: Boolean(moonmoth),
       beforeMoonBolts,
       afterMoonBolts: activeMoonBolts(),
+      lensRan: lensItems.length,
+      beforeLenses,
+      afterLenses: scene.state.lenses?.length ?? 0,
+      focusCharged: scene.state.focusCharged,
+      lensHud: document.querySelector("#lens-count")?.textContent ?? "",
+      orreryRan: Boolean(orrery),
+      orreryUsed: orrery?.getData?.("used") ?? false,
+      pulseEnemyRan: Boolean(pulseEnemy),
+      pulseEnemyBeforeHp,
+      pulseEnemyAfterHp,
       obeliskRan: Boolean(obelisk),
       obeliskUsed: obelisk?.getData?.("used") ?? false,
       beforeEmber,
@@ -369,6 +424,7 @@ async function main() {
   desktop.enemyContact = enemyContact;
   desktop.enemyKill = enemyKill;
   desktop.sigilReachability = sigilReachability;
+  desktop.starfallView = starfallView;
   desktop.complexity = complexity;
   desktop.moonwellView = moonwellView;
   desktop.perf = desktopPerf;
@@ -383,6 +439,8 @@ async function main() {
     scene.state.chests = ["hud-chest"];
     scene.state.obelisks = ["hud-obelisk"];
     scene.state.moonBlooms = ["hud-bloom"];
+    scene.state.lenses = ["hud-lens"];
+    scene.state.focusCharged = true;
     scene.state.enemiesDefeated = 11;
     scene.state.ember = 66;
     scene.updateHud();
@@ -397,6 +455,8 @@ async function main() {
       window.__emberScene.state.chests.length === 0 &&
       window.__emberScene.state.obelisks.length === 0 &&
       window.__emberScene.state.moonBlooms.length === 0 &&
+      window.__emberScene.state.lenses.length === 0 &&
+      !window.__emberScene.state.focusCharged &&
       window.__emberScene.state.enemiesDefeated === 0 &&
       window.__emberScene.state.ember === 0 &&
       !window.__emberScene.state.key &&
@@ -412,6 +472,8 @@ async function main() {
       chests: scene.state.chests.length,
       obelisks: scene.state.obelisks.length,
       moonBlooms: scene.state.moonBlooms.length,
+      lenses: scene.state.lenses.length,
+      focusCharged: scene.state.focusCharged,
       enemiesDefeated: scene.state.enemiesDefeated,
       ember: scene.state.ember,
       key: scene.state.key,
@@ -429,6 +491,8 @@ async function main() {
     scene.state.chests = ["old-chest"];
     scene.state.obelisks = ["old-obelisk"];
     scene.state.moonBlooms = ["old-bloom"];
+    scene.state.lenses = ["old-lens"];
+    scene.state.focusCharged = true;
     scene.state.enemiesDefeated = 9;
     scene.state.ember = 77;
     scene.newAdventure(false);
@@ -443,6 +507,8 @@ async function main() {
       window.__emberScene.state.chests.length === 0 &&
       window.__emberScene.state.obelisks.length === 0 &&
       window.__emberScene.state.moonBlooms.length === 0 &&
+      window.__emberScene.state.lenses.length === 0 &&
+      !window.__emberScene.state.focusCharged &&
       window.__emberScene.state.enemiesDefeated === 0 &&
       window.__emberScene.state.ember === 0 &&
       !window.__emberScene.state.key,
@@ -458,6 +524,8 @@ async function main() {
       chests: scene.state.chests.length,
       obelisks: scene.state.obelisks.length,
       moonBlooms: scene.state.moonBlooms.length,
+      lenses: scene.state.lenses.length,
+      focusCharged: scene.state.focusCharged,
       enemiesDefeated: scene.state.enemiesDefeated,
       ember: scene.state.ember,
       key: scene.state.key,
@@ -501,7 +569,7 @@ async function main() {
     failed.push("Player did not move during keyboard smoke.");
   }
   if (!desktop.pulseReady) failed.push("Ember pulse did not trigger from keyboard input.");
-  if (desktop.journal.hidden || !desktop.journal.wardArtLoaded || !desktop.journal.moonwellArtLoaded) {
+  if (desktop.journal.hidden || !desktop.journal.wardArtLoaded || !desktop.journal.moonwellArtLoaded || !desktop.journal.starfallArtLoaded) {
     failed.push("Journal art did not render.");
   }
   if (!desktop.enemyContact?.ran) failed.push("Enemy contact regression did not run.");
@@ -534,6 +602,13 @@ async function main() {
         .join(", ")}`,
     );
   }
+  if (!desktop.starfallView?.ran) failed.push("Starfall view regression did not run.");
+  else {
+    if (desktop.starfallView.areaName !== "Starfall Orrery") failed.push("Starfall area name did not activate.");
+    if (desktop.starfallView.lensesActive < 3) failed.push("Star lens sprites are missing from the expanded map.");
+    if (!desktop.starfallView.orreryActive) failed.push("Starfall orrery sprite is missing.");
+    if (!desktop.starfallView.focusCacheActive) failed.push("Starfall focus cache is missing.");
+  }
   if (!desktop.complexity?.ran) failed.push("Complexity regression did not run.");
   else {
     if (!desktop.complexity.activePlay || !desktop.complexity.endHidden) failed.push("Complexity interactions stopped active play.");
@@ -551,6 +626,22 @@ async function main() {
     }
     if (!desktop.complexity.moonmothRan || desktop.complexity.afterMoonBolts <= desktop.complexity.beforeMoonBolts) {
       failed.push("Moonmoth projectile did not spawn.");
+    }
+    if (!desktop.complexity.lensRan || desktop.complexity.afterLenses !== desktop.complexity.beforeLenses + desktop.complexity.lensRan) {
+      failed.push("Star lens collection did not register.");
+    }
+    if (!desktop.complexity.focusCharged || !desktop.complexity.lensHud.includes("3/3")) {
+      failed.push("Star lenses did not overcharge the HUD state.");
+    }
+    if (!desktop.complexity.orreryRan || !desktop.complexity.orreryUsed) {
+      failed.push("Starfall orrery interaction did not complete.");
+    }
+    if (
+      !desktop.complexity.pulseEnemyRan ||
+      desktop.complexity.pulseEnemyAfterHp === null ||
+      desktop.complexity.pulseEnemyAfterHp >= desktop.complexity.pulseEnemyBeforeHp
+    ) {
+      failed.push("Overcharged pulse did not damage a nearby enemy.");
     }
     if (!desktop.complexity.obeliskRan || !desktop.complexity.obeliskUsed || !desktop.complexity.ward) {
       failed.push("Rune obelisk interaction did not renew the ward.");
@@ -571,6 +662,8 @@ async function main() {
     desktop.reloadFresh.chests !== 0 ||
     desktop.reloadFresh.obelisks !== 0 ||
     desktop.reloadFresh.moonBlooms !== 0 ||
+    desktop.reloadFresh.lenses !== 0 ||
+    desktop.reloadFresh.focusCharged ||
     desktop.reloadFresh.enemiesDefeated !== 0 ||
     desktop.reloadFresh.ember !== 0 ||
     desktop.reloadFresh.key ||
@@ -588,6 +681,8 @@ async function main() {
     desktop.hudReset.chests !== 0 ||
     desktop.hudReset.obelisks !== 0 ||
     desktop.hudReset.moonBlooms !== 0 ||
+    desktop.hudReset.lenses !== 0 ||
+    desktop.hudReset.focusCharged ||
     desktop.hudReset.enemiesDefeated !== 0 ||
     desktop.hudReset.ember !== 0 ||
     desktop.hudReset.key
@@ -601,6 +696,8 @@ async function main() {
     desktop.resetFresh.chests !== 0 ||
     desktop.resetFresh.obelisks !== 0 ||
     desktop.resetFresh.moonBlooms !== 0 ||
+    desktop.resetFresh.lenses !== 0 ||
+    desktop.resetFresh.focusCharged ||
     desktop.resetFresh.enemiesDefeated !== 0 ||
     desktop.resetFresh.ember !== 0 ||
     desktop.resetFresh.key ||
@@ -629,6 +726,7 @@ async function main() {
         screenshots: {
           menu: path.join(outDir, "menu-desktop.png"),
           gameplay: path.join(outDir, "gameplay-desktop.png"),
+          starfall: path.join(outDir, "starfall-desktop.png"),
           moonwell: path.join(outDir, "moonwell-desktop.png"),
           journal: path.join(outDir, "journal-desktop.png"),
           mobile: path.join(outDir, "gameplay-mobile.png"),

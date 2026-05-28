@@ -32,6 +32,7 @@ HD illustration assets were generated with the built-in Image Gen tool and saved
 - `assets/generated/emberwild-ward-hd.png`
 - `assets/generated/ashwarden-boss-hd.png`
 - `assets/generated/moonwell-grove-hd.png`
+- `assets/generated/starfall-orrery-hd.png`
 - `assets/generated/tile-atlas-imagen-hd-source.png`
 - `assets/generated/tile-atlas-imagen-hd-v2-source.png`
 
@@ -78,3 +79,4 @@ Audio was copied from local disk into `assets/audio`:
 - Fresh reset now forces a zero-progress state, all sigils are reachability-tested, and guide stones add in-world hints
 - Moonwell expansion: larger southeast map, new Image Gen moonwell art, eight extra terrain tiles, lumen moth enemies, moon blooms, a moonwell beacon path, and reachability checks for all important world targets
 - Reload-reset polish: page reload always boots from a fresh zero-progress run, and the HUD has a one-tap reset button for instantly restarting from the beginning
+- Starfall expansion: new northeast orrery biome, Image Gen journal art, star lens collectibles, focus cache, star pylons, Orrery activation, and an overcharged Pulse that damages nearby enemies

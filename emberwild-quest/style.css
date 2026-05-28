@@ -111,7 +111,7 @@ button {
 }
 
 .hud__cluster--status {
-  width: min(360px, calc(100vw - 28px));
+  width: min(390px, calc(100vw - 28px));
 }
 
 .hud__cluster--quest {
@@ -170,6 +170,11 @@ button {
 #key-status.is-ward-ready {
   color: var(--accent-2);
   text-shadow: 0 0 12px rgba(100, 198, 178, 0.46);
+}
+
+#lens-count.is-focus-ready {
+  color: #9af6ff;
+  text-shadow: 0 0 12px rgba(154, 246, 255, 0.45);
 }
 
 .icon-button {
@@ -248,6 +253,11 @@ button {
 }
 
 .journal__art--moonwell {
+  aspect-ratio: 16 / 8;
+  margin: 12px 0 8px;
+}
+
+.journal__art--starfall {
   aspect-ratio: 16 / 8;
   margin: 12px 0 8px;
 }
