@@ -1,4 +1,4 @@
-import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=moonwell-v4";
+import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=reload-reset-v5";
 import {
   MAX_HEALTH,
   REQUIRED_SHARDS,
@@ -19,7 +19,7 @@ import {
   takeDamage,
   touchBeacon,
   touchObelisk,
-} from "./sim.js?v=moonwell-v4";
+} from "./sim.js?v=reload-reset-v5";
 
 const WORLD_W = 76;
 const WORLD_H = 54;
@@ -38,6 +38,8 @@ const MOONMOTH_HP = 1;
 const BOSS_HP = 10;
 const AUDIO_STORAGE_KEY = "emberwild-audio-enabled";
 
+clearSave();
+
 const ui = {
   shell: document.querySelector("#game-shell"),
   hud: document.querySelector("#hud"),
@@ -49,6 +51,7 @@ const ui = {
   areaName: document.querySelector("#area-name"),
   objective: document.querySelector("#objective"),
   audioToggle: document.querySelector("#audio-toggle"),
+  hudResetButton: document.querySelector("#hud-reset-button"),
   bossHud: document.querySelector("#boss-hud"),
   bossFill: document.querySelector("#boss-fill"),
   prompt: document.querySelector("#prompt"),
@@ -1750,6 +1753,14 @@ function bindUi(game) {
       clearSave();
       saveState(createInitialState());
     }
+  });
+
+  ui.hudResetButton.addEventListener("click", () => {
+    const scene = game.scene.getScene("emberwild");
+    if (!scene) return;
+    scene.playSfx("confirm");
+    scene.newAdventure(true);
+    focusGameCanvas(game);
   });
 
   ui.againButton.addEventListener("click", () => {

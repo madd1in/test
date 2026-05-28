@@ -77,3 +77,4 @@ Audio was copied from local disk into `assets/audio`:
 - More world complexity: new Imagen v2 terrain atlas, echo sigils that boost Pulse, rune obelisks, ember well interactions, and ranged wisp enemies
 - Fresh reset now forces a zero-progress state, all sigils are reachability-tested, and guide stones add in-world hints
 - Moonwell expansion: larger southeast map, new Image Gen moonwell art, eight extra terrain tiles, lumen moth enemies, moon blooms, a moonwell beacon path, and reachability checks for all important world targets
+- Reload-reset polish: page reload always boots from a fresh zero-progress run, and the HUD has a one-tap reset button for instantly restarting from the beginning

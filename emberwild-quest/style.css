@@ -190,6 +190,17 @@ button {
   opacity: 0.7;
 }
 
+.icon-button--reset {
+  color: #ffd783;
+}
+
+.icon-button:hover,
+.icon-button:focus-visible {
+  border-color: rgba(255, 216, 131, 0.78);
+  background: rgba(20, 33, 31, 0.88);
+  outline: none;
+}
+
 .area-name {
   color: var(--accent-2);
   font-size: 12px;

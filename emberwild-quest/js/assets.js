@@ -1,4 +1,4 @@
-const ASSET_VERSION = "moonwell-v4";
+const ASSET_VERSION = "reload-reset-v5";
 const versioned = (path) => `${path}?v=${ASSET_VERSION}`;
 
 export const ASSETS = {

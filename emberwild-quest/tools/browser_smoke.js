@@ -103,6 +103,49 @@ async function main() {
   const browser = await chromium.launch(launchOptions);
   const page = await browser.newPage({ viewport: { width: 1366, height: 768 }, deviceScaleFactor: 1 });
   await bootPage(page);
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "emberwild-quest-save-v1",
+      JSON.stringify({
+        health: 1,
+        ember: 88,
+        shards: ["reload-shard"],
+        sigils: ["reload-sigil"],
+        key: true,
+        ward: false,
+        chests: ["reload-chest"],
+        beacons: ["reload-beacon"],
+        obelisks: ["reload-obelisk"],
+        moonBlooms: ["reload-bloom"],
+        enemiesDefeated: 7,
+        bossDefeated: false,
+        gateOpen: true,
+        areaName: "Reload Ghost",
+        objective: "This stale save should disappear.",
+        lastCheckpoint: { x: 2128, y: 1488 },
+      }),
+    );
+  });
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 20000 });
+  await bootPage(page);
+  const reloadFresh = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    return {
+      shards: scene.state.shards.length,
+      sigils: scene.state.sigils.length,
+      chests: scene.state.chests.length,
+      obelisks: scene.state.obelisks.length,
+      moonBlooms: scene.state.moonBlooms.length,
+      enemiesDefeated: scene.state.enemiesDefeated,
+      ember: scene.state.ember,
+      key: scene.state.key,
+      gateOpen: scene.state.gateOpen,
+      activePlay: scene.activePlay,
+      menuHidden: document.querySelector("#menu")?.hidden ?? true,
+      player: scene.player ? { x: Math.round(scene.player.x), y: Math.round(scene.player.y) } : null,
+      objective: scene.state.objective,
+    };
+  });
   await page.screenshot({ path: path.join(outDir, "menu-desktop.png"), fullPage: true });
   await page.click("#start-button");
   await page.waitForTimeout(800);
@@ -329,8 +372,54 @@ async function main() {
   desktop.complexity = complexity;
   desktop.moonwellView = moonwellView;
   desktop.perf = desktopPerf;
+  desktop.reloadFresh = reloadFresh;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
   await page.screenshot({ path: path.join(outDir, "moonwell-desktop.png"), fullPage: true });
+  await page.evaluate(() => {
+    const scene = window.__emberScene;
+    scene.state.shards = ["hud-shard"];
+    scene.state.sigils = ["hud-sigil"];
+    scene.state.key = true;
+    scene.state.chests = ["hud-chest"];
+    scene.state.obelisks = ["hud-obelisk"];
+    scene.state.moonBlooms = ["hud-bloom"];
+    scene.state.enemiesDefeated = 11;
+    scene.state.ember = 66;
+    scene.updateHud();
+  });
+  await page.click("#hud-reset-button");
+  await page.waitForFunction(
+    () =>
+      window.__emberScene?.state &&
+      window.__emberScene.activePlay &&
+      window.__emberScene.state.shards.length === 0 &&
+      window.__emberScene.state.sigils.length === 0 &&
+      window.__emberScene.state.chests.length === 0 &&
+      window.__emberScene.state.obelisks.length === 0 &&
+      window.__emberScene.state.moonBlooms.length === 0 &&
+      window.__emberScene.state.enemiesDefeated === 0 &&
+      window.__emberScene.state.ember === 0 &&
+      !window.__emberScene.state.key &&
+      document.querySelector("#menu")?.hidden,
+    null,
+    { timeout: 5000 },
+  );
+  desktop.hudReset = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    return {
+      shards: scene.state.shards.length,
+      sigils: scene.state.sigils.length,
+      chests: scene.state.chests.length,
+      obelisks: scene.state.obelisks.length,
+      moonBlooms: scene.state.moonBlooms.length,
+      enemiesDefeated: scene.state.enemiesDefeated,
+      ember: scene.state.ember,
+      key: scene.state.key,
+      activePlay: scene.activePlay,
+      menuHidden: document.querySelector("#menu")?.hidden ?? false,
+      player: scene.player ? { x: Math.round(scene.player.x), y: Math.round(scene.player.y) } : null,
+    };
+  });
   desktop.resetFresh = await page.evaluate(() => {
     const scene = window.__emberScene;
     if (!scene?.newAdventure) return { requested: false };
@@ -475,6 +564,35 @@ async function main() {
     if (desktop.moonwellView.areaName !== "Moonwell Glade") failed.push("Moonwell area name did not activate.");
     if (desktop.moonwellView.moonmothsActive < 1) failed.push("Moonmoth sprites are missing from the expanded map.");
     if (desktop.moonwellView.moonBloomsActive < 1) failed.push("Moon bloom sprites are missing from the expanded map.");
+  }
+  if (
+    desktop.reloadFresh.shards !== 0 ||
+    desktop.reloadFresh.sigils !== 0 ||
+    desktop.reloadFresh.chests !== 0 ||
+    desktop.reloadFresh.obelisks !== 0 ||
+    desktop.reloadFresh.moonBlooms !== 0 ||
+    desktop.reloadFresh.enemiesDefeated !== 0 ||
+    desktop.reloadFresh.ember !== 0 ||
+    desktop.reloadFresh.key ||
+    desktop.reloadFresh.gateOpen ||
+    desktop.reloadFresh.activePlay ||
+    desktop.reloadFresh.menuHidden
+  ) {
+    failed.push("Page reload did not clear stale saved progress.");
+  }
+  if (
+    !desktop.hudReset?.activePlay ||
+    !desktop.hudReset.menuHidden ||
+    desktop.hudReset.shards !== 0 ||
+    desktop.hudReset.sigils !== 0 ||
+    desktop.hudReset.chests !== 0 ||
+    desktop.hudReset.obelisks !== 0 ||
+    desktop.hudReset.moonBlooms !== 0 ||
+    desktop.hudReset.enemiesDefeated !== 0 ||
+    desktop.hudReset.ember !== 0 ||
+    desktop.hudReset.key
+  ) {
+    failed.push("HUD reset button did not restart a fresh active run.");
   }
   if (!desktop.resetFresh?.requested) failed.push("Fresh reset regression did not run.");
   else if (
