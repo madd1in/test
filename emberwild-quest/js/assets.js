@@ -1,4 +1,4 @@
-const ASSET_VERSION = "complexity-v2";
+const ASSET_VERSION = "reset-v3";
 const versioned = (path) => `${path}?v=${ASSET_VERSION}`;
 
 export const ASSETS = {

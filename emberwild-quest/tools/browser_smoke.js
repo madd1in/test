@@ -184,6 +184,46 @@ async function main() {
       endHidden: document.querySelector("#end-screen")?.hidden ?? false,
     };
   });
+  const sigilReachability = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    if (!scene?.player || !scene.worldData?.solid) return { ran: false };
+    const solid = scene.worldData.solid;
+    const height = solid.length;
+    const width = solid[0]?.length ?? 0;
+    const key = (x, y) => `${x},${y}`;
+    const start = { x: Math.floor(scene.player.x / 32), y: Math.floor(scene.player.y / 32) };
+    const queue = [start];
+    const seen = new Set([key(start.x, start.y)]);
+    for (let i = 0; i < queue.length; i += 1) {
+      const point = queue[i];
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
+        const x = point.x + dx;
+        const y = point.y + dy;
+        const id = key(x, y);
+        if (x < 0 || y < 0 || x >= width || y >= height || seen.has(id) || solid[y][x] !== -1) continue;
+        seen.add(id);
+        queue.push({ x, y });
+      }
+    }
+    const sigils = scene.collectibles
+      .getChildren()
+      .filter((sprite) => sprite?.active && sprite.getData?.("type") === "sigil")
+      .map((sprite) => ({
+        id: sprite.getData("id"),
+        x: Math.floor(sprite.x / 32),
+        y: Math.floor(sprite.y / 32),
+      }));
+    return {
+      ran: true,
+      total: sigils.length,
+      unreachable: sigils.filter((sigil) => !seen.has(key(sigil.x, sigil.y))),
+    };
+  });
   const complexity = await page.evaluate(async () => {
     const scene = window.__emberScene;
     if (!scene?.player) return { ran: false };
@@ -237,9 +277,53 @@ async function main() {
   }, journal);
   desktop.enemyContact = enemyContact;
   desktop.enemyKill = enemyKill;
+  desktop.sigilReachability = sigilReachability;
   desktop.complexity = complexity;
   desktop.perf = desktopPerf;
   await page.screenshot({ path: path.join(outDir, "gameplay-desktop.png"), fullPage: true });
+  desktop.resetFresh = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    if (!scene?.newAdventure) return { requested: false };
+    scene.state.shards = ["old-shard"];
+    scene.state.sigils = ["old-sigil"];
+    scene.state.key = true;
+    scene.state.chests = ["old-chest"];
+    scene.state.obelisks = ["old-obelisk"];
+    scene.state.enemiesDefeated = 9;
+    scene.state.ember = 77;
+    scene.newAdventure(false);
+    return { requested: true };
+  });
+  await page.waitForFunction(
+    () =>
+      window.__emberScene?.state &&
+      !window.__emberScene.activePlay &&
+      window.__emberScene.state.shards.length === 0 &&
+      window.__emberScene.state.sigils.length === 0 &&
+      window.__emberScene.state.chests.length === 0 &&
+      window.__emberScene.state.obelisks.length === 0 &&
+      window.__emberScene.state.enemiesDefeated === 0 &&
+      window.__emberScene.state.ember === 0 &&
+      !window.__emberScene.state.key,
+    null,
+    { timeout: 5000 },
+  );
+  desktop.resetFresh = await page.evaluate(() => {
+    const scene = window.__emberScene;
+    return {
+      requested: true,
+      shards: scene.state.shards.length,
+      sigils: scene.state.sigils.length,
+      chests: scene.state.chests.length,
+      obelisks: scene.state.obelisks.length,
+      enemiesDefeated: scene.state.enemiesDefeated,
+      ember: scene.state.ember,
+      key: scene.state.key,
+      activePlay: scene.activePlay,
+      menuHidden: document.querySelector("#menu")?.hidden ?? true,
+      objective: scene.state.objective,
+    };
+  });
   await page.close();
 
   const mobile = await browser.newPage({
@@ -296,6 +380,10 @@ async function main() {
       failed.push("Enemy kill did not retire the defeated enemy cleanly.");
     }
   }
+  if (!desktop.sigilReachability?.ran) failed.push("Sigil reachability regression did not run.");
+  else if (desktop.sigilReachability.unreachable.length) {
+    failed.push(`Unreachable sigils: ${desktop.sigilReachability.unreachable.map((sigil) => sigil.id).join(", ")}`);
+  }
   if (!desktop.complexity?.ran) failed.push("Complexity regression did not run.");
   else {
     if (!desktop.complexity.activePlay || !desktop.complexity.endHidden) failed.push("Complexity interactions stopped active play.");
@@ -314,6 +402,20 @@ async function main() {
     if (desktop.complexity.afterEmber < desktop.complexity.beforeEmber) {
       failed.push("Rune obelisk reduced ember unexpectedly.");
     }
+  }
+  if (!desktop.resetFresh?.requested) failed.push("Fresh reset regression did not run.");
+  else if (
+    desktop.resetFresh.shards !== 0 ||
+    desktop.resetFresh.sigils !== 0 ||
+    desktop.resetFresh.chests !== 0 ||
+    desktop.resetFresh.obelisks !== 0 ||
+    desktop.resetFresh.enemiesDefeated !== 0 ||
+    desktop.resetFresh.ember !== 0 ||
+    desktop.resetFresh.key ||
+    desktop.resetFresh.activePlay ||
+    desktop.resetFresh.menuHidden
+  ) {
+    failed.push("Fresh reset did not return to zero-progress menu state.");
   }
   if (desktop.perf.avgFps < 35) failed.push(`Desktop frame pace is too low: ${desktop.perf.avgFps}fps avg.`);
   if (mobileState.canvas.width < 300 || mobileState.canvas.height < 500) failed.push("Mobile canvas is too small.");

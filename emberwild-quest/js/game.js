@@ -1,4 +1,4 @@
-import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=complexity-v2";
+import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=reset-v3";
 import {
   MAX_HEALTH,
   REQUIRED_SHARDS,
@@ -7,6 +7,7 @@ import {
   addShard,
   addSigil,
   clearSave,
+  createInitialState,
   heal,
   loadState,
   markBossDefeated,
@@ -17,7 +18,7 @@ import {
   takeDamage,
   touchBeacon,
   touchObelisk,
-} from "./sim.js?v=complexity-v2";
+} from "./sim.js?v=reset-v3";
 
 const WORLD_W = 64;
 const WORLD_H = 46;
@@ -279,22 +280,6 @@ function makeWorld(state) {
   for (let x = 28; x <= 36; x += 1) {
     putGround(x, 9, T.altar);
   }
-  for (const [cx, cy] of [
-    [18, 17],
-    [47, 29],
-    [10, 8],
-    [55, 20],
-  ]) {
-    for (let y = cy - 1; y <= cy + 1; y += 1) {
-      for (let x = cx - 1; x <= cx + 1; x += 1) {
-        putGround(x, y, x === cx && y === cy ? T.runeFloor : T.crackedStone);
-      }
-    }
-    putDecor(cx, cy - 1, T.glowMoss);
-    putDecor(cx - 1, cy + 1, T.mistStone);
-    putDecor(cx + 1, cy + 1, T.emberRock);
-  }
-
   for (const [x0, y0, x1, y1] of [
     [3, 4, 13, 13],
     [3, 30, 14, 43],
@@ -324,6 +309,24 @@ function makeWorld(state) {
         putSolid(x, y, T.bramble);
       }
     }
+  }
+
+  for (const [cx, cy] of [
+    [18, 17],
+    [47, 29],
+    [10, 8],
+    [53, 20],
+  ]) {
+    for (let y = cy - 1; y <= cy + 1; y += 1) {
+      for (let x = cx - 1; x <= cx + 1; x += 1) {
+        if (ground[y]?.[x] === T.water) continue;
+        solid[y][x] = -1;
+        putGround(x, y, x === cx && y === cy ? T.runeFloor : T.crackedStone);
+      }
+    }
+    putDecor(cx, cy - 1, T.glowMoss);
+    putDecor(cx - 1, cy + 1, T.mistStone);
+    putDecor(cx + 1, cy + 1, T.emberRock);
   }
 
   for (let i = 0; i < 120; i += 1) {
@@ -358,20 +361,26 @@ function listSpawns(state) {
     { kind: "thornling", x: 14, y: 14 },
     { kind: "wisp", x: 20, y: 18 },
     { kind: "wisp", x: 45, y: 29 },
-    { kind: "wisp", x: 55, y: 20 },
+    { kind: "wisp", x: 54, y: 20 },
   ];
 
   const sigils = [
     { id: "root-sigil", x: 19, y: 18 },
     { id: "stream-sigil", x: 46, y: 29 },
     { id: "tower-sigil", x: 10, y: 8 },
-    { id: "thorn-sigil", x: 55, y: 21 },
+    { id: "thorn-sigil", x: 53, y: 20 },
   ].filter((item) => !state.sigils.includes(item.id));
 
   const obelisks = [
     { id: "south-well", kind: "well", x: 8, y: 35 },
     { id: "mist-obelisk", kind: "obelisk", x: 49, y: 28 },
     { id: "root-obelisk", kind: "obelisk", x: 18, y: 18 },
+  ];
+
+  const loreStones = [
+    { id: "pulse", x: 13, y: 36, text: "Sigils sharpen your Pulse." },
+    { id: "wisp", x: 45, y: 30, text: "Wisps flee close blades." },
+    { id: "north", x: 29, y: 18, text: "Four shards wake the gate." },
   ];
 
   const chests = [
@@ -388,10 +397,14 @@ function listSpawns(state) {
     { id: "tower", x: 50, y: 12 },
   ];
 
-  return { shards, enemies, sigils, obelisks, chests, beacons };
+  return { shards, enemies, sigils, obelisks, loreStones, chests, beacons };
 }
 
 class EmberScene extends Phaser.Scene {
+  init(data = {}) {
+    this.autoStartOnCreate = Boolean(data.autoStart);
+  }
+
   constructor() {
     super("emberwild");
     this.activePlay = false;
@@ -410,6 +423,7 @@ class EmberScene extends Phaser.Scene {
     this.lowFx = false;
     this.fxScale = 0.7;
     this.maxBurstParticles = 16;
+    this.autoStartOnCreate = false;
   }
 
   preload() {
@@ -451,6 +465,9 @@ class EmberScene extends Phaser.Scene {
     ui.resetButton.disabled = false;
     this.setPlayActive(false);
     window.__emberScene = this;
+    if (this.autoStartOnCreate) {
+      this.time.delayedCall(0, () => this.startAdventure());
+    }
   }
 
   configurePerformance() {
@@ -575,6 +592,7 @@ class EmberScene extends Phaser.Scene {
     this.chests = this.physics.add.staticGroup();
     this.beacons = this.physics.add.staticGroup();
     this.obelisks = this.physics.add.staticGroup();
+    this.loreStones = this.physics.add.staticGroup();
     this.enemies = this.physics.add.group({ allowGravity: false });
     this.bossGroup = this.physics.add.group({ allowGravity: false });
 
@@ -644,6 +662,15 @@ class EmberScene extends Phaser.Scene {
       sprite.setData("used", used);
       sprite.setDepth(12);
       if (used) sprite.setAlpha(0.68).setTint(0x8daaa2);
+      sprite.refreshBody();
+    }
+
+    for (const stone of spawns.loreStones) {
+      const pos = tileCenter(stone.x, stone.y);
+      const sprite = this.loreStones.create(pos.x, pos.y, "objects", OBJECT_FRAME.loreStone);
+      sprite.setData("id", stone.id);
+      sprite.setData("text", stone.text);
+      sprite.setDepth(12);
       sprite.refreshBody();
     }
 
@@ -1219,6 +1246,14 @@ class EmberScene extends Phaser.Scene {
       }
     });
 
+    this.loreStones.children.iterate((stone) => {
+      if (action || !stone?.active) return;
+      if (distance(stone, this.player) < 48) {
+        prompt = "Press E to read the guide stone";
+        action = () => this.readLoreStone(stone);
+      }
+    });
+
     const gatePos = tileCenter(31.5, 15);
     if (!action && distance(gatePos, this.player) < 72 && !this.state.gateOpen) {
       if (!this.state.key) prompt = "The gate needs the sunken key";
@@ -1267,6 +1302,11 @@ class EmberScene extends Phaser.Scene {
     this.burst(site.x, site.y, isWell ? 0xe9585a : 0x64c6b2, 16, 68);
     this.floatText(site.x, site.y - 22, isWell ? "Ember well" : "Rune echo bound");
     this.updateHud();
+  }
+
+  readLoreStone(stone) {
+    this.playSfx("confirm");
+    this.floatText(stone.x, stone.y - 22, stone.getData("text"));
   }
 
   useBeacon(beacon) {
@@ -1344,17 +1384,19 @@ class EmberScene extends Phaser.Scene {
   }
 
   restartFromSave() {
-    this.scene.restart();
     ui.endScreen.hidden = true;
-    this.time.delayedCall(0, () => this.startAdventure());
+    this.scene.restart({ autoStart: true });
   }
 
-  newAdventure() {
+  newAdventure(autoStart = false) {
     clearSave();
+    saveState(createInitialState());
     document.body.classList.remove("is-low-health");
-    this.scene.restart();
     ui.endScreen.hidden = true;
-    ui.menu.hidden = false;
+    ui.bossHud.hidden = true;
+    ui.prompt.hidden = true;
+    ui.menu.hidden = Boolean(autoStart);
+    this.scene.restart({ autoStart });
   }
 
   floatText(x, y, text) {
@@ -1503,11 +1545,13 @@ function bindUi(game) {
   });
 
   ui.resetButton.addEventListener("click", () => {
-    clearSave();
     const scene = game.scene.getScene("emberwild");
     if (scene) {
       scene.playSfx("confirm");
-      scene.scene.restart();
+      scene.newAdventure(false);
+    } else {
+      clearSave();
+      saveState(createInitialState());
     }
   });
 

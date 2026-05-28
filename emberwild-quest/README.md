@@ -73,3 +73,4 @@ Audio was copied from local disk into `assets/audio`:
 - Enemy contact is guarded by an Ember Ward, knockback, safer audio/save handling, and a browser regression test
 - Enemy slays now use a safe death state, delayed-callback guards, and a kill regression test
 - More world complexity: new Imagen v2 terrain atlas, echo sigils that boost Pulse, rune obelisks, ember well interactions, and ranged wisp enemies
+- Fresh reset now forces a zero-progress state, all sigils are reachability-tested, and guide stones add in-world hints
