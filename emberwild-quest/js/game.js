@@ -1,4 +1,4 @@
-import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js";
+import { ASSETS, OBJECT_FRAME, TILE, TILE_INDEX as T } from "./assets.js?v=complexity-v2";
 import {
   MAX_HEALTH,
   REQUIRED_SHARDS,
@@ -17,7 +17,7 @@ import {
   takeDamage,
   touchBeacon,
   touchObelisk,
-} from "./sim.js";
+} from "./sim.js?v=complexity-v2";
 
 const WORLD_W = 64;
 const WORLD_H = 46;

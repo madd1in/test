@@ -187,6 +187,7 @@ async function main() {
   const complexity = await page.evaluate(async () => {
     const scene = window.__emberScene;
     if (!scene?.player) return { ran: false };
+    if (!Array.isArray(scene.state?.sigils) || !scene.spawnWispBolt || !scene.obelisks) return { ran: false };
     const sigil = scene.collectibles.getChildren().find((sprite) => sprite?.active && sprite.getData?.("type") === "sigil");
     const beforeSigils = scene.state.sigils.length;
     if (sigil) scene.collectItem(sigil);
