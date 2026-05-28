@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Aether Reef 3D</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Aether Reef 3D">
+      <canvas id="game" aria-label="Aether Reef 3D Spielfeld"></canvas>
+
+      <section id="hud" class="hud" aria-live="polite">
+        <div class="objective-chip">
+          <span id="zoneText">Aether Reef</span>
+          <strong id="objectiveText">Beacon schlaeft</strong>
+          <b class="progress-track"><i id="coreFill"></i></b>
+        </div>
+        <div class="status-strip">
+          <div class="meter hull">
+            <span>Hull</span>
+            <b><i id="hullFill"></i></b>
+          </div>
+          <div class="meter boost">
+            <span>Boost</span>
+            <b><i id="boostFill"></i></b>
+          </div>
+          <div class="meter storm">
+            <span>Stabil</span>
+            <b><i id="stabilityFill"></i></b>
+          </div>
+          <div class="score-chip">
+            <span>Kerne</span>
+            <strong id="coreText">0/18</strong>
+          </div>
+          <div class="score-chip">
+            <span>Score</span>
+            <strong id="scoreText">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="top-actions" aria-label="Aktionen">
+        <button id="pauseButton" class="icon-button" type="button" aria-label="Pause" data-tip="Pause">||</button>
+        <button id="audioButton" class="icon-button" type="button" aria-label="Sound" data-tip="Sound">&#9835;</button>
+        <button id="restartButton" class="icon-button" type="button" aria-label="Neu starten" data-tip="Neu starten">&#8635;</button>
+      </div>
+
+      <div id="reticle" class="reticle" aria-hidden="true"></div>
+      <div id="toast" class="toast hidden"></div>
+      <div id="damageFlash" class="damage-flash" aria-hidden="true"></div>
+
+      <section id="menuOverlay" class="overlay active" aria-label="Startmenue">
+        <div class="menu-panel">
+          <p class="eyebrow">Original 3D Arcade</p>
+          <h1>Aether Reef 3D</h1>
+          <p class="blurb">Wecke den Beacon, bevor das Riff kippt.</p>
+          <div class="menu-actions">
+            <button id="startButton" class="primary-action" type="button">Start</button>
+            <button id="menuSoundButton" class="secondary-action" type="button">Sound</button>
+          </div>
+          <p id="bestText" class="best-line">Best: 0</p>
+        </div>
+      </section>
+
+      <section id="pauseOverlay" class="overlay hidden" aria-label="Pause">
+        <div class="menu-panel compact">
+          <p class="eyebrow">Run gehalten</p>
+          <h2>Pause</h2>
+          <div class="menu-actions">
+            <button id="resumeButton" class="primary-action" type="button">Weiter</button>
+            <button id="pauseRestartButton" class="secondary-action" type="button">Neu</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="resultOverlay" class="overlay hidden" aria-label="Ergebnis">
+        <div class="menu-panel compact">
+          <p id="resultKicker" class="eyebrow">Run beendet</p>
+          <h2 id="resultTitle">Beacon bereit</h2>
+          <p id="resultStats" class="blurb">Score 0</p>
+          <div class="menu-actions">
+            <button id="playAgainButton" class="primary-action" type="button">Nochmal</button>
+            <button id="resultMenuButton" class="secondary-action" type="button">Menue</button>
+          </div>
+        </div>
+      </section>
+
+      <nav id="touchControls" class="touch-controls" aria-label="Touch Steuerung">
+        <div class="touch-pad">
+          <button data-touch="left" aria-label="Links">&#8592;</button>
+          <button data-touch="up" aria-label="Vorwaerts">&#8593;</button>
+          <button data-touch="right" aria-label="Rechts">&#8594;</button>
+        </div>
+        <button class="boost-touch" data-touch="boost" aria-label="Boost">&#9650;</button>
+      </nav>
+    </main>
+
+    <script type="module" src="js/game.js"></script>
+  </body>
+</html>

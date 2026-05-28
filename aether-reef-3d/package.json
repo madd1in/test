@@ -1,0 +1,12 @@
+{
+  "name": "aether-reef-3d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A standalone Three.js hover-skiff collection and survival game.",
+  "scripts": {
+    "serve": "node tools/serve.cjs",
+    "check": "node tools/smoke-test.cjs",
+    "visual": "node tools/visual-smoke.cjs"
+  }
+}
