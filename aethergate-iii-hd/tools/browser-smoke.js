@@ -83,6 +83,9 @@ function startServer() {
       return {
         hasCanvas: Boolean(canvas),
         canvasRect: rect ? { width: Math.round(rect.width), height: Math.round(rect.height) } : null,
+        noPageScroll: document.documentElement.scrollHeight <= window.innerHeight + 2,
+        scrollHeight: document.documentElement.scrollHeight,
+        viewportHeight: window.innerHeight,
         partyCards: document.querySelectorAll(".hero-card").length,
         mapCells: document.querySelectorAll(".map-cell").length,
         renderInfo: debug && debug.renderInfo(),
@@ -110,7 +113,7 @@ function startServer() {
     const screenshot = await page.screenshot({ fullPage: false });
     await fs.writeFile(path.join(root, "preview-3d-combat.png"), screenshot);
 
-    if (!start.hasCanvas || start.partyCards !== 4 || start.mapCells !== 144) {
+    if (!start.hasCanvas || start.partyCards !== 4 || start.mapCells !== 144 || !start.noPageScroll) {
       throw new Error(`Boot check failed: ${JSON.stringify(start)}`);
     }
     if (!combat.enemyVisible || !combat.state.combat || combat.position !== "4,1 facing E") {

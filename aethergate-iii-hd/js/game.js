@@ -99,10 +99,12 @@
     bgm: "assets/audio/bgm/aether-bgm-loop.mp3",
     move: "assets/audio/sfx/checkpoint.mp3",
     ui: "assets/audio/sfx/arcane-start.mp3",
-    hit: "assets/audio/sfx/impact.mp3",
-    loot: "assets/audio/sfx/gem-pickup.mp3",
+    swing: "assets/audio/sfx/slash.wav",
+    hit: "assets/audio/sfx/hit.wav",
+    hurt: "assets/audio/sfx/hurt.wav",
+    loot: "assets/audio/sfx/pickup.wav",
     key: "assets/audio/sfx/relic-ping.mp3",
-    spell: "assets/audio/sfx/surge-burst.mp3",
+    spell: "assets/audio/sfx/gate.wav",
     win: "assets/audio/sfx/relic-ping.mp3",
   };
 
@@ -237,9 +239,11 @@
 
     const loader = new THREE.TextureLoader();
     render.textures.enemyAtlas = loadTexture(loader, "assets/imagen/enemy-atlas.png");
+    render.textures.enemyFrames = loadTexture(loader, "assets/imagen/enemy-frames.png");
     render.textures.sceneAtlas = loadTexture(loader, "assets/imagen/scene-atlas.png");
     render.textures.surfaceAtlas = loadTexture(loader, "assets/imagen/surface-atlas.png");
     render.textures.propAtlas = loadTexture(loader, "assets/imagen/prop-atlas.png");
+    render.textures.tileDetails = loadTexture(loader, "assets/imagen/tile-detail-atlas.png");
     render.textures.flame = createFlameTexture();
     buildWorld();
     setCameraTarget(true);
@@ -334,6 +338,7 @@
         }
 
         addPropForTile(tile, x, y, pos);
+        addFloorDetail(tile, x, y, pos, zone);
       }
     }
 
@@ -359,6 +364,40 @@
     light.position.copy(sprite.position);
     render.world.add(light);
     sprite.userData.light = light;
+  }
+
+  function addFloorDetail(tile, x, y, pos, zone) {
+    const key = keyOf(x, y);
+    let index = -1;
+    if (tile === "S") {
+      index = 12;
+    } else if (tile === "K") {
+      index = 4;
+    } else if (tile === "C") {
+      index = 0;
+    } else if (tile === "F") {
+      index = 15;
+    } else if ((x + y) % 7 === 0) {
+      index = [0, 2, 5, 6, 13][(x + zone + y) % 5];
+    }
+    if (index < 0) {
+      return;
+    }
+    const detail = new THREE.Mesh(
+      new THREE.PlaneGeometry(CELL * 0.9, CELL * 0.9),
+      new THREE.MeshBasicMaterial({
+        map: makeGridTexture(render.textures.tileDetails, index, 4, 4),
+        transparent: true,
+        opacity: tile === "S" || tile === "K" ? 0.82 : 0.52,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
+    );
+    detail.rotation.x = -Math.PI / 2;
+    detail.rotation.z = ((x * 13 + y * 7) % 4) * Math.PI / 2;
+    detail.position.set(pos.x, 0.024, pos.z);
+    detail.userData = { kind: "tile-detail", key };
+    render.world.add(detail);
   }
 
   function addPropForTile(tile, x, y, pos) {
@@ -755,6 +794,7 @@
     }
     log(`The party strikes for ${total} damage.`);
     pulse("hit");
+    playSfx("swing");
     playSfx("hit");
     if (checkVictory()) {
       return;
@@ -829,7 +869,7 @@
       }
       target.hp = clamp(target.hp - damage, 0, target.maxHp);
       log(`${state.combat.name} hits ${target.name} for ${damage}.`);
-      playSfx("hit");
+      playSfx("hurt");
     }
     state.combat.round += 1;
     spendTime(5);
@@ -1148,9 +1188,7 @@
 
     if (!descriptor) {
       if (render.activeEnemy) {
-        render.scene.remove(render.activeEnemy);
-        render.activeEnemy.material.map?.dispose?.();
-        render.activeEnemy.material.dispose();
+        disposeEnemyRig();
         render.activeEnemy = null;
         render.activeEnemyKey = "";
       }
@@ -1159,24 +1197,53 @@
 
     if (!render.activeEnemy || render.activeEnemyKey !== descriptor.key) {
       if (render.activeEnemy) {
-        render.scene.remove(render.activeEnemy);
-        render.activeEnemy.material.map?.dispose?.();
-        render.activeEnemy.material.dispose();
+        disposeEnemyRig();
       }
+      const group = new THREE.Group();
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(1, 36),
+        new THREE.MeshBasicMaterial({ color: 0x030201, transparent: true, opacity: 0.58, depthWrite: false })
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.035;
+      shadow.scale.set(descriptor.scale * 0.44, descriptor.scale * 0.22, 1);
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(descriptor.scale * 0.38, descriptor.scale * 0.48, 0.08, 36),
+        new THREE.MeshStandardMaterial({
+          color: descriptor.enemy.boss ? 0x231232 : 0x1d1712,
+          emissive: descriptor.enemy.boss ? 0x361258 : 0x160b08,
+          emissiveIntensity: 0.45,
+          roughness: 0.72,
+          metalness: 0.08,
+          transparent: true,
+          opacity: 0.82,
+        })
+      );
+      base.position.y = 0.04;
+      const frameTexture = makeFrameTexture(render.textures.enemyFrames, descriptor.enemy.portrait, 0, 4, 4);
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: makeAtlasTexture(render.textures.enemyAtlas, descriptor.enemy.portrait),
+        map: frameTexture,
         transparent: true,
         depthWrite: false,
+        alphaTest: 0.08,
       }));
+      sprite.userData = { frameTexture, row: descriptor.enemy.portrait, currentFrame: 0 };
       sprite.userData.baseScale = descriptor.scale;
-      sprite.userData.baseY = 1.38;
-      render.activeEnemy = sprite;
+      sprite.userData.baseY = descriptor.scale * 0.56;
+      sprite.position.y = sprite.userData.baseY;
+      group.add(shadow, base, sprite);
+      group.userData = { sprite, shadow, base, descriptor };
+      render.activeEnemy = group;
       render.activeEnemyKey = descriptor.key;
-      render.scene.add(sprite);
+      render.scene.add(group);
     }
 
-    render.activeEnemy.position.set(descriptor.pos.x, 1.38, descriptor.pos.z);
-    render.activeEnemy.scale.set(descriptor.scale, descriptor.scale, descriptor.scale);
+    render.activeEnemy.position.set(descriptor.pos.x, 0, descriptor.pos.z);
+    const rig = render.activeEnemy.userData;
+    rig.descriptor = descriptor;
+    rig.sprite.userData.baseScale = descriptor.scale;
+    rig.sprite.userData.baseY = descriptor.scale * 0.56;
+    rig.sprite.scale.set(descriptor.scale, descriptor.scale, descriptor.scale);
   }
 
   function animate() {
@@ -1222,12 +1289,18 @@
     }
 
     if (render.activeEnemy) {
-      const base = render.activeEnemy.userData.baseScale || 2.5;
+      const rig = render.activeEnemy.userData;
+      const sprite = rig.sprite;
+      const base = sprite.userData.baseScale || 2.5;
       const breathe = 1 + Math.sin(elapsed * 3.2) * 0.055;
-      render.activeEnemy.position.y = (render.activeEnemy.userData.baseY || 1.38) + Math.sin(elapsed * 2.7) * 0.12;
-      render.activeEnemy.scale.set(base * breathe, base * breathe, base * breathe);
-      render.activeEnemy.material.rotation = Math.sin(elapsed * 1.7) * 0.035;
-      render.activeEnemy.lookAt(render.camera.position);
+      const frame = state.combat ? Math.floor(elapsed * 6) % 4 : Math.floor(elapsed * 3) % 2;
+      setFrameTexture(sprite.userData.frameTexture, sprite.userData.row, frame, 4, 4);
+      sprite.position.y = (sprite.userData.baseY || 1.38) + Math.sin(elapsed * 2.7) * 0.06;
+      sprite.scale.set(base * breathe, base * breathe, base * breathe);
+      sprite.material.rotation = Math.sin(elapsed * 1.7) * 0.025;
+      sprite.lookAt(render.camera.position);
+      rig.shadow.scale.set(base * (0.42 + Math.sin(elapsed * 3.2) * 0.025), base * 0.2, 1);
+      rig.base.rotation.y = elapsed * 0.35;
     }
   }
 
@@ -1267,15 +1340,36 @@
   }
 
   function makeAtlasTexture(base, index) {
+    return makeGridTexture(base, index, 2, 2);
+  }
+
+  function makeGridTexture(base, index, columns, rows) {
     const texture = base.clone();
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.repeat.set(0.5, 0.5);
-    texture.offset.set(index % 2 === 0 ? 0 : 0.5, index < 2 ? 0.5 : 0);
+    texture.repeat.set(1 / columns, 1 / rows);
+    texture.offset.set((index % columns) / columns, 1 - (Math.floor(index / columns) + 1) / rows);
     if (render.renderer) {
       texture.anisotropy = Math.min(8, render.renderer.capabilities.getMaxAnisotropy());
     }
     texture.needsUpdate = true;
     return texture;
+  }
+
+  function makeFrameTexture(base, row, frame, columns, rows) {
+    const texture = makeGridTexture(base, row * columns + frame, columns, rows);
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    return texture;
+  }
+
+  function setFrameTexture(texture, row, frame, columns, rows) {
+    if (texture.userData?.frame === frame && texture.userData?.row === row) {
+      return;
+    }
+    texture.repeat.set(1 / columns, 1 / rows);
+    texture.offset.set((frame % columns) / columns, 1 - (row + 1) / rows);
+    texture.userData = { row, frame };
+    texture.needsUpdate = true;
   }
 
   function makePropSprite(index, scale, opacity) {
@@ -1288,6 +1382,24 @@
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(scale, scale, scale);
     return sprite;
+  }
+
+  function disposeEnemyRig() {
+    if (!render.activeEnemy) {
+      return;
+    }
+    render.scene.remove(render.activeEnemy);
+    render.activeEnemy.traverse((object) => {
+      if (object.material) {
+        if (object.material.map) {
+          object.material.map.dispose();
+        }
+        object.material.dispose();
+      }
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+    });
   }
 
   function cellToWorld(x, y) {
