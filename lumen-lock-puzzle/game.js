@@ -302,6 +302,110 @@
         makeTile(5, 2, "wall", 0, true),
         makeTile(5, 7, "line", 1, true)
       ]
+    },
+    {
+      id: "moonlit-relay",
+      name: "Moonlit Relay",
+      size: 8,
+      par: 8,
+      note: "A cyan branch and amber relay trade paths across the lower vault.",
+      sources: [
+        { x: -1, y: 4, dir: DIR.E, color: "cyan" },
+        { x: 6, y: -1, dir: DIR.S, color: "amber" }
+      ],
+      targets: [
+        { x: 7, y: 2, color: "cyan" },
+        { x: 7, y: 6, color: "cyan" },
+        { x: 1, y: 5, color: "amber" }
+      ],
+      tiles: [
+        makeTile(3, 4, "split", 3),
+        makeTile(3, 2, "corner", 3),
+        makeTile(3, 6, "corner", 2),
+        makeTile(6, 5, "corner", 1),
+        makeTile(5, 3, "wall", 0, true),
+        makeTile(0, 6, "wall", 0, true)
+      ]
+    },
+    {
+      id: "star-foundry",
+      name: "Star Foundry",
+      size: 8,
+      par: 10,
+      note: "Three foundry lines wrap the engine from different edges.",
+      sources: [
+        { x: -1, y: 1, dir: DIR.E, color: "violet" },
+        { x: 8, y: 4, dir: DIR.W, color: "green" },
+        { x: 6, y: -1, dir: DIR.S, color: "amber" }
+      ],
+      targets: [
+        { x: 6, y: 6, color: "violet" },
+        { x: 0, y: 2, color: "green" },
+        { x: 1, y: 5, color: "amber" }
+      ],
+      tiles: [
+        makeTile(2, 1, "corner", 0),
+        makeTile(2, 6, "corner", 2),
+        makeTile(5, 4, "corner", 2),
+        makeTile(5, 2, "corner", 0),
+        makeTile(6, 5, "corner", 1),
+        makeTile(4, 4, "cross", 0, true),
+        makeTile(3, 3, "wall", 0, true)
+      ]
+    },
+    {
+      id: "obsidian-halo",
+      name: "Obsidian Halo",
+      size: 8,
+      par: 8,
+      note: "A halo split answers two cyan receivers while violet slips below.",
+      sources: [
+        { x: -1, y: 3, dir: DIR.E, color: "cyan" },
+        { x: 4, y: 8, dir: DIR.N, color: "violet" }
+      ],
+      targets: [
+        { x: 7, y: 1, color: "cyan" },
+        { x: 7, y: 5, color: "cyan" },
+        { x: 1, y: 6, color: "violet" }
+      ],
+      tiles: [
+        makeTile(2, 3, "split", 3),
+        makeTile(2, 1, "corner", 3),
+        makeTile(2, 5, "corner", 2),
+        makeTile(4, 6, "corner", 0),
+        makeTile(5, 3, "wall", 0, true),
+        makeTile(6, 6, "wall", 0, true)
+      ]
+    },
+    {
+      id: "final-resonance",
+      name: "Final Resonance",
+      size: 9,
+      par: 12,
+      note: "Every edge speaks at once; the vault only opens on resonance.",
+      sources: [
+        { x: -1, y: 1, dir: DIR.E, color: "cyan" },
+        { x: 8, y: -1, dir: DIR.S, color: "amber" },
+        { x: 9, y: 8, dir: DIR.W, color: "violet" },
+        { x: 0, y: 9, dir: DIR.N, color: "green" }
+      ],
+      targets: [
+        { x: 8, y: 5, color: "cyan" },
+        { x: 2, y: 7, color: "amber" },
+        { x: 4, y: 0, color: "violet" },
+        { x: 7, y: 3, color: "green" }
+      ],
+      tiles: [
+        makeTile(3, 1, "corner", 0),
+        makeTile(3, 5, "corner", 2),
+        makeTile(8, 7, "corner", 1),
+        makeTile(6, 8, "corner", 2),
+        makeTile(6, 0, "corner", 0),
+        makeTile(0, 3, "corner", 3),
+        makeTile(4, 4, "cross", 0, true),
+        makeTile(2, 2, "wall", 0, true),
+        makeTile(5, 6, "wall", 0, true)
+      ]
     }
   ];
 
@@ -313,6 +417,7 @@
     par: document.getElementById("parValue"),
     targets: document.getElementById("targetValue"),
     best: document.getElementById("bestValue"),
+    masteryStrip: document.getElementById("masteryStrip"),
     mastery: document.getElementById("masteryValue"),
     tier: document.getElementById("tierValue"),
     badge: document.getElementById("stateBadge"),
@@ -334,6 +439,7 @@
     boardSkin: loadImage("assets/lumen-lock-board-imagen-v2.png"),
     boardBiomes: loadImage("assets/lumen-lock-board-biomes-imagen-v3.png"),
     elementSkin: loadImage("assets/lumen-lock-elements-imagen-v2.png"),
+    flareSkin: loadImage("assets/lumen-lock-beam-flares-imagen-v1.png"),
     rewardPlaque: loadImage("assets/lumen-lock-reward-plaque-imagen-v1.png")
   };
 
@@ -618,6 +724,11 @@
     nodes.best.textContent = state.best[level.id] ? `Best ${state.best[level.id]}` : "Best -";
     if (nodes.mastery) nodes.mastery.textContent = `${completedCount()}/${LEVELS.length} sealed`;
     if (nodes.tier) nodes.tier.textContent = TIER_NAMES[boardVariantIndex()] ?? TIER_NAMES[0];
+    if (nodes.masteryStrip) {
+      const variant = boardVariantIndex();
+      nodes.masteryStrip.style.setProperty("--tier-medal-x", `${(variant % 2) * 100}%`);
+      nodes.masteryStrip.style.setProperty("--tier-medal-y", `${Math.floor(variant / 2) * 100}%`);
+    }
     if (nodes.note) nodes.note.textContent = level.note;
     nodes.badge.textContent = badgeText(level);
     nodes.badge.classList.toggle("is-solved", state.solved);
@@ -637,7 +748,8 @@
   }
 
   function boardVariantIndex(index = state.levelIndex) {
-    return Math.min(TIER_NAMES.length - 1, Math.floor(index / 3));
+    const groupSize = Math.max(1, Math.ceil(LEVELS.length / TIER_NAMES.length));
+    return Math.min(TIER_NAMES.length - 1, Math.floor(index / groupSize));
   }
 
   function renderSignals() {
@@ -852,6 +964,23 @@
     const sx = (index % columns) * cell;
     const sy = Math.floor(index / columns) * cell;
     ctx.drawImage(image, sx, sy, cell, cell, x, y, w, h);
+  }
+
+  function flareIndex(color, variant = 0) {
+    const row = { cyan: 0, amber: 1, green: 2, violet: 3 }[color] ?? 0;
+    return row * 4 + variant;
+  }
+
+  function drawFlare(index, center, size, alpha, rotation = 0) {
+    const flares = assets.flareSkin;
+    if (!flares.complete || !flares.naturalWidth) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = alpha;
+    ctx.translate(center.x, center.y);
+    ctx.rotate(rotation);
+    drawAtlasImage(flares, index, 4, -size / 2, -size / 2, size, size);
+    ctx.restore();
   }
 
   function drawBoardBase() {
@@ -1134,7 +1263,10 @@
       ctx.fill();
       ctx.stroke();
       ctx.restore();
-      if (active) drawTargetSparks(center, radius, color, time + index * 180);
+      if (active) {
+        drawFlare(flareIndex(target.color, 1), center, board.cell * 1.25, 0.32, time * 0.001 + index);
+        drawTargetSparks(center, radius, color, time + index * 180);
+      }
     });
   }
 
@@ -1168,6 +1300,7 @@
       const center = logicalPoint(source.x + 0.5, source.y + 0.5);
       const color = COLORS[source.color];
       const pulse = 0.9 + Math.sin(time * 0.006 + source.x + source.y) * 0.08;
+      drawFlare(flareIndex(source.color, 0), center, board.cell * 1.06, 0.18, time * 0.0009);
       drawRotatedElementIcon(elementIconIndex(source.color, "source"), center, board.cell * 0.78, source.dir, 0.46);
       ctx.save();
       ctx.translate(center.x, center.y);
@@ -1215,6 +1348,7 @@
     ctx.save();
     ctx.globalAlpha = 0.86 + Math.sin(time * 0.007) * 0.05;
     const plaque = assets.rewardPlaque;
+    drawFlare(flareIndex("cyan", 0), { x: x + w / 2, y: y + h / 2 }, w * 0.74, 0.2, time * 0.0008);
     if (plaque.complete && plaque.naturalWidth) {
       drawCoverImage(plaque, x - h * 0.6, y - h * 0.52, w + h * 1.2, h * 2.04);
       ctx.fillStyle = "rgba(4, 10, 12, 0.58)";

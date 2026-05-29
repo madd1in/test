@@ -15,6 +15,8 @@
   --radius: 8px;
   --gui-skin: url("assets/lumen-lock-gui-imagen-v2.png");
   --relics: url("assets/lumen-lock-relics-imagen-v1.png");
+  --tier-medallions: url("assets/lumen-lock-tier-medallions-imagen-v1.png");
+  --archive-panel: url("assets/lumen-lock-archive-panel-imagen-v1.png");
   --display-font: "Palatino Linotype", "Book Antiqua", Cambria, Georgia, serif;
   --ui-font: "Segoe UI Variable", "Segoe UI", Tahoma, sans-serif;
   font-family: var(--ui-font);
@@ -362,17 +364,36 @@ h1 {
 
 .mastery-strip {
   display: flex;
+  position: relative;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   min-height: 34px;
   margin-bottom: 10px;
-  padding: 7px 9px;
+  padding: 7px 9px 7px 38px;
   border: 1px solid rgba(216, 183, 108, 0.18);
   border-radius: var(--radius);
   background:
     linear-gradient(90deg, rgba(102, 232, 255, 0.08), rgba(255, 199, 90, 0.06)),
+    var(--archive-panel) center / cover,
     rgba(0, 0, 0, 0.22);
+  background-blend-mode: normal, soft-light, normal;
+  overflow: hidden;
+}
+
+.mastery-strip::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-image: var(--tier-medallions);
+  background-size: 200% 200%;
+  background-position: var(--tier-medal-x, 0%) var(--tier-medal-y, 0%);
+  filter: drop-shadow(0 0 9px rgba(102, 232, 255, 0.22));
+  transform: translateY(-50%);
 }
 
 .mastery-strip span {
@@ -444,7 +465,14 @@ h1 {
 
 .level-note {
   margin-top: 11px;
+  padding: 9px 10px;
+  border: 1px solid rgba(216, 183, 108, 0.14);
+  border-radius: var(--radius);
   color: var(--muted);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(102, 232, 255, 0.04)),
+    var(--archive-panel) center / cover;
+  background-blend-mode: normal, soft-light;
   font-family: var(--display-font);
   font-size: 0.88rem;
   line-height: 1.35;
