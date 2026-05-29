@@ -34,14 +34,16 @@
   };
 
   const propFrames = {
-    ramp: { sx: 0, sy: 183, sw: 329, sh: 241 },
-    bale: { sx: 315, sy: 219, sw: 197, sh: 161 },
-    sign: { sx: 538, sy: 190, sw: 150, sh: 219 },
-    stump: { sx: 695, sy: 205, sw: 183, sh: 216 },
-    dust: { sx: 878, sy: 223, sw: 208, sh: 179 },
-    berm: { sx: 1068, sy: 205, sw: 183, sh: 227 },
-    ribbon: { sx: 1243, sy: 190, sw: 205, sh: 234 },
+    ramp: { sx: 0, sy: 183, sw: 329, sh: 241, anchorX: 172, foot: 193, groundInset: 6 },
+    bale: { sx: 315, sy: 219, sw: 197, sh: 161, anchorX: 109, foot: 147, groundInset: 5 },
+    sign: { sx: 538, sy: 190, sw: 150, sh: 219, anchorX: 84, foot: 175, groundInset: 4 },
+    stump: { sx: 695, sy: 205, sw: 183, sh: 216, anchorX: 82, foot: 164, groundInset: 6 },
+    dust: { sx: 878, sy: 223, sw: 208, sh: 179, anchorX: 108, foot: 144, groundInset: 3 },
+    berm: { sx: 1068, sy: 205, sw: 183, sh: 227, anchorX: 92, foot: 165, groundInset: 7 },
+    ribbon: { sx: 1243, sy: 190, sw: 205, sh: 234, anchorX: 86, foot: 179, groundInset: 4 },
   };
+
+  const flagGroundAnchor = { x: 88, foot: 440, groundInset: 3 };
 
   const assets = {};
   const audio = {
@@ -319,7 +321,7 @@
 
     while (world.nextProp < limit) {
       const lane = Math.floor(world.nextProp / 240);
-      const names = ["sign", "stump", "ribbon", "bale", "berm"];
+      const names = ["sign", "stump", "ribbon", "bale", "berm", "ramp"];
       const name = names[Math.floor(rand01(lane + 41) * names.length)];
       world.props.push({
         x: world.nextProp + rand01(lane + 44) * 100,
@@ -693,12 +695,13 @@
       const sizeScale = prop.scale * clamp(world.width / 1080, 0.5, 0.78);
       const drawW = frame.sw * sizeScale;
       const drawH = frame.sh * sizeScale;
-      const lift = prop.name === "ribbon" ? 118 : prop.name === "sign" ? 86 : prop.name === "berm" ? 38 : 28;
+      const anchorX = (frame.anchorX ?? frame.sw * 0.5) * sizeScale;
+      const foot = (frame.foot ?? frame.sh) * sizeScale;
       ctx.save();
-      ctx.translate(x + prop.side * 18, y - lift * sizeScale);
+      ctx.translate(x + prop.side * 18, y + (frame.groundInset ?? 4) * sizeScale);
       ctx.rotate(slope);
       ctx.globalAlpha = prop.name === "bale" || prop.name === "berm" ? 0.86 : 0.92;
-      ctx.drawImage(img, frame.sx, frame.sy, frame.sw, frame.sh, -drawW * 0.5, -drawH * 0.86, drawW, drawH);
+      ctx.drawImage(img, frame.sx, frame.sy, frame.sw, frame.sh, -anchorX, -foot, drawW, drawH);
       ctx.restore();
     }
   }
@@ -760,7 +763,14 @@
       if (img) {
         const drawH = 112;
         const drawW = drawH * (img.width / img.height);
-        ctx.drawImage(img, x - drawW * 0.34, y - drawH, drawW, drawH);
+        const scale = drawH / img.height;
+        ctx.drawImage(
+          img,
+          x - flagGroundAnchor.x * scale,
+          y - flagGroundAnchor.foot * scale + flagGroundAnchor.groundInset,
+          drawW,
+          drawH
+        );
       } else {
         ctx.fillStyle = "#eef7f5";
         ctx.fillRect(x, y - 92, 6, 92);

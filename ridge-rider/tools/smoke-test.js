@@ -36,6 +36,18 @@ for (const token of ["<canvas", "./js/game.js", "coin-imagen.webp", "flag-imagen
   }
 }
 
+for (const token of ["flagGroundAnchor", "groundInset", "foot:", '"ramp"']) {
+  if (!game.includes(token)) {
+    console.error(`Expected terrain anchor token not found: ${token}`);
+    process.exit(1);
+  }
+}
+
+if (/const lift = prop\.name/.test(game)) {
+  console.error("Prop rendering still uses the old lifted-frame positioning.");
+  process.exit(1);
+}
+
 if (!/requestAnimationFrame\(loop\)/.test(game) || !/function terrainY/.test(game)) {
   console.error("Game loop or terrain function was not found.");
   process.exit(1);
