@@ -13,6 +13,7 @@
   --danger: #ff6f7d;
   --shadow: rgba(0, 0, 0, 0.46);
   --radius: 8px;
+  --gui-skin: url("assets/lumen-lock-gui-imagen-v2.png");
   --display-font: "Palatino Linotype", "Book Antiqua", Cambria, Georgia, serif;
   --ui-font: "Segoe UI Variable", "Segoe UI", Tahoma, sans-serif;
   font-family: var(--ui-font);
@@ -56,7 +57,10 @@ button {
   border: 1px solid rgba(216, 183, 108, 0.36);
   border-radius: var(--radius);
   color: var(--ink);
-  background: linear-gradient(180deg, rgba(48, 53, 48, 0.94), rgba(24, 29, 28, 0.96));
+  background:
+    linear-gradient(180deg, rgba(48, 53, 48, 0.94), rgba(24, 29, 28, 0.96)),
+    var(--gui-skin) center / 560px auto;
+  background-blend-mode: normal, soft-light;
   font: inherit;
   font-weight: 800;
   letter-spacing: 0;
@@ -96,6 +100,7 @@ button:disabled {
 
 .topbar {
   display: flex;
+  position: relative;
   min-width: 0;
   align-items: center;
   justify-content: space-between;
@@ -105,9 +110,12 @@ button:disabled {
   border-radius: var(--radius);
   background:
     linear-gradient(90deg, rgba(4, 8, 9, 0.9), rgba(12, 18, 18, 0.68)),
+    var(--gui-skin) 48% 18% / 980px auto,
     rgba(7, 9, 10, 0.64);
+  background-blend-mode: normal, soft-light, normal;
   box-shadow: 0 18px 50px var(--shadow), inset 0 0 0 1px rgba(102, 232, 255, 0.08);
   backdrop-filter: blur(14px);
+  overflow: hidden;
 }
 
 .brand {
@@ -141,14 +149,13 @@ button:disabled {
 
 .wordmark {
   display: block;
-  width: 82px;
-  height: 28px;
+  width: clamp(160px, 17vw, 250px);
+  height: clamp(38px, 4.2vw, 56px);
   flex: 0 0 auto;
-  border-radius: 6px;
-  object-fit: cover;
-  object-position: center;
-  opacity: 0.8;
-  filter: drop-shadow(0 0 7px rgba(102, 232, 255, 0.22));
+  object-fit: contain;
+  object-position: left center;
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(102, 232, 255, 0.24));
 }
 
 h1,
@@ -157,11 +164,15 @@ p {
 }
 
 h1 {
-  font-family: var(--display-font);
-  font-size: clamp(1.34rem, 2vw, 1.8rem);
-  line-height: 1;
-  letter-spacing: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
+  border: 0;
 }
 
 .brand p {
@@ -207,7 +218,9 @@ h1 {
   border: 1px solid rgba(216, 183, 108, 0.22);
   background:
     linear-gradient(180deg, rgba(255, 235, 172, 0.045), rgba(0, 0, 0, 0.18)),
+    var(--gui-skin) center / 760px auto,
     var(--panel);
+  background-blend-mode: normal, soft-light, normal;
   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26), inset 0 0 28px rgba(102, 232, 255, 0.035);
   backdrop-filter: blur(12px);
 }
@@ -479,11 +492,8 @@ h1 {
   }
 
   .wordmark {
-    display: none;
-  }
-
-  h1 {
-    font-size: 1.18rem;
+    width: clamp(146px, 48vw, 210px);
+    height: 38px;
   }
 
   .brand p {
