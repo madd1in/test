@@ -53,8 +53,8 @@ button {
   left: max(14px, env(safe-area-inset-left));
   right: max(14px, env(safe-area-inset-right));
   z-index: 5;
-  display: grid;
-  grid-template-columns: 92px 92px minmax(130px, 180px) 44px 44px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   justify-content: start;
@@ -100,6 +100,7 @@ button {
 
 .hud-meter {
   position: relative;
+  flex: 0 1 168px;
   height: 18px;
   overflow: hidden;
   border-radius: 999px;
@@ -123,6 +124,7 @@ button {
 }
 
 .icon-button {
+  flex: 0 0 44px;
   width: 44px;
   height: 44px;
   padding: 0;
@@ -235,14 +237,18 @@ button {
 
   .hud {
     right: auto;
-    width: min(374px, calc(100vw - 16px));
-    grid-template-columns: 1fr 1fr minmax(54px, 0.65fr) 42px 42px;
+    width: min(454px, calc(100vw - 16px));
     gap: 8px;
   }
 
   .hud-group {
+    flex-basis: 70px;
     min-width: 0;
     padding-inline: 10px;
+  }
+
+  .hud-meter {
+    flex-basis: 86px;
   }
 
   .hud-group strong {

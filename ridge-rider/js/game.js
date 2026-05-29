@@ -5,6 +5,8 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const distanceEl = document.getElementById("distance");
   const flowEl = document.getElementById("flow");
+  const coinsEl = document.getElementById("coins");
+  const comboEl = document.getElementById("combo");
   const boostFill = document.getElementById("boostFill");
   const menu = document.getElementById("menu");
   const menuCopy = document.getElementById("menuCopy");
@@ -27,7 +29,7 @@
   };
 
   const audioManifest = {
-    bgm: "./assets/audio/ridge-bgm.wav",
+    bgm: "./assets/audio/trail-boss-rush-local.mp3",
     jump: "./assets/audio/jump.wav",
     land: "./assets/audio/land.wav",
     pickup: "./assets/audio/pickup.wav",
@@ -86,6 +88,8 @@
     lastTime: 0,
     mode: "loading",
     best: Number(localStorage.getItem("ridge-rider-best") || 0),
+    totalCoins: Number(localStorage.getItem("ridge-rider-coins") || 0),
+    bestCombo: Number(localStorage.getItem("ridge-rider-best-combo") || 0),
     pickups: [],
     hazards: [],
     markers: [],
@@ -108,6 +112,14 @@
     boost: 72,
     score: 0,
     trick: 0,
+    trickLabel: "",
+    coins: 0,
+    combo: 0,
+    bestRunCombo: 0,
+    comboTimer: 0,
+    manual: 0,
+    rampCooldown: 0,
+    nextMilestone: 500,
     hitCooldown: 0,
     coyote: 0,
   };
@@ -225,6 +237,28 @@
     return angle;
   }
 
+  function riderLevel() {
+    return 1 + Math.floor(world.totalCoins / 40);
+  }
+
+  function bankCoins(amount) {
+    if (amount <= 0) return;
+    world.totalCoins += amount;
+    localStorage.setItem("ridge-rider-coins", String(world.totalCoins));
+  }
+
+  function rewardCombo(amount, label) {
+    rider.combo += amount;
+    rider.bestRunCombo = Math.max(rider.bestRunCombo, rider.combo);
+    if (rider.bestRunCombo > world.bestCombo) {
+      world.bestCombo = rider.bestRunCombo;
+      localStorage.setItem("ridge-rider-best-combo", String(world.bestCombo));
+    }
+    rider.comboTimer = 4.2;
+    rider.trick = Math.max(rider.trick, 70 + rider.combo * 8);
+    rider.trickLabel = label;
+  }
+
   function rand01(n) {
     const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
     return x - Math.floor(x);
@@ -263,9 +297,17 @@
       airborne: false,
       airAngle: 0,
       flow: 100,
-      boost: 86,
+      boost: Math.min(100, 84 + riderLevel() * 2),
       score: 0,
       trick: 0,
+      trickLabel: "",
+      coins: 0,
+      combo: 0,
+      bestRunCombo: 0,
+      comboTimer: 0,
+      manual: 0,
+      rampCooldown: 0,
+      nextMilestone: 500,
       hitCooldown: 0,
       coyote: 0.14,
     });
@@ -284,17 +326,17 @@
       startButton.disabled = true;
     } else if (mode === "menu") {
       stopBgm();
-      menuCopy.textContent = "Hold the line, land clean, keep your flow.";
+      menuCopy.textContent = `Best ${Math.round(world.best)} m | Coins ${world.totalCoins} | LV ${riderLevel()} | Best Combo x${world.bestCombo}`;
       startButton.textContent = "Start Ride";
       startButton.disabled = false;
     } else if (mode === "paused") {
       stopBgm();
-      menuCopy.textContent = `Best ${Math.round(world.best)} m`;
+      menuCopy.textContent = `Run ${Math.round(rider.score)} m | Combo x${rider.combo || 1} | Coins +${rider.coins}`;
       startButton.textContent = "Resume";
       startButton.disabled = false;
     } else if (mode === "gameover") {
       stopBgm();
-      menuCopy.textContent = `Run ${Math.round(rider.score)} m | Best ${Math.round(world.best)} m`;
+      menuCopy.textContent = `Run ${Math.round(rider.score)} m | Coins +${rider.coins} | Best Combo x${world.bestCombo}`;
       startButton.textContent = "Restart";
       startButton.disabled = false;
       playSfx("crash", 0.55);
@@ -319,22 +361,23 @@
     while (world.nextSpawn < limit) {
       const lane = Math.floor(world.nextSpawn / 300);
       const roll = rand01(lane);
-      if (roll > 0.83) {
+      if (roll > 0.82) {
         world.hazards.push({
           x: world.nextSpawn + rand01(lane + 8) * 155,
           hit: false,
-          scale: 0.66 + rand01(lane + 15) * 0.28,
+          scale: 0.42 + rand01(lane + 15) * 0.18,
+          side: rand01(lane + 19) > 0.5 ? 1 : -1,
         });
-      } else {
-        const count = roll > 0.24 ? 4 : 3;
-        for (let i = 0; i < count; i += 1) {
-          world.pickups.push({
-            x: world.nextSpawn + i * 74,
-            offset: 78 + Math.sin(lane + i) * 28,
-            taken: false,
-            wobble: rand01(lane + i + 27) * Math.PI * 2,
-          });
-        }
+      }
+
+      const count = roll > 0.24 ? 4 : 3;
+      for (let i = 0; i < count; i += 1) {
+        world.pickups.push({
+          x: world.nextSpawn + i * 74,
+          offset: 78 + Math.sin(lane + i) * 28,
+          taken: false,
+          wobble: rand01(lane + i + 27) * Math.PI * 2,
+        });
       }
 
       if (lane > 0 && lane % 8 === 0) {
@@ -346,7 +389,7 @@
 
     while (world.nextProp < limit) {
       const lane = Math.floor(world.nextProp / 240);
-      const names = ["sign", "stump", "ribbon", "bale", "berm", "ramp"];
+      const names = ["sign", "stump", "ribbon", "bale", "berm", "ramp", "ramp"];
       const name = names[Math.floor(rand01(lane + 41) * names.length)];
       world.props.push({
         x: world.nextProp + rand01(lane + 44) * 100,
@@ -386,13 +429,30 @@
     input.boostEase = approach(input.boostEase, input.boost && rider.boost > 2 ? 1 : 0, dt * 3.2);
     input.jumpBuffer = Math.max(0, input.jumpBuffer - dt);
     rider.coyote = rider.airborne ? Math.max(0, rider.coyote - dt) : 0.14;
+    rider.rampCooldown = Math.max(0, rider.rampCooldown - dt);
+    rider.comboTimer = Math.max(0, rider.comboTimer - dt);
+    if (rider.comboTimer <= 0) rider.combo = 0;
 
     const boosting = input.boostEase > 0.04 && rider.boost > 2;
-    const targetSpeed = 335 + input.boostEase * 145 - slope * 86;
+    const downhillPump = !rider.airborne && input.lean > 0.25 && slope > 0 ? input.lean * slope * 175 : 0;
+    const manualDrag = !rider.airborne ? Math.max(0, -input.lean) * 24 : 0;
+    const comboSpeed = Math.min(rider.combo, 10) * 4;
+    const targetSpeed = 335 + input.boostEase * 145 + slope * 72 + downhillPump + comboSpeed - manualDrag;
     rider.speed = lerp(rider.speed, targetSpeed, dt * (boosting ? 2.05 : 2.7));
     rider.speed = clamp(rider.speed, 230, 590);
     rider.worldX += rider.speed * dt;
     rider.score = Math.max(rider.score, rider.worldX / 10);
+    if (rider.score >= rider.nextMilestone) {
+      const award = 3 + Math.min(5, riderLevel());
+      rider.coins += award;
+      bankCoins(award);
+      rider.boost = 100;
+      rider.flow = Math.min(100, rider.flow + 18);
+      rewardCombo(2, "CHECK");
+      spawnSpark(screenPlayerX() + 120, terrainY(rider.worldX + 120) - 90, 10);
+      playSfx("pickup", 1);
+      rider.nextMilestone += 500;
+    }
 
     if (boosting) {
       rider.boost = Math.max(0, rider.boost - dt * (18 + input.boostEase * 8));
@@ -402,12 +462,23 @@
     }
 
     const lean = input.lean;
+    if (!rider.airborne) {
+      rider.manual = clamp(rider.manual + (lean < -0.35 && rider.speed > 275 ? dt * 1.9 : -dt * 2.6), 0, 1);
+      if (rider.manual > 0.72 && rider.comboTimer <= 0.08) {
+        rewardCombo(1, "MANUAL");
+        rider.flow = Math.min(100, rider.flow + 3);
+      }
+      triggerRampLaunch(slope);
+    }
+
     if (input.jumpBuffer > 0 && (!rider.airborne || rider.coyote > 0)) {
+      const preload = Math.max(0, -lean) * (0.65 + rider.manual * 0.65);
       rider.airborne = true;
       rider.coyote = 0;
-      rider.vy = -625 - clamp(rider.speed - 320, 0, 180) * 0.22;
-      rider.spin = lean * 1.38 - slope * 0.42;
+      rider.vy = -625 - clamp(rider.speed - 320, 0, 180) * 0.22 - preload * 150;
+      rider.spin = lean * 2.15 - slope * 0.55;
       rider.airAngle = 0;
+      rider.manual = 0;
       input.jumpBuffer = 0;
       spawnDust(screenPlayerX() - 28, rider.y - 12, 1.25);
       playSfx("jump", 0.72);
@@ -418,8 +489,8 @@
       const jumpHeld = input.jump && rider.vy < 0 ? 0.9 : 1;
       rider.vy += 1450 * jumpHeld * dt;
       rider.y += rider.vy * dt;
-      rider.spin += lean * dt * 2.65;
-      rider.spin *= 0.988;
+      rider.spin += lean * dt * 5.15;
+      rider.spin *= 0.991;
       const prev = rider.angle;
       rider.angle += rider.spin * dt;
       rider.airAngle += wrapAngle(rider.angle - prev);
@@ -438,9 +509,14 @@
           rider.angle = slopeAngle;
         } else {
           if (rotations > 0.62) {
-            rider.trick = Math.round(rotations * 100);
-            rider.boost = Math.min(100, rider.boost + 20 + rotations * 15);
-            rider.flow = Math.min(100, rider.flow + rotations * 11);
+            const coinBonus = Math.max(1, Math.floor(rotations * 2));
+            rider.trick = Math.round(rotations * 140);
+            rider.trickLabel = rotations >= 1 ? "FLIP" : "STYLE";
+            rewardCombo(coinBonus, rider.trickLabel);
+            rider.coins += coinBonus;
+            bankCoins(coinBonus);
+            rider.boost = Math.min(100, rider.boost + 28 + rotations * 18);
+            rider.flow = Math.min(100, rider.flow + rotations * 14);
           }
           rider.spin *= 0.45;
           rider.angle = lerp(rider.angle, slopeAngle, 0.66);
@@ -449,8 +525,8 @@
     } else {
       rider.y = terrainY(rider.worldX);
       rider.spin = lerp(rider.spin, 0, dt * 8);
-      rider.angle = lerp(rider.angle, slopeAngle + lean * 0.1, dt * 9.5);
-      rider.flow = Math.min(100, rider.flow + dt * 6);
+      rider.angle = lerp(rider.angle, slopeAngle + lean * 0.17 - rider.manual * 0.16, dt * 9.5);
+      rider.flow = Math.min(100, rider.flow + dt * (6 + rider.manual * 3));
     }
 
     rider.hitCooldown = Math.max(0, rider.hitCooldown - dt);
@@ -462,7 +538,9 @@
     if (rider.flow <= 0) {
       rider.flow = 0;
       world.best = Math.max(world.best, rider.score);
+      world.bestCombo = Math.max(world.bestCombo, rider.bestRunCombo);
       localStorage.setItem("ridge-rider-best", String(world.best));
+      localStorage.setItem("ridge-rider-best-combo", String(world.bestCombo));
       setMode("gameover");
     }
   }
@@ -476,34 +554,54 @@
     playSfx("crash", 0.8);
   }
 
+  function triggerRampLaunch(slope) {
+    if (rider.airborne || rider.rampCooldown > 0 || rider.speed < 275) return;
+    for (const prop of world.props) {
+      if (prop.name !== "ramp" || prop.used) continue;
+      const dx = prop.x - rider.worldX;
+      if (dx < -8 || dx > 34) continue;
+      prop.used = true;
+      rider.airborne = true;
+      rider.coyote = 0;
+      rider.vy = -760 - clamp(rider.speed - 320, 0, 220) * 0.34;
+      rider.spin = input.lean * 1.75 - slope * 0.3;
+      rider.airAngle = 0;
+      rider.rampCooldown = 0.75;
+      rider.speed = Math.min(640, rider.speed + 58);
+      rider.boost = Math.min(100, rider.boost + 10);
+      rider.flow = Math.min(100, rider.flow + 5);
+      rewardCombo(1, "RAMP");
+      spawnDust(screenPlayerX() - 20, rider.y - 10, 1.9);
+      playSfx("jump", 0.95);
+      return;
+    }
+  }
+
   function collectAndCollide() {
     const sx = screenPlayerX();
     const scale = riderScale();
-    const playerRadius = 34 * scale;
-    const playerScreenY = rider.y;
 
     for (const item of world.pickups) {
       if (item.taken) continue;
       const dx = sx + (item.x - rider.worldX) - sx;
       const itemY = terrainY(item.x) - item.offset;
-      const dy = itemY - playerScreenY + 42 * scale;
+      const dy = itemY - rider.y + 42 * scale;
       if (Math.hypot(dx, dy) < 72 * scale) {
         item.taken = true;
-        rider.boost = Math.min(100, rider.boost + 18);
-        rider.flow = Math.min(100, rider.flow + 7);
+        rider.coins += 1;
+        bankCoins(1);
+        rewardCombo(1, rider.combo > 3 ? "CHAIN" : "COIN");
+        rider.boost = Math.min(100, rider.boost + 24 + Math.min(rider.combo, 8));
+        rider.flow = Math.min(100, rider.flow + 9);
+        rider.speed = Math.min(620, rider.speed + 10 + Math.min(rider.combo, 8));
+        if (rider.combo > 0 && rider.combo % 5 === 0) {
+          rider.boost = 100;
+          rider.flow = Math.min(100, rider.flow + 10);
+          rider.speed = Math.min(650, rider.speed + 42);
+          rider.trickLabel = "SURGE";
+        }
         spawnSpark(screenPlayerX() + dx, itemY, 7);
         playSfx("pickup", 0.8);
-      }
-    }
-
-    for (const rock of world.hazards) {
-      if (rock.hit) continue;
-      const dx = rock.x - rider.worldX;
-      const rockY = terrainY(rock.x);
-      const dy = rockY - playerScreenY;
-      if (Math.abs(dx) < 30 * rock.scale + playerRadius && Math.abs(dy) < 44 * rock.scale + playerRadius) {
-        rock.hit = true;
-        damage(13);
       }
     }
   }
@@ -553,6 +651,8 @@
   function updateHud() {
     distanceEl.textContent = `${Math.round(rider.score)} m`;
     flowEl.textContent = `${Math.round(rider.flow)}%`;
+    coinsEl.textContent = `${world.totalCoins}`;
+    comboEl.textContent = rider.combo > 1 ? `x${rider.combo}` : `LV ${riderLevel()}`;
     boostFill.style.width = `${Math.round(rider.boost)}%`;
   }
 
@@ -763,11 +863,18 @@
       const x = screenPlayerX() + (rock.x - rider.worldX);
       if (x < -110 || x > world.width + 110) continue;
       const y = terrainY(rock.x);
-      const size = 70 * rock.scale;
+      const size = 54 * rock.scale;
+      const slope = Math.atan(terrainSlope(rock.x)) * 0.55;
+      const sideOffset = (rock.side || 1) * size * 0.7;
       if (img) {
         const drawW = size * 1.08;
         const drawH = drawW * (img.height / img.width);
-        ctx.drawImage(img, x - drawW * 0.5, y - drawH + 4, drawW, drawH);
+        ctx.save();
+        ctx.translate(x + sideOffset, y + 6 * rock.scale);
+        ctx.rotate(slope);
+        ctx.globalAlpha = 0.58;
+        ctx.drawImage(img, -drawW * 0.5, -drawH, drawW, drawH);
+        ctx.restore();
       } else {
         ctx.fillStyle = "#536063";
         ctx.beginPath();
@@ -837,7 +944,7 @@
       ctx.fillStyle = "#f8e16c";
       ctx.font = "900 22px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(`+${Math.round(rider.trick)}`, x, y - drawH - 20);
+      ctx.fillText(`${rider.trickLabel || "+"}${rider.trickLabel ? ` +${Math.round(rider.trick)}` : Math.round(rider.trick)}`, x, y - drawH - 20);
       ctx.restore();
     }
   }

@@ -14,7 +14,7 @@ const required = [
   "assets/imagen/coin-imagen.webp",
   "assets/imagen/flag-imagen.webp",
   "assets/imagen/rock-imagen.webp",
-  "assets/audio/ridge-bgm.wav",
+  "assets/audio/trail-boss-rush-local.mp3",
   "assets/audio/jump.wav",
   "assets/audio/land.wav",
   "assets/audio/pickup.wav",
@@ -30,7 +30,7 @@ if (missing.length) {
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const game = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 
-for (const token of ["<canvas", "./js/game.js", "coin-imagen.webp", "flag-imagen.webp", "ridge-bgm.wav"]) {
+for (const token of ["<canvas", "./js/game.js", "coin-imagen.webp", "flag-imagen.webp", "trail-boss-rush-local.mp3"]) {
   if (!html.includes(token) && !game.includes(token)) {
     console.error(`Expected token not found: ${token}`);
     process.exit(1);
@@ -40,6 +40,13 @@ for (const token of ["<canvas", "./js/game.js", "coin-imagen.webp", "flag-imagen
 for (const token of ["rider-ride-strip-imagen.webp", "rock-imagen.webp", "riderAnimation", "frameIndex"]) {
   if (!html.includes(token) && !game.includes(token)) {
     console.error(`Expected animated rider or rock token not found: ${token}`);
+    process.exit(1);
+  }
+}
+
+for (const token of ["triggerRampLaunch", "rider.combo", "bankCoins", "CHECK", "sideOffset"]) {
+  if (!game.includes(token)) {
+    console.error(`Expected gameplay-loop token not found: ${token}`);
     process.exit(1);
   }
 }
@@ -65,6 +72,11 @@ if (!/sign:\s*\{[^}]*foot:\s*156[^}]*groundInset:\s*7/.test(game)) {
 
 if (/const lift = prop\.name/.test(game)) {
   console.error("Prop rendering still uses the old lifted-frame positioning.");
+  process.exit(1);
+}
+
+if (/damage\(13\)/.test(game)) {
+  console.error("Rocks still damage the rider instead of acting as flow-safe dressing.");
   process.exit(1);
 }
 
