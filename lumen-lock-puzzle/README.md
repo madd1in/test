@@ -1,6 +1,6 @@
 # Lumen Lock
 
-A standalone browser puzzle game about rotating prism tiles until every crystal receives the right beam.
+A standalone browser puzzle game about rotating prism tiles until every crystal receives the right beam. The current build has eight hand-authored chambers, generated image assets, local BGM/SFX, persistent best scores, and responsive canvas/DOM UI.
 
 ## Run
 
@@ -19,3 +19,9 @@ Open `index.html` in a browser. The game uses static files only.
 - `tools/build_assets.ps1` - rebuilds local PNG glyph assets
 - `tools/logic-smoke.js` - verifies all chambers can be solved
 - `tools/visual-smoke.js` - captures desktop and mobile render smoke screenshots
+
+## Content Notes
+
+- New late-game chambers introduce green beams, locked conduit tiles, cross-junctions, and multi-target crown routing.
+- Completed chambers show a small marker in the chamber selector; par clears get a warmer marker.
+- Chamber notes are intentionally short so the playfield stays clear.
