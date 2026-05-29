@@ -228,7 +228,9 @@
   const assets = {
     background: loadImage("assets/lumen-lock-background.png"),
     glyphs: loadImage("assets/lumen-lock-glyphs.png"),
-    uiSkin: loadImage("assets/lumen-lock-ui-skin.png")
+    uiSkin: loadImage("assets/lumen-lock-gui-imagen-v2.png"),
+    boardSkin: loadImage("assets/lumen-lock-board-imagen-v2.png"),
+    elementSkin: loadImage("assets/lumen-lock-elements-imagen-v2.png")
   };
 
   const audio = {
@@ -730,6 +732,7 @@
   function drawBoardBase() {
     const level = getLevel();
     const board = boardRect();
+    const boardSkin = assets.boardSkin;
     ctx.save();
     roundRect(board.x - 10, board.y - 10, board.size + 20, board.size + 20, 8);
     ctx.fillStyle = "rgba(8, 10, 10, 0.66)";
@@ -741,8 +744,15 @@
     const skin = assets.uiSkin;
     if (skin.complete && skin.naturalWidth) {
       ctx.save();
-      ctx.globalAlpha = 0.04;
+      ctx.globalAlpha = 0.07;
       drawCoverImage(skin, board.x - 26, board.y - 26, board.size + 52, board.size + 52);
+      ctx.restore();
+    }
+
+    if (boardSkin.complete && boardSkin.naturalWidth) {
+      ctx.save();
+      ctx.globalAlpha = 0.72;
+      drawCoverImage(boardSkin, board.x - board.cell * 0.32, board.y - board.cell * 0.32, board.size + board.cell * 0.64, board.size + board.cell * 0.64);
       ctx.restore();
     }
 
@@ -802,7 +812,8 @@
         wall.addColorStop(1, "#050607");
         ctx.fillStyle = wall;
         ctx.fill();
-        drawGlyph(4, x + pad, y + pad, size, size, 0.34);
+        drawElementIcon(5, x + pad, y + pad, size, size, 0.82);
+        drawGlyph(4, x + pad, y + pad, size, size, 0.16);
         ctx.strokeStyle = "rgba(216, 183, 108, 0.28)";
         ctx.stroke();
         ctx.restore();
@@ -815,7 +826,8 @@
       fill.addColorStop(1, "rgba(60, 45, 31, 0.9)");
       ctx.fillStyle = fill;
       ctx.fill();
-      drawGlyph(glyphIndex(tile.type), x + pad, y + pad, size, size, 0.24);
+      drawElementIcon(0, x + pad, y + pad, size, size, 0.42);
+      drawGlyph(glyphIndex(tile.type), x + pad, y + pad, size, size, 0.13);
       ctx.strokeStyle = "rgba(216, 183, 108, 0.58)";
       ctx.lineWidth = Math.max(1, board.cell * 0.022);
       ctx.stroke();
@@ -867,6 +879,38 @@
 
   function glyphIndex(type) {
     return { line: 1, corner: 2, split: 3, wall: 4, cross: 10 }[type] ?? 0;
+  }
+
+  function elementIconIndex(typeOrColor, role = "tile") {
+    if (role === "target") {
+      return { cyan: 6, amber: 7, violet: 8, green: 9 }[typeOrColor] ?? 6;
+    }
+    if (role === "source") {
+      return { cyan: 10, amber: 11, violet: 10, green: 11 }[typeOrColor] ?? 10;
+    }
+    return { wall: 5 }[typeOrColor] ?? 0;
+  }
+
+  function drawElementIcon(index, x, y, w, h, alpha) {
+    const elements = assets.elementSkin;
+    if (!elements.complete || !elements.naturalWidth) return;
+    const cell = elements.naturalWidth / 4;
+    const sx = (index % 4) * cell;
+    const sy = Math.floor(index / 4) * cell;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(elements, sx, sy, cell, cell, x, y, w, h);
+    ctx.restore();
+  }
+
+  function drawRotatedElementIcon(index, center, size, direction, alpha) {
+    const elements = assets.elementSkin;
+    if (!elements.complete || !elements.naturalWidth) return;
+    ctx.save();
+    ctx.translate(center.x, center.y);
+    ctx.rotate(direction * (Math.PI / 2));
+    drawElementIcon(index, -size / 2, -size / 2, size, size, alpha);
+    ctx.restore();
   }
 
   function drawGlyph(index, x, y, w, h, alpha) {
@@ -936,6 +980,15 @@
       const active = state.beams.activeTargets.has(index);
       const color = COLORS[target.color];
       const radius = board.cell * (active ? 0.26 + Math.sin(time * 0.006) * 0.018 : 0.22);
+      const iconSize = board.cell * 0.82;
+      drawElementIcon(
+        elementIconIndex(target.color, "target"),
+        center.x - iconSize / 2,
+        center.y - iconSize / 2,
+        iconSize,
+        iconSize,
+        active ? 0.72 : 0.36
+      );
       drawGlyph(targetGlyphIndex(target.color), center.x - radius * 1.25, center.y - radius * 1.25, radius * 2.5, radius * 2.5, active ? 0.5 : 0.28);
 
       ctx.save();
@@ -984,6 +1037,7 @@
       const center = logicalPoint(source.x + 0.5, source.y + 0.5);
       const color = COLORS[source.color];
       const pulse = 0.9 + Math.sin(time * 0.006 + source.x + source.y) * 0.08;
+      drawRotatedElementIcon(elementIconIndex(source.color, "source"), center, board.cell * 0.78, source.dir, 0.46);
       ctx.save();
       ctx.translate(center.x, center.y);
       ctx.rotate(source.dir * (Math.PI / 2));
