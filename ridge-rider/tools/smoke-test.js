@@ -36,6 +36,13 @@ for (const token of ["<canvas", "./js/game.js", "coin-imagen.webp", "flag-imagen
   }
 }
 
+for (const token of ["audioLevels", "bgm: 0.72", 'audio.bgm.preload = "auto"', ">BGM</button>"]) {
+  if (!html.includes(token) && !game.includes(token)) {
+    console.error(`Expected audio token not found: ${token}`);
+    process.exit(1);
+  }
+}
+
 for (const token of ["flagGroundAnchor", "groundInset", "foot:", '"ramp"']) {
   if (!game.includes(token)) {
     console.error(`Expected terrain anchor token not found: ${token}`);

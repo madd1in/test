@@ -33,6 +33,14 @@
     crash: "./assets/audio/crash.wav",
   };
 
+  const audioLevels = {
+    bgm: 0.72,
+    jump: 0.36,
+    land: 0.24,
+    pickup: 0.36,
+    crash: 0.32,
+  };
+
   const propFrames = {
     ramp: { sx: 0, sy: 183, sw: 329, sh: 241, anchorX: 172, foot: 193, groundInset: 6 },
     bale: { sx: 315, sy: 219, sw: 197, sh: 161, anchorX: 109, foot: 147, groundInset: 5 },
@@ -130,27 +138,28 @@
 
   function ensureAudio() {
     if (audio.bgm) return;
-    audio.bgm = new Audio();
-    audio.bgm.preload = "none";
+    audio.bgm = new Audio(audioManifest.bgm);
+    audio.bgm.preload = "auto";
     audio.bgm.loop = true;
-    audio.bgm.volume = 0.28;
-    audio.bgm.src = audioManifest.bgm;
-    audio.sfx.jump = makeAudio(audioManifest.jump, 0.36);
-    audio.sfx.land = makeAudio(audioManifest.land, 0.24);
-    audio.sfx.pickup = makeAudio(audioManifest.pickup, 0.36);
-    audio.sfx.crash = makeAudio(audioManifest.crash, 0.32);
+    audio.bgm.volume = audioLevels.bgm;
+    audio.bgm.load();
+    audio.sfx.jump = makeAudio(audioManifest.jump, audioLevels.jump);
+    audio.sfx.land = makeAudio(audioManifest.land, audioLevels.land);
+    audio.sfx.pickup = makeAudio(audioManifest.pickup, audioLevels.pickup);
+    audio.sfx.crash = makeAudio(audioManifest.crash, audioLevels.crash);
   }
 
   function makeAudio(src, volume) {
-    const clip = new Audio();
-    clip.preload = "none";
+    const clip = new Audio(src);
+    clip.preload = "auto";
     clip.volume = volume;
-    clip.src = src;
+    clip.load();
     return clip;
   }
 
   function updateAudioButton() {
-    audioButton.textContent = audio.muted ? "MUTE" : "SND";
+    audioButton.textContent = audio.muted ? "OFF" : "BGM";
+    audioButton.title = audio.muted ? "Sound off" : "Sound on";
     audioButton.setAttribute("aria-pressed", String(!audio.muted));
   }
 
@@ -163,7 +172,16 @@
 
   function playBgm() {
     if (!audio.bgm || audio.muted || !audio.unlocked || world.mode !== "playing") return;
-    audio.bgm.play().catch(() => {});
+    audio.bgm.volume = audioLevels.bgm;
+    const playPromise = audio.bgm.play();
+    if (playPromise?.catch) {
+      playPromise.catch(() => {
+        window.setTimeout(() => {
+          if (!audio.bgm || audio.muted || !audio.unlocked || world.mode !== "playing") return;
+          audio.bgm.play().catch(() => {});
+        }, 160);
+      });
+    }
   }
 
   function stopBgm() {
@@ -176,7 +194,7 @@
     if (!clip) return;
     clip.pause();
     clip.currentTime = 0;
-    const baseVolume = name === "land" ? 0.24 : name === "jump" ? 0.36 : name === "crash" ? 0.32 : 0.36;
+    const baseVolume = audioLevels[name] ?? 0.36;
     clip.volume = clamp(baseVolume * volumeScale, 0, 0.7);
     clip.play().catch(() => {});
   }
