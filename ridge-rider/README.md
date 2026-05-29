@@ -13,10 +13,10 @@ Touch controls appear automatically on small or touch screens.
 
 ## Assets
 
-- `assets/generated/trail-backdrop-imagen.png`: generated raster trail backdrop.
-- `assets/sprites/rider-imagen.png`: generated rider sprite with local chroma-key background removal.
-- `assets/foreground/front-tiles-imagen.png`: generated foreground trail tile strip.
-- `assets/foreground/trail-props-imagen.png`: generated prop atlas for signs, ramps, bales, stumps, dust, berms, and ribbons.
+- `assets/generated/trail-backdrop-imagen.webp`: compressed generated raster trail backdrop.
+- `assets/sprites/rider-imagen.webp`: compressed generated rider sprite with local chroma-key background removal.
+- `assets/foreground/front-tiles-imagen.webp`: compressed generated foreground trail tile strip.
+- `assets/foreground/trail-props-imagen.webp`: compressed generated prop atlas for signs, ramps, bales, stumps, dust, berms, and ribbons.
 - `assets/ui/*.svg`: project-local game pickups, hazards, and markers.
 - `assets/audio/*.wav`: local disk BGM and SFX copied from the existing `moto-ridge-rush` asset set.
 
@@ -26,6 +26,7 @@ Touch controls appear automatically on small or touch screens.
 - Added a cyan flow guide line to suggest the safe route.
 - Added generated front tiles, prop decorations, particle dust, pickup sparks, local SFX, and looping BGM.
 - Next ideas: checkpoint streak rewards, alternate rider skins, weather variants, downhill time trials, and a trick-combo medal screen.
+- Fast-load pass: only backdrop and rider block the first menu; foreground props, pickup art, hazards, flags, and audio lazy-load after the first screen.
 
 ## Local Run
 

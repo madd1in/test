@@ -12,11 +12,14 @@
   const pauseButton = document.getElementById("pauseButton");
   const audioButton = document.getElementById("audioButton");
 
-  const manifest = {
-    backdrop: "./assets/generated/trail-backdrop-imagen.png",
-    rider: "./assets/sprites/rider-imagen.png",
-    frontTiles: "./assets/foreground/front-tiles-imagen.png",
-    props: "./assets/foreground/trail-props-imagen.png",
+  const criticalManifest = {
+    backdrop: "./assets/generated/trail-backdrop-imagen.webp",
+    rider: "./assets/sprites/rider-imagen.webp",
+  };
+
+  const optionalManifest = {
+    frontTiles: "./assets/foreground/front-tiles-imagen.webp",
+    props: "./assets/foreground/trail-props-imagen.webp",
     energy: "./assets/ui/energy-ring.svg",
     rock: "./assets/ui/rock.svg",
     flag: "./assets/ui/trail-flag.svg",
@@ -31,13 +34,13 @@
   };
 
   const propFrames = {
-    ramp: { sx: 0, sy: 250, sw: 450, sh: 330 },
-    bale: { sx: 430, sy: 300, sw: 270, sh: 220 },
-    sign: { sx: 735, sy: 260, sw: 205, sh: 300 },
-    stump: { sx: 950, sy: 280, sw: 250, sh: 295 },
-    dust: { sx: 1200, sy: 305, sw: 285, sh: 245 },
-    berm: { sx: 1460, sy: 280, sw: 250, sh: 310 },
-    ribbon: { sx: 1700, sy: 260, sw: 280, sh: 320 },
+    ramp: { sx: 0, sy: 183, sw: 329, sh: 241 },
+    bale: { sx: 315, sy: 219, sw: 197, sh: 161 },
+    sign: { sx: 538, sy: 190, sw: 150, sh: 219 },
+    stump: { sx: 695, sy: 205, sw: 183, sh: 216 },
+    dust: { sx: 878, sy: 223, sw: 208, sh: 179 },
+    berm: { sx: 1068, sy: 205, sw: 183, sh: 227 },
+    ribbon: { sx: 1243, sy: 190, sw: 205, sh: 234 },
   };
 
   const assets = {};
@@ -110,21 +113,33 @@
     });
   }
 
+  async function loadImageSet(manifest) {
+    const entries = await Promise.all(Object.entries(manifest).map(async ([key, src]) => [key, await loadImage(src)]));
+    for (const [key, image] of entries) assets[key] = image;
+  }
+
   function setupAudio() {
-    audio.bgm = new Audio(audioManifest.bgm);
+    updateAudioButton();
+  }
+
+  function ensureAudio() {
+    if (audio.bgm) return;
+    audio.bgm = new Audio();
+    audio.bgm.preload = "none";
     audio.bgm.loop = true;
     audio.bgm.volume = 0.28;
+    audio.bgm.src = audioManifest.bgm;
     audio.sfx.jump = makeAudio(audioManifest.jump, 0.36);
     audio.sfx.land = makeAudio(audioManifest.land, 0.24);
     audio.sfx.pickup = makeAudio(audioManifest.pickup, 0.36);
     audio.sfx.crash = makeAudio(audioManifest.crash, 0.32);
-    updateAudioButton();
   }
 
   function makeAudio(src, volume) {
-    const clip = new Audio(src);
-    clip.preload = "auto";
+    const clip = new Audio();
+    clip.preload = "none";
     clip.volume = volume;
+    clip.src = src;
     return clip;
   }
 
@@ -136,6 +151,7 @@
   function unlockAudio() {
     audio.unlocked = true;
     if (audio.muted) return;
+    ensureAudio();
     playBgm();
   }
 
@@ -513,6 +529,15 @@
 
   function drawBackdrop() {
     const img = assets.backdrop;
+    if (!img) {
+      const sky = ctx.createLinearGradient(0, 0, 0, world.height);
+      sky.addColorStop(0, "#1d617c");
+      sky.addColorStop(0.52, "#d78b45");
+      sky.addColorStop(1, "#071013");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, world.width, world.height);
+      return;
+    }
     const coverScale = Math.max(world.width / img.width, world.height / img.height);
     const drawW = img.width * coverScale;
     const drawH = img.height * coverScale;
@@ -602,6 +627,7 @@
 
   function drawTrailTiles() {
     const img = assets.frontTiles;
+    if (!img) return;
     const scale = clamp(world.width / 1100, 0.62, 0.94);
     const drawW = 720 * scale;
     const drawH = (img.height / img.width) * drawW;
@@ -622,6 +648,7 @@
 
   function drawProps() {
     const img = assets.props;
+    if (!img) return;
     for (const prop of world.props) {
       const frame = propFrames[prop.name];
       if (!frame) continue;
@@ -652,7 +679,17 @@
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(performance.now() * 0.002 + item.wobble);
-      ctx.drawImage(img, -24, -24, 48, 48);
+      if (img) {
+        ctx.drawImage(img, -24, -24, 48, 48);
+      } else {
+        ctx.fillStyle = "#33d6c2";
+        ctx.strokeStyle = "#f8e16c";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
       ctx.restore();
     }
   }
@@ -665,7 +702,18 @@
       if (x < -110 || x > world.width + 110) continue;
       const y = terrainY(rock.x);
       const size = 70 * rock.scale;
-      ctx.drawImage(img, x - size * 0.5, y - size * 0.72, size, size * 0.72);
+      if (img) {
+        ctx.drawImage(img, x - size * 0.5, y - size * 0.72, size, size * 0.72);
+      } else {
+        ctx.fillStyle = "#536063";
+        ctx.beginPath();
+        ctx.moveTo(x - size * 0.5, y);
+        ctx.lineTo(x - size * 0.2, y - size * 0.55);
+        ctx.lineTo(x + size * 0.38, y - size * 0.44);
+        ctx.lineTo(x + size * 0.5, y);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
   }
 
@@ -675,7 +723,14 @@
       const x = screenPlayerX() + (marker.x - rider.worldX);
       if (x < -80 || x > world.width + 80) continue;
       const y = terrainY(marker.x);
-      ctx.drawImage(img, x - 18, y - 106, 54, 104);
+      if (img) {
+        ctx.drawImage(img, x - 18, y - 106, 54, 104);
+      } else {
+        ctx.fillStyle = "#eef7f5";
+        ctx.fillRect(x, y - 92, 6, 92);
+        ctx.fillStyle = "#ff6b35";
+        ctx.fillRect(x + 6, y - 92, 42, 24);
+      }
     }
   }
 
@@ -725,14 +780,16 @@
   function drawForeground() {
     ctx.save();
     const img = assets.frontTiles;
-    const drawW = clamp(world.width * 0.65, 340, 620);
-    const drawH = (img.height / img.width) * drawW;
-    let tileX = -(rider.worldX * 0.28) % drawW;
-    if (tileX > 0) tileX -= drawW;
-    ctx.globalAlpha = 0.42;
-    while (tileX < world.width + drawW) {
-      ctx.drawImage(img, tileX, world.height - drawH * 0.72, drawW, drawH);
-      tileX += drawW * 0.9;
+    if (img) {
+      const drawW = clamp(world.width * 0.65, 340, 620);
+      const drawH = (img.height / img.width) * drawW;
+      let tileX = -(rider.worldX * 0.28) % drawW;
+      if (tileX > 0) tileX -= drawW;
+      ctx.globalAlpha = 0.42;
+      while (tileX < world.width + drawW) {
+        ctx.drawImage(img, tileX, world.height - drawH * 0.72, drawW, drawH);
+        tileX += drawW * 0.9;
+      }
     }
 
     ctx.globalAlpha = 0.26;
@@ -839,16 +896,18 @@
     resize();
     setupAudio();
     bindInput();
-    const entries = await Promise.all(Object.entries(manifest).map(async ([key, src]) => [key, await loadImage(src)]));
-    for (const [key, image] of entries) assets[key] = image;
+    await loadImageSet(criticalManifest);
     resetRide();
     updateHud();
     setMode("menu");
     window.__RIDGE_RIDER_READY__ = true;
+    document.documentElement.dataset.ridgeReady = "true";
+    document.documentElement.dataset.ridgeReadyMs = String(Math.round(performance.now()));
     if (new URLSearchParams(window.location.search).has("autoplay")) {
       startRide();
     }
     requestAnimationFrame(loop);
+    loadImageSet(optionalManifest).catch((error) => console.warn("Optional assets failed", error));
   }
 
   init().catch((error) => {
