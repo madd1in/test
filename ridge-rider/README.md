@@ -27,6 +27,7 @@ Touch controls appear automatically on small or touch screens.
 - Added generated front tiles, prop decorations, particle dust, pickup sparks, local SFX, and looping BGM.
 - Next ideas: checkpoint streak rewards, alternate rider skins, weather variants, downhill time trials, and a trick-combo medal screen.
 - Fast-load pass: only backdrop and rider block the first menu; foreground props, pickup art, hazards, flags, and audio lazy-load after the first screen.
+- Control-feel pass: smoothed lean input, softer boost ramp, jump buffering, coyote-time forgiveness, gentler airtime spin, and cleaner landing recovery.
 
 ## Local Run
 

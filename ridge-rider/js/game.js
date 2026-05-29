@@ -54,9 +54,12 @@
   const input = {
     jump: false,
     jumpPressed: false,
+    jumpBuffer: 0,
     leanBack: false,
     leanForward: false,
     boost: false,
+    lean: 0,
+    boostEase: 0,
   };
 
   const world = {
@@ -89,6 +92,7 @@
     score: 0,
     trick: 0,
     hitCooldown: 0,
+    coyote: 0,
   };
 
   const keys = new Map([
@@ -183,6 +187,11 @@
     return a + (b - a) * t;
   }
 
+  function approach(value, target, amount) {
+    if (value < target) return Math.min(target, value + amount);
+    return Math.max(target, value - amount);
+  }
+
   function wrapAngle(angle) {
     while (angle > Math.PI) angle -= Math.PI * 2;
     while (angle < -Math.PI) angle += Math.PI * 2;
@@ -207,6 +216,9 @@
   }
 
   function resetRide() {
+    input.jumpBuffer = 0;
+    input.lean = 0;
+    input.boostEase = 0;
     world.pickups = [];
     world.hazards = [];
     world.markers = [];
@@ -228,6 +240,7 @@
       score: 0,
       trick: 0,
       hitCooldown: 0,
+      coyote: 0.14,
     });
     spawnAhead(4200);
   }
@@ -340,36 +353,46 @@
     dt = Math.min(dt, 1 / 30);
     const slope = terrainSlope(rider.worldX);
     const slopeAngle = Math.atan(slope);
-    const boosting = input.boost && rider.boost > 2;
-    const targetSpeed = 335 + (boosting ? 145 : 0) - slope * 86;
-    rider.speed = lerp(rider.speed, targetSpeed, dt * 2.35);
+    const rawLean = (input.leanForward ? 1 : 0) - (input.leanBack ? 1 : 0);
+    const leanRate = rawLean === 0 ? 5.8 : 4.4;
+    input.lean = approach(input.lean, rawLean, dt * leanRate);
+    input.boostEase = approach(input.boostEase, input.boost && rider.boost > 2 ? 1 : 0, dt * 3.2);
+    input.jumpBuffer = Math.max(0, input.jumpBuffer - dt);
+    rider.coyote = rider.airborne ? Math.max(0, rider.coyote - dt) : 0.14;
+
+    const boosting = input.boostEase > 0.04 && rider.boost > 2;
+    const targetSpeed = 335 + input.boostEase * 145 - slope * 86;
+    rider.speed = lerp(rider.speed, targetSpeed, dt * (boosting ? 2.05 : 2.7));
     rider.speed = clamp(rider.speed, 230, 590);
     rider.worldX += rider.speed * dt;
     rider.score = Math.max(rider.score, rider.worldX / 10);
 
     if (boosting) {
-      rider.boost = Math.max(0, rider.boost - dt * 24);
-      if (Math.random() < dt * 15) spawnDust(screenPlayerX() - 42, rider.y - 28, 1.1);
+      rider.boost = Math.max(0, rider.boost - dt * (18 + input.boostEase * 8));
+      if (Math.random() < dt * 11 * input.boostEase) spawnDust(screenPlayerX() - 42, rider.y - 28, 0.8 + input.boostEase * 0.6);
     } else {
       rider.boost = Math.min(100, rider.boost + dt * (rider.airborne ? 12 : 22));
     }
 
-    const lean = (input.leanForward ? 1 : 0) - (input.leanBack ? 1 : 0);
-    if (input.jumpPressed && !rider.airborne) {
+    const lean = input.lean;
+    if (input.jumpBuffer > 0 && (!rider.airborne || rider.coyote > 0)) {
       rider.airborne = true;
-      rider.vy = -650 - clamp(rider.speed - 320, 0, 180) * 0.24;
-      rider.spin = lean * 1.72 - slope * 0.48;
+      rider.coyote = 0;
+      rider.vy = -625 - clamp(rider.speed - 320, 0, 180) * 0.22;
+      rider.spin = lean * 1.38 - slope * 0.42;
       rider.airAngle = 0;
+      input.jumpBuffer = 0;
       spawnDust(screenPlayerX() - 28, rider.y - 12, 1.25);
       playSfx("jump", 0.72);
     }
     input.jumpPressed = false;
 
     if (rider.airborne) {
-      rider.vy += 1450 * dt;
+      const jumpHeld = input.jump && rider.vy < 0 ? 0.9 : 1;
+      rider.vy += 1450 * jumpHeld * dt;
       rider.y += rider.vy * dt;
-      rider.spin += lean * dt * 3.55;
-      rider.spin *= 0.992;
+      rider.spin += lean * dt * 2.65;
+      rider.spin *= 0.988;
       const prev = rider.angle;
       rider.angle += rider.spin * dt;
       rider.airAngle += wrapAngle(rider.angle - prev);
@@ -392,12 +415,14 @@
             rider.boost = Math.min(100, rider.boost + 20 + rotations * 15);
             rider.flow = Math.min(100, rider.flow + rotations * 11);
           }
-          rider.angle = lerp(rider.angle, slopeAngle, 0.54);
+          rider.spin *= 0.45;
+          rider.angle = lerp(rider.angle, slopeAngle, 0.66);
         }
       }
     } else {
       rider.y = terrainY(rider.worldX);
-      rider.angle = lerp(rider.angle, slopeAngle + lean * 0.12, dt * 8);
+      rider.spin = lerp(rider.spin, 0, dt * 8);
+      rider.angle = lerp(rider.angle, slopeAngle + lean * 0.1, dt * 9.5);
       rider.flow = Math.min(100, rider.flow + dt * 6);
     }
 
@@ -834,7 +859,10 @@
       const action = keys.get(event.code);
       if (!action) return;
       event.preventDefault();
-      if (action === "jump" && !input.jump) input.jumpPressed = true;
+      if (action === "jump" && !input.jump) {
+        input.jumpPressed = true;
+        input.jumpBuffer = 0.16;
+      }
       input[action] = true;
     });
 
@@ -849,7 +877,10 @@
       const action = button.dataset.action;
       const down = (event) => {
         event.preventDefault();
-        if (action === "jump" && !input.jump) input.jumpPressed = true;
+        if (action === "jump" && !input.jump) {
+          input.jumpPressed = true;
+          input.jumpBuffer = 0.16;
+        }
         input[action] = true;
         button.setPointerCapture?.(event.pointerId);
       };
