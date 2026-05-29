@@ -23,6 +23,7 @@
     solve: "assets/audio/sfx-solve.wav",
     click: "assets/audio/sfx-click.wav"
   };
+  const TIER_NAMES = ["Glass Vault", "Clockwork Ring", "Verdant Lens", "Eclipse Engine"];
 
   const makeTile = (x, y, type, rot = 0, locked = false) => ({
     x,
@@ -202,6 +203,105 @@
         makeTile(0, 6, "wall", 0, true),
         makeTile(7, 2, "wall", 0, true)
       ]
+    },
+    {
+      id: "aurora-circuit",
+      name: "Aurora Circuit",
+      size: 8,
+      par: 8,
+      note: "The aurora chamber makes green and cyan share the same breath.",
+      sources: [
+        { x: -1, y: 4, dir: DIR.E, color: "green" },
+        { x: 5, y: -1, dir: DIR.S, color: "cyan" }
+      ],
+      targets: [
+        { x: 7, y: 1, color: "green" },
+        { x: 7, y: 6, color: "green" },
+        { x: 1, y: 3, color: "cyan" }
+      ],
+      tiles: [
+        makeTile(2, 4, "split", 3),
+        makeTile(2, 1, "corner", 3),
+        makeTile(2, 6, "corner", 2),
+        makeTile(5, 3, "corner", 1),
+        makeTile(4, 4, "wall", 0, true),
+        makeTile(6, 2, "wall", 0, true)
+      ]
+    },
+    {
+      id: "solar-lattice",
+      name: "Solar Lattice",
+      size: 8,
+      par: 8,
+      note: "Amber gears and violet glass answer from opposite edges.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "amber" },
+        { x: 8, y: 5, dir: DIR.W, color: "violet" }
+      ],
+      targets: [
+        { x: 6, y: 6, color: "amber" },
+        { x: 1, y: 1, color: "violet" }
+      ],
+      tiles: [
+        makeTile(3, 2, "corner", 0),
+        makeTile(3, 6, "corner", 2),
+        makeTile(5, 5, "corner", 2),
+        makeTile(5, 1, "corner", 0),
+        makeTile(4, 3, "cross", 0, true),
+        makeTile(2, 4, "wall", 0, true)
+      ]
+    },
+    {
+      id: "verdant-spiral",
+      name: "Verdant Spiral",
+      size: 8,
+      par: 6,
+      note: "A living conduit bends around one old clockwork scar.",
+      sources: [
+        { x: 3, y: 8, dir: DIR.N, color: "green" },
+        { x: 6, y: -1, dir: DIR.S, color: "amber" }
+      ],
+      targets: [
+        { x: 7, y: 0, color: "green" },
+        { x: 0, y: 4, color: "green" },
+        { x: 1, y: 6, color: "amber" }
+      ],
+      tiles: [
+        makeTile(3, 4, "split", 3),
+        makeTile(3, 0, "corner", 3),
+        makeTile(6, 6, "corner", 1),
+        makeTile(4, 2, "line", 1, true),
+        makeTile(5, 4, "wall", 0, true)
+      ]
+    },
+    {
+      id: "eclipse-engine",
+      name: "Eclipse Engine",
+      size: 8,
+      par: 10,
+      note: "Four colors lock the final engine into a single hush.",
+      sources: [
+        { x: -1, y: 1, dir: DIR.E, color: "cyan" },
+        { x: 6, y: -1, dir: DIR.S, color: "amber" },
+        { x: 8, y: 6, dir: DIR.W, color: "violet" },
+        { x: 1, y: 8, dir: DIR.N, color: "green" }
+      ],
+      targets: [
+        { x: 7, y: 3, color: "cyan" },
+        { x: 0, y: 5, color: "amber" },
+        { x: 4, y: 0, color: "violet" },
+        { x: 7, y: 7, color: "green" }
+      ],
+      tiles: [
+        makeTile(3, 1, "corner", 0),
+        makeTile(3, 3, "corner", 2),
+        makeTile(6, 5, "corner", 1),
+        makeTile(4, 6, "corner", 2),
+        makeTile(1, 7, "corner", 3),
+        makeTile(2, 2, "wall", 0, true),
+        makeTile(5, 2, "wall", 0, true),
+        makeTile(5, 7, "line", 1, true)
+      ]
     }
   ];
 
@@ -213,6 +313,8 @@
     par: document.getElementById("parValue"),
     targets: document.getElementById("targetValue"),
     best: document.getElementById("bestValue"),
+    mastery: document.getElementById("masteryValue"),
+    tier: document.getElementById("tierValue"),
     badge: document.getElementById("stateBadge"),
     levelButtons: document.getElementById("levelButtons"),
     undo: document.getElementById("undoButton"),
@@ -226,11 +328,13 @@
   };
 
   const assets = {
-    background: loadImage("assets/lumen-lock-background.png"),
+    background: loadImage("assets/lumen-lock-background-imagen-v3.png"),
     glyphs: loadImage("assets/lumen-lock-glyphs.png"),
     uiSkin: loadImage("assets/lumen-lock-gui-imagen-v2.png"),
     boardSkin: loadImage("assets/lumen-lock-board-imagen-v2.png"),
-    elementSkin: loadImage("assets/lumen-lock-elements-imagen-v2.png")
+    boardBiomes: loadImage("assets/lumen-lock-board-biomes-imagen-v3.png"),
+    elementSkin: loadImage("assets/lumen-lock-elements-imagen-v2.png"),
+    rewardPlaque: loadImage("assets/lumen-lock-reward-plaque-imagen-v1.png")
   };
 
   const audio = {
@@ -482,11 +586,12 @@
     const previousTargets = state.beams.activeTargets.size;
     state.beams = computeBeams();
     state.solved = state.beams.activeTargets.size === getLevel().targets.length;
+    const solvedNow = state.solved && !wasSolved;
     if (!state.solved) state.newBest = false;
     if (state.beams.activeTargets.size > previousTargets) {
       playSound("target");
     }
-    if (state.solved && !wasSolved) {
+    if (solvedNow) {
       const level = getLevel();
       playSound("solve");
       const previous = state.best[level.id];
@@ -497,6 +602,7 @@
       }
     }
     updateDom();
+    if (solvedNow) renderLevelButtons();
     draw(performance.now());
   }
 
@@ -510,6 +616,8 @@
     nodes.signalValue.textContent = String(state.beams.segments.length);
     nodes.lockState.textContent = state.solved ? "Solved" : "Open";
     nodes.best.textContent = state.best[level.id] ? `Best ${state.best[level.id]}` : "Best -";
+    if (nodes.mastery) nodes.mastery.textContent = `${completedCount()}/${LEVELS.length} sealed`;
+    if (nodes.tier) nodes.tier.textContent = TIER_NAMES[boardVariantIndex()] ?? TIER_NAMES[0];
     if (nodes.note) nodes.note.textContent = level.note;
     nodes.badge.textContent = badgeText(level);
     nodes.badge.classList.toggle("is-solved", state.solved);
@@ -522,6 +630,14 @@
     if (!state.solved) return "Align";
     if (state.newBest) return "New Best";
     return state.moves <= level.par ? "Par Lock" : "Unlocked";
+  }
+
+  function completedCount() {
+    return LEVELS.filter((level) => state.best[level.id]).length;
+  }
+
+  function boardVariantIndex(index = state.levelIndex) {
+    return Math.min(TIER_NAMES.length - 1, Math.floor(index / 3));
   }
 
   function renderSignals() {
@@ -549,6 +665,8 @@
       button.type = "button";
       button.textContent = String(index + 1);
       button.setAttribute("aria-label", level.name);
+      button.style.setProperty("--relic-x", `${(index % 4) * 33.333}%`);
+      button.style.setProperty("--relic-y", `${Math.floor(index / 4) * 33.333}%`);
       button.classList.toggle("is-active", index === state.levelIndex);
       button.classList.toggle("is-complete", Boolean(state.best[level.id]));
       button.classList.toggle("is-par", Boolean(state.best[level.id] && state.best[level.id] <= level.par));
@@ -729,10 +847,18 @@
     ctx.drawImage(image, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
   }
 
+  function drawAtlasImage(image, index, columns, x, y, w, h) {
+    const cell = image.naturalWidth / columns;
+    const sx = (index % columns) * cell;
+    const sy = Math.floor(index / columns) * cell;
+    ctx.drawImage(image, sx, sy, cell, cell, x, y, w, h);
+  }
+
   function drawBoardBase() {
     const level = getLevel();
     const board = boardRect();
     const boardSkin = assets.boardSkin;
+    const biomeSkin = assets.boardBiomes;
     ctx.save();
     roundRect(board.x - 10, board.y - 10, board.size + 20, board.size + 20, 8);
     ctx.fillStyle = "rgba(8, 10, 10, 0.66)";
@@ -749,7 +875,12 @@
       ctx.restore();
     }
 
-    if (boardSkin.complete && boardSkin.naturalWidth) {
+    if (biomeSkin.complete && biomeSkin.naturalWidth) {
+      ctx.save();
+      ctx.globalAlpha = 0.76;
+      drawAtlasImage(biomeSkin, boardVariantIndex(), 2, board.x - board.cell * 0.32, board.y - board.cell * 0.32, board.size + board.cell * 0.64, board.size + board.cell * 0.64);
+      ctx.restore();
+    } else if (boardSkin.complete && boardSkin.naturalWidth) {
       ctx.save();
       ctx.globalAlpha = 0.72;
       drawCoverImage(boardSkin, board.x - board.cell * 0.32, board.y - board.cell * 0.32, board.size + board.cell * 0.64, board.size + board.cell * 0.64);
@@ -1078,16 +1209,24 @@
   function drawSolved(time) {
     const board = boardRect();
     const y = board.y + board.size * 0.045;
-    const w = Math.min(board.size * 0.54, 310);
+    const w = Math.min(board.size * 0.62, 360);
     const x = board.x + (board.size - w) / 2;
     const h = Math.max(34, board.cell * 0.42);
     ctx.save();
     ctx.globalAlpha = 0.86 + Math.sin(time * 0.007) * 0.05;
-    roundRect(x, y, w, h, 8);
-    ctx.fillStyle = "rgba(6, 18, 20, 0.84)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(102, 232, 255, 0.72)";
-    ctx.stroke();
+    const plaque = assets.rewardPlaque;
+    if (plaque.complete && plaque.naturalWidth) {
+      drawCoverImage(plaque, x - h * 0.6, y - h * 0.52, w + h * 1.2, h * 2.04);
+      ctx.fillStyle = "rgba(4, 10, 12, 0.58)";
+      roundRect(x + h * 0.24, y + h * 0.12, w - h * 0.48, h * 0.78, 8);
+      ctx.fill();
+    } else {
+      roundRect(x, y, w, h, 8);
+      ctx.fillStyle = "rgba(6, 18, 20, 0.84)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(102, 232, 255, 0.72)";
+      ctx.stroke();
+    }
     ctx.fillStyle = "#f3efe3";
     ctx.font = `900 ${Math.max(16, h * 0.42)}px Georgia, serif`;
     ctx.textAlign = "center";

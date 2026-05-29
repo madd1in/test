@@ -14,6 +14,7 @@
   --shadow: rgba(0, 0, 0, 0.46);
   --radius: 8px;
   --gui-skin: url("assets/lumen-lock-gui-imagen-v2.png");
+  --relics: url("assets/lumen-lock-relics-imagen-v1.png");
   --display-font: "Palatino Linotype", "Book Antiqua", Cambria, Georgia, serif;
   --ui-font: "Segoe UI Variable", "Segoe UI", Tahoma, sans-serif;
   font-family: var(--ui-font);
@@ -33,7 +34,7 @@ body {
   color: var(--ink);
   background:
     linear-gradient(180deg, rgba(5, 7, 9, 0.5), rgba(5, 7, 9, 0.92)),
-    url("assets/lumen-lock-background.png") center / cover fixed,
+    url("assets/lumen-lock-background-imagen-v3.png") center / cover fixed,
     radial-gradient(circle at 24% 18%, rgba(102, 232, 255, 0.18), transparent 34%),
     radial-gradient(circle at 82% 76%, rgba(255, 199, 90, 0.16), transparent 30%),
     var(--bg);
@@ -275,7 +276,7 @@ h1 {
   content: "";
   position: absolute;
   inset: 0;
-  background: url("assets/lumen-lock-background.png") center / cover;
+  background: url("assets/lumen-lock-background-imagen-v3.png") center / cover;
   opacity: 0.2;
   filter: saturate(1.1);
 }
@@ -359,6 +360,35 @@ h1 {
   gap: 8px;
 }
 
+.mastery-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  margin-bottom: 10px;
+  padding: 7px 9px;
+  border: 1px solid rgba(216, 183, 108, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, rgba(102, 232, 255, 0.08), rgba(255, 199, 90, 0.06)),
+    rgba(0, 0, 0, 0.22);
+}
+
+.mastery-strip span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mastery-strip strong {
+  color: var(--brass);
+  font-family: var(--display-font);
+  font-size: 0.86rem;
+}
+
 .level-buttons {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -367,6 +397,26 @@ h1 {
   position: relative;
   min-height: 48px;
   padding: 0;
+  overflow: hidden;
+}
+
+.level-buttons button::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background-image: var(--relics);
+  background-size: 400% 400%;
+  background-position: var(--relic-x, 0%) var(--relic-y, 0%);
+  opacity: 0.46;
+  filter: saturate(1.1) drop-shadow(0 0 5px rgba(102, 232, 255, 0.18));
+}
+
+.level-buttons button.is-complete::before {
+  opacity: 0.94;
 }
 
 .level-buttons button.is-active {
@@ -556,6 +606,12 @@ h1 {
 
   .button-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mastery-strip {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .audio-button {

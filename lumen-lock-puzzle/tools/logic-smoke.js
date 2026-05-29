@@ -31,7 +31,9 @@ function makeElement(id = "") {
   return {
     id,
     children: [],
-    style: {},
+    style: {
+      setProperty() {}
+    },
     className: "",
     textContent: "",
     innerText: "",
@@ -70,6 +72,8 @@ const elements = new Map();
   "parValue",
   "targetValue",
   "bestValue",
+  "masteryValue",
+  "tierValue",
   "stateBadge",
   "levelButtons",
   "undoButton",
@@ -171,6 +175,30 @@ const solutions = [
     [1, 5, 2],
     [6, 6, 2],
     [6, 1, 2]
+  ],
+  [
+    [2, 4, 2],
+    [2, 1, 2],
+    [2, 6, 2],
+    [5, 3, 2]
+  ],
+  [
+    [3, 2, 2],
+    [3, 6, 2],
+    [5, 5, 2],
+    [5, 1, 2]
+  ],
+  [
+    [3, 4, 2],
+    [3, 0, 2],
+    [6, 6, 2]
+  ],
+  [
+    [3, 1, 2],
+    [3, 3, 2],
+    [6, 5, 2],
+    [4, 6, 2],
+    [1, 7, 2]
   ]
 ];
 
