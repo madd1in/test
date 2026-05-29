@@ -45,7 +45,7 @@
   const propFrames = {
     ramp: { sx: 0, sy: 183, sw: 329, sh: 241, anchorX: 172, foot: 193, groundInset: 6 },
     bale: { sx: 315, sy: 219, sw: 197, sh: 161, anchorX: 109, foot: 147, groundInset: 5 },
-    sign: { sx: 538, sy: 190, sw: 150, sh: 219, anchorX: 84, foot: 175, groundInset: 4 },
+    sign: { sx: 538, sy: 190, sw: 150, sh: 219, anchorX: 84, foot: 156, groundInset: 7 },
     stump: { sx: 695, sy: 205, sw: 183, sh: 216, anchorX: 82, foot: 164, groundInset: 6 },
     dust: { sx: 878, sy: 223, sw: 208, sh: 179, anchorX: 108, foot: 144, groundInset: 3 },
     berm: { sx: 1068, sy: 205, sw: 183, sh: 227, anchorX: 92, foot: 165, groundInset: 7 },

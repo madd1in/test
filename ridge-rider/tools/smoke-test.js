@@ -58,6 +58,11 @@ for (const token of ["flagGroundAnchor", "groundInset", "foot:", '"ramp"']) {
   }
 }
 
+if (!/sign:\s*\{[^}]*foot:\s*156[^}]*groundInset:\s*7/.test(game)) {
+  console.error("Signpost terrain anchor is not buried into the trail.");
+  process.exit(1);
+}
+
 if (/const lift = prop\.name/.test(game)) {
   console.error("Prop rendering still uses the old lifted-frame positioning.");
   process.exit(1);
