@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aethergate III: Shards of Veyra</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Aethergate III browser game">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Original HD grid RPG</p>
+          <h1>Aethergate III</h1>
+        </div>
+        <div class="status-strip" aria-live="polite">
+          <span id="placeName">Aether Road</span>
+          <span id="compass">N</span>
+          <span id="resourceLine">Gold 0 / Keys 0 / Food 0</span>
+        </div>
+        <div class="save-controls" aria-label="Save controls">
+          <button type="button" data-action="sound" id="soundButton">Sound</button>
+          <button type="button" data-action="save">Save</button>
+          <button type="button" data-action="load">Load</button>
+          <button type="button" data-action="reset">New</button>
+        </div>
+      </header>
+
+      <section class="layout">
+        <section class="play-column" aria-label="Game viewport and controls">
+          <div class="viewport-wrap">
+            <div id="viewport" class="three-viewport" role="img" aria-label="True 3D first person dungeon view"></div>
+            <div class="viewport-hud">
+              <span id="objectiveChip">Find the Prism Key</span>
+              <span id="turnChip">Exploration</span>
+            </div>
+          </div>
+
+          <div class="command-row" aria-label="Movement and action controls">
+            <button type="button" data-action="turnLeft">Turn Left</button>
+            <button type="button" data-action="forward" class="primary">Forward</button>
+            <button type="button" data-action="turnRight">Turn Right</button>
+            <button type="button" data-action="back">Back</button>
+            <button type="button" data-action="search">Search</button>
+            <button type="button" data-action="rest">Rest</button>
+          </div>
+
+          <div class="lower-grid">
+            <section class="map-panel" aria-label="Explored map">
+              <div class="panel-title">
+                <span>Map</span>
+                <span id="positionLine">1,1</span>
+              </div>
+              <div id="miniMap" class="mini-map"></div>
+            </section>
+
+            <section class="log-panel" aria-label="Adventure log">
+              <div class="panel-title">
+                <span>Chronicle</span>
+                <span id="roundLine">Day 1</span>
+              </div>
+              <ol id="logList"></ol>
+            </section>
+          </div>
+        </section>
+
+        <aside class="side-panel" aria-label="Party, combat, and inventory">
+          <section>
+            <div class="panel-title">
+              <span>Party</span>
+              <span id="partyPower">Ready</span>
+            </div>
+            <div id="partyList" class="party-list"></div>
+          </section>
+
+          <section id="combatPanel" class="combat-panel" aria-label="Combat commands">
+            <div class="panel-title">
+              <span>Encounter</span>
+              <span id="enemyHealth">No threat</span>
+            </div>
+            <div id="enemyCard" class="enemy-card hidden"></div>
+            <div class="combat-actions">
+              <button type="button" data-action="attack">Strike</button>
+              <button type="button" data-action="skill">Party Skill</button>
+              <button type="button" data-action="guard">Guard</button>
+              <button type="button" data-action="flee">Retreat</button>
+            </div>
+          </section>
+
+          <section>
+            <div class="panel-title">
+              <span>Satchel</span>
+              <span id="inventoryCount">0 items</span>
+            </div>
+            <div id="inventoryList" class="inventory-list"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="assets/vendor/three.global.js"></script>
+    <script src="js/game.js"></script>
+  </body>
+</html>
