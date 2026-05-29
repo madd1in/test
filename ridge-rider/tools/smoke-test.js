@@ -10,14 +10,14 @@ const required = [
   "assets/sprites/rider-imagen.webp",
   "assets/foreground/front-tiles-imagen.webp",
   "assets/foreground/trail-props-imagen.webp",
+  "assets/imagen/coin-imagen.webp",
+  "assets/imagen/flag-imagen.webp",
   "assets/audio/ridge-bgm.wav",
   "assets/audio/jump.wav",
   "assets/audio/land.wav",
   "assets/audio/pickup.wav",
   "assets/audio/crash.wav",
-  "assets/ui/energy-ring.svg",
   "assets/ui/rock.svg",
-  "assets/ui/trail-flag.svg",
 ];
 
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
@@ -29,7 +29,7 @@ if (missing.length) {
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const game = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 
-for (const token of ["<canvas", "./js/game.js", "front-tiles-imagen.webp", "ridge-bgm.wav", "rider-imagen.webp"]) {
+for (const token of ["<canvas", "./js/game.js", "coin-imagen.webp", "flag-imagen.webp", "ridge-bgm.wav"]) {
   if (!html.includes(token) && !game.includes(token)) {
     console.error(`Expected token not found: ${token}`);
     process.exit(1);

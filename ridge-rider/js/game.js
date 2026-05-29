@@ -20,9 +20,9 @@
   const optionalManifest = {
     frontTiles: "./assets/foreground/front-tiles-imagen.webp",
     props: "./assets/foreground/trail-props-imagen.webp",
-    energy: "./assets/ui/energy-ring.svg",
+    energy: "./assets/imagen/coin-imagen.webp",
     rock: "./assets/ui/rock.svg",
-    flag: "./assets/ui/trail-flag.svg",
+    flag: "./assets/imagen/flag-imagen.webp",
   };
 
   const audioManifest = {
@@ -758,7 +758,9 @@
       if (x < -80 || x > world.width + 80) continue;
       const y = terrainY(marker.x);
       if (img) {
-        ctx.drawImage(img, x - 18, y - 106, 54, 104);
+        const drawH = 112;
+        const drawW = drawH * (img.width / img.height);
+        ctx.drawImage(img, x - drawW * 0.34, y - drawH, drawW, drawH);
       } else {
         ctx.fillStyle = "#eef7f5";
         ctx.fillRect(x, y - 92, 6, 92);

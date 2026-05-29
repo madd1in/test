@@ -17,7 +17,9 @@ Touch controls appear automatically on small or touch screens.
 - `assets/sprites/rider-imagen.webp`: compressed generated rider sprite with local chroma-key background removal.
 - `assets/foreground/front-tiles-imagen.webp`: compressed generated foreground trail tile strip.
 - `assets/foreground/trail-props-imagen.webp`: compressed generated prop atlas for signs, ramps, bales, stumps, dust, berms, and ribbons.
-- `assets/ui/*.svg`: project-local game pickups, hazards, and markers.
+- `assets/imagen/coin-imagen.webp`: generated Imagen collectible coin pickup.
+- `assets/imagen/flag-imagen.webp`: generated Imagen checkpoint flag marker.
+- `assets/ui/rock.svg`: project-local rock hazard.
 - `assets/audio/*.wav`: local disk BGM and SFX copied from the existing `moto-ridge-rush` asset set.
 
 ## Polish Pass
