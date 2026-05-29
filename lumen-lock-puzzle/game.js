@@ -629,7 +629,7 @@
     const skin = assets.uiSkin;
     if (skin.complete && skin.naturalWidth) {
       ctx.save();
-      ctx.globalAlpha = 0.12;
+      ctx.globalAlpha = 0.04;
       drawCoverImage(skin, board.x - 26, board.y - 26, board.size + 52, board.size + 52);
       ctx.restore();
     }
