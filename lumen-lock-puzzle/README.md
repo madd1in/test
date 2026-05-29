@@ -1,6 +1,6 @@
 # Lumen Lock
 
-A standalone browser puzzle game about rotating prism tiles until every crystal receives the right beam. The current build has twelve hand-authored chambers, generated image assets, local BGM/SFX, persistent best scores, and responsive canvas/DOM UI.
+A standalone browser puzzle game about rotating prism tiles until every crystal receives the right beam. The current build has sixteen hand-authored chambers, generated image assets, local BGM/SFX, persistent best scores, and responsive canvas/DOM UI.
 
 ## Run
 
@@ -18,8 +18,11 @@ Open `index.html` in a browser. The game uses static files only.
 - `assets/lumen-lock-board-imagen-v2.png` - generated playfield skin used under the canvas grid
 - `assets/lumen-lock-board-biomes-imagen-v3.png` - generated 2x2 board-biome atlas for level tiers
 - `assets/lumen-lock-elements-imagen-v2.png` - generated element atlas used by tiles, sources, targets, and wall surfaces
+- `assets/lumen-lock-beam-flares-imagen-v1.png` - generated additive beam flare atlas used by sources and lit targets
 - `assets/lumen-lock-relics-imagen-v1.png` - generated chamber relic atlas used by level buttons
+- `assets/lumen-lock-tier-medallions-imagen-v1.png` - generated tier medallion atlas used by the mastery strip
 - `assets/lumen-lock-reward-plaque-imagen-v1.png` - generated no-text solved banner artwork
+- `assets/lumen-lock-archive-panel-imagen-v1.png` - generated archive panel skin used behind notes and mastery
 - `assets/lumen-lock-wordmark.png` - previous generated title wordmark art
 - `assets/lumen-lock-ui-skin.png` - previous generated GUI skin atlas
 - `assets/lumen-lock-glyphs.png` - generated tile and crystal glyph atlas
@@ -30,9 +33,10 @@ Open `index.html` in a browser. The game uses static files only.
 
 ## Content Notes
 
-- Late-game chambers introduce green beams, locked conduit tiles, cross-junctions, multi-source engines, and four-color crown routing.
+- Late-game chambers introduce green beams, locked conduit tiles, cross-junctions, multi-source engines, four-color crown routing, and a 9x9 final resonance chamber.
 - Completed chambers show relic art and a small marker in the chamber selector; par clears get a warmer marker.
 - Chamber notes are intentionally short so the playfield stays clear.
+- Tier medallions and board biomes now shift every four chambers.
 
 ## Expansion Ideas
 
@@ -41,3 +45,7 @@ Open `index.html` in a browser. The game uses static files only.
 - Optional master chambers with hidden par relics.
 - A daily chamber seed using the same beam tracer.
 - Color-gated doors that open when another target is lit.
+- A no-undo challenge track with separate relic art.
+- Ghost beams that preview one rotation ahead.
+- Boss locks made from chained mini-boards.
+- A vault codex that unlocks puzzle-making sketches after each tier.
