@@ -1,0 +1,514 @@
+:root {
+  color-scheme: dark;
+  --bg: #090b0d;
+  --panel: rgba(13, 18, 20, 0.76);
+  --panel-strong: rgba(20, 25, 27, 0.9);
+  --ink: #f3efe3;
+  --muted: #aeb7b3;
+  --line: rgba(224, 196, 128, 0.27);
+  --brass: #d8b76c;
+  --cyan: #66e8ff;
+  --amber: #ffc75a;
+  --violet: #c993ff;
+  --danger: #ff6f7d;
+  --shadow: rgba(0, 0, 0, 0.46);
+  --radius: 8px;
+  --display-font: "Palatino Linotype", "Book Antiqua", Cambria, Georgia, serif;
+  --ui-font: "Segoe UI Variable", "Segoe UI", Tahoma, sans-serif;
+  font-family: var(--ui-font);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(5, 7, 9, 0.5), rgba(5, 7, 9, 0.92)),
+    url("assets/lumen-lock-background.png") center / cover fixed,
+    radial-gradient(circle at 24% 18%, rgba(102, 232, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 82% 76%, rgba(255, 199, 90, 0.16), transparent 30%),
+    var(--bg);
+  overflow-x: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+button {
+  min-height: 42px;
+  border: 1px solid rgba(216, 183, 108, 0.36);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(255, 235, 172, 0.1), rgba(0, 0, 0, 0.12)),
+    url("assets/lumen-lock-ui-skin.png") 63% 15% / 420px auto,
+    linear-gradient(180deg, rgba(48, 53, 48, 0.92), rgba(24, 29, 28, 0.94));
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(102, 232, 255, 0.7);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 0 20px rgba(102, 232, 255, 0.16);
+}
+
+button:focus-visible,
+canvas:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.app-shell {
+  width: min(1440px, 100%);
+  min-width: 0;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(14px, 2vw, 28px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: clamp(14px, 2vw, 22px);
+}
+
+.topbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 183, 108, 0.24);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, rgba(4, 8, 9, 0.9), rgba(12, 18, 18, 0.68)),
+    url("assets/lumen-lock-ui-skin.png") 18% 8% / 760px auto,
+    rgba(7, 9, 10, 0.64);
+  box-shadow: 0 18px 50px var(--shadow), inset 0 0 0 1px rgba(102, 232, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 199, 90, 0.5);
+  background:
+    conic-gradient(from 20deg, var(--cyan), var(--amber), var(--violet), var(--cyan));
+  box-shadow: 0 0 26px rgba(102, 232, 255, 0.28), inset 0 0 18px rgba(0, 0, 0, 0.42);
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.wordmark {
+  display: block;
+  width: min(330px, 42vw);
+  max-height: 58px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 0 10px rgba(102, 232, 255, 0.28));
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.28rem, 2.4vw, 2rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.brand p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-family: var(--display-font);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(78px, 1fr));
+  gap: 8px;
+  width: min(420px, 48vw);
+}
+
+.audio-button {
+  min-width: 86px;
+  padding-inline: 14px;
+  color: var(--amber);
+}
+
+.audio-button.is-on {
+  color: #071013;
+  border-color: rgba(102, 232, 255, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(102, 232, 255, 0.12)),
+    url("assets/lumen-lock-ui-skin.png") 41% 40% / 360px auto,
+    linear-gradient(180deg, var(--cyan), #62e8bd);
+}
+
+.stats div,
+.panel,
+.state-badge {
+  border: 1px solid rgba(216, 183, 108, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 235, 172, 0.035), rgba(0, 0, 0, 0.16)),
+    url("assets/lumen-lock-ui-skin.png") 6% 4% / 620px auto,
+    var(--panel);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26), inset 0 0 28px rgba(102, 232, 255, 0.035);
+  backdrop-filter: blur(12px);
+}
+
+.stats div {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+}
+
+.stats span,
+.panel-title span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stats strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 1.06rem;
+  font-family: var(--display-font);
+}
+
+.game-layout {
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: clamp(14px, 2vw, 22px);
+  align-items: stretch;
+}
+
+.board-stage {
+  position: relative;
+  min-width: 0;
+  min-height: min(74vh, 860px);
+  border: 1px solid rgba(216, 183, 108, 0.25);
+  border-radius: var(--radius);
+  background:
+    url("assets/lumen-lock-ui-skin.png") center 5% / 1150px auto no-repeat,
+    linear-gradient(135deg, rgba(11, 16, 18, 0.74), rgba(24, 17, 15, 0.54)),
+    rgba(11, 14, 16, 0.7);
+  overflow: hidden;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(102, 232, 255, 0.08);
+}
+
+.board-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("assets/lumen-lock-background.png") center / cover;
+  opacity: 0.2;
+  filter: saturate(1.1);
+}
+
+#gameCanvas {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  min-height: 520px;
+}
+
+.state-badge {
+  position: absolute;
+  z-index: 2;
+  left: 16px;
+  bottom: 16px;
+  max-width: min(280px, calc(100% - 32px));
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-weight: 900;
+  font-family: var(--display-font);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.state-badge.is-solved {
+  border-color: rgba(102, 232, 255, 0.62);
+  box-shadow: 0 0 26px rgba(102, 232, 255, 0.22), 0 16px 42px rgba(0, 0, 0, 0.26);
+}
+
+.command-rail {
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.panel {
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, transparent, rgba(102, 232, 255, 0.08), transparent) top / 100% 1px no-repeat,
+    linear-gradient(180deg, transparent, rgba(255, 199, 90, 0.07), transparent) left / 1px 100% no-repeat;
+}
+
+.panel-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.panel-title strong {
+  color: var(--brass);
+  font-family: var(--display-font);
+  font-size: 0.9rem;
+}
+
+.level-buttons,
+.signal-list {
+  display: grid;
+  gap: 8px;
+}
+
+.level-buttons {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.level-buttons button {
+  min-height: 48px;
+  padding: 0;
+}
+
+.level-buttons button.is-active {
+  color: #071013;
+  border-color: rgba(102, 232, 255, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(0, 0, 0, 0.05)),
+    url("assets/lumen-lock-ui-skin.png") 38% 44% / 430px auto,
+    linear-gradient(180deg, var(--cyan), #6ef0c3);
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.signal-list {
+  grid-template-columns: 1fr;
+}
+
+.signal-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid rgba(216, 183, 108, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, rgba(102, 232, 255, 0.07), rgba(0, 0, 0, 0.18)),
+    url("assets/lumen-lock-ui-skin.png") 80% 42% / 460px auto;
+}
+
+.signal-chip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.signal-chip i {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: 0 0 14px currentColor;
+}
+
+.signal-chip strong {
+  color: var(--ink);
+  font-family: var(--display-font);
+}
+
+@media (max-width: 920px) {
+  .topbar,
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .stats {
+    width: 100%;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .game-layout {
+    display: grid;
+  }
+
+  .board-stage {
+    min-height: min(72vh, 720px);
+  }
+
+  #gameCanvas {
+    min-height: 440px;
+  }
+
+  .command-rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .wordmark {
+    width: min(250px, 70vw);
+    max-height: 48px;
+  }
+
+  .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stats div {
+    padding: 7px 8px;
+  }
+
+  .board-stage {
+    min-height: 64vh;
+  }
+
+  #gameCanvas {
+    min-height: 380px;
+  }
+
+  .command-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .level-buttons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .panel {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .level-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .button-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .audio-button {
+    min-height: 38px;
+  }
+
+  #nextButton {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
