@@ -75,7 +75,9 @@ const elements = new Map();
   "undoButton",
   "resetButton",
   "nextButton",
+  "audioButton",
   "lockState",
+  "levelNote",
   "signalValue",
   "signalList"
 ].forEach((id) => elements.set(id, makeElement(id)));
@@ -149,8 +151,32 @@ const solutions = [
     [5, 3, 1],
     [4, 5, 2],
     [4, 2, 2]
+  ],
+  [
+    [2, 3, 2],
+    [2, 1, 2],
+    [2, 5, 2]
+  ],
+  [
+    [1, 2, 2],
+    [5, 2, 2],
+    [2, 5, 2],
+    [2, 1, 2]
+  ],
+  [
+    [2, 2, 2],
+    [2, 0, 2],
+    [2, 4, 2],
+    [5, 5, 2],
+    [1, 5, 2],
+    [6, 6, 2],
+    [6, 1, 2]
   ]
 ];
+
+if (typeof game.getLevelCount === "function" && solutions.length !== game.getLevelCount()) {
+  throw new Error(`Expected ${game.getLevelCount()} solution sets, found ${solutions.length}.`);
+}
 
 const report = solutions.map((moves, levelIndex) => {
   game.loadLevel(levelIndex);

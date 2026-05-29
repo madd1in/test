@@ -351,6 +351,7 @@ h1 {
 }
 
 .level-buttons button {
+  position: relative;
   min-height: 48px;
   padding: 0;
 }
@@ -359,6 +360,31 @@ h1 {
   color: #071013;
   border-color: rgba(102, 232, 255, 0.95);
   background: linear-gradient(180deg, var(--cyan), #6ef0c3);
+}
+
+.level-buttons button.is-complete::after {
+  content: "";
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px rgba(102, 232, 255, 0.75);
+}
+
+.level-buttons button.is-par::after {
+  background: var(--amber);
+  box-shadow: 0 0 12px rgba(255, 199, 90, 0.75);
+}
+
+.level-note {
+  margin-top: 11px;
+  color: var(--muted);
+  font-family: var(--display-font);
+  font-size: 0.88rem;
+  line-height: 1.35;
 }
 
 .button-grid {

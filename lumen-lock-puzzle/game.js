@@ -39,6 +39,7 @@
       name: "First Seal",
       size: 6,
       par: 2,
+      note: "Two mirrored turns wake the first lock.",
       sources: [{ x: -1, y: 2, dir: DIR.E, color: "cyan" }],
       targets: [{ x: 4, y: 4, color: "cyan" }],
       tiles: [
@@ -51,6 +52,7 @@
       name: "Twin Prism",
       size: 6,
       par: 5,
+      note: "One prism must split a single beam into two promises.",
       sources: [{ x: -1, y: 1, dir: DIR.E, color: "cyan" }],
       targets: [
         { x: 5, y: 1, color: "cyan" },
@@ -66,6 +68,7 @@
       name: "Amber Crossing",
       size: 6,
       par: 7,
+      note: "Two colors cross without forgiving the wrong crystal.",
       sources: [
         { x: -1, y: 0, dir: DIR.E, color: "cyan" },
         { x: 4, y: -1, dir: DIR.S, color: "amber" }
@@ -86,6 +89,7 @@
       name: "North Fork",
       size: 7,
       par: 4,
+      note: "The violet fork only opens when both branches agree.",
       sources: [{ x: -1, y: 5, dir: DIR.E, color: "violet" }],
       targets: [
         { x: 5, y: 5, color: "violet" },
@@ -103,6 +107,7 @@
       name: "Triple Lock",
       size: 7,
       par: 11,
+      note: "Three old circuits share the same cramped machine.",
       sources: [
         { x: -1, y: 1, dir: DIR.E, color: "cyan" },
         { x: 1, y: 7, dir: DIR.N, color: "amber" },
@@ -123,6 +128,80 @@
         makeTile(6, 1, "wall", 0, true),
         makeTile(0, 5, "wall", 0, true)
       ]
+    },
+    {
+      id: "split-current",
+      name: "Split Current",
+      size: 7,
+      par: 6,
+      note: "Green light is greedy: one gate, two distant receivers.",
+      sources: [{ x: -1, y: 3, dir: DIR.E, color: "green" }],
+      targets: [
+        { x: 6, y: 1, color: "green" },
+        { x: 6, y: 5, color: "green" }
+      ],
+      tiles: [
+        makeTile(2, 3, "split", 3),
+        makeTile(2, 1, "corner", 3),
+        makeTile(2, 5, "corner", 2),
+        makeTile(4, 2, "wall", 0, true),
+        makeTile(4, 4, "wall", 0, true)
+      ]
+    },
+    {
+      id: "glass-meridian",
+      name: "Glass Meridian",
+      size: 7,
+      par: 8,
+      note: "Two beams share a meridian and refuse to collide.",
+      sources: [
+        { x: 1, y: -1, dir: DIR.S, color: "cyan" },
+        { x: -1, y: 5, dir: DIR.E, color: "amber" }
+      ],
+      targets: [
+        { x: 5, y: 5, color: "cyan" },
+        { x: 5, y: 1, color: "amber" }
+      ],
+      tiles: [
+        makeTile(1, 2, "corner", 2),
+        makeTile(5, 2, "corner", 0),
+        makeTile(2, 5, "corner", 1),
+        makeTile(2, 1, "corner", 3),
+        makeTile(2, 2, "cross", 0, true),
+        makeTile(4, 4, "wall", 0, true),
+        makeTile(0, 1, "wall", 0, true)
+      ]
+    },
+    {
+      id: "crown-aperture",
+      name: "Crown Aperture",
+      size: 8,
+      par: 14,
+      note: "The crown chamber wants four receivers to settle into one rhythm.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "cyan" },
+        { x: 5, y: -1, dir: DIR.S, color: "amber" },
+        { x: 8, y: 6, dir: DIR.W, color: "violet" }
+      ],
+      targets: [
+        { x: 7, y: 0, color: "cyan" },
+        { x: 7, y: 4, color: "cyan" },
+        { x: 1, y: 6, color: "amber" },
+        { x: 3, y: 1, color: "violet" }
+      ],
+      tiles: [
+        makeTile(2, 2, "split", 3),
+        makeTile(2, 0, "corner", 3),
+        makeTile(2, 4, "corner", 2),
+        makeTile(5, 5, "corner", 1),
+        makeTile(1, 5, "corner", 3),
+        makeTile(6, 6, "corner", 2),
+        makeTile(6, 1, "corner", 0),
+        makeTile(4, 5, "line", 1, true),
+        makeTile(4, 1, "line", 1, true),
+        makeTile(0, 6, "wall", 0, true),
+        makeTile(7, 2, "wall", 0, true)
+      ]
     }
   ];
 
@@ -141,6 +220,7 @@
     next: document.getElementById("nextButton"),
     audio: document.getElementById("audioButton"),
     lockState: document.getElementById("lockState"),
+    note: document.getElementById("levelNote"),
     signalValue: document.getElementById("signalValue"),
     signalList: document.getElementById("signalList")
   };
@@ -166,6 +246,7 @@
     selected: { x: 0, y: 0 },
     beams: { segments: [], activeTargets: new Set() },
     solved: false,
+    newBest: false,
     best: loadBest(),
     canvasWidth: 0,
     canvasHeight: 0,
@@ -263,6 +344,7 @@
     state.moves = 0;
     state.undo = [];
     state.solved = false;
+    state.newBest = false;
     state.selected = { x: 0, y: 0 };
     state.grid = Array.from({ length: level.size }, () => Array.from({ length: level.size }, () => null));
     level.tiles.forEach((tile) => {
@@ -398,6 +480,7 @@
     const previousTargets = state.beams.activeTargets.size;
     state.beams = computeBeams();
     state.solved = state.beams.activeTargets.size === getLevel().targets.length;
+    if (!state.solved) state.newBest = false;
     if (state.beams.activeTargets.size > previousTargets) {
       playSound("target");
     }
@@ -407,6 +490,7 @@
       const previous = state.best[level.id];
       if (!previous || state.moves < previous) {
         state.best[level.id] = state.moves;
+        state.newBest = true;
         saveBest();
       }
     }
@@ -424,11 +508,18 @@
     nodes.signalValue.textContent = String(state.beams.segments.length);
     nodes.lockState.textContent = state.solved ? "Solved" : "Open";
     nodes.best.textContent = state.best[level.id] ? `Best ${state.best[level.id]}` : "Best -";
-    nodes.badge.textContent = state.solved ? "Unlocked" : "Align";
+    if (nodes.note) nodes.note.textContent = level.note;
+    nodes.badge.textContent = badgeText(level);
     nodes.badge.classList.toggle("is-solved", state.solved);
     nodes.undo.disabled = state.undo.length === 0;
-    nodes.next.disabled = !state.solved && state.levelIndex < LEVELS.length - 1;
+    nodes.next.disabled = !state.solved || state.levelIndex >= LEVELS.length - 1;
     renderSignals();
+  }
+
+  function badgeText(level) {
+    if (!state.solved) return "Align";
+    if (state.newBest) return "New Best";
+    return state.moves <= level.par ? "Par Lock" : "Unlocked";
   }
 
   function renderSignals() {
@@ -457,6 +548,8 @@
       button.textContent = String(index + 1);
       button.setAttribute("aria-label", level.name);
       button.classList.toggle("is-active", index === state.levelIndex);
+      button.classList.toggle("is-complete", Boolean(state.best[level.id]));
+      button.classList.toggle("is-par", Boolean(state.best[level.id] && state.best[level.id] <= level.par));
       button.addEventListener("click", () => {
         primeAudio();
         playSound("click");
@@ -582,6 +675,7 @@
     const h = state.canvasHeight;
     ctx.clearRect(0, 0, w, h);
     drawBackdrop(w, h);
+    drawMotes(time, w, h);
     drawBoardBase();
     drawTiles(time);
     drawBeams(time);
@@ -606,6 +700,24 @@
     gradient.addColorStop(1, "rgba(0, 0, 0, 0.38)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, w, h);
+  }
+
+  function drawMotes(time, w, h) {
+    const count = Math.max(18, Math.min(42, Math.floor((w * h) / 30000)));
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < count; i += 1) {
+      const speed = 0.018 + (i % 5) * 0.006;
+      const x = ((i * 113 + time * speed) % (w + 80)) - 40;
+      const y = ((i * 67 + Math.sin(time * 0.0007 + i) * 24) % (h + 80)) - 40;
+      const radius = 0.9 + (i % 4) * 0.35;
+      ctx.globalAlpha = 0.08 + (i % 3) * 0.025;
+      ctx.fillStyle = i % 2 === 0 ? "#66e8ff" : "#ffc75a";
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawCoverImage(image, x, y, w, h) {
@@ -728,8 +840,29 @@
       ctx.beginPath();
       ctx.arc(center.x, center.y, Math.max(4, board.cell * 0.07), 0, Math.PI * 2);
       ctx.fill();
+      if (tile.locked) drawLockPin(center, board.cell);
       ctx.restore();
     });
+  }
+
+  function drawLockPin(center, cellSize) {
+    const r = Math.max(4, cellSize * 0.052);
+    ctx.save();
+    ctx.translate(center.x + cellSize * 0.18, center.y - cellSize * 0.18);
+    ctx.shadowColor = "rgba(255, 199, 90, 0.42)";
+    ctx.shadowBlur = cellSize * 0.12;
+    ctx.fillStyle = "rgba(255, 229, 161, 0.96)";
+    ctx.strokeStyle = "rgba(7, 10, 11, 0.7)";
+    ctx.lineWidth = Math.max(1, cellSize * 0.018);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.42, 0);
+    ctx.lineTo(r * 0.42, 0);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function glyphIndex(type) {
@@ -817,7 +950,28 @@
       ctx.fill();
       ctx.stroke();
       ctx.restore();
+      if (active) drawTargetSparks(center, radius, color, time + index * 180);
     });
+  }
+
+  function drawTargetSparks(center, radius, color, time) {
+    ctx.save();
+    ctx.translate(center.x, center.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, radius * 0.08);
+    ctx.globalAlpha = 0.48;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = radius * 0.65;
+    for (let i = 0; i < 6; i += 1) {
+      const angle = time * 0.0022 + i * (Math.PI / 3);
+      const inner = radius * 1.46;
+      const outer = radius * (1.72 + Math.sin(time * 0.004 + i) * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+      ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function targetGlyphIndex(color) {
@@ -995,9 +1149,11 @@
     resetLevel,
     rotateCell,
     nextLevel,
+    getLevelCount: () => LEVELS.length,
     getSnapshot: () => ({
       levelIndex: state.levelIndex,
       levelId: getLevel().id,
+      levelCount: LEVELS.length,
       moves: state.moves,
       solved: state.solved,
       targetsLit: state.beams.activeTargets.size,
