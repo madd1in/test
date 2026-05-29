@@ -18,10 +18,11 @@
   };
 
   const optionalManifest = {
+    riderStrip: "./assets/sprites/rider-ride-strip-imagen.webp",
     frontTiles: "./assets/foreground/front-tiles-imagen.webp",
     props: "./assets/foreground/trail-props-imagen.webp",
     energy: "./assets/imagen/coin-imagen.webp",
-    rock: "./assets/ui/rock.svg",
+    rock: "./assets/imagen/rock-imagen.webp",
     flag: "./assets/imagen/flag-imagen.webp",
   };
 
@@ -52,6 +53,12 @@
   };
 
   const flagGroundAnchor = { x: 88, foot: 440, groundInset: 3 };
+
+  const riderAnimation = {
+    frames: 6,
+    frameWidth: 700,
+    frameHeight: 555,
+  };
 
   const assets = {};
   const audio = {
@@ -758,7 +765,9 @@
       const y = terrainY(rock.x);
       const size = 70 * rock.scale;
       if (img) {
-        ctx.drawImage(img, x - size * 0.5, y - size * 0.72, size, size * 0.72);
+        const drawW = size * 1.08;
+        const drawH = drawW * (img.height / img.width);
+        ctx.drawImage(img, x - drawW * 0.5, y - drawH + 4, drawW, drawH);
       } else {
         ctx.fillStyle = "#536063";
         ctx.beginPath();
@@ -799,19 +808,26 @@
   }
 
   function drawRider() {
-    const img = assets.rider;
+    const img = assets.riderStrip || assets.rider;
     const scale = riderScale();
+    const frameCount = img.width >= riderAnimation.frameWidth * riderAnimation.frames ? riderAnimation.frames : 1;
+    const frameW = frameCount > 1 ? Math.floor(img.width / frameCount) : img.width;
+    const frameH = img.height;
+    const rideCycle = rider.airborne ? performance.now() * 0.009 : rider.worldX * 0.045;
+    const frameIndex = frameCount > 1 ? Math.floor(rideCycle) % frameCount : 0;
+    const suspension = rider.airborne ? 0 : Math.sin(rideCycle * 1.7) * 2.4 * scale;
     const drawW = 180 * scale;
-    const drawH = (img.height / img.width) * drawW;
+    const drawH = (frameH / frameW) * drawW;
     const x = screenPlayerX();
     const y = rider.y;
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rider.angle);
+    ctx.translate(x, y + suspension);
+    ctx.rotate(rider.angle + (rider.airborne ? 0 : Math.sin(rideCycle * 0.72) * 0.012));
+    ctx.scale(1 + input.boostEase * 0.025, 1 - input.boostEase * 0.015);
     if (rider.hitCooldown > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
       ctx.globalAlpha = 0.55;
     }
-    ctx.drawImage(img, -drawW * 0.5, -drawH * 0.78, drawW, drawH);
+    ctx.drawImage(img, frameIndex * frameW, 0, frameW, frameH, -drawW * 0.5, -drawH * 0.78, drawW, drawH);
     ctx.restore();
 
     if (rider.trick > 0) {
