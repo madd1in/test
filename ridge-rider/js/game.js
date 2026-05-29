@@ -567,13 +567,22 @@
     const drawW = img.width * coverScale;
     const drawH = img.height * coverScale;
     const y = (world.height - drawH) * 0.5;
-    let x = -(rider.worldX * 0.035) % drawW;
-    if (x > 0) x -= drawW;
+    const scroll = rider.worldX * 0.018;
+    const firstTile = Math.floor(scroll / drawW) - 1;
     ctx.fillStyle = "#071013";
     ctx.fillRect(0, 0, world.width, world.height);
-    while (x < world.width) {
-      ctx.drawImage(img, x, y, drawW, drawH);
-      x += drawW;
+    for (let tile = firstTile; tile * drawW - scroll < world.width; tile += 1) {
+      const x = tile * drawW - scroll;
+      const mirrored = Math.abs(tile) % 2 === 1;
+      if (mirrored) {
+        ctx.save();
+        ctx.translate(x + drawW, y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0, drawW, drawH);
+        ctx.restore();
+      } else {
+        ctx.drawImage(img, x, y, drawW, drawH);
+      }
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, world.height);
