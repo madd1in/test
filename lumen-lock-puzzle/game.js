@@ -10,12 +10,21 @@
   ];
   const OPP = [DIR.S, DIR.W, DIR.N, DIR.E];
   const COLORS = {
-    cyan: "#66e8ff",
+    cyan: "#2f9dff",
     amber: "#ffc75a",
     violet: "#c993ff",
-    green: "#8dffb1"
+    green: "#b7ff37"
+  };
+  const SIGNAL_NAMES = {
+    cyan: "blue",
+    amber: "amber",
+    violet: "violet",
+    green: "lime"
   };
   const STORAGE_KEY = "lumen-lock-best-v1";
+  const FX_STORAGE_KEY = "lumen-lock-fx-v1";
+  const FULL_FRAME_MS = 1000 / 30;
+  const CALM_FRAME_MS = 1000 / 20;
   const AUDIO_FILES = {
     bgm: "assets/audio/bgm-lumen-lock.mp3",
     rotate: "assets/audio/sfx-rotate.wav",
@@ -518,7 +527,7 @@
   ];
 
   const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
   const nodes = {
     levelName: document.getElementById("levelName"),
     moves: document.getElementById("movesValue"),
@@ -533,6 +542,7 @@
     undo: document.getElementById("undoButton"),
     reset: document.getElementById("resetButton"),
     next: document.getElementById("nextButton"),
+    fx: document.getElementById("fxButton"),
     audio: document.getElementById("audioButton"),
     lockState: document.getElementById("lockState"),
     note: document.getElementById("levelNote"),
@@ -570,7 +580,9 @@
     best: loadBest(),
     canvasWidth: 0,
     canvasHeight: 0,
-    board: null
+    board: null,
+    fxMode: loadFxMode(),
+    lastFrameTime: 0
   };
 
   function loadImage(src) {
@@ -595,6 +607,34 @@
     } catch {
       // Local storage is optional; the game stays playable without it.
     }
+  }
+
+  function loadFxMode() {
+    try {
+      return localStorage.getItem(FX_STORAGE_KEY) === "calm" ? "calm" : "full";
+    } catch {
+      return "full";
+    }
+  }
+
+  function saveFxMode() {
+    try {
+      localStorage.setItem(FX_STORAGE_KEY, state.fxMode);
+    } catch {
+      // Visual quality preference is optional.
+    }
+  }
+
+  function calmFxActive() {
+    return state.fxMode === "calm" || prefersReducedMotion();
+  }
+
+  function fxIntensity() {
+    return calmFxActive() ? 0.48 : 1;
+  }
+
+  function prefersReducedMotion() {
+    return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
   }
 
   function createAudio(src, volume, loop = false) {
@@ -844,6 +884,12 @@
     nodes.badge.classList.toggle("is-solved", state.solved);
     nodes.undo.disabled = state.undo.length === 0;
     nodes.next.disabled = !state.solved || state.levelIndex >= LEVELS.length - 1;
+    if (nodes.fx) {
+      const calm = calmFxActive();
+      nodes.fx.textContent = calm ? "FX Calm" : "FX Full";
+      nodes.fx.setAttribute("aria-pressed", String(calm));
+      nodes.fx.setAttribute("title", calm ? "Reduced glow and motion for smoother play" : "Full glow and motion");
+    }
     renderSignals();
   }
 
@@ -868,11 +914,12 @@
     level.targets.forEach((target, index) => {
       const chip = document.createElement("div");
       chip.className = "signal-chip";
+      chip.setAttribute("data-color", target.color);
       const label = document.createElement("span");
       const dot = document.createElement("i");
       dot.style.color = COLORS[target.color];
       dot.style.background = COLORS[target.color];
-      label.append(dot, target.color);
+      label.append(dot, SIGNAL_NAMES[target.color] ?? target.color);
       const stateText = document.createElement("strong");
       stateText.textContent = state.beams.activeTargets.has(index) ? "Lit" : "Dark";
       chip.append(label, stateText);
@@ -968,7 +1015,8 @@
 
   function fitCanvas() {
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dprLimit = calmFxActive() ? 1 : 1.45;
+    const dpr = Math.min(window.devicePixelRatio || 1, dprLimit);
     const width = Math.max(1, Math.floor(rect.width));
     const height = Math.max(1, Math.floor(rect.height));
     if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
@@ -1108,7 +1156,8 @@
   }
 
   function drawMotes(time, w, h) {
-    const count = Math.max(18, Math.min(42, Math.floor((w * h) / 30000)));
+    if (calmFxActive()) return;
+    const count = Math.max(8, Math.min(24, Math.floor((w * h) / 52000)));
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < count; i += 1) {
@@ -1117,7 +1166,7 @@
       const y = ((i * 67 + Math.sin(time * 0.0007 + i) * 24) % (h + 80)) - 40;
       const radius = 0.9 + (i % 4) * 0.35;
       ctx.globalAlpha = 0.08 + (i % 3) * 0.025;
-      ctx.fillStyle = i % 2 === 0 ? "#66e8ff" : "#ffc75a";
+      ctx.fillStyle = i % 2 === 0 ? COLORS.cyan : "#ffc75a";
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -1147,12 +1196,14 @@
   function drawFlare(index, center, size, alpha, rotation = 0) {
     const flares = assets.flareSkin;
     if (!flares.complete || !flares.naturalWidth) return;
+    const quality = fxIntensity();
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = alpha * quality;
     ctx.translate(center.x, center.y);
     ctx.rotate(rotation);
-    drawAtlasImage(flares, index, 4, -size / 2, -size / 2, size, size);
+    const scaledSize = size * (0.82 + quality * 0.18);
+    drawAtlasImage(flares, index, 4, -scaledSize / 2, -scaledSize / 2, scaledSize, scaledSize);
     ctx.restore();
   }
 
@@ -1388,6 +1439,7 @@
   function drawBeams(time) {
     const board = boardRect();
     const dash = Math.max(10, board.cell * 0.18);
+    const quality = fxIntensity();
     state.beams.segments.forEach((segment, index) => {
       const from = logicalPoint(segment.x1, segment.y1);
       const to = logicalPoint(segment.x2, segment.y2);
@@ -1395,17 +1447,17 @@
       ctx.save();
       ctx.lineCap = "round";
       ctx.shadowColor = color;
-      ctx.shadowBlur = board.cell * 0.22;
+      ctx.shadowBlur = board.cell * 0.16 * quality;
       ctx.strokeStyle = color;
-      ctx.globalAlpha = 0.34;
-      ctx.lineWidth = Math.max(12, board.cell * 0.16);
+      ctx.globalAlpha = 0.22 + quality * 0.12;
+      ctx.lineWidth = Math.max(9, board.cell * 0.125);
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(to.x, to.y);
       ctx.stroke();
 
       ctx.globalAlpha = 0.9;
-      ctx.lineWidth = Math.max(4, board.cell * 0.055);
+      ctx.lineWidth = Math.max(4, board.cell * 0.052);
       ctx.setLineDash([dash, dash * 0.72]);
       ctx.lineDashOffset = -time * 0.045 - index * 7;
       ctx.beginPath();
@@ -1421,8 +1473,49 @@
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(to.x, to.y);
       ctx.stroke();
+      drawBeamSignature(segment.color, from, to, board.cell, time + index * 91);
       ctx.restore();
     });
+  }
+
+  function drawBeamSignature(colorName, from, to, cellSize, time) {
+    if (colorName !== "cyan" && colorName !== "green") return;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length = Math.hypot(dx, dy);
+    if (length < cellSize * 0.7) return;
+    const count = calmFxActive() ? 1 : Math.min(3, Math.max(1, Math.floor(length / (cellSize * 1.45))));
+    const angle = Math.atan2(dy, dx);
+    const color = COLORS[colorName];
+    const size = Math.max(4, cellSize * 0.052);
+    ctx.save();
+    ctx.globalAlpha = colorName === "cyan" ? 0.78 : 0.86;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "rgba(6, 9, 10, 0.72)";
+    ctx.lineWidth = Math.max(1, cellSize * 0.014);
+    for (let i = 0; i < count; i += 1) {
+      const t = (i + 1) / (count + 1);
+      const wobble = Math.sin(time * 0.005 + i) * cellSize * 0.012;
+      const x = from.x + dx * t + Math.cos(angle + Math.PI / 2) * wobble;
+      const y = from.y + dy * t + Math.sin(angle + Math.PI / 2) * wobble;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      if (colorName === "cyan") {
+        ctx.rotate(Math.PI / 4);
+        roundRect(-size, -size, size * 2, size * 2, 2);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(size * 1.35, 0);
+        ctx.lineTo(-size * 0.9, -size);
+        ctx.lineTo(-size * 0.9, size);
+        ctx.closePath();
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
   }
 
   function drawTargets(time) {
@@ -1448,7 +1541,7 @@
       ctx.translate(center.x, center.y);
       ctx.rotate(Math.PI / 4);
       ctx.shadowColor = color;
-      ctx.shadowBlur = active ? board.cell * 0.38 : board.cell * 0.1;
+      ctx.shadowBlur = (active ? board.cell * 0.34 : board.cell * 0.08) * fxIntensity();
       ctx.fillStyle = active ? color : "rgba(209, 206, 190, 0.5)";
       ctx.strokeStyle = active ? "rgba(255, 255, 255, 0.75)" : "rgba(216, 183, 108, 0.36)";
       ctx.lineWidth = Math.max(1, board.cell * 0.024);
@@ -1456,6 +1549,7 @@
       ctx.fill();
       ctx.stroke();
       ctx.restore();
+      drawColorMark(target.color, center, board.cell, active);
       if (active) {
         drawFlare(flareIndex(target.color, 1), center, board.cell * 1.25, 0.32, time * 0.001 + index);
         drawTargetSparks(center, radius, color, time + index * 180);
@@ -1468,10 +1562,11 @@
     ctx.translate(center.x, center.y);
     ctx.strokeStyle = color;
     ctx.lineWidth = Math.max(1, radius * 0.08);
-    ctx.globalAlpha = 0.48;
+    ctx.globalAlpha = calmFxActive() ? 0.22 : 0.48;
     ctx.shadowColor = color;
-    ctx.shadowBlur = radius * 0.65;
-    for (let i = 0; i < 6; i += 1) {
+    ctx.shadowBlur = radius * 0.45 * fxIntensity();
+    const count = calmFxActive() ? 3 : 6;
+    for (let i = 0; i < count; i += 1) {
       const angle = time * 0.0022 + i * (Math.PI / 3);
       const inner = radius * 1.46;
       const outer = radius * (1.72 + Math.sin(time * 0.004 + i) * 0.08);
@@ -1502,7 +1597,7 @@
       ctx.translate(center.x, center.y);
       ctx.rotate(source.dir * (Math.PI / 2));
       ctx.shadowColor = color;
-      ctx.shadowBlur = board.cell * 0.32;
+      ctx.shadowBlur = board.cell * 0.24 * fxIntensity();
       ctx.fillStyle = color;
       ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
       ctx.lineWidth = Math.max(1, board.cell * 0.025);
@@ -1515,6 +1610,7 @@
       ctx.fill();
       ctx.stroke();
       ctx.restore();
+      drawColorMark(source.color, center, board.cell, true);
     });
   }
 
@@ -1523,12 +1619,43 @@
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.shadowColor = color;
-    ctx.shadowBlur = cellSize * 0.22;
+    ctx.shadowBlur = cellSize * 0.16 * fxIntensity();
     ctx.fillStyle = color;
     ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
     ctx.lineWidth = Math.max(1, cellSize * 0.025);
     ctx.beginPath();
     ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawColorMark(colorName, center, cellSize, active = false) {
+    const color = COLORS[colorName];
+    const size = cellSize * (active ? 0.085 : 0.072);
+    ctx.save();
+    ctx.translate(center.x, center.y);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "rgba(4, 7, 8, 0.78)";
+    ctx.lineWidth = Math.max(1, cellSize * 0.016);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = cellSize * 0.08 * fxIntensity();
+    if (colorName === "cyan") {
+      ctx.rotate(Math.PI / 4);
+      roundRect(-size, -size, size * 2, size * 2, 2);
+    } else if (colorName === "green") {
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 1.35);
+      ctx.lineTo(size * 1.22, size * 0.95);
+      ctx.lineTo(-size * 1.22, size * 0.95);
+      ctx.closePath();
+    } else if (colorName === "amber") {
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 1.15, 0, Math.PI * 2);
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.88, size * 1.3, Math.PI / 5, 0, Math.PI * 2);
+    }
     ctx.fill();
     ctx.stroke();
     ctx.restore();
@@ -1542,10 +1669,10 @@
     const y = board.y + state.selected.y * board.cell;
     const inset = board.cell * 0.07 + Math.sin(time * 0.005) * 1.5;
     ctx.save();
-    ctx.strokeStyle = "rgba(102, 232, 255, 0.9)";
+    ctx.strokeStyle = COLORS.cyan;
     ctx.lineWidth = Math.max(2, board.cell * 0.03);
     ctx.shadowColor = "rgba(102, 232, 255, 0.55)";
-    ctx.shadowBlur = board.cell * 0.18;
+    ctx.shadowBlur = board.cell * 0.14 * fxIntensity();
     roundRect(x + inset, y + inset, board.cell - inset * 2, board.cell - inset * 2, 7);
     ctx.stroke();
     ctx.restore();
@@ -1669,6 +1796,15 @@
     playSound("click");
     nextLevel();
   });
+  nodes.fx?.addEventListener("click", () => {
+    state.fxMode = state.fxMode === "calm" ? "full" : "calm";
+    state.board = null;
+    state.lastFrameTime = 0;
+    saveFxMode();
+    playSound("click");
+    updateDom();
+    draw(performance.now());
+  });
   nodes.audio?.addEventListener("click", () => {
     setAudioEnabled(!audio.enabled);
     playSound("click");
@@ -1679,7 +1815,11 @@
   });
 
   function animate(time) {
-    draw(time);
+    const frameMs = calmFxActive() ? CALM_FRAME_MS : FULL_FRAME_MS;
+    if (!state.lastFrameTime || time - state.lastFrameTime >= frameMs) {
+      state.lastFrameTime = time;
+      draw(time);
+    }
     requestAnimationFrame(animate);
   }
 
