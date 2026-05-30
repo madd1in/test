@@ -126,6 +126,7 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
         const rect = canvas.getBoundingClientRect();
         const stage = document.querySelector(".board-stage").getBoundingClientRect();
         const rail = document.querySelector(".command-rail").getBoundingClientRect();
+        const levelPanel = document.querySelector("#levelButtons").closest(".panel").getBoundingClientRect();
         const levelButtons = [...document.querySelectorAll("#levelButtons button")].map((button) => {
           const buttonRect = button.getBoundingClientRect();
           return {
@@ -153,8 +154,17 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
             width: Math.round(rail.width),
             withinViewport: rail.left >= -1 && rail.right <= window.innerWidth + 1
           },
+          levelPanel: {
+            left: Math.round(levelPanel.left),
+            right: Math.round(levelPanel.right),
+            width: Math.round(levelPanel.width),
+            withinViewport: levelPanel.left >= -1 && levelPanel.right <= window.innerWidth + 1
+          },
           levelButtonsWithinViewport: levelButtons.every((button) => (
             button.left >= -1 && button.right <= window.innerWidth + 1
+          )),
+          levelButtonsWithinPanel: levelButtons.every((button) => (
+            button.left >= levelPanel.left - 1 && button.right <= levelPanel.right + 1
           )),
           audioButton: audioButton ? audioButton.textContent : null,
           audioPressed: audioButton ? audioButton.getAttribute("aria-pressed") : null,
@@ -207,6 +217,18 @@ async function removeProfileDir() {
       deviceScaleFactor: 1,
       mobile: false
     });
+    const narrowDesktop = await capture(client, "narrow-desktop", {
+      width: 1024,
+      height: 820,
+      deviceScaleFactor: 1,
+      mobile: false
+    });
+    const breakpoint = await capture(client, "breakpoint", {
+      width: 930,
+      height: 820,
+      deviceScaleFactor: 1,
+      mobile: false
+    });
     const mobile = await capture(client, "mobile", {
       width: 390,
       height: 844,
@@ -220,7 +242,23 @@ async function removeProfileDir() {
       mobile: true
     }, 19);
     client.close();
-    console.log(JSON.stringify([desktop, mobile, mobileFinal], null, 2));
+    const results = [desktop, narrowDesktop, breakpoint, mobile, mobileFinal];
+    const failures = results.flatMap((result) => {
+      const metrics = result.metrics;
+      const problems = [];
+      if (metrics.overflowX) problems.push("page has horizontal overflow");
+      if (!metrics.stage.fullyVisible) problems.push("board stage is clipped in the viewport");
+      if (!metrics.rail.withinViewport) problems.push("command rail is outside the viewport");
+      if (!metrics.levelPanel.withinViewport) problems.push("level panel is outside the viewport");
+      if (!metrics.levelButtonsWithinViewport) problems.push("level buttons are outside the viewport");
+      if (!metrics.levelButtonsWithinPanel) problems.push("level buttons overflow their panel");
+      return problems.map((problem) => `${result.label}: ${problem}`);
+    });
+    console.log(JSON.stringify(results, null, 2));
+    if (failures.length) {
+      console.error(`Visual smoke failed:\n${failures.join("\n")}`);
+      process.exitCode = 1;
+    }
   } finally {
     if (chrome.exitCode === null) {
       chrome.kill();
