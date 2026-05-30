@@ -305,6 +305,7 @@ h1 {
   font-family: var(--display-font);
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  pointer-events: none;
 }
 
 .state-badge.is-solved {
@@ -544,7 +545,7 @@ h1 {
   }
 
   .board-stage {
-    height: clamp(460px, calc(100dvh - 188px), 620px);
+    height: clamp(420px, min(60dvh, calc(100vw - 24px)), 620px);
   }
 
   #gameCanvas {
@@ -602,11 +603,20 @@ h1 {
   }
 
   .board-stage {
-    height: clamp(390px, 58dvh, 520px);
+    height: clamp(340px, min(50dvh, calc(100vw - 16px)), 430px);
   }
 
   #gameCanvas {
     min-height: 0;
+  }
+
+  .state-badge {
+    top: 10px;
+    bottom: auto;
+    left: 10px;
+    padding: 7px 9px;
+    font-size: 0.76rem;
+    opacity: 0.86;
   }
 
   .command-rail {
@@ -636,10 +646,18 @@ h1 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .board-stage {
+    height: clamp(320px, min(46dvh, calc(100vw - 16px)), 400px);
+  }
+
   .mastery-strip {
     align-items: flex-start;
     flex-direction: column;
     gap: 2px;
+  }
+
+  .state-badge {
+    display: none;
   }
 
   .audio-button {
