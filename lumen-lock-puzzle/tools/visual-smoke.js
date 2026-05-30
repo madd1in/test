@@ -96,7 +96,7 @@ function makeClient(ws) {
   };
 }
 
-async function capture(client, label, metrics) {
+async function capture(client, label, metrics, levelButtonIndex = 0) {
   const { targetId } = await client.send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await client.send("Target.attachToTarget", { targetId, flatten: true });
   await client.send("Page.enable", {}, sessionId);
@@ -106,6 +106,16 @@ async function capture(client, label, metrics) {
   await client.send("Page.navigate", { url: fileUrl }, sessionId);
   await loaded;
   await delay(900);
+  if (levelButtonIndex > 0) {
+    await client.send(
+      "Runtime.evaluate",
+      {
+        expression: `window.LumenLock?.loadLevel(${levelButtonIndex})`
+      },
+      sessionId
+    );
+    await delay(500);
+  }
   const evalResult = await client.send(
     "Runtime.evaluate",
     {
@@ -114,13 +124,22 @@ async function capture(client, label, metrics) {
         const canvas = document.getElementById("gameCanvas");
         const audioButton = document.getElementById("audioButton");
         const rect = canvas.getBoundingClientRect();
+        const stage = document.querySelector(".board-stage").getBoundingClientRect();
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight },
           scroll: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
           overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
           canvas: { width: Math.round(rect.width), height: Math.round(rect.height) },
+          stage: {
+            top: Math.round(stage.top),
+            bottom: Math.round(stage.bottom),
+            width: Math.round(stage.width),
+            height: Math.round(stage.height),
+            fullyVisible: stage.top >= -1 && stage.bottom <= window.innerHeight + 1
+          },
           audioButton: audioButton ? audioButton.textContent : null,
           audioPressed: audioButton ? audioButton.getAttribute("aria-pressed") : null,
+          level: document.getElementById("levelName").textContent,
           badge: document.getElementById("stateBadge").textContent,
           targets: document.getElementById("targetValue").textContent
         };
@@ -175,8 +194,14 @@ async function removeProfileDir() {
       deviceScaleFactor: 2,
       mobile: true
     });
+    const mobileFinal = await capture(client, "mobile-final", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      mobile: true
+    }, 19);
     client.close();
-    console.log(JSON.stringify([desktop, mobile], null, 2));
+    console.log(JSON.stringify([desktop, mobile, mobileFinal], null, 2));
   } finally {
     if (chrome.exitCode === null) {
       chrome.kill();

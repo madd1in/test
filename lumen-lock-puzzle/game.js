@@ -964,8 +964,8 @@
   function fitCanvas() {
     const rect = canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(320, Math.floor(rect.width));
-    const height = Math.max(320, Math.floor(rect.height));
+    const width = Math.max(1, Math.floor(rect.width));
+    const height = Math.max(1, Math.floor(rect.height));
     if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
@@ -979,8 +979,9 @@
   function boardRect() {
     if (state.board) return state.board;
     const level = getLevel();
-    const margin = Math.min(74, Math.max(32, Math.min(state.canvasWidth, state.canvasHeight) * 0.095));
-    const size = Math.max(260, Math.min(state.canvasWidth - margin * 2, state.canvasHeight - margin * 2));
+    const minSide = Math.max(1, Math.min(state.canvasWidth, state.canvasHeight));
+    const margin = Math.min(minSide * 0.28, Math.max(18, minSide * 0.085, sourceSafeMargin(level, minSide)));
+    const size = Math.max(1, Math.min(state.canvasWidth - margin * 2, state.canvasHeight - margin * 2));
     state.board = {
       x: (state.canvasWidth - size) / 2,
       y: (state.canvasHeight - size) / 2,
@@ -988,6 +989,15 @@
       cell: size / level.size
     };
     return state.board;
+  }
+
+  function sourceSafeMargin(level, minSide) {
+    const hasExternalSource = level.sources.some((source) => (
+      source.x < 0 || source.y < 0 || source.x >= level.size || source.y >= level.size
+    ));
+    const edgeCells = hasExternalSource ? (minSide < 520 ? 1.36 : 1.12) : 0.36;
+    const pad = minSide < 520 ? 10 : 8;
+    return ((edgeCells * minSide) / level.size + pad) / (1 + (2 * edgeCells) / level.size);
   }
 
   function logicalPoint(x, y) {
@@ -1097,6 +1107,7 @@
     const board = boardRect();
     const boardSkin = assets.boardSkin;
     const biomeSkin = assets.boardBiomes;
+    const bleed = boardFrameBleed(board);
     ctx.save();
     roundRect(board.x - 10, board.y - 10, board.size + 20, board.size + 20, 8);
     ctx.fillStyle = "rgba(8, 10, 10, 0.66)";
@@ -1109,19 +1120,19 @@
     if (skin.complete && skin.naturalWidth) {
       ctx.save();
       ctx.globalAlpha = 0.07;
-      drawCoverImage(skin, board.x - 26, board.y - 26, board.size + 52, board.size + 52);
+      drawCoverImage(skin, board.x - bleed * 1.7, board.y - bleed * 1.7, board.size + bleed * 3.4, board.size + bleed * 3.4);
       ctx.restore();
     }
 
     if (biomeSkin.complete && biomeSkin.naturalWidth) {
       ctx.save();
       ctx.globalAlpha = 0.76;
-      drawAtlasImage(biomeSkin, boardVariantIndex(), 2, board.x - board.cell * 0.32, board.y - board.cell * 0.32, board.size + board.cell * 0.64, board.size + board.cell * 0.64);
+      drawAtlasImage(biomeSkin, boardVariantIndex(), 2, board.x - bleed, board.y - bleed, board.size + bleed * 2, board.size + bleed * 2);
       ctx.restore();
     } else if (boardSkin.complete && boardSkin.naturalWidth) {
       ctx.save();
       ctx.globalAlpha = 0.72;
-      drawCoverImage(boardSkin, board.x - board.cell * 0.32, board.y - board.cell * 0.32, board.size + board.cell * 0.64, board.size + board.cell * 0.64);
+      drawCoverImage(boardSkin, board.x - bleed, board.y - bleed, board.size + bleed * 2, board.size + bleed * 2);
       ctx.restore();
     }
 
@@ -1162,6 +1173,16 @@
     }
     ctx.restore();
     ctx.restore();
+  }
+
+  function boardFrameBleed(board) {
+    const available = Math.min(
+      board.x,
+      board.y,
+      state.canvasWidth - (board.x + board.size),
+      state.canvasHeight - (board.y + board.size)
+    );
+    return Math.max(0, Math.min(board.cell * 0.32, available - 4));
   }
 
   function drawTiles(time) {
