@@ -490,7 +490,7 @@
         { x: -1, y: 2, dir: DIR.E, color: "cyan" },
         { x: 8, y: -1, dir: DIR.S, color: "amber" },
         { x: 10, y: 1, dir: DIR.W, color: "violet" },
-        { x: 0, y: 10, dir: DIR.N, color: "green" }
+        { x: 0, y: 6, dir: DIR.N, color: "green" }
       ],
       targets: [
         { x: 8, y: 6, color: "cyan" },
@@ -981,7 +981,7 @@
     if (state.board) return state.board;
     const level = getLevel();
     const bounds = levelVisualBounds(level);
-    const pad = Math.max(12, Math.min(state.canvasWidth, state.canvasHeight) * 0.035);
+    const pad = Math.max(34, Math.min(state.canvasWidth, state.canvasHeight) * 0.085);
     const availableWidth = Math.max(1, state.canvasWidth - pad * 2);
     const availableHeight = Math.max(1, state.canvasHeight - pad * 2);
     const cell = Math.max(1, Math.min(
@@ -1002,10 +1002,10 @@
   }
 
   function levelVisualBounds(level) {
-    const frameBleed = 0.48;
-    const sourceBleed = 1.08;
-    const targetBleed = 0.78;
-    const tileBleed = 0.2;
+    const frameBleed = 0.9;
+    const sourceBleed = 1.65;
+    const targetBleed = 1.18;
+    const tileBleed = 0.45;
     const bounds = {
       minX: -frameBleed,
       minY: -frameBleed,
@@ -1037,16 +1037,15 @@
   }
 
   function sourcePoint(source, level = getLevel()) {
-    const edgeInset = 0.78;
     const x = source.x < 0
-      ? edgeInset
+      ? 0.5
       : source.x >= level.size
-        ? level.size - edgeInset
+        ? level.size - 0.5
         : source.x + 0.5;
     const y = source.y < 0
-      ? edgeInset
+      ? 0.5
       : source.y >= level.size
-        ? level.size - edgeInset
+        ? level.size - 0.5
         : source.y + 0.5;
     return { x, y };
   }
@@ -1494,6 +1493,7 @@
       const pulse = 0.9 + Math.sin(time * 0.006 + source.x + source.y) * 0.08;
       drawFlare(flareIndex(source.color, 0), center, board.cell * 1.06, 0.18, time * 0.0009);
       drawRotatedElementIcon(elementIconIndex(source.color, "source"), center, board.cell * 0.78, source.dir, 0.46);
+      drawSourcePort(center, color, board.cell, time);
       ctx.save();
       ctx.translate(center.x, center.y);
       ctx.rotate(source.dir * (Math.PI / 2));
@@ -1512,6 +1512,22 @@
       ctx.stroke();
       ctx.restore();
     });
+  }
+
+  function drawSourcePort(center, color, cellSize, time) {
+    const radius = cellSize * (0.18 + Math.sin(time * 0.006) * 0.012);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.shadowColor = color;
+    ctx.shadowBlur = cellSize * 0.22;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+    ctx.lineWidth = Math.max(1, cellSize * 0.025);
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawSelection(time) {
