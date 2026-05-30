@@ -33,7 +33,7 @@ Open `index.html` in a browser. The game uses static files only.
 
 ## Content Notes
 
-- Late-game chambers introduce green beams, locked conduit tiles, cross-junctions, multi-source engines, four-color crown routing, color filter lenses, and 9x9 final chambers.
+- Late-game chambers introduce green beams, locked conduit tiles, cross-junctions, multi-source engines, four-color crown routing, color filter lenses, and larger final chambers up to 10x10.
 - Completed chambers show relic art and a small marker in the chamber selector; par clears get a warmer marker.
 - Chamber notes are intentionally short so the playfield stays clear.
 - Tier medallions and board biomes now shift every four chambers.
