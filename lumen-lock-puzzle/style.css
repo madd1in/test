@@ -7,9 +7,10 @@
   --muted: #aeb7b3;
   --line: rgba(224, 196, 128, 0.27);
   --brass: #d8b76c;
-  --cyan: #66e8ff;
+  --cyan: #2f9dff;
   --amber: #ffc75a;
   --violet: #c993ff;
+  --green: #b7ff37;
   --danger: #ff6f7d;
   --shadow: rgba(0, 0, 0, 0.46);
   --radius: 8px;
@@ -209,10 +210,20 @@ h1 {
   color: var(--amber);
 }
 
-.audio-button.is-on {
+.audio-button.is-on,
+#fxButton[aria-pressed="true"] {
   color: #071013;
   border-color: rgba(102, 232, 255, 0.95);
-  background: linear-gradient(180deg, var(--cyan), #62e8bd);
+  background: linear-gradient(180deg, var(--cyan), #9dffcb);
+}
+
+#fxButton {
+  color: var(--cyan);
+}
+
+#fxButton[aria-pressed="true"] {
+  border-color: rgba(183, 255, 55, 0.82);
+  background: linear-gradient(180deg, #dfff92, var(--green));
 }
 
 .stats div,
@@ -538,7 +549,7 @@ h1 {
   padding: 8px 10px;
   border: 1px solid rgba(216, 183, 108, 0.18);
   border-radius: var(--radius);
-  background: linear-gradient(90deg, rgba(102, 232, 255, 0.07), rgba(0, 0, 0, 0.18));
+  background: linear-gradient(90deg, rgba(47, 157, 255, 0.08), rgba(0, 0, 0, 0.18));
 }
 
 .signal-chip span {
@@ -554,6 +565,34 @@ h1 {
   height: 13px;
   border-radius: 50%;
   box-shadow: 0 0 14px currentColor;
+}
+
+.signal-chip[data-color="cyan"] {
+  border-color: rgba(47, 157, 255, 0.34);
+}
+
+.signal-chip[data-color="cyan"] i {
+  border-radius: 3px;
+  transform: rotate(45deg);
+}
+
+.signal-chip[data-color="green"] {
+  border-color: rgba(183, 255, 55, 0.32);
+}
+
+.signal-chip[data-color="green"] i {
+  border-radius: 2px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.signal-chip[data-color="amber"] i {
+  border-radius: 50% 50% 50% 2px;
+  transform: rotate(-45deg);
+}
+
+.signal-chip[data-color="violet"] i {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(201, 147, 255, 0.18), 0 0 14px currentColor;
 }
 
 .signal-chip strong {

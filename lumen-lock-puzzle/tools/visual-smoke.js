@@ -96,7 +96,7 @@ function makeClient(ws) {
   };
 }
 
-async function capture(client, label, metrics, levelButtonIndex = 0) {
+async function capture(client, label, metrics, levelButtonIndex = 0, options = {}) {
   const { targetId } = await client.send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await client.send("Target.attachToTarget", { targetId, flatten: true });
   await client.send("Page.enable", {}, sessionId);
@@ -116,6 +116,16 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
     );
     await delay(500);
   }
+  if (options.toggleFx) {
+    await client.send(
+      "Runtime.evaluate",
+      {
+        expression: `document.getElementById("fxButton")?.click()`
+      },
+      sessionId
+    );
+    await delay(250);
+  }
   const evalResult = await client.send(
     "Runtime.evaluate",
     {
@@ -123,6 +133,7 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
       expression: `(() => {
         const canvas = document.getElementById("gameCanvas");
         const audioButton = document.getElementById("audioButton");
+        const fxButton = document.getElementById("fxButton");
         const rect = canvas.getBoundingClientRect();
         const stage = document.querySelector(".board-stage").getBoundingClientRect();
         const rail = document.querySelector(".command-rail").getBoundingClientRect();
@@ -168,6 +179,9 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
           )),
           audioButton: audioButton ? audioButton.textContent : null,
           audioPressed: audioButton ? audioButton.getAttribute("aria-pressed") : null,
+          fxButton: fxButton ? fxButton.textContent : null,
+          fxPressed: fxButton ? fxButton.getAttribute("aria-pressed") : null,
+          signalLabels: [...document.querySelectorAll(".signal-chip span")].map((chip) => chip.textContent.trim()),
           level: document.getElementById("levelName").textContent,
           badge: document.getElementById("stateBadge").textContent,
           targets: document.getElementById("targetValue").textContent
@@ -241,8 +255,14 @@ async function removeProfileDir() {
       deviceScaleFactor: 2,
       mobile: true
     }, 19);
+    const mobileCalmFx = await capture(client, "mobile-calm-fx", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      mobile: true
+    }, 19, { toggleFx: true });
     client.close();
-    const results = [desktop, narrowDesktop, breakpoint, mobile, mobileFinal];
+    const results = [desktop, narrowDesktop, breakpoint, mobile, mobileFinal, mobileCalmFx];
     const failures = results.flatMap((result) => {
       const metrics = result.metrics;
       const problems = [];
@@ -252,6 +272,7 @@ async function removeProfileDir() {
       if (!metrics.levelPanel.withinViewport) problems.push("level panel is outside the viewport");
       if (!metrics.levelButtonsWithinViewport) problems.push("level buttons are outside the viewport");
       if (!metrics.levelButtonsWithinPanel) problems.push("level buttons overflow their panel");
+      if (result.label === "mobile-calm-fx" && metrics.fxPressed !== "true") problems.push("FX button did not switch to calm mode");
       return problems.map((problem) => `${result.label}: ${problem}`);
     });
     console.log(JSON.stringify(results, null, 2));
