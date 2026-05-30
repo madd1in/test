@@ -25,6 +25,13 @@
   const FX_STORAGE_KEY = "lumen-lock-fx-v1";
   const FULL_FRAME_MS = 1000 / 30;
   const CALM_FRAME_MS = 1000 / 20;
+  const VISUAL_BLEED = {
+    frame: 1.05,
+    source: 1.65,
+    target: 1.38,
+    tile: 0.58,
+    bottomSafety: 0.85
+  };
   const AUDIO_FILES = {
     bgm: "assets/audio/bgm-lumen-lock.mp3",
     rotate: "assets/audio/sfx-rotate.wav",
@@ -701,6 +708,7 @@
   function loadLevel(index) {
     const level = LEVELS[index];
     state.levelIndex = index;
+    state.board = null;
     state.moves = 0;
     state.undo = [];
     state.solved = false;
@@ -1054,30 +1062,27 @@
   }
 
   function levelVisualBounds(level) {
-    const frameBleed = 0.9;
-    const sourceBleed = 1.65;
-    const targetBleed = 1.18;
-    const tileBleed = 0.45;
     const bounds = {
-      minX: -frameBleed,
-      minY: -frameBleed,
-      maxX: level.size + frameBleed,
-      maxY: level.size + frameBleed
+      minX: -VISUAL_BLEED.frame,
+      minY: -VISUAL_BLEED.frame,
+      maxX: level.size + VISUAL_BLEED.frame,
+      maxY: level.size + VISUAL_BLEED.frame
     };
 
     level.sources.forEach((source) => {
       const point = sourcePoint(source, level);
-      extendBounds(bounds, point.x, point.y, sourceBleed);
+      extendBounds(bounds, point.x, point.y, VISUAL_BLEED.source);
     });
     level.targets.forEach((target) => {
-      extendBounds(bounds, target.x + 0.5, target.y + 0.5, targetBleed);
+      extendBounds(bounds, target.x + 0.5, target.y + 0.5, VISUAL_BLEED.target);
     });
     level.tiles.forEach((tile) => {
-      bounds.minX = Math.min(bounds.minX, tile.x - tileBleed);
-      bounds.minY = Math.min(bounds.minY, tile.y - tileBleed);
-      bounds.maxX = Math.max(bounds.maxX, tile.x + 1 + tileBleed);
-      bounds.maxY = Math.max(bounds.maxY, tile.y + 1 + tileBleed);
+      bounds.minX = Math.min(bounds.minX, tile.x - VISUAL_BLEED.tile);
+      bounds.minY = Math.min(bounds.minY, tile.y - VISUAL_BLEED.tile);
+      bounds.maxX = Math.max(bounds.maxX, tile.x + 1 + VISUAL_BLEED.tile);
+      bounds.maxY = Math.max(bounds.maxY, tile.y + 1 + VISUAL_BLEED.tile);
     });
+    bounds.maxY += VISUAL_BLEED.bottomSafety;
     return bounds;
   }
 
@@ -1823,12 +1828,54 @@
     requestAnimationFrame(animate);
   }
 
+  function getRenderMetrics() {
+    fitCanvas();
+    const level = getLevel();
+    const board = boardRect();
+    const bounds = levelVisualBounds(level);
+    const visual = {
+      top: board.y + bounds.minY * board.cell,
+      bottom: board.y + bounds.maxY * board.cell,
+      left: board.x + bounds.minX * board.cell,
+      right: board.x + bounds.maxX * board.cell
+    };
+    return {
+      levelIndex: state.levelIndex,
+      levelId: level.id,
+      levelName: level.name,
+      canvas: {
+        width: Math.round(state.canvasWidth),
+        height: Math.round(state.canvasHeight)
+      },
+      board: {
+        top: Math.round(board.y),
+        bottom: Math.round(board.y + board.size),
+        cell: Number(board.cell.toFixed(2))
+      },
+      visual: {
+        top: Math.round(visual.top),
+        bottom: Math.round(visual.bottom),
+        bottomSafePx: Math.round(state.canvasHeight - visual.bottom)
+      },
+      targets: level.targets.map((target) => {
+        const bottom = board.y + (target.y + 0.5 + VISUAL_BLEED.target) * board.cell;
+        return {
+          color: target.color,
+          x: target.x,
+          y: target.y,
+          bottomSafePx: Math.round(state.canvasHeight - bottom)
+        };
+      })
+    };
+  }
+
   window.LumenLock = {
     loadLevel,
     resetLevel,
     rotateCell,
     nextLevel,
     getLevelCount: () => LEVELS.length,
+    getRenderMetrics,
     getSnapshot: () => ({
       levelIndex: state.levelIndex,
       levelId: getLevel().id,

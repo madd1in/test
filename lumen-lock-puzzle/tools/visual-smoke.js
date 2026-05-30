@@ -197,6 +197,36 @@ async function capture(client, label, metrics, levelButtonIndex = 0, options = {
   return { label, outPath, metrics: evalResult.result.value };
 }
 
+async function collectAllLevelSafety(client, label, metrics) {
+  const { targetId } = await client.send("Target.createTarget", { url: "about:blank" });
+  const { sessionId } = await client.send("Target.attachToTarget", { targetId, flatten: true });
+  await client.send("Page.enable", {}, sessionId);
+  await client.send("Runtime.enable", {}, sessionId);
+  await client.send("Emulation.setDeviceMetricsOverride", metrics, sessionId);
+  const loaded = client.once("Page.loadEventFired", sessionId);
+  await client.send("Page.navigate", { url: fileUrl }, sessionId);
+  await loaded;
+  await delay(900);
+  const evalResult = await client.send(
+    "Runtime.evaluate",
+    {
+      returnByValue: true,
+      expression: `(() => {
+        const count = window.LumenLock?.getLevelCount?.() ?? 0;
+        const levels = [];
+        for (let index = 0; index < count; index += 1) {
+          window.LumenLock.loadLevel(index);
+          levels.push(window.LumenLock.getRenderMetrics());
+        }
+        return levels;
+      })()`
+    },
+    sessionId
+  );
+  await client.send("Target.closeTarget", { targetId });
+  return { label, metrics: evalResult.result.value };
+}
+
 async function removeProfileDir() {
   for (let i = 0; i < 8; i += 1) {
     try {
@@ -261,6 +291,12 @@ async function removeProfileDir() {
       deviceScaleFactor: 2,
       mobile: true
     }, 19, { toggleFx: true });
+    const allLevelSafety = await collectAllLevelSafety(client, "all-level-mobile-bottom-safety", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      mobile: true
+    });
     client.close();
     const results = [desktop, narrowDesktop, breakpoint, mobile, mobileFinal, mobileCalmFx];
     const failures = results.flatMap((result) => {
@@ -275,7 +311,20 @@ async function removeProfileDir() {
       if (result.label === "mobile-calm-fx" && metrics.fxPressed !== "true") problems.push("FX button did not switch to calm mode");
       return problems.map((problem) => `${result.label}: ${problem}`);
     });
-    console.log(JSON.stringify(results, null, 2));
+    const safetyFailures = allLevelSafety.metrics.flatMap((level) => {
+      const problems = [];
+      if (level.visual.bottomSafePx < 28) {
+        problems.push(`visual bottom safe area is only ${level.visual.bottomSafePx}px`);
+      }
+      level.targets.forEach((target) => {
+        if (target.bottomSafePx < 28) {
+          problems.push(`${target.color} receiver at ${target.x},${target.y} has only ${target.bottomSafePx}px bottom safety`);
+        }
+      });
+      return problems.map((problem) => `${allLevelSafety.label}: ${level.levelIndex + 1} ${level.levelName}: ${problem}`);
+    });
+    console.log(JSON.stringify({ captures: results, allLevelSafety }, null, 2));
+    failures.push(...safetyFailures);
     if (failures.length) {
       console.error(`Visual smoke failed:\n${failures.join("\n")}`);
       process.exitCode = 1;
