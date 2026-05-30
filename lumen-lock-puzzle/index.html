@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lumen Lock</title>
+    <link rel="stylesheet" href="style.css?v=converter-crown-polish-20260530">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div class="brand-copy">
+            <div class="brand-line">
+              <h1>Lumen Lock</h1>
+              <img class="wordmark" src="assets/lumen-lock-wordmark-imagen-v2.png" alt="" aria-hidden="true">
+            </div>
+            <p id="levelName">First Seal</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <div class="stats" aria-label="Current level statistics">
+            <div>
+              <span>Moves</span>
+              <strong id="movesValue">0</strong>
+            </div>
+            <div>
+              <span>Par</span>
+              <strong id="parValue">0</strong>
+            </div>
+            <div>
+              <span>Targets</span>
+              <strong id="targetValue">0/0</strong>
+            </div>
+          </div>
+          <button id="audioButton" class="audio-button" type="button" aria-pressed="false">Sound</button>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <section class="board-stage" aria-label="Lumen Lock puzzle board">
+          <canvas id="gameCanvas" width="960" height="960" tabindex="0"></canvas>
+          <div id="stateBadge" class="state-badge" aria-live="polite">Align</div>
+        </section>
+
+        <aside class="command-rail" aria-label="Game commands">
+          <section class="panel">
+            <div class="panel-title">
+              <span>Chambers</span>
+              <strong id="bestValue">Best -</strong>
+            </div>
+            <div id="masteryStrip" class="mastery-strip" aria-label="Vault mastery">
+              <span id="masteryValue">0/28 sealed</span>
+              <strong id="tierValue">Glass Vault</strong>
+            </div>
+            <div id="levelButtons" class="level-buttons"></div>
+            <p id="levelNote" class="level-note"></p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <span>Controls</span>
+              <strong id="lockState">Open</strong>
+            </div>
+            <div class="button-grid">
+              <button id="undoButton" type="button">Undo</button>
+              <button id="resetButton" type="button">Reset</button>
+              <button id="nextButton" type="button">Next</button>
+              <button id="fxButton" type="button" aria-pressed="false">FX Full</button>
+            </div>
+          </section>
+
+          <section class="panel color-panel">
+            <div class="panel-title">
+              <span>Signals</span>
+              <strong id="signalValue">0</strong>
+            </div>
+            <div id="signalList" class="signal-list"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="game.js?v=converter-crown-polish-20260530"></script>
+  </body>
+</html>
