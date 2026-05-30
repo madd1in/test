@@ -886,12 +886,16 @@
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = String(index + 1);
-      button.setAttribute("aria-label", level.name);
+      const best = state.best[level.id];
+      const tier = index >= LEVELS.length - 4 ? "final" : index >= Math.floor(LEVELS.length * 0.55) ? "late" : "early";
+      button.setAttribute("data-tier", tier);
+      button.setAttribute("title", `${index + 1}. ${level.name}`);
+      button.setAttribute("aria-label", `${index + 1}. ${level.name}${best ? `, best ${best}` : ""}`);
       button.style.setProperty("--relic-x", `${(index % 4) * 33.333}%`);
       button.style.setProperty("--relic-y", `${Math.floor(index / 4) * 33.333}%`);
       button.classList.toggle("is-active", index === state.levelIndex);
-      button.classList.toggle("is-complete", Boolean(state.best[level.id]));
-      button.classList.toggle("is-par", Boolean(state.best[level.id] && state.best[level.id] <= level.par));
+      button.classList.toggle("is-complete", Boolean(best));
+      button.classList.toggle("is-par", Boolean(best && best <= level.par));
       button.addEventListener("click", () => {
         primeAudio();
         playSound("click");
