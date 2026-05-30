@@ -125,6 +125,16 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
         const audioButton = document.getElementById("audioButton");
         const rect = canvas.getBoundingClientRect();
         const stage = document.querySelector(".board-stage").getBoundingClientRect();
+        const rail = document.querySelector(".command-rail").getBoundingClientRect();
+        const levelButtons = [...document.querySelectorAll("#levelButtons button")].map((button) => {
+          const buttonRect = button.getBoundingClientRect();
+          return {
+            left: Math.round(buttonRect.left),
+            right: Math.round(buttonRect.right),
+            top: Math.round(buttonRect.top),
+            bottom: Math.round(buttonRect.bottom)
+          };
+        });
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight },
           scroll: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
@@ -137,6 +147,15 @@ async function capture(client, label, metrics, levelButtonIndex = 0) {
             height: Math.round(stage.height),
             fullyVisible: stage.top >= -1 && stage.bottom <= window.innerHeight + 1
           },
+          rail: {
+            left: Math.round(rail.left),
+            right: Math.round(rail.right),
+            width: Math.round(rail.width),
+            withinViewport: rail.left >= -1 && rail.right <= window.innerWidth + 1
+          },
+          levelButtonsWithinViewport: levelButtons.every((button) => (
+            button.left >= -1 && button.right <= window.innerWidth + 1
+          )),
           audioButton: audioButton ? audioButton.textContent : null,
           audioPressed: audioButton ? audioButton.getAttribute("aria-pressed") : null,
           level: document.getElementById("levelName").textContent,

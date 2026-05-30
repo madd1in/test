@@ -483,14 +483,14 @@
     {
       id: "master-key",
       name: "Master Key",
-      size: 9,
+      size: 10,
       par: 18,
       note: "Every filter in the vault has to agree before the master key turns.",
       sources: [
         { x: -1, y: 2, dir: DIR.E, color: "cyan" },
         { x: 8, y: -1, dir: DIR.S, color: "amber" },
-        { x: 9, y: 1, dir: DIR.W, color: "violet" },
-        { x: 0, y: 9, dir: DIR.N, color: "green" }
+        { x: 10, y: 1, dir: DIR.W, color: "violet" },
+        { x: 0, y: 10, dir: DIR.N, color: "green" }
       ],
       targets: [
         { x: 8, y: 6, color: "cyan" },
@@ -741,13 +741,14 @@
 
     level.sources.forEach((source) => {
       const vector = VEC[source.dir];
+      const origin = sourcePoint(source, level);
       queue.push({
         x: source.x + vector.x,
         y: source.y + vector.y,
         dir: source.dir,
         color: source.color,
-        fromX: source.x + 0.5,
-        fromY: source.y + 0.5,
+        fromX: origin.x,
+        fromY: origin.y,
         depth: 0
       });
     });
@@ -979,25 +980,75 @@
   function boardRect() {
     if (state.board) return state.board;
     const level = getLevel();
-    const minSide = Math.max(1, Math.min(state.canvasWidth, state.canvasHeight));
-    const margin = Math.min(minSide * 0.28, Math.max(18, minSide * 0.085, sourceSafeMargin(level, minSide)));
-    const size = Math.max(1, Math.min(state.canvasWidth - margin * 2, state.canvasHeight - margin * 2));
+    const bounds = levelVisualBounds(level);
+    const pad = Math.max(12, Math.min(state.canvasWidth, state.canvasHeight) * 0.035);
+    const availableWidth = Math.max(1, state.canvasWidth - pad * 2);
+    const availableHeight = Math.max(1, state.canvasHeight - pad * 2);
+    const cell = Math.max(1, Math.min(
+      availableWidth / (bounds.maxX - bounds.minX),
+      availableHeight / (bounds.maxY - bounds.minY)
+    ));
+    const contentWidth = (bounds.maxX - bounds.minX) * cell;
+    const contentHeight = (bounds.maxY - bounds.minY) * cell;
+    const x = (state.canvasWidth - contentWidth) / 2 - bounds.minX * cell;
+    const y = (state.canvasHeight - contentHeight) / 2 - bounds.minY * cell;
     state.board = {
-      x: (state.canvasWidth - size) / 2,
-      y: (state.canvasHeight - size) / 2,
-      size,
-      cell: size / level.size
+      x,
+      y,
+      size: cell * level.size,
+      cell
     };
     return state.board;
   }
 
-  function sourceSafeMargin(level, minSide) {
-    const hasExternalSource = level.sources.some((source) => (
-      source.x < 0 || source.y < 0 || source.x >= level.size || source.y >= level.size
-    ));
-    const edgeCells = hasExternalSource ? (minSide < 520 ? 1.36 : 1.12) : 0.36;
-    const pad = minSide < 520 ? 10 : 8;
-    return ((edgeCells * minSide) / level.size + pad) / (1 + (2 * edgeCells) / level.size);
+  function levelVisualBounds(level) {
+    const frameBleed = 0.48;
+    const sourceBleed = 1.08;
+    const targetBleed = 0.78;
+    const tileBleed = 0.2;
+    const bounds = {
+      minX: -frameBleed,
+      minY: -frameBleed,
+      maxX: level.size + frameBleed,
+      maxY: level.size + frameBleed
+    };
+
+    level.sources.forEach((source) => {
+      const point = sourcePoint(source, level);
+      extendBounds(bounds, point.x, point.y, sourceBleed);
+    });
+    level.targets.forEach((target) => {
+      extendBounds(bounds, target.x + 0.5, target.y + 0.5, targetBleed);
+    });
+    level.tiles.forEach((tile) => {
+      bounds.minX = Math.min(bounds.minX, tile.x - tileBleed);
+      bounds.minY = Math.min(bounds.minY, tile.y - tileBleed);
+      bounds.maxX = Math.max(bounds.maxX, tile.x + 1 + tileBleed);
+      bounds.maxY = Math.max(bounds.maxY, tile.y + 1 + tileBleed);
+    });
+    return bounds;
+  }
+
+  function extendBounds(bounds, x, y, bleed) {
+    bounds.minX = Math.min(bounds.minX, x - bleed);
+    bounds.minY = Math.min(bounds.minY, y - bleed);
+    bounds.maxX = Math.max(bounds.maxX, x + bleed);
+    bounds.maxY = Math.max(bounds.maxY, y + bleed);
+  }
+
+  function sourcePoint(source, level = getLevel()) {
+    const edgeInset = 0.78;
+    const x = source.x < 0
+      ? edgeInset
+      : source.x >= level.size
+        ? level.size - edgeInset
+        : source.x + 0.5;
+    const y = source.y < 0
+      ? edgeInset
+      : source.y >= level.size
+        ? level.size - edgeInset
+        : source.y + 0.5;
+    return { x, y };
   }
 
   function logicalPoint(x, y) {
@@ -1435,8 +1486,10 @@
 
   function drawSources(time) {
     const board = boardRect();
-    getLevel().sources.forEach((source) => {
-      const center = logicalPoint(source.x + 0.5, source.y + 0.5);
+    const level = getLevel();
+    level.sources.forEach((source) => {
+      const origin = sourcePoint(source, level);
+      const center = logicalPoint(origin.x, origin.y);
       const color = COLORS[source.color];
       const pulse = 0.9 + Math.sin(time * 0.006 + source.x + source.y) * 0.08;
       drawFlare(flareIndex(source.color, 0), center, board.cell * 1.06, 0.18, time * 0.0009);
