@@ -106,11 +106,14 @@ async function capture(client, label, metrics, levelButtonIndex = 0, options = {
   await client.send("Page.navigate", { url: fileUrl }, sessionId);
   await loaded;
   await delay(900);
-  if (levelButtonIndex > 0) {
+  if (levelButtonIndex > 0 || levelButtonIndex === "last") {
+    const levelExpression = levelButtonIndex === "last"
+      ? `(window.LumenLock?.getLevelCount?.() ?? 1) - 1`
+      : String(levelButtonIndex);
     await client.send(
       "Runtime.evaluate",
       {
-        expression: `window.LumenLock?.loadLevel(${levelButtonIndex})`
+        expression: `window.LumenLock?.loadLevel(${levelExpression})`
       },
       sessionId
     );
@@ -284,13 +287,13 @@ async function removeProfileDir() {
       height: 844,
       deviceScaleFactor: 2,
       mobile: true
-    }, 19);
+    }, "last");
     const mobileCalmFx = await capture(client, "mobile-calm-fx", {
       width: 390,
       height: 844,
       deviceScaleFactor: 2,
       mobile: true
-    }, 19, { toggleFx: true });
+    }, "last", { toggleFx: true });
     const allLevelSafety = await collectAllLevelSafety(client, "all-level-mobile-bottom-safety", {
       width: 390,
       height: 844,

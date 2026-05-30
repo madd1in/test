@@ -530,6 +530,231 @@
         makeTile(1, 1, "wall", 0, true),
         makeTile(7, 7, "wall", 0, true)
       ]
+    },
+    {
+      id: "prism-exchange",
+      name: "Prism Exchange",
+      size: 8,
+      par: 8,
+      note: "New color converters rewrite a beam before it reaches the old receivers.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "cyan" },
+        { x: 7, y: -1, dir: DIR.S, color: "amber" }
+      ],
+      targets: [
+        { x: 7, y: 6, color: "amber" },
+        { x: 1, y: 7, color: "cyan" }
+      ],
+      tiles: [
+        makeTile(3, 2, "corner", 0),
+        makeTile(3, 5, "converter", 0, true, "amber"),
+        makeTile(3, 6, "corner", 2),
+        makeTile(7, 3, "corner", 1),
+        makeTile(4, 3, "converter", 1, true, "cyan"),
+        makeTile(1, 3, "corner", 3),
+        makeTile(5, 5, "wall", 0, true),
+        makeTile(6, 1, "wall", 0, true)
+      ]
+    },
+    {
+      id: "chromatic-switchback",
+      name: "Chromatic Switchback",
+      size: 9,
+      par: 7,
+      note: "One green current splits, then each branch must become a different promise.",
+      sources: [{ x: -1, y: 4, dir: DIR.E, color: "green" }],
+      targets: [
+        { x: 8, y: 1, color: "violet" },
+        { x: 8, y: 7, color: "amber" }
+      ],
+      tiles: [
+        makeTile(2, 4, "split", 0),
+        makeTile(2, 1, "corner", 3),
+        makeTile(5, 1, "converter", 0, false, "violet"),
+        makeTile(2, 7, "corner", 2),
+        makeTile(5, 7, "converter", 0, false, "amber"),
+        makeTile(6, 1, "filter", 1, true, "violet"),
+        makeTile(6, 7, "filter", 1, true, "amber"),
+        makeTile(4, 4, "wall", 0, true),
+        makeTile(4, 5, "wall", 0, true)
+      ]
+    },
+    {
+      id: "rose-window",
+      name: "Rose Window",
+      size: 9,
+      par: 8,
+      note: "The upper lens blooms violet while the lower relay turns green into amber.",
+      sources: [
+        { x: -1, y: 1, dir: DIR.E, color: "cyan" },
+        { x: 9, y: 7, dir: DIR.W, color: "green" }
+      ],
+      targets: [
+        { x: 8, y: 1, color: "violet" },
+        { x: 0, y: 2, color: "amber" }
+      ],
+      tiles: [
+        makeTile(3, 1, "converter", 0, false, "violet"),
+        makeTile(7, 1, "filter", 1, true, "violet"),
+        makeTile(5, 7, "corner", 2),
+        makeTile(5, 3, "converter", 0, true, "amber"),
+        makeTile(5, 2, "corner", 0),
+        makeTile(2, 2, "filter", 1, true, "amber"),
+        makeTile(4, 4, "cross", 0, true),
+        makeTile(1, 6, "wall", 0, true),
+        makeTile(7, 5, "wall", 0, true)
+      ]
+    },
+    {
+      id: "crown-dial",
+      name: "Crown Dial",
+      size: 10,
+      par: 7,
+      note: "A crown splitter must feed two rewritten side lines while a third beam falls through.",
+      sources: [
+        { x: 5, y: 10, dir: DIR.N, color: "cyan" },
+        { x: 1, y: -1, dir: DIR.S, color: "violet" }
+      ],
+      targets: [
+        { x: 0, y: 5, color: "green" },
+        { x: 9, y: 5, color: "amber" },
+        { x: 1, y: 9, color: "cyan" }
+      ],
+      tiles: [
+        makeTile(5, 5, "split", 3),
+        makeTile(2, 5, "converter", 0, false, "green"),
+        makeTile(7, 5, "converter", 0, false, "amber"),
+        makeTile(1, 6, "converter", 0, true, "cyan"),
+        makeTile(8, 5, "filter", 1, true, "amber"),
+        makeTile(4, 7, "wall", 0, true),
+        makeTile(6, 3, "wall", 0, true)
+      ]
+    },
+    {
+      id: "filter-loom",
+      name: "Filter Loom",
+      size: 10,
+      par: 10,
+      note: "Two long routes weave through converters and color gates on opposite sides.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "amber" },
+        { x: 8, y: -1, dir: DIR.S, color: "violet" }
+      ],
+      targets: [
+        { x: 9, y: 8, color: "green" },
+        { x: 0, y: 6, color: "cyan" }
+      ],
+      tiles: [
+        makeTile(3, 2, "corner", 0),
+        makeTile(3, 5, "converter", 0, true, "green"),
+        makeTile(3, 8, "corner", 2),
+        makeTile(6, 8, "filter", 1, true, "green"),
+        makeTile(8, 3, "corner", 1),
+        makeTile(5, 3, "converter", 1, true, "cyan"),
+        makeTile(2, 3, "corner", 3),
+        makeTile(2, 5, "filter", 0, true, "cyan"),
+        makeTile(2, 6, "corner", 1),
+        makeTile(5, 6, "cross", 0, true),
+        makeTile(6, 1, "wall", 0, true),
+        makeTile(7, 7, "wall", 0, true)
+      ]
+    },
+    {
+      id: "aurora-exchange",
+      name: "Aurora Exchange",
+      size: 11,
+      par: 10,
+      note: "The aurora branch splits into two conversions while violet dives into cyan.",
+      sources: [
+        { x: -1, y: 5, dir: DIR.E, color: "cyan" },
+        { x: 8, y: -1, dir: DIR.S, color: "violet" }
+      ],
+      targets: [
+        { x: 10, y: 2, color: "amber" },
+        { x: 10, y: 8, color: "green" },
+        { x: 8, y: 10, color: "cyan" }
+      ],
+      tiles: [
+        makeTile(3, 5, "split", 0),
+        makeTile(3, 2, "corner", 3),
+        makeTile(6, 2, "converter", 0, false, "amber"),
+        makeTile(9, 2, "filter", 1, true, "amber"),
+        makeTile(3, 8, "corner", 2),
+        makeTile(6, 8, "converter", 0, false, "green"),
+        makeTile(9, 8, "filter", 1, true, "green"),
+        makeTile(8, 4, "converter", 0, true, "cyan"),
+        makeTile(5, 5, "cross", 0, true),
+        makeTile(1, 1, "wall", 0, true),
+        makeTile(9, 6, "wall", 0, true)
+      ]
+    },
+    {
+      id: "null-cathedral",
+      name: "Null Cathedral",
+      size: 11,
+      par: 12,
+      note: "Three aisles trade identities across the cathedral floor.",
+      sources: [
+        { x: -1, y: 1, dir: DIR.E, color: "amber" },
+        { x: 11, y: 9, dir: DIR.W, color: "green" },
+        { x: 2, y: 11, dir: DIR.N, color: "cyan" }
+      ],
+      targets: [
+        { x: 10, y: 1, color: "violet" },
+        { x: 0, y: 2, color: "amber" },
+        { x: 10, y: 6, color: "green" }
+      ],
+      tiles: [
+        makeTile(4, 1, "converter", 0, false, "violet"),
+        makeTile(7, 1, "filter", 1, true, "violet"),
+        makeTile(7, 9, "corner", 2),
+        makeTile(7, 5, "converter", 1, false, "amber"),
+        makeTile(7, 2, "corner", 0),
+        makeTile(3, 2, "filter", 1, true, "amber"),
+        makeTile(2, 6, "corner", 3),
+        makeTile(5, 6, "converter", 0, false, "green"),
+        makeTile(8, 6, "filter", 1, true, "green"),
+        makeTile(5, 5, "cross", 0, true),
+        makeTile(1, 8, "wall", 0, true),
+        makeTile(9, 4, "wall", 0, true)
+      ]
+    },
+    {
+      id: "lumen-crown",
+      name: "The Lumen Crown",
+      size: 12,
+      par: 16,
+      note: "The last crown chamber uses every trick: routes, filters, crossings, and rewritten color.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "cyan" },
+        { x: 10, y: -1, dir: DIR.S, color: "amber" },
+        { x: 12, y: 7, dir: DIR.W, color: "violet" },
+        { x: 6, y: 12, dir: DIR.N, color: "green" }
+      ],
+      targets: [
+        { x: 11, y: 9, color: "amber" },
+        { x: 2, y: 10, color: "violet" },
+        { x: 0, y: 7, color: "cyan" },
+        { x: 11, y: 8, color: "green" }
+      ],
+      tiles: [
+        makeTile(3, 2, "corner", 0),
+        makeTile(3, 6, "converter", 0, true, "amber"),
+        makeTile(3, 9, "corner", 2),
+        makeTile(8, 9, "filter", 1, true, "amber"),
+        makeTile(10, 3, "corner", 1),
+        makeTile(6, 3, "converter", 1, true, "violet"),
+        makeTile(2, 3, "corner", 3),
+        makeTile(2, 8, "filter", 0, true, "violet"),
+        makeTile(8, 7, "converter", 1, true, "cyan"),
+        makeTile(6, 7, "line", 0, false),
+        makeTile(4, 7, "filter", 1, true, "cyan"),
+        makeTile(6, 8, "corner", 3),
+        makeTile(9, 8, "filter", 1, true, "green"),
+        makeTile(6, 6, "cross", 0, true),
+        makeTile(4, 4, "wall", 0, true),
+        makeTile(8, 5, "wall", 0, true)
+      ]
     }
   ];
 
@@ -742,7 +967,7 @@
     if (!tile || tile.type === "wall") return [];
     const rot = ((tile.rot % 4) + 4) % 4;
 
-    if (tile.type === "line" || tile.type === "filter") {
+    if (tile.type === "line" || tile.type === "filter" || tile.type === "converter") {
       return rot % 2 === 0 ? [DIR.N, DIR.S] : [DIR.E, DIR.W];
     }
 
@@ -778,6 +1003,11 @@
       return [];
     }
     return connectors.filter((dir) => dir !== entrySide);
+  }
+
+  function outputColorFor(tile, color) {
+    if (tile?.type === "converter" && tile.color) return tile.color;
+    return color;
   }
 
   function computeBeams() {
@@ -828,13 +1058,14 @@
 
       const tile = state.grid[beam.y][beam.x];
       const outDirs = routeTile(tile, beam.dir, beam.color);
+      const outColor = outputColorFor(tile, beam.color);
       outDirs.forEach((outDir) => {
         const vector = VEC[outDir];
         queue.push({
           x: beam.x + vector.x,
           y: beam.y + vector.y,
           dir: outDir,
-          color: beam.color,
+          color: outColor,
           fromX: centerX,
           fromY: centerY,
           depth: beam.depth + 1
@@ -933,6 +1164,23 @@
       chip.append(label, stateText);
       nodes.signalList.append(chip);
     });
+    level.tiles
+      .filter((tile) => tile.type === "filter" || tile.type === "converter")
+      .forEach((tile) => {
+        const chip = document.createElement("div");
+        chip.className = "signal-chip is-mechanic";
+        chip.setAttribute("data-color", tile.color);
+        chip.setAttribute("data-role", tile.type);
+        const label = document.createElement("span");
+        const dot = document.createElement("i");
+        dot.style.color = COLORS[tile.color];
+        dot.style.background = COLORS[tile.color];
+        label.append(dot, tile.type === "converter" ? `lens -> ${SIGNAL_NAMES[tile.color] ?? tile.color}` : `${SIGNAL_NAMES[tile.color] ?? tile.color} gate`);
+        const stateText = document.createElement("strong");
+        stateText.textContent = tile.locked ? "Pinned" : "Turn";
+        chip.append(label, stateText);
+        nodes.signalList.append(chip);
+      });
   }
 
   function renderLevelButtons() {
@@ -981,7 +1229,7 @@
 
   function rotationLimit(tile) {
     if (!tile || tile.locked || tile.type === "wall") return 1;
-    if (tile.type === "line" || tile.type === "filter") return 2;
+    if (tile.type === "line" || tile.type === "filter" || tile.type === "converter") return 2;
     return 4;
   }
 
@@ -1327,7 +1575,7 @@
       ctx.fillStyle = fill;
       ctx.fill();
       drawElementIcon(0, x + pad, y + pad, size, size, 0.42);
-      if (tile.type === "filter") {
+      if (tile.type === "filter" || tile.type === "converter") {
         drawElementIcon(elementIconIndex(tile.color, "target"), x + pad, y + pad, size, size, 0.26);
       }
       drawGlyph(glyphIndex(tile.type), x + pad, y + pad, size, size, 0.13);
@@ -1351,13 +1599,32 @@
         ctx.stroke();
       });
       ctx.shadowBlur = 0;
-      ctx.fillStyle = tile.type === "split" ? "#66e8ff" : tile.type === "filter" ? COLORS[tile.color] : "#ffe1a0";
+      ctx.fillStyle = tile.type === "split" ? "#66e8ff" : tile.type === "filter" || tile.type === "converter" ? COLORS[tile.color] : "#ffe1a0";
       ctx.beginPath();
       ctx.arc(center.x, center.y, Math.max(4, board.cell * 0.07), 0, Math.PI * 2);
       ctx.fill();
+      if (tile.type === "converter") drawConverterBands(center, board.cell, tile.color, pulse);
       if (tile.locked) drawLockPin(center, board.cell);
       ctx.restore();
     });
+  }
+
+  function drawConverterBands(center, cellSize, colorName, pulse) {
+    const color = COLORS[colorName] ?? "#ffe1a0";
+    ctx.save();
+    ctx.translate(center.x, center.y);
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = cellSize * 0.12 * fxIntensity();
+    ctx.lineWidth = Math.max(1, cellSize * 0.024);
+    ctx.globalAlpha = 0.76;
+    ctx.beginPath();
+    ctx.arc(0, 0, cellSize * 0.17 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.rotate(Math.PI / 4);
+    roundRect(-cellSize * 0.105, -cellSize * 0.105, cellSize * 0.21, cellSize * 0.21, 3);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawLockPin(center, cellSize) {
@@ -1381,11 +1648,12 @@
   }
 
   function glyphIndex(type) {
-    return { line: 1, corner: 2, split: 3, wall: 4, cross: 10, filter: 8 }[type] ?? 0;
+    return { line: 1, corner: 2, split: 3, wall: 4, cross: 10, filter: 8, converter: 9 }[type] ?? 0;
   }
 
   function conduitColor(tile) {
     if (tile.type === "filter") return COLORS[tile.color] ?? "rgba(255, 219, 142, 0.95)";
+    if (tile.type === "converter") return COLORS[tile.color] ?? "rgba(255, 219, 142, 0.95)";
     if (tile.type === "split") return "rgba(102, 232, 255, 0.92)";
     return "rgba(255, 219, 142, 0.95)";
   }
