@@ -432,9 +432,9 @@ h1 {
 }
 
 .level-buttons {
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  gap: 7px;
-  padding: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  gap: 6px;
+  padding: 6px;
   border: 1px solid rgba(216, 183, 108, 0.13);
   border-radius: var(--radius);
   background:
@@ -456,7 +456,7 @@ h1 {
 .level-buttons button {
   position: relative;
   min-width: 0;
-  min-height: 44px;
+  min-height: 40px;
   padding: 0;
   overflow: hidden;
   display: grid;
@@ -552,6 +552,16 @@ h1 {
   background: linear-gradient(90deg, rgba(47, 157, 255, 0.08), rgba(0, 0, 0, 0.18));
 }
 
+.signal-chip.is-mechanic {
+  min-height: 34px;
+  border-style: dashed;
+  background:
+    linear-gradient(90deg, rgba(255, 199, 90, 0.075), rgba(0, 0, 0, 0.2)),
+    var(--archive-panel) center / cover;
+  background-blend-mode: normal, soft-light;
+  font-size: 0.9rem;
+}
+
 .signal-chip span {
   display: inline-flex;
   align-items: center;
@@ -598,6 +608,21 @@ h1 {
 .signal-chip strong {
   color: var(--ink);
   font-family: var(--display-font);
+}
+
+.signal-chip.is-mechanic strong {
+  color: var(--brass);
+  font-size: 0.78rem;
+}
+
+.signal-chip[data-role="converter"] i {
+  border-radius: 4px;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16), 0 0 16px currentColor;
+}
+
+.signal-chip[data-role="filter"] i {
+  border-radius: 999px 999px 3px 3px;
 }
 
 @media (max-width: 1120px) {

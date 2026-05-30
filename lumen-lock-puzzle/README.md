@@ -1,6 +1,6 @@
 # Lumen Lock
 
-A standalone browser puzzle game about rotating prism tiles until every crystal receives the right beam. The current build has twenty hand-authored chambers, generated image assets, local BGM/SFX, persistent best scores, and responsive canvas/DOM UI.
+A standalone browser puzzle game about rotating prism tiles until every crystal receives the right beam. The current build has twenty-eight hand-authored chambers, generated image assets, local BGM/SFX, persistent best scores, and responsive canvas/DOM UI.
 
 ## Run
 
@@ -33,10 +33,11 @@ Open `index.html` in a browser. The game uses static files only.
 
 ## Content Notes
 
-- Late-game chambers introduce green beams, locked conduit tiles, cross-junctions, multi-source engines, four-color crown routing, color filter lenses, and larger final chambers up to 10x10.
+- Late-game chambers introduce green beams, locked conduit tiles, cross-junctions, multi-source engines, four-color crown routing, color filter lenses, color-converter lenses, and larger final chambers up to 12x12.
+- Converter lenses rewrite incoming light into their marked output color, creating routes where source color and receiver color intentionally disagree.
 - Completed chambers show relic art and a small marker in the chamber selector; par clears get a warmer marker.
 - Chamber notes are intentionally short so the playfield stays clear.
-- Tier medallions and board biomes now shift every four chambers.
+- Tier medallions and board biomes shift across the four main arcs as the vault deepens.
 
 ## Expansion Ideas
 
@@ -49,6 +50,5 @@ Open `index.html` in a browser. The game uses static files only.
 - Ghost beams that preview one rotation ahead.
 - Boss locks made from chained mini-boards.
 - A vault codex that unlocks puzzle-making sketches after each tier.
-- Color inversion lenses that swap cyan/amber or green/violet.
 - A level editor that exports compact chamber JSON.
 - Animated par relics for perfect clears.
