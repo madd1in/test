@@ -25,13 +25,14 @@
   };
   const TIER_NAMES = ["Glass Vault", "Clockwork Ring", "Verdant Lens", "Eclipse Engine"];
 
-  const makeTile = (x, y, type, rot = 0, locked = false) => ({
+  const makeTile = (x, y, type, rot = 0, locked = false, color = null) => ({
     x,
     y,
     type,
     rot,
     initialRot: rot,
-    locked
+    locked,
+    color
   });
 
   const LEVELS = [
@@ -406,6 +407,113 @@
         makeTile(2, 2, "wall", 0, true),
         makeTile(5, 6, "wall", 0, true)
       ]
+    },
+    {
+      id: "cyan-sieve",
+      name: "Cyan Sieve",
+      size: 8,
+      par: 8,
+      note: "Color lenses begin judging which light deserves passage.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "cyan" },
+        { x: -1, y: 5, dir: DIR.E, color: "amber" }
+      ],
+      targets: [
+        { x: 7, y: 6, color: "cyan" },
+        { x: 7, y: 1, color: "amber" }
+      ],
+      tiles: [
+        makeTile(2, 2, "corner", 0),
+        makeTile(2, 6, "corner", 2),
+        makeTile(4, 6, "filter", 1, true, "cyan"),
+        makeTile(5, 5, "corner", 1),
+        makeTile(5, 1, "corner", 3),
+        makeTile(6, 1, "filter", 1, true, "amber"),
+        makeTile(3, 3, "wall", 0, true)
+      ]
+    },
+    {
+      id: "lens-exchange",
+      name: "Lens Exchange",
+      size: 8,
+      par: 10,
+      note: "Rotating the lens is now part of the lock.",
+      sources: [
+        { x: 1, y: -1, dir: DIR.S, color: "cyan" },
+        { x: 8, y: 6, dir: DIR.W, color: "green" }
+      ],
+      targets: [
+        { x: 6, y: 6, color: "cyan" },
+        { x: 1, y: 1, color: "green" }
+      ],
+      tiles: [
+        makeTile(1, 3, "corner", 2),
+        makeTile(6, 3, "corner", 0),
+        makeTile(6, 5, "filter", 1, false, "cyan"),
+        makeTile(3, 6, "corner", 2),
+        makeTile(3, 1, "corner", 0),
+        makeTile(2, 1, "filter", 0, false, "green"),
+        makeTile(4, 4, "wall", 0, true)
+      ]
+    },
+    {
+      id: "prismatic-warden",
+      name: "Prismatic Warden",
+      size: 9,
+      par: 8,
+      note: "The warden lets only the named colors reach the rim.",
+      sources: [
+        { x: -1, y: 4, dir: DIR.E, color: "cyan" },
+        { x: 6, y: -1, dir: DIR.S, color: "violet" }
+      ],
+      targets: [
+        { x: 8, y: 0, color: "cyan" },
+        { x: 1, y: 7, color: "violet" }
+      ],
+      tiles: [
+        makeTile(2, 4, "corner", 1),
+        makeTile(2, 0, "corner", 3),
+        makeTile(5, 0, "filter", 0, false, "cyan"),
+        makeTile(6, 7, "corner", 1),
+        makeTile(3, 7, "filter", 0, false, "violet"),
+        makeTile(4, 4, "cross", 0, true),
+        makeTile(7, 2, "wall", 0, true)
+      ]
+    },
+    {
+      id: "master-key",
+      name: "Master Key",
+      size: 9,
+      par: 18,
+      note: "Every filter in the vault has to agree before the master key turns.",
+      sources: [
+        { x: -1, y: 2, dir: DIR.E, color: "cyan" },
+        { x: 8, y: -1, dir: DIR.S, color: "amber" },
+        { x: 9, y: 1, dir: DIR.W, color: "violet" },
+        { x: 0, y: 9, dir: DIR.N, color: "green" }
+      ],
+      targets: [
+        { x: 8, y: 6, color: "cyan" },
+        { x: 2, y: 8, color: "amber" },
+        { x: 4, y: 0, color: "violet" },
+        { x: 7, y: 5, color: "green" }
+      ],
+      tiles: [
+        makeTile(3, 2, "corner", 0),
+        makeTile(3, 6, "corner", 2),
+        makeTile(6, 6, "filter", 0, false, "cyan"),
+        makeTile(8, 4, "corner", 1),
+        makeTile(2, 4, "corner", 3),
+        makeTile(2, 7, "filter", 1, false, "amber"),
+        makeTile(6, 1, "corner", 2),
+        makeTile(6, 0, "corner", 0),
+        makeTile(5, 0, "filter", 0, false, "violet"),
+        makeTile(0, 5, "corner", 3),
+        makeTile(4, 5, "filter", 0, false, "green"),
+        makeTile(4, 4, "cross", 0, true),
+        makeTile(1, 1, "wall", 0, true),
+        makeTile(7, 7, "wall", 0, true)
+      ]
     }
   ];
 
@@ -586,7 +694,7 @@
     if (!tile || tile.type === "wall") return [];
     const rot = ((tile.rot % 4) + 4) % 4;
 
-    if (tile.type === "line") {
+    if (tile.type === "line" || tile.type === "filter") {
       return rot % 2 === 0 ? [DIR.N, DIR.S] : [DIR.E, DIR.W];
     }
 
@@ -611,9 +719,10 @@
     return [];
   }
 
-  function routeTile(tile, incomingDir) {
+  function routeTile(tile, incomingDir, color) {
     if (!tile) return [incomingDir];
     if (tile.type === "wall") return [];
+    if (tile.type === "filter" && tile.color !== color) return [];
 
     const entrySide = OPP[incomingDir];
     const connectors = connectorsFor(tile);
@@ -669,7 +778,7 @@
       });
 
       const tile = state.grid[beam.y][beam.x];
-      const outDirs = routeTile(tile, beam.dir);
+      const outDirs = routeTile(tile, beam.dir, beam.color);
       outDirs.forEach((outDir) => {
         const vector = VEC[outDir];
         queue.push({
@@ -812,7 +921,7 @@
 
   function rotationLimit(tile) {
     if (!tile || tile.locked || tile.type === "wall") return 1;
-    if (tile.type === "line") return 2;
+    if (tile.type === "line" || tile.type === "filter") return 2;
     return 4;
   }
 
@@ -1087,6 +1196,9 @@
       ctx.fillStyle = fill;
       ctx.fill();
       drawElementIcon(0, x + pad, y + pad, size, size, 0.42);
+      if (tile.type === "filter") {
+        drawElementIcon(elementIconIndex(tile.color, "target"), x + pad, y + pad, size, size, 0.26);
+      }
       drawGlyph(glyphIndex(tile.type), x + pad, y + pad, size, size, 0.13);
       ctx.strokeStyle = "rgba(216, 183, 108, 0.58)";
       ctx.lineWidth = Math.max(1, board.cell * 0.022);
@@ -1098,7 +1210,7 @@
       ctx.lineJoin = "round";
       ctx.shadowColor = "rgba(255, 199, 90, 0.35)";
       ctx.shadowBlur = board.cell * 0.13;
-      ctx.strokeStyle = tile.type === "split" ? "rgba(102, 232, 255, 0.92)" : "rgba(255, 219, 142, 0.95)";
+      ctx.strokeStyle = conduitColor(tile);
       ctx.lineWidth = Math.max(5, board.cell * 0.105) * pulse;
       connectors.forEach((dir) => {
         const end = connectorPoint(center, dir, board.cell * 0.31);
@@ -1108,7 +1220,7 @@
         ctx.stroke();
       });
       ctx.shadowBlur = 0;
-      ctx.fillStyle = tile.type === "split" ? "#66e8ff" : "#ffe1a0";
+      ctx.fillStyle = tile.type === "split" ? "#66e8ff" : tile.type === "filter" ? COLORS[tile.color] : "#ffe1a0";
       ctx.beginPath();
       ctx.arc(center.x, center.y, Math.max(4, board.cell * 0.07), 0, Math.PI * 2);
       ctx.fill();
@@ -1138,7 +1250,13 @@
   }
 
   function glyphIndex(type) {
-    return { line: 1, corner: 2, split: 3, wall: 4, cross: 10 }[type] ?? 0;
+    return { line: 1, corner: 2, split: 3, wall: 4, cross: 10, filter: 8 }[type] ?? 0;
+  }
+
+  function conduitColor(tile) {
+    if (tile.type === "filter") return COLORS[tile.color] ?? "rgba(255, 219, 142, 0.95)";
+    if (tile.type === "split") return "rgba(102, 232, 255, 0.92)";
+    return "rgba(255, 219, 142, 0.95)";
   }
 
   function elementIconIndex(typeOrColor, role = "tile") {
