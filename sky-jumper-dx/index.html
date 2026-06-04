@@ -1256,7 +1256,7 @@ function gameOver(){running=false;sfxOver();
   document.getElementById('deadStats').textContent=`Final Score: ${score} · ${coins} Sterne`;show('deadScreen');}
 function startWorld(){hideAll();buildLevel();invuln=0;running=true;
   document.getElementById('worldVal').textContent=worldIndex+1;toast(THEMES[worldIndex].name,THEMES[worldIndex].accent);
-  if(actx)scheduleBGM();}
+  if(actx)startBGM();}
 
 /* ---- HUD ---- */
 function updateHud(){
@@ -1289,8 +1289,6 @@ function initAudio(){if(actx)return;
   musicBus=actx.createGain();musicBus.gain.value=0.0;musicBus.connect(master);musicBus.connect(conv);
   fxBus=actx.createGain();fxBus.gain.value=0.9;fxBus.connect(master);
   loadExternalAudio();        // lazy-load bundled local MP3s/SFX (non-blocking)
-  musicBus.gain.linearRampToValueAtTime(0.18,actx.currentTime+0.7);
-  startBGM();
 }
 
 /* ============================================================
@@ -1328,7 +1326,6 @@ async function fetchBuffer(url){
 }
 async function loadExternalAudio(){
   loadSfxOnce();
-  playStreamBGM();
 }
 async function loadSfxOnce(){
   if(sfxLoadStarted)return;sfxLoadStarted=true;
@@ -1361,7 +1358,12 @@ function playExternalBGM(){
 function playStreamBGM(){
   const url=ASSET_FILES.bgm[worldIndex];if(!url)return false;
   if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;}
+  bgmStep=0;
   if(bgmSource){try{bgmSource.stop();}catch(e){}bgmSource=null;}
+  if(musicBus&&actx){
+    musicBus.gain.cancelScheduledValues(actx.currentTime);
+    musicBus.gain.setValueAtTime(0,actx.currentTime);
+  }
   if(bgmAudioWorld!==worldIndex){
     bgmAudio.src=url;bgmAudioWorld=worldIndex;bgmAudio.currentTime=0;
   }
@@ -1428,13 +1430,24 @@ const MUSIC=[
     melody:[57,60,64,67,64,60] },
 ];
 function midi(n){return 440*Math.pow(2,(n-69)/12);}
-function startBGM(){if(bgmTimer)clearInterval(bgmTimer);bgmStep=0;
-  scheduleBGM();
-}
-function scheduleBGM(){
-  if(bgmTimer)clearInterval(bgmTimer);bgmTimer=null;
-  // stream MP3 immediately after the user gesture; decoding all BGM up front caused stutter.
+function startBGM(){
+  stopProceduralBGM();
+  // MP3 wins. The synth only exists as a missing-file fallback, never as a layer.
   if(playStreamBGM())return;
+  scheduleProceduralBGM();
+}
+function stopProceduralBGM(){
+  if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;}
+  bgmStep=0;
+}
+function scheduleProceduralBGM(){
+  stopProceduralBGM();
+  try{bgmAudio.pause();}catch(e){}
+  if(musicBus&&actx){
+    musicBus.gain.cancelScheduledValues(actx.currentTime);
+    musicBus.gain.setValueAtTime(0.0,actx.currentTime);
+    musicBus.gain.linearRampToValueAtTime(0.18,actx.currentTime+0.7);
+  }
   // stop any external source from a previous world
   if(bgmSource){try{bgmSource.stop();}catch(e){}bgmSource=null;}
   const m=MUSIC[worldIndex%MUSIC.length];
