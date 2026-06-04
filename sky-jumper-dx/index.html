@@ -20,6 +20,8 @@
   .hud-pill .val{font-size:20px;font-family:'Righteous'}
   #coinHud .val{color:#ffd24a}#worldHud .val{color:#7ee8ff}#scoreHud .val{color:#9affda}
   #comboHud{transition:opacity .3s;opacity:0}#comboHud .val{color:#ff8ad1}
+  .hud-btn{pointer-events:auto;cursor:pointer;color:#fff}
+  .hud-btn .val{font-size:14px;color:#9affda}
   .lives{display:flex;gap:5px}.heart{width:18px;height:18px}
   #starbar{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:10;
            background:rgba(10,12,30,.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);
@@ -77,6 +79,7 @@
   </div>
   <div class="hud-right">
     <div class="hud-pill" id="worldHud"><span class="lbl">WELT</span><span class="val" id="worldVal">1</span></div>
+    <button class="hud-pill hud-btn" id="qualityBtn" type="button"><span class="lbl">MODE</span><span class="val">PERF</span></button>
     <div class="hud-pill"><div class="lives" id="lives"></div></div>
   </div>
 </div>
@@ -122,10 +125,17 @@ const game=document.getElementById('game');
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(0x1a1840,0.010);
 const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,700);
+const QUALITY={
+  perf:{label:'PERF',pixel:1.1,shadows:false,clouds:9,sparkles:42,seaSegments:18,seaStep:90,bursts:6},
+  hq:{label:'HQ',pixel:1.65,shadows:true,clouds:14,sparkles:90,seaSegments:36,seaStep:0,bursts:10}
+};
+let qualityMode='perf';
+try{qualityMode=localStorage.getItem('skyJumperQuality')||'perf';}catch(e){}
+function qualityCfg(){return QUALITY[qualityMode]||QUALITY.perf;}
 const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,qualityCfg().pixel));
 renderer.setSize(innerWidth,innerHeight);
-renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled=qualityCfg().shadows; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
 game.appendChild(renderer.domElement);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
@@ -138,12 +148,12 @@ function makeTex(draw,size=256){
   t.anisotropy=4; return t;
 }
 /* Bundled local tile graphics replace the procedural texture for each world. */
-const TILE_FILES=['assets/tiles/tile1.png','assets/tiles/tile2.png','assets/tiles/tile3.png'];
+const TILE_FILES=['assets/tiles/tile1.jpg','assets/tiles/tile2.jpg','assets/tiles/tile3.jpg'];
 const tileLoader=new THREE.TextureLoader();
 function tryLoadTileTexture(idx){
   const url=TILE_FILES[idx]; if(!url)return;
   tileLoader.load(url,(tex)=>{
-    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=4;
+    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=2;tex.colorSpace=THREE.SRGBColorSpace;
     curTex=tex;
     // re-apply to existing platforms in this level
     for(const p of platforms){if(p.mesh&&p.mesh.material&&p.mesh.material.map!==undefined){
@@ -151,6 +161,27 @@ function tryLoadTileTexture(idx){
       m.repeat.set(Math.max(1,p.w/3),Math.max(1,p.d/3));
       p.mesh.material.map=m;p.mesh.material.needsUpdate=true;}}
   },undefined,()=>{/* no file -> keep procedural */});
+}
+const GFX_FILES={
+  cloud:'assets/gfx/cloud-bank.png',
+  shard:'assets/gfx/sky-shard.svg',
+  ring:'assets/gfx/aero-ring.svg',
+  mural:'assets/gfx/imagen-sky-mural.jpg',
+  gameplay:'assets/gfx/imagen-gameplay-atlas.jpg',
+  hazard:'assets/gfx/imagen-hazard-atlas.jpg',
+  mascot:'assets/gfx/imagen-mascot-atlas.jpg'
+};
+const gfxLoader=new THREE.TextureLoader();
+const gfxTextures={};
+function loadGfxAssets(){
+  for(const [key,url] of Object.entries(GFX_FILES)){
+    gfxLoader.load(url,(tex)=>{
+      tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;
+      gfxTextures[key]=tex;
+      if(key==='cloud')buildClouds();
+      if(['mural','gameplay','hazard','mascot'].includes(key))buildBackground(THEMES[worldIndex]);
+    },undefined,()=>{});
+  }
 }
 // grass-top stone block
 function grassTex(g1,g2,stone){
@@ -229,13 +260,22 @@ const THEMES=[
 
 /* ============================================================ LIGHTS + SKY */
 const hemi=new THREE.HemisphereLight(0xffffff,0x444466,0.8);scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(40,80,30);sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=1;sun.shadow.camera.far=300;
+const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(40,80,30);sun.castShadow=qualityCfg().shadows;
+sun.shadow.mapSize.set(qualityCfg().shadows?1024:512,qualityCfg().shadows?1024:512);sun.shadow.camera.near=1;sun.shadow.camera.far=300;
 sun.shadow.camera.left=-130;sun.shadow.camera.right=130;sun.shadow.camera.top=130;sun.shadow.camera.bottom=-130;
 sun.shadow.bias=-0.0004;scene.add(sun);
 // soft rim light + a glow that follows the player
 const rim=new THREE.DirectionalLight(0x88aaff,0.4);rim.position.set(-30,20,-40);scene.add(rim);
 const playerGlow=new THREE.PointLight(0xff9ec4,0.6,14,2);scene.add(playerGlow);
+function applyQualityMode(showToast=false){
+  const cfg=qualityCfg();
+  renderer.setPixelRatio(Math.min(devicePixelRatio,cfg.pixel));
+  renderer.shadowMap.enabled=cfg.shadows;sun.castShadow=cfg.shadows;
+  sun.shadow.mapSize.set(cfg.shadows?1024:512,cfg.shadows?1024:512);
+  const btn=document.getElementById('qualityBtn');
+  if(btn)btn.querySelector('.val').textContent=cfg.label;
+  if(showToast)toast(cfg.label==='HQ'?'HQ MODE':'PERF MODE',cfg.label==='HQ'?'#7ee8ff':'#9affda');
+}
 let skyMesh;
 function buildSky(c1,c2){
   if(skyMesh){scene.remove(skyMesh);skyMesh.geometry.dispose();skyMesh.material.dispose();}
@@ -250,8 +290,19 @@ function buildSky(c1,c2){
 const cloudGrp=new THREE.Group();scene.add(cloudGrp);
 function buildClouds(){
   while(cloudGrp.children.length)cloudGrp.remove(cloudGrp.children[0]);
+  const count=qualityCfg().clouds;
+  if(gfxTextures.cloud){
+    const mat=new THREE.SpriteMaterial({map:gfxTextures.cloud,color:0xffffff,transparent:true,opacity:0.72,depthWrite:false});
+    for(let i=0;i<count;i++){
+      const c=new THREE.Sprite(mat);
+      const sc=18+Math.random()*18;c.scale.set(sc,sc*0.42,1);
+      c.position.set((Math.random()-0.5)*240,18+Math.random()*40,(Math.random()-0.5)*240);
+      c.userData.sp=1.3+Math.random()*2.2;cloudGrp.add(c);
+    }
+    return;
+  }
   const m=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:0.65,roughness:1});
-  for(let i=0;i<14;i++){
+  for(let i=0;i<count;i++){
     const c=new THREE.Group();
     for(let j=0;j<4;j++){const b=new THREE.Mesh(new THREE.SphereGeometry(2+Math.random()*2,8,8),m);
       b.position.set(j*2.5-3,Math.random(),Math.random()*2);c.add(b);}
@@ -289,9 +340,20 @@ function buildBackground(theme){
       bgGrp.add(grp);
     }
   }
+  // Imagen HD murals: far parallax panels, cheap sprites instead of dense geometry.
+  const muralKeys=worldIndex===0?['mural','gameplay']:worldIndex===1?['hazard','gameplay']:['mascot','mural'];
+  muralKeys.forEach((key,i)=>{
+    const tex=gfxTextures[key];if(!tex)return;
+    const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0.28+i*0.06,depthWrite:false,fog:false});
+    const sp=new THREE.Sprite(mat);
+    sp.scale.set(95,62,1);
+    sp.position.set(i?135:-145,34+i*18,-245-i*18);
+    sp.userData.mural=true;bgGrp.add(sp);
+  });
   // animated sea/lava far below for depth
   const seaC = worldIndex===1?0xff5a1a:(worldIndex===2?0x2a1a6a:0x3aa8ff);
-  const seaGeo=new THREE.PlaneGeometry(900,900,40,40);
+  const seg=qualityCfg().seaSegments;
+  const seaGeo=new THREE.PlaneGeometry(900,900,seg,seg);
   const seaMat=new THREE.MeshStandardMaterial({color:seaC,emissive:seaC,emissiveIntensity:worldIndex===1?0.6:0.15,
     transparent:true,opacity:0.55,roughness:0.3,metalness:0.4});
   const sea=new THREE.Mesh(seaGeo,seaMat);sea.rotation.x=-Math.PI/2;sea.position.y=-55;
@@ -302,10 +364,11 @@ const sparkles=new THREE.Group();scene.add(sparkles);
 function buildSparkles(color){
   while(sparkles.children.length)sparkles.remove(sparkles.children[0]);
   const g=new THREE.SphereGeometry(0.35,6,6);const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.5});
-  for(let i=0;i<90;i++){const s=new THREE.Mesh(g,m);
+  for(let i=0;i<qualityCfg().sparkles;i++){const s=new THREE.Mesh(g,m);
     s.position.set((Math.random()-0.5)*200,Math.random()*70-5,(Math.random()-0.5)*200);
     s.userData.sp=0.2+Math.random()*0.6;sparkles.add(s);}
 }
+loadGfxAssets();
 
 /* ============================================================ PLAYER */
 const player=new THREE.Group();
@@ -354,6 +417,7 @@ let camYaw=0,camPitch=0.35,camDist=12,shake=0;
 let autoCam=true,autoYawVel=0;
 let platforms=[],stars=[],enemies=[],springs=[],spikes=[],checkpoints=[],portal=null;
 let coinsArr=[],gems=[],fallPlats=[],movers2=[],flyers=[],keys3=[],doors=[],windZones=[],boost=[],iceP=[];
+let skyShards=[];
 let fruits=[],cannons=[],bullets=[],relics=[],lasers=[];
 let boss=null, bossActive=false, levelTime=0, relicsFound=0;
 let hasKey=false;
@@ -423,13 +487,13 @@ function tryDash(){
 
 /* ============================================================ LEVEL */
 function clearLevel(){
-  for(const a of[platforms,stars,enemies,springs,spikes,checkpoints,coinsArr,gems,flyers,keys3,doors,windZones,boost,fruits,cannons,bullets,relics,lasers])
+  for(const a of[platforms,stars,enemies,springs,spikes,checkpoints,coinsArr,gems,flyers,keys3,doors,windZones,boost,fruits,cannons,bullets,relics,lasers,skyShards])
     for(const o of a){scene.remove(o.mesh);if(o.lock)scene.remove(o.lock);}
   if(portal)scene.remove(portal);portal=null;
   if(boss){scene.remove(boss.mesh);boss=null;}bossActive=false;
   platforms=[];stars=[];enemies=[];springs=[];spikes=[];checkpoints=[];
   coinsArr=[];gems=[];fallPlats=[];movers2=[];flyers=[];keys3=[];doors=[];windZones=[];boost=[];iceP=[];
-  fruits=[];cannons=[];bullets=[];relics=[];lasers=[];
+  fruits=[];cannons=[];bullets=[];relics=[];lasers=[];skyShards=[];
   hasKey=false;relicsFound=0;levelTime=0;
 }
 function blockMat(){
@@ -565,6 +629,24 @@ function makeGem(x,y,z){
   grp.add(glow);grp.position.set(x,y,z);scene.add(grp);
   gems.push({mesh:grp,baseY:y,got:false,gem:g});
 }
+// sky shard: light collectible using local sprite art, rewards air control
+function makeSkyShard(x,y,z){
+  const grp=new THREE.Group();
+  if(gfxTextures.shard){
+    const shard=new THREE.Sprite(new THREE.SpriteMaterial({map:gfxTextures.shard,transparent:true,depthWrite:false}));
+    shard.scale.set(1.15,1.15,1);grp.add(shard);
+  }else{
+    const shard=new THREE.Mesh(new THREE.OctahedronGeometry(0.42,0),
+      new THREE.MeshStandardMaterial({color:0x7ee8ff,emissive:0x33aaff,emissiveIntensity:0.9,roughness:0.15}));
+    grp.add(shard);
+  }
+  if(gfxTextures.ring){
+    const ring=new THREE.Sprite(new THREE.SpriteMaterial({map:gfxTextures.ring,transparent:true,opacity:0.58,depthWrite:false}));
+    ring.scale.set(1.9,1.9,1);grp.add(ring);
+  }
+  grp.position.set(x,y,z);scene.add(grp);
+  skyShards.push({mesh:grp,baseY:y,got:false});
+}
 // crumbling platform: falls shortly after you step on it
 function makeFallPlat(x,y,z,w,d){
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,0.8,d),
@@ -625,9 +707,15 @@ function makeWind(x,y,z){
 }
 // speed boost pad (arrow on ground)
 function makeBoost(x,y,z,dir){
-  const m=new THREE.Mesh(new THREE.CircleGeometry(0.9,24),
+  const m=new THREE.Group();
+  const pad=new THREE.Mesh(new THREE.CircleGeometry(0.9,18),
     new THREE.MeshStandardMaterial({color:0x3ce0a5,emissive:0x1fa070,emissiveIntensity:0.6,roughness:0.4}));
-  m.rotation.x=-Math.PI/2;m.position.set(x,y+0.05,z);scene.add(m);
+  pad.rotation.x=-Math.PI/2;m.add(pad);
+  if(gfxTextures.ring){
+    const ring=new THREE.Sprite(new THREE.SpriteMaterial({map:gfxTextures.ring,transparent:true,opacity:0.72,depthWrite:false}));
+    ring.scale.set(2.1,2.1,1);ring.position.y=0.18;m.add(ring);
+  }
+  m.position.set(x,y+0.05,z);scene.add(m);
   boost.push({mesh:m,x,y,z,dir});
 }
 // fruit: restores 1 life
@@ -738,6 +826,7 @@ function buildLevel(){
         makeCoin(px-2+t2*4, py+2.4+Math.sin(t2*Math.PI)*1.6, pz+(rng()-0.5));}
     }
     if(i>6 && rng()<0.16) makeGem(px,py+2.6,pz);
+    if(i>3 && rng()<0.30) makeSkyShard(px+(rng()-0.5)*2.4,py+3.0,pz+(rng()-0.5)*2.4);
     if(i>4 && rng()<0.10) makeFruit(px,py+2.2,pz); // health
     // hazards & enemies (fewer)
     if(i>6&&rng()<0.16&&!special)makeEnemy(px,py+1.3,pz,Math.min(w,d)/2-0.5,rng()<0.5?'x':'z');
@@ -1030,6 +1119,12 @@ function updateEntities(dt,time){
     g.gem.rotation.y+=dt*1.5;g.mesh.position.y=g.baseY+Math.sin(time*2)*0.2;
     if(player.position.distanceTo(g.mesh.position)<1.4){g.got=true;scene.remove(g.mesh);
       addScore(500);bumpCombo();sfxPower();toast('+500 EDELSTEIN','#ff4ad8');spawnBurst(g.mesh.position,0xff4ad8);popup(g.mesh.position,'+500',0xff4ad8);}}
+  // sky shards give a small air kick and shave dash cooldown
+  for(const sh of skyShards){if(sh.got)continue;
+    sh.mesh.rotation.y+=dt*2.2;sh.mesh.position.y=sh.baseY+Math.sin(time*3)*0.25;
+    if(player.position.distanceTo(sh.mesh.position)<1.25){sh.got=true;scene.remove(sh.mesh);
+      vel.y=Math.max(vel.y,4.5);dashCD=Math.max(0,dashCD-0.28);
+      addScore(180);bumpCombo();sfxShard();spawnBurst(sh.mesh.position,0x7ee8ff);popup(sh.mesh.position,'SHARD',0x7ee8ff);}}
   // flyers chase the player
   for(const fl of flyers){fl.t+=dt;
     const d=player.position.clone().sub(fl.mesh.position);const dist=d.length();
@@ -1068,10 +1163,10 @@ function updateEntities(dt,time){
     w.mesh.material.opacity=0.1+Math.sin(time*4)*0.05;
   }
   // boost pads
-  for(const b of boost){b.mesh.rotation.z+=dt*2;
+  for(const b of boost){b.mesh.rotation.y+=dt*1.8;
     if(player.position.distanceTo(new THREE.Vector3(b.x,player.position.y,b.z))<1.1&&Math.abs(player.position.y-b.y)<1.5){
       const f=new THREE.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
-      vel.x=f.x*DASH_V*0.9;vel.z=f.z*DASH_V*0.9;if(!b._t||time-b._t>0.5){sfxDash();b._t=time;}}}
+      vel.x=f.x*DASH_V*0.9;vel.z=f.z*DASH_V*0.9;if(!b._t||time-b._t>0.5){sfxBoost();b._t=time;}}}
 
   // eye blink
   const bl=(Math.sin(time*0.7)>0.985)?0.15:1;blink.forEach(e=>e.scale.y=bl);
@@ -1084,7 +1179,7 @@ function updateEntities(dt,time){
 /* ---- particle bursts ---- */
 const burstPool=[];
 function spawnBurst(pos,color){
-  for(let i=0;i<10;i++){
+  for(let i=0;i<qualityCfg().bursts;i++){
     let p=burstPool.find(b=>!b.mesh.visible);
     if(!p){const m=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,6),new THREE.MeshBasicMaterial());scene.add(m);p={mesh:m};burstPool.push(p);}
     p.mesh.visible=true;p.mesh.material.color.set(color);p.mesh.material.transparent=true;p.mesh.material.opacity=1;
@@ -1193,8 +1288,8 @@ function initAudio(){if(actx)return;
   conv.buffer=imp;const wet=actx.createGain();wet.gain.value=0.25;conv.connect(wet);wet.connect(master);
   musicBus=actx.createGain();musicBus.gain.value=0.0;musicBus.connect(master);musicBus.connect(conv);
   fxBus=actx.createGain();fxBus.gain.value=0.9;fxBus.connect(master);
-  loadExternalAudio();        // load bundled local MP3s/SFX (non-blocking)
-  musicBus.gain.linearRampToValueAtTime(0.32,actx.currentTime+1.5);
+  loadExternalAudio();        // lazy-load bundled local MP3s/SFX (non-blocking)
+  musicBus.gain.linearRampToValueAtTime(0.18,actx.currentTime+0.7);
   startBGM();
 }
 
@@ -1205,15 +1300,14 @@ function initAudio(){if(actx)return;
    files fall back to the built-in procedural sounds.
 
    BGM per world:  bgm1.mp3  bgm2.mp3  bgm3.mp3
-   Sound effects:  jump.mp3 land.mp3 dash.mp3 coin.mp3 stomp.mp3
-                   spring.mp3 checkpoint.mp3 power.mp3 hurt.mp3
-                   win.mp3 gameover.mp3
+   Sound effects:  jump/land/dash/boost/coin/stomp/shard/etc.
    You can also use .ogg/.wav — just change the names in ASSET_FILES.
    ============================================================ */
 const ASSET_FILES={
   bgm:['assets/audio/bgm/bgm1.mp3','assets/audio/bgm/bgm2.mp3','assets/audio/bgm/bgm3.mp3'],
   jump:'assets/audio/sfx/jump.wav',land:'assets/audio/sfx/land.wav',dash:'assets/audio/sfx/dash.wav',
-  coin:'assets/audio/sfx/coin.wav',stomp:'assets/audio/sfx/stomp.wav',spring:'assets/audio/sfx/spring.wav',
+  boost:'assets/audio/sfx/boost.wav',coin:'assets/audio/sfx/coin.wav',stomp:'assets/audio/sfx/stomp.wav',
+  spring:'assets/audio/sfx/spring.wav',shard:'assets/audio/sfx/shard.wav',
   checkpoint:'assets/audio/sfx/checkpoint.wav',power:'assets/audio/sfx/power.wav',hurt:'assets/audio/sfx/hurt.wav',
   win:'assets/audio/sfx/win.wav',gameover:'assets/audio/sfx/gameover.wav',
   boss:'assets/audio/sfx/boss.wav',shoot:'assets/audio/sfx/shoot.wav',fruit:'assets/audio/sfx/fruit.wav',
@@ -1221,24 +1315,34 @@ const ASSET_FILES={
 };
 const sfxBuffers={};      // name -> AudioBuffer (only if loaded)
 const bgmBuffers=[];      // index -> AudioBuffer
+const bgmLoads=[];
+let sfxLoadStarted=false;
 let bgmSource=null;
+const bgmAudio=new Audio();
+bgmAudio.loop=true;bgmAudio.preload='auto';bgmAudio.volume=0.68;
+let bgmAudioWorld=-1;
 async function fetchBuffer(url){
   try{ const r=await fetch(url); if(!r.ok) return null;
     const ab=await r.arrayBuffer(); return await actx.decodeAudioData(ab);
   }catch(e){ return null; }
 }
 async function loadExternalAudio(){
-  // SFX
+  loadSfxOnce();
+  playStreamBGM();
+}
+async function loadSfxOnce(){
+  if(sfxLoadStarted)return;sfxLoadStarted=true;
   for(const key of Object.keys(ASSET_FILES)){
     if(key==='bgm')continue;
-    const buf=await fetchBuffer(ASSET_FILES[key]); if(buf)sfxBuffers[key]=buf;
+    fetchBuffer(ASSET_FILES[key]).then((buf)=>{if(buf)sfxBuffers[key]=buf;});
   }
-  // BGM
-  for(let i=0;i<ASSET_FILES.bgm.length;i++){
-    const buf=await fetchBuffer(ASSET_FILES.bgm[i]); if(buf)bgmBuffers[i]=buf;
-  }
-  // if a BGM for current world just arrived, switch to it
-  if(bgmBuffers[worldIndex])playExternalBGM();
+}
+function ensureBGM(idx){
+  const url=ASSET_FILES.bgm[idx];if(!actx||!url)return Promise.resolve(null);
+  if(bgmBuffers[idx])return Promise.resolve(bgmBuffers[idx]);
+  if(bgmLoads[idx])return bgmLoads[idx];
+  bgmLoads[idx]=fetchBuffer(url).then((buf)=>{if(buf)bgmBuffers[idx]=buf;return buf;});
+  return bgmLoads[idx];
 }
 function playSample(name,gain=0.9){
   const buf=sfxBuffers[name]; if(!buf||!actx)return false;
@@ -1252,6 +1356,18 @@ function playExternalBGM(){
   if(bgmSource){try{bgmSource.stop();}catch(e){}}
   bgmSource=actx.createBufferSource();bgmSource.buffer=buf;bgmSource.loop=true;
   bgmSource.connect(musicBus);bgmSource.start();
+  return true;
+}
+function playStreamBGM(){
+  const url=ASSET_FILES.bgm[worldIndex];if(!url)return false;
+  if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;}
+  if(bgmSource){try{bgmSource.stop();}catch(e){}bgmSource=null;}
+  if(bgmAudioWorld!==worldIndex){
+    bgmAudio.src=url;bgmAudioWorld=worldIndex;bgmAudio.currentTime=0;
+  }
+  bgmAudio.volume=0.68;
+  const p=bgmAudio.play();
+  if(p&&p.catch)p.catch(()=>{});
   return true;
 }
 // voice with soft ADSR
@@ -1283,6 +1399,7 @@ function drum(kind){if(!actx)return;const t=actx.currentTime;
 function sfxJump(){if(!actx)return;if(playSample('jump'))return;fxSlide(440,720,0.12,'sine',0.16);}
 function sfxLand(){if(!actx)return;if(playSample('land',0.5))return;fxSlide(200,120,0.08,'sine',0.1);}
 function sfxDash(){if(!actx)return;if(playSample('dash'))return;fxSlide(700,1300,0.16,'triangle',0.14);}
+function sfxBoost(){if(!actx)return;if(playSample('boost'))return;fxSlide(520,1600,0.18,'triangle',0.18);}
 function sfxCoin(){if(!actx)return;if(playSample('coin'))return;fxNote(988,0.07,'sine',0.18);setTimeout(()=>fxNote(1319,0.12,'sine',0.18),50);}
 function sfxStomp(){if(!actx)return;if(playSample('stomp'))return;fxSlide(340,90,0.18,'triangle',0.2);}
 function sfxSpring(){if(!actx)return;if(playSample('spring'))return;fxSlide(330,990,0.2,'sine',0.18);}
@@ -1295,6 +1412,7 @@ function sfxBoss(){if(!actx)return;if(playSample('boss'))return;fxSlide(160,90,0
 function sfxShoot(){if(!actx)return;if(playSample('shoot'))return;fxSlide(600,200,0.12,'square',0.1);}
 function sfxFruit(){if(!actx)return;if(playSample('fruit'))return;[660,990,1320].forEach((f,i)=>setTimeout(()=>fxNote(f,0.14,'sine',0.16),i*60));}
 function sfxRelic(){if(!actx)return;if(playSample('relic'))return;[784,1047,1319,1568].forEach((f,i)=>setTimeout(()=>fxNote(f,0.2,'triangle',0.18),i*70));}
+function sfxShard(){if(!actx)return;if(playSample('shard'))return;[880,1320,1760].forEach((f,i)=>setTimeout(()=>fxNote(f,0.1,'sine',0.13),i*45));}
 
 /* ---- Music: chord progressions per world ---- */
 // each world: tempo, 4-chord loop (root midi), melody scale, instrument timbre
@@ -1315,8 +1433,8 @@ function startBGM(){if(bgmTimer)clearInterval(bgmTimer);bgmStep=0;
 }
 function scheduleBGM(){
   if(bgmTimer)clearInterval(bgmTimer);bgmTimer=null;
-  // prefer the user's MP3 for this world if it loaded
-  if(playExternalBGM())return;
+  // stream MP3 immediately after the user gesture; decoding all BGM up front caused stutter.
+  if(playStreamBGM())return;
   // stop any external source from a previous world
   if(bgmSource){try{bgmSource.stop();}catch(e){}bgmSource=null;}
   const m=MUSIC[worldIndex%MUSIC.length];
@@ -1352,6 +1470,7 @@ function scheduleBGM(){
 
 /* ============================================================ LOOP */
 let last=performance.now();
+let seaWaveStamp=0;
 function loop(now){requestAnimationFrame(loop);
   const dt=Math.min(0.033,(now-last)/1000);last=now;const time=now/1000;
   if(running){
@@ -1363,12 +1482,16 @@ function loop(now){requestAnimationFrame(loop);
   bgGrp.position.x=camera.position.x*0.85;
   bgGrp.position.z=camera.position.z*0.85;
   if(sunDisk){sunDisk.lookAt(camera.position);}
-  // animate sea waves
-  for(const ch of bgGrp.children){if(ch.userData.sea){
-    const pos=ch.geometry.attributes.position;
-    for(let i=0;i<pos.count;i++){const vx=pos.getX(i),vy=pos.getY(i);
-      pos.setZ(i,Math.sin(vx*0.05+time*1.2)*1.5+Math.cos(vy*0.05+time*0.9)*1.5);}
-    pos.needsUpdate=true;}}
+  // animate far-below sea/lava at a lower cadence in PERF mode
+  const seaStep=qualityCfg().seaStep;
+  if(!seaStep||now-seaWaveStamp>seaStep){
+    seaWaveStamp=now;
+    for(const ch of bgGrp.children){if(ch.userData.sea){
+      const pos=ch.geometry.attributes.position;
+      for(let i=0;i<pos.count;i++){const vx=pos.getX(i),vy=pos.getY(i);
+        pos.setZ(i,Math.sin(vx*0.05+time*1.2)*1.5+Math.cos(vy*0.05+time*0.9)*1.5);}
+      pos.needsUpdate=true;}}
+  }
   body.position.y=Math.sin(time*3)*0.03;
   playerGlow.position.copy(player.position).y+=0.5;
   crown.rotation.y=Math.sin(time*2)*0.1;
@@ -1385,8 +1508,15 @@ requestAnimationFrame(loop);
 document.getElementById('startBtn').onclick=()=>{initAudio();actx.resume();worldIndex=0;coins=0;score=0;lives=7;startWorld();};
 document.getElementById('retryBtn').onclick=()=>{worldIndex=0;coins=0;score=0;lives=7;startWorld();};
 document.getElementById('nextBtn').onclick=()=>{if(worldIndex>=THEMES.length-1){worldIndex=0;coins=0;score=0;lives=7;}else worldIndex++;startWorld();};
+document.getElementById('qualityBtn').onclick=()=>{
+  qualityMode=qualityMode==='perf'?'hq':'perf';
+  try{localStorage.setItem('skyJumperQuality',qualityMode);}catch(e){}
+  applyQualityMode(true);
+  buildSparkles(THEMES[worldIndex].accent);buildClouds();buildBackground(THEMES[worldIndex]);
+};
 
 updateHud();
+applyQualityMode(false);
 curTex=THEMES[0].tex();buildSky(THEMES[0].sky[0],THEMES[0].sky[1]);buildSparkles(THEMES[0].accent);buildClouds();buildBackground(THEMES[0]);
 player.position.set(0,3,0);
 </script>
