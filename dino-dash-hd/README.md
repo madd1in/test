@@ -19,10 +19,12 @@ Das Spiel speichert Highscore, Skins und Erfolge lokal im Browser.
 - `assets/images/dino-sprites.png`: transparenter 4×4-Animationsatlas
 - `assets/images/biome-tiles.png`: 4×4-Terrain-Atlas für vier Biome
 - `assets/images/biome-decor.png`: transparenter 4×4-Dekor-Atlas mit 16 Biome-Objekten
+- `assets/images/obstacle-sprites.png`: transparenter 4×4-Atlas für Kakteen, Feuerbälle, Pterosaurier und T-Rex
+- `assets/images/biome-hills.png`: vier vorgerenderte, biomeigene Hügelketten für die Parallax-Ebene
 - `assets/audio/cliffline-run.mp3`: Loop-Hintergrundmusik aus dem bereitgestellten Downloads-Ordner
 
 Die Bild-Assets wurden für dieses Projekt mit OpenAI ImageGen erzeugt.
 
 ## Test
 
-`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, Asset-Caches, Biome-Rendering und die Safe-Mode-Wiederherstellung.
+`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, alle Sprite-/Tile-Caches, Biome-Rendering und die Safe-Mode-Wiederherstellung.
