@@ -211,14 +211,19 @@
 const cv=document.getElementById('game'),g=cv.getContext('2d',{alpha:false});
 const COARSE=matchMedia('(pointer:coarse)').matches;
 const DPR_CAP=COARSE ? .95 : 1.05;
-const ASSETS={sprite:new Image(),tiles:new Image(),decor:new Image(),spriteReady:false,tilesReady:false,decorReady:false};
+const ASSETS={sprite:new Image(),tiles:new Image(),decor:new Image(),hazards:new Image(),hills:new Image(),
+  spriteReady:false,tilesReady:false,decorReady:false,hazardsReady:false,hillsReady:false};
 const TILE_CACHE={ground:[],far:[],near:[],ready:false};
 const SPRITE_CACHE={id:null,canvas:null};
 const DECOR_CACHE={atlas:null,ready:false};
+const HAZARD_CACHE={atlas:null,ready:false};
+const HILL_CACHE={rows:[],ready:false};
 const GRADE_CACHE={vignette:null};
 ASSETS.sprite.src='assets/images/dino-sprites.png';
 ASSETS.tiles.src='assets/images/biome-tiles.png';
 ASSETS.decor.src='assets/images/biome-decor.png';
+ASSETS.hazards.src='assets/images/obstacle-sprites.png';
+ASSETS.hills.src='assets/images/biome-hills.png';
 function makeTileStrip(row,kind){
   const img=ASSETS.tiles,cell=img.naturalWidth/4;
   const spec=kind==='ground'
@@ -259,6 +264,22 @@ function buildDecorCache(){
   c.filter='none';
   DECOR_CACHE.atlas=out;DECOR_CACHE.ready=true;
 }
+function buildHazardCache(){
+  if(!ASSETS.hazards||!ASSETS.hazards.naturalWidth)return;
+  const out=document.createElement('canvas');out.width=1024;out.height=1024;
+  const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='medium';
+  c.drawImage(ASSETS.hazards,0,0,1024,1024);HAZARD_CACHE.atlas=out;HAZARD_CACHE.ready=true;
+}
+function buildHillCache(){
+  if(!ASSETS.hills||!ASSETS.hills.naturalWidth)return;
+  const img=ASSETS.hills,srcH=img.naturalHeight/4;
+  for(let row=0;row<4;row++){
+    const out=document.createElement('canvas');out.width=1024;out.height=256;
+    const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='medium';
+    c.drawImage(img,0,row*srcH,img.naturalWidth,srcH,0,0,1024,256);HILL_CACHE.rows[row]=out;
+  }
+  HILL_CACHE.ready=true;
+}
 function buildGradeCache(){
   const out=document.createElement('canvas');out.width=480;out.height=Math.max(240,Math.round(480*H/Math.max(1,W)));
   const c=out.getContext('2d'),r=Math.max(out.width,out.height)*.78;
@@ -269,9 +290,9 @@ function buildGradeCache(){
 function markAssetReady(){
   const el=document.getElementById('assetStatus');
   if(!el)return;
-  const ready=ASSETS.spriteReady&&ASSETS.tilesReady;
+  const ready=ASSETS.spriteReady&&ASSETS.tilesReady&&ASSETS.hazardsReady&&ASSETS.hillsReady;
   el.classList.toggle('ready',ready);
-  el.textContent=ready?'HD-Sprites & Tilemaps aktiv':'HD-Assets laden';
+  el.textContent=ready?'HD-Sprites · Hindernisse · Tiles aktiv':'HD-Assets laden';
 }
 ASSETS.sprite.addEventListener('load',()=>{ASSETS.spriteReady=true;markAssetReady();});
 ASSETS.tiles.addEventListener('load',()=>{
@@ -279,6 +300,12 @@ ASSETS.tiles.addEventListener('load',()=>{
 });
 ASSETS.decor.addEventListener('load',()=>{
   ASSETS.decorReady=true;buildDecorCache();ASSETS.decor=null;
+});
+ASSETS.hazards.addEventListener('load',()=>{
+  ASSETS.hazardsReady=true;buildHazardCache();ASSETS.hazards=null;markAssetReady();
+});
+ASSETS.hills.addEventListener('load',()=>{
+  ASSETS.hillsReady=true;buildHillCache();ASSETS.hills=null;markAssetReady();
 });
 if(!g.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
   r=Math.min(r,w/2,h/2);this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);
@@ -1864,6 +1891,16 @@ function drawHerd(){
   g.globalAlpha=1;
 }
 function drawMountains(zw){
+  if(HILL_CACHE.ready){
+    const weights=(S.cave.t>=0||S.aeth.t>=0)?[0,0,0,1]:[zw.j,zw.d,zw.s,0];
+    const travel=S.dist*.075+S.t*8,night=.58+.42*S.dayness;
+    g.save();
+    for(let row=0;row<4;row++){
+      const weight=weights[row]||0;if(weight<.015)continue;
+      repeatTileStrip(HILL_CACHE.rows[row],GROUND-292,292,travel,weight*.72*night);
+    }
+    g.restore();drawHerd();return;
+  }
   const d=S.dayness,k=S.dusk;
   const fac=[.12,.28,.5],base=[GROUND-118,GROUND-80,GROUND-40],amp=[52,44,34],seed=[3.1,7.7,12.4];
   for(let i=0;i<3;i++){
@@ -2376,6 +2413,14 @@ function drawShadow(){
 function drawRex(){
   if(S.rex.t<0||S.state!=='running')return;
   const rx=S.rex.x;
+  if(HAZARD_CACHE.ready){
+    const t=S.rex.t,frame=t<.72?2:t>S.rex.dur-1.1?3:(Math.floor(t*8)&1);
+    g.fillStyle='rgba(15,25,20,.32)';g.beginPath();g.ellipse(rx,GROUND+7,60,9,0,0,7);g.fill();
+    drawHazardSprite(3,frame,rx-88,GROUND-74,230,190,0,.07,true);
+    drawHazardSprite(3,frame,rx-46,GROUND-74,230,190,0,.12,true);
+    drawHazardSprite(3,frame,rx,GROUND-74,230,190,0,1,true);
+    return;
+  }
   for(let i=0;i<5;i++){
     drawDinoBody({x:rx+90+i*46,y:GROUND,duck:false,air:false,phase:S.t*26+i*2,dead:false,
       blink:1,squashT:0,stretchT:0,invuln:0,vy:0,spin:0},palSil,.6,.5);
@@ -2464,6 +2509,13 @@ function heartShape(x,y,s){
   g.bezierCurveTo(x+s*.8,y-s*1.2,x+s*1.4,y-s*.2,x,y+s*.9);
   g.closePath();
 }
+function drawHazardSprite(row,col,cx,cy,w,h,rot,alpha,flipX){
+  if(!HAZARD_CACHE.ready)return false;
+  const cell=256;
+  g.save();g.translate(cx,cy);if(rot)g.rotate(rot);if(flipX)g.scale(-1,1);g.globalAlpha=alpha===undefined?1:alpha;g.shadowBlur=0;
+  g.drawImage(HAZARD_CACHE.atlas,col*cell,row*cell,cell,cell,-w/2,-h/2,w,h);
+  g.restore();return true;
+}
 function drawObs(o){
   g.save();
   const pulse=.72+.18*Math.sin(S.t*6+(o.x||0)*.02);
@@ -2485,6 +2537,24 @@ function drawObs(o){
     g.beginPath();g.moveTo(left+width+7,GROUND+2);g.lineTo(left+width+1,GROUND-2);g.lineTo(left+width+1,GROUND+6);g.fill();
   }
   g.shadowColor='rgba(255,107,53,.38)';g.shadowBlur=5;
+  if(HAZARD_CACHE.ready){
+    if(o.type==='cac'){
+      const count=o.parts.length,maxH=Math.max(...o.parts.map(p=>p.h));
+      const col=maxH>48?1:count>2?3:count>1?2:0;
+      const sw=clamp(o.w*1.4,54,90),sh=clamp(o.h*1.45,60,96);
+      drawHazardSprite(0,col,o.x+o.w*.5,GROUND-sh*.5+9,sw,sh,0,1);
+      g.restore();return;
+    }
+    if(o.type==='rock'){
+      drawHazardSprite(1,2,o.x+o.w*.5,GROUND-19,52,52,S.t*.35,1);
+      g.restore();return;
+    }
+    if(o.type==='ptero'){
+      const frame=Math.floor(o.wp*.72)&3;
+      drawHazardSprite(2,frame,o.x+o.w*.5,o.y+o.h*.5,84,70,0,1);
+      g.restore();return;
+    }
+  }
   if(o.type==='cac'){
     for(const p of o.parts){
       const px=o.x+p.dx;
@@ -2538,6 +2608,7 @@ function drawBoulder(b){
   g.restore();
   g.fillStyle='rgba(15,25,20,.3)';
   g.beginPath();g.ellipse(b.x,GROUND+6,b.r+4,5,0,0,7);g.fill();
+  if(drawHazardSprite(1,2,b.x,b.y,b.r*2+22,b.r*2+22,b.rot,1))return;
   g.save();g.translate(b.x,b.y);g.rotate(b.rot);
   g.fillStyle='#8d8577';g.strokeStyle='#57503f';g.lineWidth=2.5;
   g.beginPath();g.arc(0,0,b.r,0,7);g.fill();g.stroke();
@@ -2613,6 +2684,7 @@ function flameTrail(o){
   }
 }
 function drawMet(m){
+  if(drawHazardSprite(1,0,m.x,m.y,64,64,0,1))return;
   flameTrail(m);
   const gr=g.createRadialGradient(m.x-3,m.y-3,2,m.x,m.y,m.r+6);
   gr.addColorStop(0,'#fff3c4');gr.addColorStop(.4,'#ffd166');
@@ -2621,6 +2693,7 @@ function drawMet(m){
   g.fillStyle='#5b3b2a';g.beginPath();g.arc(m.x,m.y,m.r*.55,0,7);g.fill();
 }
 function drawBomb(b){
+  if(drawHazardSprite(1,0,b.x,b.y,40,40,0,1))return;
   flameTrail({x:b.x,y:b.y,vx:b.vx,vy:b.vy,r:8});
   g.fillStyle='#ff8f3f';g.beginPath();g.arc(b.x,b.y,6,0,7);g.fill();
   g.fillStyle='#ffd166';g.beginPath();g.arc(b.x-1.5,b.y-1.5,2.5,0,7);g.fill();
