@@ -22,8 +22,9 @@ Das Spiel speichert Highscore, Skins und Erfolge lokal im Browser.
 - `assets/images/obstacle-sprites.png`: transparenter 4×4-Atlas für Kakteen, Feuerbälle, Pterosaurier und T-Rex
 - `assets/images/biome-hills.png`: vier vorgerenderte, biomeigene Hügelketten für die Parallax-Ebene
 - `assets/images/biome-skies.png`: vier vollständige obere Himmelspanoramen
-- `assets/images/alpha-bird-sprites.png`: transparenter 4×4-Animationsatlas für den Alpha-Pterosaurier
+- `assets/images/alpha-bird-sprites-v2.png`: streng zentrierter 4×4-Animationsatlas für den Alpha-Pterosaurier ohne angeschnittene Flügel
 - `assets/images/aura-ring-tiles.png`: transparenter 4×4-Effektatlas für Schild, Fever und Portal
+- `assets/images/boulder-hazard-atlas.png`: transparenter 4×4-Gefahrenatlas für Fallfels, rückwärtigen Rollfels, Einschläge und Warnzeichen
 - `assets/images/gui-title-atlas.png`: Komponenten-Quellatlas für GUI-Details und Status-Badges
 - `assets/images/title-panel-v2.png`: durchgehendes, nahtloses Titelbild-Panel ohne gestreckte Einzelteile
 - `assets/images/font-glyph-atlas.png`: exakter 8×8-Schriftatlas für A–Z, Zahlen, Symbole und deutsche Sonderzeichen
@@ -37,4 +38,4 @@ Die Bild-Assets wurden für dieses Projekt mit OpenAI ImageGen erzeugt.
 
 ## Test
 
-`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, alle elf aktiven Sprite-/Tile-Caches, lückenlosen Sprunghimmel, MP3-Crossfades, synchrones Boden-Scrolling, VFX-Rendering und den Safe-Mode-Schutz der Kernassets.
+`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, alle zwölf aktiven Sprite-/Tile-Caches, ausweichbare Fallfelsen, die bildschirmfeste Rückfels-Warnung, lückenlosen Sprunghimmel, MP3-Crossfades, synchrones Boden-Scrolling, VFX-Rendering und den Safe-Mode-Schutz der Kernassets.

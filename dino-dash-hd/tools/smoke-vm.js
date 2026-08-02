@@ -81,6 +81,7 @@ vm.runInContext(`
   if(!SKY_CACHE.ready||SKY_CACHE.rows.length!==4)throw new Error('Sky tile cache did not initialize');
   if(!ALPHA_CACHE.ready)throw new Error('Alpha boss sprite cache did not initialize');
   if(!AURA_CACHE.ready)throw new Error('Aura tile cache did not initialize');
+  if(!BOULDER_CACHE.ready)throw new Error('Boulder hazard tile cache did not initialize');
   if(!FONT_CACHE.ready)throw new Error('Font glyph tile cache did not initialize');
   if(!ASSETS.titlePanelReady)throw new Error('Seamless title panel did not initialize');
   if(!VFX_CACHE.ready)throw new Error('Boss VFX tile cache did not initialize');
@@ -90,6 +91,13 @@ vm.runInContext(`
   S.rex.t=1;S.rex.x=80;drawRex();S.rex.t=-1;
   S.alpha.st=1;S.alpha.x=700;S.alpha.y=180;drawAlpha();S.alpha.st=2;drawAlpha();S.alpha.st=-1;
   S.lightning=1;S.bolt=makeBolt();drawLightning();S.lightning=0;S.bolt=null;
+  const safeMeteor={x:D.x,y:GROUND-80};
+  if(meteorHitbox(safeMeteor)!==null)throw new Error('Falling rock is dangerous before the jumpable impact window');
+  safeMeteor.y=GROUND-36;if(!meteorHitbox(safeMeteor))throw new Error('Falling rock impact window is missing');
+  const oldMetCount=S.mets.length;spawnMet();const testMeteor=S.mets[S.mets.length-1];
+  if(testMeteor.T<1.55||testMeteor.T>1.85)throw new Error('Falling rock warning time is not dodgeable');
+  S.mets.length=oldMetCount;
+  S.boulderWarn=2.2;draw();S.boulderWarn=0;
   S.fever=1;drawFeverAura();S.fever=0;S.aeth.portal={x:600,y:240,p:0};drawPortal();S.aeth.portal=null;
   S.aeth.t=-1;S.cave.t=-1;S.maxBiome=1;syncMusicTrack(true);
   if(Music.track!==1||!bgmTrack.src.endsWith('dust-run-riot.mp3'))throw new Error('Desert music did not activate');
@@ -103,6 +111,8 @@ vm.runInContext(`
   if(draw.toString().indexOf('drawSky(zw)')>draw.toString().indexOf('g.translate(D.x'))throw new Error('Sky is still camera-bound and can expose black jump borders');
   if(!drawSky.toString().includes('H+96'))throw new Error('Sky does not cover the jump horizon');
   if(!draw.toString().includes('if(!HILL_CACHE.ready)drawParallaxTiles'))throw new Error('Redundant stitched background tiles are still layered over the panorama');
+  if(draw.toString().indexOf('drawBoulderWarn()')<draw.toString().lastIndexOf('g.restore()'))throw new Error('Rear boulder warning is still attached to the moving world camera');
+  if(!drawBoulder.toString().includes('drawBoulderCell(1')||!drawBossPtero.toString().includes('ALPHA_CACHE'))throw new Error('Recut boulder or big-bird atlas is not active');
   if(!drawTileGround.toString().includes('S.dist,Math.min'))throw new Error('Ground tiles are not synchronized to world speed');
   if(PERF.dpr>DPR_CAP)throw new Error('DPR performance cap was exceeded');
   enterSafeMode(new Error('forced smoke-test failure'));draw();
@@ -111,4 +121,4 @@ vm.runInContext(`
   if(!TILE_CACHE.ready||!DECOR_CACHE.ready||!ASSETS.spriteReady)throw new Error('Safe mode disabled core sprite/tile assets');
 `,sandbox);
 if(contexts.some(c=>c.__minDepth<0||c.__depth!==0))throw new Error('Unbalanced canvas save/restore stack');
-console.log('VM smoke test passed: boot, 240 frames, 11 atlases, seamless title/font tiles, jump-safe sky, MP3 crossfade, synced ground, boss VFX and safe-mode recovery');
+console.log('VM smoke test passed: boot, 240 frames, 12 atlases, dodgeable falling rock, screen-fixed rear warning, recut boulder/big-bird sprites, hazard contrast, jump-safe sky and safe-mode recovery');
