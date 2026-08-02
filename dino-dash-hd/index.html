@@ -16,7 +16,7 @@
   :root{
     --text:#e9f7f2; --muted:#8fb6ae; --amber:#ffb703; --orange:#ff8f3f;
     --green:#3ddc84; --teal:#5eead4; --red:#ff6b6b;
-    --panelbg:rgba(7,26,31,.88); --line:rgba(94,234,212,.22);
+    --panelbg:rgba(7,26,31,.96); --line:rgba(94,234,212,.22);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;background:#04141a}
@@ -44,8 +44,8 @@
   .overlay.hidden{opacity:0;pointer-events:none}
   .panel{background:var(--panelbg);border:1px solid var(--line);border-radius:10px;
     padding:26px 36px 26px;text-align:center;max-width:92vw;
-    box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
-    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);position:relative;overflow:hidden}
+    box-shadow:0 24px 56px rgba(0,0,0,.56),inset 0 1px 0 rgba(255,255,255,.06);
+    position:relative;overflow:hidden}
   .panel::before{content:"";position:absolute;inset:0 0 auto;height:2px;
     background:linear-gradient(90deg,transparent,var(--amber),var(--teal),transparent);opacity:.75}
   .overlay:not(.hidden) .panel{animation:pop .4s cubic-bezier(.2,1.5,.4,1)}
@@ -145,13 +145,12 @@
 <div class="ui">
   <button id="bgmBtn" title="Musik" aria-label="Musik umschalten">🎵</button>
   <button id="sfxBtn" title="Soundeffekte" aria-label="Soundeffekte umschalten">🔊</button>
-  <button id="ghostBtn" title="Geist-Modus" aria-label="Geist-Modus umschalten">👻</button>
 </div>
 <button class="pbtn" id="pauseBtn" aria-label="Spiel pausieren">⏸</button>
 
 <div class="overlay" id="menuOv">
   <div class="panel">
-    <div class="kicker">URZEIT-RUNNER · V12 · HD</div>
+    <div class="kicker">URZEIT-RUNNER · V13 · SMOOTH HD</div>
     <h1 class="title">DINO<span>DASH</span></h1>
     <div class="seg" id="diffRow">
       <button data-d="easy">Leicht</button>
@@ -211,11 +210,12 @@
 /* ═══════════ Vollbild-Setup ═══════════ */
 const cv=document.getElementById('game'),g=cv.getContext('2d',{alpha:false});
 const COARSE=matchMedia('(pointer:coarse)').matches;
-const DPR_CAP=COARSE?1.1:1.35;
+const DPR_CAP=COARSE ? .95 : 1.05;
 const ASSETS={sprite:new Image(),tiles:new Image(),decor:new Image(),spriteReady:false,tilesReady:false,decorReady:false};
 const TILE_CACHE={ground:[],far:[],near:[],ready:false};
 const SPRITE_CACHE={id:null,canvas:null};
 const DECOR_CACHE={atlas:null,ready:false};
+const GRADE_CACHE={vignette:null};
 ASSETS.sprite.src='assets/images/dino-sprites.png';
 ASSETS.tiles.src='assets/images/biome-tiles.png';
 ASSETS.decor.src='assets/images/biome-decor.png';
@@ -259,6 +259,13 @@ function buildDecorCache(){
   c.filter='none';
   DECOR_CACHE.atlas=out;DECOR_CACHE.ready=true;
 }
+function buildGradeCache(){
+  const out=document.createElement('canvas');out.width=480;out.height=Math.max(240,Math.round(480*H/Math.max(1,W)));
+  const c=out.getContext('2d'),r=Math.max(out.width,out.height)*.78;
+  const vg=c.createRadialGradient(out.width/2,out.height/2,Math.min(out.width,out.height)*.4,out.width/2,out.height/2,r);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(3,14,18,.4)');
+  c.fillStyle=vg;c.fillRect(0,0,out.width,out.height);GRADE_CACHE.vignette=out;
+}
 function markAssetReady(){
   const el=document.getElementById('assetStatus');
   if(!el)return;
@@ -299,12 +306,13 @@ const $=id=>document.getElementById(id);
 const buzz=ms=>{if(navigator.vibrate)navigator.vibrate(ms);};
 
 let W=0,H=0,GROUND=0,DPR=1;
-const PERF={fps:60,frameMs:16.7,dpr:1,tier:'balanced',cachedTiles:true};
+const PERF={fps:60,frameMs:16.7,dpr:1,tier:'smooth',cachedTiles:true,frameCap:'adaptive'};
 window.__DINO_PERF=PERF;
 
 const LS=k=>localStorage.getItem(k),SV=(k,v)=>localStorage.setItem(k,v);
 let hi=+LS('dd_hi')||0,runs=+LS('dd_runs')||0,eggsAll=+LS('dd_eggs')||0;
-let musicOn=LS('dd_bgm')!=='0',sfxOn=LS('dd_sfx')!=='0',ghostOn=LS('dd_ghost')!=='0';
+let musicOn=LS('dd_bgm')!=='0',sfxOn=LS('dd_sfx')!=='0';
+try{localStorage.removeItem('dd_ghost');}catch(e){}
 
 /* ═══════════ Errungenschaften ═══════════ */
 const ACH={
@@ -333,7 +341,6 @@ function updMenuMeta(){
     [String(runs),'Läufe'],
     [achCount()+'/'+Object.keys(ACH).length,'Erfolge']
   ];
-  if(Ghost.arr)stats.push([pad(Ghost.s),'Geist']);
   $('menuMeta').innerHTML=stats.map(v=>'<div class="stat-chip"><b>'+v[0]+'</b><span>'+v[1]+'</span></div>').join('');
 }
 
@@ -358,8 +365,6 @@ const chromaUnlocked=()=>LS('dd_chroma')==='1';
 let palSkin=SKINS.find(s=>s.id===LS('dd_skin')&&(s.secret?chromaUnlocked():true))||SKINS[0];
 if(palSkin.id!=='chroma')palSkin=Object.assign({},palSkin,{glow:true});
 else palSkin={id:'chroma',glow:true};
-const palGhost={C:'#6fa8a0',CD:'#54827b',CL:'#9ec9c1',CS:'#8fb8b0'};
-const palGhostGold={C:'#ffd98a',CD:'#d9a027',CL:'#fff2c8',CS:'#ff8f3f',glow:true};
 const palAfter={C:'#5bd6c0',CD:'#3fae9c',CL:'#a8f0e2',CS:'#7fe8d4'};
 const palBaby={C:'#ffd166',CD:'#d9a027',CL:'#fff2c8',CS:'#ff8f3f',glow:true};
 const palRex={C:'#9c4a35',CD:'#6e2f22',CL:'#d9906a',CS:'#e8b04a',glow:true,eglow:'rgba(255,90,70,.9)'};
@@ -387,7 +392,7 @@ const S={state:'menu',t:0,cycle:.13,dayness:1,dusk:0,dist:0,score:0,speed:5.6,
   herd:null,herdT:30,maxBiome:0,zoneBanner:0,zoneName:'SMARAGDTAL',dustCol:'#c9a86f',
   boulderT:R(9,15),boulderWarn:0,
   giftT:12,babyStage:0,zt1:false,zt2:false,devils:[],
-  combo:0,comboT:0,maxC:1,fever:0,tf:{},rec:[],fc:0,gi:0,
+  combo:0,comboT:0,maxC:1,fever:0,tf:{},fc:0,
   baby:false,babyTrail:[],
   hearts:3,maxHearts:3,heartPop:0,printT:0,printSide:0,
   erupt:0,volcT:R(24,40),warned:false,bombT:0,
@@ -436,7 +441,7 @@ function reseedAmbient(){
 }
 function resize(){
   W=innerWidth;H=innerHeight;
-  const targetPixels=PERF.tier==='safe'?1400000:2200000;
+  const targetPixels=PERF.tier==='safe'?700000:PERF.tier==='eco'?850000:1200000;
   const pixelBudget=Math.sqrt(targetPixels/Math.max(1,W*H));
   DPR=Math.min(PERF.tier==='safe'?.9:DPR_CAP,devicePixelRatio||1,Math.max(.45,pixelBudget));
   PERF.dpr=Math.round(DPR*100)/100;
@@ -445,25 +450,13 @@ function resize(){
   g.setTransform(DPR,0,0,DPR,0,0);
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
   GROUND=H-clamp(H*.16,56,110);
+  buildGradeCache();
   D.x=clamp(W*.14,90,170);
   if(D.y===0||D.y>GROUND)D.y=GROUND;
   reseedAmbient();
 }
 addEventListener('resize',resize);
 resize();
-
-const Ghost={s:0,arr:null};
-try{
-  const j=JSON.parse(LS('dd_ghost')||'null');
-  if(j&&j.f){Ghost.s=j.s;Ghost.arr=j.f.split(',').map(p=>{const a=p.split('.');return[+a[0],+a[1]];});}
-}catch(e){}
-function saveGhost(sc){
-  try{
-    const f=S.rec.map(p=>p[0]+'.'+p[1]).join(',');
-    SV('dd_ghost',JSON.stringify({s:sc,f}));
-    Ghost.s=sc;Ghost.arr=S.rec.map(p=>[p[0],p[1]]);
-  }catch(e){}
-}
 
 /* ═══════════ DOM ═══════════ */
 const menuOv=$('menuOv'),deadOv=$('deadOv'),pauseOv=$('pauseOv');
@@ -800,7 +793,7 @@ function startRun(chal){
   Object.assign(S,{state:'running',dist:0,score:0,speed:CFG.base,flash:0,shake:0,pop:0,freeze:0,slowT:0,hitFlash:0,
     spawnT:1.3,eggT:R(4,7),pickT:R(12,20),metT:R(6,9),heartT:R(22,34),
     eggsRun:0,maxSpd:1,newHi:false,runHi:hi,flips:0,chalNew:false,
-    combo:0,comboT:0,maxC:1,fever:0,tf:{},rec:[],fc:0,gi:0,
+    combo:0,comboT:0,maxC:1,fever:0,tf:{},fc:0,
     baby:false,babyTrail:[],babyPrintT:0,babyStage:0,giftT:12,
     hearts:CFG.hearts,maxHearts:CFG.hearts,heartPop:0,printT:0,printSide:0,sweatT:0,
     weather:'clear',rainA:0,rainDur:0,weatherT:R(30,55),lightT:R(3,7),lightning:0,bolt:null,
@@ -853,7 +846,6 @@ function die(){
   SV('dd_runs',runs);SV('dd_eggs',eggsAll);
   const pmc=+LS('dd_maxcombo')||1;if(mc>pmc)SV('dd_maxcombo',mc);
   if(sc>S.runHi){hi=Math.max(hi,sc);SV('dd_hi',hi);S.newHi=true;}
-  if(!Ghost.arr||sc>Ghost.s)saveGhost(sc);
   if(sc>=2000&&LS('dd_gold')!=='1'){SV('dd_gold','1');toast('🎨 GOLD-Skin freigeschaltet!');buildSkins();}
   if(S.challenge){
     const key='dd_chal_'+daySeed();
@@ -979,14 +971,8 @@ $('sfxBtn').addEventListener('click',e=>{
   if(AC)sfxG.gain.setTargetAtTime(sfxOn?1:0,AC.currentTime,.04);
   e.currentTarget.blur();
 });
-$('ghostBtn').addEventListener('click',e=>{
-  ghostOn=!ghostOn;SV('dd_ghost',ghostOn?'1':'0');
-  e.currentTarget.classList.toggle('off',!ghostOn);
-  e.currentTarget.blur();
-});
 if(!musicOn)$('bgmBtn').classList.add('off');
 if(!sfxOn)$('sfxBtn').classList.add('off');
-if(!ghostOn)$('ghostBtn').classList.add('off');
 addEventListener('blur',()=>{if(S.state==='running')togglePause();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.state==='running')togglePause();});
 
@@ -1447,7 +1433,6 @@ function update(dt){
         }
       }
       S.fc++;
-      if(S.fc%2===0){S.gi++;if(S.rec.length<3600)S.rec.push([Math.round(GROUND-D.y),D.duck?1:0]);}
     }
     /* Physik */
     D.vy+=((D.duckHeld&&D.air)?4600:2400)*sdt;
@@ -2026,6 +2011,15 @@ function drawGround(zw){
     g.beginPath();g.ellipse(p.x,GROUND+8+p.side*5,p.mini?2.5:4,p.mini?1.3:2,0,0,7);g.fill();
   }
 }
+function drawRouteMarkers(zw){
+  const c=mix3([[102,210,164],[126,208,218],[185,225,242]],zw);
+  const step=168,travel=S.dist*1.18+S.t*12,offset=((travel%step)+step)%step;
+  g.save();g.globalAlpha=.14+.05*S.dayness;g.strokeStyle=`rgb(${c[0]},${c[1]},${c[2]})`;g.lineWidth=2;
+  for(let x=-offset-20;x<W+40;x+=step){
+    g.beginPath();g.moveTo(x-12,GROUND+18);g.lineTo(x,GROUND+24);g.lineTo(x-12,GROUND+30);g.stroke();
+  }
+  g.restore();
+}
 function drawDevils(zw){
   if(zw.d<=.05)return;
   for(const dv of S.devils){
@@ -2463,19 +2457,6 @@ function drawDinoMain(){
     g.restore();
   }
 }
-function drawGhost(){
-  if(!(ghostOn&&Ghost.arr&&S.state==='running'))return;
-  const i=Math.min(S.gi,Ghost.arr.length-1),gp=Ghost.arr[i];
-  if(!gp)return;
-  const over=S.gi>=Ghost.arr.length-1;
-  const ahead=S.score>Ghost.s;
-  if(ahead&&Math.random()<.12&&S.parts.length<260)
-    S.parts.push({x:D.x+R(-20,10),y:GROUND-gp[0]-R(10,40),vx:R(-15,15),vy:-R(20,50),
-      life:.5,max:.5,col:'#ffd98a',sz:R(1.5,2.5),gr:40});
-  drawDinoBody({x:D.x,y:GROUND-gp[0],duck:gp[1]===1,air:gp[0]>2,phase:D.phase,dead:over,
-    blink:1,squashT:0,stretchT:0,invuln:0,vy:0,spin:0},ahead?palGhostGold:palGhost,ahead?.45:.3);
-  if(!over&&!S.tf.ghost&&ahead){S.tf.ghost=1;toast('👻 Geist überholt!');}
-}
 function heartShape(x,y,s){
   g.beginPath();
   g.moveTo(x,y+s*.9);
@@ -2732,9 +2713,7 @@ function drawLines(){
 }
 function drawGrade(){
   if(S.eclAmt>0){g.fillStyle=`rgba(6,10,22,${S.eclAmt*.45})`;g.fillRect(0,0,W,H);}
-  const vg=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.4,W/2,H/2,Math.max(W,H)*.78);
-  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(3,14,18,.4)');
-  g.fillStyle=vg;g.fillRect(0,0,W,H);
+  if(GRADE_CACHE.vignette)g.drawImage(GRADE_CACHE.vignette,0,0,W,H);
   if(S.rainA>.02){g.fillStyle=`rgba(18,28,38,${S.rainA*.16})`;g.fillRect(0,0,W,H);}
   if(S.dusk>.05){g.fillStyle=`rgba(255,140,60,${S.dusk*.05})`;g.fillRect(0,0,W,H);}
   const nA=1-S.dayness;
@@ -2799,6 +2778,10 @@ function drawHUD(){
   g.font='600 10px "Space Grotesk", sans-serif';
   g.fillStyle='#7fa8a1';
   g.fillText('TEMPO ×'+(S.speed/CFG.base).toFixed(1),W-rx,hy);
+  const nextGoal=(Math.floor(S.score/500)+1)*500,goalP=(S.score%500)/500,barW=104,barX=W-rx-barW,barY=hy+16;
+  g.fillStyle='rgba(9,30,35,.58)';g.fillRect(barX,barY,barW,3);
+  g.fillStyle='#5eead4';g.fillRect(barX,barY,barW*goalP,3);
+  g.fillStyle='#688f8b';g.font='700 8px "Space Grotesk", sans-serif';g.fillText('ZIEL '+pad(nextGoal),W-rx,barY+7);
   if(S.zoneBanner>0&&S.state==='running'){
     const za=Math.min(1,S.zoneBanner*1.65);
     g.save();g.globalAlpha=za;g.textAlign='center';
@@ -2866,12 +2849,6 @@ function drawHUD(){
     g.fillStyle=Math.floor(S.t*6)%2?'#ff8f3f':'#ffd166';
     g.fillText('🔥 FEVER ×2',22,110);
   }
-  if(ghostOn&&Ghost.arr&&S.state==='running'){
-    g.textAlign='center';
-    g.font='600 10px "Space Grotesk", sans-serif';
-    g.fillStyle='rgba(159,200,192,.5)';
-    g.fillText('👻 GEIST '+pad(Ghost.s),W/2,H-16);
-  }
 }
 
 /* ═══════════ Loop ═══════════ */
@@ -2886,7 +2863,7 @@ function draw(){
   drawSky(zw);drawAurora(zw);drawCelestial();drawEclipse();drawStars();drawShoots();
   drawClouds();drawRays();drawParallaxTiles(zw);
   drawMountains(zw);drawRainbow();drawFireflies();drawButterflies();
-  drawBiomeDecor(zw);drawGround(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
+  drawBiomeDecor(zw);drawGround(zw);drawRouteMarkers(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
   for(const e of S.eggs)drawEgg(e);
   for(const p of S.picks)drawPick(p);
   for(const h of S.heartsArr)drawHeartPick(h);
@@ -2906,7 +2883,6 @@ function draw(){
     blink:1,squashT:0,stretchT:0,invuln:0,vy:0,spin:0},palAfter,clamp(a.life,0,1)*.22);
   drawShadow();
   drawBaby();
-  drawGhost();
   drawFeverAura();
   drawDinoMain();
   drawParts();drawLines();drawTexts();
@@ -2930,7 +2906,7 @@ function draw(){
   drawHUD();
   if(S.flash>0){g.fillStyle=`rgba(255,214,90,${S.flash*.1})`;g.fillRect(0,0,W,H);}
 }
-let last=performance.now(),frameErrors=0;
+let last=performance.now(),lastPaint=last,frameErrors=0,slowFrames=0;
 function enterSafeMode(error){
   if(PERF.tier==='safe')return;
   console.error('Dino Dash switched to safe rendering mode',error);
@@ -2942,9 +2918,16 @@ function enterSafeMode(error){
 function frame(now){
   requestAnimationFrame(frame);
   try{
+    if((S.state==='menu'||S.state==='paused')&&now-lastPaint<33)return;
+    lastPaint=now;
     const rawMs=Math.max(.1,now-last),dt=Math.min(.033,rawMs/1000);last=now;
     PERF.frameMs+=(rawMs-PERF.frameMs)*.035;
     PERF.fps=Math.round(1000/Math.max(1,PERF.frameMs));
+    if(S.state==='running'&&PERF.fps<47)slowFrames++;
+    else slowFrames=Math.max(0,slowFrames-2);
+    if(slowFrames>180&&PERF.tier==='smooth'){
+      PERF.tier='eco';slowFrames=0;resize();toast('Smooth-Modus automatisch angepasst');
+    }
     if(S.freeze>0){S.freeze-=dt;}
     else{update(dt);}
     draw();frameErrors=0;
