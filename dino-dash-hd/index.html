@@ -1968,11 +1968,13 @@ function drawHerd(){
 function drawMountains(zw){
   if(HILL_CACHE.ready){
     const weights=(S.cave.t>=0||S.aeth.t>=0)?[0,0,0,1]:[zw.j,zw.d,zw.s,0];
-    const travel=S.dist*.075+S.t*8,night=.58+.42*S.dayness;
+    const night=.58+.42*S.dayness,drawW=W+180,drawH=292;
     g.save();
     for(let row=0;row<4;row++){
       const weight=weights[row]||0;if(weight<.015)continue;
-      repeatTileStrip(HILL_CACHE.rows[row],GROUND-292,292,travel,weight*.72*night);
+      const drift=Math.sin(S.dist*.0008+S.t*.045+row*.7)*58;
+      g.globalAlpha=weight*.72*night;
+      g.drawImage(HILL_CACHE.rows[row],-90+drift,GROUND-drawH,drawW,drawH);
     }
     g.restore();drawHerd();return;
   }
