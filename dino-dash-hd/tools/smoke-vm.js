@@ -81,7 +81,8 @@ vm.runInContext(`
   if(!SKY_CACHE.ready||SKY_CACHE.rows.length!==4)throw new Error('Sky tile cache did not initialize');
   if(!ALPHA_CACHE.ready)throw new Error('Alpha boss sprite cache did not initialize');
   if(!AURA_CACHE.ready)throw new Error('Aura tile cache did not initialize');
-  if(!GUI_CACHE.ready)throw new Error('GUI/title sprite cache did not initialize');
+  if(!FONT_CACHE.ready)throw new Error('Font glyph tile cache did not initialize');
+  if(!ASSETS.titlePanelReady)throw new Error('Seamless title panel did not initialize');
   if(!VFX_CACHE.ready)throw new Error('Boss VFX tile cache did not initialize');
   if(!ASSETS.spriteReady)throw new Error('Sprite atlas did not initialize');
   drawObs(mkCactus(true));drawObs(mkPtero(500,false));
@@ -97,7 +98,11 @@ vm.runInContext(`
   S.cave.t=1;syncMusicTrack(true);
   if(Music.track!==3||!bgmTrack.src.endsWith('lanterns-in-the-cave.mp3'))throw new Error('Cave music did not activate');
   S.cave.t=-1;S.maxBiome=0;syncMusicTrack(true);
+  if(bgmDeck.length!==2||MUSIC_FADE_MS<1200)throw new Error('Two-deck MP3 crossfade is missing');
+  S.cam.y=72;draw();S.cam.y=0;
   if(draw.toString().indexOf('drawSky(zw)')>draw.toString().indexOf('g.translate(D.x'))throw new Error('Sky is still camera-bound and can expose black jump borders');
+  if(!drawSky.toString().includes('H+96'))throw new Error('Sky does not cover the jump horizon');
+  if(!draw.toString().includes('if(!HILL_CACHE.ready)drawParallaxTiles'))throw new Error('Redundant stitched background tiles are still layered over the panorama');
   if(!drawTileGround.toString().includes('S.dist,Math.min'))throw new Error('Ground tiles are not synchronized to world speed');
   if(PERF.dpr>DPR_CAP)throw new Error('DPR performance cap was exceeded');
   enterSafeMode(new Error('forced smoke-test failure'));draw();
@@ -106,4 +111,4 @@ vm.runInContext(`
   if(!TILE_CACHE.ready||!DECOR_CACHE.ready||!ASSETS.spriteReady)throw new Error('Safe mode disabled core sprite/tile assets');
 `,sandbox);
 if(contexts.some(c=>c.__minDepth<0||c.__depth!==0))throw new Error('Unbalanced canvas save/restore stack');
-console.log('VM smoke test passed: boot, 240 frames, 10 atlases, camera-safe sky, synced ground, boss VFX and safe-mode recovery');
+console.log('VM smoke test passed: boot, 240 frames, 11 atlases, seamless title/font tiles, jump-safe sky, MP3 crossfade, synced ground, boss VFX and safe-mode recovery');
