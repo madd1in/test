@@ -1,6 +1,6 @@
 # Dino Dash HD
 
-Ein schneller, direkt im Browser spielbarer Urzeit-Endless-Runner. Diese HD-Fassung ergänzt das ursprüngliche Canvas-Spiel um einen animierten Dino-Sprite-Atlas, biomeabhängige Terrain-Tilemaps, adaptive Smooth-Grafik und den MP3-Soundtrack `Cliffline Run`.
+Ein schneller, direkt im Browser spielbarer Urzeit-Endless-Runner. Diese HD-Fassung ergänzt das ursprüngliche Canvas-Spiel um animierte Sprite-Atlanten, biomeabhängige Terrain-Tilemaps, adaptive Smooth-Grafik und eine dynamische MP3-Playlist für die einzelnen Zonen.
 
 ## Spielen
 
@@ -24,10 +24,13 @@ Das Spiel speichert Highscore, Skins und Erfolge lokal im Browser.
 - `assets/images/biome-skies.png`: vier vollständige obere Himmelspanoramen
 - `assets/images/alpha-bird-sprites.png`: transparenter 4×4-Animationsatlas für den Alpha-Pterosaurier
 - `assets/images/aura-ring-tiles.png`: transparenter 4×4-Effektatlas für Schild, Fever und Portal
-- `assets/audio/cliffline-run.mp3`: Loop-Hintergrundmusik aus dem bereitgestellten Downloads-Ordner
+- `assets/audio/cliffline-run.mp3`: Smaragdtal-Musik
+- `assets/audio/dust-run-riot.mp3`: Wüsten-Musik
+- `assets/audio/black-ice-apex.mp3`: Schneefeld-Musik
+- `assets/audio/lanterns-in-the-cave.mp3`: Höhlen- und Aether-Musik
 
 Die Bild-Assets wurden für dieses Projekt mit OpenAI ImageGen erzeugt.
 
 ## Test
 
-`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, alle Sprite-/Tile-Caches, Biome-Rendering und die Safe-Mode-Wiederherstellung.
+`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, alle Sprite-/Tile-Caches, Biome-Musik, Biome-Rendering und den Safe-Mode-Schutz der Kernassets.

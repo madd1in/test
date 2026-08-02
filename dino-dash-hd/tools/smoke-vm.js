@@ -48,6 +48,7 @@ class MockAudio{
   constructor(){this.loop=false;this.preload='';this.volume=1;this.currentTime=0;}
   play(){return Promise.resolve();}
   pause(){}
+  load(){}
 }
 
 const document={
@@ -86,9 +87,18 @@ vm.runInContext(`
   S.rex.t=1;S.rex.x=80;drawRex();S.rex.t=-1;
   S.alpha.st=1;S.alpha.x=700;S.alpha.y=180;drawAlpha();S.alpha.st=-1;
   S.fever=1;drawFeverAura();S.fever=0;S.aeth.portal={x:600,y:240,p:0};drawPortal();S.aeth.portal=null;
+  S.aeth.t=-1;S.cave.t=-1;S.maxBiome=1;syncMusicTrack(true);
+  if(Music.track!==1||!bgmTrack.src.endsWith('dust-run-riot.mp3'))throw new Error('Desert music did not activate');
+  S.maxBiome=2;syncMusicTrack(true);
+  if(Music.track!==2||!bgmTrack.src.endsWith('black-ice-apex.mp3'))throw new Error('Snow music did not activate');
+  S.cave.t=1;syncMusicTrack(true);
+  if(Music.track!==3||!bgmTrack.src.endsWith('lanterns-in-the-cave.mp3'))throw new Error('Cave music did not activate');
+  S.cave.t=-1;S.maxBiome=0;syncMusicTrack(true);
   if(PERF.dpr>DPR_CAP)throw new Error('DPR performance cap was exceeded');
   enterSafeMode(new Error('forced smoke-test failure'));draw();
   if(PERF.tier!=='safe')throw new Error('Safe mode did not activate');
+  if(!PERF.coreAssetsLocked)throw new Error('Safe mode did not lock core assets');
+  if(!TILE_CACHE.ready||!DECOR_CACHE.ready||!ASSETS.spriteReady)throw new Error('Safe mode disabled core sprite/tile assets');
 `,sandbox);
 if(contexts.some(c=>c.__minDepth<0||c.__depth!==0))throw new Error('Unbalanced canvas save/restore stack');
-console.log('VM smoke test passed: boot, 240 frames, no phantom mode, DPR cap, sprite/tile caches, biome renders and safe-mode recovery');
+console.log('VM smoke test passed: boot, 240 frames, biome playlist, DPR cap, locked sprite/tile caches and safe-mode recovery');
