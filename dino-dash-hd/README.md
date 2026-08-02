@@ -1,0 +1,41 @@
+# Dino Dash HD
+
+Ein schneller, direkt im Browser spielbarer Urzeit-Endless-Runner. Diese HD-Fassung ergänzt das ursprüngliche Canvas-Spiel um animierte Sprite-Atlanten, biomeabhängige Terrain-Tilemaps, adaptive Smooth-Grafik und eine dynamische MP3-Playlist für die einzelnen Zonen.
+
+## Spielen
+
+Öffne `index.html` über einen lokalen Webserver oder GitHub Pages.
+
+- `Leertaste` / `↑`: springen und Doppelsprung
+- `↓`: ducken; am höchsten Punkt einen Salto auslösen
+- `P`: Pause
+- `C`: tägliche Challenge
+- Touch: große Tasten am unteren Bildschirmrand
+
+Das Spiel speichert Highscore, Skins und Erfolge lokal im Browser.
+
+## Assets
+
+- `assets/images/dino-sprites.png`: transparenter 4×4-Animationsatlas
+- `assets/images/biome-tiles.png`: 4×4-Terrain-Atlas für vier Biome
+- `assets/images/biome-decor.png`: transparenter 4×4-Dekor-Atlas mit 16 Biome-Objekten
+- `assets/images/obstacle-sprites.png`: transparenter 4×4-Atlas für Kakteen, Feuerbälle, Pterosaurier und T-Rex
+- `assets/images/biome-hills.png`: vier vorgerenderte, biomeigene Hügelketten für die Parallax-Ebene
+- `assets/images/biome-skies.png`: vier vollständige obere Himmelspanoramen
+- `assets/images/alpha-bird-sprites-v2.png`: streng zentrierter 4×4-Animationsatlas für den Alpha-Pterosaurier ohne angeschnittene Flügel
+- `assets/images/aura-ring-tiles.png`: transparenter 4×4-Effektatlas für Schild, Fever und Portal
+- `assets/images/boulder-hazard-atlas.png`: transparenter 4×4-Gefahrenatlas für Fallfels, rückwärtigen Rollfels, Einschläge und Warnzeichen
+- `assets/images/gui-title-atlas.png`: Komponenten-Quellatlas für GUI-Details und Status-Badges
+- `assets/images/title-panel-v2.png`: durchgehendes, nahtloses Titelbild-Panel ohne gestreckte Einzelteile
+- `assets/images/font-glyph-atlas.png`: exakter 8×8-Schriftatlas für A–Z, Zahlen, Symbole und deutsche Sonderzeichen
+- `assets/images/boss-vfx-atlas.png`: transparenter 4×4-VFX-Atlas für Blitze, Alpha-Flugkorridor, Federwind und Einschläge
+- `assets/audio/cliffline-run.mp3`: Smaragdtal-Musik
+- `assets/audio/dust-run-riot.mp3`: Wüsten-Musik
+- `assets/audio/black-ice-apex.mp3`: Schneefeld-Musik
+- `assets/audio/lanterns-in-the-cave.mp3`: Höhlen- und Aether-Musik
+
+Die Bild-Assets wurden für dieses Projekt mit OpenAI ImageGen erzeugt.
+
+## Test
+
+`node tools/smoke-vm.js` prüft Boot, 240 Simulationsframes, alle zwölf aktiven Sprite-/Tile-Caches, ausweichbare Fallfelsen, die bildschirmfeste Rückfels-Warnung, lückenlosen Sprunghimmel, MP3-Crossfades, synchrones Boden-Scrolling, VFX-Rendering und den Safe-Mode-Schutz der Kernassets.
