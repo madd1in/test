@@ -283,7 +283,13 @@ function buildHillCache(){
   for(let row=0;row<4;row++){
     const out=document.createElement('canvas');out.width=1024;out.height=256;
     const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='medium';
-    c.drawImage(img,0,row*srcH,img.naturalWidth,srcH,0,0,1024,256);HILL_CACHE.rows[row]=out;
+    c.drawImage(img,0,row*srcH,img.naturalWidth,srcH,0,0,1024,256);
+    c.globalCompositeOperation='destination-in';
+    const fade=c.createLinearGradient(0,0,0,256);
+    fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(.16,'rgba(0,0,0,.12)');
+    fade.addColorStop(.38,'rgba(0,0,0,.92)');fade.addColorStop(.52,'rgba(0,0,0,1)');
+    c.fillStyle=fade;c.fillRect(0,0,1024,256);c.globalCompositeOperation='source-over';
+    HILL_CACHE.rows[row]=out;
   }
   HILL_CACHE.ready=true;
 }
@@ -1743,7 +1749,7 @@ const SKY={top:[P('#4fb3d9'),P('#071c2b')],mid:[P('#9adcd3'),P('#0e3446')],hor:[
 
 function drawSky(zw){
   if(SKY_CACHE.ready){
-    const h=Math.max(280,GROUND-205);
+    const h=GROUND+4;
     g.save();
     if(S.cave.t>=0||S.aeth.t>=0)g.drawImage(SKY_CACHE.rows[3],0,0,W,h);
     else{
