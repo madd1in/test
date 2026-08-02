@@ -1,6 +1,6 @@
 # Dino Dash HD
 
-Ein schneller, direkt im Browser spielbarer Urzeit-Endless-Runner. Diese HD-Fassung ergänzt das ursprüngliche Canvas-Spiel um einen animierten Dino-Sprite-Atlas, biomeabhängige Terrain-Tilemaps und den MP3-Soundtrack `Cliffline Run`.
+Ein schneller, direkt im Browser spielbarer Urzeit-Endless-Runner. Diese HD-Fassung ergänzt das ursprüngliche Canvas-Spiel um einen animierten Dino-Sprite-Atlas, biomeabhängige Terrain-Tilemaps, adaptive Smooth-Grafik und den MP3-Soundtrack `Cliffline Run`.
 
 ## Spielen
 
@@ -12,7 +12,7 @@ Ein schneller, direkt im Browser spielbarer Urzeit-Endless-Runner. Diese HD-Fass
 - `C`: tägliche Challenge
 - Touch: große Tasten am unteren Bildschirmrand
 
-Das Spiel speichert Highscore, Skins, Erfolge und Ghost-Daten lokal im Browser.
+Das Spiel speichert Highscore, Skins und Erfolge lokal im Browser.
 
 ## Assets
 

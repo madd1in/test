@@ -3,6 +3,7 @@ const path=require('path');
 const vm=require('vm');
 
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+if(/ghostBtn|drawGhost|ghostOn|palGhost/.test(html))throw new Error('Phantom mode code is still present');
 const match=html.match(/<script>([\s\S]*?)<\/script>/);
 if(!match)throw new Error('Inline game script missing');
 
@@ -75,8 +76,9 @@ vm.runInContext(`
   if(!TILE_CACHE.ready)throw new Error('Tile cache did not initialize');
   if(!DECOR_CACHE.ready)throw new Error('Decor cache did not initialize');
   if(!ASSETS.spriteReady)throw new Error('Sprite atlas did not initialize');
+  if(PERF.dpr>DPR_CAP)throw new Error('DPR performance cap was exceeded');
   enterSafeMode(new Error('forced smoke-test failure'));draw();
   if(PERF.tier!=='safe')throw new Error('Safe mode did not activate');
 `,sandbox);
 if(contexts.some(c=>c.__minDepth<0||c.__depth!==0))throw new Error('Unbalanced canvas save/restore stack');
-console.log('VM smoke test passed: boot, 240 frames, caches, biome renders and safe-mode recovery');
+console.log('VM smoke test passed: boot, 240 frames, no phantom mode, DPR cap, caches, biome renders and safe-mode recovery');
