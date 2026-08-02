@@ -21,6 +21,9 @@ Das Spiel speichert Highscore, Skins und Erfolge lokal im Browser.
 - `assets/images/biome-decor.png`: transparenter 4×4-Dekor-Atlas mit 16 Biome-Objekten
 - `assets/images/obstacle-sprites.png`: transparenter 4×4-Atlas für Kakteen, Feuerbälle, Pterosaurier und T-Rex
 - `assets/images/biome-hills.png`: vier vorgerenderte, biomeigene Hügelketten für die Parallax-Ebene
+- `assets/images/biome-skies.png`: vier vollständige obere Himmelspanoramen
+- `assets/images/alpha-bird-sprites.png`: transparenter 4×4-Animationsatlas für den Alpha-Pterosaurier
+- `assets/images/aura-ring-tiles.png`: transparenter 4×4-Effektatlas für Schild, Fever und Portal
 - `assets/audio/cliffline-run.mp3`: Loop-Hintergrundmusik aus dem bereitgestellten Downloads-Ordner
 
 Die Bild-Assets wurden für dieses Projekt mit OpenAI ImageGen erzeugt.
