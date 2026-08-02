@@ -81,11 +81,14 @@ vm.runInContext(`
   if(!SKY_CACHE.ready||SKY_CACHE.rows.length!==4)throw new Error('Sky tile cache did not initialize');
   if(!ALPHA_CACHE.ready)throw new Error('Alpha boss sprite cache did not initialize');
   if(!AURA_CACHE.ready)throw new Error('Aura tile cache did not initialize');
+  if(!GUI_CACHE.ready)throw new Error('GUI/title sprite cache did not initialize');
+  if(!VFX_CACHE.ready)throw new Error('Boss VFX tile cache did not initialize');
   if(!ASSETS.spriteReady)throw new Error('Sprite atlas did not initialize');
   drawObs(mkCactus(true));drawObs(mkPtero(500,false));
   drawMet({x:500,y:180,vx:-60,vy:120,r:12});drawBomb({x:560,y:200,vx:-40,vy:90});
   S.rex.t=1;S.rex.x=80;drawRex();S.rex.t=-1;
-  S.alpha.st=1;S.alpha.x=700;S.alpha.y=180;drawAlpha();S.alpha.st=-1;
+  S.alpha.st=1;S.alpha.x=700;S.alpha.y=180;drawAlpha();S.alpha.st=2;drawAlpha();S.alpha.st=-1;
+  S.lightning=1;S.bolt=makeBolt();drawLightning();S.lightning=0;S.bolt=null;
   S.fever=1;drawFeverAura();S.fever=0;S.aeth.portal={x:600,y:240,p:0};drawPortal();S.aeth.portal=null;
   S.aeth.t=-1;S.cave.t=-1;S.maxBiome=1;syncMusicTrack(true);
   if(Music.track!==1||!bgmTrack.src.endsWith('dust-run-riot.mp3'))throw new Error('Desert music did not activate');
@@ -94,6 +97,8 @@ vm.runInContext(`
   S.cave.t=1;syncMusicTrack(true);
   if(Music.track!==3||!bgmTrack.src.endsWith('lanterns-in-the-cave.mp3'))throw new Error('Cave music did not activate');
   S.cave.t=-1;S.maxBiome=0;syncMusicTrack(true);
+  if(draw.toString().indexOf('drawSky(zw)')>draw.toString().indexOf('g.translate(D.x'))throw new Error('Sky is still camera-bound and can expose black jump borders');
+  if(!drawTileGround.toString().includes('S.dist,Math.min'))throw new Error('Ground tiles are not synchronized to world speed');
   if(PERF.dpr>DPR_CAP)throw new Error('DPR performance cap was exceeded');
   enterSafeMode(new Error('forced smoke-test failure'));draw();
   if(PERF.tier!=='safe')throw new Error('Safe mode did not activate');
@@ -101,4 +106,4 @@ vm.runInContext(`
   if(!TILE_CACHE.ready||!DECOR_CACHE.ready||!ASSETS.spriteReady)throw new Error('Safe mode disabled core sprite/tile assets');
 `,sandbox);
 if(contexts.some(c=>c.__minDepth<0||c.__depth!==0))throw new Error('Unbalanced canvas save/restore stack');
-console.log('VM smoke test passed: boot, 240 frames, biome playlist, DPR cap, locked sprite/tile caches and safe-mode recovery');
+console.log('VM smoke test passed: boot, 240 frames, 10 atlases, camera-safe sky, synced ground, boss VFX and safe-mode recovery');
