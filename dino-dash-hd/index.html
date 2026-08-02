@@ -150,7 +150,7 @@
 
 <div class="overlay" id="menuOv">
   <div class="panel">
-    <div class="kicker">URZEIT-RUNNER · V13 · SMOOTH HD</div>
+    <div class="kicker">URZEIT-RUNNER · V14 · FULL ATLAS</div>
     <h1 class="title">DINO<span>DASH</span></h1>
     <div class="seg" id="diffRow">
       <button data-d="easy">Leicht</button>
@@ -210,20 +210,27 @@
 /* ═══════════ Vollbild-Setup ═══════════ */
 const cv=document.getElementById('game'),g=cv.getContext('2d',{alpha:false});
 const COARSE=matchMedia('(pointer:coarse)').matches;
-const DPR_CAP=COARSE ? .95 : 1.05;
+const DPR_CAP=COARSE ? .85 : .95;
 const ASSETS={sprite:new Image(),tiles:new Image(),decor:new Image(),hazards:new Image(),hills:new Image(),
-  spriteReady:false,tilesReady:false,decorReady:false,hazardsReady:false,hillsReady:false};
+  skies:new Image(),alpha:new Image(),aura:new Image(),spriteReady:false,tilesReady:false,decorReady:false,
+  hazardsReady:false,hillsReady:false,skiesReady:false,alphaReady:false,auraReady:false};
 const TILE_CACHE={ground:[],far:[],near:[],ready:false};
 const SPRITE_CACHE={id:null,canvas:null};
 const DECOR_CACHE={atlas:null,ready:false};
 const HAZARD_CACHE={atlas:null,ready:false};
 const HILL_CACHE={rows:[],ready:false};
+const SKY_CACHE={rows:[],ready:false};
+const ALPHA_CACHE={atlas:null,ready:false};
+const AURA_CACHE={atlas:null,ready:false};
 const GRADE_CACHE={vignette:null};
 ASSETS.sprite.src='assets/images/dino-sprites.png';
 ASSETS.tiles.src='assets/images/biome-tiles.png';
 ASSETS.decor.src='assets/images/biome-decor.png';
 ASSETS.hazards.src='assets/images/obstacle-sprites.png';
 ASSETS.hills.src='assets/images/biome-hills.png';
+ASSETS.skies.src='assets/images/biome-skies.png';
+ASSETS.alpha.src='assets/images/alpha-bird-sprites.png';
+ASSETS.aura.src='assets/images/aura-ring-tiles.png';
 function makeTileStrip(row,kind){
   const img=ASSETS.tiles,cell=img.naturalWidth/4;
   const spec=kind==='ground'
@@ -280,6 +287,22 @@ function buildHillCache(){
   }
   HILL_CACHE.ready=true;
 }
+function buildSkyCache(){
+  if(!ASSETS.skies||!ASSETS.skies.naturalWidth)return;
+  const img=ASSETS.skies,srcH=img.naturalHeight/4;
+  for(let row=0;row<4;row++){
+    const out=document.createElement('canvas');out.width=1024;out.height=256;
+    const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='medium';
+    c.drawImage(img,0,row*srcH,img.naturalWidth,srcH,0,0,1024,256);SKY_CACHE.rows[row]=out;
+  }
+  SKY_CACHE.ready=true;
+}
+function buildEffectCache(source,target){
+  if(!source||!source.naturalWidth)return;
+  const out=document.createElement('canvas');out.width=1024;out.height=1024;
+  const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='medium';
+  c.drawImage(source,0,0,1024,1024);target.atlas=out;target.ready=true;
+}
 function buildGradeCache(){
   const out=document.createElement('canvas');out.width=480;out.height=Math.max(240,Math.round(480*H/Math.max(1,W)));
   const c=out.getContext('2d'),r=Math.max(out.width,out.height)*.78;
@@ -290,9 +313,10 @@ function buildGradeCache(){
 function markAssetReady(){
   const el=document.getElementById('assetStatus');
   if(!el)return;
-  const ready=ASSETS.spriteReady&&ASSETS.tilesReady&&ASSETS.hazardsReady&&ASSETS.hillsReady;
+  const ready=ASSETS.spriteReady&&ASSETS.tilesReady&&ASSETS.hazardsReady&&ASSETS.hillsReady&&
+    ASSETS.skiesReady&&ASSETS.alphaReady&&ASSETS.auraReady;
   el.classList.toggle('ready',ready);
-  el.textContent=ready?'HD-Sprites · Hindernisse · Tiles aktiv':'HD-Assets laden';
+  el.textContent=ready?'8 HD-Atlanten aktiv':'HD-Assets laden';
 }
 ASSETS.sprite.addEventListener('load',()=>{ASSETS.spriteReady=true;markAssetReady();});
 ASSETS.tiles.addEventListener('load',()=>{
@@ -306,6 +330,15 @@ ASSETS.hazards.addEventListener('load',()=>{
 });
 ASSETS.hills.addEventListener('load',()=>{
   ASSETS.hillsReady=true;buildHillCache();ASSETS.hills=null;markAssetReady();
+});
+ASSETS.skies.addEventListener('load',()=>{
+  ASSETS.skiesReady=true;buildSkyCache();ASSETS.skies=null;markAssetReady();
+});
+ASSETS.alpha.addEventListener('load',()=>{
+  ASSETS.alphaReady=true;buildEffectCache(ASSETS.alpha,ALPHA_CACHE);ASSETS.alpha=null;markAssetReady();
+});
+ASSETS.aura.addEventListener('load',()=>{
+  ASSETS.auraReady=true;buildEffectCache(ASSETS.aura,AURA_CACHE);ASSETS.aura=null;markAssetReady();
 });
 if(!g.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
   r=Math.min(r,w/2,h/2);this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);
@@ -468,7 +501,7 @@ function reseedAmbient(){
 }
 function resize(){
   W=innerWidth;H=innerHeight;
-  const targetPixels=PERF.tier==='safe'?700000:PERF.tier==='eco'?850000:1200000;
+  const targetPixels=PERF.tier==='safe'?550000:PERF.tier==='eco'?700000:900000;
   const pixelBudget=Math.sqrt(targetPixels/Math.max(1,W*H));
   DPR=Math.min(PERF.tier==='safe'?.9:DPR_CAP,devicePixelRatio||1,Math.max(.45,pixelBudget));
   PERF.dpr=Math.round(DPR*100)/100;
@@ -740,6 +773,8 @@ function confetti(){
     life:R(.5,1),max:1,col:cols[i%5],sz:R(2,4),gr:240});
 }
 function updParts(dt){
+  const cap=PERF.tier==='safe'?90:PERF.tier==='eco'?120:165;
+  if(S.parts.length>cap)S.parts.splice(0,S.parts.length-cap);
   for(let i=S.parts.length-1;i>=0;i--){
     const p=S.parts[i];p.life-=dt;
     if(p.life<=0){S.parts.splice(i,1);continue;}
@@ -1684,6 +1719,17 @@ function update(dt){
 const SKY={top:[P('#4fb3d9'),P('#071c2b')],mid:[P('#9adcd3'),P('#0e3446')],hor:[P('#f7e8b0'),P('#1b4a57')]};
 
 function drawSky(zw){
+  if(SKY_CACHE.ready){
+    const h=Math.max(280,GROUND-205),travel=S.dist*.018+S.t*2.5;
+    g.save();
+    if(S.cave.t>=0||S.aeth.t>=0)repeatTileStrip(SKY_CACHE.rows[3],0,h,travel,1);
+    else{
+      repeatTileStrip(SKY_CACHE.rows[0],0,h,travel,1);
+      if(zw.d>.015)repeatTileStrip(SKY_CACHE.rows[1],0,h,travel,clamp(zw.d*1.15,0,1));
+      if(zw.s>.015)repeatTileStrip(SKY_CACHE.rows[2],0,h,travel,clamp(zw.s*1.15,0,1));
+    }
+    g.restore();return;
+  }
   const d=S.dayness,k=S.dusk,st=S.rainA*.45;
   let top=mixA(SKY.top[1],SKY.top[0],d);top=mixA(top,P('#123f4f'),k*.45);
   let mid=mixA(SKY.mid[1],SKY.mid[0],d);mid=mixA(mid,P('#e8734a'),k*.3);
@@ -2199,8 +2245,17 @@ function drawBoulderWarn(){
   g.fillText('STEIN!',26,y+22);
   g.restore();
 }
+function drawEffectCell(cache,frame,cx,cy,size,rot,alpha,flipX){
+  if(!cache.ready)return false;
+  const cell=256,row=Math.floor(frame/4)&3,col=frame&3;
+  g.save();g.translate(cx,cy);if(rot)g.rotate(rot);if(flipX)g.scale(-1,1);
+  g.globalAlpha=alpha===undefined?1:alpha;g.shadowBlur=0;
+  g.drawImage(cache.atlas,col*cell,row*cell,cell,cell,-size/2,-size/2,size,size);
+  g.restore();return true;
+}
 function drawPortal(){
   const p=S.aeth.portal;if(!p)return;
+  if(drawEffectCell(AURA_CACHE,Math.floor(S.t*12+p.p)&15,p.x,p.y,76,S.t*.35,.9,false))return;
   const pu=.7+.3*Math.sin(S.t*4+p.p);
   g.save();
   g.shadowColor='rgba(120,240,220,.9)';g.shadowBlur=18;
@@ -2228,6 +2283,11 @@ function drawAethStar(st){
 }
 function drawBossPtero(x,y){
   const A=S.alpha,strike=A.st===2;
+  if(ALPHA_CACHE.ready){
+    const base=A.st===2?4:A.st===1?8:A.st>=3?12:0;
+    const frame=base+(Math.floor(S.t*(strike?13:8))&3);
+    drawEffectCell(ALPHA_CACHE,frame,x,y,184,strike?-.12:0,1,false);return;
+  }
   const fl=Math.sin(S.t*(strike?26:10));
   g.save();g.translate(x,y);g.scale(2.4,2.4);
   if(strike)g.rotate(-.14);
@@ -2445,6 +2505,7 @@ function drawBaby(){
 }
 function drawFeverAura(){
   if(S.fever<=0)return;
+  if(drawEffectCell(AURA_CACHE,Math.floor(S.t*15)&15,D.x,D.y-29,104,-S.t*.5,.68,false))return;
   const pu=.75+.25*Math.sin(S.t*9);
   const gr=g.createRadialGradient(D.x,D.y-28,6,D.x,D.y-28,50);
   gr.addColorStop(0,`rgba(255,224,138,${.5*pu})`);gr.addColorStop(1,'rgba(255,143,63,0)');
@@ -2494,6 +2555,7 @@ function drawDinoMain(){
   }
   if(D.shield){
     const cy=D.duck?D.y-16:D.y-28;
+    if(drawEffectCell(AURA_CACHE,4+(Math.floor(S.t*10)&7),D.x+4,cy,86,S.t*.28,.82,false))return;
     g.save();
     g.strokeStyle='rgba(94,234,212,.85)';g.lineWidth=2.5;
     g.shadowColor='rgba(94,234,212,.6)';g.shadowBlur=10;
@@ -2933,8 +2995,9 @@ function draw(){
   g.translate(D.x,GROUND*.55);g.scale(z,z);g.translate(-D.x,-GROUND*.55);
   g.translate(0,S.cam.y+S.cam.kick);
 
-  drawSky(zw);drawAurora(zw);drawCelestial();drawEclipse();drawStars();drawShoots();
-  drawClouds();drawRays();drawParallaxTiles(zw);
+  drawSky(zw);
+  if(!SKY_CACHE.ready){drawAurora(zw);drawCelestial();drawStars();drawShoots();drawClouds();drawRays();}
+  drawEclipse();drawParallaxTiles(zw);
   drawMountains(zw);drawRainbow();drawFireflies();drawButterflies();
   drawBiomeDecor(zw);drawGround(zw);drawRouteMarkers(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
   for(const e of S.eggs)drawEgg(e);

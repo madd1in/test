@@ -77,10 +77,15 @@ vm.runInContext(`
   if(!DECOR_CACHE.ready)throw new Error('Decor cache did not initialize');
   if(!HAZARD_CACHE.ready)throw new Error('Hazard sprite cache did not initialize');
   if(!HILL_CACHE.ready||HILL_CACHE.rows.length!==4)throw new Error('Hill tile cache did not initialize');
+  if(!SKY_CACHE.ready||SKY_CACHE.rows.length!==4)throw new Error('Sky tile cache did not initialize');
+  if(!ALPHA_CACHE.ready)throw new Error('Alpha boss sprite cache did not initialize');
+  if(!AURA_CACHE.ready)throw new Error('Aura tile cache did not initialize');
   if(!ASSETS.spriteReady)throw new Error('Sprite atlas did not initialize');
   drawObs(mkCactus(true));drawObs(mkPtero(500,false));
   drawMet({x:500,y:180,vx:-60,vy:120,r:12});drawBomb({x:560,y:200,vx:-40,vy:90});
   S.rex.t=1;S.rex.x=80;drawRex();S.rex.t=-1;
+  S.alpha.st=1;S.alpha.x=700;S.alpha.y=180;drawAlpha();S.alpha.st=-1;
+  S.fever=1;drawFeverAura();S.fever=0;S.aeth.portal={x:600,y:240,p:0};drawPortal();S.aeth.portal=null;
   if(PERF.dpr>DPR_CAP)throw new Error('DPR performance cap was exceeded');
   enterSafeMode(new Error('forced smoke-test failure'));draw();
   if(PERF.tier!=='safe')throw new Error('Safe mode did not activate');
