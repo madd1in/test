@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#04141a">
 <meta name="description" content="Dino Dash – ein handgezeichneter Urzeit-Endless-Runner mit täglichen Challenges, Biomen und Boss-Events.">
+<meta property="og:title" content="Dino Dash HD">
+<meta property="og:description" content="Renne, springe und trickse dich durch vier lebendige Urzeit-Biome.">
+<meta property="og:type" content="website">
 <title>DINO DASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +31,7 @@
     background:rgba(7,26,31,.55);color:#cfeee6;font-size:14px;line-height:1;cursor:pointer;
     opacity:.5;transition:opacity .2s, transform .15s, border-color .15s}
   .ui button:hover{opacity:1;transform:translateY(-2px);border-color:var(--line)}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
   .ui button.off{opacity:.25;filter:grayscale(1)}
   .pbtn{position:fixed;top:14px;right:14px;z-index:30;width:38px;height:38px;border-radius:50%;
     border:1px solid rgba(255,255,255,.14);background:rgba(7,26,31,.55);color:#cfeee6;font-size:15px;
@@ -86,6 +90,14 @@
   .asset-status::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);
     box-shadow:0 0 8px var(--amber)}
   .asset-status.ready::before{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .role-legend{display:flex;justify-content:center;align-items:center;gap:13px;flex-wrap:wrap;
+    margin:0 auto 14px;color:#8fb6ae;font:700 9px 'Space Grotesk';letter-spacing:1px;text-transform:uppercase}
+  .role-legend span{display:inline-flex;align-items:center;gap:6px}
+  .hazard-key{width:22px;height:7px;border-bottom:2px solid var(--amber);position:relative}
+  .hazard-key::before,.hazard-key::after{content:"";position:absolute;bottom:-4px;border:4px solid transparent}
+  .hazard-key::before{left:-6px;border-right-color:var(--orange)}
+  .hazard-key::after{right:-6px;border-left-color:var(--orange)}
+  .decor-key{width:20px;height:10px;border-radius:50%;background:#53766d;opacity:.42}
   .fscore{font-family:Bungee;font-size:clamp(38px,7vw,52px);color:var(--amber);line-height:1;
     text-shadow:0 4px 0 rgba(0,0,0,.4)}
   .fscore small{display:block;font:700 10px 'Space Grotesk';letter-spacing:3px;color:var(--muted);margin-top:6px}
@@ -123,15 +135,15 @@
 <canvas id="game"></canvas>
 
 <div class="ui">
-  <button id="bgmBtn" title="Musik">🎵</button>
-  <button id="sfxBtn" title="Soundeffekte">🔊</button>
-  <button id="ghostBtn" title="Geist-Modus">👻</button>
+  <button id="bgmBtn" title="Musik" aria-label="Musik umschalten">🎵</button>
+  <button id="sfxBtn" title="Soundeffekte" aria-label="Soundeffekte umschalten">🔊</button>
+  <button id="ghostBtn" title="Geist-Modus" aria-label="Geist-Modus umschalten">👻</button>
 </div>
 <button class="pbtn" id="pauseBtn">⏸</button>
 
 <div class="overlay" id="menuOv">
   <div class="panel">
-    <div class="kicker">URZEIT-RUNNER · V11 · CHALLENGE</div>
+    <div class="kicker">URZEIT-RUNNER · V12 · HD</div>
     <h1 class="title">DINO<span>DASH</span></h1>
     <div class="seg" id="diffRow">
       <button data-d="easy">Leicht</button>
@@ -140,13 +152,17 @@
     </div>
     <div class="skins" id="skinRow"></div>
     <p class="hint"><kbd>Leertaste</kbd> springen · <kbd>↓</kbd> ducken · am Höhepunkt: Salto!</p>
+    <div class="role-legend" aria-label="Spielgrafik-Legende">
+      <span><i class="hazard-key"></i> Orange = Gefahr</span>
+      <span><i class="decor-key"></i> Gedimmt = Kulisse</span>
+    </div>
     <div class="btnrow">
       <button class="btn" id="startBtn">▶ Start</button>
       <button class="btn alt" id="chalBtn">🗓️ Challenge</button>
     </div>
     <p class="seedline" id="seedLine"></p>
     <p class="meta" id="menuMeta"></p>
-    <div class="asset-status" id="assetStatus">HD-Assets laden</div>
+    <div class="asset-status" id="assetStatus" role="status" aria-live="polite">HD-Assets laden</div>
   </div>
 </div>
 
@@ -797,6 +813,9 @@ function startRun(chal){
   document.body.classList.add('playing');
   sfx.start();startMusic();
   addText('LOS!',D.x+46,GROUND-72,'#3ddc84',18);
+  if(LS('dd_role_help')!=='1'){
+    SV('dd_role_help','1');setTimeout(()=>toast('Orange Markierungen = Hindernisse'),450);
+  }
   if(S.challenge)toast('🗓️ Challenge · Seed '+daySeed());
 }
 function loseHeart(){
