@@ -186,11 +186,13 @@
 const cv=document.getElementById('game'),g=cv.getContext('2d',{alpha:false});
 const COARSE=matchMedia('(pointer:coarse)').matches;
 const DPR_CAP=COARSE?1.1:1.35;
-const ASSETS={sprite:new Image(),tiles:new Image(),spriteReady:false,tilesReady:false};
+const ASSETS={sprite:new Image(),tiles:new Image(),decor:new Image(),spriteReady:false,tilesReady:false,decorReady:false};
 const TILE_CACHE={ground:[],far:[],near:[],ready:false};
-const SPRITE_CACHE={};
+const SPRITE_CACHE={id:null,canvas:null};
+const DECOR_CACHE={atlas:null,ready:false};
 ASSETS.sprite.src='assets/images/dino-sprites.png';
 ASSETS.tiles.src='assets/images/biome-tiles.png';
+ASSETS.decor.src='assets/images/biome-decor.png';
 function makeTileStrip(row,kind){
   const img=ASSETS.tiles,cell=img.naturalWidth/4;
   const spec=kind==='ground'
@@ -222,6 +224,13 @@ function buildTileCaches(){
   }
   TILE_CACHE.ready=true;
 }
+function buildDecorCache(){
+  if(!ASSETS.decor||!ASSETS.decor.naturalWidth)return;
+  const out=document.createElement('canvas');out.width=512;out.height=512;
+  const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  c.drawImage(ASSETS.decor,0,0,512,512);
+  DECOR_CACHE.atlas=out;DECOR_CACHE.ready=true;
+}
 function markAssetReady(){
   const el=document.getElementById('assetStatus');
   if(!el)return;
@@ -230,7 +239,12 @@ function markAssetReady(){
   el.textContent=ready?'HD-Sprites & Tilemaps aktiv':'HD-Assets laden';
 }
 ASSETS.sprite.addEventListener('load',()=>{ASSETS.spriteReady=true;markAssetReady();});
-ASSETS.tiles.addEventListener('load',()=>{ASSETS.tilesReady=true;buildTileCaches();markAssetReady();});
+ASSETS.tiles.addEventListener('load',()=>{
+  ASSETS.tilesReady=true;buildTileCaches();ASSETS.tiles=null;markAssetReady();
+});
+ASSETS.decor.addEventListener('load',()=>{
+  ASSETS.decorReady=true;buildDecorCache();ASSETS.decor=null;
+});
 if(!g.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
   r=Math.min(r,w/2,h/2);this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);
   this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);
@@ -389,8 +403,9 @@ function reseedAmbient(){
 }
 function resize(){
   W=innerWidth;H=innerHeight;
-  const pixelBudget=Math.sqrt(3200000/Math.max(1,W*H));
-  DPR=Math.min(DPR_CAP,devicePixelRatio||1,Math.max(.7,pixelBudget));
+  const targetPixels=PERF.tier==='safe'?1400000:2200000;
+  const pixelBudget=Math.sqrt(targetPixels/Math.max(1,W*H));
+  DPR=Math.min(PERF.tier==='safe'?.9:DPR_CAP,devicePixelRatio||1,Math.max(.45,pixelBudget));
   PERF.dpr=Math.round(DPR*100)/100;
   cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
   cv.style.width=W+'px';cv.style.height=H+'px';
@@ -1895,6 +1910,25 @@ function drawTileGround(zw){
   }
   g.restore();
 }
+function drawBiomeDecor(zw){
+  if(!DECOR_CACHE.ready)return;
+  const weights=tileWeights(zw),atlas=DECOR_CACHE.atlas,cell=128,spacing=220;
+  const first=Math.floor(S.dist/spacing)-1,count=Math.ceil(W/spacing)+3;
+  g.save();
+  for(let row=0;row<4;row++){
+    const weight=weights[row]||0;if(weight<.08)continue;
+    for(let i=0;i<count;i++){
+      const world=first+i,seed=world*17+row*113;
+      const x=world*spacing-S.dist+(rnd1(seed)-.5)*70+row*29;
+      if(x<-100||x>W+100)continue;
+      const col=Math.floor(rnd1(seed+4)*4),size=48+rnd1(seed+9)*25;
+      const float=row===3?Math.sin(S.t*1.7+seed)*5:0;
+      g.globalAlpha=weight*(row===3?.78:.68);
+      g.drawImage(atlas,col*cell,row*cell,cell,cell,x-size*.5,GROUND-size+7+float,size,size);
+    }
+  }
+  g.restore();
+}
 function drawGround(zw){
   const d=S.dayness,k=S.dusk;
   let gc=mixA(mix3(ZG.n,zw),mix3(ZG.d,zw),d);
@@ -2344,13 +2378,13 @@ function spriteFrame(){
 function spriteSheetForSkin(){
   const id=palSkin.id;
   if(id==='jung'||id==='chroma')return ASSETS.sprite;
-  if(SPRITE_CACHE[id])return SPRITE_CACHE[id];
+  if(SPRITE_CACHE.id===id&&SPRITE_CACHE.canvas)return SPRITE_CACHE.canvas;
   const hue={frost:145,glut:305,rosa:245,gold:55}[id]||0;
   const out=document.createElement('canvas');out.width=ASSETS.sprite.naturalWidth;out.height=ASSETS.sprite.naturalHeight;
   const c=out.getContext('2d');
   c.filter=`hue-rotate(${hue}deg) saturate(${id==='gold'?1.8:1.08}) brightness(${id==='gold'?1.12:1})`;
   c.drawImage(ASSETS.sprite,0,0);
-  c.filter='none';SPRITE_CACHE[id]=out;
+  c.filter='none';SPRITE_CACHE.id=id;SPRITE_CACHE.canvas=out;
   return out;
 }
 function drawSpriteDino(){
@@ -2770,7 +2804,7 @@ function draw(){
   drawSky(zw);drawAurora(zw);drawCelestial();drawEclipse();drawStars();drawShoots();
   drawClouds();drawRays();drawParallaxTiles(zw);
   drawMountains(zw);drawRainbow();drawFireflies();drawButterflies();
-  drawGround(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
+  drawGround(zw);drawBiomeDecor(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
   for(const e of S.eggs)drawEgg(e);
   for(const p of S.picks)drawPick(p);
   for(const h of S.heartsArr)drawHeartPick(h);
@@ -2814,15 +2848,27 @@ function draw(){
   drawHUD();
   if(S.flash>0){g.fillStyle=`rgba(255,214,90,${S.flash*.1})`;g.fillRect(0,0,W,H);}
 }
-let last=performance.now();
+let last=performance.now(),frameErrors=0;
+function enterSafeMode(error){
+  if(PERF.tier==='safe')return;
+  console.error('Dino Dash switched to safe rendering mode',error);
+  PERF.tier='safe';PERF.lastError=String(error&&error.message||error||'unknown');
+  TILE_CACHE.ready=false;DECOR_CACHE.ready=false;ASSETS.spriteReady=false;
+  SPRITE_CACHE.id=null;SPRITE_CACHE.canvas=null;
+  resize();toast('Performance-Schutzmodus aktiv');
+}
 function frame(now){
-  const rawMs=Math.max(.1,now-last),dt=Math.min(.033,rawMs/1000);last=now;
-  PERF.frameMs+=(rawMs-PERF.frameMs)*.035;
-  PERF.fps=Math.round(1000/Math.max(1,PERF.frameMs));
-  if(S.freeze>0){S.freeze-=dt;}
-  else{update(dt);}
-  draw();
   requestAnimationFrame(frame);
+  try{
+    const rawMs=Math.max(.1,now-last),dt=Math.min(.033,rawMs/1000);last=now;
+    PERF.frameMs+=(rawMs-PERF.frameMs)*.035;
+    PERF.fps=Math.round(1000/Math.max(1,PERF.frameMs));
+    if(S.freeze>0){S.freeze-=dt;}
+    else{update(dt);}
+    draw();frameErrors=0;
+  }catch(error){
+    frameErrors++;enterSafeMode(error);
+  }
 }
 requestAnimationFrame(frame);
 </script>
