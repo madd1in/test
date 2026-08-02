@@ -84,6 +84,14 @@
   .seedline{font:600 10.5px 'Space Grotesk';letter-spacing:2px;color:#5f8d90;margin:0 0 6px}
   .seedline b{color:#9ff0e0}
   .meta{font:600 11px 'Space Grotesk';color:var(--muted);margin:0}
+  .menu-stats{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:10px 0 0}
+  .stat-chip{min-width:76px;padding:7px 10px;border:1px solid rgba(94,234,212,.16);border-radius:7px;
+    background:rgba(4,20,26,.46);box-shadow:inset 0 1px rgba(255,255,255,.035)}
+  .stat-chip b{display:block;color:#dff7f0;font:700 12px Bungee,monospace;line-height:1.1}
+  .stat-chip span{display:block;margin-top:3px;color:#668f8b;font:700 8px 'Space Grotesk';letter-spacing:1.25px;text-transform:uppercase}
+  .pause-score{font:42px Bungee,monospace;line-height:1;color:var(--amber);margin:2px 0 6px;text-shadow:0 4px rgba(0,0,0,.35)}
+  .pause-score small{display:block;margin-top:7px;color:var(--muted);font:700 9px 'Space Grotesk';letter-spacing:2px}
+  .pause-meta{margin:12px 0 16px;color:#9fc8c0;font:600 11px 'Space Grotesk';letter-spacing:.5px}
   .asset-status{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 9px;
     border:1px solid rgba(94,234,212,.2);border-radius:999px;background:rgba(4,20,26,.45);
     color:#9ff0e0;font:700 9px 'Space Grotesk';letter-spacing:1.4px;text-transform:uppercase}
@@ -139,7 +147,7 @@
   <button id="sfxBtn" title="Soundeffekte" aria-label="Soundeffekte umschalten">🔊</button>
   <button id="ghostBtn" title="Geist-Modus" aria-label="Geist-Modus umschalten">👻</button>
 </div>
-<button class="pbtn" id="pauseBtn">⏸</button>
+<button class="pbtn" id="pauseBtn" aria-label="Spiel pausieren">⏸</button>
 
 <div class="overlay" id="menuOv">
   <div class="panel">
@@ -161,7 +169,7 @@
       <button class="btn alt" id="chalBtn">🗓️ Challenge</button>
     </div>
     <p class="seedline" id="seedLine"></p>
-    <p class="meta" id="menuMeta"></p>
+    <div class="menu-stats" id="menuMeta" aria-label="Spielstatistiken"></div>
     <div class="asset-status" id="assetStatus" role="status" aria-live="polite">HD-Assets laden</div>
   </div>
 </div>
@@ -187,8 +195,10 @@
 <div class="overlay hidden" id="pauseOv">
   <div class="panel">
     <div class="kicker">PAUSE</div>
+    <div class="pause-score" id="pauseScore">00000<small>AKTUELLER LAUF</small></div>
+    <div class="pause-meta" id="pauseMeta">🌿 Smaragdtal · Tempo ×1.0</div>
     <button class="btn green" id="resumeBtn">▶ Weiter</button>
-    <p class="hint" style="margin-top:10px"><kbd>P</kbd></p>
+    <p class="hint" style="margin-top:12px"><kbd>P</kbd> weiter · <kbd>Leertaste</kbd> springen</p>
   </div>
 </div>
 
@@ -318,8 +328,13 @@ function unlock(id){
   updMenuMeta();
 }
 function updMenuMeta(){
-  $('menuMeta').textContent='🏆 '+achCount()+'/'+Object.keys(ACH).length+' Errungenschaften'+
-    (Ghost.arr?' · 👻 Geist: '+pad(Ghost.s):'');
+  const stats=[
+    [pad(hi),'Bestwert'],
+    [String(runs),'Läufe'],
+    [achCount()+'/'+Object.keys(ACH).length,'Erfolge']
+  ];
+  if(Ghost.arr)stats.push([pad(Ghost.s),'Geist']);
+  $('menuMeta').innerHTML=stats.map(v=>'<div class="stat-chip"><b>'+v[0]+'</b><span>'+v[1]+'</span></div>').join('');
 }
 
 /* ═══════════ Fairness & Schwierigkeit ═══════════ */
@@ -369,7 +384,7 @@ const S={state:'menu',t:0,cycle:.13,dayness:1,dusk:0,dist:0,score:0,speed:5.6,
   aeth:{t:-1,dur:8,portal:null,stars:[]},aethT:40,
   alpha:{st:-1,t:0,x:-200,y:-200,strikes:0,type:0,hit:false,ry:0},alphaNext:2500,
   cave:{t:-1,dur:10,dark:0,n:0,crystals:[],stals:[],paints:[],cryT:0,stalT:0,paintT:0,wasDark:false},caveT:35,
-  herd:null,herdT:30,maxBiome:0,dustCol:'#c9a86f',
+  herd:null,herdT:30,maxBiome:0,zoneBanner:0,zoneName:'SMARAGDTAL',dustCol:'#c9a86f',
   boulderT:R(9,15),boulderWarn:0,
   giftT:12,babyStage:0,zt1:false,zt2:false,devils:[],
   combo:0,comboT:0,maxC:1,fever:0,tf:{},rec:[],fc:0,gi:0,
@@ -792,7 +807,7 @@ function startRun(chal){
     rbT:0,rbA:0,showerT:R(35,70),showerN:0,showerSpawn:0,
     rexT:R(22,38),eclT:R(70,120),eclAmt:0,zt1:false,zt2:false,
     aethT:R(30,55),alphaNext:2500,caveT:R(28,45),
-    herd:null,herdT:R(20,40),maxBiome:0,
+    herd:null,herdT:R(20,40),maxBiome:0,zoneBanner:2.4,zoneName:'SMARAGDTAL',
     erupt:0,ashA:0,volcT:R(CFG.volc[0],CFG.volc[1]),warned:false,bombT:0,
     boulderT:R(10,16),boulderWarn:0,ventT:R(8,14),
     fossilT:R(16,30)});
@@ -865,7 +880,12 @@ function die(){
   },560);
 }
 function togglePause(){
-  if(S.state==='running'){S.state='paused';show(pauseOv);stopMusic();document.body.classList.remove('playing');}
+  if(S.state==='running'){
+    S.state='paused';
+    $('pauseScore').firstChild.nodeValue=pad(S.score);
+    $('pauseMeta').textContent=['🌿 Smaragdtal','🏜️ Knochenwüste','❄️ Frostgipfel'][S.maxBiome]+' · Tempo ×'+(S.speed/CFG.base).toFixed(1);
+    show(pauseOv);stopMusic();document.body.classList.remove('playing');
+  }
   else if(S.state==='paused')resume();
 }
 function resume(){S.state='running';hide(pauseOv);startMusic();document.body.classList.add('playing');}
@@ -1136,8 +1156,9 @@ function update(dt){
       }
       if(S.score>hi){hi=Math.floor(S.score);S.newHi=true;}
       if(S.runHi>0&&!S.tf.rec&&S.score>S.runHi){S.tf.rec=1;toast('🏆 Neuer Rekord!');}
-      if(!S.zt1&&S.dist>10500){S.zt1=true;S.maxBiome=1;toast('🏜️ Knochenwüste');sfx.zone();}
-      if(!S.zt2&&S.dist>28500){S.zt2=true;S.maxBiome=2;toast('❄️ Frostgipfel');sfx.zone();unlock('frost');}
+      if(!S.zt1&&S.dist>10500){S.zt1=true;S.maxBiome=1;S.zoneName='KNOCHENWÜSTE';S.zoneBanner=3;toast('🏜️ Knochenwüste');sfx.zone();}
+      if(!S.zt2&&S.dist>28500){S.zt2=true;S.maxBiome=2;S.zoneName='FROSTGIPFEL';S.zoneBanner=3;toast('❄️ Frostgipfel');sfx.zone();unlock('frost');}
+      S.zoneBanner=Math.max(0,S.zoneBanner-sdt);
       if(!D.air&&Math.random()<sdt*10)dust(D.x-12,GROUND,1);
       if(S.speed>9.5&&Math.random()<sdt*5)S.lines.push({x:R(W*.4,W+120),y:R(26,GROUND-18),len:R(40,90),life:.25});
       if(S.combo>=3&&!D.air&&Math.random()<sdt*14)
@@ -2778,6 +2799,17 @@ function drawHUD(){
   g.font='600 10px "Space Grotesk", sans-serif';
   g.fillStyle='#7fa8a1';
   g.fillText('TEMPO ×'+(S.speed/CFG.base).toFixed(1),W-rx,hy);
+  if(S.zoneBanner>0&&S.state==='running'){
+    const za=Math.min(1,S.zoneBanner*1.65);
+    g.save();g.globalAlpha=za;g.textAlign='center';
+    const zw=Math.min(235,W*.38),zy=92;
+    g.strokeStyle='rgba(255,183,3,.65)';g.lineWidth=1;
+    g.beginPath();g.moveTo(W/2-zw,zy);g.lineTo(W/2-76,zy);g.moveTo(W/2+76,zy);g.lineTo(W/2+zw,zy);g.stroke();
+    g.fillStyle='#9fc8c0';g.font='700 8px "Space Grotesk", sans-serif';g.letterSpacing='2px';
+    g.fillText(S.zoneName==='SMARAGDTAL'?'STARTGEBIET':'NEUES BIOM',W/2,zy-15);
+    g.fillStyle='#fff0bd';g.font='15px Bungee, monospace';g.fillText(S.zoneName,W/2,zy-3);
+    g.restore();
+  }
   const n=S.maxHearts,tw=n*22,x0=W/2-tw/2+11;
   const hs=1+S.heartPop*.25;
   for(let i=0;i<n;i++){
