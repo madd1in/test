@@ -7,9 +7,13 @@ const match=html.match(/<script>([\s\S]*?)<\/script>/);
 if(!match)throw new Error('Inline game script missing');
 
 const gradient={addColorStop(){}};
+const contexts=[];
 function context2d(){
-  return new Proxy({}, {
+  const state={__depth:0,__minDepth:0};contexts.push(state);
+  return new Proxy(state, {
     get(target,key){
+      if(key==='save')return()=>{target.__depth++;};
+      if(key==='restore')return()=>{target.__depth--;target.__minDepth=Math.min(target.__minDepth,target.__depth);};
       if(key==='createLinearGradient'||key==='createRadialGradient')return()=>gradient;
       if(key==='measureText')return text=>({width:String(text).length*8});
       if(key==='canvas')return{width:1254,height:1254};
@@ -74,4 +78,5 @@ vm.runInContext(`
   enterSafeMode(new Error('forced smoke-test failure'));draw();
   if(PERF.tier!=='safe')throw new Error('Safe mode did not activate');
 `,sandbox);
+if(contexts.some(c=>c.__minDepth<0||c.__depth!==0))throw new Error('Unbalanced canvas save/restore stack');
 console.log('VM smoke test passed: boot, 240 frames, caches, biome renders and safe-mode recovery');

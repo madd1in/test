@@ -228,7 +228,9 @@ function buildDecorCache(){
   if(!ASSETS.decor||!ASSETS.decor.naturalWidth)return;
   const out=document.createElement('canvas');out.width=512;out.height=512;
   const c=out.getContext('2d');c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  c.filter='saturate(.56) brightness(.72) contrast(.9)';
   c.drawImage(ASSETS.decor,0,0,512,512);
+  c.filter='none';
   DECOR_CACHE.atlas=out;DECOR_CACHE.ready=true;
 }
 function markAssetReady(){
@@ -1912,19 +1914,20 @@ function drawTileGround(zw){
 }
 function drawBiomeDecor(zw){
   if(!DECOR_CACHE.ready)return;
-  const weights=tileWeights(zw),atlas=DECOR_CACHE.atlas,cell=128,spacing=220;
-  const first=Math.floor(S.dist/spacing)-1,count=Math.ceil(W/spacing)+3;
+  const weights=tileWeights(zw),atlas=DECOR_CACHE.atlas,cell=128,spacing=290,travel=S.dist*.82;
+  const safeCols=[[0],[2],[1],[0,2]];
+  const first=Math.floor(travel/spacing)-1,count=Math.ceil(W/spacing)+3;
   g.save();
   for(let row=0;row<4;row++){
     const weight=weights[row]||0;if(weight<.08)continue;
     for(let i=0;i<count;i++){
       const world=first+i,seed=world*17+row*113;
-      const x=world*spacing-S.dist+(rnd1(seed)-.5)*70+row*29;
+      const x=world*spacing-travel+(rnd1(seed)-.5)*86+row*31;
       if(x<-100||x>W+100)continue;
-      const col=Math.floor(rnd1(seed+4)*4),size=48+rnd1(seed+9)*25;
-      const float=row===3?Math.sin(S.t*1.7+seed)*5:0;
-      g.globalAlpha=weight*(row===3?.78:.68);
-      g.drawImage(atlas,col*cell,row*cell,cell,cell,x-size*.5,GROUND-size+7+float,size,size);
+      const choices=safeCols[row],col=choices[Math.floor(rnd1(seed+4)*choices.length)];
+      const size=36+rnd1(seed+9)*16,float=row===3?-18+Math.sin(S.t*1.2+seed)*4:0;
+      g.globalAlpha=weight*(row===3?.40:.32);
+      g.drawImage(atlas,col*cell,row*cell,cell,cell,x-size*.5,GROUND-size+14+float,size,size);
     }
   }
   g.restore();
@@ -2441,6 +2444,26 @@ function heartShape(x,y,s){
   g.closePath();
 }
 function drawObs(o){
+  g.save();
+  const pulse=.72+.18*Math.sin(S.t*6+(o.x||0)*.02);
+  if(o.type==='ptero'){
+    const cx=o.x+26,cy=o.y+15;
+    g.strokeStyle=`rgba(255,183,3,${.46*pulse})`;g.lineWidth=2;g.setLineDash([5,7]);
+    g.beginPath();g.ellipse(cx,cy,35,21,0,0,7);g.stroke();g.setLineDash([]);
+  }else{
+    let left=o.x,width=36;
+    if(o.type==='cac'&&o.parts.length){
+      left=Math.min(...o.parts.map(p=>o.x+p.dx-9));
+      const right=Math.max(...o.parts.map(p=>o.x+p.dx+p.w+9));width=right-left;
+    }
+    g.fillStyle='rgba(15,20,16,.38)';g.beginPath();g.ellipse(left+width*.5,GROUND+6,width*.58+5,6,0,0,7);g.fill();
+    g.strokeStyle=`rgba(255,183,3,${.76*pulse})`;g.lineWidth=2.5;
+    g.beginPath();g.moveTo(left-3,GROUND+2);g.lineTo(left+width+3,GROUND+2);g.stroke();
+    g.fillStyle=`rgba(255,107,53,${.72*pulse})`;
+    g.beginPath();g.moveTo(left-7,GROUND+2);g.lineTo(left-1,GROUND-2);g.lineTo(left-1,GROUND+6);g.fill();
+    g.beginPath();g.moveTo(left+width+7,GROUND+2);g.lineTo(left+width+1,GROUND-2);g.lineTo(left+width+1,GROUND+6);g.fill();
+  }
+  g.shadowColor='rgba(255,107,53,.38)';g.shadowBlur=5;
   if(o.type==='cac'){
     for(const p of o.parts){
       const px=o.x+p.dx;
@@ -2482,8 +2505,16 @@ function drawObs(o){
     g.fillStyle='#35808f';
     g.beginPath();g.moveTo(cx+2,cy-2);g.lineTo(cx-6,cy-8-18*fl);g.lineTo(cx-16,cy+1);g.closePath();g.fill();
   }
+  g.restore();
 }
 function drawBoulder(b){
+  const pu=.7+.2*Math.sin(S.t*7+b.x*.02);
+  g.save();
+  g.strokeStyle=`rgba(255,183,3,${.65*pu})`;g.lineWidth=2;g.setLineDash([5,6]);
+  g.beginPath();g.arc(b.x,b.y,b.r+6,0,7);g.stroke();g.setLineDash([]);
+  g.fillStyle=`rgba(255,107,53,${.6*pu})`;
+  g.fillRect(b.x-b.r-4,GROUND+1,(b.r+4)*2,2.5);
+  g.restore();
   g.fillStyle='rgba(15,25,20,.3)';
   g.beginPath();g.ellipse(b.x,GROUND+6,b.r+4,5,0,0,7);g.fill();
   g.save();g.translate(b.x,b.y);g.rotate(b.rot);
@@ -2804,7 +2835,7 @@ function draw(){
   drawSky(zw);drawAurora(zw);drawCelestial();drawEclipse();drawStars();drawShoots();
   drawClouds();drawRays();drawParallaxTiles(zw);
   drawMountains(zw);drawRainbow();drawFireflies();drawButterflies();
-  drawGround(zw);drawBiomeDecor(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
+  drawBiomeDecor(zw);drawGround(zw);drawDevils(zw);drawCaveEnv();drawVents();drawTelegraphs();
   for(const e of S.eggs)drawEgg(e);
   for(const p of S.picks)drawPick(p);
   for(const h of S.heartsArr)drawHeartPick(h);
