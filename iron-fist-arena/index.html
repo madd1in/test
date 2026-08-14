@@ -143,6 +143,12 @@ const ATTACKS={
   special:{startup:.28,active:.14,recovery:.34,damage:24,chip:6,range:2.6,lateral:1.05,hitstun:.65,blockstun:.32,knockback:1.15}
 };
 
+const CHARACTERS=[
+  {id:'nova',name:'NOVA',health:120,speed:5.15,dmg:1.00,color:0x1c73ff,accent:0x7dffd4},
+  {id:'titan',name:'TITAN',health:148,speed:4.15,dmg:1.12,color:0xd44832,accent:0xffc14d},
+  {id:'viper',name:'VIPER',health:104,speed:5.75,dmg:.92,color:0x7b36c8,accent:0xff71ce}
+];
+
 let scene,camera,renderer,p1,p2,ai;
 let floorMat,ringMat,ringMesh,centerGlowMat,dust;
 const pillarGroups=[];
@@ -706,6 +712,10 @@ function setupSystemButtons(){
   btnMode.onclick=toggleTwoPlayer;
   btnMusic.onclick=toggleMusic;
   btnFull.onclick=toggleFullscreen;
+}
+function updatePillarVisibility(){
+  const reduced=game.lowObstruction||isTouchDevice;
+  pillarGroups.forEach((pillar,index)=>pillar.visible=!reduced||index%2===0);
 }
 function setupMiscListeners(){
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
