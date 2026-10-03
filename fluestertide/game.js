@@ -3,6 +3,9 @@
   'use strict';
   const Story = window.PirateStory;
   const Art = window.PirateArt;
+  const speech = window.FluestertideSpeech;
+  const audio = window.FluestertideMusic;
+  audio?.initialize();
   const $ = id => document.getElementById(id);
   if (!Story || !Art) {
     $('actionText').textContent = 'Die Spieldateien fehlen. Bitte den vollständigen Ordner öffnen.';
@@ -42,6 +45,8 @@
     return (Array.isArray(input) ? input : [input]).map(l => typeof l === 'string' ? {speaker:'Motte',text:l} : {speaker:l.speaker || 'Motte',text:l.text || ''});
   }
   function start(resume = false) {
+    unlockMusic();
+    speech?.speak(null);
     state = resume && stored ? validateState(stored) : Story.initialState();
     active = true; selected = null; verb = null; lastScene = state.scene;
     hero = {x:850,y:815,target:850,facing:1};
@@ -55,7 +60,9 @@
   }
   function reset() { closeModal(); stored=null; hintTier=0; start(false); }
   function refresh() {
+    audio?.setScene(active ? (state.finished ? 'finale' : state.scene) : 'title');
     if (state.scene !== lastScene) {
+      speech?.speak(null);
       lastScene = state.scene; hero.x=850; hero.target=850; selected=null;
       $('stage').animate([{opacity:.5},{opacity:1}],{duration:reducedMotion?0:320});
     }
@@ -106,7 +113,7 @@
     execute(()=>Story.perform(state,actualVerb,h.id,item));
   }
   function execute(fn) {
-    try { const result=fn()||{};refresh();save();audio.effect(result.changed || state.finished ? 'success':'click');present(result); }
+    try { const result=fn()||{};refresh();save();audio?.effect(result.changed || state.finished ? 'success':'click');present(result); }
     catch (error) { console.error(error);present({lines:[{speaker:'Motte',text:'Das hat nicht geklappt. Versuchen wir es mit etwas anderem.'}]}); }
   }
   function renderInventory() {
@@ -124,7 +131,7 @@
       b.addEventListener('click',()=>{
         if (verb==='look') { present({lines:[{speaker:'Motte',text:item.description || item.name}]});return; }
         if(selected && selected!==id) { const first=selected;selected=null;execute(()=>Story.combine(state,first,id)); }
-        else { selected=selected===id?null:id;verb=null;dismissDialog();refresh();audio.effect('click'); }
+        else { selected=selected===id?null:id;verb=null;dismissDialog();refresh();audio?.effect('click'); }
       });
       b.addEventListener('dblclick',()=>{selected=null;refresh();present({lines:[{speaker:'Motte',text:item.description || item.name}]});});
       container.append(b);
@@ -132,19 +139,22 @@
   }
   function drawFallbackItem(context,item) { context.fillStyle='#e7bd70';context.font='38px Georgia';context.textAlign='center';context.fillText(item.icon || '✦',40,52); }
   function present(result) {
+    speech?.speak(null);
     lines=normalLines(result.lines);pendingChoices=result.choices || [];
     if (!lines.length && !pendingChoices.length) {dismissDialog();if(state.finished)showEnding();return;}
     $('conversation').hidden=false;showNextLine();
   }
   function showNextLine() {
+    speech?.speak(null);
     $('choices').replaceChildren();
     if(lines.length) {
       const line=lines.shift();$('speakerName').textContent=line.speaker;$('speakerAvatar').textContent=line.speaker.charAt(0);$('dialogText').textContent=line.text;
+      speech?.speak(line);
     }
     if(!lines.length && pendingChoices.length) {
       for(const choice of pendingChoices) {
         const b=document.createElement('button');b.textContent=choice.text;b.dataset.choice=choice.id;
-        b.addEventListener('click',()=>{pendingChoices=[];execute(()=>Story.choose(state,choice.id));});$('choices').append(b);
+        b.addEventListener('click',()=>{speech?.speak(null);pendingChoices=[];execute(()=>Story.choose(state,choice.id));});$('choices').append(b);
       }
       $('nextLine').hidden=true;
     } else $('nextLine').hidden=false;
@@ -153,7 +163,7 @@
     if($('conversation').hidden || pendingChoices.length && !lines.length)return;
     if(lines.length)showNextLine();else{dismissDialog();if(state.finished)showEnding();}
   }
-  function dismissDialog() {lines=[];pendingChoices=[];$('conversation').hidden=true;}
+  function dismissDialog() {speech?.speak(null);lines=[];pendingChoices=[];$('conversation').hidden=true;}
   function showEnding() {
     dismissDialog();$('ending').hidden=false;
     const finale=normalLines(Story.outro);
@@ -164,6 +174,7 @@
   function setVerb(next) { if(!active || state.finished)return;selected=null;verb=verb===next?null:next;dismissDialog();refresh(); }
   function toggleReveal() {shownHotspots=!shownHotspots;$('hotspots').classList.toggle('reveal',shownHotspots);$('revealBtn').setAttribute('aria-pressed',String(shownHotspots));}
   function openModal(title,kicker='FLÜSTERTIDE') {
+    speech?.stop();
     focusBeforeModal=document.activeElement;$('modalTitle').textContent=title;$('modalKicker').textContent=kicker;$('modalContent').replaceChildren();$('modalBackdrop').hidden=false;$('closeModal').focus();return $('modalContent');
   }
   function closeModal() {$('modalBackdrop').hidden=true;focusBeforeModal?.focus();}
@@ -204,18 +215,34 @@
     paragraph(content,'Klicke Figuren an, um zu reden, und Ausgänge, um weiterzugehen. Für Gegenstände wählst du unten eine Aktion. Klicke neben eine Figur, um Motte laufen zu lassen.');
     paragraph(content,'Ein Gegenstand in deinen Taschen wird durch Anklicken ausgewählt. Klicke dann auf ein Ziel in der Szene — oder auf einen zweiten Gegenstand, um beide zu kombinieren. „Ansehen“ erklärt auch Inventargegenstände.');
     paragraph(content,'Dein Fortschritt wird automatisch in diesem Browser gespeichert. Karte, Logbuch und gestufte Hinweise helfen dir weiter. Es gibt keine Zeitlimits, Tode oder verlorenen Chancen.');
+    paragraph(content,speech?.getStatus().hasRecordings?'Die Dialoge werden mit ElevenLabs-Stimmen vorgelesen. „Sprache“ schaltet sie unabhängig von der Musik um; ↻ liest die aktuelle Zeile erneut vor. Mit Enter liest du in deinem eigenen Tempo weiter.':'Sprachaufnahmen sind derzeit nicht verfügbar. Mit Enter liest du die Dialoge in deinem eigenen Tempo weiter.');
     [['Aktionen wählen','1 · 2 · 3 · 4'],['Karte / Logbuch / Hinweis','M · J · H'],['Anklickbare Stellen zeigen','Leertaste'],['Dialog weiter','Enter'],['Auswahl / Fenster schließen','Esc']].forEach(([l,r])=>{const row=document.createElement('div');row.className='help-row';const left=document.createElement('span'),right=document.createElement('span');left.textContent=l;right.textContent=r;row.append(left,right);content.append(row);});
   }
   function openSettings() {
     const content=openModal('Unter Deck','DEIN ABENTEUER');
-    paragraph(content,'Das Spiel läuft vollständig lokal. Musik und Geräusche entstehen im Browser. Deine Reise bleibt auf diesem Gerät; einen Spielstand kannst du als Datei mitnehmen.');
+    paragraph(content,'Ein eigener Chiptune-Soundtrack begleitet deine Reise und wechselt mit dem Schauplatz. Deine Reise bleibt auf diesem Gerät; einen Spielstand kannst du als Datei mitnehmen.');
+    paragraph(content,speech?.getStatus().hasRecordings?'Die Sprachausgabe nutzt mitgelieferte ElevenLabs-Aufnahmen.':'Sprachaufnahmen sind derzeit nicht verfügbar. Die Dialoge kannst du weiter lesen.');
     const actions=document.createElement('div');actions.className='settings-actions';content.append(actions);
-    addButton(actions,audio.enabled?'Musik ausschalten':'Musik einschalten',()=>{audio.toggle();openSettings();});
+    if(audio)addButton(actions,audio.getStatus().enabled?'Musik ausschalten':'Musik einschalten',()=>{toggleMusic();openSettings();});
+    if(speech?.getStatus().hasRecordings)addButton(actions,speech.enabled?'Sprache ausschalten':'Sprache einschalten',()=>{speech.toggle();speech.stop();openSettings();});
     addButton(actions,'Spielstand exportieren',exportSave);
     addButton(actions,'Spielstand importieren',importSave);
     addButton(actions,'Neues Abenteuer',()=>{
       const c=openModal('Noch einmal Segel setzen?','NEUES ABENTEUER');paragraph(c,'Der automatische Spielstand wird durch eine neue Reise ersetzt. Du kannst ihn vorher im Menü exportieren.');addButton(c,'Neue Reise beginnen',reset,'primary');addButton(c,'Zurück',openSettings);
     });
+    if(audio){
+      const info=audio.getStatus(), sound=document.createElement('section');sound.className='sound-settings';
+      const track=document.createElement('p');track.className='music-track';
+      const caption=document.createElement('span');caption.textContent='DEIN SOUNDTRACK';
+      const title=document.createElement('b');title.id='musicTrackName';title.textContent=info.title;
+      track.append(caption,title);sound.append(track);
+      const row=document.createElement('div');row.className='music-volume-row';
+      const label=document.createElement('label');label.htmlFor='musicVolume';label.textContent='Musiklautstärke';
+      const output=document.createElement('output');output.id='musicVolumeValue';output.htmlFor='musicVolume';output.textContent=`${Math.round(info.volume*100)} %`;
+      row.append(label,output);sound.append(row);
+      const range=document.createElement('input');range.id='musicVolume';range.type='range';range.min='0';range.max='100';range.step='1';range.value=String(Math.round(info.volume*100));
+      range.addEventListener('input',()=>audio.setVolume(Number(range.value)/100));sound.append(range);content.append(sound);
+    }
   }
   function exportSave() {
     const blob=new Blob([JSON.stringify({version:1,savedAt:new Date().toISOString(),state},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
@@ -229,26 +256,41 @@
     });input.click();
   }
 
-  const audio = {
-    enabled:false, context:null, master:null, timer:null, step:0,
-    async toggle() {
-      if(this.enabled){this.enabled=false;clearInterval(this.timer);this.master.gain.setTargetAtTime(0,this.context.currentTime,.3);}
-      else {try{const Audio=window.AudioContext || window.webkitAudioContext;if(!Audio)return;this.context ||= new Audio();await this.context.resume();if(!this.master){this.master=this.context.createGain();this.master.connect(this.context.destination);this.master.gain.value=0;}this.enabled=true;this.master.gain.setTargetAtTime(.17,this.context.currentTime,.35);this.tick();this.timer=setInterval(()=>this.tick(),320);}catch(error){console.warn('Musik nicht verfügbar',error);}}
-      $('audioBtn').setAttribute('aria-pressed',String(this.enabled));$('audioBtn').querySelector('.button-label').textContent=this.enabled?'Ton an':'Ton aus';$('audioBtn').title=this.enabled?'Musik ausschalten':'Musik einschalten';
-    },
-    note(freq,duration=.45,type='sine',volume=.2,delay=0) {
-      if(!this.enabled)return;const t=this.context.currentTime+delay,o=this.context.createOscillator(),g=this.context.createGain();o.type=type;o.frequency.value=freq;
-      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.018);g.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.025);
-    },
-    tick() {
-      if(document.hidden)return;
-      const notes=[62,69,74,77,76,74,69,65,62,65,69,74,72,69,65,60,62,69,74,81,79,77,76,74,69,72,77,76,74,69,65,62];
-      const m=notes[this.step%notes.length];this.note(440*2**((m-69)/12),.72,'triangle',.19);
-      if(this.step%3===0){const bass=[38,38,41,36][Math.floor(this.step/8)%4];this.note(440*2**((bass-69)/12),1.1,'sine',.19);}
-      if(this.step%6===0)this.note(440*2**((m+12-69)/12),1.2,'sine',.08,.04);this.step++;
-    },
-    effect(kind) {if(kind==='success'){this.note(587,.45,'sine',.3);this.note(740,.45,'sine',.23,.1);this.note(880,.7,'sine',.2,.2);}else this.note(660,.12,'sine',.18);}
-  };
+  function unlockMusic() {
+    const pending=audio?.unlock();
+    if(pending?.catch)pending.catch(()=>syncMusicUI());
+  }
+  function toggleMusic() {
+    if(!audio)return;
+    audio.toggle();
+    if(audio.getStatus().enabled)unlockMusic();
+    syncMusicUI();
+  }
+  function syncMusicUI() {
+    const info=audio?.getStatus(),button=$('audioBtn');
+    if(button){
+      button.disabled=!audio;button.setAttribute('aria-pressed',String(!!info?.enabled));
+      button.querySelector('.button-label').textContent=info?.enabled?'Musik an':'Musik aus';
+      const action=info?.enabled?'Musik ausschalten':'Musik einschalten';
+      button.title=action;button.setAttribute('aria-label',action);
+    }
+    const range=$('musicVolume'),output=$('musicVolumeValue'),track=$('musicTrackName');
+    if(range && info)range.value=String(Math.round(info.volume*100));
+    if(output && info)output.textContent=`${Math.round(info.volume*100)} %`;
+    if(track && info)track.textContent=info.title;
+  }
+  window.addEventListener('fluestertide:music',syncMusicUI);
+  function syncSpeechUI() {
+    const info=speech?.getStatus(), button=$('speechBtn'), repeat=$('repeatLine');
+    if(button){
+      button.disabled=!info?.hasRecordings;button.setAttribute('aria-pressed',String(!!info?.hasRecordings && !!info?.enabled));
+      const label=!info?.hasRecordings?'Sprache':info?.enabled?'Sprache an':'Sprache aus', action=!info?.hasRecordings?'Noch keine Sprachaufnahmen verfügbar':info?.enabled?'Sprache ausschalten':'Sprache einschalten';
+      button.querySelector('.button-label').textContent=label;button.title=action;button.setAttribute('aria-label',action);
+    }
+    if(repeat){repeat.hidden=!info?.available || !info.enabled || $('conversation').hidden;repeat.disabled=!info?.available || !info.enabled;}
+    audio?.duck(!!info?.playing);
+  }
+  window.addEventListener('fluestertide:speech',syncSpeechUI);
   function animate(t) {
     requestAnimationFrame(animate);if(document.hidden || t-lastFrame<33)return;
     const dt=Math.min(.08,(t-lastFrame)/1000);lastFrame=t;
@@ -261,7 +303,9 @@
   document.querySelectorAll('[data-verb]').forEach(b=>b.addEventListener('click',()=>setVerb(b.dataset.verb)));
   $('startBtn').addEventListener('click',()=>{if(stored){const c=openModal('Eine frische Brise?','NEUE REISE');paragraph(c,'Es gibt bereits einen gespeicherten Fortschritt. Eine neue Reise ersetzt diesen Spielstand.');addButton(c,'Neu beginnen',reset,'primary');addButton(c,'Reise fortsetzen',()=>{closeModal();start(true);});}else start(false);});
   $('continueBtn').addEventListener('click',()=>start(true));$('continueBtn').hidden=!stored;
-  $('mapBtn').addEventListener('click',openMap);$('journalBtn').addEventListener('click',openJournal);$('hintBtn').addEventListener('click',openHint);$('menuBtn').addEventListener('click',openSettings);$('helpBtn').addEventListener('click',openHelp);$('audioBtn').addEventListener('click',()=>audio.toggle());$('revealBtn').addEventListener('click',toggleReveal);$('nextLine').addEventListener('click',advanceDialog);$('closeModal').addEventListener('click',closeModal);$('endingJournal').addEventListener('click',openJournal);$('replayBtn').addEventListener('click',()=>{const c=openModal('Noch eine Runde?','NEUES ABENTEUER');paragraph(c,'Die abgeschlossene Reise wird durch einen neuen Spielstand ersetzt.');addButton(c,'Segel setzen',reset,'primary');addButton(c,'Zurück',closeModal);});
+  $('speechBtn')?.addEventListener('click',()=>{speech?.toggle();syncSpeechUI();});
+  $('repeatLine')?.addEventListener('click',()=>speech?.repeat());
+  $('mapBtn').addEventListener('click',openMap);$('journalBtn').addEventListener('click',openJournal);$('hintBtn').addEventListener('click',openHint);$('menuBtn').addEventListener('click',openSettings);$('helpBtn').addEventListener('click',openHelp);$('audioBtn').addEventListener('click',toggleMusic);$('revealBtn').addEventListener('click',toggleReveal);$('nextLine').addEventListener('click',advanceDialog);$('closeModal').addEventListener('click',closeModal);$('endingJournal').addEventListener('click',openJournal);$('replayBtn').addEventListener('click',()=>{const c=openModal('Noch eine Runde?','NEUES ABENTEUER');paragraph(c,'Die abgeschlossene Reise wird durch einen neuen Spielstand ersetzt.');addButton(c,'Segel setzen',reset,'primary');addButton(c,'Zurück',closeModal);});
   $('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal();});
   $('hotspots').addEventListener('click',e=>{
     if(e.target!==$('hotspots') || !active || state.finished)return;
@@ -276,7 +320,7 @@
       return;
     }
     const key=e.key.toLowerCase();
-    if(key==='enter' && !$('conversation').hidden && !e.target.closest('[data-choice]')){
+    if(key==='enter' && !$('conversation').hidden && !e.target.closest('[data-choice],#repeatLine,#speechBtn,#audioBtn')){
       e.preventDefault();advanceDialog();return;
     }
     if(key===' ' && active && e.target.closest('.hotspot')){
@@ -291,7 +335,7 @@
   window.addEventListener('beforeunload',save);
   window.Fluestertide = {
     getState:()=>JSON.parse(JSON.stringify(state)),start:()=>start(false),resume:()=>start(true),
-    perform:(v,id,item)=>execute(()=>Story.perform(state,v,id,item)),choose:id=>execute(()=>Story.choose(state,id)),combine:(a,b)=>execute(()=>Story.combine(state,a,b)),version:'1.0.0'
+    perform:(v,id,item)=>execute(()=>Story.perform(state,v,id,item)),choose:id=>execute(()=>Story.choose(state,id)),combine:(a,b)=>execute(()=>Story.combine(state,a,b)),version:'1.1.0'
   };
-  document.querySelector('.game-shell').classList.add('inactive');refresh();requestAnimationFrame(animate);
+  document.querySelector('.game-shell').classList.add('inactive');refresh();syncSpeechUI();syncMusicUI();requestAnimationFrame(animate);
 })();

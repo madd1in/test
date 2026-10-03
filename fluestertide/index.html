@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2307151e'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%23e7bd70' stroke-width='2'/%3E%3Cpath d='M32 12 41 41 12 32Z' fill='%23e7bd70'/%3E%3C/svg%3E">
   <meta name="description" content="Ein vollständiges, eigenständiges Piraten-Point-and-Click-Abenteuer. Sieben Schauplätze, schräge Dialoge und ein Meer voller Geheimnisse.">
   <title>Flüstertide — Ein Piratenabenteuer</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.1.0">
 </head>
 <body>
 <main class="app">
@@ -17,7 +17,8 @@
       <button id="mapBtn" title="Karte · M"><span aria-hidden="true">⌁</span><span class="button-label">Karte</span></button>
       <button id="journalBtn" title="Logbuch · J"><span aria-hidden="true">▤</span><span class="button-label">Logbuch</span></button>
       <button id="hintBtn" title="Hinweis · H"><span aria-hidden="true">✧</span><span class="button-label">Hinweis</span></button>
-      <button id="audioBtn" aria-pressed="false" title="Musik einschalten"><span aria-hidden="true">♪</span><span class="button-label">Ton aus</span></button>
+      <button id="audioBtn" aria-pressed="true" aria-label="Musik ausschalten" title="Musik ausschalten"><span aria-hidden="true">♪</span><span class="button-label">Musik an</span></button>
+      <button id="speechBtn" aria-pressed="true" aria-label="Sprache ausschalten" title="Sprache ausschalten"><span aria-hidden="true">◖))</span><span class="button-label">Sprache an</span></button>
       <button id="menuBtn" aria-label="Einstellungen" title="Einstellungen">☰</button>
     </nav>
   </header>
@@ -32,7 +33,7 @@
       <button class="reveal-btn" id="revealBtn" aria-pressed="false" title="Alle anklickbaren Stellen zeigen · Leertaste">⌖ <span>Hotspots</span></button>
       <div id="conversation" class="conversation" hidden aria-live="polite">
         <div class="speaker-avatar" id="speakerAvatar" aria-hidden="true">M</div>
-        <div class="dialog-body"><span class="speaker-name" id="speakerName"></span><p id="dialogText"></p><div id="choices" class="choices"></div></div>
+        <div class="dialog-body"><div class="speaker-heading"><span class="speaker-name" id="speakerName"></span><button id="repeatLine" class="repeat-line" aria-label="Dialog erneut vorlesen" title="Dialog erneut vorlesen" hidden>↻</button></div><p id="dialogText"></p><div id="choices" class="choices"></div></div>
         <button id="nextLine" class="next-line" title="Weiter · Enter" aria-label="Dialog weiter">➜</button>
       </div>
       <div id="titleScreen" class="title-screen">
@@ -52,6 +53,6 @@
 <div id="modalBackdrop" class="modal-backdrop" hidden>
   <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button id="closeModal" class="close-modal" aria-label="Schließen">×</button><span id="modalKicker" class="eyebrow">FLÜSTERTIDE</span><h2 id="modalTitle"></h2><div id="modalContent"></div></section>
 </div>
-<script src="story.js"></script><script src="art.js"></script><script src="game.js"></script>
+<script src="story.js?v=1.1.0"></script><script src="art.js?v=1.1.0"></script><script src="voice-map.js?v=1.1.0"></script><script src="voice.js?v=1.1.0"></script><script src="music.js?v=1.1.0"></script><script src="game.js?v=1.1.0"></script>
 </body>
 </html>
