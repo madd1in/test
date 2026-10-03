@@ -19,6 +19,9 @@
   let shownHotspots = false, lines = [], pendingChoices = [], hintTier = 0, hintObjective = '';
   let focusBeforeModal = null, lastScene = state.scene, lastFrame = 0, saveAvailable = false;
   let exploring = false, recentItems = new Set(), toastTimer = null, bannerTimer = null, freshTimer = null, stepAt = 0, dialogTotal = 0, dialogIndex = 0;
+  const INPUT_PREF_KEY='fluestertide.controls.v1',touchMedia=matchMedia('(max-width:700px), (pointer:coarse)');
+  let controls=null,inputStatus={mode:'pointer',connected:false},touchPreference='auto';
+  try{const preference=JSON.parse(localStorage.getItem(INPUT_PREF_KEY));if(['auto','on','off'].includes(preference?.touch))touchPreference=preference.touch;}catch{}
   let hero = { x: 870, y: 815, target: 870, facing: 1 };
   let stored = readSave();
   const verbLabels = { look:'Ansehen', talk:'Reden mit', take:'Nehmen', use:'Benutzen', walk:'Gehen zu' };
@@ -76,8 +79,9 @@
     $('itemCount').textContent=state.inventory.length;
     if($('albumCount'))$('albumCount').textContent=`Flaschenpost · ${Extras?.progress(state).count || 0}/7`;
     if (selected && !state.inventory.includes(selected)) selected=null;
-    renderHotspots(); renderInventory(); updateActionText();
+    renderHotspots(); renderInventory(); updateActionText();updateTouchControls();
     document.querySelectorAll('[data-verb]').forEach(b=>{ const isActive = b.dataset.verb===verb; b.classList.toggle('active',isActive);b.setAttribute('aria-pressed',String(isActive)); });
+    controls?.refresh();
   }
   function updateActionText(target=null) {
     if (!active) return;
@@ -87,15 +91,19 @@
     $('inventoryTip').textContent = selected ? 'Zweiten Gegenstand wählen = kombinieren.' : 'Gegenstände lassen sich kombinieren.';
   }
   function defaultVerb(h) { return h.kind==='postcard' ? 'take' : h.kind==='exit' ? 'walk' : h.kind==='npc' ? 'talk' : 'look'; }
+  function sceneHotspots(){
+    if(!active || state.finished&&!exploring)return [];
+    const hotspots=[...(typeof Story.availableHotspots==='function'?Story.availableHotspots(state):Story.scenes[state.scene].hotspots)];
+    const letter=Extras?.hotspot(state);if(letter)hotspots.push(letter);return hotspots;
+  }
   function renderHotspots() {
     $('hotspots').replaceChildren();
     if (!active || state.finished && !exploring) return;
-    const hs = [...(typeof Story.availableHotspots==='function' ? Story.availableHotspots(state) : Story.scenes[state.scene].hotspots)];
-    const letter=Extras?.hotspot(state);if(letter)hs.push(letter);
+    const hs = sceneHotspots();
     for (const h of hs) {
       const button=document.createElement('button');button.className='hotspot';button.dataset.target=h.id;
       if(h.kind==='postcard')button.classList.add('postcard-hotspot');
-      button.style.cssText=`left:${h.x}%;top:${h.y}%;width:${h.w}%;height:${h.h}%;`;
+      button.style.cssText=`left:${h.x+h.w/2}%;top:${h.y+h.h/2}%;width:${h.w}%;height:${h.h}%;transform:translate(-50%,-50%);`;
       button.setAttribute('aria-label',h.name);button.title=h.name;
       const marker=document.createElement('i');marker.className='marker';marker.setAttribute('aria-hidden','true');button.append(marker);
       const label=document.createElement('span');label.className='sr-only';label.textContent=h.name;button.append(label);
@@ -154,14 +162,18 @@
       if(typeof Art.drawItem==='function') { try { Art.drawItem(ic,id,80); } catch { drawFallbackItem(ic,item); } }
       else drawFallbackItem(ic,item);
       const label=document.createElement('span');label.textContent=item.name;b.append(c,label);
-      b.addEventListener('click',()=>{
-        if (verb==='look') { present({lines:[{speaker:'Motte',text:item.description || item.name}]});return; }
-        if(selected && selected!==id) { const first=selected;selected=null;execute(()=>Story.combine(state,first,id),{verb:'combine'}); }
-        else { selected=selected===id?null:id;verb=null;dismissDialog();refresh();audio?.effect('click'); }
-      });
+      b.addEventListener('click',()=>selectInventoryItem(id));
       b.addEventListener('dblclick',()=>{selected=null;refresh();present({lines:[{speaker:'Motte',text:item.description || item.name}]});});
       container.append(b);
     }
+  }
+  function selectInventoryItem(id,fromPocket=false){
+    if(!active || state.finished&&!exploring || !state.inventory.includes(id))return;
+    const item=Story.items[id];
+    if(!fromPocket && verb==='look'){present({lines:[{speaker:'Motte',text:item.description || item.name}]});return;}
+    if(fromPocket)closeModal();
+    if(selected && selected!==id){const first=selected;selected=null;execute(()=>Story.combine(state,first,id),{verb:'combine'});}
+    else{selected=selected===id?null:id;verb=null;dismissDialog();refresh();if(selected)focusSceneTarget();audio?.effect('click');if(fromPocket&&selected)showToast(`${item.name} ausgewählt · Wähle ein Ziel oder einen zweiten Gegenstand.`);}
   }
   function drawFallbackItem(context,item) { context.fillStyle='#e7bd70';context.font='38px Georgia';context.textAlign='center';context.fillText(item.icon || '✦',40,52); }
   function present(result) {
@@ -189,29 +201,124 @@
       }
       $('nextLine').hidden=true;
     } else $('nextLine').hidden=false;
+    updateTouchControls();controls?.refresh();
   }
   function advanceDialog() {
     if($('conversation').hidden || pendingChoices.length && !lines.length)return;
     if(lines.length)showNextLine();else{dismissDialog();if(state.finished&&!exploring)showEnding();}
   }
-  function dismissDialog() {speech?.speak(null);lines=[];pendingChoices=[];$('conversation').hidden=true;}
+  function dismissDialog() {speech?.speak(null);lines=[];pendingChoices=[];$('conversation').hidden=true;updateTouchControls();controls?.refresh();}
   function showEnding() {
     exploring=false;state.flags.exploreAfterFinale=false;audio?.setScene('finale');
     dismissDialog();$('ending').hidden=false;
     const finale=normalLines(Story.outro);
     const narrative=finale.filter(l=>l.speaker==='Erzählung');
     $('endingText').textContent=finale.length ? (narrative.length?narrative:finale).map(l=>l.text).join(' ') : 'Krummwasser singt wieder. Der Wind ist zurück. Und Motte Morrow hat endlich eine Geschichte, die ihr niemand glauben wird.';
-    renderHotspots();save();
+    renderHotspots();save();updateTouchControls();controls?.refresh();
   }
-  function setVerb(next) { if(!active || state.finished&&!exploring)return;selected=null;verb=verb===next?null:next;dismissDialog();refresh(); }
+  function setVerb(next) { if(!active || state.finished&&!exploring)return;const targetId=document.activeElement?.dataset.target;selected=null;verb=verb===next?null:next;dismissDialog();refresh();focusSceneTarget(targetId); }
   function toggleReveal() {shownHotspots=!shownHotspots;$('hotspots').classList.toggle('reveal',shownHotspots);$('revealBtn').setAttribute('aria-pressed',String(shownHotspots));}
   function openModal(title,kicker='FLÜSTERTIDE') {
     speech?.stop();
-    if($('modalBackdrop').hidden)focusBeforeModal=document.activeElement;$('modalTitle').textContent=title;$('modalKicker').textContent=kicker;$('modalContent').replaceChildren();$('modalBackdrop').hidden=false;$('closeModal').focus();return $('modalContent');
+    if($('modalBackdrop').hidden)focusBeforeModal=document.activeElement;$('modalTitle').textContent=title;$('modalKicker').textContent=kicker;$('modalContent').replaceChildren();$('modalBackdrop').hidden=false;$('closeModal').focus();controls?.refresh();return $('modalContent');
   }
-  function closeModal() {$('modalBackdrop').hidden=true;(focusBeforeModal?.isConnected?focusBeforeModal:active?$('stage'):$('startBtn')).focus({preventScroll:true});}
+  function closeModal() {$('modalBackdrop').hidden=true;(focusBeforeModal?.isConnected?focusBeforeModal:active?$('stage'):$('startBtn')).focus({preventScroll:true});controls?.refresh();}
   function paragraph(parent,text,className) {const p=document.createElement('p');p.textContent=text;if(className)p.className=className;parent.append(p);return p;}
   function addButton(parent,text,action,cls='secondary') {const b=document.createElement('button');b.textContent=text;b.className=cls;b.addEventListener('click',action);parent.append(b);return b;}
+  function updateTouchControls(){
+    const enabled=touchPreference==='on'||touchPreference==='auto'&&touchMedia.matches;
+    document.body.classList.toggle('touch-mode',enabled);
+    if($('touchControls'))$('touchControls').hidden=!enabled||!active||state.finished&&!exploring;
+    if($('touchSelection'))$('touchSelection').textContent=selected?`${Story.items[selected].name} → Ziel wählen`:verb?`${verbLabels[verb]} → Ziel wählen`:'Tippe ein Ziel an oder öffne die Liste.';
+    const next=$('touchNextBtn');if(next){next.disabled=$('conversation').hidden;next.textContent=pendingChoices.length&&!lines.length?'Antwort':'Weiter';next.setAttribute('aria-label',pendingChoices.length&&!lines.length?'Dialogantwort auswählen':'Dialog weiter');}
+  }
+  function focusDialogue(){
+    if($('conversation').hidden)return;
+    if(pendingChoices.length&&!lines.length){$('choices').querySelector('button')?.focus();$('conversation').scrollIntoView({block:'nearest'});}
+    else advanceDialog();
+  }
+  function openTargets(){
+    const content=openModal('Was hast du vor?','ZIELE IN '+Story.scenes[state.scene].name.toUpperCase());
+    if(!active || state.finished&&!exploring){paragraph(content,'Setze die Segel oder erkunde nach dem Finale die Insel weiter.');return;}
+    paragraph(content,selected?`Benutzen: ${Story.items[selected].name}. Wähle das Ziel.`:'Wähle eine Aktion und dann ein Ziel. Ohne ausgewählte Aktion werden Figuren angesprochen und Ausgänge betreten.','target-instruction');
+    const actions=document.createElement('div');actions.className='touch-verb-picker';actions.setAttribute('role','group');actions.setAttribute('aria-label','Aktion für ein Ziel');
+    for(const id of ['look','talk','take','use']){const button=addButton(actions,verbLabels[id],()=>{if(id==='use'&&selected)verb=null;else{selected=null;verb=id;}dismissDialog();refresh();openTargets();},'touch-verb');button.dataset.touchVerb=id;button.setAttribute('aria-pressed',String(verb===id&&!selected||id==='use'&&!!selected));}
+    const automatic=addButton(actions,'Automatisch',()=>{selected=null;verb=null;dismissDialog();refresh();openTargets();},'touch-verb');automatic.dataset.touchVerb='auto';automatic.setAttribute('aria-pressed',String(!verb&&!selected));
+    content.append(actions);
+    const list=document.createElement('div');list.className='target-list';
+    for(const h of sceneHotspots()){
+      const button=document.createElement('button');button.className='target-row';button.dataset.touchTarget=h.id;
+      const icon=document.createElement('span');icon.className='target-icon';icon.setAttribute('aria-hidden','true');icon.textContent=h.kind==='exit'?'↗':h.kind==='npc'?'☷':h.kind==='postcard'?'♧':'◉';
+      const copy=document.createElement('span'),name=document.createElement('b'),action=document.createElement('small');name.textContent=h.name;action.textContent=selected?`${Story.items[selected].name} benutzen`:verbLabels[verb||defaultVerb(h)];copy.append(name,action);button.append(icon,copy);
+      button.addEventListener('click',()=>{closeModal();interact(h);});list.append(button);
+    }
+    content.append(list);addButton(content,'Tasche öffnen',openPocket);controls?.refresh();
+  }
+  function openPocket(){
+    const content=openModal('Deine Taschen','WÄHLEN, ANSEHEN ODER KOMBINIEREN');
+    if(!active || state.finished&&!exploring){paragraph(content,'Deine Taschen warten auf das nächste Abenteuer.');return;}
+    paragraph(content,selected?`${Story.items[selected].name} ist ausgewählt. Wähle einen zweiten Gegenstand zum Kombinieren oder ein Ziel in der Szene.`:'Wähle einen Gegenstand und danach ein Ziel. Für eine Kombination öffnest du die Tasche erneut und wählst einen zweiten Gegenstand.');
+    if(!state.inventory.length){paragraph(content,'Noch nichts außer großen Plänen.');addButton(content,'Ziele in der Szene',openTargets);return;}
+    const grid=document.createElement('div');grid.className='pocket-grid';
+    for(const id of state.inventory){
+      const item=Story.items[id],row=document.createElement('div');row.className='pocket-card';
+      const button=document.createElement('button');button.className='pocket-item';button.dataset.pocketItem=id;button.setAttribute('aria-pressed',String(selected===id));
+      const picture=document.createElement('canvas');picture.width=80;picture.height=80;picture.setAttribute('aria-hidden','true');Art.drawItem(picture.getContext('2d'),id,80);
+      const name=document.createElement('b');name.textContent=item.name;button.append(picture,name);button.addEventListener('click',()=>selectInventoryItem(id,true));row.append(button);
+      const info=addButton(row,'Ansehen',()=>openItemInfo(id),'item-info');info.dataset.itemInfo=id;info.setAttribute('aria-label',`${item.name} ansehen`);grid.append(row);
+    }
+    content.append(grid);addButton(content,'Ziele in der Szene',openTargets);controls?.refresh();
+  }
+  function openItemInfo(id){
+    const item=Story.items[id];if(!item)return;
+    const content=openModal(item.name,'GEGENSTAND ANSEHEN');paragraph(content,item.description||item.name);
+    addButton(content,'Zum Benutzen auswählen',()=>{selected=null;selectInventoryItem(id,true);},'primary');addButton(content,'Zurück zur Tasche',openPocket);
+  }
+  function cancelInput(){
+    if(!$('modalBackdrop').hidden){closeModal();return;}
+    if(!$('conversation').hidden){dismissDialog();refresh();if(state.finished&&!exploring)showEnding();return;}
+    selected=null;verb=null;refresh();if(state.finished&&!exploring)showEnding();
+  }
+  function focusSceneTarget(targetId){
+    if(!['gamepad','keyboard'].includes(inputStatus.mode) || !active || !$('modalBackdrop').hidden || !$('conversation').hidden)return;
+    const targets=[...$('hotspots').querySelectorAll('.hotspot')],target=targets.find(element=>element.dataset.target===targetId)||targets[0];
+    target?.focus({preventScroll:true});controls?.refresh();
+  }
+  function cycleInventory(delta){
+    if(!active || state.finished&&!exploring || !state.inventory.length || !$('modalBackdrop').hidden)return;
+    const targetId=document.activeElement?.dataset.target;
+    const index=state.inventory.indexOf(selected),length=state.inventory.length;
+    const next=index<0?(delta<0?length-1:0):(index+delta+length)%length;selected=state.inventory[next];
+    verb=null;dismissDialog();refresh();focusSceneTarget(targetId);showToast(`${Story.items[selected].name} ausgewählt`);
+  }
+  function cycleVerb(delta){
+    if(!active || state.finished&&!exploring || !$('modalBackdrop').hidden)return;
+    const verbs=['look','talk','take','use'],index=verbs.indexOf(verb);
+    setVerb(verbs[index<0?(delta<0?verbs.length-1:0):(index+delta+verbs.length)%verbs.length]);
+  }
+  function inputScope(){
+    if(!$('modalBackdrop').hidden)return document.querySelector('.modal');
+    if(!$('titleScreen').hidden)return $('titleScreen');
+    if(!$('ending').hidden)return $('ending');
+    if(!$('conversation').hidden)return $('conversation');
+    return document.querySelector('.app');
+  }
+  function preferredInputFocus(scope,candidates){
+    const selector=scope===$('titleScreen')?(stored?'#continueBtn':'#startBtn'):scope===$('ending')?'#endingExplore':scope===$('conversation')?'[data-choice],#nextLine:not([hidden])':scope.classList.contains('modal')?'.primary,.map-card:not(:disabled),.target-row,.pocket-item':'.hotspot';
+    return candidates.find(element=>element.matches(selector))||candidates[0];
+  }
+  function onInputStatus(info){
+    inputStatus=info;document.body.classList.toggle('controller-mode',info.mode==='gamepad'&&info.supported);document.body.classList.toggle('focus-controls',info.mode==='gamepad'||info.mode==='keyboard');
+    const hints=$('controllerHints');if(hints){hints.hidden=!info.connected;hints.textContent=info.supported?'Stick / Steuerkreuz: Ziel · A: Aktion · B: Zurück · X: Karte · Y: Tasche · LB/RB: Gegenstand · LT/RT: Aktion · ☰: Menü':'Controller erkannt. Dieses Tastenlayout wird nicht unterstützt. Maus, Touch oder Tastatur funktionieren weiter.';}
+  }
+  function openControlsHelp(){
+    const content=openModal('Mit Daumen und Steuerkreuz','DEINE STEUERUNG');
+    paragraph(content,'Mobil: „Ziele“ zeigt große Tasten für alle Figuren, Dinge und Ausgänge. Wähle eine Aktion und dann ein Ziel. „Tasche“ wählt Gegenstände, zeigt Beschreibungen und kombiniert zwei Dinge. „Weiter“ führt den Dialog fort.');
+    [['Ziel auswählen','Stick / Steuerkreuz'],['Aktion / Dialog weiter','A'],['Fenster oder Auswahl schließen','B'],['Karte / Tasche','X / Y'],['Gegenstand wählen','LB / RB'],['Ansehen / Reden / Nehmen / Benutzen','LT / RT'],['Einstellungen','Menü-Taste'],['Lange Fenster scrollen','Rechter Stick']].forEach(([left,right])=>{const row=document.createElement('div');row.className='help-row';const label=document.createElement('span'),key=document.createElement('span');label.textContent=left;key.textContent=right;row.append(label,key);content.append(row);});
+    paragraph(content,'Xbox Edge: Seite öffnen, Menü-Taste gedrückt halten und „Spielsteuerung verwenden“ / „Use game controls“ wählen, wenn der Controller noch den Browser steuert. Danach eine Taste drücken. Die Seite muss im Vordergrund sein.');
+    paragraph(content,inputStatus.connected?(inputStatus.supported?'Controller erkannt und bereit.':'Controller erkannt, aber das Tastenlayout ist unbekannt.'):'Noch kein Controller erkannt. Drücke eine Taste am verbundenen Controller.');
+    paragraph(content,'Tastatur: Pfeiltasten wählen das Ziel, Enter bestätigt und Escape geht zurück. Falls der Browser den Ton zunächst blockiert, bestätige einmal eine Schaltfläche mit dem Browser-Zeiger oder per Touch.');
+  }
   function showToast(text) {
     const toast=$('rewardToast');if(!toast)return;
     clearTimeout(toastTimer);toast.textContent=text;toast.hidden=false;
@@ -303,6 +410,7 @@
     paragraph(content,'Ein Gegenstand in deinen Taschen wird durch Anklicken ausgewählt. Klicke dann auf ein Ziel in der Szene — oder auf einen zweiten Gegenstand, um beide zu kombinieren. „Ansehen“ erklärt auch Inventargegenstände.');
     paragraph(content,'Dein Fortschritt wird automatisch in diesem Browser gespeichert. Karte, Logbuch und gestufte Hinweise helfen dir weiter. Es gibt keine Zeitlimits, Tode oder verlorenen Chancen.');
     paragraph(content,'In jedem Schauplatz versteckt sich eine Flaschenpost. Sammle alle sieben für Mottes Bonusbrief. Das Album öffnest du unten oder mit A. Nach dem Finale kannst du die gerettete Insel weiter erkunden.');
+    addButton(content,'Touch- und Controller-Steuerung',openControlsHelp);
     paragraph(content,speech?.getStatus().hasRecordings?'Die Dialoge werden mit ElevenLabs-Stimmen vorgelesen. „Sprache“ schaltet sie unabhängig von der Musik um; ↻ liest die aktuelle Zeile erneut vor. Mit Enter liest du in deinem eigenen Tempo weiter.':'Sprachaufnahmen sind derzeit nicht verfügbar. Mit Enter liest du die Dialoge in deinem eigenen Tempo weiter.');
     [['Aktionen wählen','1 · 2 · 3 · 4'],['Karte / Logbuch / Hinweis','M · J · H'],['Flaschenpost-Album','A'],['Anklickbare Stellen zeigen','Leertaste'],['Dialog weiter','Enter'],['Auswahl / Fenster schließen','Esc']].forEach(([l,r])=>{const row=document.createElement('div');row.className='help-row';const left=document.createElement('span'),right=document.createElement('span');left.textContent=l;right.textContent=r;row.append(left,right);content.append(row);});
   }
@@ -315,6 +423,9 @@
     if(speech?.getStatus().hasRecordings)addButton(actions,speech.enabled?'Sprache ausschalten':'Sprache einschalten',()=>{speech.toggle();speech.stop();openSettings();});
     if(audio?.setSoundEnabled)addButton(actions,audio.getStatus().soundEnabled?'Geräusche ausschalten':'Geräusche einschalten',()=>{audio.setSoundEnabled(!audio.getStatus().soundEnabled);if(audio.getStatus().soundEnabled)unlockMusic();openSettings();});
     if(state.finished && exploring)addButton(actions,'Finale ansehen',()=>{closeModal();showEnding();});
+    addButton(actions,'Touch- und Controller-Steuerung',openControlsHelp);
+    const touchLabels={auto:'automatisch',on:'an',off:'aus'};
+    addButton(actions,`Touch-Leiste: ${touchLabels[touchPreference]}`,()=>{touchPreference=['auto','on','off'][(['auto','on','off'].indexOf(touchPreference)+1)%3];try{localStorage.setItem(INPUT_PREF_KEY,JSON.stringify({touch:touchPreference}));}catch{}updateTouchControls();openSettings();});
     addButton(actions,'Spielstand exportieren',exportSave);
     addButton(actions,'Spielstand importieren',importSave);
     addButton(actions,'Neues Abenteuer',()=>{
@@ -406,6 +517,9 @@
   $('speechBtn')?.addEventListener('click',()=>{speech?.toggle();syncSpeechUI();});
   $('repeatLine')?.addEventListener('click',()=>speech?.repeat());
   $('albumBtn')?.addEventListener('click',openAlbum);$('endingExplore')?.addEventListener('click',exploreIsland);
+  $('touchTargetsBtn')?.addEventListener('click',openTargets);$('touchInventoryBtn')?.addEventListener('click',openPocket);$('touchMapBtn')?.addEventListener('click',openMap);$('touchNextBtn')?.addEventListener('click',focusDialogue);$('touchMenuBtn')?.addEventListener('click',openSettings);
+  touchMedia.addEventListener('change',updateTouchControls);
+  document.addEventListener('pointerdown',()=>{if(active)unlockMusic();},{passive:true});
   $('mapBtn').addEventListener('click',openMap);$('journalBtn').addEventListener('click',openJournal);$('hintBtn').addEventListener('click',openHint);$('menuBtn').addEventListener('click',openSettings);$('helpBtn').addEventListener('click',openHelp);$('audioBtn').addEventListener('click',toggleMusic);$('revealBtn').addEventListener('click',toggleReveal);$('nextLine').addEventListener('click',advanceDialog);$('closeModal').addEventListener('click',closeModal);$('endingJournal').addEventListener('click',openJournal);$('replayBtn').addEventListener('click',()=>{const c=openModal('Noch eine Runde?','NEUES ABENTEUER');paragraph(c,'Die abgeschlossene Reise wird durch einen neuen Spielstand ersetzt.');addButton(c,'Segel setzen',reset,'primary');addButton(c,'Zurück',closeModal);});
   $('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal();});
   $('hotspots').addEventListener('click',e=>{
@@ -414,7 +528,7 @@
     const bounds=$('stage').getBoundingClientRect();hero.target=Math.max(110,Math.min(1480,(e.clientX-bounds.left)/bounds.width*1600));hero.facing=hero.target>=hero.x?1:-1;selected=null;verb=null;refresh();
   });
   document.addEventListener('keydown',e=>{
-    if(e.ctrlKey || e.metaKey || e.altKey)return;
+    if(e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey)return;
     if(!$('modalBackdrop').hidden){
       if(e.key==='Escape')closeModal();
       if(e.key==='Tab'){const f=[...$('modalBackdrop').querySelectorAll('button:not(:disabled),input,a[href]')];const first=f[0],last=f[f.length-1];if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}}
@@ -437,7 +551,8 @@
   window.addEventListener('beforeunload',save);
   window.Fluestertide = {
     getState:()=>JSON.parse(JSON.stringify(state)),start:()=>start(false),resume:()=>start(true),
-    perform:(v,id,item)=>id?.startsWith('postcard_')?(v==='take'?collectPostcard(id.slice(9)):openLetter(Extras?.byScene[id.slice(9)],false)):execute(()=>Story.perform(state,v,id,item),{verb:v,id}),choose:id=>execute(()=>Story.choose(state,id),{verb:'choice',id}),combine:(a,b)=>execute(()=>Story.combine(state,a,b),{verb:'combine'}),getAlbum:()=>Extras?.progress(state),explore:exploreIsland,version:'1.2.0'
+    perform:(v,id,item)=>id?.startsWith('postcard_')?(v==='take'?collectPostcard(id.slice(9)):openLetter(Extras?.byScene[id.slice(9)],false)):execute(()=>Story.perform(state,v,id,item),{verb:v,id}),choose:id=>execute(()=>Story.choose(state,id),{verb:'choice',id}),combine:(a,b)=>execute(()=>Story.combine(state,a,b),{verb:'combine'}),getAlbum:()=>Extras?.progress(state),explore:exploreIsland,getControlsStatus:()=>controls?.getStatus(),getTouchMode:()=>touchPreference,version:'1.3.0'
   };
+  controls=window.FluestertideControls?.initialize({getScope:inputScope,preferredFocus:preferredInputFocus,activate:element=>{unlockMusic();element.click();},cancel:cancelInput,openMap,openMenu:openSettings,focusInventory:openPocket,cycleInventory,cycleVerb,onStatus:onInputStatus});
   document.querySelector('.game-shell').classList.add('inactive');refresh();syncSpeechUI();syncMusicUI();requestAnimationFrame(animate);
 })();
