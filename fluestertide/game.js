@@ -3,6 +3,7 @@
   'use strict';
   const Story = window.PirateStory;
   const Art = window.PirateArt;
+  const Extras = window.FluestertideExtras;
   const speech = window.FluestertideSpeech;
   const audio = window.FluestertideMusic;
   audio?.initialize();
@@ -17,6 +18,7 @@
   let state = Story.initialState(), active = false, verb = null, selected = null;
   let shownHotspots = false, lines = [], pendingChoices = [], hintTier = 0, hintObjective = '';
   let focusBeforeModal = null, lastScene = state.scene, lastFrame = 0, saveAvailable = false;
+  let exploring = false, recentItems = new Set(), toastTimer = null, bannerTimer = null, freshTimer = null, stepAt = 0, dialogTotal = 0, dialogIndex = 0;
   let hero = { x: 870, y: 815, target: 870, facing: 1 };
   let stored = readSave();
   const verbLabels = { look:'Ansehen', talk:'Reden mit', take:'Nehmen', use:'Benutzen', walk:'Gehen zu' };
@@ -48,27 +50,31 @@
     unlockMusic();
     speech?.speak(null);
     state = resume && stored ? validateState(stored) : Story.initialState();
+    exploring = !!(state.finished && state.flags.exploreAfterFinale);
     active = true; selected = null; verb = null; lastScene = state.scene;
     hero = {x:850,y:815,target:850,facing:1};
     $('titleScreen').hidden = true; $('ending').hidden = true;
     document.querySelector('.game-shell').classList.remove('inactive');
     $('stage').focus({preventScroll:true});
-    refresh(); save();
-    if (state.finished) showEnding();
+    refresh(); save();showSceneBanner();
+    if (state.finished && !exploring) showEnding();
     else if (!resume) present({lines:Story.intro});
     else present({lines:[{speaker:'Motte',text:'Wo war ich? Ach ja. Eine Insel retten. Ganz normaler Dienstag.'}]});
   }
   function reset() { closeModal(); stored=null; hintTier=0; start(false); }
   function refresh() {
-    audio?.setScene(active ? (state.finished ? 'finale' : state.scene) : 'title');
+    audio?.setWorldState?.(state);
+    audio?.setScene(active ? (state.finished && !exploring ? 'finale' : state.scene) : 'title');
     if (state.scene !== lastScene) {
       speech?.speak(null);
       lastScene = state.scene; hero.x=850; hero.target=850; selected=null;
       $('stage').animate([{opacity:.5},{opacity:1}],{duration:reducedMotion?0:320});
+      showSceneBanner();
     }
     $('sceneName').textContent = Story.scenes[state.scene].name;
     $('chapterLabel').textContent = typeof Story.chapterTitle==='function' ? Story.chapterTitle(state) : `AKT ${state.chapter}`;
     $('itemCount').textContent=state.inventory.length;
+    if($('albumCount'))$('albumCount').textContent=`Flaschenpost · ${Extras?.progress(state).count || 0}/7`;
     if (selected && !state.inventory.includes(selected)) selected=null;
     renderHotspots(); renderInventory(); updateActionText();
     document.querySelectorAll('[data-verb]').forEach(b=>{ const isActive = b.dataset.verb===verb; b.classList.toggle('active',isActive);b.setAttribute('aria-pressed',String(isActive)); });
@@ -80,13 +86,15 @@
     $('actionText').textContent = item ? `${item.name} benutzen${targetName ? ` mit ${targetName}` : ' · Ziel oder zweiten Gegenstand auswählen'}` : targetName ? `${verbLabels[verb || defaultVerb(target)]} ${targetName}` : verb ? `${verbLabels[verb]} · Wähle etwas in der Szene.` : Story.objective(state);
     $('inventoryTip').textContent = selected ? 'Zweiten Gegenstand wählen = kombinieren.' : 'Gegenstände lassen sich kombinieren.';
   }
-  function defaultVerb(h) { return h.kind==='exit' ? 'walk' : h.kind==='npc' ? 'talk' : 'look'; }
+  function defaultVerb(h) { return h.kind==='postcard' ? 'take' : h.kind==='exit' ? 'walk' : h.kind==='npc' ? 'talk' : 'look'; }
   function renderHotspots() {
     $('hotspots').replaceChildren();
-    if (!active || state.finished) return;
-    const hs = typeof Story.availableHotspots==='function' ? Story.availableHotspots(state) : Story.scenes[state.scene].hotspots;
+    if (!active || state.finished && !exploring) return;
+    const hs = [...(typeof Story.availableHotspots==='function' ? Story.availableHotspots(state) : Story.scenes[state.scene].hotspots)];
+    const letter=Extras?.hotspot(state);if(letter)hs.push(letter);
     for (const h of hs) {
       const button=document.createElement('button');button.className='hotspot';button.dataset.target=h.id;
+      if(h.kind==='postcard')button.classList.add('postcard-hotspot');
       button.style.cssText=`left:${h.x}%;top:${h.y}%;width:${h.w}%;height:${h.h}%;`;
       button.setAttribute('aria-label',h.name);button.title=h.name;
       const marker=document.createElement('i');marker.className='marker';marker.setAttribute('aria-hidden','true');button.append(marker);
@@ -104,16 +112,34 @@
   }
   function hideLabel() { $('hoverLabel').style.opacity='0';updateActionText(); }
   function interact(h) {
-    if (!active || state.finished) return;
+    if (!active || state.finished && !exploring) return;
     hideLabel();
     const actualVerb=selected?'use':verb || defaultVerb(h);
     const item=selected;
     hero.target=Math.max(145,Math.min(1470,(h.x+h.w/2)*16));hero.facing=hero.target>=hero.x?1:-1;
     selected=null;
-    execute(()=>Story.perform(state,actualVerb,h.id,item));
+    if(h.kind==='postcard'){
+      if(actualVerb==='take')collectPostcard(h.card.id);
+      else if(actualVerb==='look')openLetter(h.card,false);
+      else{const p=openModal('Eine gut verschlossene Flasche','FLASCHENPOST');paragraph(p,'Die Flaschenpost wartet darauf, mitgenommen zu werden. Wähle „Nehmen“ oder klicke sie ohne ausgewählte Aktion an.');}
+      return;
+    }
+    execute(()=>Story.perform(state,actualVerb,h.id,item),{verb:actualVerb,id:h.id});
   }
-  function execute(fn) {
-    try { const result=fn()||{};refresh();save();audio?.effect(result.changed || state.finished ? 'success':'click');present(result); }
+  function execute(fn,action={}) {
+    try {
+      const previous=state.inventory.slice(),scene=state.scene,finished=state.finished,progressBefore=JSON.stringify([state.flags,state.chapter,state.finished]);
+      const result=fn()||{}, gained=state.inventory.filter(id=>!previous.includes(id));
+      const changed=result.changed || progressBefore!==JSON.stringify([state.flags,state.chapter,state.finished]);
+      recentItems=new Set(gained);refresh();save();
+      if(action.id?.startsWith('tone_'))audio?.playTone?.(action.id.slice(5));
+      else audio?.effect(scene!==state.scene?'travel':gained.length?(action.verb==='combine'?'combine':'pickup'):!finished&&state.finished?'success':changed?'success':['use','combine','take'].includes(action.verb)?'error':'click');
+      if(gained.length){
+        showToast(`Neu in deinen Taschen: ${gained.map(id=>Story.items[id].name).join(', ')}`);
+        clearTimeout(freshTimer);freshTimer=setTimeout(()=>{recentItems.clear();document.querySelectorAll('.inventory-item.fresh').forEach(b=>b.classList.remove('fresh'));},2400);
+      }
+      present(result);
+    }
     catch (error) { console.error(error);present({lines:[{speaker:'Motte',text:'Das hat nicht geklappt. Versuchen wir es mit etwas anderem.'}]}); }
   }
   function renderInventory() {
@@ -121,7 +147,7 @@
     if (!state.inventory.length) { const p=document.createElement('p');p.className='empty-inventory';p.textContent='Noch nichts außer großen Plänen.';container.append(p);return; }
     for (const id of state.inventory) {
       const item=Story.items[id];if(!item)continue;
-      const b=document.createElement('button');b.className='inventory-item';b.dataset.item=id;b.classList.toggle('selected',selected===id);
+      const b=document.createElement('button');b.className='inventory-item';b.dataset.item=id;b.classList.toggle('selected',selected===id);b.classList.toggle('fresh',recentItems.has(id));
       b.setAttribute('aria-label',item.name);b.setAttribute('aria-pressed',String(selected===id));b.title=`${item.name} — ${item.description || 'Zum Benutzen anklicken. Doppelklick zum Ansehen.'}`;
       const c=document.createElement('canvas');c.width=80;c.height=80;c.setAttribute('aria-hidden','true');
       const ic=c.getContext('2d');
@@ -130,7 +156,7 @@
       const label=document.createElement('span');label.textContent=item.name;b.append(c,label);
       b.addEventListener('click',()=>{
         if (verb==='look') { present({lines:[{speaker:'Motte',text:item.description || item.name}]});return; }
-        if(selected && selected!==id) { const first=selected;selected=null;execute(()=>Story.combine(state,first,id)); }
+        if(selected && selected!==id) { const first=selected;selected=null;execute(()=>Story.combine(state,first,id),{verb:'combine'}); }
         else { selected=selected===id?null:id;verb=null;dismissDialog();refresh();audio?.effect('click'); }
       });
       b.addEventListener('dblclick',()=>{selected=null;refresh();present({lines:[{speaker:'Motte',text:item.description || item.name}]});});
@@ -141,48 +167,109 @@
   function present(result) {
     speech?.speak(null);
     lines=normalLines(result.lines);pendingChoices=result.choices || [];
-    if (!lines.length && !pendingChoices.length) {dismissDialog();if(state.finished)showEnding();return;}
+    dialogTotal=lines.length;dialogIndex=0;
+    if (!lines.length && !pendingChoices.length) {dismissDialog();if(state.finished&&!exploring)showEnding();return;}
     $('conversation').hidden=false;showNextLine();
   }
   function showNextLine() {
     speech?.speak(null);
     $('choices').replaceChildren();
     if(lines.length) {
-      const line=lines.shift();$('speakerName').textContent=line.speaker;$('speakerAvatar').textContent=line.speaker.charAt(0);$('dialogText').textContent=line.text;
+      const line=lines.shift();$('speakerName').textContent=line.speaker;$('dialogText').textContent=line.text;
+      dialogIndex++;$('dialogProgress').textContent=dialogTotal>1?`${dialogIndex} / ${dialogTotal}`:'';
+      const portrait=$('speakerAvatar'),pc=portrait.getContext('2d');
+      if(typeof Art.drawPortrait==='function')Art.drawPortrait(pc,line.speaker,portrait.width);
+      else{pc.clearRect(0,0,96,96);pc.fillStyle='#e7bd70';pc.font='48px Georgia';pc.textAlign='center';pc.fillText(line.speaker.charAt(0),48,64);}
       speech?.speak(line);
     }
     if(!lines.length && pendingChoices.length) {
       for(const choice of pendingChoices) {
         const b=document.createElement('button');b.textContent=choice.text;b.dataset.choice=choice.id;
-        b.addEventListener('click',()=>{speech?.speak(null);pendingChoices=[];execute(()=>Story.choose(state,choice.id));});$('choices').append(b);
+        b.addEventListener('click',()=>{speech?.speak(null);pendingChoices=[];execute(()=>Story.choose(state,choice.id),{verb:'choice',id:choice.id});});$('choices').append(b);
       }
       $('nextLine').hidden=true;
     } else $('nextLine').hidden=false;
   }
   function advanceDialog() {
     if($('conversation').hidden || pendingChoices.length && !lines.length)return;
-    if(lines.length)showNextLine();else{dismissDialog();if(state.finished)showEnding();}
+    if(lines.length)showNextLine();else{dismissDialog();if(state.finished&&!exploring)showEnding();}
   }
   function dismissDialog() {speech?.speak(null);lines=[];pendingChoices=[];$('conversation').hidden=true;}
   function showEnding() {
+    exploring=false;state.flags.exploreAfterFinale=false;audio?.setScene('finale');
     dismissDialog();$('ending').hidden=false;
     const finale=normalLines(Story.outro);
     const narrative=finale.filter(l=>l.speaker==='Erzählung');
     $('endingText').textContent=finale.length ? (narrative.length?narrative:finale).map(l=>l.text).join(' ') : 'Krummwasser singt wieder. Der Wind ist zurück. Und Motte Morrow hat endlich eine Geschichte, die ihr niemand glauben wird.';
     renderHotspots();save();
   }
-  function setVerb(next) { if(!active || state.finished)return;selected=null;verb=verb===next?null:next;dismissDialog();refresh(); }
+  function setVerb(next) { if(!active || state.finished&&!exploring)return;selected=null;verb=verb===next?null:next;dismissDialog();refresh(); }
   function toggleReveal() {shownHotspots=!shownHotspots;$('hotspots').classList.toggle('reveal',shownHotspots);$('revealBtn').setAttribute('aria-pressed',String(shownHotspots));}
   function openModal(title,kicker='FLÜSTERTIDE') {
     speech?.stop();
-    focusBeforeModal=document.activeElement;$('modalTitle').textContent=title;$('modalKicker').textContent=kicker;$('modalContent').replaceChildren();$('modalBackdrop').hidden=false;$('closeModal').focus();return $('modalContent');
+    if($('modalBackdrop').hidden)focusBeforeModal=document.activeElement;$('modalTitle').textContent=title;$('modalKicker').textContent=kicker;$('modalContent').replaceChildren();$('modalBackdrop').hidden=false;$('closeModal').focus();return $('modalContent');
   }
-  function closeModal() {$('modalBackdrop').hidden=true;focusBeforeModal?.focus();}
+  function closeModal() {$('modalBackdrop').hidden=true;(focusBeforeModal?.isConnected?focusBeforeModal:active?$('stage'):$('startBtn')).focus({preventScroll:true});}
   function paragraph(parent,text,className) {const p=document.createElement('p');p.textContent=text;if(className)p.className=className;parent.append(p);return p;}
   function addButton(parent,text,action,cls='secondary') {const b=document.createElement('button');b.textContent=text;b.className=cls;b.addEventListener('click',action);parent.append(b);return b;}
+  function showToast(text) {
+    const toast=$('rewardToast');if(!toast)return;
+    clearTimeout(toastTimer);toast.textContent=text;toast.hidden=false;
+    toastTimer=setTimeout(()=>{toast.hidden=true;},2800);
+  }
+  function showSceneBanner() {
+    const banner=$('sceneBanner');if(!banner || !active)return;
+    clearTimeout(bannerTimer);banner.replaceChildren();
+    const name=document.createElement('b'),subtitle=document.createElement('span');
+    name.textContent=Story.scenes[state.scene].name;subtitle.textContent=state.finished?'Die Insel ist frei. Zeit für kleine Entdeckungen.':Story.scenes[state.scene].subtitle;
+    banner.append(name,subtitle);banner.classList.add('shown');
+    bannerTimer=setTimeout(()=>banner.classList.remove('shown'),2200);
+  }
+  function postcardPicture(parent,card) {
+    const picture=document.createElement('canvas');picture.width=640;picture.height=360;picture.className='postcard-picture';picture.setAttribute('aria-hidden','true');
+    const painter=picture.getContext('2d');painter.scale(.4,.4);Art.drawScene(painter,card.id,{...state,scene:card.id},0);parent.append(picture);
+  }
+  function openLetter(card,discovered=true) {
+    if(!card)return;
+    const content=openModal(card.title,discovered?'FLASCHENPOST AUS KRUMMWASSER':'EIN BRIEF AUF SEE');
+    postcardPicture(content,card);
+    paragraph(content,card.author,'letter-author');paragraph(content,card.text,'letter-text');
+    if(!Extras.found(state,card.id) && active && state.scene===card.id)addButton(content,'Flaschenpost mitnehmen',()=>collectPostcard(card.id),'primary');
+    if(Extras.progress(state).complete)paragraph(content,'Alle sieben Briefe sind gefunden. Im Album wartet Mottes Bonusbrief.','album-complete-note');
+    addButton(content,'Zum Flaschenpost-Album',openAlbum);
+  }
+  function collectPostcard(id) {
+    if(!active || state.finished&&!exploring || !Extras)return false;
+    const result=Extras.collect(state,id);if(!result.changed)return false;
+    selected=null;verb=null;dismissDialog();refresh();save();audio?.effect('discovery');
+    showToast(`Flaschenpost entdeckt · ${result.progress.count} / 7`);openLetter(result.card);return true;
+  }
+  function openAlbum() {
+    if(!Extras)return;
+    const progress=Extras.progress(state),content=openModal('Mottes Flaschenpost-Album','SIEBEN BRIEFE, EIN MEER');
+    paragraph(content,`${progress.count} von 7 Briefen gefunden · ${progress.rank}`,'album-rank');
+    paragraph(content,'Halte in jedem Schauplatz nach einer kleinen glitzernden Flasche Ausschau. Die Briefe erzählen die andere Hälfte von Krummwasser.');
+    const meter=document.createElement('div');meter.className='album-meter';meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Gefundene Flaschenpost');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','7');meter.setAttribute('aria-valuenow',String(progress.count));
+    const fill=document.createElement('i');fill.style.width=`${progress.count/7*100}%`;meter.append(fill);content.append(meter);
+    const grid=document.createElement('div');grid.className='postcard-grid';
+    for(const card of Extras.cards){
+      const found=Extras.found(state,card.id),button=document.createElement('button');button.className='postcard-card';button.dataset.postcard=card.id;button.disabled=!found;
+      if(found)postcardPicture(button,card);else{const seal=document.createElement('span');seal.className='postcard-seal';seal.textContent='♧';button.append(seal);}
+      const label=document.createElement('b');label.textContent=found?card.title:'Noch auf See';button.append(label);
+      const author=document.createElement('small');author.textContent=found?card.author:'Eine Flasche wartet auf dich.';button.append(author);
+      button.addEventListener('click',()=>openLetter(card));grid.append(button);
+    }
+    content.append(grid);
+    if(progress.complete){const bonus=document.createElement('section');bonus.className='bonus-letter';paragraph(bonus,'Mottes Brief an die Zukunft','bonus-title');paragraph(bonus,Extras.bonus,'letter-text');content.append(bonus);}
+  }
+  function exploreIsland() {
+    if(!state.finished)return;
+    exploring=true;state.flags.exploreAfterFinale=true;$('ending').hidden=true;dismissDialog();refresh();save();
+    showToast('Krummwasser ist frei. Zeit für kleine Entdeckungen.');
+  }
   function openMap() {
     const content=openModal('Die Insel Krummwasser','DEINE SEEKARTE');
-    paragraph(content,active?'Wähle einen bekannten Ort. Das Meer hält die entlegenen Wege noch unter Verschluss.':'Deine Reise beginnt am Hafen. Neue Wege öffnen sich im Abenteuer.');
+    paragraph(content,state.finished?'Krummwasser ist gerettet. Alle Wege sind offen — wähle einen Ort für deine nächste kleine Entdeckung.':active?'Wähle einen bekannten Ort. Das Meer hält die entlegenen Wege noch unter Verschluss.':'Deine Reise beginnt am Hafen. Neue Wege öffnen sich im Abenteuer.');
     const grid=document.createElement('div');grid.className='map-grid';content.append(grid);
     Object.entries(Story.scenes).forEach(([id,scene],index)=>{
       const b=document.createElement('button');b.className='map-card';b.dataset.scene=id;b.classList.toggle('current',state.scene===id);
@@ -215,8 +302,9 @@
     paragraph(content,'Klicke Figuren an, um zu reden, und Ausgänge, um weiterzugehen. Für Gegenstände wählst du unten eine Aktion. Klicke neben eine Figur, um Motte laufen zu lassen.');
     paragraph(content,'Ein Gegenstand in deinen Taschen wird durch Anklicken ausgewählt. Klicke dann auf ein Ziel in der Szene — oder auf einen zweiten Gegenstand, um beide zu kombinieren. „Ansehen“ erklärt auch Inventargegenstände.');
     paragraph(content,'Dein Fortschritt wird automatisch in diesem Browser gespeichert. Karte, Logbuch und gestufte Hinweise helfen dir weiter. Es gibt keine Zeitlimits, Tode oder verlorenen Chancen.');
+    paragraph(content,'In jedem Schauplatz versteckt sich eine Flaschenpost. Sammle alle sieben für Mottes Bonusbrief. Das Album öffnest du unten oder mit A. Nach dem Finale kannst du die gerettete Insel weiter erkunden.');
     paragraph(content,speech?.getStatus().hasRecordings?'Die Dialoge werden mit ElevenLabs-Stimmen vorgelesen. „Sprache“ schaltet sie unabhängig von der Musik um; ↻ liest die aktuelle Zeile erneut vor. Mit Enter liest du in deinem eigenen Tempo weiter.':'Sprachaufnahmen sind derzeit nicht verfügbar. Mit Enter liest du die Dialoge in deinem eigenen Tempo weiter.');
-    [['Aktionen wählen','1 · 2 · 3 · 4'],['Karte / Logbuch / Hinweis','M · J · H'],['Anklickbare Stellen zeigen','Leertaste'],['Dialog weiter','Enter'],['Auswahl / Fenster schließen','Esc']].forEach(([l,r])=>{const row=document.createElement('div');row.className='help-row';const left=document.createElement('span'),right=document.createElement('span');left.textContent=l;right.textContent=r;row.append(left,right);content.append(row);});
+    [['Aktionen wählen','1 · 2 · 3 · 4'],['Karte / Logbuch / Hinweis','M · J · H'],['Flaschenpost-Album','A'],['Anklickbare Stellen zeigen','Leertaste'],['Dialog weiter','Enter'],['Auswahl / Fenster schließen','Esc']].forEach(([l,r])=>{const row=document.createElement('div');row.className='help-row';const left=document.createElement('span'),right=document.createElement('span');left.textContent=l;right.textContent=r;row.append(left,right);content.append(row);});
   }
   function openSettings() {
     const content=openModal('Unter Deck','DEIN ABENTEUER');
@@ -225,6 +313,8 @@
     const actions=document.createElement('div');actions.className='settings-actions';content.append(actions);
     if(audio)addButton(actions,audio.getStatus().enabled?'Musik ausschalten':'Musik einschalten',()=>{toggleMusic();openSettings();});
     if(speech?.getStatus().hasRecordings)addButton(actions,speech.enabled?'Sprache ausschalten':'Sprache einschalten',()=>{speech.toggle();speech.stop();openSettings();});
+    if(audio?.setSoundEnabled)addButton(actions,audio.getStatus().soundEnabled?'Geräusche ausschalten':'Geräusche einschalten',()=>{audio.setSoundEnabled(!audio.getStatus().soundEnabled);if(audio.getStatus().soundEnabled)unlockMusic();openSettings();});
+    if(state.finished && exploring)addButton(actions,'Finale ansehen',()=>{closeModal();showEnding();});
     addButton(actions,'Spielstand exportieren',exportSave);
     addButton(actions,'Spielstand importieren',importSave);
     addButton(actions,'Neues Abenteuer',()=>{
@@ -242,6 +332,12 @@
       row.append(label,output);sound.append(row);
       const range=document.createElement('input');range.id='musicVolume';range.type='range';range.min='0';range.max='100';range.step='1';range.value=String(Math.round(info.volume*100));
       range.addEventListener('input',()=>audio.setVolume(Number(range.value)/100));sound.append(range);content.append(sound);
+      if(Number.isFinite(info.soundVolume)){
+        const soundRow=document.createElement('div');soundRow.className='music-volume-row sound-volume-row';
+        const soundLabel=document.createElement('label');soundLabel.htmlFor='soundVolume';soundLabel.textContent='Atmosphäre & Geräusche';
+        const soundOutput=document.createElement('output');soundOutput.id='soundVolumeValue';soundOutput.htmlFor='soundVolume';soundOutput.textContent=`${Math.round(info.soundVolume*100)} %`;soundRow.append(soundLabel,soundOutput);sound.append(soundRow);
+        const soundRange=document.createElement('input');soundRange.id='soundVolume';soundRange.type='range';soundRange.min='0';soundRange.max='100';soundRange.value=String(Math.round(info.soundVolume*100));soundRange.addEventListener('input',()=>audio.setSoundVolume(Number(soundRange.value)/100));sound.append(soundRange);
+      }
     }
   }
   function exportSave() {
@@ -278,6 +374,9 @@
     if(range && info)range.value=String(Math.round(info.volume*100));
     if(output && info)output.textContent=`${Math.round(info.volume*100)} %`;
     if(track && info)track.textContent=info.title;
+    const soundRange=$('soundVolume'),soundOutput=$('soundVolumeValue');
+    if(soundRange && Number.isFinite(info?.soundVolume))soundRange.value=String(Math.round(info.soundVolume*100));
+    if(soundOutput && Number.isFinite(info?.soundVolume))soundOutput.textContent=`${Math.round(info.soundVolume*100)} %`;
   }
   window.addEventListener('fluestertide:music',syncMusicUI);
   function syncSpeechUI() {
@@ -296,6 +395,7 @@
     const dt=Math.min(.08,(t-lastFrame)/1000);lastFrame=t;
     const moving=Math.abs(hero.x-hero.target)>3;
     if(moving)hero.x+=(hero.target-hero.x)*Math.min(1,dt*6);
+    if(moving && active && $('modalBackdrop').hidden && t-stepAt>420){audio?.effect('step');stepAt=t;}
     const artState=active?state:Story.initialState();
     ctx.clearRect(0,0,1600,900);Art.drawScene(ctx,active?state.scene:'harbor',artState,reducedMotion?0:t/1000);
     if(typeof Art.drawHero==='function')Art.drawHero(ctx,hero.x,hero.y,reducedMotion?0:t/1000,hero.facing,moving && !reducedMotion);
@@ -305,20 +405,22 @@
   $('continueBtn').addEventListener('click',()=>start(true));$('continueBtn').hidden=!stored;
   $('speechBtn')?.addEventListener('click',()=>{speech?.toggle();syncSpeechUI();});
   $('repeatLine')?.addEventListener('click',()=>speech?.repeat());
+  $('albumBtn')?.addEventListener('click',openAlbum);$('endingExplore')?.addEventListener('click',exploreIsland);
   $('mapBtn').addEventListener('click',openMap);$('journalBtn').addEventListener('click',openJournal);$('hintBtn').addEventListener('click',openHint);$('menuBtn').addEventListener('click',openSettings);$('helpBtn').addEventListener('click',openHelp);$('audioBtn').addEventListener('click',toggleMusic);$('revealBtn').addEventListener('click',toggleReveal);$('nextLine').addEventListener('click',advanceDialog);$('closeModal').addEventListener('click',closeModal);$('endingJournal').addEventListener('click',openJournal);$('replayBtn').addEventListener('click',()=>{const c=openModal('Noch eine Runde?','NEUES ABENTEUER');paragraph(c,'Die abgeschlossene Reise wird durch einen neuen Spielstand ersetzt.');addButton(c,'Segel setzen',reset,'primary');addButton(c,'Zurück',closeModal);});
   $('modalBackdrop').addEventListener('click',e=>{if(e.target===$('modalBackdrop'))closeModal();});
   $('hotspots').addEventListener('click',e=>{
-    if(e.target!==$('hotspots') || !active || state.finished)return;
+    if(e.target!==$('hotspots') || !active || state.finished&&!exploring)return;
     if(!$('conversation').hidden && !pendingChoices.length){advanceDialog();return;}
     const bounds=$('stage').getBoundingClientRect();hero.target=Math.max(110,Math.min(1480,(e.clientX-bounds.left)/bounds.width*1600));hero.facing=hero.target>=hero.x?1:-1;selected=null;verb=null;refresh();
   });
   document.addEventListener('keydown',e=>{
-    if(e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+    if(e.ctrlKey || e.metaKey || e.altKey)return;
     if(!$('modalBackdrop').hidden){
       if(e.key==='Escape')closeModal();
       if(e.key==='Tab'){const f=[...$('modalBackdrop').querySelectorAll('button:not(:disabled),input,a[href]')];const first=f[0],last=f[f.length-1];if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}}
       return;
     }
+    if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
     const key=e.key.toLowerCase();
     if(key==='enter' && !$('conversation').hidden && !e.target.closest('[data-choice],#repeatLine,#speechBtn,#audioBtn')){
       e.preventDefault();advanceDialog();return;
@@ -326,16 +428,16 @@
     if(key===' ' && active && e.target.closest('.hotspot')){
       e.preventDefault();toggleReveal();return;
     }
-    if(key==='escape'){selected=null;verb=null;dismissDialog();refresh();if(state.finished)showEnding();}
+    if(key==='escape'){selected=null;verb=null;dismissDialog();refresh();if(state.finished&&!exploring)showEnding();}
     else if(key==='enter' && !e.target.closest('button,a'))advanceDialog();
     else if(key===' ' && !e.target.closest('button,a')){e.preventDefault();toggleReveal();}
-    else if(key==='m')openMap();else if(key==='j')openJournal();else if(key==='h')openHint();
+    else if(key==='m')openMap();else if(key==='j')openJournal();else if(key==='h')openHint();else if(key==='a')openAlbum();
     else if(['1','2','3','4'].includes(key))setVerb(['look','talk','take','use'][Number(key)-1]);
   });
   window.addEventListener('beforeunload',save);
   window.Fluestertide = {
     getState:()=>JSON.parse(JSON.stringify(state)),start:()=>start(false),resume:()=>start(true),
-    perform:(v,id,item)=>execute(()=>Story.perform(state,v,id,item)),choose:id=>execute(()=>Story.choose(state,id)),combine:(a,b)=>execute(()=>Story.combine(state,a,b)),version:'1.1.0'
+    perform:(v,id,item)=>id?.startsWith('postcard_')?(v==='take'?collectPostcard(id.slice(9)):openLetter(Extras?.byScene[id.slice(9)],false)):execute(()=>Story.perform(state,v,id,item),{verb:v,id}),choose:id=>execute(()=>Story.choose(state,id),{verb:'choice',id}),combine:(a,b)=>execute(()=>Story.combine(state,a,b),{verb:'combine'}),getAlbum:()=>Extras?.progress(state),explore:exploreIsland,version:'1.2.0'
   };
   document.querySelector('.game-shell').classList.add('inactive');refresh();syncSpeechUI();syncMusicUI();requestAnimationFrame(animate);
 })();

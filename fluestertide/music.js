@@ -54,6 +54,61 @@
     return Array.from({ length: score.bars }, (_, bar) => buildBar(score, bar).map(event => ({ ...event, beat: bar * score.beatsPerBar + event.beat }))).flat();
   }
 
+  const sound = (frequency, duration, velocity, extra = {}) => ({ frequency, duration, velocity, ...extra });
+  const rustle = (cutoff, duration, velocity, extra = {}) => ({ noise: true, cutoff, duration, velocity, ...extra });
+  const ambienceProfiles = {
+    title: { title: 'Holz, Tau und leise Gläser', interval: 12, events: [sound(106, .4, .014, { to: 73, wave: 'triangle' }), rustle(250, .12, .016, { delay: .24 })] },
+    harbor: { title: 'Knarrende Stege und Tau', interval: 8.6, events: [sound(83, .48, .019, { to: 61, wave: 'triangle' }), rustle(280, .15, .024, { delay: .17 }), sound(540, .07, .008, { to: 290, delay: .52 })] },
+    tavern: { title: 'Gläser, Kamin und alte Balken', interval: 7.3, events: [sound(1260, .08, .012), rustle(1150, .04, .02, { delay: .2 }), sound(92, .36, .014, { to: 69, wave: 'triangle', delay: .44 })] },
+    bazaar: { title: 'Segeltuch und Pippas winzige Töne', interval: 8.2, events: [rustle(780, .19, .022), sound(1420, .055, .009, { to: 1750, delay: .35 }), sound(1240, .06, .007, { to: 1510, delay: .46 })] },
+    lighthouse: { title: 'Leise Zahnräder im Dunkeln', interval: 10.4, events: [rustle(190, .23, .022), sound(86, .42, .013, { to: 81, delay: .18 })] },
+    lagoon: { title: 'Wassertropfen und Muschelresonanz', interval: 8.1, events: [sound(740, .11, .016, { to: 480 }), sound(1060, .08, .009, { to: 710, delay: .32 }), sound(164, .5, .008, { delay: .55 })] },
+    wreck: { title: 'Knarrendes Holz und ein stiller Kiel', interval: 11.2, events: [sound(81, .62, .02, { to: 55, wave: 'triangle' }), sound(58, .8, .011, { delay: .42 }), rustle(170, .12, .017, { delay: .7 })] },
+    vault: { title: 'Gedämpfter Klang in der Glockenkammer', interval: 12.3, events: [sound(135, 1.1, .012, { attack: .2 }), sound(271, .6, .004, { delay: .08, attack: .15 })] },
+    ocean: { title: 'Sanfte Meeresbrise', interval: 7.4, events: [rustle(680, 1.5, .032, { cutoffEnd: 420, attack: .4, release: .5, offset: .2 }), rustle(1100, .42, .01, { delay: .85, attack: .12, offset: .6 })] },
+    lamp: { title: 'Laternenwärme und sanftes Surren', interval: 9.1, events: [sound(104, .62, .013, { to: 101, attack: .18 }), rustle(1300, .035, .014, { delay: .5 })] },
+    ghost: { title: 'Balthasars warme Schiffserinnerung', interval: 10.6, events: [sound(98, .55, .016, { to: 73, wave: 'triangle' }), sound(110, .8, .009, { delay: .36, attack: .2 })] },
+    harmony: { title: 'Der Dreiklang atmet', interval: 11.8, events: [sound(146.83, .65, .009, { attack: .18 }), sound(220, .55, .006, { delay: .2, attack: .15 }), sound(293.66, .7, .004, { delay: .4, attack: .18 })] }
+  };
+  function worldSnapshot(input = {}) {
+    if (!input || typeof input !== 'object') input = {};
+    const flags = input.flags && typeof input.flags === 'object' ? input.flags : input;
+    return {
+      finished: input.finished === true || flags.finished === true || ['gentle', 'loud'].includes(flags.ending),
+      lampLit: !!flags.lampLit, beaconFixed: !!flags.beaconFixed,
+      ghostHelped: !!flags.ghostHelped, harmonyUnlocked: !!flags.harmonyUnlocked
+    };
+  }
+  function ambienceFor(scene, state = {}) {
+    const world = worldSnapshot(state);
+    if (world.finished || scene === 'finale') return ambienceProfiles.ocean;
+    if (scene === 'lighthouse' && (world.lampLit || world.beaconFixed)) return ambienceProfiles.lamp;
+    if (scene === 'wreck' && world.ghostHelped) return ambienceProfiles.ghost;
+    if (scene === 'vault' && world.harmonyUnlocked) return ambienceProfiles.harmony;
+    return ambienceProfiles[scene] || ambienceProfiles.title;
+  }
+  const effectTypes = Object.freeze(['click', 'success', 'pickup', 'use', 'combine', 'error', 'travel', 'discovery', 'step']);
+  function soundEvents(type, scene = 'harbor', alternate = 0) {
+    const sand = scene === 'lagoon' || scene === 'bazaar';
+    const stone = scene === 'vault' || scene === 'lighthouse';
+    if (type === 'click') return [sound(760, .042, .025, { to: 510 })];
+    if (type === 'success') return [74, 78, 81].map((midi, index) => sound(midiToFrequency(midi), .12, .072, { delay: index * .085, wave: 'triangle' }));
+    if (type === 'pickup') return [sound(620, .065, .068, { wave: 'triangle' }), sound(930, .08, .047, { delay: .055 })];
+    if (type === 'use') return [rustle(stone ? 1450 : 850, .05, .054), sound(stone ? 390 : 305, .10, .029, { to: stone ? 330 : 210, delay: .015 })];
+    if (type === 'combine') return [349.23, 523.25, 698.46].map((frequency, index) => sound(frequency, .11, .059, { delay: index * .058, wave: 'triangle' }));
+    if (type === 'error') return [sound(196, .095, .045, { to: 160 }), sound(146.83, .08, .035, { delay: .07 })];
+    if (type === 'travel') return [rustle(900, .11, .032, { attack: .015 }), sound(235, .15, .032, { to: 103, wave: 'triangle', delay: .035 })];
+    if (type === 'discovery') return [523.25, 783.99, 1046.5].map((frequency, index) => sound(frequency, index === 2 ? .24 : .14, .052, { delay: index * .09 }));
+    if (type === 'step') return [rustle(sand ? 950 : stone ? 1500 : 650, sand ? .038 : .026, sand ? .045 : .062, { offset: alternate % 2 ? .07 : 0 }), sound(stone ? 180 : 95, .03, .023, { to: stone ? 118 : 74, wave: 'triangle' })];
+    return [];
+  }
+  function toneEvents(id) {
+    if (id === 'sea') return [sound(146.83, .33, .052, { attack: .028 }), sound(73.42, .24, .027, { delay: .025 })];
+    if (id === 'wind') return [sound(440, .24, .035, { to: 466.16, attack: .04 }), rustle(1650, .15, .014, { delay: .04, attack: .035 })];
+    if (id === 'heart') return [sound(293.66, .25, .043, { attack: .025 }), sound(349.23, .22, .027, { delay: .028 })];
+    return [];
+  }
+
   const PREF_KEY = 'fluestertide.music.v1';
   function createPlayer(environment = {}) {
     const win = environment.window || root || {};
@@ -62,26 +117,34 @@
     const Audio = environment.AudioContext || win.AudioContext || win.webkitAudioContext;
     const interval = environment.setInterval || win.setInterval && win.setInterval.bind(win);
     const clear = environment.clearInterval || win.clearInterval && win.clearInterval.bind(win);
-    let enabled = true, volume = .35, scene = 'title', activeScene = 'title';
-    let context = null, master = null, musicBus = null, effectsBus = null, noise = null;
-    let initialized = false, unlocked = false, playing = false, ready = false, error = null, ducked = false, disposed = false, pageHidden = false;
+    let enabled = true, volume = .35, soundEnabled = true, soundVolume = .45, scene = 'title', activeScene = 'title';
+    let context = null, master = null, musicBus = null, effectsBus = null, soundMaster = null, ambienceBus = null, noise = null;
+    let initialized = false, unlocked = false, playing = false, soundPlaying = false, ready = false, error = null, ducked = false, disposed = false, pageHidden = false;
     let timer = null, cursor = 0, loopStart = 0, loopNumber = 0, pending = null, transitionAt = 0, events = scoreEvents(scores.title), resumeToken = 0;
-    let pendingSuspension = Promise.resolve();
+    let pendingSuspension = Promise.resolve(), suspensionCount = 0;
+    let world = worldSnapshot(), worldSignature = JSON.stringify(world), nextAmbienceAt = 0, ambienceCycle = 0, stepSequence = 0;
+    const lastEffect = new Map();
     const records = new Set();
     const listeners = [];
     try {
       const saved = storage && JSON.parse(storage.getItem(PREF_KEY));
       if (saved && typeof saved.enabled === 'boolean') enabled = saved.enabled;
       if (saved && Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(1, saved.volume));
+      if (saved && typeof saved.soundEnabled === 'boolean') soundEnabled = saved.soundEnabled;
+      if (saved && Number.isFinite(saved.soundVolume)) soundVolume = Math.max(0, Math.min(1, saved.soundVolume));
     } catch (_) { /* Storage is optional, including file:// private windows. */ }
     const hidden = () => pageHidden || !!(doc && doc.hidden);
-    const getStatus = () => ({ enabled, playing, scene, activeScene, title: scores[scene].title, volume, ready, error, ducked });
+    const musicWanted = () => enabled && volume > 0;
+    const soundWanted = () => soundEnabled && soundVolume > 0;
+    const anyWanted = () => musicWanted() || soundWanted();
+    const canRun = () => !disposed && unlocked && context && context.state === 'running' && !hidden();
+    const getStatus = () => ({ enabled, playing, scene, activeScene, title: scores[scene].title, volume, soundEnabled, soundVolume, soundPlaying, ambience: ambienceFor(scene, world).title, ready, error, ducked });
     function emit() {
       const detail = getStatus();
       if (typeof environment.onStatus === 'function') environment.onStatus(detail);
       if (win.dispatchEvent && win.CustomEvent) win.dispatchEvent(new win.CustomEvent('fluestertide:music', { detail }));
     }
-    function persist() { try { if (storage) storage.setItem(PREF_KEY, JSON.stringify({ enabled, volume })); } catch (_) {} }
+    function persist() { try { if (storage) storage.setItem(PREF_KEY, JSON.stringify({ enabled, volume, soundEnabled, soundVolume })); } catch (_) {} }
     function listen(target, event, handler) {
       if (target && target.addEventListener) { target.addEventListener(event, handler); listeners.push([target, event, handler]); }
     }
@@ -96,6 +159,8 @@
       if (!context) return;
       ramp(master.gain, enabled ? volume : 0, .06);
       ramp(musicBus.gain, ducked ? .22 : .64, .12);
+      ramp(soundMaster.gain, soundEnabled ? soundVolume : 0, .06);
+      ramp(ambienceBus.gain, ducked ? .18 : .64, .12);
     }
     function forget(record) {
       if (!records.delete(record)) return;
@@ -111,18 +176,22 @@
         record.source.stop(record.start > now ? now : now + fade);
       } catch (_) { forget(record); }
     }
+    function stopCategory(category) {
+      for (const record of Array.from(records)) if (record.category === category) stopRecord(record);
+    }
     function stop() {
       resumeToken++;
       if (timer !== null && clear) clear(timer);
       timer = null;
-      const wasPlaying = playing;
-      playing = false;
+      const wasPlaying = playing || soundPlaying;
+      playing = false; soundPlaying = false;
       for (const record of Array.from(records)) stopRecord(record);
       pending = null;
+      lastEffect.clear();
       if (wasPlaying) emit();
     }
     function noiseBuffer() {
-      const buffer = context.createBuffer(1, Math.round(context.sampleRate * .4), context.sampleRate);
+      const buffer = context.createBuffer(1, Math.round(context.sampleRate * 2.4), context.sampleRate);
       const channel = buffer.getChannelData(0);
       let seed = 0x13572468;
       for (let index = 0; index < channel.length; index++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; channel[index] = seed / 2147483648 - 1; }
@@ -147,10 +216,44 @@
       gain.gain.setValueAtTime(event.velocity * .73, Math.max(at + attack, at + duration - release));
       gain.gain.linearRampToValueAtTime(0, at + duration);
       source.connect(filter); filter.connect(gain); gain.connect(bus);
-      const record = { source, gain, nodes: [source, filter, gain], start: at, end: at + duration + .012, scene: activeScene };
+      const record = { source, gain, nodes: [source, filter, gain], start: at, end: at + duration + .012, scene: activeScene, category: 'music' };
       records.add(record);
       source.onended = () => forget(record);
       source.start(at); source.stop(record.end);
+    }
+    function texture(event, at, category) {
+      if (!canRun() || !soundWanted() || records.size >= 128 || at < context.currentTime - .02) return;
+      const bus = category === 'ambience' ? ambienceBus : effectsBus;
+      const source = event.noise ? context.createBufferSource() : context.createOscillator();
+      const filter = context.createBiquadFilter(), gain = context.createGain();
+      filter.type = 'lowpass'; filter.Q.value = .45;
+      const cutoff = event.cutoff || Math.min(3800, event.frequency * 3.2);
+      filter.frequency.setValueAtTime(cutoff, at);
+      if (event.cutoffEnd) filter.frequency.linearRampToValueAtTime(event.cutoffEnd, at + event.duration);
+      if (event.noise) { source.buffer = noise; source.playbackRate.value = 1; }
+      else {
+        source.type = event.wave || 'sine';
+        source.frequency.setValueAtTime(event.frequency, at);
+        if (event.to) source.frequency.linearRampToValueAtTime(event.to, at + event.duration);
+      }
+      const attack = Math.min(event.duration * .45, event.attack || .009);
+      const release = Math.min(event.duration * .5, event.release || .06);
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(event.velocity, at + attack);
+      gain.gain.setValueAtTime(event.velocity * .55, Math.max(at + attack, at + event.duration - release));
+      gain.gain.linearRampToValueAtTime(0, at + event.duration);
+      source.connect(filter); filter.connect(gain); gain.connect(bus);
+      const record = { source, gain, nodes: [source, filter, gain], start: at, end: at + event.duration + .012, category, scene };
+      records.add(record); source.onended = () => forget(record);
+      if (event.noise) source.start(at, event.offset || 0); else source.start(at);
+      source.stop(record.end);
+    }
+    function scheduleAmbience(now) {
+      if (!soundPlaying || nextAmbienceAt > now + .12) return;
+      // Skip expired atmospheres instead of replaying minutes of missed creaks.
+      const profile = ambienceFor(scene, world), at = Math.max(nextAmbienceAt, now + .025);
+      for (const event of profile.events) texture(event, at + (event.delay || 0), 'ambience');
+      nextAmbienceAt = now + profile.interval + [0, .8, -.35, 1.25][ambienceCycle++ % 4];
     }
     function changeScore(id, at) {
       activeScene = id;
@@ -159,8 +262,10 @@
       emit();
     }
     function scheduler() {
-      if (!playing || !context || context.state !== 'running' || hidden()) return;
+      if (!canRun() || suspensionCount) return;
       const now = context.currentTime;
+      scheduleAmbience(now);
+      if (!playing) return;
       const horizon = now + .15;
       let safety = 0;
       while (safety++ < 2000) {
@@ -177,26 +282,33 @@
       if (safety >= 2000) changeScore(scene, now + .025);
     }
     function start() {
-      if (disposed || playing || !enabled || !unlocked || hidden() || !context || context.state !== 'running') return;
-      playing = true;
-      changeScore(scene, context.currentTime + .035);
-      levels(); scheduler();
-      if (interval) timer = interval(scheduler, 25);
-      emit();
+      if (!canRun() || suspensionCount) return;
+      let changed = false;
+      if (musicWanted() && !playing) { playing = true; changeScore(scene, context.currentTime + .035); changed = true; }
+      if (!musicWanted() && playing) { playing = false; pending = null; stopCategory('music'); changed = true; }
+      if (soundWanted() && !soundPlaying) { soundPlaying = true; nextAmbienceAt = context.currentTime + .2; changed = true; }
+      if (!soundWanted() && soundPlaying) { soundPlaying = false; stopCategory('ambience'); stopCategory('effect'); changed = true; }
+      levels();
+      if (playing || soundPlaying) {
+        scheduler();
+        if (timer === null && interval) timer = interval(scheduler, 25);
+      } else if (timer !== null && clear) { clear(timer); timer = null; }
+      if (changed) emit();
     }
     function suspendContext() {
       if (!context || disposed) return;
       const target = context;
-      pendingSuspension = pendingSuspension.then(() => target.state === 'running' ? target.suspend() : undefined).catch(() => {});
+      suspensionCount++;
+      pendingSuspension = pendingSuspension.then(() => target.state === 'running' ? target.suspend() : undefined).catch(() => {}).then(() => { suspensionCount--; });
     }
     async function resume() {
-      if (!context || !unlocked || !enabled || disposed || hidden()) return getStatus();
+      if (!context || !unlocked || !anyWanted() || disposed || hidden()) return getStatus();
       const token = ++resumeToken;
       try {
         await pendingSuspension;
-        if (token !== resumeToken || !enabled || hidden() || disposed) return getStatus();
+        if (token !== resumeToken || !anyWanted() || hidden() || disposed) return getStatus();
         if (context.state !== 'running') await context.resume();
-        if (token === resumeToken && enabled && !hidden() && !disposed) { error = null; start(); }
+        if (token === resumeToken && anyWanted() && !hidden() && !disposed) { error = null; start(); }
       } catch (failure) { error = 'Audio konnte nicht starten: ' + (failure.message || String(failure)); emit(); }
       return getStatus();
     }
@@ -205,6 +317,8 @@
       initialized = true;
       if (typeof options.enabled === 'boolean') enabled = options.enabled;
       if (Number.isFinite(options.volume)) volume = Math.max(0, Math.min(1, options.volume));
+      if (typeof options.soundEnabled === 'boolean') soundEnabled = options.soundEnabled;
+      if (Number.isFinite(options.soundVolume)) soundVolume = Math.max(0, Math.min(1, options.soundVolume));
       listen(doc, 'visibilitychange', () => {
         if (hidden()) { stop(); suspendContext(); }
         else resume();
@@ -221,67 +335,103 @@
         try {
           context = new Audio();
           master = context.createGain(); musicBus = context.createGain(); effectsBus = context.createGain();
-          master.gain.value = 0; musicBus.gain.value = .64; effectsBus.gain.value = .35;
-          musicBus.connect(master); effectsBus.connect(master); master.connect(context.destination);
+          soundMaster = context.createGain(); ambienceBus = context.createGain();
+          master.gain.value = 0; soundMaster.gain.value = 0; musicBus.gain.value = .64; effectsBus.gain.value = .68; ambienceBus.gain.value = .64;
+          musicBus.connect(master); effectsBus.connect(soundMaster); ambienceBus.connect(soundMaster);
+          soundMaster.connect(context.destination); master.connect(context.destination);
           noise = noiseBuffer(); ready = true;
           listen(context, 'statechange', () => {
             if (disposed) return;
             if (context.state === 'running') start();
-            else if (playing) stop();
+            else if (playing || soundPlaying) stop();
             emit();
           });
         } catch (failure) { error = 'Audio ist nicht verfügbar: ' + (failure.message || String(failure)); emit(); return getStatus(); }
       }
       unlocked = true;
       levels();
-      if (enabled) return resume();
+      if (anyWanted()) return resume();
       emit(); return getStatus();
     }
     function setScene(id) {
       if (!scores[id]) return getStatus();
       if (scene === id) return getStatus();
       scene = id;
+      stopCategory('ambience');
+      nextAmbienceAt = context ? context.currentTime + .18 : 0;
+      ambienceCycle = 0;
       if (playing && context) {
         const barSeconds = scores[activeScene].beatsPerBar * 60 / scores[activeScene].bpm;
         const elapsed = Math.max(0, context.currentTime - loopStart);
         transitionAt = loopStart + (Math.floor(elapsed / barSeconds) + 1) * barSeconds;
         pending = id;
-        for (const record of Array.from(records)) if (record.scene !== id && record.start >= transitionAt) stopRecord(record, .01);
+        for (const record of Array.from(records)) if (record.category === 'music' && record.scene !== id && record.start >= transitionAt) stopRecord(record, .01);
       } else activeScene = id;
       emit(); return getStatus();
     }
-    function setEnabled(value) {
-      enabled = !!value; persist();
-      if (!enabled) stop();
-      levels();
-      if (enabled) resume();
+    function preferencesChanged() {
+      persist(); levels(); start();
+      if (!anyWanted()) { stop(); suspendContext(); }
+      else if (unlocked && context) resume();
       emit(); return getStatus();
+    }
+    function setEnabled(value) {
+      enabled = !!value;
+      return preferencesChanged();
     }
     function setVolume(value) {
       const amount = Number(value);
       if (Number.isFinite(amount)) volume = Math.max(0, Math.min(1, amount));
-      persist(); levels(); emit(); return getStatus();
+      return preferencesChanged();
+    }
+    function setSoundEnabled(value) { soundEnabled = !!value; return preferencesChanged(); }
+    function setSoundVolume(value) {
+      const amount = Number(value);
+      if (Number.isFinite(amount)) soundVolume = Math.max(0, Math.min(1, amount));
+      return preferencesChanged();
+    }
+    function setWorldState(input) {
+      const next = worldSnapshot(input), signature = JSON.stringify(next);
+      if (signature === worldSignature) return getStatus();
+      world = next; worldSignature = signature;
+      stopCategory('ambience'); ambienceCycle = 0;
+      nextAmbienceAt = context ? context.currentTime + .22 : 0;
+      emit(); return getStatus();
     }
     function duck(value) { ducked = !!value; levels(); emit(); return getStatus(); }
-    function effect(type) {
-      if (!enabled || !unlocked || !context || context.state !== 'running' || hidden() || disposed) return;
+    function trigger(type, eventsToPlay, cooldown) {
+      if (!canRun() || !soundWanted() || !eventsToPlay.length) return false;
       const now = context.currentTime + .005;
-      if (type === 'success') [74, 78, 81].forEach((midi, index) => schedule({ voice: 'lead', midi, duration: .11, velocity: .075 }, now + index * .085, 1, effectsBus));
-      else if (type === 'click') schedule({ voice: 'arp', midi: 69, duration: .035, velocity: .025 }, now, 1, effectsBus);
+      if (now - (lastEffect.get(type) ?? -Infinity) < cooldown) return false;
+      if (Array.from(records).filter(record => record.category === 'effect').length >= 24) return false;
+      lastEffect.set(type, now);
+      for (const event of eventsToPlay) texture(event, now + (event.delay || 0), 'effect');
+      return true;
+    }
+    function effect(type) {
+      if (!effectTypes.includes(type)) return false;
+      const cooldown = type === 'step' ? .24 : type === 'error' || type === 'travel' ? .12 : .035;
+      const played = trigger(type, soundEvents(type, scene, stepSequence), cooldown);
+      if (played && type === 'step') stepSequence++;
+      return played;
+    }
+    function playTone(id) {
+      const tone = String(id || '').replace(/^tone_/, '');
+      return trigger('tone_' + tone, toneEvents(tone), .16);
     }
     async function destroy() {
       disposed = true; stop();
       for (const [target, event, handler] of listeners) target.removeEventListener(event, handler);
       listeners.length = 0;
       for (const record of Array.from(records)) { try { record.source.stop(); } catch (_) {} forget(record); }
-      for (const bus of [musicBus, effectsBus, master]) { if (bus) try { bus.disconnect(); } catch (_) {} }
+      for (const bus of [musicBus, effectsBus, ambienceBus, soundMaster, master]) { if (bus) try { bus.disconnect(); } catch (_) {} }
       if (context && context.close) await context.close();
       ready = false; emit();
     }
-    return { initialize, unlock, setScene, toggle: () => setEnabled(!enabled), setEnabled, setVolume, duck, effect, getStatus, destroy };
+    return { initialize, unlock, setScene, toggle: () => setEnabled(!enabled), setEnabled, setVolume, setSoundEnabled, setSoundVolume, setWorldState, playTone, duck, effect, getStatus, destroy };
   }
 
-  const exported = { scores, noteMidi, midiToFrequency, buildBar, scoreEvents, loopSeconds, createPlayer, PREF_KEY };
+  const exported = { scores, noteMidi, midiToFrequency, buildBar, scoreEvents, loopSeconds, ambienceFor, soundEvents, toneEvents, effectTypes, createPlayer, PREF_KEY };
   if (typeof module !== 'undefined' && module.exports) module.exports = exported;
   if (root && root.document) root.FluestertideMusic = createPlayer({ window: root });
 })(typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : this);
