@@ -4,6 +4,7 @@
   const Story = window.PirateStory;
   const Art = window.PirateArt;
   const Extras = window.FluestertideExtras;
+  const Band = window.FluestertideBand;
   const speech = window.FluestertideSpeech;
   const audio = window.FluestertideMusic;
   audio?.initialize();
@@ -21,6 +22,8 @@
   let exploring = false, recentItems = new Set(), toastTimer = null, bannerTimer = null, freshTimer = null, stepAt = 0, dialogTotal = 0, dialogIndex = 0;
   const INPUT_PREF_KEY='fluestertide.controls.v1',touchMedia=matchMedia('(max-width:700px), (pointer:coarse)');
   let controls=null,inputStatus={mode:'pointer',connected:false},touchPreference='auto';
+  let bandAttempt=[],bandSequence=[],bandNotation=false,bandFeedback='';
+  let photoFilter='original',photoHero=true,photoQuote=0,photoSequence=0,photoBlob=null;
   try{const preference=JSON.parse(localStorage.getItem(INPUT_PREF_KEY));if(['auto','on','off'].includes(preference?.touch))touchPreference=preference.touch;}catch{}
   let hero = { x: 870, y: 815, target: 870, facing: 1 };
   let stored = readSave();
@@ -78,6 +81,7 @@
     $('chapterLabel').textContent = typeof Story.chapterTitle==='function' ? Story.chapterTitle(state) : `AKT ${state.chapter}`;
     $('itemCount').textContent=state.inventory.length;
     if($('albumCount'))$('albumCount').textContent=`Flaschenpost · ${Extras?.progress(state).count || 0}/7`;
+    if($('discoveriesBtn'))$('discoveriesBtn').hidden=!active;
     if (selected && !state.inventory.includes(selected)) selected=null;
     renderHotspots(); renderInventory(); updateActionText();updateTouchControls();
     document.querySelectorAll('[data-verb]').forEach(b=>{ const isActive = b.dataset.verb===verb; b.classList.toggle('active',isActive);b.setAttribute('aria-pressed',String(isActive)); });
@@ -90,11 +94,13 @@
     $('actionText').textContent = item ? `${item.name} benutzen${targetName ? ` mit ${targetName}` : ' · Ziel oder zweiten Gegenstand auswählen'}` : targetName ? `${verbLabels[verb || defaultVerb(target)]} ${targetName}` : verb ? `${verbLabels[verb]} · Wähle etwas in der Szene.` : Story.objective(state);
     $('inventoryTip').textContent = selected ? 'Zweiten Gegenstand wählen = kombinieren.' : 'Gegenstände lassen sich kombinieren.';
   }
-  function defaultVerb(h) { return h.kind==='postcard' ? 'take' : h.kind==='exit' ? 'walk' : h.kind==='npc' ? 'talk' : 'look'; }
+  function defaultVerb(h) { return h.kind==='postcard' ? 'take' : h.kind==='exit' ? 'walk' : h.kind==='npc' ? 'talk' : h.kind==='music' ? 'use' : 'look'; }
   function sceneHotspots(){
     if(!active || state.finished&&!exploring)return [];
     const hotspots=[...(typeof Story.availableHotspots==='function'?Story.availableHotspots(state):Story.scenes[state.scene].hotspots)];
-    const letter=Extras?.hotspot(state);if(letter)hotspots.push(letter);return hotspots;
+    const letter=Extras?.hotspot(state);if(letter)hotspots.push(letter);
+    if(Band && state.scene==='tavern')hotspots.push({id:'harbor_band',name:'Adas kleine Hafenband',kind:'music',x:17.5,y:62.1,w:3.9,h:18.3});
+    return hotspots;
   }
   function renderHotspots() {
     $('hotspots').replaceChildren();
@@ -124,6 +130,7 @@
     hideLabel();
     const actualVerb=selected?'use':verb || defaultVerb(h);
     const item=selected;
+    if(h.kind==='music'){selected=null;verb=null;dismissDialog();refresh();openBand();return;}
     hero.target=Math.max(145,Math.min(1470,(h.x+h.w/2)*16));hero.facing=hero.target>=hero.x?1:-1;
     selected=null;
     if(h.kind==='postcard'){
@@ -220,9 +227,10 @@
   function toggleReveal() {shownHotspots=!shownHotspots;$('hotspots').classList.toggle('reveal',shownHotspots);$('revealBtn').setAttribute('aria-pressed',String(shownHotspots));}
   function openModal(title,kicker='FLÜSTERTIDE') {
     speech?.stop();
+    audio?.stopBandSequence?.();releasePhoto();
     if($('modalBackdrop').hidden)focusBeforeModal=document.activeElement;$('modalTitle').textContent=title;$('modalKicker').textContent=kicker;$('modalContent').replaceChildren();$('modalBackdrop').hidden=false;$('closeModal').focus();controls?.refresh();return $('modalContent');
   }
-  function closeModal() {$('modalBackdrop').hidden=true;(focusBeforeModal?.isConnected?focusBeforeModal:active?$('stage'):$('startBtn')).focus({preventScroll:true});controls?.refresh();}
+  function closeModal() {audio?.stopBandSequence?.();releasePhoto();$('modalBackdrop').hidden=true;(focusBeforeModal?.isConnected && focusBeforeModal.getClientRects().length?focusBeforeModal:active?$('stage'):$('startBtn')).focus({preventScroll:true});controls?.refresh();}
   function paragraph(parent,text,className) {const p=document.createElement('p');p.textContent=text;if(className)p.className=className;parent.append(p);return p;}
   function addButton(parent,text,action,cls='secondary') {const b=document.createElement('button');b.textContent=text;b.className=cls;b.addEventListener('click',action);parent.append(b);return b;}
   function updateTouchControls(){
@@ -304,7 +312,7 @@
     return document.querySelector('.app');
   }
   function preferredInputFocus(scope,candidates){
-    const selector=scope===$('titleScreen')?(stored?'#continueBtn':'#startBtn'):scope===$('ending')?'#endingExplore':scope===$('conversation')?'[data-choice],#nextLine:not([hidden])':scope.classList.contains('modal')?'.primary,.map-card:not(:disabled),.target-row,.pocket-item':'.hotspot';
+    const selector=scope===$('titleScreen')?(stored?'#continueBtn':'#startBtn'):scope===$('ending')?'#endingExplore':scope===$('conversation')?'[data-choice],#nextLine:not([hidden])':scope.classList.contains('modal')?'.primary,.map-card:not(:disabled),.target-row,.pocket-item,.band-pad,.discovery-card,[data-photo-filter]':'.hotspot';
     return candidates.find(element=>element.matches(selector))||candidates[0];
   }
   function onInputStatus(info){
@@ -374,6 +382,59 @@
     exploring=true;state.flags.exploreAfterFinale=true;$('ending').hidden=true;dismissDialog();refresh();save();
     showToast('Krummwasser ist frei. Zeit für kleine Entdeckungen.');
   }
+  function openDiscoveries(){
+    const content=openModal('Die kleinen Abenteuer','ABSEITS DER GROSSEN SEEKARTE');
+    paragraph(content,'Man rettet eine Insel. Und dann entdeckt man, wofür sich die Mühe gelohnt hat. Diese Ausflüge kannst du jederzeit unterbrechen.');
+    const grid=document.createElement('div');grid.className='discovery-grid';
+    const entries=[['♧','Flaschenpost',`${Extras?.progress(state).count||0} / 7 Briefe · Mottes Bonusbrief wartet.`,openAlbum],['♫','Kleine Hafenband',Band?.status(state).complete?'Ein Orchester aus Dingen. Jetzt darfst du improvisieren.':`${Band?.status(state).round||0} / 3 Stücke · Holz, Glas, Muschel und Glocke.`,()=>{bandAttempt=[];bandFeedback='';openBand();}],['⌖','Deine Reise-Postkarte','Halte diesen Ort fest. Mit Motte, Farblook und einem Gruß für zu Hause.',openPhoto]];
+    for(const [symbol,title,copy,action] of entries){const button=document.createElement('button');button.className='discovery-card';button.dataset.discovery=['album','band','photo'][grid.children.length];const icon=document.createElement('span');icon.className='discovery-symbol';icon.setAttribute('aria-hidden','true');icon.textContent=symbol;const name=document.createElement('b');name.textContent=title;const detail=document.createElement('small');detail.textContent=copy;button.append(icon,name,detail);button.addEventListener('click',action);grid.append(button);}
+    content.append(grid);controls?.refresh();
+  }
+  function bandIcon(id){
+    const shapes={wood:'<rect x="7" y="10" width="10" height="28" rx="2" fill="#ae815a"/><rect x="20" y="7" width="10" height="34" rx="2" fill="#dbac77"/><rect x="33" y="12" width="8" height="25" rx="2" fill="#84634a"/><path d="M9 18h6m7 7h6m7-6h4" stroke="#5f473b" stroke-width="2"/>',glass:'<path d="M19 7h10v11c0 5 9 5 9 12v9c0 5-28 5-28 0v-9c0-7 9-7 9-12Z" fill="#5bada6" stroke="#a8ded0" stroke-width="2"/><path d="M14 30h20v8H14Z" fill="#e9d0a0"/><path d="M16 25v13" stroke="#c7eee0" stroke-width="2"/>',shell:'<path d="M24 42 6 24C-1 4 44-2 44 24L27 42Z" fill="#e9b8a7" stroke="#f4d6b6" stroke-width="2"/><path d="M24 40 13 14m11 26V9m0 31 13-27" stroke="#a87881" stroke-width="2"/>',bell:'<path d="M21 9c-10 3-8 18-14 23 6 8 28 8 34 0-6-5-4-20-14-23Z" fill="#e6be74" stroke="#f9dca0" stroke-width="2"/><path d="M13 28q11 6 22 0" fill="none" stroke="#9b7745" stroke-width="2"/><circle cx="24" cy="38" r="4" fill="#a27c4b"/><path d="M20 7h8" stroke="#c19350" stroke-width="4"/>'};
+    const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 48 48');icon.setAttribute('aria-hidden','true');icon.innerHTML=shapes[id]||'';return icon;
+  }
+  function openBand(){
+    if(!Band)return;
+    const info=Band.status(state),pattern=Band.pattern(state),content=openModal(info.complete?'Ein Hafen voller Musik':'Adas kleine Hafenband',info.complete?'DIE INSEL HAT EIN NEUES ORCHESTER':`STÜCK ${info.round+1} VON ${info.total} · OHNE ZEITDRUCK`);
+    if(!active || state.finished&&!exploring){paragraph(content,active?'Erkunde die Insel nach dem Finale weiter, um mit der Hafenband zu spielen.':'Setze die Segel. Ada hat vier erstaunlich musikalische Dinge für dich.');if(active)addButton(content,'Die Insel weiter erkunden',()=>{closeModal();exploreIsland();openBand();},'primary');return;}
+    const introduction=document.createElement('div');introduction.className='band-introduction';const portrait=document.createElement('canvas');portrait.width=96;portrait.height=96;portrait.setAttribute('aria-hidden','true');Art.drawPortrait?.(portrait.getContext('2d'),'Ada',96);const copy=document.createElement('div');paragraph(copy,info.complete?'Ada: „Das ist ein Orchester. Die Versicherung nennt es trotzdem Inventar.“':pattern?.lines?.map(line=>`${line.speaker}: ${line.text}`).join(' ')||'Ada: „Die besten Instrumente stehen schon auf dem Tisch.“');paragraph(copy,info.complete?'Spiele frei oder höre unser kleines Hafenkonzert. Dein Erfolg bleibt im Spielstand.':'Höre und sieh die Folge an, oder öffne den Notenzettel. Spiele sie mit den vier Dingen nach und prüfe deine Antwort. Dein Tempo zählt.','band-help');introduction.append(portrait,copy);content.append(introduction);
+    const meter=document.createElement('div');meter.className='band-rounds';meter.setAttribute('aria-label',`${info.round} von ${info.total} Stücken gelernt`);for(let index=0;index<info.total;index++){const mark=document.createElement('span');mark.classList.toggle('learned',index<info.round);mark.textContent=index<info.round?'✓':String(index+1);meter.append(mark);}content.append(meter);
+    const score=document.createElement('section');score.className='band-score';const title=document.createElement('h3');title.textContent=pattern?.title||'Die Ballade von der klappernden Insel';score.append(title);
+    const reference=document.createElement('ol');reference.id='bandReference';reference.className='band-reference';const referenceNotes=pattern?.notes||['wood','glass','shell','bell','shell','glass','wood','bell'];for(const [index,id] of referenceNotes.entries()){const item=document.createElement('li');item.dataset.referenceIndex=String(index);item.dataset.note=id;item.append(bandIcon(id));const label=document.createElement('span');label.textContent=Band.notes[id].label;item.append(label);reference.append(item);}score.append(reference);content.append(score);
+    const referenceActions=document.createElement('div');referenceActions.className='band-actions';const listen=addButton(referenceActions,info.complete?'Hafenkonzert hören':'Hören & ansehen',()=>{unlockMusic();bandSequence=[...referenceNotes];if(!audio?.playBandSequence?.(bandSequence,{beat:.46})){bandNotation=true;bandFeedback='Der Notenzettel ist da. Du kannst auch ohne Ton spielen.';}syncBandUI();},'secondary');listen.id='bandListen';if(!info.complete){const notation=addButton(referenceActions,'Notenzettel',()=>{bandNotation=!bandNotation;syncBandUI();});notation.id='bandNotation';notation.setAttribute('aria-pressed',String(bandNotation));}content.append(referenceActions);
+    const pads=document.createElement('div');pads.className='band-pads';pads.setAttribute('role','group');pads.setAttribute('aria-label','Vier Instrumente');for(const note of Object.values(Band.notes)){const button=document.createElement('button');button.className='band-pad';button.dataset.bandNote=note.id;button.append(bandIcon(note.id));const label=document.createElement('b');label.textContent=note.label;const hint=document.createElement('small');hint.textContent=note.clue;button.append(label,hint);button.addEventListener('click',()=>{unlockMusic();audio?.playBandNote?.(note.id);if(!info.complete&&bandAttempt.length<referenceNotes.length){bandAttempt.push(note.id);bandFeedback='';}syncBandUI();});pads.append(button);}content.append(pads);
+    if(!info.complete){const attempt=document.createElement('div');attempt.id='bandAttempt';attempt.className='band-attempt';attempt.setAttribute('aria-label','Deine Antwort');content.append(attempt);const answerActions=document.createElement('div');answerActions.className='band-actions';const submit=addButton(answerActions,'Das ist meine Antwort',()=>{audio?.stopBandSequence?.();const result=Band.submit(state,bandAttempt);bandFeedback=result.lines?.map(line=>`${line.speaker}: ${line.text}`).join(' ')||'Versuche die Folge noch einmal.';if(result.reason==='correct'){state.journal.push(`Hafenband: „${pattern.title}“ gelernt.${result.complete?' Krummwasser hat ein kleines Orchester.':''}`);bandAttempt=[];refresh();save();audio?.effect('success');showToast(result.complete?'Krummwassers Hafenband spielt!':'Ein neues Stück für die Hafenband.');openBand();}else syncBandUI();},'primary');submit.id='bandSubmit';const undo=addButton(answerActions,'Letzten Ton zurück',()=>{bandAttempt.pop();bandFeedback='';syncBandUI();});undo.id='bandUndo';const clear=addButton(answerActions,'Neu anfangen',()=>{bandAttempt=[];bandFeedback='';syncBandUI();});clear.id='bandClear';content.append(answerActions);}
+    const feedback=paragraph(content,bandFeedback,'band-feedback');feedback.id='bandFeedback';feedback.setAttribute('role','status');const playback=paragraph(content,'','band-playback');playback.id='bandPlayback';playback.setAttribute('role','status');addButton(content,'Zu den kleinen Abenteuern',openDiscoveries);syncBandUI();controls?.refresh();
+  }
+  function syncBandUI(){
+    const reference=$('bandReference');if(!reference)return;
+    const info=audio?.getStatus(),complete=Band?.status(state).complete,playing=!!info?.bandPlaying;reference.classList.toggle('notes-hidden',!complete&&!bandNotation&&!playing);
+    reference.querySelectorAll('li').forEach((element,index)=>element.classList.toggle('sounding',playing&&index===info.bandStep));
+    document.querySelectorAll('[data-band-note]').forEach(button=>button.classList.toggle('sounding',playing&&button.dataset.bandNote===bandSequence[info.bandStep]));
+    if($('bandNotation')){$('bandNotation').setAttribute('aria-pressed',String(bandNotation));$('bandNotation').textContent=bandNotation?'Notenzettel verbergen':'Notenzettel zeigen';}
+    if($('bandAttempt')){const attempt=$('bandAttempt');attempt.replaceChildren();const pattern=Band.pattern(state);for(let index=0;index<(pattern?.notes.length||0);index++){const token=document.createElement('span');const id=bandAttempt[index];token.textContent=id?`${index+1}. ${Band.notes[id].label}`:`${index+1}. …`;token.classList.toggle('filled',!!id);attempt.append(token);}if($('bandSubmit'))$('bandSubmit').disabled=bandAttempt.length!==pattern?.notes.length;if($('bandUndo'))$('bandUndo').disabled=!bandAttempt.length;if($('bandClear'))$('bandClear').disabled=!bandAttempt.length;}
+    if($('bandFeedback'))$('bandFeedback').textContent=bandFeedback;
+    if($('bandPlayback'))$('bandPlayback').textContent=playing&&bandSequence[info.bandStep]?`Jetzt: ${Band.notes[bandSequence[info.bandStep]].label}`:info?.soundEnabled===false||info?.soundVolume===0?'Geräusche sind aus. Der Notenzettel funktioniert trotzdem.':'';
+  }
+  function releasePhoto(){photoSequence++;photoBlob=null;}
+  function openPhoto(){
+    const content=openModal('Ein Gruß aus Krummwasser','DEINE EIGENE REISE-POSTKARTE');if(!active){paragraph(content,'Setze die Segel und finde einen Ort für deine erste Postkarte.');return;}
+    paragraph(content,'Halte den aktuellen Schauplatz fest. Wähle einen Farblook, Motte im Bild und einen Gruß. Das Bild wird als PNG auf deinem Gerät gespeichert.');
+    const preview=document.createElement('canvas');preview.id='photoPreview';preview.width=1600;preview.height=1080;preview.className='photo-preview';preview.setAttribute('aria-label',`Reise-Postkarte: ${Story.scenes[state.scene].name}`);content.append(preview);
+    const filters=document.createElement('div');filters.className='photo-filters';filters.setAttribute('role','group');filters.setAttribute('aria-label','Farblook');for(const [id,label] of [['original','Original'],['moon','Mondlicht'],['parchment','Alte Seekarte']]){const button=addButton(filters,label,()=>{photoFilter=id;updatePhoto();});button.dataset.photoFilter=id;}content.append(filters);
+    const actions=document.createElement('div');actions.className='photo-actions';const heroToggle=addButton(actions,'Motte im Bild',()=>{photoHero=!photoHero;updatePhoto();});heroToggle.id='photoHero';const quote=addButton(actions,'Anderer Gruß',()=>{photoQuote=(photoQuote+1)%3;updatePhoto();});quote.id='photoQuote';const download=addButton(actions,'Postkarte als PNG speichern',()=>{if(!photoBlob)return;const url=URL.createObjectURL(photoBlob),link=document.createElement('a');link.href=url;link.download=`fluestertide-${state.scene}-${photoFilter}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},'primary');download.id='photoDownload';download.disabled=true;actions.append(download);content.append(actions);
+    const status=paragraph(content,'','photo-status');status.id='photoStatus';status.setAttribute('role','status');addButton(content,'Zu den kleinen Abenteuern',openDiscoveries);updatePhoto();controls?.refresh();
+  }
+  function updatePhoto(){
+    const preview=$('photoPreview');if(!preview)return;const painter=preview.getContext('2d'),token=++photoSequence;photoBlob=null;if($('photoDownload'))$('photoDownload').disabled=true;
+    const parchment=photoFilter==='parchment',ink=photoFilter==='moon'?'#e7d6b0':'#3b514d';painter.clearRect(0,0,1600,1080);painter.fillStyle=photoFilter==='moon'?'#17323b':parchment?'#d8bf8f':'#e7d5ae';painter.fillRect(0,0,1600,1080);
+    painter.save();painter.translate(40,40);painter.scale(.95,.95);painter.filter=parchment?'sepia(.55) saturate(.7) contrast(1.06)':photoFilter==='moon'?'saturate(.65) hue-rotate(9deg) contrast(1.1)':'none';Art.drawScene(painter,state.scene,state,0,{motion:false});if(photoHero)Art.drawHero(painter,hero.x,hero.y,0,hero.facing,false);painter.restore();
+    painter.strokeStyle=parchment?'#9e8054':'#749d94';painter.lineWidth=4;painter.strokeRect(40,40,1520,855);painter.fillStyle=ink;painter.font='bold 38px Georgia,serif';painter.fillText(Story.scenes[state.scene].name,55,958);painter.font='25px Georgia,serif';painter.fillText(['Hier hat sogar der Wind eine Geschichte.','Grüße aus Krummwasser. Die Taschen sind noch immer zu klein.','War kurz die Insel retten. Bin gleich zurück.'][photoQuote],55,1007);painter.font='13px Arial,sans-serif';painter.fillText('FLÜSTERTIDE  /  MOTTE MORROWS REISEPOST',55,1050);
+    painter.save();painter.translate(1450,993);painter.rotate(-.14);painter.strokeStyle=ink;painter.lineWidth=3;painter.beginPath();painter.arc(0,0,42,0,Math.PI*2);painter.stroke();painter.beginPath();painter.moveTo(0,-30);painter.lineTo(10,10);painter.lineTo(-30,0);painter.closePath();painter.fillStyle=ink;painter.fill();painter.font='11px Georgia,serif';painter.textAlign='center';painter.fillText('KRUMMWASSER',0,62);painter.restore();
+    document.querySelectorAll('[data-photo-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.photoFilter===photoFilter)));if($('photoHero'))$('photoHero').setAttribute('aria-pressed',String(photoHero));if($('photoStatus'))$('photoStatus').textContent='Deine Postkarte wird vorbereitet …';
+    preview.toBlob(blob=>{if(token!==photoSequence||!preview.isConnected)return;photoBlob=blob;if($('photoDownload'))$('photoDownload').disabled=!blob;if($('photoStatus'))$('photoStatus').textContent=blob?'1600 × 1080 · PNG · bereit zum Speichern':'Das Bild konnte nicht vorbereitet werden.';},'image/png');
+  }
   function openMap() {
     const content=openModal('Die Insel Krummwasser','DEINE SEEKARTE');
     paragraph(content,state.finished?'Krummwasser ist gerettet. Alle Wege sind offen — wähle einen Ort für deine nächste kleine Entdeckung.':active?'Wähle einen bekannten Ort. Das Meer hält die entlegenen Wege noch unter Verschluss.':'Deine Reise beginnt am Hafen. Neue Wege öffnen sich im Abenteuer.');
@@ -381,6 +442,7 @@
     Object.entries(Story.scenes).forEach(([id,scene],index)=>{
       const b=document.createElement('button');b.className='map-card';b.dataset.scene=id;b.classList.toggle('current',state.scene===id);
       const can=active && (typeof Story.canVisit!=='function' || Story.canVisit(state,id));b.disabled=!can;
+      if(can){const picture=document.createElement('canvas');picture.width=480;picture.height=270;picture.className='map-picture';picture.setAttribute('aria-hidden','true');const painter=picture.getContext('2d');painter.scale(.3,.3);Art.drawScene(painter,id,{...state,scene:id},0,{motion:false});b.append(picture);}
       const n=document.createElement('span');n.textContent=`0${index+1} / ${state.scene===id && active?'DU BIST HIER':can?'BEKANNTES FAHRWASSER':'NOCH VERBORGEN'}`;
       const name=document.createElement('b');name.textContent=scene.name;
       const sub=document.createElement('span');sub.textContent=scene.subtitle || '';
@@ -395,6 +457,7 @@
     const entries=document.createElement('ul');entries.className='journal-entries';
     for(const entry of state.journal) {const li=document.createElement('li');li.textContent=typeof entry==='string'?entry:(entry.text || entry.description || entry.title || JSON.stringify(entry));entries.append(li);}
     if(!state.journal.length) paragraph(content,'Noch sind die Seiten leer. Die besten Geschichten beginnen mit leeren Taschen.');else content.append(entries);
+    if(active)addButton(content,'Die kleinen Abenteuer',openDiscoveries);
   }
   function openHint() {
     if(!active) {const c=openModal('Eine kleine Starthilfe','DER WIND FLÜSTERT');paragraph(c,'Klicke auf „Segel setzen“. Danach kannst du hier Hinweise für das aktuelle Rätsel lesen.');return;}
@@ -410,6 +473,7 @@
     paragraph(content,'Ein Gegenstand in deinen Taschen wird durch Anklicken ausgewählt. Klicke dann auf ein Ziel in der Szene — oder auf einen zweiten Gegenstand, um beide zu kombinieren. „Ansehen“ erklärt auch Inventargegenstände.');
     paragraph(content,'Dein Fortschritt wird automatisch in diesem Browser gespeichert. Karte, Logbuch und gestufte Hinweise helfen dir weiter. Es gibt keine Zeitlimits, Tode oder verlorenen Chancen.');
     paragraph(content,'In jedem Schauplatz versteckt sich eine Flaschenpost. Sammle alle sieben für Mottes Bonusbrief. Das Album öffnest du unten oder mit A. Nach dem Finale kannst du die gerettete Insel weiter erkunden.');
+    paragraph(content,'Die kleinen Abenteuer öffnen Adas Hafenband und den Fotomodus. Drei Notenfolgen lassen sich ohne Zeitlimit nachspielen; der Notenzettel hilft auch ohne Ton. Deine eigene Reise-Postkarte kannst du als PNG speichern.');
     addButton(content,'Touch- und Controller-Steuerung',openControlsHelp);
     paragraph(content,speech?.getStatus().hasRecordings?'Die Dialoge werden mit ElevenLabs-Stimmen vorgelesen. „Sprache“ schaltet sie unabhängig von der Musik um; ↻ liest die aktuelle Zeile erneut vor. Mit Enter liest du in deinem eigenen Tempo weiter.':'Sprachaufnahmen sind derzeit nicht verfügbar. Mit Enter liest du die Dialoge in deinem eigenen Tempo weiter.');
     [['Aktionen wählen','1 · 2 · 3 · 4'],['Karte / Logbuch / Hinweis','M · J · H'],['Flaschenpost-Album','A'],['Anklickbare Stellen zeigen','Leertaste'],['Dialog weiter','Enter'],['Auswahl / Fenster schließen','Esc']].forEach(([l,r])=>{const row=document.createElement('div');row.className='help-row';const left=document.createElement('span'),right=document.createElement('span');left.textContent=l;right.textContent=r;row.append(left,right);content.append(row);});
@@ -423,6 +487,7 @@
     if(speech?.getStatus().hasRecordings)addButton(actions,speech.enabled?'Sprache ausschalten':'Sprache einschalten',()=>{speech.toggle();speech.stop();openSettings();});
     if(audio?.setSoundEnabled)addButton(actions,audio.getStatus().soundEnabled?'Geräusche ausschalten':'Geräusche einschalten',()=>{audio.setSoundEnabled(!audio.getStatus().soundEnabled);if(audio.getStatus().soundEnabled)unlockMusic();openSettings();});
     if(state.finished && exploring)addButton(actions,'Finale ansehen',()=>{closeModal();showEnding();});
+    if(active)addButton(actions,'Die kleinen Abenteuer',openDiscoveries);
     addButton(actions,'Touch- und Controller-Steuerung',openControlsHelp);
     const touchLabels={auto:'automatisch',on:'an',off:'aus'};
     addButton(actions,`Touch-Leiste: ${touchLabels[touchPreference]}`,()=>{touchPreference=['auto','on','off'][(['auto','on','off'].indexOf(touchPreference)+1)%3];try{localStorage.setItem(INPUT_PREF_KEY,JSON.stringify({touch:touchPreference}));}catch{}updateTouchControls();openSettings();});
@@ -488,6 +553,7 @@
     const soundRange=$('soundVolume'),soundOutput=$('soundVolumeValue');
     if(soundRange && Number.isFinite(info?.soundVolume))soundRange.value=String(Math.round(info.soundVolume*100));
     if(soundOutput && Number.isFinite(info?.soundVolume))soundOutput.textContent=`${Math.round(info.soundVolume*100)} %`;
+    syncBandUI();
   }
   window.addEventListener('fluestertide:music',syncMusicUI);
   function syncSpeechUI() {
@@ -508,7 +574,7 @@
     if(moving)hero.x+=(hero.target-hero.x)*Math.min(1,dt*6);
     if(moving && active && $('modalBackdrop').hidden && t-stepAt>420){audio?.effect('step');stepAt=t;}
     const artState=active?state:Story.initialState();
-    ctx.clearRect(0,0,1600,900);Art.drawScene(ctx,active?state.scene:'harbor',artState,reducedMotion?0:t/1000);
+    ctx.clearRect(0,0,1600,900);Art.drawScene(ctx,active?state.scene:'harbor',artState,reducedMotion?0:t/1000,{motion:!reducedMotion});
     if(typeof Art.drawHero==='function')Art.drawHero(ctx,hero.x,hero.y,reducedMotion?0:t/1000,hero.facing,moving && !reducedMotion);
   }
   document.querySelectorAll('[data-verb]').forEach(b=>b.addEventListener('click',()=>setVerb(b.dataset.verb)));
@@ -517,6 +583,7 @@
   $('speechBtn')?.addEventListener('click',()=>{speech?.toggle();syncSpeechUI();});
   $('repeatLine')?.addEventListener('click',()=>speech?.repeat());
   $('albumBtn')?.addEventListener('click',openAlbum);$('endingExplore')?.addEventListener('click',exploreIsland);
+  $('discoveriesBtn')?.addEventListener('click',openDiscoveries);
   $('touchTargetsBtn')?.addEventListener('click',openTargets);$('touchInventoryBtn')?.addEventListener('click',openPocket);$('touchMapBtn')?.addEventListener('click',openMap);$('touchNextBtn')?.addEventListener('click',focusDialogue);$('touchMenuBtn')?.addEventListener('click',openSettings);
   touchMedia.addEventListener('change',updateTouchControls);
   document.addEventListener('pointerdown',()=>{if(active)unlockMusic();},{passive:true});
@@ -551,7 +618,7 @@
   window.addEventListener('beforeunload',save);
   window.Fluestertide = {
     getState:()=>JSON.parse(JSON.stringify(state)),start:()=>start(false),resume:()=>start(true),
-    perform:(v,id,item)=>id?.startsWith('postcard_')?(v==='take'?collectPostcard(id.slice(9)):openLetter(Extras?.byScene[id.slice(9)],false)):execute(()=>Story.perform(state,v,id,item),{verb:v,id}),choose:id=>execute(()=>Story.choose(state,id),{verb:'choice',id}),combine:(a,b)=>execute(()=>Story.combine(state,a,b),{verb:'combine'}),getAlbum:()=>Extras?.progress(state),explore:exploreIsland,getControlsStatus:()=>controls?.getStatus(),getTouchMode:()=>touchPreference,version:'1.3.0'
+    perform:(v,id,item)=>id==='harbor_band'?openBand():id?.startsWith('postcard_')?(v==='take'?collectPostcard(id.slice(9)):openLetter(Extras?.byScene[id.slice(9)],false)):execute(()=>Story.perform(state,v,id,item),{verb:v,id}),choose:id=>execute(()=>Story.choose(state,id),{verb:'choice',id}),combine:(a,b)=>execute(()=>Story.combine(state,a,b),{verb:'combine'}),getAlbum:()=>Extras?.progress(state),getBand:()=>Band?.status(state),explore:exploreIsland,getControlsStatus:()=>controls?.getStatus(),getTouchMode:()=>touchPreference,version:'1.4.0'
   };
   controls=window.FluestertideControls?.initialize({getScope:inputScope,preferredFocus:preferredInputFocus,activate:element=>{unlockMusic();element.click();},cancel:cancelInput,openMap,openMenu:openSettings,focusInventory:openPocket,cycleInventory,cycleVerb,onStatus:onInputStatus});
   document.querySelector('.game-shell').classList.add('inactive');refresh();syncSpeechUI();syncMusicUI();requestAnimationFrame(animate);

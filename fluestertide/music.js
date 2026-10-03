@@ -57,18 +57,18 @@
   const sound = (frequency, duration, velocity, extra = {}) => ({ frequency, duration, velocity, ...extra });
   const rustle = (cutoff, duration, velocity, extra = {}) => ({ noise: true, cutoff, duration, velocity, ...extra });
   const ambienceProfiles = {
-    title: { title: 'Holz, Tau und leise Gläser', interval: 12, events: [sound(106, .4, .014, { to: 73, wave: 'triangle' }), rustle(250, .12, .016, { delay: .24 })] },
-    harbor: { title: 'Knarrende Stege und Tau', interval: 8.6, events: [sound(83, .48, .019, { to: 61, wave: 'triangle' }), rustle(280, .15, .024, { delay: .17 }), sound(540, .07, .008, { to: 290, delay: .52 })] },
-    tavern: { title: 'Gläser, Kamin und alte Balken', interval: 7.3, events: [sound(1260, .08, .012), rustle(1150, .04, .02, { delay: .2 }), sound(92, .36, .014, { to: 69, wave: 'triangle', delay: .44 })] },
-    bazaar: { title: 'Segeltuch und Pippas winzige Töne', interval: 8.2, events: [rustle(780, .19, .022), sound(1420, .055, .009, { to: 1750, delay: .35 }), sound(1240, .06, .007, { to: 1510, delay: .46 })] },
-    lighthouse: { title: 'Leise Zahnräder im Dunkeln', interval: 10.4, events: [rustle(190, .23, .022), sound(86, .42, .013, { to: 81, delay: .18 })] },
-    lagoon: { title: 'Wassertropfen und Muschelresonanz', interval: 8.1, events: [sound(740, .11, .016, { to: 480 }), sound(1060, .08, .009, { to: 710, delay: .32 }), sound(164, .5, .008, { delay: .55 })] },
-    wreck: { title: 'Knarrendes Holz und ein stiller Kiel', interval: 11.2, events: [sound(81, .62, .02, { to: 55, wave: 'triangle' }), sound(58, .8, .011, { delay: .42 }), rustle(170, .12, .017, { delay: .7 })] },
-    vault: { title: 'Gedämpfter Klang in der Glockenkammer', interval: 12.3, events: [sound(135, 1.1, .012, { attack: .2 }), sound(271, .6, .004, { delay: .08, attack: .15 })] },
-    ocean: { title: 'Sanfte Meeresbrise', interval: 7.4, events: [rustle(680, 1.5, .032, { cutoffEnd: 420, attack: .4, release: .5, offset: .2 }), rustle(1100, .42, .01, { delay: .85, attack: .12, offset: .6 })] },
-    lamp: { title: 'Laternenwärme und sanftes Surren', interval: 9.1, events: [sound(104, .62, .013, { to: 101, attack: .18 }), rustle(1300, .035, .014, { delay: .5 })] },
-    ghost: { title: 'Balthasars warme Schiffserinnerung', interval: 10.6, events: [sound(98, .55, .016, { to: 73, wave: 'triangle' }), sound(110, .8, .009, { delay: .36, attack: .2 })] },
-    harmony: { title: 'Der Dreiklang atmet', interval: 11.8, events: [sound(146.83, .65, .009, { attack: .18 }), sound(220, .55, .006, { delay: .2, attack: .15 }), sound(293.66, .7, .004, { delay: .4, attack: .18 })] }
+    title: { title: 'Holz, Tau und leise Gläser', interval: 12, events: [sound(106, .4, .014, { to: 73, wave: 'triangle', pan: -.2 }), rustle(250, .12, .016, { delay: .24 }), rustle(430, .9, .015, { delay: .7, attack: .3, release: .35, pan: .35 })] },
+    harbor: { title: 'Knarrende Stege, Wellen und ferne Möwen', interval: 8.6, events: [sound(83, .48, .019, { to: 61, wave: 'triangle', pan: -.35 }), rustle(280, .15, .024, { delay: .17 }), sound(540, .07, .008, { to: 290, delay: .52 }), rustle(620, .95, .021, { cutoffEnd: 360, delay: .65, attack: .3, release: .4, pan: .3 }), sound(1280, .08, .006, { to: 1530, delay: 1.7, pan: -.55 }), sound(1440, .07, .005, { to: 1120, delay: 1.82, pan: -.48 })] },
+    tavern: { title: 'Gläser, Kamin und alte Balken', interval: 7.3, events: [sound(1260, .08, .012, { pan: -.4 }), rustle(1150, .04, .02, { delay: .2 }), sound(92, .36, .014, { to: 69, wave: 'triangle', delay: .44 }), rustle(760, .3, .012, { attack: .08, delay: .75, pan: .42 }), sound(1840, .16, .005, { delay: 1.2, pan: -.25 }), rustle(210, .4, .008, { attack: .12, delay: 1.5, pan: .2 })] },
+    bazaar: { title: 'Segeltuch, Münzen und Pippas winzige Töne', interval: 8.2, events: [rustle(780, .19, .022, { pan: -.3 }), sound(1420, .055, .009, { to: 1750, delay: .35, pan: .45 }), sound(1240, .06, .007, { to: 1510, delay: .46, pan: .42 }), rustle(400, .55, .014, { delay: .85, attack: .15, release: .2, pan: -.45 }), sound(2090, .08, .006, { delay: 1.48, pan: .2 })] },
+    lighthouse: { title: 'Leise Zahnräder im Dunkeln', interval: 10.4, events: [rustle(190, .23, .022, { pan: -.2 }), sound(86, .42, .013, { to: 81, delay: .18 }), rustle(490, .94, .015, { attack: .32, release: .35, delay: .7, pan: .5 }), sound(380, .09, .006, { to: 310, delay: 1.5, pan: -.3 })] },
+    lagoon: { title: 'Wassertropfen, Wellen und Muschelresonanz', interval: 8.1, events: [sound(740, .11, .016, { to: 480, pan: -.45 }), sound(1060, .08, .009, { to: 710, delay: .32, pan: .3 }), sound(164, .5, .008, { delay: .55 }), rustle(570, .96, .018, { cutoffEnd: 320, attack: .3, release: .4, delay: .8, pan: .4 }), sound(1680, .075, .004, { to: 1450, delay: 1.7, pan: -.5 })] },
+    wreck: { title: 'Knarrendes Holz und ein stiller Kiel', interval: 11.2, events: [sound(81, .62, .02, { to: 55, wave: 'triangle', pan: -.35 }), sound(58, .8, .011, { delay: .42, pan: .3 }), rustle(170, .12, .017, { delay: .7 }), rustle(360, .72, .009, { delay: 1.1, attack: .25, release: .3, pan: .45 })] },
+    vault: { title: 'Gedämpfter Klang in der Glockenkammer', interval: 12.3, events: [sound(135, 1.1, .012, { attack: .2, pan: -.18 }), sound(271, .6, .004, { delay: .08, attack: .15, pan: .35 }), rustle(270, .27, .006, { delay: .85, attack: .09 }), sound(809, .2, .0025, { delay: 1.15, pan: -.4 })] },
+    ocean: { title: 'Sanfte Meeresbrise', interval: 7.4, events: [rustle(680, 1.5, .032, { cutoffEnd: 420, attack: .4, release: .5, offset: .2, pan: -.3 }), rustle(1100, .42, .01, { delay: .85, attack: .12, offset: .6, pan: .4 }), sound(1280, .08, .004, { to: 1510, delay: 1.5, pan: -.5 }), sound(1460, .09, .004, { to: 1180, delay: 1.63, pan: -.45 })] },
+    lamp: { title: 'Laternenwärme und sanftes Surren', interval: 9.1, events: [sound(104, .62, .013, { to: 101, attack: .18, pan: -.12 }), rustle(1300, .035, .014, { delay: .5 }), rustle(540, .95, .012, { attack: .3, release: .35, delay: .8, pan: .45 }), sound(1568, .12, .004, { delay: 1.4, pan: -.3 })] },
+    ghost: { title: 'Balthasars warme Schiffserinnerung', interval: 10.6, events: [sound(98, .55, .016, { to: 73, wave: 'triangle', pan: -.25 }), sound(110, .8, .009, { delay: .36, attack: .2, pan: .2 }), rustle(500, .82, .014, { delay: .8, attack: .3, release: .3, pan: .45 }), sound(440, .08, .003, { delay: 1.6, pan: -.3 })] },
+    harmony: { title: 'Der Dreiklang atmet', interval: 11.8, events: [sound(146.83, .65, .009, { attack: .18, pan: -.35 }), sound(220, .55, .006, { delay: .2, attack: .15, pan: .35 }), sound(293.66, .7, .004, { delay: .4, attack: .18 }), sound(880, .16, .0025, { delay: 1.1, pan: -.25 })] }
   };
   function worldSnapshot(input = {}) {
     if (!input || typeof input !== 'object') input = {};
@@ -76,7 +76,8 @@
     return {
       finished: input.finished === true || flags.finished === true || ['gentle', 'loud'].includes(flags.ending),
       lampLit: !!flags.lampLit, beaconFixed: !!flags.beaconFixed,
-      ghostHelped: !!flags.ghostHelped, harmonyUnlocked: !!flags.harmonyUnlocked
+      ghostHelped: !!flags.ghostHelped, harmonyUnlocked: !!flags.harmonyUnlocked,
+      harborBandComplete: !!flags.harborBandComplete
     };
   }
   function ambienceFor(scene, state = {}) {
@@ -108,6 +109,24 @@
     if (id === 'heart') return [sound(293.66, .25, .043, { attack: .025 }), sound(349.23, .22, .027, { delay: .028 })];
     return [];
   }
+  const bandIds = Object.freeze(['wood', 'glass', 'shell', 'bell']);
+  function bandEvents(id) {
+    if (id === 'wood') return [rustle(620, .035, .065, { pan: -.35, room: 0 }), sound(196, .11, .042, { to: 140, wave: 'triangle', pan: -.35, room: 0 })];
+    if (id === 'glass') return [sound(1174.66, .23, .042, { pan: .3, room: .04 }), sound(2349.32, .12, .013, { delay: .006, pan: .3, room: .04 })];
+    if (id === 'shell') return [sound(392, .3, .039, { to: 415.3, attack: .035, pan: -.12, room: .05 }), rustle(1280, .14, .008, { delay: .025, attack: .035, pan: -.12, room: 0 })];
+    if (id === 'bell') return [sound(783.99, .4, .041, { pan: .2, room: .075 }), sound(1568, .27, .012, { delay: .005, pan: .2, room: .075 }), sound(2110, .14, .004, { delay: .008, pan: .2, room: .075 })];
+    return [];
+  }
+  function arrangementEvents(score, index, state = {}) {
+    const world = worldSnapshot(state), chord = score.chords[index % score.chords.length], beat = score.beatsPerBar;
+    const note = (midi, at, velocity=.009) => ({voice:'ornament',midi,beat:at,duration:.45,velocity});
+    if (world.harborBandComplete && score.id === 'harbor' && index % 4 === 0) return [note(chord[2]+12,0,.01),note(chord[1]+12,1.5,.008)];
+    if (world.finished && index % 4 === 0) return [note(chord[2]+12,beat-1,.008)];
+    if (score.id === 'lighthouse' && (world.lampLit || world.beaconFixed) && index % 2 === 0) return [note(chord[1]+12,beat-1)];
+    if (score.id === 'wreck' && world.ghostHelped && index % 2 === 0) return [note(chord[1]+12,beat/2+.5,.008)];
+    if (score.id === 'vault' && world.harmonyUnlocked && index % 2 === 0) return [note(chord[2]+12,beat-1,.01)];
+    return [];
+  }
 
   const PREF_KEY = 'fluestertide.music.v1';
   function createPlayer(environment = {}) {
@@ -118,11 +137,13 @@
     const interval = environment.setInterval || win.setInterval && win.setInterval.bind(win);
     const clear = environment.clearInterval || win.clearInterval && win.clearInterval.bind(win);
     let enabled = true, volume = .35, soundEnabled = true, soundVolume = .45, scene = 'title', activeScene = 'title';
-    let context = null, master = null, musicBus = null, effectsBus = null, soundMaster = null, ambienceBus = null, noise = null;
+    let context = null, master = null, musicBus = null, effectsBus = null, soundMaster = null, ambienceBus = null, bandBus = null, noise = null;
     let initialized = false, unlocked = false, playing = false, soundPlaying = false, ready = false, error = null, ducked = false, disposed = false, pageHidden = false;
     let timer = null, cursor = 0, loopStart = 0, loopNumber = 0, pending = null, transitionAt = 0, events = scoreEvents(scores.title), resumeToken = 0;
     let pendingSuspension = Promise.resolve(), suspensionCount = 0;
     let world = worldSnapshot(), worldSignature = JSON.stringify(world), nextAmbienceAt = 0, ambienceCycle = 0, stepSequence = 0;
+    let arrangementWorld = world, pendingArrangement = null, arrangementAt = 0, ornamentBar = '';
+    let bandQueue = null, bandPlaying = false, bandStep = -1;
     const lastEffect = new Map();
     const records = new Set();
     const listeners = [];
@@ -138,7 +159,7 @@
     const soundWanted = () => soundEnabled && soundVolume > 0;
     const anyWanted = () => musicWanted() || soundWanted();
     const canRun = () => !disposed && unlocked && context && context.state === 'running' && !hidden();
-    const getStatus = () => ({ enabled, playing, scene, activeScene, title: scores[scene].title, volume, soundEnabled, soundVolume, soundPlaying, ambience: ambienceFor(scene, world).title, ready, error, ducked });
+    const getStatus = () => ({ enabled, playing, scene, activeScene, title: scores[scene].title, volume, soundEnabled, soundVolume, soundPlaying, ambience: ambienceFor(scene, world).title, ready, error, ducked, bandPlaying, bandStep });
     function emit() {
       const detail = getStatus();
       if (typeof environment.onStatus === 'function') environment.onStatus(detail);
@@ -161,6 +182,7 @@
       ramp(musicBus.gain, ducked ? .22 : .64, .12);
       ramp(soundMaster.gain, soundEnabled ? soundVolume : 0, .06);
       ramp(ambienceBus.gain, ducked ? .18 : .64, .12);
+      if (bandBus) ramp(bandBus.gain, ducked ? .22 : .68, .1);
     }
     function forget(record) {
       if (!records.delete(record)) return;
@@ -183,8 +205,9 @@
       resumeToken++;
       if (timer !== null && clear) clear(timer);
       timer = null;
-      const wasPlaying = playing || soundPlaying;
+      const wasPlaying = playing || soundPlaying || bandPlaying;
       playing = false; soundPlaying = false;
+      bandQueue = null; bandPlaying = false; bandStep = -1;
       for (const record of Array.from(records)) stopRecord(record);
       pending = null;
       lastEffect.clear();
@@ -197,6 +220,17 @@
       for (let index = 0; index < channel.length; index++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; channel[index] = seed / 2147483648 - 1; }
       return buffer;
     }
+    function route(gain, bus, event, nodes, room=0) {
+      // Both APIs are optional; older browsers and headless test contexts stay mono.
+      let output = bus;
+      if (context.createStereoPanner && Number.isFinite(event.pan)) {
+        try { const panner = context.createStereoPanner(); panner.pan.setValueAtTime(Math.max(-.65,Math.min(.65,event.pan)), context.currentTime); panner.connect(bus); nodes.push(panner); output=panner; } catch (_) {}
+      }
+      gain.connect(output);
+      if (room > 0 && context.createDelay) {
+        try { const delay=context.createDelay(.2), echo=context.createGain(); delay.delayTime.value=Math.min(.12,room); echo.gain.value=.13; gain.connect(delay); delay.connect(echo); echo.connect(output); nodes.push(delay,echo); } catch (_) {}
+      }
+    }
     function schedule(event, at, secondsPerBeat, bus = musicBus) {
       if (!context || !bus || at < context.currentTime - .02) return;
       const isDrum = event.voice === 'drum';
@@ -207,7 +241,7 @@
       filter.Q.value = .5;
       filter.frequency.value = isDrum ? { kick: 190, snare: 1100, hat: 2300 }[event.drum] : event.voice === 'bass' ? 480 : event.voice === 'arp' ? 1200 : 1850;
       if (isDrum) { source.buffer = noise; source.playbackRate.value = event.drum === 'kick' ? .65 : 1; }
-      else { source.type = event.voice === 'bass' ? 'triangle' : event.voice === 'arp' ? 'square' : 'square'; source.frequency.setValueAtTime(midiToFrequency(event.midi), at); }
+      else { source.type = event.voice === 'bass' ? 'triangle' : event.voice === 'ornament' ? 'sine' : 'square'; source.frequency.setValueAtTime(midiToFrequency(event.midi), at); }
       const duration = isDrum ? event.duration : Math.max(.055, event.duration * secondsPerBeat);
       const attack = Math.min(duration * .15, event.voice === 'lead' ? .014 : .009);
       const release = Math.min(.07, duration * .3);
@@ -215,15 +249,17 @@
       gain.gain.linearRampToValueAtTime(event.velocity, at + attack);
       gain.gain.setValueAtTime(event.velocity * .73, Math.max(at + attack, at + duration - release));
       gain.gain.linearRampToValueAtTime(0, at + duration);
-      source.connect(filter); filter.connect(gain); gain.connect(bus);
-      const record = { source, gain, nodes: [source, filter, gain], start: at, end: at + duration + .012, scene: activeScene, category: 'music' };
+      const nodes=[source,filter,gain];source.connect(filter);filter.connect(gain);
+      const pan = event.voice==='bass'?0:event.voice==='arp'?(event.midi%2?-.18:.18):event.voice==='ornament'?.28:event.voice==='drum'?.1:-.08;
+      route(gain,bus,{pan},nodes);
+      const record = { source, gain, nodes, start: at, end: at + duration + .012, scene: activeScene, category: 'music' };
       records.add(record);
       source.onended = () => forget(record);
       source.start(at); source.stop(record.end);
     }
     function texture(event, at, category) {
       if (!canRun() || !soundWanted() || records.size >= 128 || at < context.currentTime - .02) return;
-      const bus = category === 'ambience' ? ambienceBus : effectsBus;
+      const bus = category === 'ambience' ? ambienceBus : category === 'band' ? bandBus : effectsBus;
       const source = event.noise ? context.createBufferSource() : context.createOscillator();
       const filter = context.createBiquadFilter(), gain = context.createGain();
       filter.type = 'lowpass'; filter.Q.value = .45;
@@ -242,8 +278,10 @@
       gain.gain.linearRampToValueAtTime(event.velocity, at + attack);
       gain.gain.setValueAtTime(event.velocity * .55, Math.max(at + attack, at + event.duration - release));
       gain.gain.linearRampToValueAtTime(0, at + event.duration);
-      source.connect(filter); filter.connect(gain); gain.connect(bus);
-      const record = { source, gain, nodes: [source, filter, gain], start: at, end: at + event.duration + .012, category, scene };
+      const nodes=[source,filter,gain];source.connect(filter);filter.connect(gain);
+      const room=event.room ?? (category==='ambience'?({tavern:.04,lighthouse:.045,wreck:.055,vault:.09}[scene] || 0):0);
+      route(gain,bus,event,nodes,room);
+      const record = { source, gain, nodes, start: at, end: at + event.duration + .012, category, scene };
       records.add(record); source.onended = () => forget(record);
       if (event.noise) source.start(at, event.offset || 0); else source.start(at);
       source.stop(record.end);
@@ -255,16 +293,29 @@
       for (const event of profile.events) texture(event, at + (event.delay || 0), 'ambience');
       nextAmbienceAt = now + profile.interval + [0, .8, -.35, 1.25][ambienceCycle++ % 4];
     }
+    function scheduleBand(now) {
+      if (!bandPlaying || !bandQueue) return;
+      const queue=bandQueue;
+      if (!soundWanted() || !canRun() || (queue.index<queue.ids.length && now>queue.start+queue.index*queue.beat+.12)) { stopBandSequence(); return; }
+      if(queue.index<queue.ids.length && queue.start+queue.index*queue.beat<=now+.1){
+        const at=Math.max(now,queue.start+queue.index*queue.beat),id=queue.ids[queue.index];
+        for(const event of bandEvents(id))texture(event,at+(event.delay || 0),'band');
+        bandStep=queue.index++;emit();
+      }
+      if(queue.index>=queue.ids.length && now>=queue.end)stopBandSequence();
+    }
     function changeScore(id, at) {
       activeScene = id;
       pending = null; cursor = 0; loopNumber = 0; loopStart = at;
       events = scoreEvents(scores[id]);
+      arrangementWorld=world;pendingArrangement=null;ornamentBar='';
       emit();
     }
     function scheduler() {
       if (!canRun() || suspensionCount) return;
       const now = context.currentTime;
       scheduleAmbience(now);
+      scheduleBand(now);
       if (!playing) return;
       const horizon = now + .15;
       let safety = 0;
@@ -273,8 +324,16 @@
         const secondsPerBeat = 60 / score.bpm;
         let at = loopStart + loopNumber * loopSeconds(score) + events[cursor].beat * secondsPerBeat;
         if (pending && transitionAt <= Math.min(at, horizon)) { changeScore(pending, Math.max(transitionAt, now + .01)); continue; }
+        if (pendingArrangement && arrangementAt <= Math.min(at,horizon)) { arrangementWorld=pendingArrangement;pendingArrangement=null; }
         if (at > horizon) break;
-        if (at >= now - .02) schedule(events[cursor], Math.max(at, now), secondsPerBeat);
+        if (at >= now - .02) {
+          schedule(events[cursor], Math.max(at, now), secondsPerBeat);
+          const index=Math.floor(events[cursor].beat/score.beatsPerBar),key=activeScene+':'+loopNumber+':'+index;
+          if(events[cursor].beat%score.beatsPerBar===0 && ornamentBar!==key){
+            ornamentBar=key;
+            for(const event of arrangementEvents(score,index,arrangementWorld))schedule(event,Math.max(at,now)+event.beat*secondsPerBeat,secondsPerBeat);
+          }
+        }
         cursor++;
         if (cursor >= events.length) { cursor = 0; loopNumber++; }
       }
@@ -287,7 +346,7 @@
       if (musicWanted() && !playing) { playing = true; changeScore(scene, context.currentTime + .035); changed = true; }
       if (!musicWanted() && playing) { playing = false; pending = null; stopCategory('music'); changed = true; }
       if (soundWanted() && !soundPlaying) { soundPlaying = true; nextAmbienceAt = context.currentTime + .2; changed = true; }
-      if (!soundWanted() && soundPlaying) { soundPlaying = false; stopCategory('ambience'); stopCategory('effect'); changed = true; }
+      if (!soundWanted() && soundPlaying) { soundPlaying = false; stopCategory('ambience'); stopCategory('effect'); stopBandSequence(false); changed = true; }
       levels();
       if (playing || soundPlaying) {
         scheduler();
@@ -336,8 +395,10 @@
           context = new Audio();
           master = context.createGain(); musicBus = context.createGain(); effectsBus = context.createGain();
           soundMaster = context.createGain(); ambienceBus = context.createGain();
+          bandBus = context.createGain();
           master.gain.value = 0; soundMaster.gain.value = 0; musicBus.gain.value = .64; effectsBus.gain.value = .68; ambienceBus.gain.value = .64;
-          musicBus.connect(master); effectsBus.connect(soundMaster); ambienceBus.connect(soundMaster);
+          bandBus.gain.value=.68;
+          musicBus.connect(master); effectsBus.connect(soundMaster); ambienceBus.connect(soundMaster);bandBus.connect(soundMaster);
           soundMaster.connect(context.destination); master.connect(context.destination);
           noise = noiseBuffer(); ready = true;
           listen(context, 'statechange', () => {
@@ -356,6 +417,7 @@
     function setScene(id) {
       if (!scores[id]) return getStatus();
       if (scene === id) return getStatus();
+      stopBandSequence(false);
       scene = id;
       stopCategory('ambience');
       nextAmbienceAt = context ? context.currentTime + .18 : 0;
@@ -394,18 +456,20 @@
       const next = worldSnapshot(input), signature = JSON.stringify(next);
       if (signature === worldSignature) return getStatus();
       world = next; worldSignature = signature;
+      if(playing && context){const seconds=scores[activeScene].beatsPerBar*60/scores[activeScene].bpm;arrangementAt=loopStart+(Math.floor(Math.max(0,context.currentTime-loopStart)/seconds)+1)*seconds;pendingArrangement=world;}
+      else arrangementWorld=world;
       stopCategory('ambience'); ambienceCycle = 0;
       nextAmbienceAt = context ? context.currentTime + .22 : 0;
       emit(); return getStatus();
     }
     function duck(value) { ducked = !!value; levels(); emit(); return getStatus(); }
-    function trigger(type, eventsToPlay, cooldown) {
+    function trigger(type, eventsToPlay, cooldown, category='effect') {
       if (!canRun() || !soundWanted() || !eventsToPlay.length) return false;
       const now = context.currentTime + .005;
       if (now - (lastEffect.get(type) ?? -Infinity) < cooldown) return false;
-      if (Array.from(records).filter(record => record.category === 'effect').length >= 24) return false;
+      if (Array.from(records).filter(record => record.category === category).length >= 24) return false;
       lastEffect.set(type, now);
-      for (const event of eventsToPlay) texture(event, now + (event.delay || 0), 'effect');
+      for (const event of eventsToPlay) texture(event, now + (event.delay || 0), category);
       return true;
     }
     function effect(type) {
@@ -419,19 +483,37 @@
       const tone = String(id || '').replace(/^tone_/, '');
       return trigger('tone_' + tone, toneEvents(tone), .16);
     }
+    function stopBandSequence(notify=true) {
+      const stopped=bandPlaying;bandQueue=null;bandPlaying=false;bandStep=-1;
+      stopCategory('band');
+      if(stopped && notify)emit();return stopped;
+    }
+    function playBandNote(id) {
+      if(!bandIds.includes(id) || !canRun() || !soundWanted())return false;
+      if(bandPlaying)stopBandSequence();
+      return trigger('band_'+id,bandEvents(id),.065,'band');
+    }
+    function playBandSequence(ids,options={}) {
+      if(!Array.isArray(ids) || !ids.length || ids.length>16 || !ids.every(id=>bandIds.includes(id)) || !canRun() || !soundWanted())return false;
+      stopBandSequence(false);
+      const requested=Number(options?.beat),beat=Number.isFinite(requested)?Math.max(.18,Math.min(.8,requested)):.38;
+      const startAt=context.currentTime+.025;
+      bandQueue={ids:ids.slice(),beat,index:0,start:startAt,end:startAt+(ids.length-1)*beat+.44};bandPlaying=true;bandStep=-1;
+      emit();scheduleBand(context.currentTime);return true;
+    }
     async function destroy() {
       disposed = true; stop();
       for (const [target, event, handler] of listeners) target.removeEventListener(event, handler);
       listeners.length = 0;
       for (const record of Array.from(records)) { try { record.source.stop(); } catch (_) {} forget(record); }
-      for (const bus of [musicBus, effectsBus, ambienceBus, soundMaster, master]) { if (bus) try { bus.disconnect(); } catch (_) {} }
+      for (const bus of [musicBus, effectsBus, ambienceBus, bandBus, soundMaster, master]) { if (bus) try { bus.disconnect(); } catch (_) {} }
       if (context && context.close) await context.close();
       ready = false; emit();
     }
-    return { initialize, unlock, setScene, toggle: () => setEnabled(!enabled), setEnabled, setVolume, setSoundEnabled, setSoundVolume, setWorldState, playTone, duck, effect, getStatus, destroy };
+    return { initialize, unlock, setScene, toggle: () => setEnabled(!enabled), setEnabled, setVolume, setSoundEnabled, setSoundVolume, setWorldState, playTone, playBandNote, playBandSequence, stopBandSequence, duck, effect, getStatus, destroy };
   }
 
-  const exported = { scores, noteMidi, midiToFrequency, buildBar, scoreEvents, loopSeconds, ambienceFor, soundEvents, toneEvents, effectTypes, createPlayer, PREF_KEY };
+  const exported = { scores, noteMidi, midiToFrequency, buildBar, scoreEvents, loopSeconds, ambienceFor, soundEvents, toneEvents, effectTypes, bandEvents, bandIds, arrangementEvents, createPlayer, PREF_KEY };
   if (typeof module !== 'undefined' && module.exports) module.exports = exported;
   if (root && root.document) root.FluestertideMusic = createPlayer({ window: root });
 })(typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : this);

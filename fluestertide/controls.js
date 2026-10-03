@@ -73,7 +73,7 @@
     }
     function scope(){return options.getScope?.() || defaultScope();}
     function candidates(container){if(!container)return [];return [...container.querySelectorAll(FOCUSABLE)].filter(el=>visible(el)&&!el.closest('[data-controls-ui]')).map(element=>({element,rect:element.getBoundingClientRect()}));}
-    function token(el){if(el.id)return 'id:'+el.id;for(const key of ['target','item','choice','verb','postcard','scene','touchTarget','touchVerb','pocketItem','itemInfo'])if(el.dataset[key])return key+':'+el.dataset[key];return null;}
+    function token(el){if(el.id)return 'id:'+el.id;for(const key of ['target','item','choice','verb','postcard','scene','touchTarget','touchVerb','pocketItem','itemInfo','bandNote','photoFilter','discovery'])if(el.dataset[key])return key+':'+el.dataset[key];return null;}
     function remember(container,el){const key=el&&token(el);if(container && key && key!=='id:closeModal')bookmarks.set(container,key);}
     function mark(el){if(marked!==el)marked?.classList.remove('controller-focus');marked=el;el?.classList.add('controller-focus');if(el)remember(scope(),el);}
     function focus(el){if(!el)return false;el.focus({preventScroll:true});el.scrollIntoView({block:'nearest',inline:'nearest',behavior:'auto'});mark(el);return true;}
